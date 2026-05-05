@@ -3,7 +3,7 @@ main: com.wormhole_xtreme.wormhole.WormholeXTreme
 version: 0.854
 api-version: "1.20"
 authors: [Lologarithm, alron]
-softdepend: [Permissions, Vault, LuckPerms, Help, WormholeXTremeWorlds]
+softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
 description: >
              Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
              Iris, configurable Wormhole materials, and much much more.
@@ -18,56 +18,10 @@ commands:
                      
             
    wormhole:
-     description: Wormhole administration and configuration commands.
+     description: Wormhole administration and configuration commands (canonical admin command).
+     aliases: [wx]
      usage: |
             /<command> <commandtype> [ARG1] [ARG2]
             Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, and custom.
 
-   wxlist:
-     description: List all Stargates.
-     usage: |
-            /<command> - List all Stargates.
-            
-   wxbuild:
-     description: Automatically Build Stargate.
-     usage: |
-            /<command> <GateShape>
-            <GateShape> The GateShape to build.
-            After placing a DHD with a button (and sign if wanted) running this command then pressing the button will cause the specified <GateShape> to be built.
-            
-   wxremove:
-     description: Remove a stargate, optionally destroy its blocks.
-     usage: |
-            /<command> <GateName> [-all]
-            <GateName> The GateName to remove.
-            [-all] destroys gate blocks too.
-
-   wxcompass:
-     description: Point compass needle at nearest Stargate.
-     usage: |
-            /<command> - Point compass needle at nearest Stargate.
-            
-   wxcomplete:
-     description: Complete StarGate construction.
-     usage: |
-            /<command> <GateName> idc=[IDC] net=[Net]
-            <GateName> The name to give new Stargate.
-            [IDC] Optional password to give Stargate.
-            [Net] Optional network for Stargate.
-            
-   wxidc:
-     description: Gets or sets a gates IDC code.
-     usage: |
-            /<command> <GateName> <optional_set_idc>
-            Requires being either owner or have wormhole.config
-            set -clear to remove the IDC
-
-   wxforce:
-     description: Forcefully shut down, darken, and open the iris of either a single or all gates.
-     usage: |
-            /<command> <gateName|-all>
-
-   wxgo:
-     description: Teleport to specified wormhole.
-     usage: |
-            /<command> <GateName>
+   # legacy wx* command entries removed; now provided as aliases under `wormhole`.
