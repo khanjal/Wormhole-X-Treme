@@ -1759,7 +1759,7 @@ public class Stargate
         {
             if (create)
             {
-                final Block nameSign = getGateNameBlockHolder().getRelative(getGateFacing());
+                final Block nameSign = getGateNameBlockHolder();
                 // Diagnostic: log placement info to help debug sign orientation issues
                 try {
                     System.out.println("[WX-DIAG] setupGateSign: gate=" + getGateName() + " facing=" + getGateFacing() + " nameHolder=" + getGateNameBlockHolder().getLocation() + " nameSign=" + nameSign.getLocation() + " signDataByte=" + WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()));
@@ -1783,7 +1783,7 @@ public class Stargate
             }
             else
             {
-                final Block nameSign = getGateNameBlockHolder().getRelative(getGateFacing());
+                final Block nameSign = getGateNameBlockHolder();
                 if (nameSign.getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
                 {
                     getGateStructureBlocks().remove(nameSign.getLocation());
