@@ -97,7 +97,16 @@ public class Configuration
      */
     protected static void loadConfiguration(final PluginDescriptionFile desc)
     {
-        readFile(desc);
+        // Prefer YAML config if present, otherwise fall back to legacy flat file.
+        final File yamlFile = new File("plugins" + File.separator + desc.getName() + File.separator + "config.yml");
+        if (yamlFile.exists())
+        {
+            ConfigurationYAML.loadConfiguration(desc);
+        }
+        else
+        {
+            readFile(desc);
+        }
     }
 
     /**

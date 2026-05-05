@@ -460,7 +460,8 @@ public class Stargate
             WormholeXTreme.getScheduler().cancelTask(getGateActivateTaskId());
         }
 
-        if ( !target.isGateLightsActive() || force)
+        // Allow dialing if the target gate is NOT lit (inactive) or when forced.
+        if (!target.isGateLightsActive() || force)
         {
             setGateTarget(target);
             dialStargate();

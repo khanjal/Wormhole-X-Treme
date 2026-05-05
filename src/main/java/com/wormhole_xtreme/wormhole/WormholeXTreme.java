@@ -325,6 +325,9 @@ public class WormholeXTreme extends JavaPlugin
         HelpSupport.registerHelpCommands();
         if ( !ConfigManager.isWormholeWorldsSupportEnabled())
         {
+            // Now it's safe to load stargates which may create worlds.
+            prettyLog(Level.INFO, true, "Wormhole Worlds support disabled in settings; loading stargates now.");
+            StargateDBManager.loadStargates(getThisPlugin().getServer());
             registerEvents(false);
             registerCommands();
             prettyLog(Level.INFO, true, "Enable Completed.");
@@ -347,13 +350,9 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.setPrettyLogLevel(ConfigManager.getLogLevel());
         // Make sure DB is up to date with latest SCHEMA
         DBUpdateUtil.updateDB();
-        // Load our shapes, stargates, and internal permissions.
+        // Load our shapes and internal permissions. Stargates are loaded in onEnable
+        // because world creation is not allowed during plugin startup (onLoad).
         StargateHelper.loadShapes();
-        if ( !ConfigManager.isWormholeWorldsSupportEnabled())
-        {
-            prettyLog(Level.INFO, true, "Wormhole Worlds support disabled in settings.txt, loading stargates and worlds ourself.");
-            StargateDBManager.loadStargates(getThisPlugin().getServer());
-        }
         PermissionsManager.loadPermissions();
         prettyLog(Level.INFO, true, "Load Completed.");
     }

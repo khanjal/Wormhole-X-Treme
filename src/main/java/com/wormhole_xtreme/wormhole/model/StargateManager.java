@@ -20,6 +20,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -166,7 +167,7 @@ public class StargateManager
      */
     protected static void addStargate(final Stargate s)
     {
-        getStargateList().put(s.getGateName(), s);
+        getStargateList().put(normalizeGateName(s.getGateName()), s);
         for (final Location b : s.getGateStructureBlocks())
         {
             getAllGateBlocks().put(b, s);
@@ -577,9 +578,14 @@ public class StargateManager
      */
     public static Stargate getStargate(final String name)
     {
-        if (getStargateList().containsKey(name))
+        if (name == null)
         {
-            return getStargateList().get(name);
+            return null;
+        }
+        final String key = normalizeGateName(name);
+        if (getStargateList().containsKey(key))
+        {
+            return getStargateList().get(key);
         }
         else
         {
@@ -650,7 +656,16 @@ public class StargateManager
      */
     public static boolean isStargate(final String name)
     {
-        return getStargateList().containsKey(name);
+        if (name == null)
+        {
+            return false;
+        }
+        return getStargateList().containsKey(normalizeGateName(name));
+    }
+
+    private static String normalizeGateName(final String name)
+    {
+        return name == null ? null : name.toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -667,6 +682,32 @@ public class StargateManager
         //	if ( s != null )
         //		s.DeActivateStargate();
         return s;
+    }
+
+    /**
+     * Remove and return the player who activated the given stargate, if any.
+     * This is used to force-clear stale activations when the gate is lit but the
+     * activating player mapping is missing or the activator is offline.
+     *
+     * @param s the stargate
+     * @return the Player who activated the gate (and was removed), or null if none
+     */
+    public static Player removeActivatorForStargate(final Stargate s)
+    {
+        if (s == null)
+        {
+            return null;
+        }
+        for (final java.util.Map.Entry<Player, Stargate> e : getActivatedStargates().entrySet())
+        {
+            if (e.getValue() == s)
+            {
+                final Player p = e.getKey();
+                getActivatedStargates().remove(p);
+                return p;
+            }
+        }
+        return null;
     }
 
     /**

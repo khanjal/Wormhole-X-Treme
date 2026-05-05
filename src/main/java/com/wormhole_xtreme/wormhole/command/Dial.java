@@ -98,8 +98,31 @@ public class Dial implements CommandExecutor
                     }
                     else
                     {
-                        CommandUtilities.closeGate(start, false);
-                        player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+                        // Attempt recovery: sometimes a gate can be visually cleared but still
+                        // have internal 'lights active' or stale activator mapping. Try to
+                        // remove any activator mapping and retry with force.
+                        if (WormholeXTreme.getThisPlugin() != null)
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
+                        }
+                        StargateManager.removeActivatorForStargate(target);
+                        if (start.dialStargate(target, true))
+                        {
+                            if (WormholeXTreme.getThisPlugin() != null)
+                            {
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery succeeded for target " + target.getGateName());
+                            }
+                            player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+                        }
+                        else
+                        {
+                            if (WormholeXTreme.getThisPlugin() != null)
+                            {
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Dial recovery failed for target " + target.getGateName());
+                            }
+                            CommandUtilities.closeGate(start, false);
+                            player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+                        }
                     }
                 }
                 else

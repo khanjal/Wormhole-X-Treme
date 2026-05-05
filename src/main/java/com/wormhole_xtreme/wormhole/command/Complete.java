@@ -109,6 +109,7 @@ public class Complete implements CommandExecutor
                             // Enter interactive completion mode: wait for the player to click the DHD lever/button.
                             addPendingCompletion(player, name, idc, network);
                             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Please click the DHD lever/button to complete the gate.");
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Optional parameters: idc=<code> net=<network> (example: /wxcomplete " + name + " idc=1234 net=Private)");
                             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '/wxcomplete cancel' to cancel.");
                         }
                     }
@@ -143,6 +144,16 @@ public class Complete implements CommandExecutor
         final String[] arguments = CommandUtilities.commandEscaper(args);
         if ((arguments.length <= 3) && (arguments.length > 0))
         {
+            if (arguments[0].equalsIgnoreCase("help"))
+            {
+                if (CommandUtilities.playerCheck(sender))
+                {
+                    final Player player = (Player) sender;
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wxcomplete <name> [idc=<code>] [net=<network>]");
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Example: /wxcomplete MyGate idc=1234 net=Private");
+                }
+                return true;
+            }
             return CommandUtilities.playerCheck(sender)
                 ? doComplete((Player) sender, arguments)
                 : true;

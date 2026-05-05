@@ -25,6 +25,8 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+import org.bukkit.Bukkit;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -51,7 +53,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class WormholeXTremePlayerListener implements Listener
 {
-    private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, Boolean> recentTeleports = new java.util.concurrent.ConcurrentHashMap<>();
+    
 
     /**
      * Button lever hit.
@@ -375,7 +377,33 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     if (stargate.isGateLightsActive() && !stargate.isGateActive())
                     {
-                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate has been activated by someone else already.");
+                        // Attempt to force-clear stale activation mapping so gate can be deactivated.
+                        final org.bukkit.entity.Player activator = StargateManager.removeActivatorForStargate(stargate);
+                        // Stop timers and clear visual state
+                        stargate.stopActivationTimer();
+                        stargate.setGateActive(false);
+                        stargate.toggleDialLeverState(false);
+                        stargate.lightStargate(false);
+                        if (activator != null)
+                        {
+                            try
+                            {
+                                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated (was activated by: " + activator.getName() + ").");
+                                if (activator.isOnline())
+                                {
+                                    activator.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Your pending gate activation was force-cleared by: " + player.getName());
+                                }
+                            }
+                            catch (final Exception e)
+                            {
+                                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+                            }
+                        }
+                        else
+                        {
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+                        }
+                        return true;
                     }
                     else
                     {
@@ -501,6 +529,14 @@ class WormholeXTremePlayerListener implements Listener
         }
         final Player player = event.getPlayer();
         final Location toLocFinal = event.getTo();
+        // Diagnostic: log from/to block types and Y fractional to help debug water bounce
+        try
+        {
+            final Block fromBlock = event.getFrom().getWorld().getBlockAt(event.getFrom().getBlockX(), event.getFrom().getBlockY(), event.getFrom().getBlockZ());
+            final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerMove: " + player.getName() + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
+        }
+        catch (final Throwable ignore) {}
         final Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         final Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
@@ -552,44 +588,70 @@ class WormholeXTremePlayerListener implements Listener
             }
 
             final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+            // Diagnostic logging for teleport issues
+            if (WormholeXTreme.getThisPlugin() != null)
+            {
+                if (target == null)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target is null for gate: " + stargate.getGateTarget().getGateName());
+                }
+                else if (target.getWorld() == null)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target world is null for gate: " + stargate.getGateTarget().getGateName() + " loc: " + target.toString());
+                }
+                else
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting " + player.getName() + " to " + stargate.getGateTarget().getGateName() + " @ " + target.toString());
+                }
+            }
             player.setNoDamageTicks(5);
             event.setFrom(target);
             event.setTo(target);
-            try {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Teleporting player: " + player.getName() + " from " + player.getLocation().toString() + " to " + target.toString() + " (fromGate=" + stargate.getGateName() + " targetGate=" + stargate.getGateTarget().getGateName() + ")");
-            } catch (final Throwable ignore) {}
-            // Mark player as recently teleported so the subsequent PlayerMoveEvent doesn't cancel and revert them.
-            try {
-                recentTeleports.put(player, Boolean.TRUE);
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            try
+            {
+                player.teleport(target);
+                // Zero velocity and fall distance to avoid immediate bounce or knockback
+                try
                 {
-                    @Override
-                    public void run()
-                    {
-                        recentTeleports.remove(player);
-                    }
-                }, 4L);
+                    player.setVelocity(new Vector(0, 0, 0));
+                    player.setFallDistance(0);
+                }
+                catch (final Throwable ignore) {}
             }
-            catch (final Throwable ignore) {}
-            player.teleport(target);
+            catch (final Exception e)
+            {
+                if (WormholeXTreme.getThisPlugin() != null)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception while teleporting " + player.getName() + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
+                }
+            }
             try {
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
+            } catch (final Throwable ignore) {}
+
+            // Schedule a short delayed task to re-apply zero velocity and nudge the player
+            // This helps clients that may apply movement due to water flow or packet jitter
+            try {
+                final Location finalTarget = target;
+                Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), new Runnable()
                 {
                     @Override
                     public void run()
                     {
                         try
                         {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "PostTeleport location for " + player.getName() + " is " + player.getLocation().toString());
+                            if ((player != null) && (finalTarget != null))
+                            {
+                                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final Throwable ignore) {}
+                                try { player.setFallDistance(0); } catch (final Throwable ignore) {}
+                                try { player.teleport(finalTarget); } catch (final Throwable ignore) {}
+                            }
                         }
                         catch (final Throwable ignore) {}
                     }
                 }, 1L);
             }
             catch (final Throwable ignore) {}
-            try {
-                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
-            } catch (final Throwable ignore) {}
             if (target != stargate.getGatePlayerTeleportLocation())
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
@@ -668,16 +730,7 @@ class WormholeXTremePlayerListener implements Listener
     {
         if (handlePlayerMoveEvent(event))
         {
-            final Player p = event.getPlayer();
-            if (recentTeleports.containsKey(p))
-            {
-                // recently teleported — don't cancel the move event (allow server to settle)
-                recentTeleports.remove(p);
-            }
-            else
-            {
-                event.setCancelled(true);
-            }
+            event.setCancelled(true);
         }
     }
 }

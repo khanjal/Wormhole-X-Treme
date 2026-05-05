@@ -36,6 +36,7 @@ import org.bukkit.World.Environment;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.StargateYamlManager;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
@@ -176,13 +177,16 @@ public class StargateDBManager
      */
     public static void loadStargates(final Server server)
     {
+        // Legacy DB loader kept for compatibility. If you prefer YAML per-gate storage
+        // place YAML files in plugins/WormholeXTreme/gates/ and use StargateYamlManager.loadStargates(server).
         if (wormholeSQLConnection == null)
         {
             connectDB();
         }
         if (wormholeSQLConnection == null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Database not available; skipping stargate load. Ensure hsqldb.jar is present in server classpath or plugin lib folder.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Database not available; falling back to YAML per-gate loader if present.");
+            StargateYamlManager.loadStargates(server);
             return;
         }
         final List<World> worlds = server.getWorlds();
@@ -357,9 +361,15 @@ public class StargateDBManager
 
         try
         {
-            if (wormholeSQLConnection.isClosed())
+            if ((wormholeSQLConnection == null) || wormholeSQLConnection.isClosed())
             {
                 connectDB();
+                if (wormholeSQLConnection == null)
+                {
+                    // If DB unavailable, remove YAML file instead.
+                    StargateYamlManager.removeStargate(s);
+                    return;
+                }
             }
             if (removeStatement == null)
             {
@@ -371,7 +381,7 @@ public class StargateDBManager
         }
         catch (final SQLException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Error storing stargate to DB: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Error removing stargate from DB: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -423,9 +433,15 @@ public class StargateDBManager
         ResultSet gatesData = null;
         try
         {
-            if (wormholeSQLConnection.isClosed())
+            if ((wormholeSQLConnection == null) || wormholeSQLConnection.isClosed())
             {
+                // If DB is not available, fall back to YAML per-gate storage so gates are not lost.
                 connectDB();
+                if (wormholeSQLConnection == null)
+                {
+                    StargateYamlManager.saveStargate(s);
+                    return;
+                }
             }
             if (getGateStatement == null)
             {
@@ -466,6 +482,10 @@ public class StargateDBManager
 
                 updateGateStatement.setLong(8, s.getGateId());
                 updateGateStatement.executeUpdate();
+                if (WormholeXTreme.getThisPlugin() != null)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Updated gate in DB: " + s.getGateName());
+                }
             }
             else
             {
@@ -496,6 +516,10 @@ public class StargateDBManager
                 storeStatement.setString(8, s.getGateShape().getShapeName());
 
                 storeStatement.executeUpdate();
+                if (WormholeXTreme.getThisPlugin() != null)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Inserted gate into DB: " + s.getGateName());
+                }
 
                 getGateStatement.setString(1, s.getGateName());
                 gatesData = getGateStatement.executeQuery();
@@ -509,12 +533,24 @@ public class StargateDBManager
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Error storing stargate to DB: " + e.getMessage());
             e.printStackTrace();
+            // If DB write fails for any reason, fall back to per-gate YAML storage so gates are not lost.
+            try
+            {
+                StargateYamlManager.saveStargate(s);
+            }
+            catch (final Exception ex)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to fallback-save gate to YAML: " + ex.getMessage());
+            }
         }
         finally
         {
             try
             {
-                gatesData.close();
+                if (gatesData != null)
+                {
+                    gatesData.close();
+                }
             }
             catch (final SQLException e)
             {
