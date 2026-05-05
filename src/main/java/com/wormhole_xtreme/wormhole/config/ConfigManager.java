@@ -85,7 +85,11 @@ public class ConfigManager
         WORLDS_SUPPORT_ENABLED,
 
         /** The LOG LEVEL. */
-        LOG_LEVEL
+        LOG_LEVEL,
+        /** The configured storage backend. */
+        STORAGE_BACKEND,
+        /** SQLite file path for sqlite backend. */
+        STORAGE_SQLITE_PATH
     }
 
     /**
@@ -183,6 +187,33 @@ public class ConfigManager
 
     /** The Constant configurations. */
     private static final ConcurrentHashMap<ConfigKeys, Setting> configurations = new ConcurrentHashMap<ConfigKeys, Setting>();
+
+    /**
+     * Set the storage backend at runtime.
+     * This updates the in-memory configuration map; persisting to disk requires writing config.yml separately.
+     */
+    public static void setStorageBackend(final String backend)
+    {
+        configurations.put(ConfigKeys.STORAGE_BACKEND, new Setting(ConfigKeys.STORAGE_BACKEND, backend, "Storage backend", "WormholeXTreme"));
+    }
+
+    /**
+     * Get the configured storage backend.
+     */
+    public static String getStorageBackend()
+    {
+        final Setting s = configurations.get(ConfigKeys.STORAGE_BACKEND);
+        return (s != null) ? s.getStringValue() : "file";
+    }
+
+    /**
+     * Get sqlite path from configuration.
+     */
+    public static String getStorageSqlitePath()
+    {
+        final Setting s = configurations.get(ConfigKeys.STORAGE_SQLITE_PATH);
+        return (s != null) ? s.getStringValue() : "plugins/WormholeXTreme/wormholes.db";
+    }
 
     /**
      * Gets the builds the restriction group one.
