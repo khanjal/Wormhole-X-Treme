@@ -71,6 +71,16 @@ public class PermissionsSupport
         {
             if (WormholeXTreme.getPermissions() == null)
             {
+                // Try Vault first
+                try {
+                    final Class<?> permClass = Class.forName("net.milkbowl.vault.permission.Permission");
+                    final org.bukkit.plugin.RegisteredServiceProvider<?> rsp = WormholeXTreme.getThisPlugin().getServer().getServicesManager().getRegistration(permClass);
+                    if (rsp != null) {
+                        WormholeXTreme.setPermissions(new com.nijiko.permissions.PermissionHandler(rsp.getProvider()));
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Attached to Vault permissions provider.");
+                        return;
+                    }
+                } catch (final Throwable ignore) {}
                 final Plugin test = WormholeXTreme.getThisPlugin().getServer().getPluginManager().getPlugin("Permissions");
                 if (test != null)
                 {

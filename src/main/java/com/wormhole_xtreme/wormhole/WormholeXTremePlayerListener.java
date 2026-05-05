@@ -87,7 +87,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (direction == null)
             {
-                switch (clickedBlock.getData())
+                switch (com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(clickedBlock))
                 {
                     case 1 :
                         direction = BlockFace.SOUTH;
@@ -142,7 +142,7 @@ class WormholeXTremePlayerListener implements Listener
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
                                 newGate.getGateDialSign().setLine(0, "-" + newGate.getGateName() + "-");
-                                newGate.getGateDialSign().setData(newGate.getGateDialSign().getData());
+                                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(newGate.getGateDialSignBlock(), com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(newGate.getGateDialSignBlock()));
                                 newGate.getGateDialSign().update();
                             }
                             else

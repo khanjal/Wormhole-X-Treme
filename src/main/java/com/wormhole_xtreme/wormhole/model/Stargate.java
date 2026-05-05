@@ -2216,7 +2216,7 @@ public class Stargate
                 com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialLeverBlock(), 69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
                 mat = getGateDialLeverBlock().getType();
             }
-            final byte leverState = getGateDialLeverBlock().getData();
+            final byte leverState = com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(getGateDialLeverBlock());
             if (mat == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(77))
             {
                 com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialLeverBlock(), 69);
@@ -2259,7 +2259,7 @@ public class Stargate
     {
         if (isGateRedstonePowered() && (getGateRedstoneGateActivatedBlock() != null) && (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69)))
         {
-            final byte leverState = getGateRedstoneGateActivatedBlock().getData();
+            final byte leverState = com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(getGateRedstoneGateActivatedBlock());
             com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateRedstoneGateActivatedBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
         }
     }
