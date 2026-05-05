@@ -690,10 +690,7 @@ public class Wormhole implements CommandExecutor
         }
         else
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Command: /wormhole restrict [false|true|group] <count>");
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid groups are 'one', 'two', and 'three'.");
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid restriction count values are between 1 and 200.");
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole build count restriction enabled: " + ConfigManager.isBuildRestrictionEnabled());
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Build restriction feature has been removed. Use Vault/LuckPerms for permissions.");
         }
         return true;
     }
@@ -813,57 +810,10 @@ public class Wormhole implements CommandExecutor
      */
     private static boolean doSimplePermissions(final CommandSender sender, final String[] args)
     {
-        if (args.length == 2)
-        {
-            Player player = null;
-            boolean simple;
-            if (args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("yes"))
-            {
-                simple = true;
-            }
-            else if (args[1].equalsIgnoreCase("false") || args[1].equalsIgnoreCase("no"))
-            {
-                simple = false;
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Setting: " + args[1]);
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid options: true/yes, false/no");
-                return false;
-            }
-            if ((WormholeXTreme.getPermissions() != null) && CommandUtilities.playerCheck(sender))
-            {
-                player = (Player) sender;
-                if (simple && !WormholeXTreme.getPermissions().has(player, "wormhole.simple.config"))
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You currently do not have the 'wormhole.simple.config' permission.");
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Please make sure you have this permission before running this command again.");
-                    return true;
-                }
-                else if ( !simple && !WormholeXTreme.getPermissions().has(player, "wormhole.config"))
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You currently do not have the 'wormhole.config' permission.");
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Please make sure you have this permission before running this command again.");
-                    return true;
-                }
-            }
-            ConfigManager.setSimplePermissions(simple);
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Simple Permissions set to: " + ConfigManager.getSimplePermissions());
-            if ( !ConfigManager.getHelpSupportDisable())
-            {
-                HelpSupport.registerHelpCommands();
-            }
-            if (player != null)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Simple Permissions set to: \"" + simple + "\" by: \"" + player.getName() + "\"");
-            }
-        }
-        else
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Simple Permissions: " + ConfigManager.getSimplePermissions());
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid options: true/yes, false/no");
-        }
-        return true;
+        // Simple-permissions feature removed; method removed in cleanup.
+        // This method should not be called; return false to indicate unsupported.
+        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Simple permissions have been removed. Use Vault/LuckPerms instead.");
+        return false;
     }
 
     /**
@@ -1044,10 +994,7 @@ public class Wormhole implements CommandExecutor
             {
                 return doActivateTimeout(sender, a);
             }
-            else if (a[0].equalsIgnoreCase("simple"))
-            {
-                return doSimplePermissions(sender, a);
-            }
+            
             else if (a[0].equalsIgnoreCase("regenerate") || a[0].equalsIgnoreCase("regen"))
             {
                 return doRegenerate(sender, a);

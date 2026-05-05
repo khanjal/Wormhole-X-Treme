@@ -108,9 +108,6 @@ public class HelpSupport
                 "wormhole.remove.own", "wormhole.remove.all", "wormhole.build", "wormhole.config", "wormhole.list",
                 "wormhole.go"};
 
-            final String[] sp = new String[]{"wormhole.simple.use", "wormhole.simple.build", "wormhole.simple.config",
-                "wormhole.simple.remove"};
-
             String dial;
             String wxidc;
             String[] wxforce;
@@ -123,32 +120,16 @@ public class HelpSupport
             String wormhole;
             if (WormholeXTreme.getPermissions() != null)
             {
-                if (ConfigManager.getSimplePermissions())
-                {
-                    dial = sp[0];
-                    wxidc = sp[2];
-                    wxforce = new String[]{sp[2], sp[3]};
-                    wxcompass = sp[0];
-                    wxcomplete = sp[1];
-                    wxremove = new String[]{sp[3]};
-                    wxlist = new String[]{sp[0], sp[2]};
-                    wxgo = sp[2];
-                    wxbuild = sp[2];
-                    wormhole = sp[2];
-                }
-                else
-                {
-                    dial = cp[1];
-                    wxidc = cp[6];
-                    wxforce = new String[]{cp[4], cp[6]};
-                    wxcompass = cp[2];
-                    wxcomplete = cp[5];
-                    wxremove = new String[]{cp[3], cp[4]};
-                    wxlist = new String[]{cp[6], cp[7]};
-                    wxgo = cp[8];
-                    wxbuild = cp[6];
-                    wormhole = cp[6];
-                }
+                dial = cp[1];
+                wxidc = cp[6];
+                wxforce = new String[]{cp[4], cp[6]};
+                wxcompass = cp[2];
+                wxcomplete = cp[5];
+                wxremove = new String[]{cp[3], cp[4]};
+                wxlist = new String[]{cp[6], cp[7]};
+                wxgo = cp[8];
+                wxbuild = cp[6];
+                wormhole = cp[6];
             }
             else
             {
@@ -182,7 +163,7 @@ public class HelpSupport
             WormholeXTreme.getHelp().registerCommand("wormhole custom [stargate] <boolean>", "Display custom status on [stargate], optionally change via <boolean>", WormholeXTreme.getThisPlugin(), wormhole);
             WormholeXTreme.getHelp().registerCommand("wormhole shutdown_timeout <timeout>", "Display shutdown timeout, optionally change <timeout>", WormholeXTreme.getThisPlugin(), wormhole);
             WormholeXTreme.getHelp().registerCommand("wormhole activate_timeout <timeout>", "Display activation timeout, optionally change <timeout>", WormholeXTreme.getThisPlugin(), wormhole);
-            WormholeXTreme.getHelp().registerCommand("wormhole simple <boolean>", "Display simple permissions, optionally change via <boolean>", WormholeXTreme.getThisPlugin(), wormhole);
+            // Simple-permissions removed; do not register simple mode command.
         }
     }
 }

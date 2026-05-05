@@ -151,30 +151,6 @@ public class WXPermissions
         else if ( !ConfigManager.getPermissionsSupportDisable() && (WormholeXTreme.getPermissions() != null))
         {
 
-            if (ConfigManager.getSimplePermissions())
-            {
-                switch (permissiontype)
-                {
-                    case LIST :
-                        return (SimplePermission.CONFIG.checkPermission(player) || SimplePermission.USE.checkPermission(player));
-                    case GO :
-                    case CONFIG :
-                        return SimplePermission.CONFIG.checkPermission(player);
-                    case DAMAGE :
-                    case REMOVE :
-                        return (SimplePermission.REMOVE.checkPermission(player) || SimplePermission.CONFIG.checkPermission(player));
-                    case COMPASS :
-                    case SIGN :
-                    case DIALER :
-                    case USE :
-                        return SimplePermission.USE.checkPermission(player);
-                    case BUILD :
-                        return SimplePermission.BUILD.checkPermission(player);
-                    default :
-                        return false;
-                }
-            }
-            else
             {
                 String networkName = "Public";
                 switch (permissiontype)

@@ -161,8 +161,7 @@ public class ConfigurationYAML
                     // Skip permission backend settings entirely
                     if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILT_IN_PERMISSIONS_ENABLED
                         || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL
-                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE
-                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.SIMPLE_PERMISSIONS)
+                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
                     {
                         skipped.add(key.name());
                         continue;

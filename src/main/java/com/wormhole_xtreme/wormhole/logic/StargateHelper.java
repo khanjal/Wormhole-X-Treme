@@ -768,63 +768,37 @@ public class StargateHelper
             }
         };
 
-        if (directory.exists() && (directory.listFiles(filenameFilter).length == 0))
+        // Ensure default shapes are present in the GateShapes directory. Do not overwrite existing files
+        // so server operators can customize shapes safely. If a default is missing, restore it from
+        // the packaged resources.
+        final String[] defaultShapeNames = {"Standard.shape", "StandardSignDial.shape", "Minimal.shape",
+            "MinimalSignDial.shape", "StandardAtlantis.shape", "StandardUniverse.shape"};
+        for (final String shape : defaultShapeNames)
         {
-            BufferedReader br = null;
-            BufferedWriter bw = null;
-            final String[] defaultShapeNames = {"Standard.shape", "StandardSignDial.shape", "Minimal.shape",
-                "MinimalSignDial.shape"};
-            try
+            final File defaultShapeFile = new File(directory, shape);
+            if (!defaultShapeFile.exists())
             {
-                for (final String shape : defaultShapeNames)
+                try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/3d/" + shape))
                 {
-                    final File defaultShapeFile = new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes" + File.separator + shape);
-                    final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/3d/" + shape);
-                    br = new BufferedReader(new InputStreamReader(is));
-                    bw = new BufferedWriter(new FileWriter(defaultShapeFile));
-
-                    for (String s = ""; (s = br.readLine()) != null;)
+                    if (is == null)
                     {
-                        bw.write(s);
-                        bw.write("\n");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Default shape resource not found in JAR: " + shape);
+                        continue;
                     }
-
-                    br.close();
-                    bw.close();
-                    is.close();
-                }
-            }
-            catch (final IOException e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to create files: " + e.getMessage());
-            }
-            catch (final NullPointerException e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to create files: " + e.getMessage());
-            }
-            finally
-            {
-                try
-                {
-                    if (br != null)
+                    try (final BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                         final BufferedWriter bw = new BufferedWriter(new FileWriter(defaultShapeFile)))
                     {
-                        br.close();
+                        for (String s = ""; (s = br.readLine()) != null;)
+                        {
+                            bw.write(s);
+                            bw.write("\n");
+                        }
                     }
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Restored default shape: " + shape);
                 }
                 catch (final IOException e)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, e.getMessage());
-                }
-                try
-                {
-                    if (bw != null)
-                    {
-                        bw.close();
-                    }
-                }
-                catch (final IOException e)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, e.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to create default shape file: " + e.getMessage());
                 }
             }
         }

@@ -162,7 +162,7 @@ enum ComplexPermission
      */
     public boolean checkPermission(final Player player, final Stargate stargate, final String networkName)
     {
-        if ((player != null) && (WormholeXTreme.getPermissions() != null) && !ConfigManager.getSimplePermissions())
+        if ((player != null) && (WormholeXTreme.getPermissions() != null))
         {
             boolean allowed = false;
 

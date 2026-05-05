@@ -51,10 +51,8 @@ public class StargateRestrictions
         CD_GROUP_TWO(ConfigManager.getUseCooldownGroupTwo()),
 
         /** The cooldown group 3 */
-        CD_GROUP_THREE(ConfigManager.getUseCooldownGroupThree()),
-        BR_GROUP_ONE(ConfigManager.getBuildRestrictionGroupOne()),
-        BR_GROUP_TWO(ConfigManager.getBuildRestrictionGroupTwo()),
-        BR_GROUP_THREE(ConfigManager.getBuildRestrictionGroupThree());
+        CD_GROUP_THREE(ConfigManager.getUseCooldownGroupThree());
+        // Build restriction groups removed; feature deprecated.
 
         /** The restriction group node. */
         private final long restrictionGroupNode;
@@ -166,31 +164,8 @@ public class StargateRestrictions
      */
     public static boolean isPlayerBuildRestricted(final Player player)
     {
-        if (ConfigManager.isBuildRestrictionEnabled())
-        {
-            RestrictionGroup restrictionGroup = null;
-            if (WXPermissions.checkWXPermissions(player, PermissionType.BUILD_RESTRICTION_GROUP_ONE))
-            {
-                restrictionGroup = RestrictionGroup.BR_GROUP_ONE;
-            }
-            else if (WXPermissions.checkWXPermissions(player, PermissionType.BUILD_RESTRICTION_GROUP_TWO))
-            {
-                restrictionGroup = RestrictionGroup.BR_GROUP_TWO;
-            }
-            else if (WXPermissions.checkWXPermissions(player, PermissionType.BUILD_RESTRICTION_GROUP_THREE))
-            {
-                restrictionGroup = RestrictionGroup.BR_GROUP_THREE;
-            }
-            int gateCount = 0;
-            for (final Stargate stargate : StargateManager.getAllGates())
-            {
-                if ((stargate.getGateOwner() != null) && stargate.getGateOwner().equalsIgnoreCase(player.getName()))
-                {
-                    gateCount++;
-                }
-            }
-            return (restrictionGroup != null) && (gateCount != 0) && (gateCount >= restrictionGroup.getGroupValue());
-        }
+        // Build restriction feature removed: always allow builds. Permissions should
+        // be managed via Vault / LuckPerms.
         return false;
     }
 

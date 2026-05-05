@@ -45,10 +45,6 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
-
-        /** The SIMPLE PERMISSIONS. */
-        SIMPLE_PERMISSIONS,
-
         /** The WORMHOL e_ us e_ i s_ teleport. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -339,23 +335,6 @@ public class ConfigManager
         return getConfigurations().get(configKey);
     }
 
-    /**
-     * Gets the simple permissions.
-     * 
-     * @return the simple permissions
-     */
-    public static boolean getSimplePermissions()
-    {
-        Setting sp;
-        if ((sp = ConfigManager.getConfigurations().get(ConfigKeys.SIMPLE_PERMISSIONS)) != null)
-        {
-            return sp.getBooleanValue();
-        }
-        else
-        {
-            return false;
-        }
-    }
 
     /**
      * Get Timeout Activate setting from ConfigKeys.
@@ -565,17 +544,6 @@ public class ConfigManager
         {
             getConfigurations().get(key).setValue(value);
         }
-    }
-
-    /**
-     * Sets the simple permissions.
-     * 
-     * @param b
-     *            the new simple permissions
-     */
-    public static void setSimplePermissions(final boolean b)
-    {
-        ConfigManager.setConfigValue(ConfigKeys.SIMPLE_PERMISSIONS, b);
     }
 
     /**

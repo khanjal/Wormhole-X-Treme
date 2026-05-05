@@ -90,14 +90,7 @@ public class PermissionsSupport
                     {
                         WormholeXTreme.setPermissions(((Permissions) test).getHandler());
                         WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Attached to Permissions version " + v);
-                        if (ConfigManager.getSimplePermissions())
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Simple Permissions Enabled");
-                        }
-                        else
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Complex Permissions Enabled");
-                        }
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permissions attached (Complex mode). Use Vault/LuckPerms for management.");
                     }
                     catch (final ClassCastException e)
                     {

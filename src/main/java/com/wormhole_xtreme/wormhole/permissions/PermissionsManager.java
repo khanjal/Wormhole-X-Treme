@@ -91,9 +91,11 @@ public class PermissionsManager
      */
     protected static PermissionLevel getPermissionLevel(final Player p, final Stargate s)
     {
+        // If built-in permissions are disabled, default to allowing use-only for all players.
+        // Ops will still be granted full permission later in this method.
         if ( !ConfigManager.getBuiltInPermissionsEnabled())
         {
-            return PermissionLevel.WORMHOLE_FULL_PERMISSION;
+            return PermissionLevel.WORMHOLE_USE_PERMISSION;
         }
 
         // 1. Check for individual network rights
