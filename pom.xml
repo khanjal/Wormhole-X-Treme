@@ -87,11 +87,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<version>2.7.2</version>
-		</dependency>
 		<!-- Added for YAML configuration and per-gate YAML export/import -->
 		<dependency>
 			<groupId>org.yaml</groupId>

@@ -206,6 +206,15 @@ public class StargateManager
         }
     }
 
+    /**
+     * Public wrapper to register a stargate from other packages.
+     * Delegates to protected addStargate.
+     */
+    public static void registerStargate(final Stargate s)
+    {
+        addStargate(s);
+    }
+
     // Network functions
     /**
      * Adds the stargate network.
@@ -243,7 +252,8 @@ public class StargateManager
         final Stargate posDupe = StargateManager.getStargate(s.getGateName());
         if (posDupe == null)
         {
-            s.setGateOwner(p.getName());
+            s.setGateOwner(p.getUniqueId().toString());
+            s.setGateOwnerName(p.getName());
             s.completeGate(s.getGateName(), "");
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + s.getGateName());
             addStargate(s);
@@ -316,7 +326,8 @@ public class StargateManager
                 complete.setGateNetwork(net);
             }
 
-            complete.setGateOwner(p.getName());
+            complete.setGateOwner(p.getUniqueId().toString());
+            complete.setGateOwnerName(p.getName());
             complete.completeGate(name, idc);
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
             addStargate(complete);
@@ -746,7 +757,7 @@ public class StargateManager
      */
     public static void removeStargate(final Stargate s)
     {
-        getStargateList().remove(s.getGateName());
+        getStargateList().remove(normalizeGateName(s.getGateName()));
         StargateDBManager.removeStargateFromSQL(s);
         if (s.getGateNetwork() != null)
         {

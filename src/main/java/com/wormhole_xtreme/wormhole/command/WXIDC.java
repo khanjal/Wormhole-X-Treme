@@ -53,7 +53,7 @@ public class WXIDC implements CommandExecutor
                 if ( !s.isGateSignPowered() && (s.getGateIrisLeverBlock() != null))
                 {
                     if (CommandUtilities.playerCheck(sender)
-                        ? (WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG) || ((s.getGateOwner() != null) && s.getGateOwner().equals(((Player) sender).getName())))
+                        ? (WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG) || s.isOwner((Player) sender))
                         : true)
                     {
                         // 2. if args other than name - do a set                

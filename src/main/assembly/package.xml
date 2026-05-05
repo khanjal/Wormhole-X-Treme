@@ -19,33 +19,18 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/src/main/resources/GateShapes/2d/</directory>
-            <outputDirectory>/plugins/WormholeXTreme/GateShapes/2d/</outputDirectory>
+            <directory>${project.basedir}/src/main/resources/GateShapes/</directory>
+            <outputDirectory>/plugins/WormholeXTreme/GateShapes/</outputDirectory>
             <includes>
-                <include>*.shape</include>
-            </includes>
-        </fileSet>
-        <fileSet>
-            <directory>${project.basedir}/src/main/resources/GateShapes/3d/</directory>
-            <outputDirectory>/plugins/WormholeXTreme/GateShapes/3d/</outputDirectory>
-            <includes>
-                <include>*.shape</include>
+                <include>**/*.shape</include>
             </includes>
         </fileSet>
     </fileSets>
     <files>
         <file>
-  		    <source>${project.build.directory}/${artifactId}-${version}.jar</source>
-  		    <outputDirectory>/plugins/</outputDirectory>
-  		    <destName>WormholeXTreme.jar</destName>
-        </file>
-        <file>
-            <source>${project.basedir}/lib/hsqldb.jar</source>
-            <outputDirectory>/lib/</outputDirectory>
-        </file>
-        <file>
-            <source>${project.basedir}/lib/hsqldb_lic.txt</source>
-            <outputDirectory>/docs/</outputDirectory>
+            <source>${project.build.directory}/${artifactId}-${version}.jar</source>
+            <outputDirectory>/plugins/</outputDirectory>
+            <destName>WormholeXTreme.jar</destName>
         </file>
     </files>
 </assembly>

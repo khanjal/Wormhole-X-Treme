@@ -101,7 +101,7 @@ public class Complete implements CommandExecutor
                             else
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
-                                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wxcomplete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
+                                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
                             }
                         }
                         else
@@ -109,8 +109,8 @@ public class Complete implements CommandExecutor
                             // Enter interactive completion mode: wait for the player to click the DHD lever/button.
                             addPendingCompletion(player, name, idc, network);
                             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Please click the DHD lever/button to complete the gate.");
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Optional parameters: idc=<code> net=<network> (example: /wxcomplete " + name + " idc=1234 net=Private)");
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '/wxcomplete cancel' to cancel.");
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
                         }
                     }
                     else
@@ -149,8 +149,8 @@ public class Complete implements CommandExecutor
                 if (CommandUtilities.playerCheck(sender))
                 {
                     final Player player = (Player) sender;
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wxcomplete <name> [idc=<code>] [net=<network>]");
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Example: /wxcomplete MyGate idc=1234 net=Private");
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Example: /wormhole complete MyGate idc=1234 net=Private (alias: '/wx complete').");
                 }
                 return true;
             }

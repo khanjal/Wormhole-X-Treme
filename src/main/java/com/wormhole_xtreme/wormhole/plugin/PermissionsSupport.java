@@ -105,7 +105,7 @@ public class PermissionsSupport
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission Plugin support disabled via settings.txt.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission Plugin support disabled via configuration (config.yml).");
         }
     }
 }

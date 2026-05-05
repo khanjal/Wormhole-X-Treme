@@ -24,7 +24,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.plugin.HelpSupport;
+// Help plugin integration removed
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.WormholeWorldsSupport;
 
@@ -47,10 +47,7 @@ class WormholeXTremeServerListener implements Listener
         {
             PermissionsSupport.disablePermissions();
         }
-        else if (event.getPlugin().getDescription().getName().equals("Help") && !ConfigManager.getHelpSupportDisable())
-        {
-            HelpSupport.disableHelp();
-        }
+        // Help plugin integration removed
         else if (event.getPlugin().getDescription().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
         {
             WormholeWorldsSupport.disableWormholeWorlds();
@@ -67,10 +64,7 @@ class WormholeXTremeServerListener implements Listener
         {
             PermissionsSupport.enablePermissions();
         }
-        else if (event.getPlugin().getDescription().getName().equals("Help") && !ConfigManager.getHelpSupportDisable())
-        {
-            HelpSupport.enableHelp();
-        }
+        // Help plugin integration removed
         else if (event.getPlugin().getDescription().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
         {
             WormholeWorldsSupport.enableWormholeWorlds();

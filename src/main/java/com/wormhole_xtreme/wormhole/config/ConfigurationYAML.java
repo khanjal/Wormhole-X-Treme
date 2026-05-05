@@ -186,6 +186,15 @@ public class ConfigurationYAML
                     }
                     writer.write(keyName + ": " + formatValueForYaml(value) + System.lineSeparator());
                     writer.write(System.lineSeparator());
+                        // Always write storage backend configuration to config.yml so CLI changes can persist when requested
+                        if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.STORAGE_BACKEND || 
+                            key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.STORAGE_SQLITE_PATH || 
+                            key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.STORAGE_JDBC_URL || 
+                            key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.STORAGE_JDBC_USER || 
+                            key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.STORAGE_JDBC_PASSWORD)
+                        {
+                            // fall through and write these keys
+                        }
                 }
                 if (!skipped.isEmpty())
                 {

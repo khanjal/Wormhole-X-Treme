@@ -92,6 +92,14 @@ public class Dial implements CommandExecutor
                         }
                     }
 
+                    // If target still has an active iris (no valid IDC provided), block the dial attempt.
+                    if (target.isGateIrisActive())
+                    {
+                        CommandUtilities.closeGate(start, false);
+                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is active; provide the IDC to unlock.");
+                        return true;
+                    }
+
                     if (start.dialStargate(target, false))
                     {
                         player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());

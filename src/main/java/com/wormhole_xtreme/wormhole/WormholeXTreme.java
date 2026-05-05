@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import me.taylorkelly.help.Help;
 
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -46,8 +45,10 @@ import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.storage.StorageBackend;
+import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
-import com.wormhole_xtreme.wormhole.plugin.HelpSupport;
+// Help plugin integration removed
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.WormholeWorldsSupport;
 import com.wormhole_xtreme.wormhole.utils.DBUpdateUtil;
@@ -77,8 +78,7 @@ public class WormholeXTreme extends JavaPlugin
     /** The Permissions. */
     private static PermissionHandler permissions = null;
 
-    /** The Help. */
-    private static Help help = null;
+    // Help plugin removed; no external help integration.
 
     /** The wormhole x treme worlds. */
     private static WorldHandler worldHandler = null;
@@ -92,15 +92,7 @@ public class WormholeXTreme extends JavaPlugin
     /** The log. */
     private static Logger log = null;
 
-    /**
-     * Gets the help.
-     * 
-     * @return the help
-     */
-    public static Help getHelp()
-    {
-        return help;
-    }
+    // Help integration removed; no getHelp
 
     /**
      * Gets the logger.
@@ -158,16 +150,11 @@ public class WormholeXTreme extends JavaPlugin
     public static void registerCommands()
     {
         final WormholeXTreme tp = getThisPlugin();
-        tp.getCommand("wxforce").setExecutor(new Force());
-        tp.getCommand("wxidc").setExecutor(new WXIDC());
-        tp.getCommand("wxcompass").setExecutor(new Compass());
-        tp.getCommand("wxcomplete").setExecutor(new Complete());
-        tp.getCommand("wxremove").setExecutor(new WXRemove());
-        tp.getCommand("wxlist").setExecutor(new WXList());
-        tp.getCommand("wxgo").setExecutor(new Go());
+        // Consolidated: register only canonical commands. legacy wx* names are aliases under `wormhole` in plugin.yml
         tp.getCommand("dial").setExecutor(new Dial());
-        tp.getCommand("wxbuild").setExecutor(new Build());
+        tp.getCommand("dial").setTabCompleter(new com.wormhole_xtreme.wormhole.command.DialTabCompleter());
         tp.getCommand("wormhole").setExecutor(new Wormhole());
+        tp.getCommand("wormhole").setTabCompleter(new com.wormhole_xtreme.wormhole.command.WormholeTabCompleter());
     }
 
     /**
@@ -191,16 +178,7 @@ public class WormholeXTreme extends JavaPlugin
         }
     }
 
-    /**
-     * Sets the help.
-     * 
-     * @param help
-     *            the new help
-     */
-    public static void setHelp(final Help help)
-    {
-        WormholeXTreme.help = help;
-    }
+    // Help integration removed; no setHelp
 
     /**
      * Sets the log.
@@ -275,28 +253,29 @@ public class WormholeXTreme extends JavaPlugin
     @Override
     public void onDisable()
     {
-        try
-        {
-            Configuration.writeFile(getDescription());
-            final ArrayList<Stargate> gates = StargateManager.getAllGates();
-            // Store all our gates
-            for (final Stargate gate : gates)
+            try
             {
-                if (gate.isGateActive() || gate.isGateLightsActive())
+                // Persist current runtime configuration to YAML on shutdown
+                com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getDescription());
+                final ArrayList<Stargate> gates = StargateManager.getAllGates();
+                // Store all our gates
+                for (final Stargate gate : gates)
                 {
-                    gate.shutdownStargate(false);
+                    if (gate.isGateActive() || gate.isGateLightsActive())
+                    {
+                        gate.shutdownStargate(false);
+                    }
+                    StargateDBManager.stargateToSQL(gate);
                 }
-                StargateDBManager.stargateToSQL(gate);
-            }
 
-            StargateDBManager.shutdown();
-            prettyLog(Level.INFO, true, "Successfully shutdown.");
-        }
-        catch (final Exception e)
-        {
-            prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
-            e.printStackTrace();
-        }
+                StargateDBManager.shutdown();
+                prettyLog(Level.INFO, true, "Successfully shutdown.");
+            }
+            catch (final Exception e)
+            {
+                prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
+                e.printStackTrace();
+            }
     }
 
     /* (non-Javadoc)
@@ -310,7 +289,6 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             PermissionsSupport.enablePermissions();
-            HelpSupport.enableHelp();
             if (ConfigManager.isWormholeWorldsSupportEnabled())
             {
                 WormholeWorldsSupport.enableWormholeWorlds();
@@ -322,12 +300,34 @@ public class WormholeXTreme extends JavaPlugin
             e.printStackTrace();
         }
         registerEvents(true);
-        HelpSupport.registerHelpCommands();
         if ( !ConfigManager.isWormholeWorldsSupportEnabled())
         {
             // Now it's safe to load stargates which may create worlds.
             prettyLog(Level.INFO, true, "Wormhole Worlds support disabled in settings; loading stargates now.");
-            StargateDBManager.loadStargates(getThisPlugin().getServer());
+            try
+            {
+                final String backend = com.wormhole_xtreme.wormhole.config.ConfigManager.getStorageBackend();
+                prettyLog(Level.INFO, true, "Selected storage backend: " + backend);
+                StorageFactory.initialize();
+                final StorageBackend sb = StorageFactory.getBackend();
+                if (sb != null)
+                {
+                    final java.util.List<Stargate> loaded = sb.loadStargates(getThisPlugin().getServer());
+                    for (final Stargate s : loaded)
+                    {
+                        StargateManager.registerStargate(s);
+                    }
+                }
+                else
+                {
+                    StargateDBManager.loadStargates(getThisPlugin().getServer());
+                }
+            }
+            catch (final Exception e)
+            {
+                prettyLog(Level.WARNING, false, "Storage initialization failed, falling back to existing DB/YAML logic: " + e.getMessage());
+                StargateDBManager.loadStargates(getThisPlugin().getServer());
+            }
             registerEvents(false);
             registerCommands();
             prettyLog(Level.INFO, true, "Enable Completed.");
