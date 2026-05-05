@@ -68,7 +68,7 @@ public class StargateShape
     private int shapeWooshDepthSquared = 0;
 
     /** The portal material. */
-    private Material shapePortalMaterial = Material.STATIONARY_WATER;
+    private Material shapePortalMaterial = Material.WATER;
 
     /** The iris material. */
     private Material shapeIrisMaterial = Material.STONE;

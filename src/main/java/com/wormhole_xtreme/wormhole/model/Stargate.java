@@ -177,7 +177,7 @@ public class Stargate
             ? getGateCustomPortalMaterial()
             : getGateShape() != null
                 ? getGateShape().getShapePortalMaterial()
-                : Material.STATIONARY_WATER;
+                : Material.WATER;
         final int wooshDepth = isGateCustom()
             ? getGateCustomWooshDepth()
             : getGateShape() != null
@@ -240,7 +240,7 @@ public class Stargate
                     setGateAnimationRemoving(false);
                     if (isGateLightsActive() && isGateActive())
                     {
-                        fillGateInterior(wooshMaterial.getId());
+                        fillGateInterior(wooshMaterial);
                     }
                 }
                 else
@@ -313,7 +313,7 @@ public class Stargate
                     setGateAnimationStep2D(0);
                     if (isGateActive())
                     {
-                        fillGateInterior(wooshMaterial.getId());
+                        fillGateInterior(wooshMaterial);
                     }
                 }
             }
@@ -382,7 +382,7 @@ public class Stargate
     {
         if ((getGateDialSignBlock() != null) && (getGateDialSign() != null))
         {
-            final Block teleportSign = getGateDialSignBlock().getFace(getGateFacing());
+            final Block teleportSign = getGateDialSignBlock().getRelative(getGateFacing());
             teleportSign.setType(Material.AIR);
         }
     }
@@ -490,12 +490,12 @@ public class Stargate
      * @param typeId
      *            the type id
      */
-    public void fillGateInterior(final int typeId)
+    public void fillGateInterior(final Material material)
     {
         for (final Location bc : getGatePortalBlocks())
         {
             final Block b = getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
-            b.setTypeId(typeId, false);
+            b.setType(material);
         }
     }
 
@@ -1138,7 +1138,7 @@ public class Stargate
     {
         if (teleportSign)
         {
-            getGateDialSignBlock().setTypeIdAndData(68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
+            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialSignBlock(), 68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
             setGateDialSign((Sign) getGateDialSignBlock().getState());
             getGateDialSign().setLine(0, getGateName());
             if (getGateNetwork() != null)
@@ -1162,7 +1162,7 @@ public class Stargate
     {
         if ((getGateDialSignBlock() != null) && (getGateDialSign() != null))
         {
-            getGateDialSignBlock().setTypeId(0);
+            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialSignBlock(), 0);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, ActionToTake.DIAL_SIGN_RESET), 2);
         }
     }
@@ -1706,22 +1706,32 @@ public class Stargate
     private void setIrisState(final boolean irisactive)
     {
         setGateIrisActive(irisactive);
-        fillGateInterior(isGateIrisActive()
-            ? isGateCustom()
-                ? getGateCustomIrisMaterial().getId()
-                : getGateShape() != null
-                    ? getGateShape().getShapeIrisMaterial().getId()
-                    : 1
-            : isGateActive()
-                ? isGateCustom()
-                    ? getGateCustomPortalMaterial().getId()
-                    : getGateShape() != null
-                        ? getGateShape().getShapePortalMaterial().getId()
-                        : 9
-                : 0);
-        if ((getGateIrisLeverBlock() != null) && (getGateIrisLeverBlock().getTypeId() == 69))
+        // Determine modern Material for interior and apply
+        final Material interiorMat;
+        if (isGateIrisActive())
         {
-            getGateIrisLeverBlock().setData(WorldUtils.getLeverToggleByte(getGateIrisLeverBlock().getData(), isGateIrisActive()));
+            interiorMat = isGateCustom()
+                ? getGateCustomIrisMaterial()
+                : getGateShape() != null
+                    ? getGateShape().getShapeIrisMaterial()
+                    : Material.STONE;
+        }
+        else if (isGateActive())
+        {
+            interiorMat = isGateCustom()
+                ? getGateCustomPortalMaterial()
+                : getGateShape() != null
+                    ? getGateShape().getShapePortalMaterial()
+                    : Material.WATER;
+        }
+        else
+        {
+            interiorMat = Material.AIR;
+        }
+        fillGateInterior(interiorMat);
+        if ((getGateIrisLeverBlock() != null) && (getGateIrisLeverBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69)))
+        {
+            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateIrisLeverBlock(), WorldUtils.getLeverToggleByte((byte)0, isGateIrisActive()));
         }
     }
 
@@ -1748,9 +1758,9 @@ public class Stargate
         {
             if (create)
             {
-                final Block nameSign = getGateNameBlockHolder().getFace(getGateFacing());
+                final Block nameSign = getGateNameBlockHolder().getRelative(getGateFacing());
                 getGateStructureBlocks().add(nameSign.getLocation());
-                nameSign.setTypeIdAndData(68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(nameSign, 68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
                 final Sign sign = (Sign) nameSign.getState();
                 sign.setLine(0, "-" + getGateName() + "-");
 
@@ -1768,11 +1778,11 @@ public class Stargate
             }
             else
             {
-                final Block nameSign = getGateNameBlockHolder().getFace(getGateFacing());
-                if (nameSign.getTypeId() == 68)
+                final Block nameSign = getGateNameBlockHolder().getRelative(getGateFacing());
+                if (nameSign.getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
                 {
                     getGateStructureBlocks().remove(nameSign.getLocation());
-                    nameSign.setTypeId(0);
+                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(nameSign, 0);
                 }
             }
         }
@@ -1788,21 +1798,21 @@ public class Stargate
     {
         if ((getGateIrisLeverBlock() == null) && (getGateShape() != null) && !(getGateShape() instanceof Stargate3DShape))
         {
-            setGateIrisLeverBlock(getGateDialLeverBlock().getFace(BlockFace.DOWN));
+            setGateIrisLeverBlock(getGateDialLeverBlock().getRelative(BlockFace.DOWN));
         }
         if (getGateIrisLeverBlock() != null)
         {
             if (create)
             {
                 getGateStructureBlocks().add(getGateIrisLeverBlock().getLocation());
-                getGateIrisLeverBlock().setTypeIdAndData(69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateIrisLeverBlock(), 69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
             }
             else
             {
-                if (getGateIrisLeverBlock().getTypeId() == 69)
+                if (getGateIrisLeverBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69))
                 {
                     getGateStructureBlocks().remove(getGateIrisLeverBlock().getLocation());
-                    getGateIrisLeverBlock().setTypeId(0);
+                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateIrisLeverBlock(), 0);
                 }
             }
         }
@@ -1837,14 +1847,14 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateRedstoneDialActivationBlock().getLocation());
-                getGateRedstoneDialActivationBlock().setTypeId(55);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneDialActivationBlock(), 55);
             }
             else
             {
-                if (getGateRedstoneGateActivatedBlock().getTypeId() == 55)
+                if (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(55))
                 {
                     getGateStructureBlocks().remove(getGateRedstoneDialActivationBlock().getLocation());
-                    getGateRedstoneDialActivationBlock().setTypeId(0);
+                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneDialActivationBlock(), 0);
                 }
             }
         }
@@ -1863,14 +1873,14 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateRedstoneGateActivatedBlock().getLocation());
-                getGateRedstoneGateActivatedBlock().setTypeIdAndData(69, (byte) 0x5, false);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateRedstoneGateActivatedBlock(), 69, (byte) 0x5, false);
             }
             else
             {
-                if (getGateRedstoneGateActivatedBlock().getTypeId() == 69)
+                if (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69))
                 {
                     getGateStructureBlocks().remove(getGateRedstoneGateActivatedBlock().getLocation());
-                    getGateRedstoneGateActivatedBlock().setTypeId(0);
+                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneGateActivatedBlock(), 0);
                 }
             }
         }
@@ -1889,14 +1899,14 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateRedstoneSignActivationBlock().getLocation());
-                getGateRedstoneSignActivationBlock().setTypeId(55);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneSignActivationBlock(), 55);
             }
             else
             {
-                if (getGateRedstoneGateActivatedBlock().getTypeId() == 55)
+                if (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(55))
                 {
                     getGateStructureBlocks().remove(getGateRedstoneSignActivationBlock().getLocation());
-                    getGateRedstoneSignActivationBlock().setTypeId(0);
+                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneSignActivationBlock(), 0);
                 }
             }
         }
@@ -1940,7 +1950,7 @@ public class Stargate
         }
         else if ( !isGateIrisActive())
         {
-            fillGateInterior(0);
+            fillGateInterior(Material.AIR);
         }
 
         if (timer)
@@ -2024,7 +2034,7 @@ public class Stargate
     {
         synchronized (getGateNetwork().getNetworkGateLock())
         {
-            getGateDialSignBlock().setTypeIdAndData(68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
+            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialSignBlock(), 68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
             setGateDialSign((Sign) getGateDialSignBlock().getState());
             getGateDialSign().setLine(0, "-" + getGateName() + "-");
             if (getGateDialSignIndex() == -1)
@@ -2200,32 +2210,29 @@ public class Stargate
             {
                 WorldUtils.scheduleChunkLoad(getGateDialLeverBlock());
             }
-            int materialId = getGateDialLeverBlock().getTypeId();
+            org.bukkit.Material mat = getGateDialLeverBlock().getType();
             if (regenerate)
             {
-                getGateDialLeverBlock().setTypeIdAndData(69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
-                materialId = getGateDialLeverBlock().getTypeId();
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialLeverBlock(), 69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
+                mat = getGateDialLeverBlock().getType();
             }
             final byte leverState = getGateDialLeverBlock().getData();
-            switch (materialId)
+            if (mat == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(77))
             {
-                case 77 :
-                    getGateDialLeverBlock().setTypeId(69);
-                    getGateDialLeverBlock().setData(leverState);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Automaticially replaced Button on gate \"" + getGateName() + "\" with Lever.");
-                    getGateDialLeverBlock().setData(WorldUtils.getLeverToggleByte(leverState, isGateActive()));
-                    break;
-                case 69 :
-                    getGateDialLeverBlock().setData(WorldUtils.getLeverToggleByte(leverState, isGateActive()));
-                    break;
-                default :
-                    break;
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialLeverBlock(), 69);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateDialLeverBlock(), leverState);
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Automaticially replaced Button on gate \"" + getGateName() + "\" with Lever.");
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateDialLeverBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
+            }
+            else if (mat == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69))
+            {
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateDialLeverBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
             }
             if ( !isGateActive())
             {
                 WorldUtils.scheduleChunkUnload(getGateDialLeverBlock());
             }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Dial Button Lever Gate: \"" + getGateName() + "\" Material: \"" + Material.getMaterial(materialId).toString() + "\" State: \"" + leverState + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Dial Button Lever Gate: \"" + getGateName() + "\" Material: \"" + mat.toString() + "\" State: \"" + leverState + "\"");
         }
     }
 
@@ -2250,10 +2257,10 @@ public class Stargate
      */
     private void toggleRedstoneGateActivatedPower()
     {
-        if (isGateRedstonePowered() && (getGateRedstoneGateActivatedBlock() != null) && (getGateRedstoneGateActivatedBlock().getTypeId() == 69))
+        if (isGateRedstonePowered() && (getGateRedstoneGateActivatedBlock() != null) && (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69)))
         {
             final byte leverState = getGateRedstoneGateActivatedBlock().getData();
-            getGateRedstoneGateActivatedBlock().setData(WorldUtils.getLeverToggleByte(leverState, isGateActive()));
+            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateRedstoneGateActivatedBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
         }
     }
 
@@ -2283,16 +2290,16 @@ public class Stargate
     {
         if ((getGateDialSign() == null) && (getGateDialSignBlock() != null))
         {
-            if (getGateDialSignBlock().getTypeId() == 68)
+            if (getGateDialSignBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
             {
                 setGateDialSignIndex( -1);
-                getGateDialSignBlock().setTypeId(0);
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialSignBlock(), 0);
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, player, ActionToTake.DIAL_SIGN_CLICK));
             }
         }
         else if (WorldUtils.isSameBlock(clicked, getGateDialSignBlock()))
         {
-            getGateDialSignBlock().setTypeId(0);
+            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialSignBlock(), 0);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, player, ActionToTake.DIAL_SIGN_CLICK));
             return true;
         }

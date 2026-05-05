@@ -28,10 +28,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerListener;
+import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.LegacyCompat;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -47,7 +49,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * @author Ben Echols (Lologarithm)
  * @author Dean Bailey (alron)
  */
-class WormholeXTremePlayerListener extends PlayerListener
+class WormholeXTremePlayerListener implements Listener
 {
 
     /**
@@ -291,14 +293,14 @@ class WormholeXTremePlayerListener extends PlayerListener
         final Block clickedBlock = event.getClickedBlock();
         final Player player = event.getPlayer();
 
-        if ((clickedBlock != null) && ((clickedBlock.getTypeId() == 77) || (clickedBlock.getTypeId() == 69)))
+        if ((clickedBlock != null) && ((clickedBlock.getType() == LegacyCompat.materialFromId(77)) || (clickedBlock.getType() == LegacyCompat.materialFromId(69))))
         {
             if (buttonLeverHit(player, clickedBlock, null))
             {
                 return true;
             }
         }
-        else if ((clickedBlock != null) && (clickedBlock.getTypeId() == 68))
+        else if ((clickedBlock != null) && (clickedBlock.getType() == LegacyCompat.materialFromId(68)))
         {
             final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
             if (stargate != null)
@@ -338,20 +340,20 @@ class WormholeXTremePlayerListener extends PlayerListener
      */
     private static boolean handlePlayerMoveEvent(final PlayerMoveEvent event)
     {
-        if (!this.hasChangedBlockCoordinates(event.getFrom(), event.getTo())) 
+        if (!hasChangedBlockCoordinates(event.getFrom(), event.getTo()))
         {
-            return;
+            return false;
         }
         final Player player = event.getPlayer();
         final Location toLocFinal = event.getTo();
         final Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         final Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
-        if ((stargate != null) && stargate.isGateActive() && (stargate.getGateTarget() != null) && (gateBlockFinal.getTypeId() == (stargate.isGateCustom()
-            ? stargate.getGateCustomPortalMaterial().getId()
+        if ((stargate != null) && stargate.isGateActive() && (stargate.getGateTarget() != null) && (gateBlockFinal.getType() == (stargate.isGateCustom()
+            ? stargate.getGateCustomPortalMaterial()
             : stargate.getGateShape() != null
-                ? stargate.getGateShape().getShapePortalMaterial().getId()
-                : Material.STATIONARY_WATER.getId())))
+                ? stargate.getGateShape().getShapePortalMaterial()
+                : Material.WATER)))
         {
             String gatenetwork;
             if (stargate.getGateNetwork() != null)
@@ -419,7 +421,7 @@ class WormholeXTremePlayerListener extends PlayerListener
     /* (non-Javadoc)
      * @see org.bukkit.event.player.PlayerListener#onPlayerBucketEmpty(org.bukkit.event.player.PlayerBucketEmptyEvent)
      */
-    @Override
+    @EventHandler
     public void onPlayerBucketEmpty(final PlayerBucketEmptyEvent event)
     {
         if ( !event.isCancelled())
@@ -435,7 +437,7 @@ class WormholeXTremePlayerListener extends PlayerListener
     /* (non-Javadoc)
      * @see org.bukkit.event.player.PlayerListener#onPlayerBucketFill(org.bukkit.event.player.PlayerBucketFillEvent)
      */
-    @Override
+    @EventHandler
     public void onPlayerBucketFill(final PlayerBucketFillEvent event)
     {
         if ( !event.isCancelled())
@@ -451,28 +453,28 @@ class WormholeXTremePlayerListener extends PlayerListener
     /* (non-Javadoc)
      * @see org.bukkit.event.player.PlayerListener#onPlayerInteract(org.bukkit.event.player.PlayerInteractEvent)
      */
-    @Override
+    @EventHandler
     public void onPlayerInteract(final PlayerInteractEvent event)
     {
         if (event.getClickedBlock() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught Player: \"" + event.getPlayer().getName() + "\" Event type: \"" + event.getType().toString() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             if (handlePlayerInteractEvent(event))
             {
                 event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Cancelled Player: \"" + event.getPlayer().getName() + "\" Event type: \"" + event.getType().toString() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Cancelled Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             }
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught and ignored Player: \"" + event.getPlayer().getName() + "\" Event type: \"" + event.getType().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught and ignored Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\"");
         }
     }
 
     /* (non-Javadoc)
      * @see org.bukkit.event.player.PlayerListener#onPlayerMove(org.bukkit.event.player.PlayerMoveEvent)
      */
-    @Override
+    @EventHandler
     public void onPlayerMove(final PlayerMoveEvent event)
     {
         if (handlePlayerMoveEvent(event))

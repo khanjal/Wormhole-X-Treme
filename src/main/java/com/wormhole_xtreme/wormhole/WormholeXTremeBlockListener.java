@@ -29,8 +29,9 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
-import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -44,7 +45,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * @author Ben Echols (Lologarithm)
  * @author Dean Bailey (alron)
  */
-class WormholeXTremeBlockListener extends BlockListener
+class WormholeXTremeBlockListener implements Listener
 {
     /**
      * Handle block break.
@@ -70,11 +71,11 @@ class WormholeXTremeBlockListener extends BlockListener
                     player.sendMessage("You can rebuild it later.");
                     stargate.setGateDialSign(null);
                 }
-                else if (block.getTypeId() == (stargate.isGateCustom()
-                    ? stargate.getGateCustomIrisMaterial().getId()
+                else if (block.getType() == (stargate.isGateCustom()
+                    ? stargate.getGateCustomIrisMaterial()
                     : stargate.getGateShape() != null
-                        ? stargate.getGateShape().getShapeIrisMaterial().getId()
-                        : 1))
+                        ? stargate.getGateShape().getShapeIrisMaterial()
+                        : org.bukkit.Material.STONE))
                 {
                     return true;
                 }
@@ -83,7 +84,7 @@ class WormholeXTremeBlockListener extends BlockListener
                     if (stargate.isGateActive())
                     {
                         stargate.setGateActive(false);
-                        stargate.fillGateInterior(0);
+                        stargate.fillGateInterior(org.bukkit.Material.AIR);
                     }
                     if (stargate.isGateLightsActive())
                     {
@@ -125,7 +126,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockBreak(org.bukkit.event.block.BlockBreakEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockBreak(final BlockBreakEvent event)
     {
         if ( !event.isCancelled())
@@ -143,7 +144,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockBurn(org.bukkit.event.block.BlockBurnEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockBurn(final BlockBurnEvent event)
     {
         if ( !event.isCancelled())
@@ -155,7 +156,7 @@ class WormholeXTremeBlockListener extends BlockListener
                 ? closest.getGateCustomPortalMaterial()
                 : closest.getGateShape() != null
                     ? closest.getGateShape().getShapePortalMaterial()
-                    : Material.STATIONARY_WATER) == Material.STATIONARY_LAVA))
+                    : Material.WATER) == Material.LAVA))
             {
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
                 if (((blockDistanceSquared <= (closest.isGateCustom()
@@ -178,7 +179,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockDamage(org.bukkit.event.block.BlockDamageEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockDamage(final BlockDamageEvent event)
     {
         if ( !event.isCancelled())
@@ -196,7 +197,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockFlow(org.bukkit.event.block.BlockFromToEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockFromTo(final BlockFromToEvent event)
     {
         if ( !event.isCancelled())
@@ -211,7 +212,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockIgnite(org.bukkit.event.block.BlockIgniteEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockIgnite(final BlockIgniteEvent event)
     {
         if ( !event.isCancelled())
@@ -222,7 +223,7 @@ class WormholeXTremeBlockListener extends BlockListener
                 ? closest.getGateCustomPortalMaterial()
                 : closest.getGateShape() != null
                     ? closest.getGateShape().getShapePortalMaterial()
-                    : Material.STATIONARY_WATER) == Material.STATIONARY_LAVA))
+                    : Material.WATER) == Material.LAVA))
             {
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
                 if (((blockDistanceSquared <= (closest.isGateCustom()
@@ -243,13 +244,13 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockPhysics(org.bukkit.event.block.BlockPhysicsEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockPhysics(final BlockPhysicsEvent event)
     {
         if ( !event.isCancelled())
         {
             final Block block = event.getBlock();
-            if (StargateManager.isBlockInGate(block) && (block.getTypeId() != 55))
+            if (StargateManager.isBlockInGate(block) && (block.getType() != org.bukkit.Material.REDSTONE_WIRE))
             {
                 event.setCancelled(true);
             }

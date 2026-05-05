@@ -367,7 +367,7 @@ public class Wormhole implements CommandExecutor
                             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught Exception on light material" + e.getMessage());
                         }
 
-                        if ((m != null) && ((m == Material.GLOWSTONE) || (m == Material.GLOWING_REDSTONE_ORE)))
+                        if ((m != null) && ((m == Material.GLOWSTONE) || (m == Material.REDSTONE_ORE)))
                         {
                             stargate.setGateCustomLightMaterial(m);
                             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " light material set to: " + stargate.getGateCustomLightMaterial());
@@ -375,7 +375,7 @@ public class Wormhole implements CommandExecutor
                         else
                         {
                             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Light Material: " + args[2]);
-                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, GLOWING_REDSTONE_ORE");
+                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, REDSTONE_ORE");
                         }
                     }
                     else
@@ -492,7 +492,7 @@ public class Wormhole implements CommandExecutor
                             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught Exception on portal material" + e.getMessage());
                         }
 
-                        if ((m != null) && ((m == Material.STATIONARY_LAVA) || (m == Material.STATIONARY_WATER) || (m == Material.AIR) || (m == Material.PORTAL)))
+                        if ((m != null) && ((m == Material.LAVA) || (m == Material.WATER) || (m == Material.AIR) || (m == Material.NETHER_PORTAL)))
                         {
                             stargate.setGateCustomPortalMaterial(m);
                             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " portal material set to: " + stargate.getGateCustomPortalMaterial());
@@ -500,13 +500,13 @@ public class Wormhole implements CommandExecutor
                         else
                         {
                             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Portal Material: " + args[2]);
-                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: STATIONARY_WATER, STATIONARY_LAVA, AIR, PORTAL");
+                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: WATER, LAVA, AIR, NETHER_PORTAL");
                         }
                     }
                     else
                     {
                         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " portal material is currently: " + stargate.getGateCustomPortalMaterial());
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid materials are: STATIONARY_WATER, STATIONARY_LAVA, AIR, PORTAL");
+                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid materials are: WATER, LAVA, AIR, NETHER_PORTAL");
                     }
                 }
                 else
@@ -518,14 +518,14 @@ public class Wormhole implements CommandExecutor
             {
                 sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
                 sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole portalmaterial [stargate] <material>");
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: STATIONARY_WATER, STATIONARY_LAVA, AIR, PORTAL");
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: WATER, LAVA, AIR, NETHER_PORTAL");
             }
             return true;
         }
         else
         {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole portalmaterial [stargate] <material>");
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: STATIONARY_WATER, STATIONARY_LAVA, AIR, PORTAL");
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: WATER, LAVA, AIR, NETHER_PORTAL");
             return false;
         }
     }

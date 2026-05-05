@@ -24,8 +24,6 @@ import java.util.logging.Logger;
 
 import me.taylorkelly.help.Help;
 
-import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -179,38 +177,17 @@ public class WormholeXTreme extends JavaPlugin
     {
         final WormholeXTreme tp = getThisPlugin();
         final PluginManager pm = tp.getServer().getPluginManager();
-
         if (critical)
         {
-            // Listen for enable events.
-            pm.registerEvent(Event.Type.PLUGIN_ENABLE, serverListener, Priority.Monitor, tp);
-            // Listen for disable events.
-            pm.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Priority.Monitor, tp);
+            pm.registerEvents(serverListener, tp);
         }
         else
         {
-            //Listen for Interact, Physics, Break, Flow, and RightClick events. Pass to blockListener
-            pm.registerEvent(Event.Type.BLOCK_PHYSICS, blockListener, Priority.Highest, tp);
-            pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.BLOCK_FROMTO, blockListener, Priority.Highest, tp);
-            pm.registerEvent(Event.Type.BLOCK_IGNITE, blockListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.BLOCK_BURN, blockListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.BLOCK_DAMAGE, blockListener, Priority.High, tp);
-
-            // To handle teleporting when walking into a gate.
-            pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.PLAYER_BUCKET_FILL, playerListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.PLAYER_BUCKET_EMPTY, playerListener, Priority.High, tp);
-
-            pm.registerEvent(Event.Type.REDSTONE_CHANGE, redstoneListener, Priority.High, tp);
-            // Handle minecarts going through portal
-            pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, Priority.High, tp);
-            pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, Priority.High, tp);
-            // Handle player walking through the lava.
-            pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, Priority.High, tp);
-            // Handle Creeper explosions damaging Gate components.
-            pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.High, tp);
+            pm.registerEvents(blockListener, tp);
+            pm.registerEvents(playerListener, tp);
+            pm.registerEvents(redstoneListener, tp);
+            pm.registerEvents(vehicleListener, tp);
+            pm.registerEvents(entityListener, tp);
         }
     }
 

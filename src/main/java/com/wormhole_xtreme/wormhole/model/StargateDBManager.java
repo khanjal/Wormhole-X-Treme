@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Server;
+import org.bukkit.WorldCreator;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 
@@ -200,14 +201,9 @@ public class StargateDBManager
                 World w = null;
                 if (worldName.equals(""))
                 {
-                    for (final World possW : worlds)
-                    {
-                        if (possW.getId() == worldId)
-                        {
-                            w = possW;
-                            break;
-                        }
-                    }
+                    // Legacy DBs stored a numeric world id which is no longer available.
+                    // Default to the first loaded world when no world name is present.
+                    w = worlds.get(0);
                 }
                 else
                 {
@@ -220,13 +216,13 @@ public class StargateDBManager
                     {
                         if ((WormholeXTreme.getWorldHandler() != null) && !WormholeXTreme.getWorldHandler().loadWorld(worldName))
                         {
-                            server.createWorld(worldName, Environment.valueOf(worldEnvironment));
+                            server.createWorld(new WorldCreator(worldName).environment(Environment.valueOf(worldEnvironment)));
                             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, true, "World: " + worldName + " is not a Wormhole World, the suggested action is to add it as one. Otherwise disregard this warning.");
                         }
                     }
                     else
                     {
-                        server.createWorld(worldName, Environment.valueOf(worldEnvironment));
+                        server.createWorld(new WorldCreator(worldName).environment(Environment.valueOf(worldEnvironment)));
                     }
                     w = server.getWorld(worldName);
                 }
@@ -438,7 +434,8 @@ public class StargateDBManager
                 {
                     updateGateStatement.setString(2, "");
                 }
-                updateGateStatement.setLong(3, s.getGateWorld().getId());
+                // World numeric id removed from modern API; store placeholder 0 for compatibility.
+                updateGateStatement.setLong(3, 0L);
                 updateGateStatement.setString(4, s.getGateWorld().getName());
                 updateGateStatement.setString(5, s.getGateWorld().getEnvironment().toString());
                 updateGateStatement.setString(6, s.getGateOwner());
@@ -475,7 +472,8 @@ public class StargateDBManager
                     storeStatement.setString(3, "");
                 }
 
-                storeStatement.setLong(4, s.getGateWorld().getId());
+                // World numeric id removed from modern API; store placeholder 0 for compatibility.
+                storeStatement.setLong(4, 0L);
                 storeStatement.setString(5, s.getGateWorld().getName());
                 storeStatement.setString(6, s.getGateWorld().getEnvironment().toString());
                 storeStatement.setString(7, s.getGateOwner());

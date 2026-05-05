@@ -20,6 +20,7 @@ package com.wormhole_xtreme.wormhole.event;
 
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 
 /**
  * The Stargate Minecart Teleport Event Class.
@@ -37,6 +38,7 @@ public class StargateMinecartTeleportEvent extends Event
 
     /** The new minecart. */
     private final Minecart newMinecart;
+    private static final HandlerList handlers = new HandlerList();
 
     /**
      * Instantiates a new stargate minecart teleport event.
@@ -48,7 +50,6 @@ public class StargateMinecartTeleportEvent extends Event
      */
     public StargateMinecartTeleportEvent(final Minecart oldMinecart, final Minecart newMinecart)
     {
-        super("StargateMinecartTeleportEvent");
         this.oldMinecart = oldMinecart;
         this.newMinecart = newMinecart;
     }
@@ -72,5 +73,16 @@ public class StargateMinecartTeleportEvent extends Event
     {
         return oldMinecart;
     }
+    
+        @Override
+        public HandlerList getHandlers()
+        {
+            return handlers;
+        }
+    
+        public static HandlerList getHandlerList()
+        {
+            return handlers;
+        }
 
 }
