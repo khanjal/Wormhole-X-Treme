@@ -103,25 +103,167 @@ public class ConfigurationYAML
     {
         try
         {
-            final Map<String, Object> out = new HashMap<>();
-            for (final Setting s : config)
+            final File directory = new File("plugins" + File.separator + desc.getName() + File.separator);
+            if (!directory.exists())
             {
-                out.put(s.getName().name(), s.getValue());
+                directory.mkdir();
             }
-
-            final DumperOptions options = new DumperOptions();
-            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-            options.setIndent(2);
-            final Yaml yaml = new Yaml(options);
-
-            try (FileWriter writer = new FileWriter(file))
+            try (final FileWriter writer = new FileWriter(file))
             {
-                yaml.dump(out, writer);
+                for (final Setting s : config)
+                {
+                    final String keyName = kebabKeyName(s.getName().name());
+                    // Skip detailed build restriction group counts — not needed in YAML
+                    if (s.getName() == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_ONE
+                        || s.getName() == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_TWO
+                        || s.getName() == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
+                    {
+                        continue;
+                    }
+                    // Write comment description
+                    if ((s.getDescription() != null) && (s.getDescription().length() > 0))
+                    {
+                        for (final String wrapped : wrapComment(s.getDescription(), 80))
+                        {
+                            writer.write("# " + wrapped + System.lineSeparator());
+                        }
+                    }
+                    writer.write(keyName + ": " + formatValueForYaml(s.getValue()) + System.lineSeparator());
+                    writer.write(System.lineSeparator());
+                }
             }
         }
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write config.yml: " + e.getMessage());
         }
+    }
+
+    /**
+     * Write current runtime configuration (from ConfigManager) to YAML.
+     */
+    protected static void writeCurrentConfiguration(final File file, final PluginDescriptionFile desc)
+    {
+        try
+        {
+            final File directory = new File("plugins" + File.separator + desc.getName() + File.separator);
+            if (!directory.exists())
+            {
+                directory.mkdir();
+            }
+            try (final FileWriter writer = new FileWriter(file))
+            {
+                final Setting[] defaults = com.wormhole_xtreme.wormhole.config.DefaultSettings.config;
+                final java.util.List<String> skipped = new java.util.ArrayList<>();
+                for (final Setting def : defaults)
+                {
+                    final com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys key = def.getName();
+                    // Skip permission backend settings entirely
+                    if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILT_IN_PERMISSIONS_ENABLED
+                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL
+                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE
+                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.SIMPLE_PERMISSIONS)
+                    {
+                        skipped.add(key.name());
+                        continue;
+                    }
+                    // Skip detailed build restriction group counts
+                    if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_ONE
+                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_TWO
+                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
+                    {
+                        continue;
+                    }
+                    final Setting runtime = com.wormhole_xtreme.wormhole.config.ConfigManager.getConfigurations().get(key);
+                    final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
+                    final String keyName = kebabKeyName(key.name());
+                    // write description comment
+                    if ((def.getDescription() != null) && (def.getDescription().length() > 0))
+                    {
+                        for (final String wrapped : wrapComment(def.getDescription(), 80))
+                        {
+                            writer.write("# " + wrapped + System.lineSeparator());
+                        }
+                    }
+                    writer.write(keyName + ": " + formatValueForYaml(value) + System.lineSeparator());
+                    writer.write(System.lineSeparator());
+                }
+                if (!skipped.isEmpty())
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Skipped migrating permission keys: " + skipped.toString());
+                }
+            }
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write migrated config.yml: " + e.getMessage());
+        }
+    }
+
+    private static String kebabKeyName(final String constantName)
+    {
+        return constantName.toLowerCase().replace('_', '-');
+    }
+
+    private static String formatValueForYaml(final Object value)
+    {
+        if (value == null)
+        {
+            return "null";
+        }
+        if (value instanceof Number || value instanceof Boolean)
+        {
+            return value.toString();
+        }
+        // For enum types or strings, quote strings that may contain special characters
+        final String s = value.toString();
+        if (s.matches("^[a-zA-Z0-9_\\-]+$"))
+        {
+            return s;
+        }
+        return '"' + s.replace("\"", "\\\"") + '"';
+    }
+
+    private static java.util.List<String> wrapComment(final String text, final int width)
+    {
+        final java.util.List<String> out = new java.util.ArrayList<>();
+        if (text == null)
+        {
+            return out;
+        }
+        final String[] paragraphs = text.split("\\n");
+        for (final String para : paragraphs)
+        {
+            final String[] words = para.split("\\s+");
+            StringBuilder line = new StringBuilder();
+            for (final String w : words)
+            {
+                if (line.length() == 0)
+                {
+                    line.append(w);
+                }
+                else if (line.length() + 1 + w.length() <= width - 2)
+                {
+                    line.append(' ').append(w);
+                }
+                else
+                {
+                    out.add(line.toString());
+                    line = new StringBuilder(w);
+                }
+            }
+            if (line.length() > 0)
+            {
+                out.add(line.toString());
+            }
+            // preserve paragraph break
+            out.add("");
+        }
+        // remove trailing empty line if present
+        if (!out.isEmpty() && out.get(out.size() - 1).isEmpty())
+        {
+            out.remove(out.size() - 1);
+        }
+        return out;
     }
 }

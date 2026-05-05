@@ -105,7 +105,18 @@ public class Configuration
         }
         else
         {
+            // Read legacy Settings.txt (creates it with defaults if missing) and
+            // then write out a migrated `config.yml` so future loads prefer YAML.
             readFile(desc);
+            try
+            {
+                ConfigurationYAML.writeCurrentConfiguration(yamlFile, desc);
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Migrated legacy Settings.txt to config.yml at: " + yamlFile.getPath());
+            }
+            catch (final Throwable t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Failed to write migrated config.yml: " + t.getMessage());
+            }
         }
     }
 
