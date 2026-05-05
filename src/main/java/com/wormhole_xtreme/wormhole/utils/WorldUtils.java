@@ -217,6 +217,21 @@ public class WorldUtils
     }
 
     /**
+     * Returns true if two blocks are within a 1-block radius (inclusive) of each other.
+     */
+    public static boolean isAdjacent(final Block b1, final Block b2)
+    {
+        if ((b1 == null) || (b2 == null))
+        {
+            return false;
+        }
+        final int dx = Math.abs(b1.getX() - b2.getX());
+        final int dy = Math.abs(b1.getY() - b2.getY());
+        final int dz = Math.abs(b1.getZ() - b2.getZ());
+        return (dx <= 1) && (dy <= 1) && (dz <= 1);
+    }
+
+    /**
      * Schedule chunk load.
      * 
      * @param b

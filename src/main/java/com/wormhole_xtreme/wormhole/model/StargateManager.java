@@ -92,6 +92,14 @@ public class StargateManager
         if ((b != null) && (s != null))
         {
             getAllGateBlocks().put(b.getLocation(), s);
+            try
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
+            }
+            catch (final Exception e)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error logging indexed block: " + e.getMessage());
+            }
         }
     }
 
@@ -167,6 +175,34 @@ public class StargateManager
         {
             getAllGateBlocks().put(b, s);
         }
+        // Index explicit activation-related blocks so player interactions find the gate.
+        try
+        {
+            if (s.getGateDialLeverBlock() != null)
+            {
+                addBlockIndex(s.getGateDialLeverBlock(), s);
+            }
+            if (s.getGateIrisLeverBlock() != null)
+            {
+                addBlockIndex(s.getGateIrisLeverBlock(), s);
+            }
+            if (s.getGateDialSignBlock() != null)
+            {
+                addBlockIndex(s.getGateDialSignBlock(), s);
+            }
+            if (s.getGateRedstoneDialActivationBlock() != null)
+            {
+                addBlockIndex(s.getGateRedstoneDialActivationBlock(), s);
+            }
+            if (s.getGateRedstoneGateActivatedBlock() != null)
+            {
+                addBlockIndex(s.getGateRedstoneGateActivatedBlock(), s);
+            }
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error indexing gate activation blocks: " + e.getMessage());
+        }
     }
 
     // Network functions
@@ -210,6 +246,38 @@ public class StargateManager
             s.completeGate(s.getGateName(), "");
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + s.getGateName());
             addStargate(s);
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Gate debug: Name=" + s.getGateName()
+                    + " Owner=" + s.getGateOwner()
+                    + " DialLever=" + (s.getGateDialLeverBlock() != null ? s.getGateDialLeverBlock().getLocation().toString() : "null")
+                    + " DialLeverType=" + (s.getGateDialLeverBlock() != null ? s.getGateDialLeverBlock().getType().toString() : "null")
+                    + " IrisLever=" + (s.getGateIrisLeverBlock() != null ? s.getGateIrisLeverBlock().getLocation().toString() : "null")
+                    + " IrisLeverType=" + (s.getGateIrisLeverBlock() != null ? s.getGateIrisLeverBlock().getType().toString() : "null")
+                    + " DialSignBlock=" + (s.getGateDialSignBlock() != null ? s.getGateDialSignBlock().getLocation().toString() : "null")
+                    + " DialSignType=" + (s.getGateDialSignBlock() != null ? s.getGateDialSignBlock().getType().toString() : "null")
+                    + " RedstoneDial=" + (s.getGateRedstoneDialActivationBlock() != null ? s.getGateRedstoneDialActivationBlock().getLocation().toString() : "null")
+                    + " RedstoneDialType=" + (s.getGateRedstoneDialActivationBlock() != null ? s.getGateRedstoneDialActivationBlock().getType().toString() : "null")
+                    + " RedstoneGateActivated=" + (s.getGateRedstoneGateActivatedBlock() != null ? s.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
+                    + " RedstoneGateActivatedType=" + (s.getGateRedstoneGateActivatedBlock() != null ? s.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
+                );
+            // Dump all indexed block locations for this gate for debugging
+            try
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed blocks for gate=" + s.getGateName() + " -> Start");
+                for (final java.util.Map.Entry<Location, Stargate> e : getAllGateBlocks().entrySet())
+                {
+                    if (e.getValue() == s)
+                    {
+                        final Location loc = e.getKey();
+                        final org.bukkit.block.Block block = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "  idx=" + loc.toString() + " type=" + block.getType().toString());
+                    }
+                }
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed blocks for gate=" + s.getGateName() + " -> End");
+            }
+            catch (final Exception ex)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error dumping indexed blocks: " + ex.getMessage());
+            }
             StargateDBManager.stargateToSQL(s);
             return true;
         }
@@ -251,6 +319,19 @@ public class StargateManager
             complete.completeGate(name, idc);
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
             addStargate(complete);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Gate debug: Name=" + complete.getGateName()
+                        + " Owner=" + complete.getGateOwner()
+                        + " DialLever=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getLocation().toString() : "null")
+                        + " DialLeverType=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getType().toString() : "null")
+                        + " IrisLever=" + (complete.getGateIrisLeverBlock() != null ? complete.getGateIrisLeverBlock().getLocation().toString() : "null")
+                        + " IrisLeverType=" + (complete.getGateIrisLeverBlock() != null ? complete.getGateIrisLeverBlock().getType().toString() : "null")
+                        + " DialSignBlock=" + (complete.getGateDialSignBlock() != null ? complete.getGateDialSignBlock().getLocation().toString() : "null")
+                        + " DialSignType=" + (complete.getGateDialSignBlock() != null ? complete.getGateDialSignBlock().getType().toString() : "null")
+                        + " RedstoneDial=" + (complete.getGateRedstoneDialActivationBlock() != null ? complete.getGateRedstoneDialActivationBlock().getLocation().toString() : "null")
+                        + " RedstoneDialType=" + (complete.getGateRedstoneDialActivationBlock() != null ? complete.getGateRedstoneDialActivationBlock().getType().toString() : "null")
+                        + " RedstoneGateActivated=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
+                        + " RedstoneGateActivatedType=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
+                    );
             StargateDBManager.stargateToSQL(complete);
             return true;
         }
@@ -362,11 +443,46 @@ public class StargateManager
      */
     public static Stargate getGateFromBlock(final Block b)
     {
-        if (getAllGateBlocks().containsKey(b.getLocation()))
+        final boolean contains = getAllGateBlocks().containsKey(b.getLocation());
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation().toString() + " type=" + b.getType().toString() + " indexed=" + contains);
+        if (contains)
         {
-            return getAllGateBlocks().get(b.getLocation());
+            final Stargate s = getAllGateBlocks().get(b.getLocation());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation().toString());
+            return s;
         }
 
+        // Fallback: check neighboring blocks in a 1-block radius (covers levers/buttons attached to nearby blocks)
+        try
+        {
+            final Location base = b.getLocation();
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    for (int dz = -1; dz <= 1; dz++)
+                    {
+                        if (dx == 0 && dy == 0 && dz == 0)
+                        {
+                            continue;
+                        }
+                        final Location nloc = new Location(base.getWorld(), base.getX() + dx, base.getY() + dy, base.getZ() + dz);
+                        if (getAllGateBlocks().containsKey(nloc))
+                        {
+                            final Stargate s = getAllGateBlocks().get(nloc);
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate neighbor lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for clicked loc=" + base.toString() + " neighbor=" + nloc.toString());
+                            return s;
+                        }
+                    }
+                }
+            }
+        }
+        catch (final Exception ex)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error during neighbor gate lookup: " + ex.getMessage());
+        }
+
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup miss for loc=" + b.getLocation().toString());
         return null;
     }
 

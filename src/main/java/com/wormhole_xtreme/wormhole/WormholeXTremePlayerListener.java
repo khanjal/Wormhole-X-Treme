@@ -51,6 +51,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class WormholeXTremePlayerListener implements Listener
 {
+    private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, Boolean> recentTeleports = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Button lever hit.
@@ -65,19 +66,125 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static boolean buttonLeverHit(final Player player, final Block clickedBlock, BlockFace direction)
     {
+        // Check if player is awaiting interactive /wxcomplete completion
+        try
+        {
+            final String[] pending = com.wormhole_xtreme.wormhole.command.Complete.getPendingCompletion(player);
+            if (pending != null)
+            {
+                String name = pending[0];
+                String idc = pending[1];
+                String network = pending[2];
+
+                // Determine facing if not provided
+                if (direction == null)
+                {
+                    switch (com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(clickedBlock))
+                    {
+                        case 1 :
+                            direction = BlockFace.SOUTH;
+                            break;
+                        case 2 :
+                            direction = BlockFace.NORTH;
+                            break;
+                        case 3 :
+                            direction = BlockFace.WEST;
+                            break;
+                        case 4 :
+                            direction = BlockFace.EAST;
+                            break;
+                        default :
+                            break;
+                    }
+                }
+
+                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+/wxcomplete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
+
+                com.wormhole_xtreme.wormhole.model.Stargate found = null;
+                try
+                {
+                    if (direction != null)
+                    {
+                        found = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(clickedBlock, direction);
+                    }
+                    if (found == null)
+                    {
+                        // try common facings
+                        final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
+                        for (final org.bukkit.block.BlockFace face : faces)
+                        {
+                            try
+                            {
+                                found = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(clickedBlock, face);
+                                if (found != null)
+                                {
+                                    break;
+                                }
+                            }
+                            catch (final Throwable ignore) {}
+                        }
+                    }
+                }
+                catch (final Throwable t)
+                {
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wxcomplete interactive detection error: " + t.getMessage());
+                }
+
+                if (found != null)
+                {
+                    com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
+                    if (com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, name, idc, network))
+                    {
+                        player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+                    }
+                    else
+                    {
+                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed after interactive detection. Check server log.");
+                    }
+                    com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
+                    return true;
+                }
+                else
+                {
+                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
+                    // Diagnostic: iterate shapes and facings to report why detection failed
+                    try
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wxcomplete diag: running detailed detection diagnostics for player=" + player.getName());
+                        final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
+                        for (final org.bukkit.block.BlockFace face : faces)
+                        {
+                            try
+                            {
+                                final org.bukkit.block.BlockFace opposite = com.wormhole_xtreme.wormhole.utils.WorldUtils.getInverseDirection(face);
+                                final org.bukkit.block.Block holding = clickedBlock.getRelative(opposite);
+                                final org.bukkit.block.Block below = holding.getRelative(org.bukkit.block.BlockFace.DOWN);
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wxcomplete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
+                            }
+                            catch (final Throwable ignore) {}
+                        }
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wxcomplete diag: end diagnostics");
+                    }
+                    catch (final Throwable ignore) {}
+                    return true;
+                }
+            }
+        }
+        catch (final Throwable ignore) {}
+
         final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
 
         if (stargate != null)
         {
-            if (WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock) && ((stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
+            if ((WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock)) && ((stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
             {
                 handleGateActivationSwitch(stargate, player);
             }
-            else if (WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) && ( !stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER)))
+            else if ((WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock)) && ( !stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER)))
             {
                 stargate.toggleIrisActive(true);
             }
-            else if (WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock))
+            else if (WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock))
             {
                 player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             }
@@ -179,7 +286,54 @@ class WormholeXTremePlayerListener implements Listener
             }
             else
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
+                // Fallback: try nearby blocks as the DHD button (covers some placements where lever is offset)
+                boolean foundNearby = false;
+                final org.bukkit.World world = clickedBlock.getWorld();
+                final int radius = 1;
+                search:
+                for (int dx = -radius; dx <= radius; dx++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        for (int dz = -radius; dz <= radius; dz++)
+                        {
+                            if (dx == 0 && dy == 0 && dz == 0)
+                            {
+                                continue;
+                            }
+                            final org.bukkit.block.Block b = world.getBlockAt(clickedBlock.getX() + dx, clickedBlock.getY() + dy, clickedBlock.getZ() + dz);
+                            final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
+                            for (final org.bukkit.block.BlockFace face : faces)
+                            {
+                                try
+                                {
+                                    final com.wormhole_xtreme.wormhole.model.Stargate nearbyGate = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(b, face);
+                                    if (nearbyGate != null)
+                                    {
+                                        foundNearby = true;
+                                        if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD) && !StargateRestrictions.isPlayerBuildRestricted(player))
+                                        {
+                                            // register incomplete and prompt for /wxcomplete
+                                            StargateManager.addIncompleteStargate(player, nearbyGate);
+                                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design detected via nearby click! Type '/wxcomplete <name>' to complete.");
+                                        }
+                                        else
+                                        {
+                                            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                                        }
+                                        break search;
+                                    }
+                                }
+                                catch (final Throwable ignore) {}
+                            }
+                        }
+                    }
+                }
+
+                if (!foundNearby)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
+                }
             }
         }
         return false;
@@ -295,6 +449,7 @@ class WormholeXTremePlayerListener implements Listener
 
         if ((clickedBlock != null) && ((clickedBlock.getType() == LegacyCompat.materialFromId(77)) || (clickedBlock.getType() == LegacyCompat.materialFromId(69))))
         {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
             if (buttonLeverHit(player, clickedBlock, null))
             {
                 return true;
@@ -400,7 +555,41 @@ class WormholeXTremePlayerListener implements Listener
             player.setNoDamageTicks(5);
             event.setFrom(target);
             event.setTo(target);
+            try {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Teleporting player: " + player.getName() + " from " + player.getLocation().toString() + " to " + target.toString() + " (fromGate=" + stargate.getGateName() + " targetGate=" + stargate.getGateTarget().getGateName() + ")");
+            } catch (final Throwable ignore) {}
+            // Mark player as recently teleported so the subsequent PlayerMoveEvent doesn't cancel and revert them.
+            try {
+                recentTeleports.put(player, Boolean.TRUE);
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        recentTeleports.remove(player);
+                    }
+                }, 4L);
+            }
+            catch (final Throwable ignore) {}
             player.teleport(target);
+            try {
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        try
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "PostTeleport location for " + player.getName() + " is " + player.getLocation().toString());
+                        }
+                        catch (final Throwable ignore) {}
+                    }
+                }, 1L);
+            }
+            catch (final Throwable ignore) {}
+            try {
+                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
+            } catch (final Throwable ignore) {}
             if (target != stargate.getGatePlayerTeleportLocation())
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
@@ -479,7 +668,16 @@ class WormholeXTremePlayerListener implements Listener
     {
         if (handlePlayerMoveEvent(event))
         {
-            event.setCancelled(true);
+            final Player p = event.getPlayer();
+            if (recentTeleports.containsKey(p))
+            {
+                // recently teleported — don't cancel the move event (allow server to settle)
+                recentTeleports.remove(p);
+            }
+            else
+            {
+                event.setCancelled(true);
+            }
         }
     }
 }

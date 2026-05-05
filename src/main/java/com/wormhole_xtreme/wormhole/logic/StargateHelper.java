@@ -695,6 +695,52 @@ public class StargateHelper
     }
 
     /**
+     * Diagnostic: prints the blocks that would be checked for a given buttonBlock and facing
+     */
+    public static void debugShapeMatch(final org.bukkit.block.Block buttonBlock, final org.bukkit.block.BlockFace facing, final StargateShape shape)
+    {
+        try
+        {
+            final BlockFace opposite = com.wormhole_xtreme.wormhole.utils.WorldUtils.getInverseDirection(facing);
+            final Block holdingBlock = buttonBlock.getRelative(opposite);
+            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+debugShapeMatch: checking shape=" + shape.getShapeName() + " facing=" + facing + " holding=" + holdingBlock.getLocation().toString() + " holdingType=" + holdingBlock.getType().toString());
+
+            final int[] facingVector = {0, 0, 0};
+            if (facing == org.bukkit.block.BlockFace.NORTH) { facingVector[0] = 1; }
+            else if (facing == org.bukkit.block.BlockFace.SOUTH) { facingVector[0] = -1; }
+            else if (facing == org.bukkit.block.BlockFace.EAST) { facingVector[2] = 1; }
+            else if (facing == org.bukkit.block.BlockFace.WEST) { facingVector[2] = -1; }
+            else if (facing == org.bukkit.block.BlockFace.UP) { facingVector[1] = -1; }
+            else if (facing == org.bukkit.block.BlockFace.DOWN) { facingVector[1] = 1; }
+
+            final int[] directionVector = {0, 0, 0};
+            final int[] startingPosition = {0, 0, 0};
+
+            directionVector[0] = facingVector[1] * shape.getShapeReferenceVector()[2] - facingVector[2] * shape.getShapeReferenceVector()[1];
+            directionVector[1] = facingVector[2] * shape.getShapeReferenceVector()[0] - facingVector[0] * shape.getShapeReferenceVector()[2];
+            directionVector[2] = facingVector[0] * shape.getShapeReferenceVector()[1] - facingVector[1] * shape.getShapeReferenceVector()[0];
+
+            startingPosition[0] = buttonBlock.getX() + facingVector[0] * shape.getShapeToGateCorner()[2] + directionVector[0] * shape.getShapeToGateCorner()[0];
+            startingPosition[1] = buttonBlock.getY() + shape.getShapeToGateCorner()[1];
+            startingPosition[2] = buttonBlock.getZ() + facingVector[2] * shape.getShapeToGateCorner()[2] + directionVector[2] * shape.getShapeToGateCorner()[0];
+
+            final org.bukkit.World w = buttonBlock.getWorld();
+            for (int i = 0; i < shape.getShapeStructurePositions().length; i++)
+            {
+                final int[] bVect = shape.getShapeStructurePositions()[i];
+                final int[] blockLocation = {bVect[2] * directionVector[0] * -1, bVect[1], bVect[2] * directionVector[2] * -1};
+                final org.bukkit.block.Block maybeBlock = w.getBlockAt(blockLocation[0] + startingPosition[0], blockLocation[1] + startingPosition[1], blockLocation[2] + startingPosition[2]);
+                final boolean match = maybeBlock.getType() == shape.getShapeStructureMaterial();
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+debugShapeMatch: idx=" + i + " pos=[" + (blockLocation[0] + startingPosition[0]) + "," + (blockLocation[1] + startingPosition[1]) + "," + (blockLocation[2] + startingPosition[2]) + "] type=" + maybeBlock.getType().toString() + " expected=" + shape.getShapeStructureMaterial().toString() + " match=" + match);
+            }
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "+debugShapeMatch error: " + t.getMessage());
+        }
+    }
+
+    /**
      * Load shapes.
      */
     public static void loadShapes()
