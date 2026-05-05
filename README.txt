@@ -89,4 +89,33 @@ To Build:
  
  4.   Run a 'mvn install' in the directory you ran the git clone of WX into.
   
- 5.   Enjoy plugin that is now in target/. It will be a jar or a package zip.   
+ 5.   Enjoy plugin that is now in target/. It will be a jar or a package zip.
+
+--------------------------------------------------
+Upgrade & Test Notes (Paper 1.20.4 / Java 17)
+--------------------------------------------------
+
+Quick build
+- Build without tests: `mvn -DskipTests package`
+- Built artifact: `target/WormholeXTreme-0.854.jar`
+
+Basic runtime test
+1. Copy `target/WormholeXTreme-0.854.jar` into your Paper 1.20.4 server `plugins/` dir.
+2. Ensure server runs on Java 17, then start the server.
+3. Watch `logs/latest.log` for plugin enable messages and any stack traces.
+
+Permissions / Vault
+- The plugin will attempt to attach to Vault at runtime (reflection) if Vault is present.
+- If you plan to use Vault + LuckPerms, place Vault in `plugins/` before starting so the bridge
+     attaches on enable; otherwise built-in Bukkit permission checks are used as fallback.
+
+BlockData / legacy mappings
+- Legacy numeric IDs and legacy block "data" bytes are mapped via `LegacyCompat` helpers.
+- This is best-effort: please test lever/button orientation, wall sign facing, redstone wire
+     power levels, and sign text. Report mismatches and I will refine mappings.
+
+Reporting issues
+- If the plugin fails on enable, paste the `logs/latest.log` enable stacktrace and I will continue
+     with targeted fixes (BlockData mapping, command/permission wiring, or DB migration).
+
+-- Upgrade assistant

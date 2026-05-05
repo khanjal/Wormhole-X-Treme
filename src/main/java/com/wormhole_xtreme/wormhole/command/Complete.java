@@ -79,7 +79,63 @@ public class Complete implements CommandExecutor
                         }
                         else
                         {
-                            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!?");
+                            // Provide better guidance when completion fails
+                            final String incompleteName = com.wormhole_xtreme.wormhole.model.StargateManager.getIncompleteStargateName(player);
+                            if (incompleteName == null)
+                            {
+                                // Try to detect a nearby valid gate automatically so command can be used before flipping activation.
+                                boolean detected = false;
+                                final org.bukkit.Location loc = player.getLocation();
+                                final int radius = 4;
+                                search:
+                                for (int dx = -radius; dx <= radius; dx++)
+                                {
+                                    for (int dy = -2; dy <= 2; dy++)
+                                    {
+                                        for (int dz = -radius; dz <= radius; dz++)
+                                        {
+                                            final org.bukkit.block.Block b = loc.getWorld().getBlockAt(loc.getBlockX() + dx, loc.getBlockY() + dy, loc.getBlockZ() + dz);
+                                            // try common activation facings
+                                            final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
+                                            for (final org.bukkit.block.BlockFace face : faces)
+                                            {
+                                                try
+                                                {
+                                                    final com.wormhole_xtreme.wormhole.model.Stargate found = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(b, face);
+                                                    if (found != null)
+                                                    {
+                                                        // register as incomplete and attempt completion
+                                                        com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
+                                                        if (com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, name, idc, network))
+                                                        {
+                                                            player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+                                                            detected = true;
+                                                            break search;
+                                                        }
+                                                        else
+                                                        {
+                                                            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed after detection. See server log for details.");
+                                                            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wxcomplete auto-detection failed for player " + player.getName() + " at block " + b.getLocation());
+                                                            detected = true;
+                                                            break search;
+                                                        }
+                                                    }
+                                                }
+                                                catch (final Throwable ignore) {}
+                                            }
+                                        }
+                                    }
+                                }
+                                if (!detected)
+                                {
+                                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No incomplete stargate found. Build a gate and use the build flow (activate or /wxbuild) before running /wxcomplete.");
+                                }
+                            }
+                            else
+                            {
+                                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
+                                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wxcomplete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
+                            }
                         }
                     }
                     else

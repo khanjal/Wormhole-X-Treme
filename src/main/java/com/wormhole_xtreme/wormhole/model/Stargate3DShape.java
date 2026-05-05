@@ -32,6 +32,18 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class Stargate3DShape extends StargateShape
 {
+    private static Material parseMaterialName(final String name) {
+        if (name == null) return null;
+        final String n = name.trim().toUpperCase();
+        switch (n) {
+            case "STATIONARY_WATER":
+                return Material.WATER;
+            case "STATIONARY_LAVA":
+                return Material.LAVA;
+            default:
+                try { return Material.valueOf(n); } catch (final IllegalArgumentException e) { return null; }
+        }
+    }
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
      */
@@ -163,19 +175,23 @@ public class Stargate3DShape extends StargateShape
             }
             else if (line.contains("PORTAL_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapePortalMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapePortalMaterial(m);
             }
             else if (line.contains("IRIS_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapeIrisMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeIrisMaterial(m);
             }
             else if (line.contains("STARGATE_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapeStructureMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeStructureMaterial(m);
             }
             else if (line.contains("ACTIVE_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeLightMaterial(m);
             }
             else if (line.contains("LIGHT_TICKS=") && (line.split("=").length > 1))
             {

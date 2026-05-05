@@ -381,6 +381,19 @@ public class StargateManager
     }
 
     /**
+     * Returns the name of the incomplete stargate for a player, or null if none.
+     * Useful for diagnostics when completion fails.
+     *
+     * @param p the player
+     * @return gate name or null
+     */
+    public static String getIncompleteStargateName(final Player p)
+    {
+        final Stargate s = getIncompleteStargates().get(p);
+        return s != null ? s.getGateName() : null;
+    }
+
+    /**
      * Gets the opening animation blocks.
      * 
      * @return the opening animation blocks

@@ -119,12 +119,23 @@ public class StargateDBManager
         {
             connectDB();
         }
+        if (wormholeSQLConnection == null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Database not available; skipping individual permissions load.");
+            return perms;
+        }
         ResultSet perm = null;
         try
         {
             if (wormholeSQLConnection.isClosed())
             {
                 connectDB();
+            }
+
+            if (wormholeSQLConnection == null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Database connection unavailable after reconnect attempt; skipping individual permissions load.");
+                return perms;
             }
 
             if (getAllIndvPermStatement == null)
@@ -168,6 +179,11 @@ public class StargateDBManager
         if (wormholeSQLConnection == null)
         {
             connectDB();
+        }
+        if (wormholeSQLConnection == null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Database not available; skipping stargate load. Ensure hsqldb.jar is present in server classpath or plugin lib folder.");
+            return;
         }
         final List<World> worlds = server.getWorlds();
         PreparedStatement stmt = null;
