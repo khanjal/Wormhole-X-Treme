@@ -67,19 +67,8 @@ public class WXPermissions
         GO,
 
         /** The COMPASS permission. */
-        COMPASS,
-
-        USE_COOLDOWN_GROUP_ONE,
-
-        USE_COOLDOWN_GROUP_TWO,
-
-        USE_COOLDOWN_GROUP_THREE,
-
-        BUILD_RESTRICTION_GROUP_ONE,
-        BUILD_RESTRICTION_GROUP_TWO,
-        BUILD_RESTRICTION_GROUP_THREE;
+        COMPASS;
     }
-
     /**
      * Check wx permissions.
      * 
@@ -200,18 +189,8 @@ public class WXPermissions
                             }
                         }
                         return ((ComplexPermission.BUILD.checkPermission(player) && (networkName.equals("Public") || ( !networkName.equals("Public") && ComplexPermission.NETWORK_BUILD.checkPermission(player, networkName)))));
-                    case USE_COOLDOWN_GROUP_ONE :
-                        return ComplexPermission.USE_COOLDOWN_GROUP_ONE.checkPermission(player);
-                    case USE_COOLDOWN_GROUP_TWO :
-                        return ComplexPermission.USE_COOLDOWN_GROUP_TWO.checkPermission(player);
-                    case USE_COOLDOWN_GROUP_THREE :
-                        return ComplexPermission.USE_COOLDOWN_GROUP_THREE.checkPermission(player);
-                    case BUILD_RESTRICTION_GROUP_ONE :
-                        return ComplexPermission.BUILD_RESTRICTION_GROUP_ONE.checkPermission(player);
-                    case BUILD_RESTRICTION_GROUP_TWO :
-                        return ComplexPermission.BUILD_RESTRICTION_GROUP_TWO.checkPermission(player);
-                    case BUILD_RESTRICTION_GROUP_THREE :
-                        return ComplexPermission.BUILD_RESTRICTION_GROUP_THREE.checkPermission(player);
+                    // legacy cooldown group permission checks removed
+                    // legacy build-group permission checks removed
                     default :
                         return false;
                 }

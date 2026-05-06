@@ -161,7 +161,13 @@ public class WormholeXTreme extends JavaPlugin
         tp.getCommand("wxforce").setExecutor(new Force());
         tp.getCommand("wxidc").setExecutor(new WXIDC());
         tp.getCommand("wxcompass").setExecutor(new Compass());
-        tp.getCommand("wxcomplete").setExecutor(new Complete());
+        final Complete completeCmd = new Complete();
+        tp.getCommand("wxcomplete").setExecutor(completeCmd);
+        try
+        {
+            tp.getCommand("wxcomplete").setTabCompleter(completeCmd);
+        }
+        catch (final Throwable ignored) {}
         tp.getCommand("wxremove").setExecutor(new WXRemove());
         tp.getCommand("wxlist").setExecutor(new WXList());
         tp.getCommand("wxgo").setExecutor(new Go());

@@ -113,13 +113,7 @@ public class ConfigurationYAML
                 for (final Setting s : config)
                 {
                     final String keyName = kebabKeyName(s.getName().name());
-                    // Skip detailed build restriction group counts — not needed in YAML
-                    if (s.getName() == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_ONE
-                        || s.getName() == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_TWO
-                        || s.getName() == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
-                    {
-                        continue;
-                    }
+                    // (Legacy build-group keys removed; nothing to skip here.)
                     // Write comment description
                     if ((s.getDescription() != null) && (s.getDescription().length() > 0))
                     {
@@ -166,13 +160,7 @@ public class ConfigurationYAML
                         skipped.add(key.name());
                         continue;
                     }
-                    // Skip detailed build restriction group counts
-                    if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_ONE
-                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_TWO
-                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
-                    {
-                        continue;
-                    }
+                    // (Legacy build-group keys removed; nothing to skip here.)
                     final Setting runtime = com.wormhole_xtreme.wormhole.config.ConfigManager.getConfigurations().get(key);
                     final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
                     final String keyName = kebabKeyName(key.name());

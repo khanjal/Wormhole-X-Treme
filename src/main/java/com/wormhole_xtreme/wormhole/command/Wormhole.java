@@ -708,52 +708,8 @@ public class Wormhole implements CommandExecutor
      */
     private static int doRestrictionGroup(final String groupName, final boolean set, final int gateCount)
     {
-        int group = 0;
-        int oldValue = 0;
-        if (groupName.equalsIgnoreCase("one"))
-        {
-            group = 1;
-        }
-        else if (groupName.equalsIgnoreCase("two"))
-        {
-            group = 2;
-        }
-        else if (groupName.equalsIgnoreCase("three"))
-        {
-            group = 3;
-        }
-        switch (group)
-        {
-            case 1 :
-                if (set)
-                {
-                    oldValue = ConfigManager.getBuildRestrictionGroupOne();
-                    ConfigManager.setBuildRestrictionGroupOne(gateCount);
-                }
-                return set
-                    ? oldValue
-                    : ConfigManager.getBuildRestrictionGroupOne();
-            case 2 :
-                if (set)
-                {
-                    oldValue = ConfigManager.getBuildRestrictionGroupTwo();
-                    ConfigManager.setBuildRestrictionGroupTwo(gateCount);
-                }
-                return set
-                    ? oldValue
-                    : ConfigManager.getBuildRestrictionGroupTwo();
-            case 3 :
-                if (set)
-                {
-                    oldValue = ConfigManager.getBuildRestrictionGroupThree();
-                    ConfigManager.setBuildRestrictionGroupThree(gateCount);
-                }
-                return set
-                    ? oldValue
-                    : ConfigManager.getBuildRestrictionGroupThree();
-            default :
-                return -1;
-        }
+        // Build restriction groups removed; feature deprecated.
+        return -1;
     }
 
     /**

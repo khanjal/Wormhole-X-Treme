@@ -79,33 +79,11 @@ public class StargateDBManager
      */
     private static void connectDB()
     {
-        try
-        {
-            Class.forName("org.hsqldb.jdbcDriver");
-        }
-        catch (final Exception e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "ERROR: failed to load HSQLDB JDBC driver.");
-            e.printStackTrace();
-            return;
-        }
-
-        try
-        {
-            if ((wormholeSQLConnection == null) || wormholeSQLConnection.isClosed())
-            {
-                setWormholeSQLConnection(DriverManager.getConnection("jdbc:hsqldb:./plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTremeDB", "sa", ""));
-                wormholeSQLConnection.setAutoCommit(true);
-            }
-            else
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "WormholeDB already connected.");
-            }
-        }
-        catch (final SQLException e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to intialized internal DB. Stargates will not be saved: " + e.getMessage());
-        }
+        // HSQLDB support removed. Plugin no longer initializes or uses the embedded HSQLDB.
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "HSQLDB support removed; database features disabled. Using YAML/other storage backends.");
+        // Ensure we don't attempt to create a connection.
+        wormholeSQLConnection = null;
+        return;
     }
 
     /**
@@ -404,10 +382,21 @@ public class StargateDBManager
     {
         try
         {
+            if (wormholeSQLConnection == null)
+            {
+                return;
+            }
             if ( !wormholeSQLConnection.isClosed())
             {
-                storeStatement = wormholeSQLConnection.prepareStatement("SHUTDOWN");
-                storeStatement.execute();
+                try
+                {
+                    storeStatement = wormholeSQLConnection.prepareStatement("SHUTDOWN");
+                    storeStatement.execute();
+                }
+                catch (final SQLException ignore)
+                {
+                    // Ignore - driver may not support shutdown (e.g., no DB present).
+                }
                 wormholeSQLConnection.close();
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "WormholeDB shutdown successfull.");
             }

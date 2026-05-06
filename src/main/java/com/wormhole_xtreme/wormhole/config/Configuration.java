@@ -203,19 +203,36 @@ public class Configuration
         options = new File(input);
         if ( !options.exists())
         {
-            writeFile(options, desc, DefaultSettings.config);
+            // Do NOT create legacy Settings.txt. Instead populate configuration with defaults.
+            for (final Setting element : DefaultSettings.config)
+            {
+                ConfigManager.getConfigurations().put(element.getName(), new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme"));
+            }
         }
-        try
+        else
         {
-            readFile(options, desc);
-        }
-        catch (final IOException e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to read fiele: " + e.getMessage());
-        }
-        if (invalidFile(options, desc))
-        {
-            writeFile(desc);
+            try
+            {
+                // Read existing legacy Settings.txt into the configuration map.
+                readFile(options, desc);
+            }
+            catch (final IOException e)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to read file: " + e.getMessage());
+                // Fallback to defaults
+                for (final Setting element : DefaultSettings.config)
+                {
+                    ConfigManager.getConfigurations().put(element.getName(), new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme"));
+                }
+            }
+            if (invalidFile(options, desc))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Legacy Settings.txt present but invalid; ignoring and using defaults.");
+                for (final Setting element : DefaultSettings.config)
+                {
+                    ConfigManager.getConfigurations().put(element.getName(), new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme"));
+                }
+            }
         }
     }
 

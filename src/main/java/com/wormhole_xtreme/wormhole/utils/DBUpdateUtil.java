@@ -238,32 +238,9 @@ public class DBUpdateUtil
             }
         }
 
-        try
-        {
-            Class.forName("org.hsqldb.jdbcDriver");
-        }
-        catch (final ClassNotFoundException e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, e.getMessage());
-            return false;
-        }
-        try
-        {
-            sql_con = DriverManager.getConnection("jdbc:hsqldb:./plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTremeDB", "sa", "");
-            sql_con.setAutoCommit(true);
-        }
-        catch (final SQLException e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, e.getMessage());
-            return false;
-        }
-
-        final int version = getCurrentVersion();
-        final int count = getCountDBFiles();
-
-        updateDB(version, count);
-
-        return true;
+        // HSQLDB support removed. Database update via embedded HSQL is no longer supported.
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "HSQLDB support removed; DB update skipped.");
+        return false;
     }
 
     /**

@@ -746,7 +746,29 @@ public class StargateManager
      */
     public static void removeStargate(final Stargate s)
     {
-        getStargateList().remove(s.getGateName());
+        // Use normalized gate name key (lowercase) to match `addStargate` behavior.
+        final String key = normalizeGateName(s.getGateName());
+        if (getStargateList().containsKey(key))
+        {
+            getStargateList().remove(key);
+        }
+        else
+        {
+            // Fallback: remove any entries whose value equals this stargate instance
+            String foundKey = null;
+            for (final java.util.Map.Entry<String, Stargate> e : getStargateList().entrySet())
+            {
+                if (e.getValue() == s)
+                {
+                    foundKey = e.getKey();
+                    break;
+                }
+            }
+            if (foundKey != null)
+            {
+                getStargateList().remove(foundKey);
+            }
+        }
         StargateDBManager.removeStargateFromSQL(s);
         if (s.getGateNetwork() != null)
         {

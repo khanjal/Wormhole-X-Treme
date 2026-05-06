@@ -18,6 +18,9 @@
  */
 package com.wormhole_xtreme.wormhole.model;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
@@ -1760,13 +1763,106 @@ public class Stargate
             if (create)
             {
                 final Block nameSign = getGateNameBlockHolder();
+                // Determine sign facing: use inverse of gate facing so sign faces away from gate toward DHD
+                // Try candidate placement directions in order of preference and pick the first air block
+                final BlockFace forward = getGateFacing();
+                final BlockFace inverse = WorldUtils.getInverseDirection(forward);
+                final BlockFace right = WorldUtils.getPerpendicularRightDirection(forward);
+                final BlockFace left = WorldUtils.getPerpendicularRightDirection(inverse);
+
+                // Prefer the inverse (front) first, then forward, then sides
+                final BlockFace[] candidates = new BlockFace[] {
+                    inverse,
+                    forward,
+                    right,
+                    left
+                };
+
+                Block placeBlock = null;
+                BlockFace chosenFace = null;
+
+                for (final BlockFace face : candidates)
+                {
+                    try
+                    {
+                        final Block candidate = nameSign.getRelative(face);
+                        if (candidate.getType() == Material.AIR)
+                        {
+                            placeBlock = candidate;
+                            chosenFace = face;
+                            break;
+                        }
+                    }
+                    catch (final Throwable ignored) {}
+                }
+
+                // If nothing found at one block distance, try front+right and front+left
+                if (placeBlock == null)
+                {
+                    try
+                    {
+                        final Block candidateFR = nameSign.getRelative(forward).getRelative(right);
+                        if (candidateFR.getType() == Material.AIR)
+                        {
+                            placeBlock = candidateFR;
+                            chosenFace = forward;
+                        }
+                    }
+                    catch (final Throwable ignored) {}
+                }
+                if (placeBlock == null)
+                {
+                    try
+                    {
+                        final Block candidateFL = nameSign.getRelative(forward).getRelative(left);
+                        if (candidateFL.getType() == Material.AIR)
+                        {
+                            placeBlock = candidateFL;
+                            chosenFace = forward;
+                        }
+                    }
+                    catch (final Throwable ignored) {}
+                }
+
+                // Fallback to holder itself
+                if (placeBlock == null)
+                {
+                    placeBlock = nameSign;
+                    chosenFace = forward;
+                }
+
                 // Diagnostic: log placement info to help debug sign orientation issues
-                try {
-                    System.out.println("[WX-DIAG] setupGateSign: gate=" + getGateName() + " facing=" + getGateFacing() + " nameHolder=" + getGateNameBlockHolder().getLocation() + " nameSign=" + nameSign.getLocation() + " signDataByte=" + WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()));
-                } catch (final Throwable ignored) {}
-                getGateStructureBlocks().add(nameSign.getLocation());
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(nameSign, 68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
-                final Sign sign = (Sign) nameSign.getState();
+                final String diag = "[WX-DIAG] setupGateSign: gate=" + getGateName() + " facing=" + getGateFacing() + " chosenFace=" + chosenFace + " nameHolder=" + getGateNameBlockHolder().getLocation() + " placeBlock=" + placeBlock.getLocation() + " placeType=" + placeBlock.getType() + " signDataByte=" + WorldUtils.getSignFacingByteFromBlockFace(chosenFace);
+                try
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, diag);
+                }
+                catch (final Throwable ignored) {}
+                try
+                {
+                    System.out.println(diag);
+                }
+                catch (final Throwable ignored) {}
+
+                // Also append diagnostic to plugin data folder so server admins can retrieve it even if console filters logs.
+                try
+                {
+                    final File dataDir = WormholeXTreme.getThisPlugin().getDataFolder();
+                    if (!dataDir.exists())
+                    {
+                        dataDir.mkdirs();
+                    }
+                    final File logFile = new File(dataDir, "wx-setupGateSign.log");
+                    try (final FileWriter fw = new FileWriter(logFile, true))
+                    {
+                        fw.write(diag + System.lineSeparator());
+                    }
+                }
+                catch (final Throwable ignored) {}
+
+                getGateStructureBlocks().add(placeBlock.getLocation());
+                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(placeBlock, 68, WorldUtils.getSignFacingByteFromBlockFace(chosenFace), false);
+                final Sign sign = (Sign) placeBlock.getState();
                 sign.setLine(0, "-" + getGateName() + "-");
 
                 if (getGateNetwork() != null)

@@ -21,6 +21,7 @@ package com.wormhole_xtreme.wormhole.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -34,7 +35,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * 
  * @author alron
  */
-public class Complete implements CommandExecutor
+public class Complete implements CommandExecutor, TabCompleter
 {
     // Pending completions: player -> {name, idc, network}
     private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, String[]> pendingCompletions = new java.util.concurrent.ConcurrentHashMap<>();
@@ -159,6 +160,14 @@ public class Complete implements CommandExecutor
                 : true;
         }
         return false;
+    }
+
+    @Override
+    public java.util.List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args)
+    {
+        // Disable Bukkit's default player-name autocompletion for /wxcomplete.
+        // Return an empty list so the client receives no suggestions.
+        return java.util.Collections.emptyList();
     }
 
 }

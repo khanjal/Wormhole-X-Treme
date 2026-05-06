@@ -38,52 +38,12 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 public class StargateRestrictions
 {
 
-    /**
-     * The Enum RestrictionGroup.
-     */
-    private static enum RestrictionGroup
-    {
-
-        /** The cooldown group 1 */
-        CD_GROUP_ONE(ConfigManager.getUseCooldownGroupOne()),
-
-        /** The cooldown group 2 */
-        CD_GROUP_TWO(ConfigManager.getUseCooldownGroupTwo()),
-
-        /** The cooldown group 3 */
-        CD_GROUP_THREE(ConfigManager.getUseCooldownGroupThree());
-        // Build restriction groups removed; feature deprecated.
-
-        /** The restriction group node. */
-        private final long restrictionGroupNode;
-
-        /**
-         * Instantiates a new restriction group.
-         * 
-         * @param restrictionGroupNode
-         *            the restriction group node
-         */
-        private RestrictionGroup(final long restrictionGroupNode)
-        {
-            this.restrictionGroupNode = restrictionGroupNode;
-        }
-
-        /**
-         * Gets the group value.
-         * 
-         * @return the group value
-         */
-        public long getGroupValue()
-        {
-            return restrictionGroupNode;
-        }
-    }
-
     /** The Constant playerUseCooldownStart. */
     private static final ConcurrentHashMap<Player, Long> playerUseCooldownStart = new ConcurrentHashMap<Player, Long>();
-
+    
     /** The Constant playerUseCooldownGroup. */
-    private static final ConcurrentHashMap<Player, RestrictionGroup> playerUseCooldownGroup = new ConcurrentHashMap<Player, RestrictionGroup>();
+    // Removed as per new cooldown logic
+    // private static final ConcurrentHashMap<Player, RestrictionGroup> playerUseCooldownGroup = new ConcurrentHashMap<Player, RestrictionGroup>();
 
     /**
      * Adds the player use cooldown.
@@ -93,25 +53,14 @@ public class StargateRestrictions
      */
     public static void addPlayerUseCooldown(final Player player)
     {
-        RestrictionGroup cooldownGroup = null;
-        if (WXPermissions.checkWXPermissions(player, PermissionType.USE_COOLDOWN_GROUP_ONE))
+        if (!ConfigManager.isUseCooldownEnabled())
         {
-            cooldownGroup = RestrictionGroup.CD_GROUP_ONE;
+            return;
         }
-        else if (WXPermissions.checkWXPermissions(player, PermissionType.USE_COOLDOWN_GROUP_TWO))
-        {
-            cooldownGroup = RestrictionGroup.CD_GROUP_TWO;
-        }
-        else if (WXPermissions.checkWXPermissions(player, PermissionType.USE_COOLDOWN_GROUP_THREE))
-        {
-            cooldownGroup = RestrictionGroup.CD_GROUP_THREE;
-        }
-        if (cooldownGroup != null)
-        {
-            getPlayerUseCooldownStart().put(player, System.nanoTime());
-            getPlayerUseCooldownGroup().put(player, cooldownGroup);
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), cooldownGroup.getGroupValue() * 20);
-        }
+        // Apply a single cooldown duration for all players when enabled. Default seconds come from ConfigManager compatibility fallback.
+        final long cooldownSeconds = ConfigManager.getUseCooldownGroupOne();
+        getPlayerUseCooldownStart().put(player, System.nanoTime());
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), cooldownSeconds * 20);
     }
 
     /**
@@ -123,14 +72,13 @@ public class StargateRestrictions
      */
     public static long checkPlayerUseCooldownRemaining(final Player player)
     {
-        if (getPlayerUseCooldownStart().containsKey(player) && getPlayerUseCooldownGroup().containsKey(player))
+        if (getPlayerUseCooldownStart().containsKey(player))
         {
             final long startTime = getPlayerUseCooldownStart().get(player);
             final long currentTime = System.nanoTime();
             final long elapsedTime = (currentTime - startTime) / 1000000000;
-            return (getPlayerUseCooldownGroup().get(player).getGroupValue() >= elapsedTime)
-                ? getPlayerUseCooldownGroup().get(player).getGroupValue() - elapsedTime
-                : removePlayerUseCooldown(player);
+            final long cooldown = ConfigManager.getUseCooldownGroupOne();
+            return (cooldown >= elapsedTime) ? cooldown - elapsedTime : removePlayerUseCooldown(player);
         }
         return -1;
     }
@@ -140,10 +88,7 @@ public class StargateRestrictions
      * 
      * @return the player use cooldown group
      */
-    private static ConcurrentHashMap<Player, RestrictionGroup> getPlayerUseCooldownGroup()
-    {
-        return playerUseCooldownGroup;
-    }
+    // player-use cooldown group map removed; per-player cooldowns are tracked via `playerUseCooldownStart` only.
 
     /**
      * Gets the player use cooldown list.
@@ -178,7 +123,7 @@ public class StargateRestrictions
      */
     public static boolean isPlayerUseCooldown(final Player player)
     {
-        return (getPlayerUseCooldownStart().containsKey(player) && getPlayerUseCooldownGroup().containsKey(player));
+        return getPlayerUseCooldownStart().containsKey(player);
     }
 
     /**
@@ -193,10 +138,7 @@ public class StargateRestrictions
         {
             getPlayerUseCooldownStart().remove(player);
         }
-        if (getPlayerUseCooldownGroup().containsKey(player))
-        {
-            getPlayerUseCooldownGroup().remove(player);
-        }
+        // playerUseCooldownGroup removed
         return 0;
     }
 }

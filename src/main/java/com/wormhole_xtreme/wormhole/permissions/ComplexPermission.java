@@ -46,14 +46,7 @@ enum ComplexPermission
     /** Compass Use */
     USE_COMPASS("wormhole.use.compass"),
 
-    /** Use Cooldown Group One */
-    USE_COOLDOWN_GROUP_ONE("wormhole.cooldown.groupone"),
-
-    /** Use Cooldown Group two. */
-    USE_COOLDOWN_GROUP_TWO("wormhole.cooldown.grouptwo"),
-
-    /** Use Cooldown Group three. */
-    USE_COOLDOWN_GROUP_THREE("wormhole.cooldown.groupthree"),
+    // Per-group cooldown permission nodes removed; cooldowns handled centrally when enabled.
 
     /** Remove Own */
     REMOVE_OWN("wormhole.remove.own"),
@@ -63,15 +56,8 @@ enum ComplexPermission
 
     /** Build */
     BUILD("wormhole.build"),
-
-    /** Build Restriction Group one. */
-    BUILD_RESTRICTION_GROUP_ONE("wormhole.build.groupone"),
-
-    /** Build Restriction Group two. */
-    BUILD_RESTRICTION_GROUP_TWO("wormhole.build.grouptwo"),
-
-    /** Build Restriction Group three. */
-    BUILD_RESTRICTION_GROUP_THREE("wormhole.build.groupthree"),
+    /** Build */
+    // Build restriction group permission nodes removed; use standard permission backend instead.
 
     /** Config */
     CONFIG("wormhole.config"),

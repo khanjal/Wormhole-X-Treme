@@ -45,6 +45,7 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
+        
         /** The WORMHOL e_ us e_ i s_ teleport. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -57,26 +58,8 @@ public class ConfigManager
         /** The BUIL d_ restrictio n_ enabled. */
         BUILD_RESTRICTION_ENABLED,
 
-        /** The BUIL d_ restrictio n_ grou p_ one. */
-        BUILD_RESTRICTION_GROUP_ONE,
-
-        /** The BUIL d_ restrictio n_ grou p_ two. */
-        BUILD_RESTRICTION_GROUP_TWO,
-
-        /** The BUIL d_ restrictio n_ grou p_ three. */
-        BUILD_RESTRICTION_GROUP_THREE,
-
         /** The US e_ cooldow n_ enabled. */
         USE_COOLDOWN_ENABLED,
-
-        /** The US e_ cooldow n_ grou p_ one. */
-        USE_COOLDOWN_GROUP_ONE,
-
-        /** The US e_ cooldow n_ grou p_ two. */
-        USE_COOLDOWN_GROUP_TWO,
-
-        /** The US e_ cooldow n_ grou p_ three. */
-        USE_COOLDOWN_GROUP_THREE,
 
         /** The HELP SUPPORT DISABLE. */
         HELP_SUPPORT_DISABLE,
@@ -220,36 +203,7 @@ public class ConfigManager
      * 
      * @return the builds the restriction group one
      */
-    public static int getBuildRestrictionGroupOne()
-    {
-        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE)
-            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE).getIntValue()
-            : 1;
-    }
-
-    /**
-     * Gets the builds the restriction group three.
-     * 
-     * @return the builds the restriction group three
-     */
-    public static int getBuildRestrictionGroupThree()
-    {
-        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
-            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE).getIntValue()
-            : 3;
-    }
-
-    /**
-     * Gets the builds the restriction group two.
-     * 
-     * @return the builds the restriction group two
-     */
-    public static int getBuildRestrictionGroupTwo()
-    {
-        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO)
-            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO).getIntValue()
-            : 2;
-    }
+    // Build restriction group count getters removed; permissions now handled externally.
 
     /**
      * Get Built in default permission level settings from ConfigKeys. Return sane PermissionLevel.
@@ -412,9 +366,8 @@ public class ConfigManager
      */
     public static int getUseCooldownGroupOne()
     {
-        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_ONE)
-            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_ONE).getIntValue()
-            : 120;
+        // Per-group cooldown removed; return default fallback value for compatibility
+        return 60;
     }
 
     /**
@@ -424,9 +377,8 @@ public class ConfigManager
      */
     public static int getUseCooldownGroupThree()
     {
-        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_THREE)
-            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_THREE).getIntValue()
-            : 60;
+        // Per-group cooldown removed; return default fallback value for compatibility
+        return 60;
     }
 
     /**
@@ -436,9 +388,8 @@ public class ConfigManager
      */
     public static int getUseCooldownGroupTwo()
     {
-        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_TWO)
-            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_TWO).getIntValue()
-            : 30;
+        // Per-group cooldown removed; return default fallback value for compatibility
+        return 60;
     }
 
     /*
@@ -534,32 +485,7 @@ public class ConfigManager
      * @param count
      *            the new builds the restriction group one
      */
-    public static void setBuildRestrictionGroupOne(final int count)
-    {
-        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE, count);
-    }
-
-    /**
-     * Sets the builds the restriction group three.
-     * 
-     * @param count
-     *            the new builds the restriction group three
-     */
-    public static void setBuildRestrictionGroupThree(final int count)
-    {
-        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE, count);
-    }
-
-    /**
-     * Sets the builds the restriction group two.
-     * 
-     * @param count
-     *            the new builds the restriction group two
-     */
-    public static void setBuildRestrictionGroupTwo(final int count)
-    {
-        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO, count);
-    }
+    // Build restriction group setters removed.
 
     /**
      * Sets the config value.
@@ -629,7 +555,7 @@ public class ConfigManager
      */
     public static void setUseCooldownGroupOne(final int time)
     {
-        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_ONE, time);
+        // removed
     }
 
     /**
@@ -640,7 +566,7 @@ public class ConfigManager
      */
     public static void setUseCooldownGroupThree(final int time)
     {
-        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_THREE, time);
+        // removed
     }
 
     /**
@@ -651,6 +577,6 @@ public class ConfigManager
      */
     public static void setUseCooldownGroupTwo(final int time)
     {
-        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_TWO, time);
+        // removed
     }
 }
