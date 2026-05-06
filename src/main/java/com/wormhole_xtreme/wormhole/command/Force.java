@@ -75,7 +75,7 @@ public class Force implements CommandExecutor
 
                 if (CommandUtilities.playerCheck(sender))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: \"" + ((Player) sender).getName() + "\" ran wxforce: " + Arrays.toString(a));
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: \"" + ((Player) sender).getName() + "\" ran /wormhole force (alias: /wx force): " + Arrays.toString(a));
                 }
             }
             else

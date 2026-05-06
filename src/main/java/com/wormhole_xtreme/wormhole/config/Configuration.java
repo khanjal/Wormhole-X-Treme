@@ -105,17 +105,20 @@ public class Configuration
         }
         else
         {
-            // Read legacy Settings.txt (creates it with defaults if missing) and
-            // then write out a migrated `config.yml` so future loads prefer YAML.
-            readFile(desc);
+            // No YAML present: initialize runtime config with defaults and
+            // write a new `config.yml`. We no longer read or generate Settings.txt.
+            for (final Setting s : DefaultSettings.config)
+            {
+                ConfigManager.getConfigurations().put(s.getName(), s);
+            }
             try
             {
                 ConfigurationYAML.writeCurrentConfiguration(yamlFile, desc);
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Migrated legacy Settings.txt to config.yml at: " + yamlFile.getPath());
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Created default config.yml at: " + yamlFile.getPath());
             }
             catch (final Throwable t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Failed to write migrated config.yml: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Failed to write default config.yml: " + t.getMessage());
             }
         }
     }
@@ -313,6 +316,22 @@ public class Configuration
         catch (final Exception exception)
         {
             exception.printStackTrace();
+        }
+    }
+
+    /**
+     * Persist current runtime configuration to `config.yml`.
+     */
+    public static void persistCurrentConfiguration(final PluginDescriptionFile desc)
+    {
+        try
+        {
+            final java.io.File yamlFile = new java.io.File("plugins" + java.io.File.separator + desc.getName() + java.io.File.separator + "config.yml");
+            ConfigurationYAML.writeCurrentConfiguration(yamlFile, desc);
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to persist config.yml: " + t.getMessage());
         }
     }
 

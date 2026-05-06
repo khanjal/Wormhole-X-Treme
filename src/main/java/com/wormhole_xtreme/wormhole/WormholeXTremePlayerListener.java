@@ -68,7 +68,7 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static boolean buttonLeverHit(final Player player, final Block clickedBlock, BlockFace direction)
     {
-        // Check if player is awaiting interactive /wxcomplete completion
+        // Check if player is awaiting interactive /wormhole complete completion
         try
         {
             final String[] pending = com.wormhole_xtreme.wormhole.command.Complete.getPendingCompletion(player);
@@ -100,7 +100,7 @@ class WormholeXTremePlayerListener implements Listener
                     }
                 }
 
-                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+/wxcomplete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
+                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+/wormhole complete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
 
                 com.wormhole_xtreme.wormhole.model.Stargate found = null;
                 try
@@ -129,7 +129,7 @@ class WormholeXTremePlayerListener implements Listener
                 }
                 catch (final Throwable t)
                 {
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wxcomplete interactive detection error: " + t.getMessage());
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete interactive detection error: " + t.getMessage());
                 }
 
                 if (found != null)
@@ -152,7 +152,7 @@ class WormholeXTremePlayerListener implements Listener
                     // Diagnostic: iterate shapes and facings to report why detection failed
                     try
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wxcomplete diag: running detailed detection diagnostics for player=" + player.getName());
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: running detailed detection diagnostics for player=" + player.getName());
                         final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
                         for (final org.bukkit.block.BlockFace face : faces)
                         {
@@ -161,11 +161,11 @@ class WormholeXTremePlayerListener implements Listener
                                 final org.bukkit.block.BlockFace opposite = com.wormhole_xtreme.wormhole.utils.WorldUtils.getInverseDirection(face);
                                 final org.bukkit.block.Block holding = clickedBlock.getRelative(opposite);
                                 final org.bukkit.block.Block below = holding.getRelative(org.bukkit.block.BlockFace.DOWN);
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wxcomplete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
                             }
                             catch (final Throwable ignore) {}
                         }
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wxcomplete diag: end diagnostics");
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: end diagnostics");
                     }
                     catch (final Throwable ignore) {}
                     return true;
@@ -178,16 +178,42 @@ class WormholeXTremePlayerListener implements Listener
 
         if (stargate != null)
         {
-            if ((WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock)) && ((stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
+            // Disambiguate exact vs adjacent lever clicks to avoid mis-classifying the iris lever
+            final boolean dialSame = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock);
+            final boolean irisSame = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock);
+            final boolean dialAdj = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock);
+            final boolean irisAdj = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock);
+
+            // Owner bypass: gate owners always get access without going through WXPermissions.
+            // This is the authoritative check — LuckPerms/Vault results do not override gate ownership.
+            // isOwner() handles both UUID-based (new) and legacy name-based owners transparently.
+            final boolean isOwner = player.isOp() || stargate.isOwner(player);
+            System.out.println("[WX-DIAG] buttonLeverHit: player=" + player.getName() + " uuid=" + player.getUniqueId() + " isOp=" + player.isOp() + " gateOwner=" + stargate.getGateOwner() + " isOwner=" + stargate.isOwner(player) + " isOwnerFinal=" + isOwner + " signPowered=" + stargate.isGateSignPowered() + " dialSame=" + ((stargate.getGateDialLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock)) + " dialAdj=" + ((stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock)));
+
+            // Priority: exact same block wins, then non-conflicting adjacency. This prevents an iris lever
+            // placed adjacent to the dial lever from being handled as an activation lever.
+            final boolean permSign = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN);
+            final boolean permDialer = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER);
+
+            if (dialSame && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
             {
                 handleGateActivationSwitch(stargate, player);
             }
-            else if ((WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock)) && ( !stargate.isGateSignPowered() && WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER)))
+            else if (irisSame && (!stargate.isGateSignPowered() && permDialer))
             {
                 stargate.toggleIrisActive(true);
             }
-            else if (WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock) || WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock))
+            else if (dialAdj && !irisAdj && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
             {
+                handleGateActivationSwitch(stargate, player);
+            }
+            else if (irisAdj && !dialAdj && (!stargate.isGateSignPowered() && permDialer))
+            {
+                stargate.toggleIrisActive(true);
+            }
+            else if (dialSame || irisSame || dialAdj || irisAdj)
+            {
+                System.out.println("[WX-DIAG] denied at buttonLeverHit else branch: isOwner=" + isOwner + " permSign=" + permSign + " permDialer=" + permDialer + " dialSame=" + dialSame + " irisSame=" + irisSame);
                 player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             }
             return true;
@@ -265,7 +291,7 @@ class WormholeXTremePlayerListener implements Listener
                     {
                         // Print to player that it was successful!
                         player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wxcomplete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
                         // Add gate to unnamed gates.
                         StargateManager.addIncompleteStargate(player, newGate);
                     }
@@ -315,12 +341,15 @@ class WormholeXTremePlayerListener implements Listener
                                         foundNearby = true;
                                         if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD) && !StargateRestrictions.isPlayerBuildRestricted(player))
                                         {
-                                            // register incomplete and prompt for /wxcomplete
+                                            // register incomplete and prompt for /wormhole complete
                                             StargateManager.addIncompleteStargate(player, nearbyGate);
-                                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design detected via nearby click! Type '/wxcomplete <name>' to complete.");
+                                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");
                                         }
                                         else
                                         {
+                                            final String msg = "Permission denied on nearby/gate-detection: player='" + player.getName() + "' nearbyBlock='" + b.getLocation().toString() + "'";
+                                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
+                                            try { System.out.println("[WormholeXTreme] " + msg); } catch (final Throwable ignore) {}
                                             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                                         }
                                         break search;
@@ -417,7 +446,8 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (stargate.isGateSignPowered())
             {
-                if (WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
+                final boolean isOwnerInner = player.isOp() || stargate.isOwner(player);
+                if (isOwnerInner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
                 {
                     if ((stargate.getGateDialSign() == null) && (stargate.getGateDialSignBlock() != null))
                     {
@@ -445,6 +475,9 @@ class WormholeXTremePlayerListener implements Listener
                 }
                 else
                 {
+                    final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
+                    try { System.out.println("[WormholeXTreme] " + msg); } catch (final Throwable ignore) {}
                     player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                     return false;
                 }
@@ -488,7 +521,8 @@ class WormholeXTremePlayerListener implements Listener
             final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
             if (stargate != null)
             {
-                if (WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
+                if (WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)
+                    || player.isOp() || stargate.isOwner(player))
                 {
                     if (stargate.tryClickTeleportSign(clickedBlock, player))
                     {
@@ -734,3 +768,4 @@ class WormholeXTremePlayerListener implements Listener
         }
     }
 }
+

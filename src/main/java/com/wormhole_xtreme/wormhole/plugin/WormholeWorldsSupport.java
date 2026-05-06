@@ -104,7 +104,7 @@ public class WormholeWorldsSupport
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Wormhole X-Treme Worlds Plugin support disabled via settings.txt.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Wormhole X-Treme Worlds Plugin support disabled via configuration (config.yml).");
         }
     }
 }

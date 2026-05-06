@@ -24,14 +24,14 @@ On first run the plugin will create `plugins/WormholeXTreme/config.yml` (migrate
 Important keys (kebab-case in `config.yml`):
 
 - `storage-backend`: `file` (default), `sqlite`, `mysql`, `postgres`
-- `storage-sqlite-path`: path to SQLite file when using `sqlite` backend.       
+- `storage-sqlite-path`: path to SQLite file when using `sqlite` backend.
 - `storage-jdbc-url`, `storage-jdbc-user`, `storage-jdbc-password`: for JDBC backends.
 
 Permissions are intended to be handled by Vault/LuckPerms. Legacy simple permissions were removed.
 
 ## Commands
 
-All commands are run as `/wormhole <subcommand> ...` unless otherwise noted.    
+All commands are run as `/wormhole <subcommand> ...` unless otherwise noted.
 
 - `/wormhole list` — list available gates.
 - `/wormhole custom [stargate|-all] <true|false>` — toggle custom-shape mode for a gate or all gates.
@@ -82,17 +82,17 @@ Iris support is built into many shapes. An "iris" is a material you can close ov
 In-game setup:
 - Build a gate from a shape that supports an iris (many 3D shapes include an `:IA` marker; see `GateShapes/3d/Standard.shape`).
 - When you complete the gate, set an IDC (iris deactivation code) to enable iris functionality:
-        - `/wormhole complete <GateName> idc=<code>` — sets the IDC while completing.
-        - `/wormhole idc <GateName> <code>` — set or change the IDC later.      
-        - `/wormhole idc <GateName> -clear` — remove the IDC and iris control.  
+	- `/wormhole complete <GateName> idc=<code>` — sets the IDC while completing.
+	- `/wormhole idc <GateName> <code>` — set or change the IDC later.
+	- `/wormhole idc <GateName> -clear` — remove the IDC and iris control.
 - The plugin will create an iris activation lever for gates that support an iris. For many 2D shapes the iris lever is placed underneath the dial lever; 3D shapes define the iris activation block in the shape file.
 
 Common issue: clicking the wrong lever toggles gate activation instead of the iris
 - Cause: older logic treated any block adjacent to the dial/iris lever as the same control; if the iris lever is adjacent to the dial lever, clicks could be routed to the activation handler.
 - Workarounds:
-        - Click the exact lever under the gate (not a nearby lever) — the iris lever is often below the dial lever for 2D shapes.
-        - Use the IDC during dialing to unlock a remote iris: include the IDC as the 2nd argument when using `/dial` (or `/wormhole dial`) or use `/wormhole idc` to manage the code.
-        - If you control shapes, edit the shape to place the `:IA` block further from the `:A` (activation) block so they are not adjacent.
+	- Click the exact lever under the gate (not a nearby lever) — the iris lever is often below the dial lever for 2D shapes.
+	- Use the IDC during dialing to unlock a remote iris: include the IDC as the 2nd argument when using `/dial` (or `/wormhole dial`) or use `/wormhole idc` to manage the code.
+	- If you control shapes, edit the shape to place the `:IA` block further from the `:A` (activation) block so they are not adjacent.
 
 Code fix (applied in this branch): the click handler now prefers exact lever clicks over adjacency, which prevents adjacent iris/dial levers from being misclassified. If you still see unexpected behavior, send the gate name and I'll inspect the gate's `IrisLever` and `DialLever` locations in the logs.
 
@@ -100,7 +100,7 @@ Code fix (applied in this branch): the click handler now prefers exact lever cli
 
 - Code now provides a `StorageBackend` interface and a `SqliteStorage` scaffold at `src/main/java/com/wormhole_xtreme/wormhole/storage/`.
 - `StargateYamlManager` handles per-gate YAML read/write.
-- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.  
+- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
 
 ## Troubleshooting
 
@@ -111,22 +111,3 @@ Code fix (applied in this branch): the click handler now prefers exact lever cli
 
 Submit PRs against the `main` branch. Keep changes modular and add unit/integration tests where possible.
 
-## Permissions
-
-The plugin uses permission nodes for feature access. Permissions are intended to be managed by a permissions plugin (Vault/LuckPerms recommended).
-
-- `wormhole.use.sign` — allow using sign-based dialers and sign interactions.
-- `wormhole.use.dialer` — allow using the dialer to initiate a gate dial.
-- `wormhole.use.compass` — allow using the compass command to point to gates.
-- `wormhole.remove.own` — allow removing gates you own.
-- `wormhole.remove.all` — allow removing any gate (admin-level).
-- `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
-- `wormhole.config` — allow changing plugin configuration via commands.
-- `wormhole.list` — allow listing gates via `/wormhole list`.
-- `wormhole.go` — allow teleporting to gates via command (`/wormhole go`).
-- `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
-- `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
-
-Notes:
-- Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
-- The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.

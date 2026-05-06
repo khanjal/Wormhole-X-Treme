@@ -45,7 +45,6 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
-        
         /** The WORMHOL e_ us e_ i s_ teleport. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -58,8 +57,26 @@ public class ConfigManager
         /** The BUIL d_ restrictio n_ enabled. */
         BUILD_RESTRICTION_ENABLED,
 
+        /** The BUIL d_ restrictio n_ grou p_ one. */
+        BUILD_RESTRICTION_GROUP_ONE,
+
+        /** The BUIL d_ restrictio n_ grou p_ two. */
+        BUILD_RESTRICTION_GROUP_TWO,
+
+        /** The BUIL d_ restrictio n_ grou p_ three. */
+        BUILD_RESTRICTION_GROUP_THREE,
+
         /** The US e_ cooldow n_ enabled. */
         USE_COOLDOWN_ENABLED,
+
+        /** The US e_ cooldow n_ grou p_ one. */
+        USE_COOLDOWN_GROUP_ONE,
+
+        /** The US e_ cooldow n_ grou p_ two. */
+        USE_COOLDOWN_GROUP_TWO,
+
+        /** The US e_ cooldow n_ grou p_ three. */
+        USE_COOLDOWN_GROUP_THREE,
 
         /** The HELP SUPPORT DISABLE. */
         HELP_SUPPORT_DISABLE,
@@ -72,7 +89,13 @@ public class ConfigManager
         /** The configured storage backend. */
         STORAGE_BACKEND,
         /** SQLite file path for sqlite backend. */
-        STORAGE_SQLITE_PATH
+        STORAGE_SQLITE_PATH,
+        /** JDBC URL for MySQL/Postgres backends. */
+        STORAGE_JDBC_URL,
+        /** JDBC user for DB backends. */
+        STORAGE_JDBC_USER,
+        /** JDBC password for DB backends. */
+        STORAGE_JDBC_PASSWORD
     }
 
     /**
@@ -172,38 +195,40 @@ public class ConfigManager
     private static final ConcurrentHashMap<ConfigKeys, Setting> configurations = new ConcurrentHashMap<ConfigKeys, Setting>();
 
     /**
-     * Set the storage backend at runtime.
-     * This updates the in-memory configuration map; persisting to disk requires writing config.yml separately.
-     */
-    public static void setStorageBackend(final String backend)
-    {
-        configurations.put(ConfigKeys.STORAGE_BACKEND, new Setting(ConfigKeys.STORAGE_BACKEND, backend, "Storage backend", "WormholeXTreme"));
-    }
-
-    /**
-     * Get the configured storage backend.
-     */
-    public static String getStorageBackend()
-    {
-        final Setting s = configurations.get(ConfigKeys.STORAGE_BACKEND);
-        return (s != null) ? s.getStringValue() : "file";
-    }
-
-    /**
-     * Get sqlite path from configuration.
-     */
-    public static String getStorageSqlitePath()
-    {
-        final Setting s = configurations.get(ConfigKeys.STORAGE_SQLITE_PATH);
-        return (s != null) ? s.getStringValue() : "plugins/WormholeXTreme/wormholes.db";
-    }
-
-    /**
      * Gets the builds the restriction group one.
      * 
      * @return the builds the restriction group one
      */
-    // Build restriction group count getters removed; permissions now handled externally.
+    public static int getBuildRestrictionGroupOne()
+    {
+        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE)
+            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE).getIntValue()
+            : 1;
+    }
+
+    /**
+     * Gets the builds the restriction group three.
+     * 
+     * @return the builds the restriction group three
+     */
+    public static int getBuildRestrictionGroupThree()
+    {
+        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
+            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE).getIntValue()
+            : 3;
+    }
+
+    /**
+     * Gets the builds the restriction group two.
+     * 
+     * @return the builds the restriction group two
+     */
+    public static int getBuildRestrictionGroupTwo()
+    {
+        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO)
+            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO).getIntValue()
+            : 2;
+    }
 
     /**
      * Get Built in default permission level settings from ConfigKeys. Return sane PermissionLevel.
@@ -251,6 +276,33 @@ public class ConfigManager
     protected static ConcurrentHashMap<ConfigKeys, Setting> getConfigurations()
     {
         return configurations;
+    }
+
+    /**
+     * Set the storage backend at runtime.
+     * This updates the in-memory configuration map; persisting to disk requires writing config.yml separately.
+     */
+    public static void setStorageBackend(final String backend)
+    {
+        configurations.put(ConfigKeys.STORAGE_BACKEND, new Setting(ConfigKeys.STORAGE_BACKEND, backend, "Storage backend", "WormholeXTreme"));
+    }
+
+    /**
+     * Get the configured storage backend.
+     */
+    public static String getStorageBackend()
+    {
+        final Setting s = configurations.get(ConfigKeys.STORAGE_BACKEND);
+        return (s != null) ? s.getStringValue() : "file";
+    }
+
+    /**
+     * Get sqlite path from configuration.
+     */
+    public static String getStorageSqlitePath()
+    {
+        final Setting s = configurations.get(ConfigKeys.STORAGE_SQLITE_PATH);
+        return (s != null) ? s.getStringValue() : "plugins/WormholeXTreme/wormholes.db";
     }
 
     /**
@@ -366,8 +418,9 @@ public class ConfigManager
      */
     public static int getUseCooldownGroupOne()
     {
-        // Per-group cooldown removed; return default fallback value for compatibility
-        return 60;
+        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_ONE)
+            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_ONE).getIntValue()
+            : 120;
     }
 
     /**
@@ -377,8 +430,9 @@ public class ConfigManager
      */
     public static int getUseCooldownGroupThree()
     {
-        // Per-group cooldown removed; return default fallback value for compatibility
-        return 60;
+        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_THREE)
+            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_THREE).getIntValue()
+            : 60;
     }
 
     /**
@@ -388,8 +442,9 @@ public class ConfigManager
      */
     public static int getUseCooldownGroupTwo()
     {
-        // Per-group cooldown removed; return default fallback value for compatibility
-        return 60;
+        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_TWO)
+            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_TWO).getIntValue()
+            : 30;
     }
 
     /*
@@ -485,7 +540,32 @@ public class ConfigManager
      * @param count
      *            the new builds the restriction group one
      */
-    // Build restriction group setters removed.
+    public static void setBuildRestrictionGroupOne(final int count)
+    {
+        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE, count);
+    }
+
+    /**
+     * Sets the builds the restriction group three.
+     * 
+     * @param count
+     *            the new builds the restriction group three
+     */
+    public static void setBuildRestrictionGroupThree(final int count)
+    {
+        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE, count);
+    }
+
+    /**
+     * Sets the builds the restriction group two.
+     * 
+     * @param count
+     *            the new builds the restriction group two
+     */
+    public static void setBuildRestrictionGroupTwo(final int count)
+    {
+        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO, count);
+    }
 
     /**
      * Sets the config value.
@@ -555,7 +635,7 @@ public class ConfigManager
      */
     public static void setUseCooldownGroupOne(final int time)
     {
-        // removed
+        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_ONE, time);
     }
 
     /**
@@ -566,7 +646,7 @@ public class ConfigManager
      */
     public static void setUseCooldownGroupThree(final int time)
     {
-        // removed
+        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_THREE, time);
     }
 
     /**
@@ -577,6 +657,6 @@ public class ConfigManager
      */
     public static void setUseCooldownGroupTwo(final int time)
     {
-        // removed
+        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_TWO, time);
     }
 }

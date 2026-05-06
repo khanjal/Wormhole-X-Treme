@@ -11,8 +11,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -68,6 +70,19 @@ public class StargateYamlManager
                     @SuppressWarnings("unchecked")
                     final Map<String, Object> map = (Map<String, Object>) obj;
                     final String name = (String) map.getOrDefault("Name", "");
+                    final String ownerUuid = (String) map.getOrDefault("OwnerUUID", "");
+                    final String ownerName = (String) map.getOrDefault("OwnerName", "");
+                    // Fall back to legacy 'Owner' field (name-based) if OwnerUUID is absent
+                    final String legacyOwner = (String) map.getOrDefault("Owner", "");
+                    final String owner;
+                    if ((ownerUuid != null) && !ownerUuid.isEmpty())
+                    {
+                        owner = ownerUuid;
+                    }
+                    else
+                    {
+                        owner = legacyOwner;
+                    }
                     final String gateDataB64 = (String) map.get("GateData");
                     final String network = (String) map.getOrDefault("Network", "");
                     final String worldName = (String) map.getOrDefault("WorldName", "");
@@ -79,6 +94,33 @@ public class StargateYamlManager
                         final Stargate s = StargateHelper.parseVersionedData(data, server.getWorld(worldName), name, null);
                         if (s != null)
                         {
+                            if ((owner != null) && !owner.isEmpty())
+                            {
+                                s.setGateOwner(owner);
+                                // Resolve display name
+                                if ((ownerName != null) && !ownerName.isEmpty())
+                                {
+                                    s.setGateOwnerName(ownerName);
+                                }
+                                else
+                                {
+                                    // Try to resolve name from UUID (works for players who have joined at least once)
+                                    try
+                                    {
+                                        final UUID uuid = UUID.fromString(owner);
+                                        final String resolved = Bukkit.getOfflinePlayer(uuid).getName();
+                                        if (resolved != null)
+                                        {
+                                            s.setGateOwnerName(resolved);
+                                        }
+                                    }
+                                    catch (final IllegalArgumentException ignored)
+                                    {
+                                        // Legacy name-based owner: name == owner string
+                                        s.setGateOwnerName(owner);
+                                    }
+                                }
+                            }
                             StargateManager.addStargate(s);
                             loaded++;
                         }
@@ -110,7 +152,8 @@ public class StargateYamlManager
         final File outFile = new File(GATES_DIR, fileName);
         final Map<String, Object> map = new HashMap<>();
         map.put("Name", s.getGateName());
-        map.put("Owner", s.getGateOwner());
+        map.put("OwnerUUID", s.getGateOwner());
+        map.put("OwnerName", s.getGateOwnerName());
         map.put("Network", s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "");
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
@@ -156,6 +199,44 @@ public class StargateYamlManager
         {
             outFile.delete();
         }
+    }
+
+    /**
+     * Read the Owner field from a per-gate YAML file if present.
+     * Returns null if the file or Owner field is missing.
+     */
+    public static String readOwnerFromYaml(final String gateName)
+    {
+        final File GATES_DIR = getGatesDir();
+        final String fileName = gateName.replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
+        final File inFile = new File(GATES_DIR, fileName);
+        if (!inFile.exists())
+        {
+            return null;
+        }
+        final Yaml yaml = new Yaml();
+        try (FileInputStream in = new FileInputStream(inFile))
+        {
+            final Object obj = yaml.load(in);
+            if (obj instanceof Map)
+            {
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> map = (Map<String, Object>) obj;
+                final String ownerUuid = (String) map.getOrDefault("OwnerUUID", null);
+                final String legacyOwner = (String) map.getOrDefault("Owner", null);
+                // Prefer UUID, fall back to legacy name
+                final String owner = ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
+                return owner;
+            }
+        }
+        catch (final Exception e)
+        {
+            if (WormholeXTreme.getThisPlugin() != null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to read Owner from YAML for " + gateName + ": " + e.getMessage());
+            }
+        }
+        return null;
     }
 
     public static void shutdown()

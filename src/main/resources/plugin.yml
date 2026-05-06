@@ -24,20 +24,4 @@ commands:
             /<command> <commandtype> [ARG1] [ARG2]
             Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, and custom.
 
-   # legacy wx* command entries (kept for compatibility with registerCommands)
-   wxforce:
-     description: Force a gate action (compat)
-   wxidc:
-     description: IDC management (compat)
-   wxcompass:
-     description: Compass helper (compat)
-   wxcomplete:
-     description: Complete gate construction (compat)
-   wxremove:
-     description: Remove a gate (compat)
-   wxlist:
-     description: List gates (compat)
-   wxgo:
-     description: Teleport to gate (compat)
-   wxbuild:
-     description: Build gate helper (compat)
+   # legacy wx* command entries removed; now provided as aliases under `wormhole`.

@@ -5,6 +5,10 @@
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
+            else if (a[0].equalsIgnoreCase("storage"))
+            {
+                return storageCommand(sender, a);
+            }
  *   the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
@@ -18,8 +22,11 @@
  */
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.Arrays;
+
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -31,10 +38,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.storage.StorageMigrator;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
-import com.wormhole_xtreme.wormhole.plugin.HelpSupport;
+// HelpSupport removed
 
 /**
  * The Class Wormhole.
@@ -84,6 +92,45 @@ public class Wormhole implements CommandExecutor
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Current activate_timeout is: " + ConfigManager.getTimeoutActivate());
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid timeout is between 10 and 60 seconds.");
         }
+        return true;
+    }
+
+    private static boolean storageCommand(final CommandSender sender, final String[] a)
+    {
+        if (a.length < 2)
+        {
+            sender.sendMessage("Usage: /wormhole storage backend <name> | /wormhole storage migrate <backend> [force]");
+            return true;
+        }
+
+        if (a[1].equalsIgnoreCase("backend"))
+        {
+            if (a.length < 3)
+            {
+                sender.sendMessage("Usage: /wormhole storage backend <file|sqlite|hsqldb|mysql|postgres>");
+                return true;
+            }
+            final String backend = a[2];
+            // Update runtime config entry (will not rewrite config.yml on disk).
+            com.wormhole_xtreme.wormhole.config.ConfigManager.setStorageBackend(backend);
+            sender.sendMessage("Storage backend set to: " + backend + ". Restart or rewrite config.yml to persist permanently.");
+            return true;
+        }
+
+        if (a[1].equalsIgnoreCase("migrate"))
+        {
+            if (a.length < 3)
+            {
+                sender.sendMessage("Usage: /wormhole storage migrate <backend> [force]");
+                return true;
+            }
+            final String toBackend = a[2];
+            final boolean force = (a.length >= 4) && (a[3].equalsIgnoreCase("force") || a[3].equalsIgnoreCase("-f"));
+            StorageMigrator.migrateTo(toBackend, force, sender);
+            return true;
+        }
+
+        sender.sendMessage("Unknown storage subcommand. Use 'backend' or 'migrate'.");
         return true;
     }
 
@@ -423,13 +470,37 @@ public class Wormhole implements CommandExecutor
             {
                 if (args.length == 3)
                 {
-                    s.setGateOwner(args[2]);
+                    final String newOwnerName = args[2];
+                    // Try to resolve a UUID: online player first, then offline player cache
+                    Player onlineTarget = Bukkit.getPlayerExact(newOwnerName);
+                    if (onlineTarget != null)
+                    {
+                        s.setGateOwner(onlineTarget.getUniqueId().toString());
+                        s.setGateOwnerName(onlineTarget.getName());
+                    }
+                    else
+                    {
+                        // getOfflinePlayer by name queries usercache (may return unknown UUID if name never joined)
+                        @SuppressWarnings("deprecation")
+                        final org.bukkit.OfflinePlayer offline = Bukkit.getOfflinePlayer(newOwnerName);
+                        if (offline.hasPlayedBefore() || offline.isOnline())
+                        {
+                            s.setGateOwner(offline.getUniqueId().toString());
+                            s.setGateOwnerName(offline.getName() != null ? offline.getName() : newOwnerName);
+                        }
+                        else
+                        {
+                            // Player unknown to this server: store name as legacy fallback
+                            s.setGateOwner(newOwnerName);
+                            s.setGateOwnerName(newOwnerName);
+                        }
+                    }
                     s.setupGateSign(true);
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwner());
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
                 }
                 else if (args.length == 2)
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwner());
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwnerName());
                 }
             }
             else
@@ -922,9 +993,15 @@ public class Wormhole implements CommandExecutor
             : true)
         {
             final String[] a = CommandUtilities.commandEscaper(args);
-            if ((a.length > 4) || (a.length == 0))
+            if (a.length > 4)
             {
                 return false;
+            }
+            if (a.length == 0)
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, wooshdepth, cooldown, restrict, custom.");
+                return true;
             }
             if (a[0].equalsIgnoreCase("owner"))
             {
@@ -954,6 +1031,39 @@ public class Wormhole implements CommandExecutor
             else if (a[0].equalsIgnoreCase("regenerate") || a[0].equalsIgnoreCase("regen"))
             {
                 return doRegenerate(sender, a);
+            }
+            else if (a[0].equalsIgnoreCase("list"))
+            {
+                // Route to existing WXList executor for backwards-compatible listing
+                return new WXList().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("build"))
+            {
+                return new Build().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("complete"))
+            {
+                return new Complete().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("compass"))
+            {
+                return new Compass().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("force"))
+            {
+                return new Force().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("go"))
+            {
+                return new Go().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("idc"))
+            {
+                return new WXIDC().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
+            else if (a[0].equalsIgnoreCase("remove"))
+            {
+                return new WXRemove().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
             }
             else if (a[0].equalsIgnoreCase("redstone"))
             {

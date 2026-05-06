@@ -56,8 +56,10 @@ public class Stargate
     private long gateId = -1;
     /** Name of this gate, used to index and target. */
     private String gateName = "";
-    /** Name of person who made the gate. */
+    /** UUID string of the player who owns this gate. May be a legacy name string for gates built before the UUID migration. */
     private String gateOwner = null;
+    /** Display name of the gate owner. Transient — not persisted directly; resolved from UUID or set at build time. */
+    private String gateOwnerName = null;
     /** Network gate is connected to. */
     private StargateNetwork gateNetwork;
     /**
@@ -463,6 +465,14 @@ public class Stargate
             WormholeXTreme.getScheduler().cancelTask(getGateActivateTaskId());
         }
 
+        // Prevent dialing a remote gate that has an active iris unless we're forcing (recovery) or
+        // the iris has already been deactivated by IDC handling upstream.
+        if ((target != null) && target.isGateIrisActive() && !force)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "Dial prevented: target '" + target.getGateName() + "' iris active.");
+            return false;
+        }
+
         // Allow dialing if the target gate is NOT lit (inactive) or when forced.
         if (!target.isGateLightsActive() || force)
         {
@@ -799,13 +809,54 @@ public class Stargate
     }
 
     /**
-     * Gets the gate owner.
+     * Gets the gate owner identifier (UUID string for new gates, or legacy player name).
      * 
-     * @return the gate owner
+     * @return the gate owner identifier
      */
     public String getGateOwner()
     {
         return gateOwner;
+    }
+
+    /**
+     * Gets the human-readable display name of the gate owner.
+     * Falls back to the raw owner string (legacy name or UUID) if no display name is set.
+     *
+     * @return the gate owner display name, or null if no owner is set
+     */
+    public String getGateOwnerName()
+    {
+        if (gateOwnerName != null)
+        {
+            return gateOwnerName;
+        }
+        return gateOwner;
+    }
+
+    /**
+     * Returns true if the given player is the owner of this gate.
+     * Handles both UUID-based identifiers (new gates) and legacy name-based identifiers.
+     *
+     * @param player the player to test
+     * @return true if player owns this gate
+     */
+    public boolean isOwner(final Player player)
+    {
+        if ((player == null) || (gateOwner == null))
+        {
+            return false;
+        }
+        // Try UUID comparison first (new format)
+        try
+        {
+            java.util.UUID.fromString(gateOwner);
+            return player.getUniqueId().toString().equals(gateOwner);
+        }
+        catch (final IllegalArgumentException e)
+        {
+            // Legacy: stored as player name
+            return player.getName().equalsIgnoreCase(gateOwner);
+        }
     }
 
     /**
@@ -1524,14 +1575,24 @@ public class Stargate
     }
 
     /**
-     * Sets the gate owner.
+     * Sets the gate owner identifier (UUID string for new gates, or legacy player name).
      * 
      * @param gateOwner
-     *            the new gate owner
+     *            the new gate owner identifier
      */
     public void setGateOwner(final String gateOwner)
     {
         this.gateOwner = gateOwner;
+    }
+
+    /**
+     * Sets the display name of the gate owner (shown on sign and in commands).
+     *
+     * @param gateOwnerName the human-readable player name
+     */
+    public void setGateOwnerName(final String gateOwnerName)
+    {
+        this.gateOwnerName = gateOwnerName;
     }
 
     /**
@@ -1872,7 +1933,9 @@ public class Stargate
 
                 if (getGateOwner() != null)
                 {
-                    sign.setLine(2, "O:" + getGateOwner());
+                    final String ownerDisplay = getGateOwnerName();
+                    // Sign lines are capped at 15 characters
+                    sign.setLine(2, "O:" + (ownerDisplay != null && ownerDisplay.length() > 13 ? ownerDisplay.substring(0, 13) : ownerDisplay));
                 }
                 sign.update(true);
 

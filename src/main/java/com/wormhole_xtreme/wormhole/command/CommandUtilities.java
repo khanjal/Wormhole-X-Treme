@@ -136,6 +136,26 @@ class CommandUtilities
      */
     static void gateRemove(final Stargate stargate, final boolean destroy)
     {
+        // Ensure the gate is fully deactivated and cleaned up before removal.
+        try
+        {
+            stargate.shutdownStargate(false);
+        }
+        catch (final Exception e)
+        {
+            // Be conservative: log and continue with removal to avoid leaving stale DB entries.
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error shutting down gate before removal: " + e.getMessage());
+        }
+        // Remove any activator/player mapping referencing this stargate.
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.StargateManager.removeActivatorForStargate(stargate);
+        }
+        catch (final Exception e)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "No activator mapping to remove or error: " + e.getMessage());
+        }
+
         stargate.setupGateSign(false);
         stargate.resetTeleportSign();
         if ( !stargate.getGateIrisDeactivationCode().equals(""))

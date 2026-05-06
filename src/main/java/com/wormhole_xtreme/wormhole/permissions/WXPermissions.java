@@ -19,6 +19,7 @@
 package com.wormhole_xtreme.wormhole.permissions;
 
 import org.bukkit.entity.Player;
+import java.util.logging.Level;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -137,6 +138,43 @@ public class WXPermissions
                     return false;
             }
         }
+        // If a gate exists but has no owner, treat it as public: allow common use actions.
+        // This makes owner==null gates usable by any player.
+        if ((stargate != null) && (stargate.getGateOwner() == null))
+        {
+            switch (permissiontype)
+            {
+                case SIGN :
+                case DIALER :
+                case USE :
+                case LIST :
+                case COMPASS :
+                case GO :
+                    return true;
+                default :
+                    break;
+            }
+        }
+        // Gate owner should always be allowed to use and manage their own gate.
+        if ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player))
+        {
+            switch (permissiontype)
+            {
+                case DAMAGE :
+                case REMOVE :
+                case CONFIG :
+                case GO :
+                case SIGN :
+                case DIALER :
+                case USE :
+                case LIST :
+                case COMPASS :
+                case BUILD :
+                    return true;
+                default :
+                    return false;
+            }
+        }
         else if ( !ConfigManager.getPermissionsSupportDisable() && (WormholeXTreme.getPermissions() != null))
         {
 
@@ -224,6 +262,13 @@ public class WXPermissions
 
                 }
             }
+        }
+        if ((stargate != null) && (stargate.getGateOwner() != null))
+        {
+            final String msg = "Permission check failed: player='" + player.getName() + "' gateOwner='" + stargate.getGateOwner() + "' perm='" + permissiontype + "'";
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
+            // also print to standard out so it's visible even if logger handlers/filtering hide plugin logs
+            try { System.out.println("[WormholeXTreme] " + msg); } catch (final Throwable ignore) {}
         }
         return false;
     }

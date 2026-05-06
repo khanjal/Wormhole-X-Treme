@@ -161,7 +161,7 @@ enum ComplexPermission
                         : false;
                     break;
                 case REMOVE_OWN :
-                    allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.getGateOwner().equals(player.getName()) && WormholeXTreme.getPermissions().has(player, complexPermissionNode));
+                    allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player) && WormholeXTreme.getPermissions().has(player, complexPermissionNode));
                     break;
                 default :
                     allowed = WormholeXTreme.getPermissions().has(player, complexPermissionNode);
