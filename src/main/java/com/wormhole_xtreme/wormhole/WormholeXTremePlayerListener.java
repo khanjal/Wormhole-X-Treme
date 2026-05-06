@@ -184,36 +184,32 @@ class WormholeXTremePlayerListener implements Listener
             final boolean dialAdj = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock);
             final boolean irisAdj = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock);
 
-            // Owner bypass: gate owners always get access without going through WXPermissions.
-            // This is the authoritative check — LuckPerms/Vault results do not override gate ownership.
-            // isOwner() handles both UUID-based (new) and legacy name-based owners transparently.
+            // Gate owners and ops always bypass permission checks.
             final boolean isOwner = player.isOp() || stargate.isOwner(player);
-            System.out.println("[WX-DIAG] buttonLeverHit: player=" + player.getName() + " uuid=" + player.getUniqueId() + " isOp=" + player.isOp() + " gateOwner=" + stargate.getGateOwner() + " isOwner=" + stargate.isOwner(player) + " isOwnerFinal=" + isOwner + " signPowered=" + stargate.isGateSignPowered() + " dialSame=" + ((stargate.getGateDialLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock)) + " dialAdj=" + ((stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock)));
-
-            // Priority: exact same block wins, then non-conflicting adjacency. This prevents an iris lever
-            // placed adjacent to the dial lever from being handled as an activation lever.
             final boolean permSign = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN);
             final boolean permDialer = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER);
 
+            // Priority: exact same-block match wins. For adjacency, prefer dial when both levers are adjacent
+            // (e.g. iris lever right next to the dial lever — this is the common Standard gate layout).
             if (dialSame && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
             {
                 handleGateActivationSwitch(stargate, player);
             }
-            else if (irisSame && (!stargate.isGateSignPowered() && permDialer))
+            else if (irisSame && !dialSame && permDialer)
             {
                 stargate.toggleIrisActive(true);
             }
-            else if (dialAdj && !irisAdj && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
+            else if (dialAdj && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
             {
+                // Both adjacent (overlapping layout) — treat as dial activation.
                 handleGateActivationSwitch(stargate, player);
             }
-            else if (irisAdj && !dialAdj && (!stargate.isGateSignPowered() && permDialer))
+            else if (irisAdj && !dialAdj && permDialer)
             {
                 stargate.toggleIrisActive(true);
             }
             else if (dialSame || irisSame || dialAdj || irisAdj)
             {
-                System.out.println("[WX-DIAG] denied at buttonLeverHit else branch: isOwner=" + isOwner + " permSign=" + permSign + " permDialer=" + permDialer + " dialSame=" + dialSame + " irisSame=" + irisSame);
                 player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             }
             return true;

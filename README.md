@@ -111,3 +111,23 @@ Code fix (applied in this branch): the click handler now prefers exact lever cli
 
 Submit PRs against the `main` branch. Keep changes modular and add unit/integration tests where possible.
 
+## Permissions
+
+The plugin uses permission nodes for feature access. Permissions are intended to be managed by a permissions plugin (Vault/LuckPerms recommended).
+
+- `wormhole.use.sign` — allow using sign-based dialers and sign interactions.
+- `wormhole.use.dialer` — allow using the dialer to initiate a gate dial.
+- `wormhole.use.compass` — allow using the compass command to point to gates.
+- `wormhole.remove.own` — allow removing gates you own.
+- `wormhole.remove.all` — allow removing any gate (admin-level).
+- `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
+- `wormhole.config` — allow changing plugin configuration via commands.
+- `wormhole.list` — allow listing gates via `/wormhole list`.
+- `wormhole.go` — allow teleporting to gates via command (`/wormhole go`).
+- `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
+- `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
+
+Notes:
+- Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
+- The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
+

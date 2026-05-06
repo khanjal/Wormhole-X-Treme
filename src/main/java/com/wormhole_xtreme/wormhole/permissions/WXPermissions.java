@@ -24,7 +24,7 @@ import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
+
 
 /**
  * The Class WXPermissions.
@@ -236,41 +236,22 @@ public class WXPermissions
         }
         else
         {
-            if (stargate != null)
+            // Simple mode: no permission plugin installed.
+            // Any player may use/dial/travel through gates.
+            // Build, remove, and config actions require OP (already handled above).
+            switch (permissiontype)
             {
-                PermissionLevel lvl = null;
-                switch (permissiontype)
-                {
-                    case DAMAGE :
-                    case REMOVE :
-                    case CONFIG :
-                    case GO :
-                        lvl = PermissionsManager.getPermissionLevel(player, stargate);
-                        return (lvl == PermissionLevel.WORMHOLE_FULL_PERMISSION);
-                    case SIGN :
-                    case DIALER :
-                    case USE :
-                    case LIST :
-                    case COMPASS :
-                        lvl = PermissionsManager.getPermissionLevel(player, stargate);
-                        return (lvl == PermissionLevel.WORMHOLE_CREATE_PERMISSION) || (lvl == PermissionLevel.WORMHOLE_USE_PERMISSION) || (lvl == PermissionLevel.WORMHOLE_FULL_PERMISSION);
-                    case BUILD :
-                        lvl = PermissionsManager.getPermissionLevel(player, stargate);
-                        return (lvl == PermissionLevel.WORMHOLE_CREATE_PERMISSION) || (lvl == PermissionLevel.WORMHOLE_FULL_PERMISSION);
-                    default :
-                        return false;
-
-                }
+                case SIGN :
+                case DIALER :
+                case USE :
+                case LIST :
+                case COMPASS :
+                case GO :
+                    return true;
+                default :
+                    return false;
             }
         }
-        if ((stargate != null) && (stargate.getGateOwner() != null))
-        {
-            final String msg = "Permission check failed: player='" + player.getName() + "' gateOwner='" + stargate.getGateOwner() + "' perm='" + permissiontype + "'";
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
-            // also print to standard out so it's visible even if logger handlers/filtering hide plugin logs
-            try { System.out.println("[WormholeXTreme] " + msg); } catch (final Throwable ignore) {}
-        }
-        return false;
     }
 
     /**

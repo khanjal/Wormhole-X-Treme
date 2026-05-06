@@ -25,3 +25,32 @@ commands:
             Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, and custom.
 
    # legacy wx* command entries removed; now provided as aliases under `wormhole`.
+
+permissions:
+  wormhole.use.sign:
+    description: Allow using sign-based dialers and sign interactions.
+    default: false
+  wormhole.use.dialer:
+    description: Allow using the dialer to initiate a gate dial.
+    default: false
+  wormhole.use.compass:
+    description: Allow using the compass command to point to gates.
+    default: false
+  wormhole.remove.own:
+    description: Allow removing gates you own.
+    default: false
+  wormhole.remove.all:
+    description: Allow removing any gate (admin-level).
+    default: op
+  wormhole.build:
+    description: Allow building gates using automation commands.
+    default: op
+  wormhole.config:
+    description: Allow changing plugin configuration via command.
+    default: op
+  wormhole.list:
+    description: Allow listing gates via command.
+    default: false
+  wormhole.go:
+    description: Allow teleporting to gates via command.
+    default: false
