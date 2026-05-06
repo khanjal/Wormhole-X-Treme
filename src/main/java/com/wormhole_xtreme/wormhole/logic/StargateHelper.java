@@ -243,7 +243,7 @@ public class StargateHelper
                 {
                     if (tempGate.getGateNetwork() != null)
                     {
-                        if (maybeBlock.getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
+                        if (maybeBlock.getType() == Material.OAK_WALL_SIGN)
                         {
                             if (tempGate.isGateSignPowered())
                             {
@@ -1514,20 +1514,20 @@ public class StargateHelper
 
             s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
             final int gateCustomStructureMaterial = byteBuff.getInt();
-            s.setGateCustomStructureMaterial(gateCustomStructureMaterial != -1
-                ? com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(gateCustomStructureMaterial)
+            s.setGateCustomStructureMaterial(gateCustomStructureMaterial >= 0 && gateCustomStructureMaterial < Material.values().length
+                ? Material.values()[gateCustomStructureMaterial]
                 : null);
             final int gateCustomPortalMaterial = byteBuff.getInt();
-            s.setGateCustomPortalMaterial(gateCustomPortalMaterial != -1
-                ? com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(gateCustomPortalMaterial)
+            s.setGateCustomPortalMaterial(gateCustomPortalMaterial >= 0 && gateCustomPortalMaterial < Material.values().length
+                ? Material.values()[gateCustomPortalMaterial]
                 : null);
             final int gateCustomLightMaterial = byteBuff.getInt();
-            s.setGateCustomLightMaterial(gateCustomLightMaterial != -1
-                ? com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(gateCustomLightMaterial)
+            s.setGateCustomLightMaterial(gateCustomLightMaterial >= 0 && gateCustomLightMaterial < Material.values().length
+                ? Material.values()[gateCustomLightMaterial]
                 : null);
             final int gateCustomIrisMaterial = byteBuff.getInt();
-            s.setGateCustomIrisMaterial(gateCustomIrisMaterial != -1
-                ? com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(gateCustomIrisMaterial)
+            s.setGateCustomIrisMaterial(gateCustomIrisMaterial >= 0 && gateCustomIrisMaterial < Material.values().length
+                ? Material.values()[gateCustomIrisMaterial]
                 : null);
             s.setGateCustomWooshTicks(byteBuff.getInt());
             s.setGateCustomLightTicks(byteBuff.getInt());
@@ -1948,7 +1948,7 @@ public class StargateHelper
     private static boolean tryCreateGateSign(final Block signBlock, final Stargate tempGate)
     {
 
-        if (signBlock.getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
+        if (signBlock.getType() == Material.OAK_WALL_SIGN)
         {
             tempGate.setGateSignPowered(true);
             tempGate.setGateDialSignBlock(signBlock);

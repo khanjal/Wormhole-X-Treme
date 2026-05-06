@@ -18,9 +18,6 @@
  */
 package com.wormhole_xtreme.wormhole.model;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
@@ -31,6 +28,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -1193,7 +1192,10 @@ public class Stargate
     {
         if (teleportSign)
         {
-            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialSignBlock(), 68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
+            getGateDialSignBlock().setType(Material.OAK_WALL_SIGN);
+            final Directional dialWs = (Directional) getGateDialSignBlock().getBlockData();
+            dialWs.setFacing(getGateFacing());
+            getGateDialSignBlock().setBlockData(dialWs);
             setGateDialSign((Sign) getGateDialSignBlock().getState());
             getGateDialSign().setLine(0, getGateName());
             if (getGateNetwork() != null)
@@ -1217,7 +1219,7 @@ public class Stargate
     {
         if ((getGateDialSignBlock() != null) && (getGateDialSign() != null))
         {
-            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialSignBlock(), 0);
+            getGateDialSignBlock().setType(Material.AIR);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, ActionToTake.DIAL_SIGN_RESET), 2);
         }
     }
@@ -1794,9 +1796,11 @@ public class Stargate
             interiorMat = Material.AIR;
         }
         fillGateInterior(interiorMat);
-        if ((getGateIrisLeverBlock() != null) && (getGateIrisLeverBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69)))
+        if ((getGateIrisLeverBlock() != null) && (getGateIrisLeverBlock().getType() == Material.LEVER))
         {
-            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateIrisLeverBlock(), WorldUtils.getLeverToggleByte((byte)0, isGateIrisActive()));
+            final Powerable lp = (Powerable) getGateIrisLeverBlock().getBlockData();
+            lp.setPowered(isGateIrisActive());
+            getGateIrisLeverBlock().setBlockData(lp);
         }
     }
 
@@ -1826,17 +1830,25 @@ public class Stargate
                 final Block nameSign = getGateNameBlockHolder();
                 // Determine sign facing: use inverse of gate facing so sign faces away from gate toward DHD
                 // Try candidate placement directions in order of preference and pick the first air block
-                final BlockFace forward = getGateFacing();
+                BlockFace forward = getGateFacing();
+                try
+                {
+                    if ((getGateDialLeverBlock() != null) && (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.Directional))
+                    {
+                        forward = ((org.bukkit.block.data.Directional) getGateDialLeverBlock().getBlockData()).getFacing();
+                    }
+                }
+                catch (final Throwable ignored) {}
                 final BlockFace inverse = WorldUtils.getInverseDirection(forward);
                 final BlockFace right = WorldUtils.getPerpendicularRightDirection(forward);
                 final BlockFace left = WorldUtils.getPerpendicularRightDirection(inverse);
 
-                // Prefer the inverse (front) first, then forward, then sides
+                // Prefer gate-facing direction (toward DHD/player) first, then sides, then back
                 final BlockFace[] candidates = new BlockFace[] {
-                    inverse,
                     forward,
                     right,
-                    left
+                    left,
+                    inverse
                 };
 
                 Block placeBlock = null;
@@ -1892,37 +1904,11 @@ public class Stargate
                     chosenFace = forward;
                 }
 
-                // Diagnostic: log placement info to help debug sign orientation issues
-                final String diag = "[WX-DIAG] setupGateSign: gate=" + getGateName() + " facing=" + getGateFacing() + " chosenFace=" + chosenFace + " nameHolder=" + getGateNameBlockHolder().getLocation() + " placeBlock=" + placeBlock.getLocation() + " placeType=" + placeBlock.getType() + " signDataByte=" + WorldUtils.getSignFacingByteFromBlockFace(chosenFace);
-                try
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, diag);
-                }
-                catch (final Throwable ignored) {}
-                try
-                {
-                    System.out.println(diag);
-                }
-                catch (final Throwable ignored) {}
-
-                // Also append diagnostic to plugin data folder so server admins can retrieve it even if console filters logs.
-                try
-                {
-                    final File dataDir = WormholeXTreme.getThisPlugin().getDataFolder();
-                    if (!dataDir.exists())
-                    {
-                        dataDir.mkdirs();
-                    }
-                    final File logFile = new File(dataDir, "wx-setupGateSign.log");
-                    try (final FileWriter fw = new FileWriter(logFile, true))
-                    {
-                        fw.write(diag + System.lineSeparator());
-                    }
-                }
-                catch (final Throwable ignored) {}
-
                 getGateStructureBlocks().add(placeBlock.getLocation());
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(placeBlock, 68, WorldUtils.getSignFacingByteFromBlockFace(chosenFace), false);
+                placeBlock.setType(Material.OAK_WALL_SIGN);
+                final Directional signData = (Directional) placeBlock.getBlockData();
+                signData.setFacing(chosenFace);
+                placeBlock.setBlockData(signData);
                 final Sign sign = (Sign) placeBlock.getState();
                 sign.setLine(0, "-" + getGateName() + "-");
 
@@ -1943,10 +1929,10 @@ public class Stargate
             else
             {
                 final Block nameSign = getGateNameBlockHolder();
-                if (nameSign.getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
+                if (nameSign.getType() == Material.OAK_WALL_SIGN)
                 {
                     getGateStructureBlocks().remove(nameSign.getLocation());
-                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(nameSign, 0);
+                    nameSign.setType(Material.AIR);
                 }
             }
         }
@@ -1969,14 +1955,17 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateIrisLeverBlock().getLocation());
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateIrisLeverBlock(), 69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
+                getGateIrisLeverBlock().setType(Material.LEVER);
+                final Directional leverData = (Directional) getGateIrisLeverBlock().getBlockData();
+                leverData.setFacing(getGateFacing());
+                getGateIrisLeverBlock().setBlockData(leverData);
             }
             else
             {
-                if (getGateIrisLeverBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69))
+                if (getGateIrisLeverBlock().getType() == Material.LEVER)
                 {
                     getGateStructureBlocks().remove(getGateIrisLeverBlock().getLocation());
-                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateIrisLeverBlock(), 0);
+                    getGateIrisLeverBlock().setType(Material.AIR);
                 }
             }
         }
@@ -2011,14 +2000,14 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateRedstoneDialActivationBlock().getLocation());
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneDialActivationBlock(), 55);
+                getGateRedstoneDialActivationBlock().setType(Material.REDSTONE_WIRE);
             }
             else
             {
-                if (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(55))
+                if (getGateRedstoneGateActivatedBlock().getType() == Material.REDSTONE_WIRE)
                 {
                     getGateStructureBlocks().remove(getGateRedstoneDialActivationBlock().getLocation());
-                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneDialActivationBlock(), 0);
+                    getGateRedstoneDialActivationBlock().setType(Material.AIR);
                 }
             }
         }
@@ -2037,14 +2026,14 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateRedstoneGateActivatedBlock().getLocation());
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateRedstoneGateActivatedBlock(), 69, (byte) 0x5, false);
+                getGateRedstoneGateActivatedBlock().setType(Material.LEVER);
             }
             else
             {
-                if (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69))
+                if (getGateRedstoneGateActivatedBlock().getType() == Material.LEVER)
                 {
                     getGateStructureBlocks().remove(getGateRedstoneGateActivatedBlock().getLocation());
-                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneGateActivatedBlock(), 0);
+                    getGateRedstoneGateActivatedBlock().setType(Material.AIR);
                 }
             }
         }
@@ -2063,14 +2052,14 @@ public class Stargate
             if (create)
             {
                 getGateStructureBlocks().add(getGateRedstoneSignActivationBlock().getLocation());
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneSignActivationBlock(), 55);
+                getGateRedstoneSignActivationBlock().setType(Material.REDSTONE_WIRE);
             }
             else
             {
-                if (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(55))
+                if (getGateRedstoneGateActivatedBlock().getType() == Material.REDSTONE_WIRE)
                 {
                     getGateStructureBlocks().remove(getGateRedstoneSignActivationBlock().getLocation());
-                    com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateRedstoneSignActivationBlock(), 0);
+                    getGateRedstoneSignActivationBlock().setType(Material.AIR);
                 }
             }
         }
@@ -2198,7 +2187,10 @@ public class Stargate
     {
         synchronized (getGateNetwork().getNetworkGateLock())
         {
-            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialSignBlock(), 68, WorldUtils.getSignFacingByteFromBlockFace(getGateFacing()), false);
+            getGateDialSignBlock().setType(Material.OAK_WALL_SIGN);
+            final Directional tsWs = (Directional) getGateDialSignBlock().getBlockData();
+            tsWs.setFacing(getGateFacing());
+            getGateDialSignBlock().setBlockData(tsWs);
             setGateDialSign((Sign) getGateDialSignBlock().getState());
             getGateDialSign().setLine(0, "-" + getGateName() + "-");
             if (getGateDialSignIndex() == -1)
@@ -2377,26 +2369,34 @@ public class Stargate
             org.bukkit.Material mat = getGateDialLeverBlock().getType();
             if (regenerate)
             {
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeIdAndData(getGateDialLeverBlock(), 69, WorldUtils.getLeverFacingByteFromBlockFace(getGateFacing()), false);
+                getGateDialLeverBlock().setType(Material.LEVER);
+                final Directional rld = (Directional) getGateDialLeverBlock().getBlockData();
+                rld.setFacing(getGateFacing());
+                getGateDialLeverBlock().setBlockData(rld);
                 mat = getGateDialLeverBlock().getType();
             }
-            final byte leverState = com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(getGateDialLeverBlock());
-            if (mat == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(77))
+            if (mat == Material.STONE_BUTTON)
             {
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialLeverBlock(), 69);
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateDialLeverBlock(), leverState);
+                getGateDialLeverBlock().setType(Material.LEVER);
+                final Directional bld = (Directional) getGateDialLeverBlock().getBlockData();
+                bld.setFacing(getGateFacing());
+                getGateDialLeverBlock().setBlockData(bld);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Automaticially replaced Button on gate \"" + getGateName() + "\" with Lever.");
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateDialLeverBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
+                final Powerable blp = (Powerable) getGateDialLeverBlock().getBlockData();
+                blp.setPowered(isGateActive());
+                getGateDialLeverBlock().setBlockData(blp);
             }
-            else if (mat == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69))
+            else if (mat == Material.LEVER)
             {
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateDialLeverBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
+                final Powerable llp = (Powerable) getGateDialLeverBlock().getBlockData();
+                llp.setPowered(isGateActive());
+                getGateDialLeverBlock().setBlockData(llp);
             }
             if ( !isGateActive())
             {
                 WorldUtils.scheduleChunkUnload(getGateDialLeverBlock());
             }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Dial Button Lever Gate: \"" + getGateName() + "\" Material: \"" + mat.toString() + "\" State: \"" + leverState + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Dial Button Lever Gate: \"" + getGateName() + "\" Material: \"" + mat.toString() + "\"");
         }
     }
 
@@ -2421,10 +2421,11 @@ public class Stargate
      */
     private void toggleRedstoneGateActivatedPower()
     {
-        if (isGateRedstonePowered() && (getGateRedstoneGateActivatedBlock() != null) && (getGateRedstoneGateActivatedBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(69)))
+        if (isGateRedstonePowered() && (getGateRedstoneGateActivatedBlock() != null) && (getGateRedstoneGateActivatedBlock().getType() == Material.LEVER))
         {
-            final byte leverState = com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(getGateRedstoneGateActivatedBlock());
-            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(getGateRedstoneGateActivatedBlock(), WorldUtils.getLeverToggleByte(leverState, isGateActive()));
+            final Powerable rp = (Powerable) getGateRedstoneGateActivatedBlock().getBlockData();
+            rp.setPowered(isGateActive());
+            getGateRedstoneGateActivatedBlock().setBlockData(rp);
         }
     }
 
@@ -2454,16 +2455,16 @@ public class Stargate
     {
         if ((getGateDialSign() == null) && (getGateDialSignBlock() != null))
         {
-            if (getGateDialSignBlock().getType() == com.wormhole_xtreme.wormhole.utils.LegacyCompat.materialFromId(68))
+            if (getGateDialSignBlock().getType() == Material.OAK_WALL_SIGN)
             {
                 setGateDialSignIndex( -1);
-                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialSignBlock(), 0);
+                getGateDialSignBlock().setType(Material.AIR);
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, player, ActionToTake.DIAL_SIGN_CLICK));
             }
         }
         else if (WorldUtils.isSameBlock(clicked, getGateDialSignBlock()))
         {
-            com.wormhole_xtreme.wormhole.utils.LegacyCompat.setTypeId(getGateDialSignBlock(), 0);
+            getGateDialSignBlock().setType(Material.AIR);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, player, ActionToTake.DIAL_SIGN_CLICK));
             return true;
         }

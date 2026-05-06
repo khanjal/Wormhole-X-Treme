@@ -20,13 +20,13 @@ package com.wormhole_xtreme.wormhole;
 
 import java.util.logging.Level;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.utils.LegacyCompat;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
@@ -87,7 +87,7 @@ class WormholeXTremeRedstoneListener implements Listener
         if (StargateManager.isBlockInGate(block))
         {
             final Stargate stargate = StargateManager.getGateFromBlock(event.getBlock());
-            if (stargate.isGateSignPowered() && stargate.isGateRedstonePowered() && (block.getType() == LegacyCompat.materialFromId(55)) && isCurrentNew(event.getOldCurrent(), event.getNewCurrent()))
+            if (stargate.isGateSignPowered() && stargate.isGateRedstonePowered() && (block.getType() == Material.REDSTONE_WIRE) && isCurrentNew(event.getOldCurrent(), event.getNewCurrent()))
             {
                 if ((stargate.getGateRedstoneSignActivationBlock() != null) && block.equals(stargate.getGateRedstoneSignActivationBlock()) && isCurrentOn(event.getOldCurrent(), event.getNewCurrent()))
                 {

@@ -35,7 +35,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.utils.LegacyCompat;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -79,25 +78,9 @@ class WormholeXTremePlayerListener implements Listener
                 String network = pending[2];
 
                 // Determine facing if not provided
-                if (direction == null)
+                if (direction == null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional)
                 {
-                    switch (com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(clickedBlock))
-                    {
-                        case 1 :
-                            direction = BlockFace.SOUTH;
-                            break;
-                        case 2 :
-                            direction = BlockFace.NORTH;
-                            break;
-                        case 3 :
-                            direction = BlockFace.WEST;
-                            break;
-                        case 4 :
-                            direction = BlockFace.EAST;
-                            break;
-                        default :
-                            break;
-                    }
+                    direction = ((org.bukkit.block.data.Directional) clickedBlock.getBlockData()).getFacing();
                 }
 
                 com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+/wormhole complete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
@@ -218,22 +201,9 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (direction == null)
             {
-                switch (com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(clickedBlock))
+                if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional)
                 {
-                    case 1 :
-                        direction = BlockFace.SOUTH;
-                        break;
-                    case 2 :
-                        direction = BlockFace.NORTH;
-                        break;
-                    case 3 :
-                        direction = BlockFace.WEST;
-                        break;
-                    case 4 :
-                        direction = BlockFace.EAST;
-                        break;
-                    default :
-                        break;
+                    direction = ((org.bukkit.block.data.Directional) clickedBlock.getBlockData()).getFacing();
                 }
 
                 if (direction == null)
@@ -273,7 +243,6 @@ class WormholeXTremePlayerListener implements Listener
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
                                 newGate.getGateDialSign().setLine(0, "-" + newGate.getGateName() + "-");
-                                com.wormhole_xtreme.wormhole.utils.LegacyCompat.setData(newGate.getGateDialSignBlock(), com.wormhole_xtreme.wormhole.utils.LegacyCompat.getData(newGate.getGateDialSignBlock()));
                                 newGate.getGateDialSign().update();
                             }
                             else
@@ -504,7 +473,7 @@ class WormholeXTremePlayerListener implements Listener
         final Block clickedBlock = event.getClickedBlock();
         final Player player = event.getPlayer();
 
-        if ((clickedBlock != null) && ((clickedBlock.getType() == LegacyCompat.materialFromId(77)) || (clickedBlock.getType() == LegacyCompat.materialFromId(69))))
+        if ((clickedBlock != null) && ((clickedBlock.getType() == Material.STONE_BUTTON) || (clickedBlock.getType() == Material.LEVER)))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
             if (buttonLeverHit(player, clickedBlock, null))
@@ -512,7 +481,7 @@ class WormholeXTremePlayerListener implements Listener
                 return true;
             }
         }
-        else if ((clickedBlock != null) && (clickedBlock.getType() == LegacyCompat.materialFromId(68)))
+        else if ((clickedBlock != null) && (clickedBlock.getType() == Material.OAK_WALL_SIGN))
         {
             final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
             if (stargate != null)
