@@ -1869,7 +1869,28 @@ public class Stargate
                     catch (final Throwable ignored) {}
                 }
 
-                // If nothing found at one block distance, try front+right and front+left
+                // Extended search: 2 and 3 steps in the forward direction.
+                // This handles gates built into walls — the 1-step block is wall material,
+                // the 2-step block is the open face on the player/DHD approach side.
+                for (int dist = 2; dist <= 3 && placeBlock == null; dist++)
+                {
+                    try
+                    {
+                        Block cursor = nameSign;
+                        for (int step = 0; step < dist; step++)
+                        {
+                            cursor = cursor.getRelative(forward);
+                        }
+                        if (cursor.getType() == Material.AIR)
+                        {
+                            placeBlock = cursor;
+                            chosenFace = forward;
+                        }
+                    }
+                    catch (final Throwable ignored) {}
+                }
+
+                // Fallback: diagonal (forward + side)
                 if (placeBlock == null)
                 {
                     try
@@ -1897,7 +1918,7 @@ public class Stargate
                     catch (final Throwable ignored) {}
                 }
 
-                // Fallback to holder itself
+                // Last resort: replace the holder block itself with the sign
                 if (placeBlock == null)
                 {
                     placeBlock = nameSign;

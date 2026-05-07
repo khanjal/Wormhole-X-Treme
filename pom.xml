@@ -80,6 +80,14 @@
 		</plugins>
 	</build>
 	<dependencies>
+		<!-- Legacy HSQLDB for migrating old gate data. Bundled in lib/ -->
+		<dependency>
+			<groupId>hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>1.8.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/hsqldb.jar</systemPath>
+		</dependency>
 		<dependency>
 			<groupId>io.papermc.paper</groupId>
 			<artifactId>paper-api</artifactId>

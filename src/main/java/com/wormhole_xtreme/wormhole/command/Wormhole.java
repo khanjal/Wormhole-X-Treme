@@ -121,12 +121,37 @@ public class Wormhole implements CommandExecutor
         {
             if (a.length < 3)
             {
-                sender.sendMessage("Usage: /wormhole storage migrate <backend> [force]");
+                sender.sendMessage("Usage: /wormhole storage migrate <destination> [force]");
+                sender.sendMessage("       /wormhole storage migrate <source> <destination> [force]");
+                sender.sendMessage("Sources:      hsqldb, sqlite, file/yaml");
+                sender.sendMessage("Destinations: file, yaml, sqlite");
                 return true;
             }
-            final String toBackend = a[2];
-            final boolean force = (a.length >= 4) && (a[3].equalsIgnoreCase("force") || a[3].equalsIgnoreCase("-f"));
-            StorageMigrator.migrateTo(toBackend, force, sender);
+
+            // Detect optional source argument:
+            // 3 args:  migrate <dest> [force?]
+            // 4 args:  migrate <src> <dest> [force?]  OR  migrate <dest> force
+            // 5 args:  migrate <src> <dest> force
+            final String knownBackends = "hsqldb|sqlite|file|yaml";
+            String source = null;
+            String toBackend;
+            boolean force;
+
+            if (a.length >= 4 && a[3].toLowerCase().matches(knownBackends))
+            {
+                // /wx storage migrate hsqldb sqlite [force]
+                source = a[2];
+                toBackend = a[3];
+                force = (a.length >= 5) && (a[4].equalsIgnoreCase("force") || a[4].equalsIgnoreCase("-f"));
+            }
+            else
+            {
+                // /wx storage migrate sqlite [force]
+                toBackend = a[2];
+                force = (a.length >= 4) && (a[3].equalsIgnoreCase("force") || a[3].equalsIgnoreCase("-f"));
+            }
+
+            StorageMigrator.migrateTo(source, toBackend, force, sender);
             return true;
         }
 
