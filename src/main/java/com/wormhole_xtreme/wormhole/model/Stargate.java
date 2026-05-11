@@ -1828,17 +1828,11 @@ public class Stargate
             if (create)
             {
                 final Block nameSign = getGateNameBlockHolder();
-                // Determine sign facing: use inverse of gate facing so sign faces away from gate toward DHD
-                // Try candidate placement directions in order of preference and pick the first air block
-                BlockFace forward = getGateFacing();
-                try
-                {
-                    if ((getGateDialLeverBlock() != null) && (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.Directional))
-                    {
-                        forward = ((org.bukkit.block.data.Directional) getGateDialLeverBlock().getBlockData()).getFacing();
-                    }
-                }
-                catch (final Throwable ignored) {}
+                // Use gateFacing directly — this is always the direction toward the open portal face
+                // (i.e. the side the player stands on).  Previous attempts to derive this from the
+                // lever/button's getFacing() were wrong: a DHD button placed ON TOP of a block returns
+                // BlockFace.UP, which caused the candidates list to contain only vertical/side directions.
+                final BlockFace forward = getGateFacing();
                 final BlockFace inverse = WorldUtils.getInverseDirection(forward);
                 final BlockFace right = WorldUtils.getPerpendicularRightDirection(forward);
                 final BlockFace left = WorldUtils.getPerpendicularRightDirection(inverse);
@@ -1950,7 +1944,15 @@ public class Stargate
             else
             {
                 final Block nameSign = getGateNameBlockHolder();
-                if (nameSign.getType() == Material.OAK_WALL_SIGN)
+                // The sign was placed at nameSign.getRelative(gateFacing) during creation.
+                // Check that position first, then fall back to the holder itself for legacy gates.
+                final Block signBlock = nameSign.getRelative(getGateFacing());
+                if (signBlock.getType() == Material.OAK_WALL_SIGN)
+                {
+                    getGateStructureBlocks().remove(signBlock.getLocation());
+                    signBlock.setType(Material.AIR);
+                }
+                else if (nameSign.getType() == Material.OAK_WALL_SIGN)
                 {
                     getGateStructureBlocks().remove(nameSign.getLocation());
                     nameSign.setType(Material.AIR);
