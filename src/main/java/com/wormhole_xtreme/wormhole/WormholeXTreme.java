@@ -343,7 +343,7 @@ public class WormholeXTreme extends JavaPlugin
         setThisPlugin(this);
         setLog(getThisPlugin().getServer().getLogger());
         setScheduler(getThisPlugin().getServer().getScheduler());
-
+        printLogo();
         prettyLog(Level.INFO, true, "Load Beginning.");
         // Load our config files and set logging level right away.
         ConfigManager.setupConfigs(getThisPlugin().getDescription());
@@ -359,6 +359,31 @@ public class WormholeXTreme extends JavaPlugin
 
     /**
      * 
+     * Print ASCII logo to console on startup.
+     */
+    private void printLogo()
+    {
+        final String version = "v" + getDescription().getVersion();
+        final String c = "\u001B[36m";  // cyan
+        final String r = "\u001B[0m";   // reset
+        final String w = c + "~" + r;
+        final String row1 = w + " " + w + " " + w + " " + w + " " + w + " " + w;
+        final String row2 = w + " " + w + " " + w + " " + w + " " + w + " " + w + " " + w;
+        getLog().info("");
+        getLog().info("              *   *   *   *   *");
+        getLog().info("           *                       *");
+        getLog().info("          *      . - - - - - .      *");
+        getLog().info("         *     /  " + row1 + "  \\     *     W O R M H O L E");
+        getLog().info("         *    |  " + row2 + "  |    *     X  -  T R E M E");
+        getLog().info("         *    |  " + row2 + "  |    *");
+        getLog().info("         *     \\  " + row1 + "  /     *     " + version);
+        getLog().info("          *      ' - - - - - '      *");
+        getLog().info("           *                       *");
+        getLog().info("              *   *   *   *   *");
+        getLog().info("");
+    }
+
+    /**
      * prettyLog: A quick and dirty way to make log output clean, unified, and with versioning as needed.
      * 
      * @param severity
