@@ -366,9 +366,11 @@ public class WormholeXTreme extends JavaPlugin
         final String version = "v" + getDescription().getVersion();
         final String c = "\u001B[36m";  // cyan
         final String r = "\u001B[0m";   // reset
-        final String w = c + "~" + r;
-        final String row1 = w + " " + w + " " + w + " " + w + " " + w + " " + w;
-        final String row2 = w + " " + w + " " + w + " " + w + " " + w + " " + w + " " + w;
+        // Build rows using plain characters for predictable spacing, then color the whole row once.
+        final String row1Plain = "~ ~ ~ ~ ~ ~";
+        final String row2Plain = "~ ~ ~ ~ ~ ~ ~";
+        final String row1 = c + row1Plain + r;
+        final String row2 = c + row2Plain + r;
         getLog().info("");
         getLog().info("              *   *   *   *   *");
         getLog().info("           *                       *");

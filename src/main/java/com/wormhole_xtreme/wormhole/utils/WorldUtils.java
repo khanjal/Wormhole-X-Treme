@@ -47,13 +47,13 @@ public class WorldUtils
         switch (blockFace)
         {
             case NORTH :
-                return (float) 90;
-            case EAST :
                 return (float) 180;
-            case SOUTH :
+            case EAST :
                 return (float) 270;
-            case WEST :
+            case SOUTH :
                 return (float) 0;
+            case WEST :
+                return (float) 90;
             default :
                 return (float) 0;
         }

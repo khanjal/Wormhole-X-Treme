@@ -47,8 +47,8 @@ class StargateBlockSetup
 
     /**
      * Places or removes the gate name sign adjacent to the name block holder.
-     * The sign always faces {@link Stargate#getGateFacing()} so it is visible
-     * from the player/portal side.
+     * The sign faces {@link Stargate#getGateFacing()}, the same direction the
+     * gate/DHD button faces.
      *
      * @param gate   the gate
      * @param create {@code true} to place; {@code false} to remove
@@ -60,88 +60,111 @@ class StargateBlockSetup
             return;
         }
 
+        final BlockFace toward = gate.getGateFacing();
+        final Block nameSign = gate.getGateNameBlockHolder();
+        final Block placeBlock = nameSign.getRelative(toward);
+
         if (create)
         {
-            final Block nameSign = gate.getGateNameBlockHolder();
-            // Always use gateFacing — the direction toward the open portal / player side.
-            // Do NOT derive this from the lever's getFacing(); a button placed ON TOP of a
-            // block returns BlockFace.UP, which would misplace the sign on a side face.
-            final BlockFace forward = gate.getGateFacing();
-            final BlockFace inverse = WorldUtils.getInverseDirection(forward);
-            final BlockFace right  = WorldUtils.getPerpendicularRightDirection(forward);
-            final BlockFace left   = WorldUtils.getPerpendicularRightDirection(inverse);
-
-            // Preference order: forward face first (toward player), then sides, then back.
-            final BlockFace[] candidates = { forward, right, left, inverse };
-
-            Block placeBlock = null;
-            BlockFace chosenFace = null;
-
-            for (final BlockFace face : candidates)
+            final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
+            if (_plugin_for_log != null)
             {
+                final StringBuilder dbg = new StringBuilder(256);
+                dbg.append("Sign placement: Gate=").append(gate.getGateName());
+
                 try
                 {
-                    final Block candidate = nameSign.getRelative(face);
-                    if (candidate.getType() == Material.AIR)
+                    final org.bukkit.Location nhLoc = nameSign.getLocation();
+                    dbg.append(" NameHolderLoc=").append(nhLoc != null ? nhLoc.toString() : "null");
+                }
+                catch (final Exception e)
+                {
+                    dbg.append(" NameHolderLoc=null");
+                }
+
+                dbg.append(" GateFacing=").append(toward != null ? toward.toString() : "null");
+
+                try
+                {
+                    final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
+                    dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
+                }
+                catch (final Exception e)
+                {
+                    dbg.append(" PlaceBlock=null");
+                }
+
+                Material pbType = null;
+                try
+                {
+                    pbType = placeBlock != null ? placeBlock.getType() : null;
+                }
+                catch (final Throwable t)
+                {
+                    pbType = null;
+                }
+                dbg.append(" PlaceBlockType=").append(pbType != null ? pbType.toString() : "null");
+
+                final BlockFace[] facesToCheck = new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST,
+                    BlockFace.UP, BlockFace.DOWN };
+                for (final BlockFace f : facesToCheck)
+                {
+                    Block n = null;
+                    try
                     {
-                        placeBlock = candidate;
-                        chosenFace = face;
-                        break;
+                        n = nameSign.getRelative(f);
+                    }
+                    catch (final Exception e)
+                    {
+                        n = null;
+                    }
+                    String nType = "null";
+                    String nLoc = "null";
+                    if (n != null)
+                    {
+                        try
+                        {
+                            final Material t = n.getType();
+                            nType = t != null ? t.toString() : "null";
+                        }
+                        catch (final Exception e)
+                        {
+                            nType = "null";
+                        }
+                        try
+                        {
+                            final org.bukkit.Location nl = n.getLocation();
+                            nLoc = nl != null ? nl.toString() : "null";
+                        }
+                        catch (final Exception e)
+                        {
+                            nLoc = "null";
+                        }
+                    }
+                    dbg.append(' ').append(f.toString()).append("=[").append(nType).append("@").append(nLoc).append("]");
+                }
+
+                try
+                {
+                    final org.bukkit.block.data.BlockData bd = nameSign.getBlockData();
+                    if (bd instanceof Directional)
+                    {
+                        final Directional d = (Directional) bd;
+                        dbg.append(" NameHolderFacing=").append(d.getFacing() != null ? d.getFacing().toString() : "null");
                     }
                 }
-                catch (final Throwable ignored) {}
-            }
-
-            // Extended search: 2–3 steps forward (gate built into a wall).
-            for (int dist = 2; dist <= 3 && placeBlock == null; dist++)
-            {
-                try
+                catch (final Exception e)
                 {
-                    Block cursor = nameSign;
-                    for (int step = 0; step < dist; step++)
-                    {
-                        cursor = cursor.getRelative(forward);
-                    }
-                    if (cursor.getType() == Material.AIR)
-                    {
-                        placeBlock = cursor;
-                        chosenFace = forward;
-                    }
+                    // ignore
                 }
-                catch (final Throwable ignored) {}
-            }
 
-            // Diagonal fallbacks (forward + right, forward + left).
-            if (placeBlock == null)
-            {
-                try
-                {
-                    final Block c = nameSign.getRelative(forward).getRelative(right);
-                    if (c.getType() == Material.AIR) { placeBlock = c; chosenFace = forward; }
-                }
-                catch (final Throwable ignored) {}
-            }
-            if (placeBlock == null)
-            {
-                try
-                {
-                    final Block c = nameSign.getRelative(forward).getRelative(left);
-                    if (c.getType() == Material.AIR) { placeBlock = c; chosenFace = forward; }
-                }
-                catch (final Throwable ignored) {}
-            }
-
-            // Last resort: place on the holder block itself.
-            if (placeBlock == null)
-            {
-                placeBlock = nameSign;
-                chosenFace = forward;
+                _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
             }
 
             gate.getGateStructureBlocks().add(placeBlock.getLocation());
             placeBlock.setType(Material.OAK_WALL_SIGN);
             final Directional signData = (Directional) placeBlock.getBlockData();
-            signData.setFacing(chosenFace);
+            signData.setFacing(toward);
             placeBlock.setBlockData(signData);
 
             final Sign sign = (Sign) placeBlock.getState();
@@ -160,19 +183,26 @@ class StargateBlockSetup
         }
         else
         {
-            final Block nameSign = gate.getGateNameBlockHolder();
-            // The sign was placed at nameSign.getRelative(gateFacing) during creation.
-            // Check that block first; fall back to the holder itself for legacy gates.
-            final Block signBlock = nameSign.getRelative(gate.getGateFacing());
-            if (signBlock.getType() == Material.OAK_WALL_SIGN)
+            if (placeBlock.getType() == Material.OAK_WALL_SIGN)
             {
-                gate.getGateStructureBlocks().remove(signBlock.getLocation());
-                signBlock.setType(Material.AIR);
-            }
-            else if (nameSign.getType() == Material.OAK_WALL_SIGN)
-            {
-                gate.getGateStructureBlocks().remove(nameSign.getLocation());
-                nameSign.setType(Material.AIR);
+                final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
+                if (_plugin_for_log != null)
+                {
+                    final StringBuilder dbg = new StringBuilder(128);
+                    dbg.append("Sign removal: Gate=").append(gate.getGateName());
+                    try
+                    {
+                        final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
+                        dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
+                    }
+                    catch (final Exception e)
+                    {
+                        dbg.append(" PlaceBlock=null");
+                    }
+                    _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
+                }
+                gate.getGateStructureBlocks().remove(placeBlock.getLocation());
+                placeBlock.setType(Material.AIR);
             }
         }
     }
@@ -193,17 +223,86 @@ class StargateBlockSetup
             && (gate.getGateShape() != null)
             && !(gate.getGateShape() instanceof Stargate3DShape))
         {
-            gate.setGateIrisLeverBlock(gate.getGateDialLeverBlock().getRelative(BlockFace.DOWN));
+            final Block dial = gate.getGateDialLeverBlock();
+            if (dial != null)
+            {
+                Block chosen = null;
+                try
+                {
+                    if (dial.getType() == Material.LEVER)
+                    {
+                        chosen = dial;
+                    }
+                    else if (dial.getRelative(BlockFace.DOWN) != null && dial.getRelative(BlockFace.DOWN).getType() == Material.LEVER)
+                    {
+                        chosen = dial.getRelative(BlockFace.DOWN);
+                    }
+                    else if (dial.getRelative(BlockFace.UP) != null && dial.getRelative(BlockFace.UP).getType() == Material.LEVER)
+                    {
+                        chosen = dial.getRelative(BlockFace.UP);
+                    }
+                    else
+                    {
+                        // Fallback: use the dial block itself (covers cases where dial is already the lever block)
+                        chosen = dial;
+                    }
+                }
+                catch (final Exception ignore)
+                {
+                    chosen = dial;
+                }
+                gate.setGateIrisLeverBlock(chosen);
+            }
         }
         if (gate.getGateIrisLeverBlock() != null)
         {
             if (create)
             {
+                final Block iris = gate.getGateIrisLeverBlock();
+                final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
+                if (_plugin_for_log != null)
+                {
+                    final StringBuilder dbg = new StringBuilder(128);
+                    dbg.append("Iris lever placement: Gate=").append(gate.getGateName());
+                    try
+                    {
+                        final org.bukkit.Location dialLoc = gate.getGateDialLeverBlock() != null ? gate.getGateDialLeverBlock().getLocation() : null;
+                        dbg.append(" DialLever=").append(dialLoc != null ? dialLoc.toString() : "null");
+                    }
+                    catch (final Exception e)
+                    {
+                        dbg.append(" DialLever=null");
+                    }
+                    try
+                    {
+                        final org.bukkit.Location irisLoc = iris != null ? iris.getLocation() : null;
+                        dbg.append(" IrisBlock=").append(irisLoc != null ? irisLoc.toString() : "null");
+                    }
+                    catch (final Exception e)
+                    {
+                        dbg.append(" IrisBlock=null");
+                    }
+                    Material irisType = null;
+                    try
+                    {
+                        irisType = iris != null ? iris.getType() : null;
+                    }
+                    catch (final Throwable t)
+                    {
+                        irisType = null;
+                    }
+                    dbg.append(" IrisBlockType=").append(irisType != null ? irisType.toString() : "null");
+                    dbg.append(" GateFacing=").append(gate.getGateFacing() != null ? gate.getGateFacing().toString() : "null");
+                    _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
+                }
+
                 gate.getGateStructureBlocks().add(gate.getGateIrisLeverBlock().getLocation());
                 gate.getGateIrisLeverBlock().setType(Material.LEVER);
-                final Directional leverData = (Directional) gate.getGateIrisLeverBlock().getBlockData();
-                leverData.setFacing(gate.getGateFacing());
-                gate.getGateIrisLeverBlock().setBlockData(leverData);
+                final org.bukkit.block.data.type.Switch irisSwitch =
+                    (org.bukkit.block.data.type.Switch) gate.getGateIrisLeverBlock().getBlockData();
+                irisSwitch.setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+                irisSwitch.setFacing(gate.getGateFacing());
+                gate.getGateIrisLeverBlock().setBlockData(irisSwitch);
             }
             else
             {

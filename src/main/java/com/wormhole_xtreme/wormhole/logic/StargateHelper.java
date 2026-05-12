@@ -134,6 +134,99 @@ public class StargateHelper
      *            the create
      * @return the stargate
      */
+    /**
+     * Computes the gate's true facing direction from the geometry of its structure
+     * blocks, rather than relying on the button/lever {@code getFacing()} which can
+     * return incorrect or {@code UP} values due to the old Wormhole coordinate
+     * convention being 90° offset from modern Minecraft axes.
+     *
+     * <p>For a 2-D (or layered 3-D) gate all frame blocks lie in a single vertical
+     * plane.  The horizontal axis with the <em>lower</em> variance across those
+     * blocks is the one the gate faces along (its normal).  The DHD position
+     * relative to the block centroid then resolves the ± sign.
+     *
+     * @param gate the gate whose facing is to be recalculated
+     * @return the computed {@link BlockFace}, or {@code null} if indeterminate
+     */
+    private static BlockFace computeGateFacingFromGeometry(final Stargate gate)
+    {
+        final Block dhdBlock = gate.getGateDialLeverBlock();
+        if (dhdBlock == null || gate.getGateStructureBlocks().isEmpty())
+        {
+            return null;
+        }
+
+        final int dhdX = dhdBlock.getX();
+        final int dhdY = dhdBlock.getY();
+        final int dhdZ = dhdBlock.getZ();
+
+        double sumX = 0, sumZ = 0;
+        double sumX2 = 0, sumZ2 = 0;
+        int count = 0;
+
+        for (final Location loc : gate.getGateStructureBlocks())
+        {
+            // Exclude the DHD block itself so its offset doesn't skew the variance
+            if (loc.getBlockX() == dhdX && loc.getBlockY() == dhdY && loc.getBlockZ() == dhdZ)
+            {
+                continue;
+            }
+            final double x = loc.getBlockX();
+            final double z = loc.getBlockZ();
+            sumX  += x;
+            sumZ  += z;
+            sumX2 += x * x;
+            sumZ2 += z * z;
+            count++;
+        }
+
+        if (count == 0)
+        {
+            return null;
+        }
+
+        // Dump every structure block so we can verify the input set
+        final StringBuilder blockDump = new StringBuilder("Gate structure blocks (excl DHD): gate=")
+            .append(gate.getGateName()).append(" dhd=[").append(dhdX).append(',').append(dhdY).append(',').append(dhdZ).append(']');
+        for (final Location loc : gate.getGateStructureBlocks())
+        {
+            if (loc.getBlockX() == dhdX && loc.getBlockY() == dhdY && loc.getBlockZ() == dhdZ)
+            {
+                continue;
+            }
+            blockDump.append(" [").append(loc.getBlockX()).append(',').append(loc.getBlockY()).append(',').append(loc.getBlockZ()).append(']');
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, blockDump.toString());
+
+        final double meanX = sumX  / count;
+        final double meanZ = sumZ  / count;
+        final double varX  = sumX2 / count - meanX * meanX;
+        final double varZ  = sumZ2 / count - meanZ * meanZ;
+
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+            "Gate geometry: gateBlocks=" + count
+            + " meanX=" + String.format("%.2f", meanX) + " meanZ=" + String.format("%.2f", meanZ)
+            + " varX=" + String.format("%.2f", varX) + " varZ=" + String.format("%.2f", varZ)
+            + " dhdX=" + dhdX + " dhdZ=" + dhdZ);
+
+        if (Math.abs(varX - varZ) < 0.001)
+        {
+            // Degenerate: axes indistinguishable — keep original facing
+            return null;
+        }
+
+        if (varX < varZ)
+        {
+            // Gate blocks share a common X-coordinate → gate face is perpendicular to X → EAST or WEST
+            return dhdX > meanX ? BlockFace.EAST : BlockFace.WEST;
+        }
+        else
+        {
+            // Gate blocks share a common Z-coordinate → gate face is perpendicular to Z → NORTH or SOUTH
+            return dhdZ > meanZ ? BlockFace.SOUTH : BlockFace.NORTH;
+        }
+    }
+
     private static Stargate checkStargate(final Block buttonBlock, final BlockFace facing, final StargateShape shape, final boolean create)
     {
         final BlockFace opposite = WorldUtils.getInverseDirection(facing);
@@ -146,9 +239,19 @@ public class StargateHelper
             final Stargate tempGate = new Stargate();
             tempGate.setGateWorld(buttonBlock.getWorld());
             tempGate.setGateName("");
-            tempGate.setGateDialLeverBlock(buttonBlock);
+            final Block dialBlock = buttonBlock.getRelative(BlockFace.DOWN);
+            tempGate.setGateDialLeverBlock(dialBlock);
             tempGate.setGateFacing(facing);
-            tempGate.getGateStructureBlocks().add(buttonBlock.getLocation());
+            tempGate.getGateStructureBlocks().add(dialBlock.getLocation());
+            final WormholeXTreme _pl = WormholeXTreme.getThisPlugin();
+            if (_pl != null)
+            {
+                try
+                {
+                    _pl.prettyLog(Level.INFO, false, "Dial lever corrected: clicked=" + buttonBlock.getLocation().toString() + " lever=" + dialBlock.getLocation().toString());
+                }
+                catch (final Exception ignore) {}
+            }
             tempGate.setGateShape(shape);
             if ( !isStargateMaterial(holdingBlock.getRelative(BlockFace.DOWN), tempGate.getGateShape()))
             {
@@ -307,6 +410,22 @@ public class StargateHelper
             }
 
             setupSignGateNetwork(tempGate);
+
+            // Recompute facing from gate geometry (variance of structure-block positions)
+            // so the sign/lever are placed correctly regardless of how the button reports.
+            final BlockFace computedFacing = computeGateFacingFromGeometry(tempGate);
+            if (computedFacing != null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                    "Gate facing recalculated: buttonFacing=" + facing + " computedFacing=" + computedFacing
+                    + " gate=" + tempGate.getGateName());
+                tempGate.setGateFacing(computedFacing);
+                if (tempGate.getGatePlayerTeleportLocation() != null)
+                {
+                    tempGate.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(computedFacing));
+                }
+            }
+
             return tempGate;
         }
 
@@ -331,8 +450,18 @@ public class StargateHelper
         final Stargate s = new Stargate();
         s.setGateWorld(buttonBlock.getWorld());
         // No need to find it, we already have it!
-        s.setGateDialLeverBlock(buttonBlock);
-        s.getGateStructureBlocks().add(s.getGateDialLeverBlock().getLocation());
+        final Block dialBlock3 = buttonBlock.getRelative(BlockFace.DOWN);
+        s.setGateDialLeverBlock(dialBlock3);
+        s.getGateStructureBlocks().add(dialBlock3.getLocation());
+        final WormholeXTreme _pl3 = WormholeXTreme.getThisPlugin();
+        if (_pl3 != null)
+        {
+            try
+            {
+                _pl3.prettyLog(Level.INFO, false, "Dial lever corrected (3D): clicked=" + buttonBlock.getLocation().toString() + " lever=" + dialBlock3.getLocation().toString());
+            }
+            catch (final Exception ignore) {}
+        }
         s.setGateShape(shape);
         s.setGateFacing(facing);
 
@@ -418,6 +547,21 @@ public class StargateHelper
             s.setGateRedstonePowered(true);
         }
         setupSignGateNetwork(s);
+
+        // Recompute facing from gate geometry
+        final BlockFace computedFacing3d = computeGateFacingFromGeometry(s);
+        if (computedFacing3d != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                "Gate facing recalculated (3D): buttonFacing=" + facing + " computedFacing=" + computedFacing3d
+                + " gate=" + s.getGateName());
+            s.setGateFacing(computedFacing3d);
+            if (s.getGatePlayerTeleportLocation() != null)
+            {
+                s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(computedFacing3d));
+            }
+        }
+
         return s;
     }
 
@@ -599,8 +743,29 @@ public class StargateHelper
 
         if (layer.getLayerIrisActivationPosition().length > 0)
         {
-            tempGate.setGateIrisLeverBlock(StargateHelper.getBlockFromVector(layer.getLayerIrisActivationPosition(), directionVector, lowerCorner, w).getRelative(tempGate.getGateFacing()));
-            tempGate.getGateStructureBlocks().add(tempGate.getGateIrisLeverBlock().getLocation());
+            final int[] irisVec = layer.getLayerIrisActivationPosition();
+            final Block baseIris = StargateHelper.getBlockFromVector(irisVec, directionVector, lowerCorner, w);
+            final Block irisTarget = baseIris != null ? baseIris.getRelative(tempGate.getGateFacing()) : null;
+            if (irisTarget != null)
+            {
+                tempGate.setGateIrisLeverBlock(irisTarget);
+                tempGate.getGateStructureBlocks().add(irisTarget.getLocation());
+            }
+
+            final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
+            if (_plugin_for_log != null)
+            {
+                final StringBuilder dbg = new StringBuilder(256);
+                dbg.append("Iris activation calc: vec=").append(java.util.Arrays.toString(irisVec))
+                   .append(" dirVec=").append(java.util.Arrays.toString(directionVector))
+                   .append(" lowerCorner=").append(java.util.Arrays.toString(lowerCorner))
+                   .append(" base=").append(baseIris != null ? baseIris.getLocation().toString() : "null")
+                   .append(" baseType=").append(baseIris != null ? baseIris.getType().toString() : "null")
+                   .append(" target=").append(irisTarget != null ? irisTarget.getLocation().toString() : "null")
+                   .append(" targetType=").append(irisTarget != null ? irisTarget.getType().toString() : "null")
+                   .append(" gateFacing=").append(tempGate.getGateFacing() != null ? tempGate.getGateFacing().toString() : "null");
+                _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
+            }
         }
 
         return true;

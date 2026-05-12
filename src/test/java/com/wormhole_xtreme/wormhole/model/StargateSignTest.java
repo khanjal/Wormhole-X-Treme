@@ -16,19 +16,14 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for sign placement in {@link Stargate#setupGateSign(boolean)}.
  *
- * <p>The key invariant: the name sign must always face {@code gateFacing} (the
- * open-portal direction toward the player), regardless of the orientation of
- * the DHD lever/button block.  The old code incorrectly derived the facing
- * from the lever's {@code getFacing()}, which returns {@link BlockFace#UP}
- * when a button is placed on top of the DHD block — causing the sign to end
- * up on a side face instead of the front face.
+ * <p>The sign is placed at {@code nameHolder.getRelative(gateFacing)} and
+ * faces {@code gateFacing}, matching the original master approach.
  */
 public class StargateSignTest
 {
     private Stargate gate;
     private Block nameHolder;
     private Block signPlaceBlock;
-    private Block leverBlock;
 
     @BeforeEach
     public void setUp()
@@ -36,12 +31,10 @@ public class StargateSignTest
         gate = new Stargate();
         nameHolder = mock(Block.class);
         signPlaceBlock = mock(Block.class);
-        leverBlock = mock(Block.class);
     }
 
     // ------------------------------------------------------------------
-    // Helper: configure signPlaceBlock so it looks like a placeable AIR
-    // block that correctly handles setType / getBlockData / getState.
+    // Helper: configure signPlaceBlock to handle setType / getBlockData / getState.
     // ------------------------------------------------------------------
     private Directional stubSignBlock()
     {
@@ -49,75 +42,39 @@ public class StargateSignTest
         final Sign signState = mock(Sign.class);
         final Location loc = mock(Location.class);
 
-        when(signPlaceBlock.getType()).thenReturn(Material.AIR);
         when(signPlaceBlock.getBlockData()).thenReturn(signData);
         when(signPlaceBlock.getState()).thenReturn(signState);
         when(signPlaceBlock.getLocation()).thenReturn(loc);
 
-        // setLine / update are void no-ops by default in Mockito
         return signData;
     }
 
     // ------------------------------------------------------------------
-    // Core bug regression: DHD button placed on TOP → getFacing() = UP.
-    // The sign must still face gateFacing (NORTH), not UP or any side.
+    // Create: sign placed one step in gateFacing direction (NORTH).
     // ------------------------------------------------------------------
     @Test
-    public void signFacesGateFacingEvenWhenLeverFacesUp()
+    public void signFacesGateFacingNorth()
     {
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateNameBlockHolder(nameHolder);
-        gate.setGateDialLeverBlock(leverBlock);
 
-        // DHD button on top of a block → getFacing() returns UP
-        final Directional leverData = mock(Directional.class);
-        when(leverBlock.getBlockData()).thenReturn(leverData);
-        when(leverData.getFacing()).thenReturn(BlockFace.UP);
-
-        // The forward-adjacent block (NORTH of nameHolder) is AIR — first candidate
         when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
         final Directional signData = stubSignBlock();
 
         gate.setupGateSign(true);
 
-        // Sign must be placed at the NORTH-facing position
         verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
-        // And the facing written into the block data must be NORTH, not UP/EAST/WEST/etc.
         verify(signData).setFacing(BlockFace.NORTH);
     }
 
     // ------------------------------------------------------------------
-    // Normal case: no lever block configured at all.
+    // Create: sign placed one step in gateFacing direction (SOUTH).
     // ------------------------------------------------------------------
     @Test
-    public void signFacesGateFacingWhenNoLeverPresent()
-    {
-        gate.setGateFacing(BlockFace.EAST);
-        gate.setGateNameBlockHolder(nameHolder);
-        // gate has no lever block (null)
-
-        when(nameHolder.getRelative(BlockFace.EAST)).thenReturn(signPlaceBlock);
-        final Directional signData = stubSignBlock();
-
-        gate.setupGateSign(true);
-
-        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
-        verify(signData).setFacing(BlockFace.EAST);
-    }
-
-    // ------------------------------------------------------------------
-    // Lever correctly faces gateFacing (side-mounted button) — no change.
-    // ------------------------------------------------------------------
-    @Test
-    public void signFacesGateFacingWhenLeverAlreadyFacesGateFacing()
+    public void signFacesGateFacingSouth()
     {
         gate.setGateFacing(BlockFace.SOUTH);
         gate.setGateNameBlockHolder(nameHolder);
-        gate.setGateDialLeverBlock(leverBlock);
-
-        final Directional leverData = mock(Directional.class);
-        when(leverBlock.getBlockData()).thenReturn(leverData);
-        when(leverData.getFacing()).thenReturn(BlockFace.SOUTH); // matches gateFacing
 
         when(nameHolder.getRelative(BlockFace.SOUTH)).thenReturn(signPlaceBlock);
         final Directional signData = stubSignBlock();
@@ -126,6 +83,24 @@ public class StargateSignTest
 
         verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
         verify(signData).setFacing(BlockFace.SOUTH);
+    }
+
+    // ------------------------------------------------------------------
+    // Create: sign placed one step in gateFacing direction (EAST).
+    // ------------------------------------------------------------------
+    @Test
+    public void signFacesGateFacingEast()
+    {
+        gate.setGateFacing(BlockFace.EAST);
+        gate.setGateNameBlockHolder(nameHolder);
+
+        when(nameHolder.getRelative(BlockFace.EAST)).thenReturn(signPlaceBlock);
+        final Directional signData = stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
+        verify(signData).setFacing(BlockFace.EAST);
     }
 
     // ------------------------------------------------------------------
@@ -148,25 +123,19 @@ public class StargateSignTest
     }
 
     // ------------------------------------------------------------------
-    // Destroy legacy path: sign is at the holder itself (older gates).
+    // Destroy no-op: block at sign position is not a wall sign.
     // ------------------------------------------------------------------
     @Test
-    public void destroyLegacyRemovesSignAtHolder()
+    public void destroyDoesNothingWhenSignBlockIsNotWallSign()
     {
         gate.setGateFacing(BlockFace.WEST);
         gate.setGateNameBlockHolder(nameHolder);
 
-        final Location loc = mock(Location.class);
-        // The forward block is NOT a sign
         when(nameHolder.getRelative(BlockFace.WEST)).thenReturn(signPlaceBlock);
         when(signPlaceBlock.getType()).thenReturn(Material.AIR);
 
-        // But the holder itself is a sign (legacy placement)
-        when(nameHolder.getType()).thenReturn(Material.OAK_WALL_SIGN);
-        when(nameHolder.getLocation()).thenReturn(loc);
-
         gate.setupGateSign(false);
 
-        verify(nameHolder).setType(Material.AIR);
+        verify(signPlaceBlock, never()).setType(any());
     }
 }

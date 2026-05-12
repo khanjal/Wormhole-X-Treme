@@ -26,6 +26,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -257,6 +258,19 @@ public class StargateManager
             s.completeGate(s.getGateName(), "");
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + s.getGateName());
             addStargate(s);
+                String dhdDirStr = "null";
+                final Block nameHolder = s.getGateNameBlockHolder();
+                final Block dial = s.getGateDialLeverBlock();
+                if (nameHolder != null && dial != null)
+                {
+                    final int dx = dial.getX() - nameHolder.getX();
+                    final int dz = dial.getZ() - nameHolder.getZ();
+                    final BlockFace dhdDir = Math.abs(dx) >= Math.abs(dz)
+                        ? (dx >= 0 ? BlockFace.EAST : BlockFace.WEST)
+                        : (dz >= 0 ? BlockFace.SOUTH : BlockFace.NORTH);
+                    dhdDirStr = dhdDir.toString();
+                }
+
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Gate debug: Name=" + s.getGateName()
                     + " Owner=" + s.getGateOwner()
                     + " DialLever=" + (s.getGateDialLeverBlock() != null ? s.getGateDialLeverBlock().getLocation().toString() : "null")
@@ -269,6 +283,8 @@ public class StargateManager
                     + " RedstoneDialType=" + (s.getGateRedstoneDialActivationBlock() != null ? s.getGateRedstoneDialActivationBlock().getType().toString() : "null")
                     + " RedstoneGateActivated=" + (s.getGateRedstoneGateActivatedBlock() != null ? s.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
                     + " RedstoneGateActivatedType=" + (s.getGateRedstoneGateActivatedBlock() != null ? s.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
+                    + " GateFacing=" + (s.getGateFacing() != null ? s.getGateFacing().toString() : "null")
+                    + " DhdDirection=" + dhdDirStr
                 );
             // Dump all indexed block locations for this gate for debugging
             try
