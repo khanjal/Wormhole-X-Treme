@@ -193,16 +193,22 @@ public class StargateHelper
         final WormholeXTreme _plugin = WormholeXTreme.getThisPlugin();
         if (_plugin != null)
         {
-            final StringBuilder blockDump = new StringBuilder("Gate structure blocks (excl DHD): gate=")
-                .append(gate.getGateName()).append(" dhd=[").append(dhdX).append(',').append(dhdY).append(',').append(dhdZ).append(']');
+            final StringBuilder blockDump = new StringBuilder("Gate geometry input:")
+                .append(" gateName=\"").append(gate.getGateName()).append('"')
+                .append(" dhd=[").append(dhdX).append(',').append(dhdY).append(',').append(dhdZ).append(']')
+                .append(" gateBlocks=[");
+            boolean firstBlock = true;
             for (final Location loc : gate.getGateStructureBlocks())
             {
                 if (loc.getBlockX() == dhdX && loc.getBlockY() == dhdY && loc.getBlockZ() == dhdZ)
                 {
                     continue;
                 }
-                blockDump.append(" [").append(loc.getBlockX()).append(',').append(loc.getBlockY()).append(',').append(loc.getBlockZ()).append(']');
+                if (!firstBlock) { blockDump.append(','); }
+                blockDump.append('[').append(loc.getBlockX()).append(',').append(loc.getBlockY()).append(',').append(loc.getBlockZ()).append(']');
+                firstBlock = false;
             }
+            blockDump.append(']');
             _plugin.prettyLog(Level.FINE, false, blockDump.toString());
             _plugin.prettyLog(Level.FINE, false,
                 "Gate geometry: gateBlocks=" + count
