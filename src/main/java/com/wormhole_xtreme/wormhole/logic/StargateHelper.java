@@ -392,7 +392,7 @@ public class StargateHelper
                     bVect[2] * directionVector[2] * -1};
 
                 final Block maybeBlock = w.getBlockAt(blockLocation[0] + startingPosition[0], blockLocation[1] + startingPosition[1], blockLocation[2] + startingPosition[2]);
-                if (maybeBlock.getType() == Material.AIR)
+                if (maybeBlock.getType().isAir())
                 {
                     tempGate.getGatePortalBlocks().add(maybeBlock.getLocation());
                 }
@@ -623,7 +623,7 @@ public class StargateHelper
                 maybeBlock.setType(Material.AIR);
             }
 
-            if (maybeBlock.getType() == Material.AIR)
+            if (maybeBlock.getType().isAir())
             {
                 tempGate.getGatePortalBlocks().add(maybeBlock.getLocation());
             }
@@ -641,7 +641,7 @@ public class StargateHelper
             // First go forward one
             // Block bLoc = teleBlock.getRelative(tempGate.getGateFacing());
             // Now go up until we hit air or water.
-            while ((teleBlock.getType() != Material.AIR) && (teleBlock.getType() != Material.WATER))
+            while ((!teleBlock.getType().isAir()) && (teleBlock.getType() != Material.WATER))
             {
                 teleBlock = teleBlock.getRelative(BlockFace.UP);
             }
