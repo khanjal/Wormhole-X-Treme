@@ -372,7 +372,7 @@ public class StargateHelper
             // First go forward one
             Block bLoc = teleBlock.getRelative(facing);
             // Now go up until we hit air or water.
-            while ((bLoc.getType() != Material.AIR) && (bLoc.getType() != Material.WATER))
+            while ((!bLoc.getType().isAir()) && (bLoc.getType() != Material.WATER))
             {
                 bLoc = bLoc.getRelative(BlockFace.UP);
             }
