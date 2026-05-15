@@ -1,7 +1,22 @@
 # Wormhole X-Treme
 
-Wormhole X-Treme is a Bukkit/Paper plugin that provides Stargate-style teleportation gates.
-This branch targets Java 17 and Paper 1.20.4 while keeping Spigot compatibility.
+Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
+Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
+This branch targets Java 17 and the Bukkit 1.20 API.
+
+## Server Compatibility
+
+| Server | Compatible |
+|---|---|
+| CraftBukkit 1.20.4 | ✅ |
+| Spigot 1.20.4 | ✅ |
+| Paper 1.20.4 | ✅ |
+| Purpur / Pufferfish (Paper forks) | ✅ |
+| Folia | ❌ (regionised scheduler — not supported) |
+
+The plugin is compiled against the Paper API (`paper-api 1.20.4`) as a `provided` dependency, but uses **only standard Bukkit APIs** — no Paper-exclusive classes are referenced at runtime. It will load and run correctly on any Bukkit-compatible 1.20.4 server.
+
+Java 17 or newer is required.
 
 ## Build
 
@@ -15,11 +30,11 @@ Build (skips tests):
 mvn -DskipTests package
 ```
 
-Shaded artifact produced at: `target/WormholeXTreme-0.854-shaded.jar` (version may vary).
+Output jar: `target/WormholeXTreme-0.854.jar`
 
 ## Configuration
 
-On first run the plugin will create `plugins/WormholeXTreme/config.yml` (migrated from legacy `Settings.txt` if present).
+On first run the plugin creates `plugins/WormholeXTreme/config.yml`. If you update to a newer version that adds new config keys, **missing keys are automatically appended** to the bottom of your existing `config.yml` with their defaults and description comments — existing values are never overwritten.
 
 Important keys (kebab-case in `config.yml`):
 
@@ -72,45 +87,93 @@ Migration notes:
 
 Gate shapes live under:
 
-- `src/main/resources/GateShapes/3d/` (bundled default 3D shapes)
-- `src/main/resources/GateShapes/2d/` (bundled default 2D shapes)
+- `plugins/WormholeXTreme/GateShapes/3d/` (3D shapes)
+- `plugins/WormholeXTreme/GateShapes/2d/` (2D shapes)
 
-On plugin startup default shapes are restored to the plugin data folder only if missing — the plugin will NOT overwrite user-customized shapes.
+Default shapes are extracted from the jar on first run only — they will **not** overwrite user-customized files.
 
-Creating a new shape:
-1. Copy an existing `.shape` file from `GateShapes/3d` or `GateShapes/2d` as a starting point.
-2. Edit the file to change the ring blocks, iris material, and lighting. Shape files are simple text files with a custom format (see existing files for examples). Keep the filename unique and the `.shape` extension.
-3. Place the new `.shape` file into `plugins/WormholeXTreme/GateShapes/3d/` (or `2d/`) on the server, or add it to `src/main/resources/GateShapes/...` if you want it bundled.
-4. Restart the server or use the plugin reload path that triggers `StargateHelper.loadShapes()`.
-5. Use `/wormhole custom <gate> true` and set the gate's shape name to the new shape if necessary.
+### Shape material parameters
 
-Tips:
-- Test shapes on a development server before deploying to production.
-- Don't modify the shipped shapes under the plugin jar if you expect updates — put custom shapes in the plugin data folder.
+All material parameters are optional; each falls back to a sensible default if omitted.
+
+| Key | Default | Description |
+|---|---|---|
+| `STARGATE_MATERIAL=` | `OBSIDIAN` | The block type used for the gate frame (`[S]` blocks). |
+| `PORTAL_MATERIAL=` | `WATER` | The block type filling the open portal (`[P]` blocks when active). |
+| `IRIS_MATERIAL=` | `STONE` | The block type filling the portal when the iris is closed. |
+| `ACTIVE_MATERIAL=` | `GLOWSTONE` | The block type used for light blocks (`:L` markers) when the gate is active. |
+| `SIGN_MATERIAL=` | `OAK_WALL_SIGN` | The wall-sign type used for the gate name sign and the dial sign. Any `*_WALL_SIGN` material is valid (e.g. `CRIMSON_WALL_SIGN`, `WARPED_WALL_SIGN`). |
+
+Example — a Nether-themed gate using crimson materials:
+
+```
+STARGATE_MATERIAL=BLACKSTONE
+PORTAL_MATERIAL=LAVA
+IRIS_MATERIAL=NETHERRACK
+ACTIVE_MATERIAL=SHROOMLIGHT
+SIGN_MATERIAL=CRIMSON_WALL_SIGN
+```
+
+### Creating a new shape
+
+1. Copy an existing `.shape` file as a starting point.
+2. Edit the block grid and material keys. Keep the filename unique with the `.shape` extension.
+3. Place it in `plugins/WormholeXTreme/GateShapes/3d/` (or `2d/`) and restart the server (or trigger `StargateHelper.loadShapes()`).
+4. Use `/wormhole custom <gate> true` to assign the shape to a gate if needed.
+
+## Nether and End dimension support
+
+Gates work correctly in the Nether and End. In those dimensions Minecraft uses `CAVE_AIR` (Nether) and `VOID_AIR` (End) for empty space instead of the normal `AIR` used in the Overworld. All portal-detection and teleport-exit-position searches use `Material.isAir()`, which covers all three air types, so gates build and activate correctly regardless of which dimension they are placed in.
+
+## DHD (dial-home device) — button and lever support
+
+The DHD block that a player clicks to activate a gate can be any button type or a lever. All of the following are recognised:
+
+- All wood buttons: `OAK_BUTTON`, `SPRUCE_BUTTON`, `BIRCH_BUTTON`, `JUNGLE_BUTTON`, `ACACIA_BUTTON`, `DARK_OAK_BUTTON`, `MANGROVE_BUTTON`, `CHERRY_BUTTON`, `BAMBOO_BUTTON`
+- Nether buttons: `CRIMSON_BUTTON`, `WARPED_BUTTON`
+- Stone buttons: `STONE_BUTTON`, `POLISHED_BLACKSTONE_BUTTON`
+- `LEVER`
+
+When a gate is activated via a button, the button is automatically replaced with a lever so the gate can be held open. Shutting down the gate restores a lever in its place.
 
 ## Iris (gate shield) setup and troubleshooting
 
-Iris support is built into many shapes. An "iris" is a material you can close over the portal to block travel.
+An iris closes over the portal to block travel. When a remote gate's iris is active, players who walk into the portal are bounced back with the message "Remote Iris is locked!".
 
-In-game setup:
-- Build a gate from a shape that supports an iris (many 3D shapes include an `:IA` marker; see `GateShapes/3d/Standard.shape`).
-- When you complete the gate, set an IDC (iris deactivation code) to enable iris functionality:
-	- `/wormhole complete <GateName> idc=<code>` — sets the IDC while completing.
-	- `/wormhole idc <GateName> <code>` — set or change the IDC later.
-	- `/wormhole idc <GateName> -clear` — remove the IDC and iris control.
-- The plugin will create an iris activation lever for gates that support an iris. For many 2D shapes the iris lever is placed underneath the dial lever; 3D shapes define the iris activation block in the shape file.
+### Setup
 
-Common issue: clicking the wrong lever toggles gate activation instead of the iris
-- Cause: older logic treated any block adjacent to the dial/iris lever as the same control; if the iris lever is adjacent to the dial lever, clicks could be routed to the activation handler.
-- Workarounds:
-	- Click the exact lever under the gate (not a nearby lever) — the iris lever is often below the dial lever for 2D shapes.
-	- Use the IDC during dialing to unlock a remote iris: include the IDC as the 2nd argument when using `/dial` (or `/wormhole dial`) or use `/wormhole idc` to manage the code.
-	- If you control shapes, edit the shape to place the `:IA` block further from the `:A` (activation) block so they are not adjacent.
+- Build a gate from a shape that includes an `:IA` marker (most 3D shapes do; see `GateShapes/3d/Standard.shape`).
+- Set an IDC (iris deactivation code) to allow callers to unlock the iris remotely:
+  - `/wormhole complete <GateName> idc=<code>` — set IDC while completing.
+  - `/wormhole idc <GateName> <code>` — set or change the IDC later.
+  - `/wormhole idc <GateName> -clear` — remove the IDC.
+- The plugin places an iris activation lever at the `:IA` block position when the gate is built.
 
-Code fix (applied in this branch): the click handler now prefers exact lever clicks over adjacency, which prevents adjacent iris/dial levers from being misclassified. If you still see unexpected behavior, send the gate name and I'll inspect the gate's `IrisLever` and `DialLever` locations in the logs.
+### Common issue: clicking the iris lever activates the gate instead
+
+- Cause: older logic treated any adjacent block as the same control; an iris lever next to the dial lever could be misclassified.
+- Fix applied in this branch: the click handler now matches the exact lever block against the gate's stored `IrisLever` and `DialLever` positions, eliminating the misclassification.
+- If you still see unexpected behavior, check the server log for the gate's lever positions or use `/wormhole list` to inspect gate state.
+
+## Redstone activation
+
+Two redstone activation modes are supported and controlled by blocks registered to the gate at build time.
+
+### Redstone sign dial (sign gate)
+
+A gate with a redstone sign dial cycles through available network targets via a redstone pulse on the `gateRedstoneSignActivationBlock`. Each pulse advances the dial sign to the next target. A sustained high signal does not repeatedly cycle — only transitions trigger a step.
+
+### Redstone direct dial
+
+A gate can be activated directly by a redstone signal on the `gateRedstoneDialActivationBlock`. When the signal goes high the gate dials its current sign target; when the signal drops the gate shuts down (if `shutdown_timeout` is `0`). Enable this mode per gate with `/wormhole redstone <gate> true`.
+
+Both modes work via `BlockRedstoneEvent` on `REDSTONE_WIRE` and are fully compatible with all Bukkit-based servers.
 
 ## Developer notes
 
+- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
+- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
+- Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
 - Code now provides a `StorageBackend` interface and a `SqliteStorage` scaffold at `src/main/java/com/wormhole_xtreme/wormhole/storage/`.
 - `StargateYamlManager` handles per-gate YAML read/write.
 - `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
