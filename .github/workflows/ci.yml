@@ -1,11 +1,14 @@
 name: CI
 
 on:
-  push:
-    branches: ["**"]
-    tags-ignore: ["v*"]   # release workflow handles version tags
   pull_request:
     branches: ["**"]
+  push:
+    branches:
+      - main
+      - master
+    tags-ignore:
+      - "v*"   # release workflow handles version tags
 
 jobs:
   build-and-test:
