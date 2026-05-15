@@ -25,26 +25,26 @@ All notable changes to this project are documented in this file.
 
 ## 0.854 (previous)
 
-Changes 0.854 (5/17/11 @ 16:13 PST):
+### 0.854 (5/17/11 @ 16:13 PST)
 
 - Updated chunk (un)loading to happen when gate (de)activates and when dial lever state
-  changes happen. 
+  changes happen.
 
 - Fixed iris levers not being added properly with 2d gates. (Oops, guess that code WAS needed)
 
 - Fixed IndexOutOfBoundsException on 3d gate shapes without lighting blocks.
 
 - Hamfisted fix for signs not updating. Now we nuke the sign and build it from scratch every
-  time a gate sign is toggled. Causes a flash, but... who cares. It works EVERY time now. 
+  time a gate sign is toggled. Causes a flash, but... who cares. It works EVERY time now.
 
-Changes 0.853 (5/13/11 @ 23:05 PST):
+### 0.853 (5/13/11 @ 23:05 PST)
 
 - Fix for /dial gates breaking when a user who doesn't have dialer permission hit the lever.
 
 - Switched to getTypeId() from getType(), hopefully this works around the getType() == Air bug
   that might be lingering. (doubt it :| )
 
-Changes 0.852 (5/12/11 @ 07:55 PST):
+### 0.852 (5/12/11 @ 07:55 PST)
 
 - Added support for upcoming Permissions 3.0.x release.
 
@@ -54,58 +54,58 @@ Changes 0.852 (5/12/11 @ 07:55 PST):
 
 - Minor log format changes for readability.
 
-Changes 0.851 (5/10/11 @ 21:56 PST):
+### 0.851 (5/10/11 @ 21:56 PST)
 
 - Complete revamp of how we handle permissions checks. Lots more case statements, lots less
   if/else if. Much better. This is what enums are for.
-  
-- Added new gate use cooldowns. This feature will only work on complex permissions enabled 
+
+- Added new gate use cooldowns. This feature will only work on complex permissions enabled
   servers. There are three groups you can assign a player to; 'wormhole.cooldown.groupone',
   'wormhole.cooldown.grouptwo', and 'wormhole.cooldown.groupthree'. If you have an '*' on any
   user/group, remember to '-wormhole.cooldown.groupone' etc. There is a new command to
   enable, disable, and modify cooldowns; 'wormhole cooldown [true|false|group] <time>', valid
-  groups being 'one', 'two', and 'three', valid time being between 15 and 3600 seconds. There 
-  are also Settings.txt options for all of these new settings. Cooldowns are set when a player 
+  groups being 'one', 'two', and 'three', valid time being between 15 and 3600 seconds. There
+  are also Settings.txt options for all of these new settings. Cooldowns are set when a player
   enters a stargate, not when they /dial. Cooldowns are removed via timer events, and even if
   the timer event fails, we do a fall back calculation when a player enters a stargate, and gets
   denied access.
-  
+
 - Added new gate build count restrictions. This feature will only work on complex permissions
   enabled servers. There are three groups you can assign a player to; 'wormhole.build.groupone',
   'wormhole.build.grouptwo', and 'wormhole.build.groupthree'. If you have an '*' on any
   user/group, remember to '-wormhole.build.groupone' etc. There is a new command to enable,
   disable, and modify build count restrictions; 'wormhole restrict [true|false|group] <count>',
-  valid groups being 'one', 'two', and 'three', valid count being between 1 and 200. There are 
+  valid groups being 'one', 'two', and 'three', valid count being between 1 and 200. There are
   also Settings.txt options for all of these new settings.
 
 - Updated the stargate sign dial sign reset code to be more reliable at causing the client to
   notice update changes.
-  
+
 - Added a thrown exception during stargate 3d shape parsing if the shape doesn't have an exit
   point. We depend on this location for pretty much everything. If it isn't there, really bad
   bad bad things happen.
 
-- Now we have more than just Standard as our default shape. We extract Standard, 
+- Now we have more than just Standard as our default shape. We extract Standard,
   StandardSignDial, Minimal, and MinimalSignDial to the gateShape folder if it is missing shapes.
-  
-- Now we don't toggle stargate signs when we start. 
 
-Changes 0.850 (5/5/11 @ 16:15 PST):
+- Now we don't toggle stargate signs when we start.
+
+### 0.850 (5/5/11 @ 16:15 PST)
 
 - iConomy support removed. I will not depend on plugins that decide to change their
-  package name 5 major versions in and basically give everyone who depended on the 
+  package name 5 major versions in and basically give everyone who depended on the
   package location the middle finger.
-  
+
 - 3d Gate shapes now implemented.
 
 - Custom gate settings now in place (read: per gate material settings).
   This included the re-addition of the portalmaterial and irismaterial commands.
   lightmaterial, redstone, wooshdepth, and custom commands newly added.
-  
+
 - Massive internal overhaul, refactorings, cleanups, general goodness and bugfixes.
 
 - Added support for Wormhole X-Treme Worlds. This allows Wormhole X-Treme to offload its
-  chunk loading and world loading to WXW, for worlds that exist in WXW. Requires user to 
+  chunk loading and world loading to WXW, for worlds that exist in WXW. Requires user to
   change Settings.txt option WORLDS_SUPPORT_ENABLED from false to true. This option requires
   Wormhole X-Treme Worlds v0.5 to be installed, and preferably configured for every existing
   world populated with stargates. If this option is set to true but WXW is not v0.5 (or not
@@ -113,7 +113,7 @@ Changes 0.850 (5/5/11 @ 16:15 PST):
 
 - Removed many superfluous chunk load requests. Added graceful chunk unload queue when we
   are done with a chunk.
-  
+
 - Bumped supported version of permissions to include the 2.7 tree.
 
 - Updated help text for new/modified commands.
@@ -125,30 +125,30 @@ Changes 0.850 (5/5/11 @ 16:15 PST):
 
 - wxidc now only works on non-sign powered gates which have iris activation blocks set.
 
-Changes 0.833 (4/9/11 @ 23:36 PST):
+### 0.833 (4/9/11 @ 23:36 PST)
 
 - Fixed iConomy double(or many many more) charging issue. Tried to do something awesome,
   turned out to be a bad idea. We'll revisit these kind of changes when 3d shapes are in
   and I can do some major refactoring and method merges/splits.
-  
+
 - Bumped supported version of permissions to include the 2.6 tree.
 
 - Merged some of the sign click schedule related methods. Should make sign click messages
   more reliable.
 
-Changes 0.832 (4/5/11 @ 15:04 PST):
+### 0.832 (4/5/11 @ 15:04 PST)
 
-- Fixed NPE during database creation. Whoops, missing null-checks. 
+- Fixed NPE during database creation. Whoops, missing null-checks.
 
-Changes 0.831 (4/4/11 @ 23:13 PST):
+### 0.831 (4/4/11 @ 23:13 PST)
 
-- Fixed erroneous messages sent when a plugin is attached to already and WXT receives 
+- Fixed erroneous messages sent when a plugin is attached to already and WXT receives
   a plugin event for it. Cosmetic bug, fixed.
-  
-  
-Changes 0.830 (4/4/11 @ 01:12 PST):
 
-- Water now will not flow over Stargate anythings. No more broken levers and magic 
+
+### 0.830 (4/4/11 @ 01:12 PST)
+
+- Water now will not flow over Stargate anythings. No more broken levers and magic
   blocks of water floating in their place.
 
 - Buckets now will no longer work with stargate anythings. No free water and lava.
@@ -157,7 +157,7 @@ Changes 0.830 (4/4/11 @ 01:12 PST):
 
 - PORTAL_MATERIAL, IRIS_MATERIAL, STARGATE_MATERIAL, ACTIVE_MATERIAL are all part of gate shape now.
     - All configuration values associated with these are gone now.
-    - Gate shapes without these default to 
+    - Gate shapes without these default to
       PORTAL_MATERIAL = STATIONARY_WATER
       IRIS_MATERIAL = STONE
       STARGATE_MATERIAL = OBSIDIAN
@@ -166,56 +166,56 @@ Changes 0.830 (4/4/11 @ 01:12 PST):
     - See gate shape files for more details
     - Known bug: If you teleport from a gate with portal type lava, to a gate
       that is NOT lava, you will be burned once you reach the other side.
-       
-- Removed version 1 DB conversion because new design doesn't allow for it anymore. 
+
+- Removed version 1 DB conversion because new design doesn't allow for it anymore.
     - For users this means if you are upgrading from version 0.3 or less to this
       version you will need to remake your gates.
-      
+
 - Fixed NPE in onPlayerInteract caused by event not reporting the block the interact
-  event was associated with. 
-  
+  event was associated with.
+
 - Logic tweak in the find safe teleport code. Should be *safererer*
 
-- Sign powered stargates now can only target other sign powered stargates. 
+- Sign powered stargates now can only target other sign powered stargates.
 
 - Fixed so that when coming from a lava portal stargate to a non-lava portal stargate
   fire damage is canceled still. No more nasty fire after a teleport.
-  
+
 - Added the logic back in to stop people from randomly teleporting when next to the lever
   of an active gate. The side effect is, when block.getType() fails, gates don't work.
   Its one or the other.
-  
+
 - Fixed /wxcomplete permission deny issue with stargates on public networks.
 
 - Added ICONOMY_OWNER_EXEMPT option to Settings.txt with a default value of true. When
   true this option disables the charging of gate owners for using their own gates.
 
-Changes 0.821 (3/30/11 @ 17:42 PST):
+### 0.821 (3/30/11 @ 17:42 PST)
 
 - Update version of iConomy we build against and test for.
 
 - Fix NPE in old non-shape based gates.
 
-- Added custom StargateTeleportEvent for MinecartMania as we nuke the minecarts before 
+- Added custom StargateTeleportEvent for MinecartMania as we nuke the minecarts before
   teleporting them.
 
-- Refactored package to com.wormhole_xtreme.wormhole in anticipation of adding more 
+- Refactored package to com.wormhole_xtreme.wormhole in anticipation of adding more
   stargate related projects.
-  
-Changes 0.820 (3/29/11 @ 17:31 PST):
+
+### 0.820 (3/29/11 @ 17:31 PST)
 
 - Initial support for CraftBukkit Build 600.
 
 - Got rid of the stupid double error that people got by not reading the readme. Now when
   we parse settings.txt, if the value is integer for the iconomy settings, we change it
   to a double by simply dropping a .0 at the end of it. Problem solved.
-  
-- Lots of optimizations to the distance finding method we were using. Also fixes to the 
+
+- Lots of optimizations to the distance finding method we were using. Also fixes to the
   gate shape parsing code. (Thanks lirelent)
-  
+
 - Overhaul of the way we handle permissions internally. More unified approach to the
-  actual permissions checks. 
-  
+  actual permissions checks.
+
 - Gate block protection should now be compatible with plugins like mcMMO. "Should" being
   the operating word.
 
