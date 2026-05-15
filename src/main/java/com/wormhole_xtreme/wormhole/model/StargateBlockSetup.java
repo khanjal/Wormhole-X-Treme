@@ -220,38 +220,32 @@ class StargateBlockSetup
     static void setupIrisLever(final Stargate gate, final boolean create)
     {
         if ((gate.getGateIrisLeverBlock() == null)
-            && (gate.getGateShape() != null)
-            && !(gate.getGateShape() instanceof Stargate3DShape))
+            && (gate.getGateShape() != null))
         {
-            final Block dial = gate.getGateDialLeverBlock();
-            if (dial != null)
+            final Block button = gate.getGateDialLeverBlock();
+            if (button != null)
             {
-                Block chosen = null;
-                try
+                // The button is a wall-mounted button on one face of the DHD column.
+                // Its Directional facing tells us WHICH direction the button face points,
+                // so inverse(buttonFacing) is the direction toward the DHD column backing block.
+                //
+                // Algorithm (mirrors how the sign uses nameHolder → nameHolder.getRelative(gateFacing)):
+                //   backing  = button.getRelative(inverse(buttonFacing))   — DHD column top
+                //   dhdBase  = backing.getRelative(DOWN)                   — DHD column base
+                //   irisBlock = dhdBase.getRelative(gateFacing)            — front face of DHD base
+                //
+                // gateFacing (not buttonFacing) is used for the final step so the lever
+                // faces toward the player standing in front of the gate.
+                BlockFace buttonFacing = gate.getGateFacing(); // fallback if block data unavailable
+                final org.bukkit.block.data.BlockData bd = button.getBlockData();
+                if (bd instanceof Directional)
                 {
-                    if (dial.getType() == Material.LEVER)
-                    {
-                        chosen = dial;
-                    }
-                    else if (dial.getRelative(BlockFace.DOWN) != null && dial.getRelative(BlockFace.DOWN).getType() == Material.LEVER)
-                    {
-                        chosen = dial.getRelative(BlockFace.DOWN);
-                    }
-                    else if (dial.getRelative(BlockFace.UP) != null && dial.getRelative(BlockFace.UP).getType() == Material.LEVER)
-                    {
-                        chosen = dial.getRelative(BlockFace.UP);
-                    }
-                    else
-                    {
-                        // Fallback: use the dial block itself (covers cases where dial is already the lever block)
-                        chosen = dial;
-                    }
+                    buttonFacing = ((Directional) bd).getFacing();
                 }
-                catch (final Exception ignore)
-                {
-                    chosen = dial;
-                }
-                gate.setGateIrisLeverBlock(chosen);
+                final Block backing = button.getRelative(WorldUtils.getInverseDirection(buttonFacing));
+                final Block dhdBase = backing.getRelative(BlockFace.DOWN);
+                final Block irisBlock = dhdBase.getRelative(gate.getGateFacing());
+                gate.setGateIrisLeverBlock(irisBlock);
             }
         }
         if (gate.getGateIrisLeverBlock() != null)
