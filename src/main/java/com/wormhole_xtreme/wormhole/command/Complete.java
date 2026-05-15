@@ -96,25 +96,19 @@ public class Complete implements CommandExecutor, TabCompleter
                         final String incompleteName = com.wormhole_xtreme.wormhole.model.StargateManager.getIncompleteStargateName(player);
                         if (incompleteName != null)
                         {
-                            if (StargateManager.completeStargate(player, name, idc, network))
+                            final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
+                            if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                            {
+                                player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                            }
+                            else if (StargateManager.completeStargate(player, name, idc, network))
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                                if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+                                if (buildCost > 0)
                                 {
-                                    final double buildCost = ConfigManager.getEconomyBuildCost();
-                                    if (buildCost > 0)
-                                    {
-                                        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-                                        {
-                                            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                                        }
-                                        else
-                                        {
-                                            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                                            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                                        }
-                                    }
+                                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                                    player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                        + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
                                 }
                             }
                             else

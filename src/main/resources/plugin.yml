@@ -2,7 +2,7 @@ name: WormholeXTreme
 main: com.wormhole_xtreme.wormhole.WormholeXTreme
 version: 1.0.0
 api-version: "1.20"
-authors: [Lologarithm, alron]
+authors: [Lologarithm, alron, Khan Jal]
 softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
 description: >
              Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,

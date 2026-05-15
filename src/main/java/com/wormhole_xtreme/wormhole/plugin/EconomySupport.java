@@ -1,7 +1,5 @@
 /*
  *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
  *   Copyright (C) 2026  Justin Harding
  *
  *   This program is free software: you can redistribute it and/or modify

@@ -119,25 +119,19 @@ class WormholeXTremePlayerListener implements Listener
                 if (found != null)
                 {
                     com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
-                    if (com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, name, idc, network))
+                    final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
+                    if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                    {
+                        player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                    }
+                    else if (com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, name, idc, network))
                     {
                         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                        if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+                        if (buildCost > 0)
                         {
-                            final double buildCost = ConfigManager.getEconomyBuildCost();
-                            if (buildCost > 0)
-                            {
-                                if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-                                {
-                                    player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                                }
-                                else
-                                {
-                                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                                    player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                        + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                                }
-                            }
+                            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
                         }
                     }
                     else
@@ -256,28 +250,21 @@ class WormholeXTremePlayerListener implements Listener
                         }
                         else
                         {
-                            final boolean success = StargateManager.completeStargate(player, newGate);
-                            if (success)
+                            final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
+                            if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                            {
+                                player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                            }
+                            else if (StargateManager.completeStargate(player, newGate))
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
                                 newGate.getGateDialSign().setLine(0, "-" + newGate.getGateName() + "-");
                                 newGate.getGateDialSign().update();
-                                if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+                                if (buildCost > 0)
                                 {
-                                    final double buildCost = ConfigManager.getEconomyBuildCost();
-                                    if (buildCost > 0)
-                                    {
-                                        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-                                        {
-                                            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                                        }
-                                        else
-                                        {
-                                            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                                            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                                        }
-                                    }
+                                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                                    player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                        + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
                                 }
                             }
                             else
