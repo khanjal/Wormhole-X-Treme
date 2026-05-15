@@ -484,7 +484,7 @@ class StargateBlockSetup
                 gate.getGateDialLeverBlock().setBlockData(rld);
                 mat = gate.getGateDialLeverBlock().getType();
             }
-            if (mat == Material.STONE_BUTTON)
+            if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isButton(mat))
             {
                 gate.getGateDialLeverBlock().setType(Material.LEVER);
                 final Directional bld = (Directional) gate.getGateDialLeverBlock().getBlockData();

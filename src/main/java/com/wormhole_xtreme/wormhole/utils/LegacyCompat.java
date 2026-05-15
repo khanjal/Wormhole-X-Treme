@@ -33,6 +33,28 @@ public final class LegacyCompat {
         }
     }
 
+    /** Returns true for any button material (all wood types, stone, and polished blackstone). */
+    public static boolean isButton(final Material m) {
+        switch (m) {
+            case OAK_BUTTON:
+            case SPRUCE_BUTTON:
+            case BIRCH_BUTTON:
+            case JUNGLE_BUTTON:
+            case ACACIA_BUTTON:
+            case DARK_OAK_BUTTON:
+            case MANGROVE_BUTTON:
+            case CHERRY_BUTTON:
+            case BAMBOO_BUTTON:
+            case CRIMSON_BUTTON:
+            case WARPED_BUTTON:
+            case STONE_BUTTON:
+            case POLISHED_BLACKSTONE_BUTTON:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     public static Material materialFromId(final int id) {
         switch (id) {
             case 0:

@@ -473,7 +473,7 @@ class WormholeXTremePlayerListener implements Listener
         final Block clickedBlock = event.getClickedBlock();
         final Player player = event.getPlayer();
 
-        if ((clickedBlock != null) && ((clickedBlock.getType() == Material.STONE_BUTTON) || (clickedBlock.getType() == Material.LEVER)))
+        if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
             if (buttonLeverHit(player, clickedBlock, null))
