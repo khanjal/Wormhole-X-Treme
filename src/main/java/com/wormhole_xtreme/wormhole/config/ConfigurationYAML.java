@@ -8,7 +8,9 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -45,6 +47,7 @@ public class ConfigurationYAML
         {
             final Yaml yaml = new Yaml();
             final Object loaded = yaml.load(in);
+            final List<Setting> missing = new ArrayList<>();
             if (loaded instanceof Map)
             {
                 @SuppressWarnings("unchecked")
@@ -87,15 +90,52 @@ public class ConfigurationYAML
                     }
                     else
                     {
-                        // fallback to defaults
+                        // Key absent in file — use default in memory and queue for append
                         ConfigManager.getConfigurations().put(element.getName(), element);
+                        missing.add(element);
                     }
                 }
+            }
+            // Append any missing keys to the existing file so future runs load them normally
+            if (!missing.isEmpty())
+            {
+                appendMissingSettings(cfg, missing);
             }
         }
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to read config.yml: " + e.getMessage());
+        }
+    }
+
+    private static void appendMissingSettings(final File cfg, final List<Setting> missing)
+    {
+        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, true /* append */))
+        {
+            writer.write(System.lineSeparator());
+            writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
+            for (final Setting s : missing)
+            {
+                final String keyName = kebabKeyName(s.getName().name());
+                if ((s.getDescription() != null) && (s.getDescription().length() > 0))
+                {
+                    for (final String wrapped : wrapComment(s.getDescription(), 80))
+                    {
+                        writer.write("# " + wrapped + System.lineSeparator());
+                    }
+                }
+                writer.write(keyName + ": " + formatValueForYaml(s.getValue()) + System.lineSeparator());
+                writer.write(System.lineSeparator());
+            }
+            final List<String> names = new java.util.ArrayList<>();
+            for (final Setting s : missing) { names.add(s.getName().name()); }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                "config.yml was missing " + missing.size() + " key(s); added defaults: " + names.toString());
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Failed to append missing config keys: " + e.getMessage());
         }
     }
 

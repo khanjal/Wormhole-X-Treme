@@ -162,7 +162,7 @@ class StargateBlockSetup
             }
 
             gate.getGateStructureBlocks().add(placeBlock.getLocation());
-            placeBlock.setType(Material.OAK_WALL_SIGN);
+            placeBlock.setType(gate.getGateShape().getShapeSignMaterial());
             final Directional signData = (Directional) placeBlock.getBlockData();
             signData.setFacing(toward);
             placeBlock.setBlockData(signData);
@@ -183,7 +183,7 @@ class StargateBlockSetup
         }
         else
         {
-            if (placeBlock.getType() == Material.OAK_WALL_SIGN)
+            if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(placeBlock.getType()))
             {
                 final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
                 if (_plugin_for_log != null)

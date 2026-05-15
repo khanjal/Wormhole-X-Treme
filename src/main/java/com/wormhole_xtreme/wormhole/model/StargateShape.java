@@ -79,6 +79,9 @@ public class StargateShape
     /** The active material. */
     private Material shapeLightMaterial = Material.GLOWSTONE;
 
+    /** The sign material used for name and dial signs. */
+    private Material shapeSignMaterial = Material.OAK_WALL_SIGN;
+
     /** The shape woosh ticks. */
     private int shapeWooshTicks = 3;
 
@@ -235,6 +238,10 @@ public class StargateShape
             else if (line.contains("ACTIVE_MATERIAL"))
             {
                 setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
+            }
+            else if (line.contains("SIGN_MATERIAL"))
+            {
+                try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase())); } catch (final Exception e) { /* ignore unknown */ }
             }
         }
         //TODO: debug printout for the materials the gate uses.
@@ -561,6 +568,16 @@ public class StargateShape
     public void setShapeStructureMaterial(final Material shapeStructureMaterial)
     {
         this.shapeStructureMaterial = shapeStructureMaterial;
+    }
+
+    public Material getShapeSignMaterial()
+    {
+        return shapeSignMaterial;
+    }
+
+    public void setShapeSignMaterial(final Material shapeSignMaterial)
+    {
+        this.shapeSignMaterial = shapeSignMaterial;
     }
 
     /**

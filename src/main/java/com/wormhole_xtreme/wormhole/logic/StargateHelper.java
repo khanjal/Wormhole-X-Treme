@@ -49,6 +49,7 @@ import com.wormhole_xtreme.wormhole.model.StargateNetwork;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.utils.DataUtils;
+import com.wormhole_xtreme.wormhole.utils.LegacyCompat;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -344,7 +345,7 @@ public class StargateHelper
                 {
                     if (tempGate.getGateNetwork() != null)
                     {
-                        if (maybeBlock.getType() == Material.OAK_WALL_SIGN)
+                        if (LegacyCompat.isWallSign(maybeBlock.getType()))
                         {
                             if (tempGate.isGateSignPowered())
                             {
@@ -2123,7 +2124,7 @@ public class StargateHelper
     private static boolean tryCreateGateSign(final Block signBlock, final Stargate tempGate)
     {
 
-        if (signBlock.getType() == Material.OAK_WALL_SIGN)
+        if (LegacyCompat.isWallSign(signBlock.getType()))
         {
             tempGate.setGateSignPowered(true);
             tempGate.setGateDialSignBlock(signBlock);

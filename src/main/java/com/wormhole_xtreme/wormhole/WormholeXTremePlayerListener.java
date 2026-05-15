@@ -481,7 +481,7 @@ class WormholeXTremePlayerListener implements Listener
                 return true;
             }
         }
-        else if ((clickedBlock != null) && (clickedBlock.getType() == Material.OAK_WALL_SIGN))
+        else if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(clickedBlock.getType())))
         {
             final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
             if (stargate != null)

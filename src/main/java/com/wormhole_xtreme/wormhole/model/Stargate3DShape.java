@@ -193,6 +193,11 @@ public class Stargate3DShape extends StargateShape
                 final Material m = parseMaterialName(line.split("=")[1]);
                 if (m != null) setShapeLightMaterial(m);
             }
+            else if (line.contains("SIGN_MATERIAL=") && (line.split("=").length > 1))
+            {
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeSignMaterial(m);
+            }
             else if (line.contains("LIGHT_TICKS=") && (line.split("=").length > 1))
             {
                 setShapeLightTicks(Integer.valueOf(line.split("=")[1]));

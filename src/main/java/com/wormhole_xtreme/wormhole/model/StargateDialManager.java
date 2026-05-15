@@ -57,7 +57,7 @@ class StargateDialManager
     {
         synchronized (gate.getGateNetwork().getNetworkGateLock())
         {
-            gate.getGateDialSignBlock().setType(Material.OAK_WALL_SIGN);
+            gate.getGateDialSignBlock().setType(gate.getGateShape().getShapeSignMaterial());
             final Directional tsWs = (Directional) gate.getGateDialSignBlock().getBlockData();
             tsWs.setFacing(gate.getGateFacing());
             gate.getGateDialSignBlock().setBlockData(tsWs);
@@ -184,7 +184,7 @@ class StargateDialManager
     {
         if (teleportSign)
         {
-            gate.getGateDialSignBlock().setType(Material.OAK_WALL_SIGN);
+            gate.getGateDialSignBlock().setType(gate.getGateShape().getShapeSignMaterial());
             final Directional dialWs = (Directional) gate.getGateDialSignBlock().getBlockData();
             dialWs.setFacing(gate.getGateFacing());
             gate.getGateDialSignBlock().setBlockData(dialWs);
@@ -237,7 +237,7 @@ class StargateDialManager
     {
         if ((gate.getGateDialSign() == null) && (gate.getGateDialSignBlock() != null))
         {
-            if (gate.getGateDialSignBlock().getType() == Material.OAK_WALL_SIGN)
+            if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(gate.getGateDialSignBlock().getType()))
             {
                 gate.setGateDialSignIndex(-1);
                 gate.getGateDialSignBlock().setType(Material.AIR);
