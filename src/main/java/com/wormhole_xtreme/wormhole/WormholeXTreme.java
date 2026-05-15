@@ -2,6 +2,7 @@
  *   Wormhole X-Treme Plugin for Bukkit
  *   Copyright (C) 2011  Ben Echols
  *                       Dean Bailey
+ *   Copyright (C) 2026  Justin Harding
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -50,6 +51,7 @@ import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 // Help plugin integration removed
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.WormholeWorldsSupport;
 import com.wormhole_xtreme.wormhole.utils.DBUpdateUtil;
 
@@ -269,6 +271,7 @@ public class WormholeXTreme extends JavaPlugin
                 }
 
                 StargateDBManager.shutdown();
+                EconomySupport.disableEconomy();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
             catch (final Exception e)
@@ -289,6 +292,10 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             PermissionsSupport.enablePermissions();
+            if (ConfigManager.isEconomyEnabled())
+            {
+                EconomySupport.enableEconomy();
+            }
             if (ConfigManager.isWormholeWorldsSupportEnabled())
             {
                 WormholeWorldsSupport.enableWormholeWorlds();

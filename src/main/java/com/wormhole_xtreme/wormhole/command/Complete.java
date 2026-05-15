@@ -2,6 +2,7 @@
  *   Wormhole X-Treme Plugin for Bukkit
  *   Copyright (C) 2011  Ben Echols
  *                       Dean Bailey
+ *   Copyright (C) 2026  Justin Harding
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -98,6 +99,23 @@ public class Complete implements CommandExecutor, TabCompleter
                             if (StargateManager.completeStargate(player, name, idc, network))
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+                                if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+                                {
+                                    final double buildCost = ConfigManager.getEconomyBuildCost();
+                                    if (buildCost > 0)
+                                    {
+                                        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                                        {
+                                            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                                        }
+                                        else
+                                        {
+                                            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                                            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
+                                        }
+                                    }
+                                }
                             }
                             else
                             {

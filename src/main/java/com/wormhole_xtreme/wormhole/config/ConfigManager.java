@@ -2,6 +2,7 @@
  *   Wormhole X-Treme Plugin for Bukkit
  *   Copyright (C) 2011  Ben Echols
  *                       Dean Bailey
+ *   Copyright (C) 2026  Justin Harding
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -95,7 +96,13 @@ public class ConfigManager
         /** JDBC user for DB backends. */
         STORAGE_JDBC_USER,
         /** JDBC password for DB backends. */
-        STORAGE_JDBC_PASSWORD
+        STORAGE_JDBC_PASSWORD,
+        /** Whether economy (Vault) integration is enabled. */
+        ECONOMY_ENABLED,
+        /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
+        ECONOMY_USE_COST,
+        /** Cost in currency units charged to build a gate. 0 = free. */
+        ECONOMY_BUILD_COST
     }
 
     /**
@@ -165,7 +172,16 @@ public class ConfigManager
         playerUseCooldownRestricted(errorHeader + "You must wait longer before using a stargate."),
 
         /** The player use cooldown wait time. */
-        playerUseCooldownWaitTime(errorHeader + "Current Wait (in seconds): ");
+        playerUseCooldownWaitTime(errorHeader + "Current Wait (in seconds): "),
+
+        /** Insufficient funds message. */
+        economyInsufficientFunds(errorHeader + "Insufficient funds to use this gate."),
+
+        /** Charged for gate use message (prefix; amount and currency appended at runtime). */
+        economyCharged(normalHeader + "Charged "),
+
+        /** Charged for gate build message (prefix; amount and currency appended at runtime). */
+        economyBuildCharged(normalHeader + "Gate build cost charged: ");
 
         /** The m. */
         private final String m;
@@ -658,5 +674,26 @@ public class ConfigManager
     public static void setUseCooldownGroupTwo(final int time)
     {
         setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_TWO, time);
+    }
+
+    /** Returns true if Vault economy integration is enabled in config. */
+    public static boolean isEconomyEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ECONOMY_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Cost charged when a player walks through a gate. 0 = free. */
+    public static double getEconomyUseCost()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ECONOMY_USE_COST);
+        return s != null ? s.getDoubleValue() : 0.0;
+    }
+
+    /** Cost charged when a player builds a gate. 0 = free. */
+    public static double getEconomyBuildCost()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ECONOMY_BUILD_COST);
+        return s != null ? s.getDoubleValue() : 0.0;
     }
 }

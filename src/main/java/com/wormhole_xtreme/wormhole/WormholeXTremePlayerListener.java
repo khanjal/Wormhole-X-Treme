@@ -2,6 +2,7 @@
  *   Wormhole X-Treme Plugin for Bukkit
  *   Copyright (C) 2011  Ben Echols
  *                       Dean Bailey
+ *   Copyright (C) 2026  Justin Harding
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -121,6 +122,23 @@ class WormholeXTremePlayerListener implements Listener
                     if (com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, name, idc, network))
                     {
                         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+                        if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+                        {
+                            final double buildCost = ConfigManager.getEconomyBuildCost();
+                            if (buildCost > 0)
+                            {
+                                if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                                {
+                                    player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                                }
+                                else
+                                {
+                                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                                    player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                        + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
+                                }
+                            }
+                        }
                     }
                     else
                     {
@@ -244,6 +262,23 @@ class WormholeXTremePlayerListener implements Listener
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
                                 newGate.getGateDialSign().setLine(0, "-" + newGate.getGateName() + "-");
                                 newGate.getGateDialSign().update();
+                                if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+                                {
+                                    final double buildCost = ConfigManager.getEconomyBuildCost();
+                                    if (buildCost > 0)
+                                    {
+                                        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                                        {
+                                            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                                        }
+                                        else
+                                        {
+                                            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                                            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
+                                        }
+                                    }
+                                }
                             }
                             else
                             {
@@ -573,6 +608,22 @@ class WormholeXTremePlayerListener implements Listener
                 else
                 {
                     StargateRestrictions.addPlayerUseCooldown(player);
+                }
+            }
+
+            if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+            {
+                final double useCost = ConfigManager.getEconomyUseCost();
+                if (useCost > 0)
+                {
+                    if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
+                    {
+                        player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                        return false;
+                    }
+                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, useCost);
+                    player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
+                        + useCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(useCost));
                 }
             }
 

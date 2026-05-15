@@ -2,6 +2,7 @@
  *   Wormhole X-Treme Plugin for Bukkit
  *   Copyright (C) 2011  Ben Echols
  *                       Dean Bailey
+ *   Copyright (C) 2026  Justin Harding
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -43,7 +44,10 @@ class DefaultSettings
         new Setting(ConfigKeys.STORAGE_SQLITE_PATH, "plugins/WormholeXTreme/wormholes.db", "SQLite DB file path when using sqlite backend", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_JDBC_URL, "", "JDBC URL for remote DBs (mysql/postgres). Example: jdbc:postgresql://host:5432/dbname", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_JDBC_USER, "", "JDBC username for remote DBs", "WormholeXTreme"),
-        new Setting(ConfigKeys.STORAGE_JDBC_PASSWORD, "", "JDBC password for remote DBs", "WormholeXTreme")
+        new Setting(ConfigKeys.STORAGE_JDBC_PASSWORD, "", "JDBC password for remote DBs", "WormholeXTreme"),
+        new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin (e.g. EssentialsX). When false all economy features are disabled regardless of cost settings.", "WormholeXTreme"),
+        new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. Set to 0.0 to disable use cost.", "WormholeXTreme"),
+        new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme")
     };
 
 }

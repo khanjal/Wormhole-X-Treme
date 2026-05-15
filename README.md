@@ -30,7 +30,7 @@ Build (skips tests):
 mvn -DskipTests package
 ```
 
-Output jar: `target/WormholeXTreme-0.854.jar`
+Output jar: `target/WormholeXTreme-1.0.0.jar`
 
 ## Configuration
 
@@ -182,6 +182,22 @@ Both modes work via `BlockRedstoneEvent` on `REDSTONE_WIRE` and are fully compat
 
 - If gates disappear after restart: check `plugins/WormholeXTreme/gates/` for YAML files or the configured DB file at `storage-sqlite-path`/JDBC URL.
 - Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
+
+## Economy
+
+Economy integration is optional and requires **[Vault](https://www.spigotmc.org/resources/vault.34315/)** and an economy provider plugin (e.g. [EssentialsX](https://essentialsx.net/), CMI, iConomy, etc.) to be installed.
+
+| Config key | Default | Description |
+|---|---|---|
+| `economy-enabled` | `false` | Set `true` to enable all economy features. When `false`, no charges are ever applied. |
+| `economy-use-cost` | `0.0` | Amount charged to a player each time they walk through a gate. Set `0.0` to disable. |
+| `economy-build-cost` | `0.0` | Amount charged to a player when they successfully complete a new gate. Set `0.0` to disable. |
+
+**Behaviour:**
+- If Vault is absent or no economy provider is registered, all charges are silently skipped (fail-open).
+- If the player cannot afford the use cost, they are blocked from teleporting and informed.
+- If the player cannot afford the build cost, the gate is still built but they are notified — no charge is taken.
+- Currency names are taken from the active economy plugin (singular/plural).
 
 ## Contributing
 
