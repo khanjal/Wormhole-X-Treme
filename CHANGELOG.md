@@ -9,7 +9,7 @@ All notable changes to this project are documented in this file.
 - Fixed 2D gate exit location search in Nether/End dimensions: replaced `Material.AIR` equality check with `isAir()` so `CAVE_AIR` (present in Nether/End) is correctly treated as traversable.
 
 ### New features
-- **Vault Economy integration** â€” optional gate use and build costs configurable via `economy-enabled`, `economy-use-cost`, and `economy-build-cost` in `config.yml`. Gracefully no-ops when Vault or an economy provider is absent.
+- **Vault Economy integration** — optional gate use and build costs configurable via `economy-enabled`, `economy-use-cost`, and `economy-build-cost` in `config.yml`. Gracefully no-ops when Vault or an economy provider is absent.
 - Added `LegacyCompat` utility class consolidating modern-Bukkit material/block compatibility shims.
 - Added pluggable storage backend support and config keys (`storage-backend`, `storage-sqlite-path`, `storage-jdbc-*`).
 - Implemented `StorageBackend` interface and `SqliteStorage` scaffold.
@@ -23,9 +23,7 @@ All notable changes to this project are documented in this file.
 - Improved startup diagnostics and storage initialization logging.
 - Fixed a number of persistence and teleport UX issues (teleport bounce mitigation and gate activation mapping fixes).
 
-## 0.854 (previous)
-
-### 0.854 (5/17/11 @ 16:13 PST)
+## 0.854 (5/17/11 @ 16:13 PST)
 
 - Updated chunk (un)loading to happen when gate (de)activates and when dial lever state
   changes happen.
@@ -37,14 +35,14 @@ All notable changes to this project are documented in this file.
 - Hamfisted fix for signs not updating. Now we nuke the sign and build it from scratch every
   time a gate sign is toggled. Causes a flash, but... who cares. It works EVERY time now.
 
-### 0.853 (5/13/11 @ 23:05 PST)
+## 0.853 (5/13/11 @ 23:05 PST)
 
 - Fix for /dial gates breaking when a user who doesn't have dialer permission hit the lever.
 
 - Switched to getTypeId() from getType(), hopefully this works around the getType() == Air bug
   that might be lingering. (doubt it :| )
 
-### 0.852 (5/12/11 @ 07:55 PST)
+## 0.852 (5/12/11 @ 07:55 PST)
 
 - Added support for upcoming Permissions 3.0.x release.
 
@@ -54,7 +52,7 @@ All notable changes to this project are documented in this file.
 
 - Minor log format changes for readability.
 
-### 0.851 (5/10/11 @ 21:56 PST)
+## 0.851 (5/10/11 @ 21:56 PST)
 
 - Complete revamp of how we handle permissions checks. Lots more case statements, lots less
   if/else if. Much better. This is what enums are for.
@@ -90,7 +88,7 @@ All notable changes to this project are documented in this file.
 
 - Now we don't toggle stargate signs when we start.
 
-### 0.850 (5/5/11 @ 16:15 PST)
+## 0.850 (5/5/11 @ 16:15 PST)
 
 - iConomy support removed. I will not depend on plugins that decide to change their
   package name 5 major versions in and basically give everyone who depended on the
@@ -125,7 +123,7 @@ All notable changes to this project are documented in this file.
 
 - wxidc now only works on non-sign powered gates which have iris activation blocks set.
 
-### 0.833 (4/9/11 @ 23:36 PST)
+## 0.833 (4/9/11 @ 23:36 PST)
 
 - Fixed iConomy double(or many many more) charging issue. Tried to do something awesome,
   turned out to be a bad idea. We'll revisit these kind of changes when 3d shapes are in
@@ -136,17 +134,17 @@ All notable changes to this project are documented in this file.
 - Merged some of the sign click schedule related methods. Should make sign click messages
   more reliable.
 
-### 0.832 (4/5/11 @ 15:04 PST)
+## 0.832 (4/5/11 @ 15:04 PST)
 
 - Fixed NPE during database creation. Whoops, missing null-checks.
 
-### 0.831 (4/4/11 @ 23:13 PST)
+## 0.831 (4/4/11 @ 23:13 PST)
 
 - Fixed erroneous messages sent when a plugin is attached to already and WXT receives
   a plugin event for it. Cosmetic bug, fixed.
 
 
-### 0.830 (4/4/11 @ 01:12 PST)
+## 0.830 (4/4/11 @ 01:12 PST)
 
 - Water now will not flow over Stargate anythings. No more broken levers and magic
   blocks of water floating in their place.
@@ -190,7 +188,7 @@ All notable changes to this project are documented in this file.
 - Added ICONOMY_OWNER_EXEMPT option to Settings.txt with a default value of true. When
   true this option disables the charging of gate owners for using their own gates.
 
-### 0.821 (3/30/11 @ 17:42 PST)
+## 0.821 (3/30/11 @ 17:42 PST)
 
 - Update version of iConomy we build against and test for.
 
@@ -202,7 +200,7 @@ All notable changes to this project are documented in this file.
 - Refactored package to com.wormhole_xtreme.wormhole in anticipation of adding more
   stargate related projects.
 
-### 0.820 (3/29/11 @ 17:31 PST)
+## 0.820 (3/29/11 @ 17:31 PST)
 
 - Initial support for CraftBukkit Build 600.
 
@@ -254,7 +252,7 @@ All notable changes to this project are documented in this file.
 - Minecarts work across chunks and worlds now! If you run into a location where it doesn't work,
   use the wormhole in both directions to correct the wormhole, then try again. :)
 
-Changes 0.812 (3/23/11 @ 15:17 PST):
+## 0.812 (3/23/11 @ 15:17 PST)
 
 - /wxgo now works properly when traversing world bounderies. First we quickly pop into
   the default spawn location for the target world, then from there we go to our final
@@ -293,7 +291,7 @@ Changes 0.812 (3/23/11 @ 15:17 PST):
   being set.
 
 
-Changes 0.811 (3/21/11 @ 20:27 PST):
+## 0.811 (3/21/11 @ 20:27 PST)
 
 - Came up with a proximity based check for stargates in the lava & fire event
   cancellation code. Now only 1 block radius around active lava portals
@@ -315,7 +313,7 @@ Changes 0.811 (3/21/11 @ 20:27 PST):
   fire and lava events on player. No more trees bursting into flames near a stargate.
  
 
-Changes 0.810 (3/20/11 @ 00:18 PST):
+## 0.810 (3/20/11 @ 00:18 PST)
 
 - Broke '/wxcompass' out into its own class. Removed '/wormhole compass'.
 
@@ -367,7 +365,7 @@ Changes 0.810 (3/20/11 @ 00:18 PST):
   stop signs and buttons from being destroyed during that mad dash to/from a stargate. ^^
   
 
-Changes 0.801 (3/15/11 @ 22:33 PST):
+## 0.801 (3/15/11 @ 22:33 PST)
 
 - Update to the way data is pushed to signs in gate destruction and creation.
   Causes signs to update visually more reliably.
@@ -384,7 +382,7 @@ Changes 0.801 (3/15/11 @ 22:33 PST):
   
 - Fixed permissions surrounding gate networks and WORMHOLE_USE_IS_TELEPORT
 
-Changes 0.800 (3/9/11 @ 23:33 PST):
+## 0.800 (3/9/11 @ 23:33 PST)
 
 - Added pretty format messages! [dh/gyoza]
 
@@ -436,7 +434,7 @@ Changes 0.800 (3/9/11 @ 23:33 PST):
   and the owner of the gate.
 
 
-Changes 0.755 (3/4/11 @ 16:51PST):
+## 0.755 (3/4/11 @ 16:51 PST)
 
 - Added /wxbuild, /wxlist, and /wxremove commands as short form of their /wormhole 
   counterparts.
@@ -465,7 +463,7 @@ Changes 0.755 (3/4/11 @ 16:51PST):
 
 
 
-Changes 0.754 (3/3/11 @ 00:54 PST):
+## 0.754 (3/3/11 @ 00:54 PST)
 
 - Iris activation levers are now destroyed when a stargate is removed. Also if
   anything is in the iris activation lever block location when creating an 
@@ -483,7 +481,7 @@ Changes 0.754 (3/3/11 @ 00:54 PST):
   idc enabled gates. Lever creation code broken out into own method. Stargate
   regeneration command is going to use this.
 
-Changes 0.753 (3/2/11 @ 19:27 PST):
+## 0.753 (3/2/11 @ 19:27 PST)
 
 - Fixed Gate Sign placement. Now no longer at right angles to the gatesign block.
 
@@ -496,7 +494,7 @@ Changes 0.753 (3/2/11 @ 19:27 PST):
 - Error messages for onEnable checks for iConomy and Permissions should be a bit 
   useful now as we may have been loaded before Permissions.
 
-Changes 0.752 (2/28/11 @ 20:57 PST):
+## 0.752 (2/28/11 @ 20:57 PST)
 
 - Initial iConomy 4.1 Support 
 
@@ -507,18 +505,18 @@ Changes 0.752 (2/28/11 @ 20:57 PST):
 
 - Removed dead/unused code.
 
-Changes 0.751 (2/25/11 @ 07:53 PST):
+## 0.751 (2/25/11 @ 07:53 PST)
 
 - Initial support for iconomy 3.0
 
-Changes 0.750 (2/22/11 @ 22:19 PST):
+## 0.750 (2/22/11 @ 22:19 PST)
 
 - Major refactoring and package name changes.
 
 - Initial support for minecraft 1.3.
 
  
-Changes 0.741 (2/21/11 @ 21:48 PST):
+## 0.741 (2/21/11 @ 21:48 PST)
 
 - Stopped using playerListener for commands. Use the new onCommand structure. 
   This puts us as fully onCommand compliant for when they decide to put nags 
@@ -538,7 +536,7 @@ Changes 0.741 (2/21/11 @ 21:48 PST):
 
 
 
-Changes 0.740 (2/21/11 @ 05:45 PST):
+## 0.740 (2/21/11 @ 05:45 PST)
 
 - Initial revamp of config system. Now with 100% less chances of a dereference 
   based NPE. EVERYTHING is checked for a null. Hard coded defaults. Will update
@@ -562,7 +560,7 @@ Changes 0.740 (2/21/11 @ 05:45 PST):
   wipes all other lines of text. No more gates accidentally named -gatename-.
 
 
-Changes 0.736 (2/20/11 @ 03:20 MST)
+## 0.736 (2/20/11 @ 03:20 MST)
 - Added configurable WOOSH_DEPTH for custom gate shapes.
 - Updated to work properly with latest bukkit onEntityDamage changes.
 - Stargates should no longer linger in half living states after a server shutdown while stargates are active.
@@ -574,7 +572,7 @@ Changes 0.736 (2/20/11 @ 03:20 MST)
   'wormhole.use.dialer' and 'wormhole.use.sign' or 'wormhole.use.*' Also made it so players without 'wormhole.use.sign' can not change
   wormhole sign destinations.
 
-Changes 0.735 (2/19/11 @ 03:40 PST)
+## 0.735 (2/19/11 @ 03:40 PST)
 - Modified Standard.shape to have 7 chevrons that light up.
 - Modified shape parsing code to support an [O:E:L:S] block in the gate design.
 - Rewrote logger setup. Now there is a config option for LOG_LEVEL. Uses Java logging.Level log levels.
@@ -590,7 +588,7 @@ Changes 0.735 (2/19/11 @ 03:40 PST)
   BURNS BURNS BURNS. You have been WARNED. 
 - Consider this build a Beta? 
 
-Changes 0.730 ( 2/16/11 @ 20:40 MST)
+## 0.730 (2/16/11 @ 20:40 MST)
 - Added custom gate shapes!
       After starting server there should be a new directory and file plugins/WormholeXTreme/GateShapes/Standard.shape
       You can look in that file to see how to make custom gates.
@@ -607,7 +605,7 @@ Changes 0.730 ( 2/16/11 @ 20:40 MST)
 - Added optional extra paramater to remove - /wormhole remove <name> all (the all is optional)
         If 'all' is specified at the end, the remove will also remove all blocks associated with the gate (other than the DHD)
 
-Changes 0.727 ( 2/16/11 @ 13:39 PST)
+## 0.727 (2/16/11 @ 13:39 PST)
 - Made gate connection logic a bit more reliable with regards to scheduling system.
   Gates Now will never open in a half working state. If one doesn't open, neither will stay open.
   If scheduling for timed gate closings fails, try again, if that fails cry in the log and don't open 
@@ -633,13 +631,13 @@ In Progress/Partially working:
 - Woosh has been added back into the plugin
     There is a new configuration value that lets you disable this if desired.    
 
-Changes 0.726 ( 2/15/11 @ 05:40 PST) 
+## 0.726 (2/15/11 @ 05:40 PST)
 - Log output has been totally revamped. Now it should be easier to tell what we are doing in the logs.
 - Fixed the ability to use the craftbukkit /reload command without giving an NPE.
 - Removed a few potential file descriptor, memory, and database performance leaks.
 
 
-Changes 0.725 ( 2/13/11 @ 9:15PM MST)
+## 0.725 (2/13/11 @ 21:15 MST)
 - Iris and IDC is now completed for non-sign gates!
 - When completing the gate you use /wormhole complete <name> <idc> to set the iris deactivation code.
 - A lever will appear below the activation button.
@@ -653,7 +651,7 @@ Changes 0.725 ( 2/13/11 @ 9:15PM MST)
 	/dial "A Fun Gate"
 	/wormhole remove "A Fun Gate"
 
-Changes 0.71(2/12/11 @ 10:42PM MST)
+## 0.71 (2/12/11 @ 22:42 MST)
 - Fixed an error message to be more specific (when trying to dial from an activated gate).
 - Fixed problems with TickNextTick exception (needed to use sync instead of async).
 - This may cause more issues though until the underlying issue is fixed in bukkit.
@@ -662,7 +660,7 @@ Changes 0.71(2/12/11 @ 10:42PM MST)
 - Hitting the activate button again after you have previously hit it, but before you dial something will now 'deactivate' the gate.
 - Due to these big issues the handling of double quotes in names has been pushed off for another day or two, sorry for everyone with that issue!
 
-Changes 0.70 (2/12/11 @ 4:10AM MST)
+## 0.70 (2/12/11 @ 04:10 MST)
 - Fixed multi-worlds!!!! GO AND EXPLORE THE MULTIVERSE!
 - TIMEOUT_SHUTDOWN now works properly. Feel free to set this to something other than 0!!
 - Gates now have owners
@@ -672,18 +670,18 @@ Changes 0.70 (2/12/11 @ 4:10AM MST)
 - Logging is now done properly thanks to Alron @ github.
 - There are some other small fixes I just don't remember them all right now.
 
-Changes 0.67 (2/7/11 @ 6:57PM MST)
+## 0.67 (2/7/11 @ 18:57 MST)
 - Version 0.66 is dumb, so I had to fix it up.
 - Fixed the saving bug.
 - Fixed the "gate timed out" message from repeating. FINALLY!!!
 - You really want to get this version. It is much better than 65 and 66
 
-Changes 0.66 (2/7/11 @ 3:31PM MST)
+## 0.66 (2/7/11 @ 15:31 MST)
 - It just isn't a release without a bug....
 - This release fixes a small bug from the last release where wormholes fail to save properly after shutting down the server.
 - You DO NOT WANT TO UPGRADE TO THIS!!!!
 
-Changes 0.65 (2/7/11 @ 12:10PM MST)
+## 0.65 (2/7/11 @ 12:10 MST)
 - Wormhole now supports multiple worlds! (and works for the newest bukkit builds). Requires craftbukkit version 271+
 - Wormhole sign targets are now stored across restarts
   This means that if you target a gate at a gate via the sign, then destroy the sign, the gate will always target the last targetted gate (Across restarts!)
@@ -697,13 +695,13 @@ Changes 0.65 (2/7/11 @ 12:10PM MST)
   If nothing is put in second line gates will default to the "Public" network.
   The sign will only cycle through gates with the same network !
 
-Changes 0.62 ( 2/5/11 @ 10:37AM MST)
+## 0.62 (2/5/11 @ 10:37 MST)
 - Fixed being unable to dial after newly creating a non-sign gate.
 
-Changes 0.61 ( 2/4/11 @ 3:41PM MST)
+## 0.61 (2/4/11 @ 15:41 MST)
 - Stupid copy/paste on an error loading iConomy fixed.
 
-Changes 0.60 ( 2/4/11 @ 3:02PM MST)
+## 0.60 (2/4/11 @ 15:02 MST)
 - Added configuration file
   Restart the server once and the file will be created, including your old settings.
   Changes to configuration require restart to go into effect (of course)
@@ -721,17 +719,17 @@ Changes 0.60 ( 2/4/11 @ 3:02PM MST)
   Ops Exempt: if set to true Ops will not be charged to use/build gates.
   I can add/change configurations as needed, but hopefully this is a good start.
 
-Changes 0.59 ( 2/2/11 @ 12:07AM MST)
+## 0.59 (2/2/11 @ 00:07 MST)
 - Quick patch to fix the issues with the newest version of CraftBukkit (231)
 
-Changes 0.55 ( 2/1/11 @ 1:10PM MST)
+## 0.55 (2/1/11 @ 13:10 MST)
 - Fixed some debug messages that shouldn't have been left in.
 - Added /wormhole compass (Make compass point to nearest wormhole)
   Typing again will recalculate nearest wormhole.
 In Progess:
 - iConomy will be the next release, I just needed to remove those debug messages.
 
-Changes 0.51 ( 1/31/11 @ 11:22AM MST)
+## 0.51 (1/31/11 @ 11:22 MST)
 - Fixed the spamming of timeout message.
 - Added config "/wormhole activate_timeout" to change the default timeout after activating a wormhole before it dials.
 - Changed config name of timeout "/wormhole timeout" to "/wormhole shutdown_timeout"
@@ -744,7 +742,7 @@ Changes 0.51 ( 1/31/11 @ 11:22AM MST)
   Feel free to comment and suggest changes in code if you want to.
   Feel free to also make changes on your own and send them to me via GitHub - I will integrate the changes if I like them!
 
-Changes 0.50 ( 1/30/11)
+## 0.50 (1/30/11)
 - Minecarts now can go through wormholes.
   If a player is in the cart they will go through the gate but will not be in the cart when they arrive at the other side
   I would not recommend riding carts through the gate yet until I can figure out how to keep the player in the cart on the other side. Sometimes riding a cart through the gate results in weird behavior.
@@ -762,7 +760,7 @@ Changes 0.50 ( 1/30/11)
 Open issues:
 - DHDs can't be repaired after removing a button/dialing sign on a sign-dialing gate (workaround is to /wormhole remove and then add the button/sign, and then it will function correctly.)
 
-Changes 0.39 ( 1/27/11)
+## 0.39 (1/27/11)
 Added support for the Permissions plugin.
 Without the plugin it defaults to the previous permission settings.
 Changing the built in permissions will not change the Permissions plugin at all.
@@ -779,13 +777,13 @@ Fixed a bug stopping the PORTAL material from working (Thanks Dinnerbone)
 I have tried to fix the point where you teleport when making a new gate. Hopefully this fixes it it.
 Existing gates SHOULD start to work again unless you are really unlucky. If a gate just refuses to put you in the right place, a /wormhole remove <name> and then just add it again and it should be fine!
 
-Changes 0.32 (1/26/11)
+## 0.32 (1/26/11)
 Again fixing small issue stopping gates from being built.
 
-Changes 0.31 (1/26/11)
+## 0.31 (1/26/11)
 Forgot to change one last reference to /stargate (as all commands are now /wormhole)
 
-Changes 0.3 (1/26/11):
+## 0.3 (1/26/11)
 Name change to "WORMHOLE EXTREME"!!!
 To successfully use this rename and already had "Stargates" you will need to
 Rename the "StargatesDB" and all files inside it to "WormholeXTremeDB"

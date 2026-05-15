@@ -169,8 +169,10 @@ public class Stargate
      */
     public Stargate()
     {
-
+        // Ensure a default shape exists so code and tests can rely on shape defaults
+        this.gateShape = new StargateShape();
     }
+
 
     /**
      * Animate opening.
