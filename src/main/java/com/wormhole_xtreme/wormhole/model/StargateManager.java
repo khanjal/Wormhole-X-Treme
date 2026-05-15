@@ -94,6 +94,7 @@ public class StargateManager
         if ((b != null) && (s != null))
         {
             getAllGateBlocks().put(b.getLocation(), s);
+            GateSpatialIndex.add(b.getLocation());
             try
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
@@ -172,10 +173,12 @@ public class StargateManager
         for (final Location b : s.getGateStructureBlocks())
         {
             getAllGateBlocks().put(b, s);
+            GateSpatialIndex.add(b);
         }
         for (final Location b : s.getGatePortalBlocks())
         {
             getAllGateBlocks().put(b, s);
+            GateSpatialIndex.add(b);
         }
         // Index explicit activation-related blocks so player interactions find the gate.
         try
@@ -420,6 +423,48 @@ public class StargateManager
             }
         }
         return stargate;
+    }
+
+    /**
+     * Find a stargate by scanning nearby indexed gate blocks.
+     * This is a local-area lookup that avoids iterating all gates and is
+     * intended for event handlers that only need nearby gates.
+     *
+     * @param loc base location to search around
+     * @param radiusXZ horizontal search radius in blocks
+     * @param radiusY vertical search radius in blocks
+     * @return a nearby Stargate if any indexed gate block is within the search box, otherwise null
+     */
+    public static Stargate findNearestGateByBlock(final Location loc, final int radiusXZ, final int radiusY)
+    {
+        if (loc == null)
+        {
+            return null;
+        }
+
+        final java.util.Set<Location> candidates = GateSpatialIndex.collectLocationsWithinRadius(loc, radiusXZ, radiusY);
+        if (candidates == null || candidates.isEmpty())
+        {
+            return null;
+        }
+
+        Stargate best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (final Location l : candidates)
+        {
+            final Stargate s = getAllGateBlocks().get(l);
+            if (s == null)
+            {
+                continue;
+            }
+            final double d = getSquaredDistance(loc, l);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = s;
+            }
+        }
+        return best;
     }
 
     /**
@@ -750,6 +795,7 @@ public class StargateManager
         if (b != null)
         {
             getAllGateBlocks().remove(b.getLocation());
+            GateSpatialIndex.remove(b.getLocation());
         }
     }
 
@@ -804,11 +850,13 @@ public class StargateManager
         for (final Location b : s.getGateStructureBlocks())
         {
             getAllGateBlocks().remove(b);
+            GateSpatialIndex.remove(b);
         }
 
         for (final Location b : s.getGatePortalBlocks())
         {
             getAllGateBlocks().remove(b);
+            GateSpatialIndex.remove(b);
         }
     }
 

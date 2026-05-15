@@ -14,7 +14,7 @@ import org.bukkit.Server;
 import org.bukkit.World;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateSerializer;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 
 /**
@@ -137,7 +137,7 @@ public class HsqldbStorage implements StorageBackend
                 {
                     try
                     {
-                        s = StargateHelper.parseVersionedData(data, w, name, null);
+                        s = GateSerializer.parseVersionedData(data, w, name, null);
                         if (s != null)
                         {
                             break;

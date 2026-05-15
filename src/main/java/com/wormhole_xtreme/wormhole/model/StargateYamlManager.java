@@ -20,7 +20,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateSerializer;
 
 /**
  * Simple per-gate YAML manager.
@@ -91,7 +91,7 @@ public class StargateYamlManager
                     if (gateDataB64 != null)
                     {
                         final byte[] data = Base64.getDecoder().decode(gateDataB64);
-                        final Stargate s = StargateHelper.parseVersionedData(data, server.getWorld(worldName), name, null);
+                        final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(worldName), name, null);
                         if (s != null)
                         {
                             if ((owner != null) && !owner.isEmpty())
@@ -158,7 +158,7 @@ public class StargateYamlManager
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShape() != null ? s.getGateShape().getShapeName() : "Standard");
-        final byte[] data = StargateHelper.stargatetoBinary(s);
+        final byte[] data = GateSerializer.stargatetoBinary(s);
         map.put("GateData", Base64.getEncoder().encodeToString(data));
 
         final DumperOptions options = new DumperOptions();

@@ -15,7 +15,7 @@ import org.bukkit.Server;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.GateSerializer;
 
 /**
  * Lightweight SQLite storage scaffold. Implements StorageBackend.
@@ -91,7 +91,7 @@ public class SqliteStorage implements StorageBackend
                     final String owner = rs.getString("Owner");
                     final byte[] data = rs.getBytes("GateData");
                     final String world = rs.getString("WorldName");
-                    final Stargate s = StargateHelper.parseVersionedData(data, server.getWorld(world), name, null);
+                    final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(world), name, null);
                     if (s != null)
                     {
                         if ((owner != null) && (owner.length() > 0))
@@ -120,7 +120,7 @@ public class SqliteStorage implements StorageBackend
                     final String name = rs.getString("GateName");
                     final byte[] data = rs.getBytes("GateData");
                     final String world = rs.getString("WorldName");
-                    final Stargate s = StargateHelper.parseVersionedData(data, server.getWorld(world), name, null);
+                    final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(world), name, null);
                     if (s != null)
                     {
                         list.add(s);
@@ -166,7 +166,7 @@ public class SqliteStorage implements StorageBackend
             return;
         }
 
-        final byte[] data = StargateHelper.stargatetoBinary(s);
+        final byte[] data = GateSerializer.stargatetoBinary(s);
         PreparedStatement ps = null;
         try
         {

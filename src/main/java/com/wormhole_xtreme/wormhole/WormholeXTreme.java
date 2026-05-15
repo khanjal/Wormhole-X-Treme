@@ -43,6 +43,7 @@ import com.wormhole_xtreme.wormhole.command.Wormhole;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.Configuration;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
+import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -359,7 +360,7 @@ public class WormholeXTreme extends JavaPlugin
         DBUpdateUtil.updateDB();
         // Load our shapes and internal permissions. Stargates are loaded in onEnable
         // because world creation is not allowed during plugin startup (onLoad).
-        StargateHelper.loadShapes();
+        StargateShapeRegistry.loadShapes();
         PermissionsManager.loadPermissions();
         prettyLog(Level.INFO, true, "Load Completed.");
     }

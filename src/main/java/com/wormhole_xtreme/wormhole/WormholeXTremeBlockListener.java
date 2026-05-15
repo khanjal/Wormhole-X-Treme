@@ -150,8 +150,8 @@ class WormholeXTremeBlockListener implements Listener
         if ( !event.isCancelled())
         {
             final Location current = event.getBlock().getLocation();
-            final Stargate closest = StargateManager.findClosestStargate(current);
-            //TODO This is bad, very bad for performance!
+            // Localized lookup: scan nearby indexed gate blocks instead of iterating all gates
+            final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
             if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.isGateCustom()
                 ? closest.getGateCustomPortalMaterial()
                 : closest.getGateShape() != null
@@ -218,7 +218,8 @@ class WormholeXTremeBlockListener implements Listener
         if ( !event.isCancelled())
         {
             final Location current = event.getBlock().getLocation();
-            final Stargate closest = StargateManager.findClosestStargate(current);
+            // Localized lookup: scan nearby indexed gate blocks instead of iterating all gates
+            final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
             if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.isGateCustom()
                 ? closest.getGateCustomPortalMaterial()
                 : closest.getGateShape() != null
