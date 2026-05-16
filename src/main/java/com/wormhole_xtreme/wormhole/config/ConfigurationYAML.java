@@ -54,10 +54,20 @@ public class ConfigurationYAML
                 final Map<String, Object> map = (Map<String, Object>) loaded;
                 for (final Setting element : DefaultSettings.config)
                 {
-                    final String key = element.getName().name();
-                    if (map.containsKey(key))
+                    final String enumKey = element.getName().name();
+                    final String kebabKey = kebabKeyName(enumKey);
+                    Object value = null;
+                    if (map.containsKey(kebabKey))
                     {
-                        final Object value = map.get(key);
+                        value = map.get(kebabKey);
+                    }
+                    else if (map.containsKey(enumKey))
+                    {
+                        value = map.get(enumKey);
+                    }
+
+                    if (value != null)
+                    {
                         Setting s = null;
                         if (value instanceof Boolean)
                         {

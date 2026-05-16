@@ -364,7 +364,6 @@ public class WormholeXTreme extends JavaPlugin
         setThisPlugin(this);
         setLog(getThisPlugin().getServer().getLogger());
         setScheduler(getThisPlugin().getServer().getScheduler());
-        printLogo();
         prettyLog(Level.INFO, true, "Load Beginning.");
         // Load our config files and set logging level right away.
         ConfigManager.setupConfigs(getThisPlugin().getDescription());
@@ -376,20 +375,6 @@ public class WormholeXTreme extends JavaPlugin
         StargateShapeRegistry.loadShapes();
         PermissionsManager.loadPermissions();
         prettyLog(Level.INFO, true, "Load Completed.");
-    }
-
-    /**
-     * 
-     * Print ASCII logo to console on startup.
-     */
-    private void printLogo()
-    {
-        final String version = "v" + getDescription().getVersion();
-        // Compact single-line startup banner. Uses MessageFormat so {0} style
-        // placeholders can be used if desired.
-        getLog().info("");
-        getLog().info(java.text.MessageFormat.format("WORMHOLE X-TREME {0}", version));
-        getLog().info("");
     }
 
     /**
