@@ -106,33 +106,62 @@ public class Dial implements CommandExecutor
                     }
                     else
                     {
-                        // Attempt recovery: sometimes a gate can be visually cleared but still
-                        // have internal 'lights active' or stale activator mapping. Try to
-                        // remove any activator mapping and retry with force.
-                        if (WormholeXTreme.getThisPlugin() != null)
+                        // Attempt recovery only when the target isn't legitimately in use.
+                        boolean targetInUse = false;
+                        try
                         {
-                            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
-                        }
-                        StargateManager.removeActivatorForStargate(target);
-                        if (start.dialStargate(target, true))
-                        {
-                            if (WormholeXTreme.getThisPlugin() != null)
+                            if (target.isGateActive() || (target.getGateTarget() != null))
                             {
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery succeeded for target " + target.getGateName());
+                                targetInUse = true;
                             }
-                            player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
-                        }
-                        else
-                        {
-                            if (WormholeXTreme.getThisPlugin() != null)
+                            else
                             {
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Dial recovery failed for target " + target.getGateName());
+                                for (final Stargate s : StargateManager.getAllGates())
+                                {
+                                    if ((s != null) && (s != start) && (s.getGateTarget() != null) && (s.getGateTarget() == target) && s.isGateActive())
+                                    {
+                                        targetInUse = true;
+                                        break;
+                                    }
+                                }
                             }
+                        }
+                        catch (final Throwable ignore) {}
+
+                        if (targetInUse)
+                        {
+                            // Target is actively connected; don't attempt force-recovery.
                             CommandUtilities.closeGate(start, false);
                             player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
                         }
+                        else
+                        {
+                            // Attempt recovery: remove stale activator mapping and retry with force.
+                            if (WormholeXTreme.getThisPlugin() != null)
+                            {
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
+                            }
+                            StargateManager.removeActivatorForStargate(target);
+                            if (start.dialStargate(target, true))
+                            {
+                                if (WormholeXTreme.getThisPlugin() != null)
+                                {
+                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery succeeded for target " + target.getGateName());
+                                }
+                                player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+                            }
+                            else
+                            {
+                                if (WormholeXTreme.getThisPlugin() != null)
+                                {
+                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Dial recovery failed for target " + target.getGateName());
+                                }
+                                CommandUtilities.closeGate(start, false);
+                                player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+                            }
+                        }
+                        }
                     }
-                }
                 else
                 {
                     CommandUtilities.closeGate(start, false);

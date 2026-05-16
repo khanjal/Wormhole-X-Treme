@@ -858,6 +858,34 @@ public class StargateManager
             getAllGateBlocks().remove(b);
             GateSpatialIndex.remove(b);
         }
+        // Also remove any explicit activation-related blocks (dial lever, iris lever, dial sign, redstone activators)
+        try
+        {
+            if (s.getGateDialLeverBlock() != null)
+            {
+                removeBlockIndex(s.getGateDialLeverBlock());
+            }
+            if (s.getGateIrisLeverBlock() != null)
+            {
+                removeBlockIndex(s.getGateIrisLeverBlock());
+            }
+            if (s.getGateDialSignBlock() != null)
+            {
+                removeBlockIndex(s.getGateDialSignBlock());
+            }
+            if (s.getGateRedstoneDialActivationBlock() != null)
+            {
+                removeBlockIndex(s.getGateRedstoneDialActivationBlock());
+            }
+            if (s.getGateRedstoneGateActivatedBlock() != null)
+            {
+                removeBlockIndex(s.getGateRedstoneGateActivatedBlock());
+            }
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Error removing activation block indices: " + e.getMessage());
+        }
     }
 
 }

@@ -41,6 +41,9 @@ public class StargateRestrictions
     /** The Constant playerUseCooldownStart. */
     private static final ConcurrentHashMap<Player, Long> playerUseCooldownStart = new ConcurrentHashMap<Player, Long>();
     
+    /** Recently-arrived players map: player -> (gateId, timestamp) */
+    private static final ConcurrentHashMap<Player, RecentArrival> playerRecentArrival = new ConcurrentHashMap<Player, RecentArrival>();
+    
     /** The Constant playerUseCooldownGroup. */
     // Removed as per new cooldown logic
     // private static final ConcurrentHashMap<Player, RestrictionGroup> playerUseCooldownGroup = new ConcurrentHashMap<Player, RestrictionGroup>();
@@ -60,7 +63,8 @@ public class StargateRestrictions
         // Apply a single cooldown duration for all players when enabled. Default seconds come from ConfigManager compatibility fallback.
         final long cooldownSeconds = ConfigManager.getUseCooldownGroupOne();
         getPlayerUseCooldownStart().put(player, System.nanoTime());
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), cooldownSeconds * 20);
+        // scheduleSyncDelayedTask expects an int/ticks on some platforms; cast explicitly to avoid lossy-conversion errors
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), (int) (cooldownSeconds * 20L));
     }
 
     /**
@@ -98,6 +102,86 @@ public class StargateRestrictions
     private static ConcurrentHashMap<Player, Long> getPlayerUseCooldownStart()
     {
         return playerUseCooldownStart;
+    }
+
+    private static ConcurrentHashMap<Player, RecentArrival> getPlayerRecentArrival()
+    {
+        return playerRecentArrival;
+    }
+
+    private static class RecentArrival
+    {
+        private final int gateId;
+        private final long timeNs;
+
+        RecentArrival(final int gateId, final long timeNs)
+        {
+            this.gateId = gateId;
+            this.timeNs = timeNs;
+        }
+    }
+
+    /**
+     * Mark the player as having just arrived from a gate. This protects the
+     * source gate from immediate re-entry for a short period.
+     */
+    public static void addPlayerRecentArrival(final Player player, final Stargate fromGate)
+    {
+        if ((player == null) || (fromGate == null))
+        {
+            return;
+        }
+        getPlayerRecentArrival().put(player, new RecentArrival(fromGate.getGateId(), System.nanoTime()));
+        // Keep the flag for ~3 seconds (60 ticks) to mirror after-shutdown protection.
+        final int timeoutTicks = 60;
+        try
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try { removePlayerRecentArrival(player); } catch (final Throwable ignore) {}
+                }
+            }, timeoutTicks);
+        }
+        catch (final Throwable ignore) {}
+    }
+
+    public static boolean isPlayerRecentArrivalFrom(final Player player, final Stargate gate)
+    {
+        if ((player == null) || (gate == null))
+        {
+            return false;
+        }
+        final RecentArrival r = getPlayerRecentArrival().get(player);
+        return (r != null) && (r.gateId == gate.getGateId());
+    }
+
+    public static void removePlayerRecentArrival(final Player player)
+    {
+        if (getPlayerRecentArrival().containsKey(player))
+        {
+            getPlayerRecentArrival().remove(player);
+        }
+    }
+
+    /** Remove any recent-arrival markers that reference the given gate. */
+    public static void removeRecentArrivalsForGate(final Stargate gate)
+    {
+        if (gate == null)
+        {
+            return;
+        }
+        final int gid = gate.getGateId();
+        for (final Player p : getPlayerRecentArrival().keySet())
+        {
+            final RecentArrival r = getPlayerRecentArrival().get(p);
+            if ((r != null) && (r.gateId == gid))
+            {
+                getPlayerRecentArrival().remove(p);
+            }
+        }
     }
 
     /**

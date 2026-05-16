@@ -174,6 +174,9 @@ public class ConfigManager
         /** The player use cooldown wait time. */
         playerUseCooldownWaitTime(errorHeader + "Current Wait (in seconds): "),
 
+        /** Player recently arrived at gate. */
+        playerRecentArrival(errorHeader + "You can't enter an incoming wormhole"),
+
         /** Insufficient funds message. */
         economyInsufficientFunds(errorHeader + "Insufficient funds to use this gate."),
 

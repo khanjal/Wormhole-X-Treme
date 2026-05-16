@@ -335,11 +335,44 @@ class StargateDialManager
             WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
         }
 
+        // Prevent dialing a target that currently has an active iris (standard protection)
         if ((target != null) && target.isGateIrisActive() && !force)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
                 "Dial prevented: target '" + target.getGateName() + "' iris active.");
             return false;
+        }
+
+        // Prevent dialing a target that is already active (connected/open) or already targeted
+        // by another active gate unless forced.
+        if (target != null && !force)
+        {
+            if (target.isGateActive())
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "Dial prevented: target '" + target.getGateName() + "' already active.");
+                return false;
+            }
+            if (target.getGateTarget() != null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "Dial prevented: target '" + target.getGateName() + "' already has a target.");
+                return false;
+            }
+            // If any other gate currently targets this gate and is active, block the dial.
+            try
+            {
+                for (final Stargate s : StargateManager.getAllGates())
+                {
+                    if ((s != null) && (s != gate) && (s.getGateTarget() != null) && (s.getGateTarget() == target) && s.isGateActive())
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                            "Dial prevented: target '" + target.getGateName() + "' is already targeted by '" + s.getGateName() + "'.");
+                        return false;
+                    }
+                }
+            }
+            catch (final Throwable ignore) {}
         }
 
         if (!target.isGateLightsActive() || force)

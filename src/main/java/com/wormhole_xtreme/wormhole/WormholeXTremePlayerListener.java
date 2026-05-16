@@ -630,12 +630,50 @@ class WormholeXTremePlayerListener implements Listener
         final Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         final Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
-        if ((stargate != null) && stargate.isGateActive() && (stargate.getGateTarget() != null) && (gateBlockFinal.getType() == (stargate.isGateCustom()
+        if (stargate != null && stargate.isGateActive() && (gateBlockFinal.getType() == (stargate.isGateCustom()
             ? stargate.getGateCustomPortalMaterial()
             : stargate.getGateShape() != null
                 ? stargate.getGateShape().getShapePortalMaterial()
                 : Material.WATER)))
         {
+            // If this gate has an outgoing target, it's the origin side: handle teleport as before.
+            if (stargate.getGateTarget() != null)
+            {
+                // existing origin handling continues below
+            }
+            else
+            {
+                // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
+                boolean incomingActive = false;
+                try
+                {
+                    for (final Stargate s : StargateManager.getAllGates())
+                    {
+                        if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
+                        {
+                            incomingActive = true;
+                            break;
+                        }
+                    }
+                }
+                catch (final Throwable ignore) {}
+
+                if (incomingActive)
+                {
+                    // Block entry into destination gate while an incoming wormhole is active.
+                    player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+                    player.setNoDamageTicks(5);
+                    final Location prev = stargate.getGatePlayerTeleportLocation();
+                    if (prev != null)
+                    {
+                        event.setFrom(prev);
+                        event.setTo(prev);
+                        try { player.teleport(prev); } catch (final Throwable ignore) {}
+                    }
+                    return true;
+                }
+                // otherwise fall through: gate active but not an incoming destination
+            }
             String gatenetwork;
             if (stargate.getGateNetwork() != null)
             {
@@ -651,6 +689,21 @@ class WormholeXTremePlayerListener implements Listener
             {
                 player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                 return false;
+            }
+
+            // Prevent immediate re-entry to the gate the player just exited from.
+            if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
+            {
+                player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+                player.setNoDamageTicks(5);
+                final Location prev = stargate.getGatePlayerTeleportLocation();
+                if (prev != null)
+                {
+                    event.setFrom(prev);
+                    event.setTo(prev);
+                    try { player.teleport(prev); } catch (final Throwable ignore) {}
+                }
+                return true;
             }
 
             if (ConfigManager.isUseCooldownEnabled())
@@ -733,6 +786,14 @@ class WormholeXTremePlayerListener implements Listener
             }
             try {
                 com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
+            } catch (final Throwable ignore) {}
+
+            // Mark player as having just arrived from this gate to prevent immediate re-entry
+            try {
+                if (stargate.getGateTarget() != null)
+                {
+                    com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerRecentArrival(player, stargate.getGateTarget());
+                }
             } catch (final Throwable ignore) {}
 
             // Schedule a short delayed task to re-apply zero velocity and nudge the player

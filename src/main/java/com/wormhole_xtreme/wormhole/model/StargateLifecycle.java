@@ -28,6 +28,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
+import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 
 /**
  * Manages the gate's activation/shutdown lifecycle: timers, iris state, and
@@ -74,6 +75,10 @@ class StargateLifecycle
             gate.setGateRecentlyActive(true);
         }
         gate.setGateActive(false);
+
+        // Clear any recent-arrival markers that reference this gate so players
+        // can re-enter after shutdown.
+        try { StargateRestrictions.removeRecentArrivalsForGate(gate); } catch (final Throwable ignore) {}
 
         gate.lightStargate(false);
         gate.toggleDialLeverState(false);
