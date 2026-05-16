@@ -1,8 +1,5 @@
 package com.wormhole_xtreme.wormhole.model;
-
 import org.bukkit.Server;
-
-import java.util.List;
 
 public interface StargateStorage
 {

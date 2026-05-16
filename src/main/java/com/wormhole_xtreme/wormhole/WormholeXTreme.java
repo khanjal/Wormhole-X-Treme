@@ -18,31 +18,17 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.wormhole_xtreme.wormhole;
-
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
-
 import com.nijiko.permissions.PermissionHandler;
 import com.wormhole_xtreme.worlds.handler.WorldHandler;
-import com.wormhole_xtreme.wormhole.command.Build;
-import com.wormhole_xtreme.wormhole.command.Compass;
-import com.wormhole_xtreme.wormhole.command.Complete;
 import com.wormhole_xtreme.wormhole.command.Dial;
-import com.wormhole_xtreme.wormhole.command.Force;
-import com.wormhole_xtreme.wormhole.command.Go;
-import com.wormhole_xtreme.wormhole.command.WXIDC;
-import com.wormhole_xtreme.wormhole.command.WXList;
-import com.wormhole_xtreme.wormhole.command.WXRemove;
 import com.wormhole_xtreme.wormhole.command.Wormhole;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.config.Configuration;
-import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -50,7 +36,6 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.storage.StorageBackend;
 import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
-// Help plugin integration removed
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.plugin.WormholeWorldsSupport;

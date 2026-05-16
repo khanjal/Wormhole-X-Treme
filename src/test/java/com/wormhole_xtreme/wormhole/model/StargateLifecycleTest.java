@@ -1,8 +1,5 @@
 package com.wormhole_xtreme.wormhole.model;
-
 import static org.junit.jupiter.api.Assertions.*;
-
-import org.bukkit.Material;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -17,18 +17,13 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.wormhole_xtreme.wormhole.permissions;
-
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.bukkit.entity.Player;
-
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * The Class StargateRestrictions.

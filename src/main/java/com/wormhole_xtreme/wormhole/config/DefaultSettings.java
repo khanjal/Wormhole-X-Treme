@@ -18,9 +18,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.wormhole_xtreme.wormhole.config;
-
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
  * The Class DefaultSettings.

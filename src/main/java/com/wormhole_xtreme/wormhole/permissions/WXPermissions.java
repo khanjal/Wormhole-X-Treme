@@ -17,10 +17,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.wormhole_xtreme.wormhole.permissions;
-
 import org.bukkit.entity.Player;
-import java.util.logging.Level;
-
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;

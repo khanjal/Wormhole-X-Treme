@@ -17,26 +17,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.wormhole_xtreme.wormhole.model;
-
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Level;
-
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
-
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
-import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
-import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * WormholeXtreme Stargate Class/Instance.
