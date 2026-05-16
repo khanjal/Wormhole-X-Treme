@@ -437,7 +437,7 @@ public final class StargateHelper
                 final int wy = oy + dPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + dPos[2] * right.getModZ();
                 final Block signBlock = world.getBlockAt(wx, wy, wz).getRelative(facing);
-                if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(signBlock.getType()))
+                if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(signBlock.getType()))
                 {
                     try
                     {

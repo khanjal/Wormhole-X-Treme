@@ -21,9 +21,11 @@ package com.wormhole_xtreme.wormhole.utils;
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
@@ -58,6 +60,11 @@ public class WorldUtils
                 return (float) 0;
         }
     }
+
+    /**
+     * Returns true if the material is any form of ice that we care about.
+     */
+    // NOTE: ice-related predicates have moved to MaterialUtils
 
     /**
      * Gets the inverse direction.
@@ -230,6 +237,40 @@ public class WorldUtils
         final int dz = Math.abs(b1.getZ() - b2.getZ());
         return (dx <= 1) && (dy <= 1) && (dz <= 1);
     }
+
+    /**
+     * Force-loads the 3x3 chunk neighbourhood centred on the given location.
+     * Called when a stargate connection is established so the destination terrain
+     * is ready before any entity teleports through.
+     *
+     * @param loc the centre of the area to pre-load
+     */
+    public static void forceLoadDestinationChunks(final Location loc)
+    {
+        if (loc == null || loc.getWorld() == null)
+        {
+            return;
+        }
+        final World w = loc.getWorld();
+        final int cx = loc.getBlockX() >> 4;
+        final int cz = loc.getBlockZ() >> 4;
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                try
+                {
+                    if (!w.isChunkLoaded(cx + dx, cz + dz))
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Pre-loading destination chunk (" + (cx + dx) + "," + (cz + dz) + ") on: " + w.getName());
+                        w.loadChunk(cx + dx, cz + dz);
+                    }
+                }
+                catch (final Throwable ignore) {}
+            }
+        }
+    }
+
 
     /**
      * Schedule chunk load.

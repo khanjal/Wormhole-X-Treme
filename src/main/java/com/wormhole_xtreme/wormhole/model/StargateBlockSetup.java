@@ -184,7 +184,7 @@ class StargateBlockSetup
         }
         else
         {
-            if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(placeBlock.getType()))
+            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(placeBlock.getType()))
             {
                 final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
                 if (_plugin_for_log != null)

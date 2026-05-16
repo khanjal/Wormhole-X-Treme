@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.bukkit.block.Block;
+import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
 public class WorldUtilsTest {
@@ -53,5 +54,14 @@ public class WorldUtilsTest {
         when(b2.getY()).thenReturn(20);
         when(b2.getZ()).thenReturn(30);
         assertFalse(WorldUtils.isAdjacent(b1, b2));
+    }
+
+    @Test
+    public void testIsIce() {
+        assertTrue(MaterialUtils.isIce(Material.ICE));
+        assertTrue(MaterialUtils.isIce(Material.PACKED_ICE));
+        assertTrue(MaterialUtils.isIce(Material.BLUE_ICE));
+        assertTrue(MaterialUtils.isIce(Material.FROSTED_ICE));
+        assertFalse(MaterialUtils.isIce(Material.AIR));
     }
 }

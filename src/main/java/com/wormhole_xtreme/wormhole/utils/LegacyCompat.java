@@ -30,48 +30,6 @@ import org.bukkit.block.BlockFace;
 public final class LegacyCompat {
     private LegacyCompat() {}
 
-    /** Returns true for any wall-sign material (all wood types + Nether). */
-    public static boolean isWallSign(final Material m) {
-        switch (m) {
-            case OAK_WALL_SIGN:
-            case SPRUCE_WALL_SIGN:
-            case BIRCH_WALL_SIGN:
-            case JUNGLE_WALL_SIGN:
-            case ACACIA_WALL_SIGN:
-            case DARK_OAK_WALL_SIGN:
-            case CRIMSON_WALL_SIGN:
-            case WARPED_WALL_SIGN:
-            case MANGROVE_WALL_SIGN:
-            case CHERRY_WALL_SIGN:
-            case BAMBOO_WALL_SIGN:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    /** Returns true for any button material (all wood types, stone, and polished blackstone). */
-    public static boolean isButton(final Material m) {
-        switch (m) {
-            case OAK_BUTTON:
-            case SPRUCE_BUTTON:
-            case BIRCH_BUTTON:
-            case JUNGLE_BUTTON:
-            case ACACIA_BUTTON:
-            case DARK_OAK_BUTTON:
-            case MANGROVE_BUTTON:
-            case CHERRY_BUTTON:
-            case BAMBOO_BUTTON:
-            case CRIMSON_BUTTON:
-            case WARPED_BUTTON:
-            case STONE_BUTTON:
-            case POLISHED_BLACKSTONE_BUTTON:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     public static Material materialFromId(final int id) {
         switch (id) {
             case 0:

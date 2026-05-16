@@ -20,6 +20,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.logging.Level;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -237,7 +238,7 @@ class StargateDialManager
     {
         if ((gate.getGateDialSign() == null) && (gate.getGateDialSignBlock() != null))
         {
-            if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(gate.getGateDialSignBlock().getType()))
+            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(gate.getGateDialSignBlock().getType()))
             {
                 gate.setGateDialSignIndex(-1);
                 gate.getGateDialSignBlock().setType(Material.AIR);
@@ -383,6 +384,16 @@ class StargateDialManager
 
             if (gate.isGateActive() && gate.getGateTarget().isGateActive())
             {
+                // Pre-load destination chunks so players/vehicles don't fall through unloaded terrain.
+                // Any brief load-time lag occurs here at dial time, not when the player walks through.
+                try
+                {
+                    final Location destLoc = gate.getGateTarget().getGatePlayerTeleportLocation();
+                    WorldUtils.forceLoadDestinationChunks(destLoc);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                        "Pre-loaded destination chunks for gate: " + gate.getGateTarget().getGateName());
+                }
+                catch (final Throwable ignore) {}
                 return true;
             }
             else if (gate.isGateActive() && !gate.getGateTarget().isGateActive())
