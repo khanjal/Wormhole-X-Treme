@@ -272,7 +272,16 @@ public class WormholeXTreme extends JavaPlugin
                 }
 
                 StargateDBManager.shutdown();
-                EconomySupport.disableEconomy();
+                try
+                {
+                    EconomySupport.disableEconomy();
+                }
+                catch (final Throwable t)
+                {
+                    // EconomySupport class may be absent in some deployments; do not let that
+                    // prevent the plugin from completing shutdown.
+                    prettyLog(Level.FINE, false, "Economy support unavailable during shutdown: " + t.getMessage());
+                }
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
             catch (final Exception e)
@@ -295,7 +304,11 @@ public class WormholeXTreme extends JavaPlugin
             PermissionsSupport.enablePermissions();
             if (ConfigManager.isEconomyEnabled())
             {
-                EconomySupport.enableEconomy();
+                try {
+                    EconomySupport.enableEconomy();
+                } catch (final Throwable t) {
+                    prettyLog(Level.WARNING, false, "Failed to enable economy support: " + t.getMessage());
+                }
             }
             if (ConfigManager.isWormholeWorldsSupportEnabled())
             {
@@ -372,24 +385,10 @@ public class WormholeXTreme extends JavaPlugin
     private void printLogo()
     {
         final String version = "v" + getDescription().getVersion();
-        final String c = "\u001B[36m";  // cyan
-        final String r = "\u001B[0m";   // reset
-        // Build rows using plain characters for predictable spacing, then color the whole row once.
-        final String row1Plain = "~ ~ ~ ~ ~ ~";
-        final String row2Plain = "~ ~ ~ ~ ~ ~ ~";
-        final String row1 = c + row1Plain + r;
-        final String row2 = c + row2Plain + r;
+        // Compact single-line startup banner. Uses MessageFormat so {0} style
+        // placeholders can be used if desired.
         getLog().info("");
-        getLog().info("              *   *   *   *   *");
-        getLog().info("           *                       *");
-        getLog().info("          *      . - - - - - .      *");
-        getLog().info("         *     /  " + row1 + "  \\     *     W O R M H O L E");
-        getLog().info("         *    |  " + row2 + "  |    *     X  -  T R E M E");
-        getLog().info("         *    |  " + row2 + "  |    *");
-        getLog().info("         *     \\  " + row1 + "  /     *     " + version);
-        getLog().info("          *      ' - - - - - '      *");
-        getLog().info("           *                       *");
-        getLog().info("              *   *   *   *   *");
+        getLog().info(java.text.MessageFormat.format("WORMHOLE X-TREME {0}", version));
         getLog().info("");
     }
 

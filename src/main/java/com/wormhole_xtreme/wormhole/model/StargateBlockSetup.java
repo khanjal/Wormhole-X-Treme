@@ -476,32 +476,41 @@ class StargateBlockSetup
             {
                 WorldUtils.scheduleChunkLoad(gate.getGateDialLeverBlock());
             }
-            org.bukkit.Material mat = gate.getGateDialLeverBlock().getType();
-            if (regenerate)
+            org.bukkit.Material mat = Material.AIR;
+            try
             {
-                gate.getGateDialLeverBlock().setType(Material.LEVER);
-                final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
-                rld.setFacing(gate.getGateFacing());
-                gate.getGateDialLeverBlock().setBlockData(rld);
                 mat = gate.getGateDialLeverBlock().getType();
             }
-            if (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isButton(mat))
+            catch (final Throwable t)
             {
-                gate.getGateDialLeverBlock().setType(Material.LEVER);
-                final Directional bld = (Directional) gate.getGateDialLeverBlock().getBlockData();
-                bld.setFacing(gate.getGateFacing());
-                gate.getGateDialLeverBlock().setBlockData(bld);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                    "Automaticially replaced Button on gate \"" + gate.getGateName() + "\" with Lever.");
-                final Powerable blp = (Powerable) gate.getGateDialLeverBlock().getBlockData();
-                blp.setPowered(gate.isGateActive());
-                gate.getGateDialLeverBlock().setBlockData(blp);
+                mat = Material.AIR;
             }
-            else if (mat == Material.LEVER)
+
+            if (regenerate)
             {
-                final Powerable llp = (Powerable) gate.getGateDialLeverBlock().getBlockData();
-                llp.setPowered(gate.isGateActive());
-                gate.getGateDialLeverBlock().setBlockData(llp);
+                // Only create a lever if the activation holder is empty. Preserve
+                // the player's placed activation item (button/lever) otherwise.
+                if (mat == Material.AIR)
+                {
+                    gate.getGateDialLeverBlock().setType(Material.LEVER);
+                    final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
+                    rld.setFacing(gate.getGateFacing());
+                    gate.getGateDialLeverBlock().setBlockData(rld);
+                    mat = gate.getGateDialLeverBlock().getType();
+                }
+            }
+
+            // Preserve whatever activation the player placed.  If it's a lever,
+            // update its powered state; do not convert buttons to levers.
+            if (mat == Material.LEVER)
+            {
+                try
+                {
+                    final Powerable llp = (Powerable) gate.getGateDialLeverBlock().getBlockData();
+                    llp.setPowered(gate.isGateActive());
+                    gate.getGateDialLeverBlock().setBlockData(llp);
+                }
+                catch (final Throwable ignore) {}
             }
             if (!gate.isGateActive())
             {

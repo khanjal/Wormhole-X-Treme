@@ -1070,6 +1070,10 @@ public class Wormhole implements CommandExecutor
             {
                 return new Complete().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
             }
+            else if (a[0].equalsIgnoreCase("refresh"))
+            {
+                return new Refresh().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+            }
             else if (a[0].equalsIgnoreCase("compass"))
             {
                 return new Compass().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));

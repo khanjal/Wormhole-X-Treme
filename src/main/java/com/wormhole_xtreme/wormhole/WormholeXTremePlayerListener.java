@@ -35,6 +35,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerMoveEvent;
 
+import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -168,6 +169,74 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
         catch (final Throwable ignore) {}
+
+        // --- /wormhole refresh pending check ---
+        if (com.wormhole_xtreme.wormhole.command.Refresh.isPendingRefresh(player))
+        {
+            com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(player);
+            final Stargate existing = StargateManager.getGateFromBlock(clickedBlock);
+            if (existing == null)
+            {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "No registered gate found at that block. Build or complete the gate first.");
+                return true;
+            }
+            // Preserve metadata from the existing gate before re-detecting geometry.
+            final String oldName    = existing.getGateName();
+            final String oldOwner   = existing.getGateOwner();
+            final String oldOwnerNm = existing.getGateOwnerName();
+            final String oldIdc     = existing.getGateIrisDeactivationCode();
+            final com.wormhole_xtreme.wormhole.model.StargateNetwork oldNet = existing.getGateNetwork();
+
+            // Re-detect the gate geometry fresh from the block.
+            BlockFace detectedFacing = direction;
+            com.wormhole_xtreme.wormhole.model.Stargate fresh = null;
+            if (detectedFacing != null)
+            {
+                fresh = StargateHelper.checkStargate(clickedBlock, detectedFacing);
+            }
+            if (fresh == null)
+            {
+                final org.bukkit.block.BlockFace[] faces = {
+                    org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.EAST,  org.bukkit.block.BlockFace.WEST
+                };
+                for (final org.bukkit.block.BlockFace face : faces)
+                {
+                    fresh = StargateHelper.checkStargate(clickedBlock, face);
+                    if (fresh != null) { detectedFacing = face; break; }
+                }
+            }
+            if (fresh == null)
+            {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "Gate geometry detection failed. Make sure all structure blocks are intact.");
+                return true;
+            }
+
+            // Remove the stale registration (no block destruction).
+            CommandUtilities.gateRemove(existing, false);
+
+            // Restore metadata and register with fresh geometry.
+            fresh.setGateName(oldName);
+            fresh.setGateOwner(oldOwner);
+            fresh.setGateOwnerName(oldOwnerNm);
+            fresh.completeGate(oldName, oldIdc != null ? oldIdc : "");
+            if (oldNet != null)
+            {
+                fresh.setGateNetwork(oldNet);
+                com.wormhole_xtreme.wormhole.model.StargateManager.addGateToNetwork(fresh, oldNet.getNetworkName());
+            }
+            com.wormhole_xtreme.wormhole.model.StargateManager.registerStargate(fresh);
+            com.wormhole_xtreme.wormhole.model.StargateDBManager.stargateToSQL(fresh);
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                + "Gate '" + oldName + "' refreshed successfully.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                "Gate '" + oldName + "' refreshed by " + player.getName()
+                + " facing=" + (detectedFacing != null ? detectedFacing.toString() : "null")
+                + " tpLoc=" + (fresh.getGatePlayerTeleportLocation() != null ? fresh.getGatePlayerTeleportLocation().toString() : "null"));
+            return true;
+        }
 
         final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
 

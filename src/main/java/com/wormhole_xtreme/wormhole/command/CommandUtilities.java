@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * @author Dean Bailey (alron)
  * @author Ben Echols (Lologarithm)
  */
-class CommandUtilities
+public class CommandUtilities
 {
 
     /**
@@ -134,7 +134,7 @@ class CommandUtilities
      * @param destroy
      *            true to destroy gate blocks
      */
-    static void gateRemove(final Stargate stargate, final boolean destroy)
+    public static void gateRemove(final Stargate stargate, final boolean destroy)
     {
         // Ensure the gate is fully deactivated and cleaned up before removal.
         try

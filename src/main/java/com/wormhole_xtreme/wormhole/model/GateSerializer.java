@@ -81,6 +81,7 @@ public final class GateSerializer
             final String faceStr = new String(strBytes);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
+            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGatePlayerTeleportLocation().setPitch(0);
 
@@ -157,6 +158,7 @@ public final class GateSerializer
             final String faceStr = new String(strBytes);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
+            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGatePlayerTeleportLocation().setPitch(0);
 
@@ -233,6 +235,7 @@ public final class GateSerializer
             final String faceStr = new String(strBytes);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
+            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGatePlayerTeleportLocation().setPitch(0);
 
@@ -326,6 +329,7 @@ public final class GateSerializer
             final String faceStr = new String(strBytes);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
+            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGatePlayerTeleportLocation().setPitch(0);
 
@@ -459,6 +463,7 @@ public final class GateSerializer
             byteBuff.get(strBytes);
             final String faceStr = new String(strBytes);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
+            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGatePlayerTeleportLocation().setPitch(0);
 
@@ -591,9 +596,11 @@ public final class GateSerializer
             byteBuff.get(strBytes);
             final String faceStr = new String(strBytes);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
+            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGatePlayerTeleportLocation().setPitch(0);
-            s.getGateMinecartTeleportLocation().setY(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
+            s.getGateMinecartTeleportLocation().setY(s.getGateMinecartTeleportLocation().getY() + 1.0);
+            s.getGateMinecartTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
             s.getGateMinecartTeleportLocation().setPitch(0);
 
             final int idcLen = byteBuff.getInt();
@@ -767,8 +774,22 @@ public final class GateSerializer
         final byte[] emptyBlock = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         dataArr.put(s.getGateIrisLeverBlock() != null ? DataUtils.blockToBytes(s.getGateIrisLeverBlock()) : emptyBlock);
         dataArr.put(s.getGateNameBlockHolder() != null ? DataUtils.blockToBytes(s.getGateNameBlockHolder()) : emptyBlock);
-        dataArr.put(DataUtils.locationToBytes(s.getGatePlayerTeleportLocation()));
-        dataArr.put(s.getGateMinecartTeleportLocation() != null ? DataUtils.locationToBytes(s.getGateMinecartTeleportLocation()) : DataUtils.locationToBytes(s.getGatePlayerTeleportLocation()));
+        // Serialize player teleport location as the EP block location (feet Y - 1)
+        final Location playerSaveLoc = s.getGatePlayerTeleportLocation().clone();
+        playerSaveLoc.setY(playerSaveLoc.getY() - 1.0);
+        dataArr.put(DataUtils.locationToBytes(playerSaveLoc));
+
+        // Serialize minecart teleport location similarly; fall back to player location if null
+        if (s.getGateMinecartTeleportLocation() != null)
+        {
+            final Location minecartSaveLoc = s.getGateMinecartTeleportLocation().clone();
+            minecartSaveLoc.setY(minecartSaveLoc.getY() - 1.0);
+            dataArr.put(DataUtils.locationToBytes(minecartSaveLoc));
+        }
+        else
+        {
+            dataArr.put(DataUtils.locationToBytes(playerSaveLoc));
+        }
 
         if (s.isGateSignPowered())
         {

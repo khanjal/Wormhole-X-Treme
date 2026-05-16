@@ -190,7 +190,7 @@ public class Stargate
      * @param idc
      *            the idc
      */
-    void completeGate(final String name, final String idc)
+    public void completeGate(final String name, final String idc)
     {
         setGateName(name);
 
