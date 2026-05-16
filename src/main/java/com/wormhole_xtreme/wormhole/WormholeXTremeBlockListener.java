@@ -38,7 +38,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
-import com.wormhole_xtreme.wormhole.utils.WorldUtils;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * WormholeXTreme Block Listener.
@@ -209,6 +209,23 @@ class WormholeXTremeBlockListener implements Listener
         if ( !event.isCancelled())
         {
             final Block block = event.getBlock();
+            // Protect nearby ice from melting when gates use water as their portal material
+            final Material t = block.getType();
+            if (MaterialUtils.isIce(t))
+            {
+                final Location loc = block.getLocation();
+                final Stargate closest = StargateManager.findNearestGateByBlock(loc, 10, 5);
+                if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()))
+                {
+                    final double d2 = StargateManager.distanceSquaredToClosestGateBlock(loc, closest);
+                    if (d2 <= 16)
+                    {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+            }
+
             if (StargateManager.isBlockInGate(block) && (block.getType() != org.bukkit.Material.REDSTONE_WIRE))
             {
                 event.setCancelled(true);

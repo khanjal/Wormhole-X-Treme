@@ -26,6 +26,10 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Vehicle;
+import org.bukkit.entity.Boat;
+import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -564,7 +568,7 @@ class WormholeXTremePlayerListener implements Listener
         final Block clickedBlock = event.getClickedBlock();
         final Player player = event.getPlayer();
 
-        if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
+        if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
             if (buttonLeverHit(player, clickedBlock, null))
@@ -572,7 +576,7 @@ class WormholeXTremePlayerListener implements Listener
                 return true;
             }
         }
-        else if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.LegacyCompat.isWallSign(clickedBlock.getType())))
+        else if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(clickedBlock.getType())))
         {
             final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
             if (stargate != null)
@@ -815,18 +819,132 @@ class WormholeXTremePlayerListener implements Listener
                 }
             }
             player.setNoDamageTicks(5);
+            // Capture the player's current position before any event/teleport manipulation.
+            final Location playerCurrentLoc = event.getFrom().clone();
+            // Track whether the vehicle-only path was taken (no explicit player teleport).
+            final boolean[] vehiclePathUsed = { false };
+            // Capture current vehicle (if any) early so we can defer minecarts to the Vehicle listener.
+            final Entity preVehicle = player.getVehicle();
+            final Vehicle v = (preVehicle instanceof Vehicle) ? (Vehicle) preVehicle : null;
+            // If this is a minecart, defer handling to the VehicleMoveEvent path which
+            // teleports the vehicle in-place and preserves passenger state.
+            if (v instanceof Minecart)
+            {
+                return false;
+            }
+            // For non-minecart flows, mark the event position to the safe target and continue.
             event.setFrom(safeTarget);
             event.setTo(safeTarget);
             try
             {
-                player.teleport(safeTarget);
-                // Zero velocity and fall distance to avoid immediate bounce or knockback
-                try
+                boolean vehicleTeleported = false;
+                if (v != null)
                 {
-                    player.setVelocity(new Vector(0, 0, 0));
-                    player.setFallDistance(0);
+                    final Location vehTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, stargate.getGateTarget().getGateFacing(), 1.0, 1.0);
+                    // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
+                    try { WorldUtils.forceLoadDestinationChunks(vehTarget); } catch (final Throwable ignore) {}
+                    // Mark vehicle as recently teleported BEFORE the teleport so that the
+                    // VehicleMoveEvent firing in the same tick is suppressed and does not
+                    // double-process this gate entry (which would zero the exit velocity).
+                    try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(v.getUniqueId()); } catch (final Throwable ignore) {}
+                    try
+                    {
+                        v.teleport(vehTarget);
+                        vehicleTeleported = true;
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport: teleported vehicle " + v.getUniqueId() + " (" + v.getType().name() + ") for player " + player.getName());
+                    }
+                    catch (final Throwable tt)
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to teleport player's vehicle: " + tt.getMessage());
+                    }
                 }
-                catch (final Throwable ignore) {}
+
+                if (v != null && vehicleTeleported && (v instanceof Boat))
+                {
+                    // Boat: vehicle-first, player-free approach.
+                    // Skip player.teleport() entirely so there is no teleport-ack race condition when
+                    // the client processes the subsequent ClientboundSetPassengersPacket.
+                    vehiclePathUsed[0] = true;
+                    event.setFrom(playerCurrentLoc);
+                    event.setTo(playerCurrentLoc);
+                    try
+                    {
+                        final int[] attempts = new int[] { 0 };
+                        final int MAX_ATTEMPTS = 12;
+                        final Runnable[] taskHolder = new Runnable[1];
+                        taskHolder[0] = new Runnable()
+                        {
+                            @Override
+                            public void run()
+                            {
+                                attempts[0]++;
+                                try
+                                {
+                                    if (!v.isValid() || !player.isValid())
+                                    {
+                                        return;
+                                    }
+                                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport Reattach attempt " + attempts[0] + " for " + player.getName() + " -> boat " + v.getUniqueId());
+                                    boolean added = false;
+                                    try
+                                    {
+                                        added = v.addPassenger(player);
+                                    }
+                                    catch (final Throwable t)
+                                    {
+                                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage());
+                                    }
+                                    if (!added)
+                                    {
+                                        // Fallback: teleport player to vehicle then retry.
+                                        try
+                                        {
+                                            player.teleport(v.getLocation());
+                                            added = v.addPassenger(player);
+                                        }
+                                        catch (final Throwable t)
+                                        {
+                                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after fallback teleport failed: " + t.getMessage());
+                                        }
+                                    }
+                                    if (added)
+                                    {
+                                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Reattached passenger " + player.getName() + " to boat " + v.getUniqueId() + " after attempt " + attempts[0]);
+                                    }
+                                    else if (attempts[0] < MAX_ATTEMPTS)
+                                    {
+                                        final long backoff = Math.min(1L << Math.max(0, attempts[0] - 1), 20L);
+                                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], backoff);
+                                    }
+                                    else
+                                    {
+                                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to reattach passenger " + player.getName() + " to boat " + v.getUniqueId() + " after " + attempts[0] + " attempts");
+                                    }
+                                }
+                                catch (final Throwable t)
+                                {
+                                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception during boat passenger reattach: " + t.getMessage());
+                                }
+                            }
+                        };
+                        // 2-tick delay: no teleport-ack to wait for, client processes mount immediately.
+                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 2);
+                    }
+                    catch (final Throwable ignore) {}
+                }
+                else
+                {
+                    // No vehicle, or vehicle teleport failed: normal player teleport.
+                    // Safety net: ensure destination chunk is loaded.
+                    try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final Throwable ignore) {}
+                    player.teleport(safeTarget);
+                    try
+                    {
+                        player.setVelocity(new Vector(0, 0, 0));
+                        player.setFallDistance(0);
+                    }
+                    catch (final Throwable ignore) {}
+                }
             }
             catch (final Exception e)
             {
@@ -847,10 +965,11 @@ class WormholeXTremePlayerListener implements Listener
                 }
             } catch (final Throwable ignore) {}
 
-            // Schedule a short delayed task to re-apply zero velocity and nudge the player
-            // This helps clients that may apply movement due to water flow or packet jitter
+            // Schedule a short delayed task to re-apply zero velocity.
+            // Skip the position teleport for the vehicle path — the client is repositioned by addPassenger.
             try {
                 final Location finalTarget = target;
+                final boolean skipTeleport = vehiclePathUsed[0];
                 Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), new Runnable()
                 {
                     @Override
@@ -858,12 +977,15 @@ class WormholeXTremePlayerListener implements Listener
                     {
                         try
                         {
-                                        if ((player != null) && (finalTarget != null))
-                                        {
-                                            try { player.setVelocity(new Vector(0, 0, 0)); } catch (final Throwable ignore) {}
-                                            try { player.setFallDistance(0); } catch (final Throwable ignore) {}
-                                            try { player.teleport(finalTarget); } catch (final Throwable ignore) {}
-                                        }
+                            if ((player != null) && (finalTarget != null))
+                            {
+                                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final Throwable ignore) {}
+                                try { player.setFallDistance(0); } catch (final Throwable ignore) {}
+                                if (!skipTeleport)
+                                {
+                                    try { player.teleport(finalTarget); } catch (final Throwable ignore) {}
+                                }
+                            }
                         }
                         catch (final Throwable ignore) {}
                     }
