@@ -92,6 +92,52 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
     /**
+     * Compute an exit velocity that points away from the gate based on its facing.
+     * If facing is null or zero-length, fall back to the incoming horizontal direction.
+     * The returned vector is scaled by incoming.length() * multiplier.
+     */
+    static Vector computeExitVelocity(final BlockFace facing, final Vector incoming, final double multiplier)
+    {
+        final double speed = (incoming == null) ? 0.0 : incoming.length();
+        Vector dir = null;
+        if (facing != null)
+        {
+            dir = new Vector(facing.getModX(), 0, facing.getModZ());
+            if (dir.length() == 0)
+            {
+                dir = null;
+            }
+        }
+        if (dir == null)
+        {
+            if (incoming != null && incoming.length() > 0)
+            {
+                dir = incoming.clone();
+                dir.setY(0);
+                if (dir.length() > 0)
+                {
+                    dir.normalize();
+                }
+                else
+                {
+                    dir = new Vector(0, 0, 1);
+                }
+            }
+            else
+            {
+                dir = new Vector(0, 0, 1);
+            }
+        }
+        else
+        {
+            dir.normalize();
+        }
+
+        dir.multiply(speed * multiplier);
+        return dir;
+    }
+
+    /**
      * Handle stargate minecart teleport event.
      * 
      * @param event
@@ -186,25 +232,7 @@ class WormholeXTremeVehicleListener implements Listener
             }
 
             final double speed = v.length();
-            final Vector new_speed = new Vector();
-            if (st.getGateTarget().getGateFacing() == BlockFace.NORTH)
-            {
-                new_speed.setX( -1);
-            }
-            else if (st.getGateTarget().getGateFacing() == BlockFace.SOUTH)
-            {
-                new_speed.setX(1);
-            }
-            else if (st.getGateTarget().getGateFacing() == BlockFace.EAST)
-            {
-                new_speed.setZ( -1);
-            }
-            else if (st.getGateTarget().getGateFacing() == BlockFace.WEST)
-            {
-                new_speed.setZ(1);
-            }
-            // As we all know stargates accelerate matter.
-            new_speed.multiply(speed * 5);
+            final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
                 if (st.getGateTarget().isGateIrisActive())
                 {
                     target = st.getGateMinecartTeleportLocation() != null
