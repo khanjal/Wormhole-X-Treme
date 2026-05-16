@@ -604,6 +604,56 @@ class WormholeXTremePlayerListener implements Listener
         return true;
     }
 
+    private static Location findSafePlayerLocation(final Location preferred)
+    {
+        if (preferred == null || preferred.getWorld() == null)
+        {
+            return preferred;
+        }
+        final org.bukkit.World w = preferred.getWorld();
+        final int x = preferred.getBlockX();
+        final int z = preferred.getBlockZ();
+        final int baseY = preferred.getBlockY();
+
+        // Prefer the exact stored location if it's safe (two passable blocks for head/feet and a solid block below)
+        for (int dy = 0; dy <= 3; dy++)
+        {
+            final int y = baseY + dy;
+            final org.bukkit.block.Block feet = w.getBlockAt(x, y, z);
+            final org.bukkit.block.Block head = w.getBlockAt(x, y + 1, z);
+            final org.bukkit.block.Block below = w.getBlockAt(x, y - 1, z);
+            try
+            {
+                if (feet.isPassable() && head.isPassable() && !below.isPassable())
+                {
+                    return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
+                }
+            }
+            catch (final Throwable ignore) {}
+        }
+
+        // Try downward search a few blocks
+        for (int dy = 1; dy <= 3; dy++)
+        {
+            final int y = baseY - dy;
+            if (y < w.getMinHeight()) break;
+            final org.bukkit.block.Block feet = w.getBlockAt(x, y, z);
+            final org.bukkit.block.Block head = w.getBlockAt(x, y + 1, z);
+            final org.bukkit.block.Block below = w.getBlockAt(x, y - 1, z);
+            try
+            {
+                if (feet.isPassable() && head.isPassable() && !below.isPassable())
+                {
+                    return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
+                }
+            }
+            catch (final Throwable ignore) {}
+        }
+
+        // Fallback to the original preferred location
+        return preferred.clone();
+    }
+
     /**
      * Handle player move event.
      * 
@@ -747,6 +797,7 @@ class WormholeXTremePlayerListener implements Listener
             }
 
             final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+            final Location safeTarget = findSafePlayerLocation(target);
             // Diagnostic logging for teleport issues
             if (WormholeXTreme.getThisPlugin() != null)
             {
@@ -764,11 +815,11 @@ class WormholeXTremePlayerListener implements Listener
                 }
             }
             player.setNoDamageTicks(5);
-            event.setFrom(target);
-            event.setTo(target);
+            event.setFrom(safeTarget);
+            event.setTo(safeTarget);
             try
             {
-                player.teleport(target);
+                player.teleport(safeTarget);
                 // Zero velocity and fall distance to avoid immediate bounce or knockback
                 try
                 {
@@ -807,12 +858,12 @@ class WormholeXTremePlayerListener implements Listener
                     {
                         try
                         {
-                            if ((player != null) && (finalTarget != null))
-                            {
-                                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final Throwable ignore) {}
-                                try { player.setFallDistance(0); } catch (final Throwable ignore) {}
-                                try { player.teleport(finalTarget); } catch (final Throwable ignore) {}
-                            }
+                                        if ((player != null) && (finalTarget != null))
+                                        {
+                                            try { player.setVelocity(new Vector(0, 0, 0)); } catch (final Throwable ignore) {}
+                                            try { player.setFallDistance(0); } catch (final Throwable ignore) {}
+                                            try { player.teleport(finalTarget); } catch (final Throwable ignore) {}
+                                        }
                         }
                         catch (final Throwable ignore) {}
                     }

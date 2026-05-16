@@ -70,8 +70,11 @@ class StargateAnimator
                     for (final Location l : wooshBlockStep)
                     {
                         final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                        final Material prev = b.getType();
                         gate.getGateAnimatedBlocks().add(b);
-                        StargateManager.getOpeningAnimationBlocks().put(l, b);
+                        final Location key = StargateManager.normalizeBlockLocation(l);
+                        StargateManager.getOpeningAnimationOriginalMaterials().put(key, prev);
+                        StargateManager.getOpeningAnimationBlocks().put(key, b);
                         b.setType(wooshMaterial);
                     }
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Adding: " + gate.getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
@@ -99,9 +102,15 @@ class StargateAnimator
                     for (final Location l : wooshBlockStep)
                     {
                         final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                        StargateManager.getOpeningAnimationBlocks().remove(l, b);
+                        final Location key = StargateManager.normalizeBlockLocation(l);
+                        final Material original = StargateManager.getOpeningAnimationOriginalMaterials().remove(key);
+                        StargateManager.getOpeningAnimationBlocks().remove(key, b);
                         gate.getGateAnimatedBlocks().remove(b);
-                        if (!StargateManager.isBlockInGate(b))
+                        if (original != null)
+                        {
+                            b.setType(original);
+                        }
+                        else if (!StargateManager.isBlockInGate(b))
                         {
                             b.setType(Material.AIR);
                         }
@@ -137,9 +146,12 @@ class StargateAnimator
                 {
                     final Block r = gate.getGateWorld().getBlockAt(block.getBlockX(), block.getBlockY(), block.getBlockZ())
                         .getRelative(gate.getGateFacing());
+                    final Material prev = r.getType();
                     r.setType(wooshMaterial);
                     gate.getGateAnimatedBlocks().add(r);
-                    StargateManager.getOpeningAnimationBlocks().put(r.getLocation(), r);
+                    final Location key2 = StargateManager.normalizeBlockLocation(r.getLocation());
+                    StargateManager.getOpeningAnimationOriginalMaterials().put(key2, prev);
+                    StargateManager.getOpeningAnimationBlocks().put(key2, r);
                 }
                 gate.setGateAnimationStep2D(gate.getGateAnimationStep2D() + 1);
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), 4);
@@ -152,9 +164,12 @@ class StargateAnimator
                 {
                     final Block b = gate.getGateAnimatedBlocks().get(i);
                     final Block r = b.getRelative(gate.getGateFacing());
+                    final Material prev = r.getType();
                     r.setType(wooshMaterial);
                     gate.getGateAnimatedBlocks().add(r);
-                    StargateManager.getOpeningAnimationBlocks().put(r.getLocation(), r);
+                    final Location key3 = StargateManager.normalizeBlockLocation(r.getLocation());
+                    StargateManager.getOpeningAnimationOriginalMaterials().put(key3, prev);
+                    StargateManager.getOpeningAnimationBlocks().put(key3, r);
                 }
                 gate.setGateAnimationStep2D(gate.getGateAnimationStep2D() + 1);
                 if (gate.getGateAnimationStep2D() == wooshDepth)
@@ -174,9 +189,18 @@ class StargateAnimator
                     if (index >= 0)
                     {
                         final Block b = gate.getGateAnimatedBlocks().get(index);
-                        b.setType(Material.AIR);
+                        final Location key4 = StargateManager.normalizeBlockLocation(b.getLocation());
+                        final Material original = StargateManager.getOpeningAnimationOriginalMaterials().remove(key4);
                         gate.getGateAnimatedBlocks().remove(index);
-                        StargateManager.getOpeningAnimationBlocks().remove(b.getLocation());
+                        StargateManager.getOpeningAnimationBlocks().remove(key4);
+                        if (original != null)
+                        {
+                            b.setType(original);
+                        }
+                        else if (!StargateManager.isBlockInGate(b))
+                        {
+                            b.setType(Material.AIR);
+                        }
                     }
                 }
                 if (gate.getGateAnimationStep2D() < ((wooshDepth * 2) - 1))

@@ -33,6 +33,7 @@ import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
@@ -60,66 +61,23 @@ class WormholeXTremeBlockListener implements Listener
      */
     private static boolean handleBlockBreak(final Player player, final Stargate stargate, final Block block)
     {
-        final boolean allowed = WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE);
-        if (allowed)
+        // Require gate removal via command before manual block destruction.
+        if (player != null)
         {
-            if ( !WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), block))
+            try
             {
-                if ((stargate.getGateDialSignBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialSignBlock(), block))
-                {
-                    player.sendMessage("Destroyed DHD Sign. You will be unable to change dialing target from this gate.");
-                    player.sendMessage("You can rebuild it later.");
-                    stargate.setGateDialSign(null);
-                }
-                else if (block.getType() == (stargate.isGateCustom()
-                    ? stargate.getGateCustomIrisMaterial()
-                    : stargate.getGateShape() != null
-                        ? stargate.getGateShape().getShapeIrisMaterial()
-                        : org.bukkit.Material.STONE))
-                {
-                    return true;
-                }
-                else
-                {
-                    if (stargate.isGateActive())
-                    {
-                        stargate.setGateActive(false);
-                        stargate.fillGateInterior(org.bukkit.Material.AIR);
-                    }
-                    if (stargate.isGateLightsActive())
-                    {
-                        stargate.lightStargate(false);
-                        stargate.stopActivationTimer();
-                        StargateManager.removeActivatedStargate(player);
-                    }
-                    stargate.resetTeleportSign();
-                    stargate.setupGateSign(false);
-                    if ( !stargate.getGateIrisDeactivationCode().equals(""))
-                    {
-                        stargate.setupIrisLever(false);
-                    }
-                    if (stargate.isGateRedstonePowered())
-                    {
-                        stargate.setupRedstone(false);
-                    }
-                    StargateManager.removeStargate(stargate);
-                    player.sendMessage("Stargate Destroyed: " + stargate.getGateName());
-                }
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "This block is part of the registered gate '" + stargate.getGateName() + "'.");
+                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                    + "Run '/wormhole remove " + stargate.getGateName() + "' to remove the gate first (use -all to also destroy blocks).");
             }
-            else
-            {
-                player.sendMessage("Destroyed DHD. You will be unable to dial out from this gate.");
-                player.sendMessage("You can rebuild it later.");
-            }
-            return false;
+            catch (final Throwable ignore) {}
         }
         else
         {
-            if (player != null)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player: " + player.getName() + " denied block destroy on: " + stargate.getGateName());
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked non-player block break on registered gate: " + stargate.getGateName());
         }
+        // Return true to signal that the break should be cancelled.
         return true;
     }
 

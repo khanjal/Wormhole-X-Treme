@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -64,6 +65,8 @@ public class StargateManager
     // List of blocks that are part of an active animation. Only use this to make sure water doesn't flow everywhere.
     /** The Constant opening_animation_blocks. */
     private static final ConcurrentHashMap<Location, Block> openingAnimationBlocks = new ConcurrentHashMap<Location, Block>();
+    // Keep the original material for each animated block so we can restore it after the woosh
+    private static final ConcurrentHashMap<Location, Material> openingAnimationOriginalMaterials = new ConcurrentHashMap<Location, Material>();
 
     /**
      * This method adds a stargate that has been activated but not dialed by a player.
@@ -93,8 +96,9 @@ public class StargateManager
     {
         if ((b != null) && (s != null))
         {
-            getAllGateBlocks().put(b.getLocation(), s);
-            GateSpatialIndex.add(b.getLocation());
+            final Location norm = normalizeBlockLocation(b.getLocation());
+            getAllGateBlocks().put(norm, s);
+            GateSpatialIndex.add(norm);
             try
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
@@ -172,13 +176,15 @@ public class StargateManager
         getStargateList().put(normalizeGateName(s.getGateName()), s);
         for (final Location b : s.getGateStructureBlocks())
         {
-            getAllGateBlocks().put(b, s);
-            GateSpatialIndex.add(b);
+            final Location norm = normalizeBlockLocation(b);
+            getAllGateBlocks().put(norm, s);
+            GateSpatialIndex.add(norm);
         }
         for (final Location b : s.getGatePortalBlocks())
         {
-            getAllGateBlocks().put(b, s);
-            GateSpatialIndex.add(b);
+            final Location norm = normalizeBlockLocation(b);
+            getAllGateBlocks().put(norm, s);
+            GateSpatialIndex.add(norm);
         }
         // Index explicit activation-related blocks so player interactions find the gate.
         try
@@ -516,11 +522,12 @@ public class StargateManager
      */
     public static Stargate getGateFromBlock(final Block b)
     {
-        final boolean contains = getAllGateBlocks().containsKey(b.getLocation());
+        final Location key = normalizeBlockLocation(b.getLocation());
+        final boolean contains = getAllGateBlocks().containsKey(key);
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation().toString() + " type=" + b.getType().toString() + " indexed=" + contains);
         if (contains)
         {
-            final Stargate s = getAllGateBlocks().get(b.getLocation());
+            final Stargate s = getAllGateBlocks().get(key);
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation().toString());
             return s;
         }
@@ -539,7 +546,7 @@ public class StargateManager
                         {
                             continue;
                         }
-                        final Location nloc = new Location(base.getWorld(), base.getX() + dx, base.getY() + dy, base.getZ() + dz);
+                        final Location nloc = normalizeBlockLocation(new Location(base.getWorld(), base.getBlockX() + dx, base.getBlockY() + dy, base.getBlockZ() + dz));
                         if (getAllGateBlocks().containsKey(nloc))
                         {
                             final Stargate s = getAllGateBlocks().get(nloc);
@@ -590,6 +597,24 @@ public class StargateManager
     protected static ConcurrentHashMap<Location, Block> getOpeningAnimationBlocks()
     {
         return openingAnimationBlocks;
+    }
+
+    protected static ConcurrentHashMap<Location, Material> getOpeningAnimationOriginalMaterials()
+    {
+        return openingAnimationOriginalMaterials;
+    }
+
+    /**
+     * Normalize a location to its block coordinates (integer XYZ) while preserving world.
+     * Use this when storing/retrieving map keys that represent block positions.
+     */
+    protected static Location normalizeBlockLocation(final Location loc)
+    {
+        if (loc == null || loc.getWorld() == null)
+        {
+            return loc;
+        }
+        return new Location(loc.getWorld(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     /**
@@ -716,7 +741,8 @@ public class StargateManager
      */
     public static boolean isBlockInGate(final Block b)
     {
-        return getAllGateBlocks().containsKey(b.getLocation()) || getOpeningAnimationBlocks().containsKey(b.getLocation());
+        final Location key = normalizeBlockLocation(b.getLocation());
+        return getAllGateBlocks().containsKey(key) || getOpeningAnimationBlocks().containsKey(key);
     }
 
     /**

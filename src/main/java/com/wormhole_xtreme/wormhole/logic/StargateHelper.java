@@ -425,7 +425,8 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + emPos[2] * right.getModX();
                 final int wy = oy + emPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + emPos[2] * right.getModZ();
-                gate.setGateMinecartTeleportLocation(new Location(world, wx + 0.5, wy, wz + 0.5));
+                // Use a half-block Y offset so minecarts spawn above the ground and do not sink into blocks.
+                gate.setGateMinecartTeleportLocation(new Location(world, wx + 0.5, wy + 0.5, wz + 0.5));
             }
 
             // Dial-sign holder (D) — the sign sits on the gate-facing face of this block.

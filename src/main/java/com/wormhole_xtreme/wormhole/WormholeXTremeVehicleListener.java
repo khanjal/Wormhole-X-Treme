@@ -21,6 +21,8 @@ package com.wormhole_xtreme.wormhole;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -51,6 +53,21 @@ class WormholeXTremeVehicleListener implements Listener
 
     /** The nospeed. */
     private final static Vector nospeed = new Vector();
+
+    /**
+     * Simple minecart safety helper – return one block above the preferred
+     * arrival location so players/carts don't spawn inside blocks.
+     */
+    static Location findSafeMinecartLocation(final Location preferred)
+    {
+        if (preferred == null || preferred.getWorld() == null)
+        {
+            return preferred;
+        }
+        final Location out = preferred.clone();
+        out.add(0, 1.0, 0);
+        return out;
+    }
 
     /**
      * Handle stargate minecart teleport event.
@@ -98,9 +115,14 @@ class WormholeXTremeVehicleListener implements Listener
                 if (st.getGateTarget().isGateIrisActive())
                 {
                     p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
-                    veh.teleport(st.getGateMinecartTeleportLocation() != null
+                    final Location irisTarget = st.getGateMinecartTeleportLocation() != null
                         ? st.getGateMinecartTeleportLocation()
-                        : st.getGatePlayerTeleportLocation());
+                        : st.getGatePlayerTeleportLocation();
+                    // If player is in a minecart, just move them one block up from the TP location
+                    final Location safeIrisTarget = (irisTarget != null)
+                        ? irisTarget.clone().add(0, 1.0, 0)
+                        : irisTarget;
+                    veh.teleport(safeIrisTarget);
                     if (ConfigManager.getTimeoutShutdown() == 0)
                     {
                         st.shutdownStargate(true);
@@ -126,9 +148,12 @@ class WormholeXTremeVehicleListener implements Listener
                 if (st.getGateTarget().isGateIrisActive())
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Minecart in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
-                    veh.teleport(st.getGateMinecartTeleportLocation() != null
+                    final Location irisTarget = st.getGateMinecartTeleportLocation() != null
                         ? st.getGateMinecartTeleportLocation()
-                        : st.getGatePlayerTeleportLocation());
+                        : st.getGatePlayerTeleportLocation();
+                    // For non-player carts, use a simple one-block-up offset from configured TP
+                    final Location safeIrisTarget = (irisTarget != null) ? irisTarget.clone().add(0, 1.0, 0) : irisTarget;
+                    veh.teleport(safeIrisTarget);
                     if (ConfigManager.getTimeoutShutdown() == 0)
                     {
                         st.shutdownStargate(true);
@@ -163,35 +188,39 @@ class WormholeXTremeVehicleListener implements Listener
                 target = st.getGateMinecartTeleportLocation() != null
                     ? st.getGateMinecartTeleportLocation()
                     : st.getGatePlayerTeleportLocation();
-                veh.teleport(target);
+                final Location safeTarget = findSafeMinecartLocation(target);
+                veh.teleport(safeTarget);
                 veh.setVelocity(new_speed);
             }
             else
             {
-                if (e != null)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Removing player from cart and doing some teleport hackery");
-                    veh.eject();
-                    veh.remove();
-                    final Minecart newveh = target.getWorld().spawn(target, Minecart.class);
-                    final Event teleportevent = new StargateMinecartTeleportEvent(veh, newveh);
-                    WormholeXTreme.getThisPlugin().getServer().getPluginManager().callEvent(teleportevent);
-                    e.teleport(target);
-                    final Vector newnew_speed = new_speed;
-                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+                    if (e != null)
                     {
-                        @Override
-                        public void run()
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Removing player from cart and doing some teleport hackery");
+                        veh.eject();
+                        veh.remove();
+                        // For player-occupied carts, simply move the TP location one block up to avoid sinking
+                        final Location safeTarget = (target != null) ? target.clone().add(0, 1.0, 0) : target;
+                        final Minecart newveh = safeTarget.getWorld().spawn(safeTarget, Minecart.class);
+                        final Event teleportevent = new StargateMinecartTeleportEvent(veh, newveh);
+                        WormholeXTreme.getThisPlugin().getServer().getPluginManager().callEvent(teleportevent);
+                        e.teleport(safeTarget);
+                        final Vector newnew_speed = new_speed;
+                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
                         {
-                            newveh.setPassenger(e);
-                            newveh.setVelocity(newnew_speed);
-                            newveh.setFireTicks(0);
-                        }
-                    }, 5);
-                }
+                            @Override
+                            public void run()
+                            {
+                                newveh.setPassenger(e);
+                                newveh.setVelocity(newnew_speed);
+                                newveh.setFireTicks(0);
+                            }
+                        }, 5);
+                    }
                 else
                 {
-                    veh.teleport(target);
+                    final Location safeTarget = (target != null) ? target.clone().add(0, 1.0, 0) : target;
+                    veh.teleport(safeTarget);
                     veh.setVelocity(new_speed);
                 }
             }
