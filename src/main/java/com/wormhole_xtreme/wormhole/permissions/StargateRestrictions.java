@@ -106,10 +106,10 @@ public class StargateRestrictions
 
     private static class RecentArrival
     {
-        private final int gateId;
+        private final long gateId;
         private final long timeNs;
 
-        RecentArrival(final int gateId, final long timeNs)
+        RecentArrival(final long gateId, final long timeNs)
         {
             this.gateId = gateId;
             this.timeNs = timeNs;
@@ -168,7 +168,7 @@ public class StargateRestrictions
         {
             return;
         }
-        final int gid = gate.getGateId();
+        final long gid = gate.getGateId();
         for (final Player p : getPlayerRecentArrival().keySet())
         {
             final RecentArrival r = getPlayerRecentArrival().get(p);
