@@ -524,45 +524,23 @@ public class StargateManager
     {
         final Location key = normalizeBlockLocation(b.getLocation());
         final boolean contains = getAllGateBlocks().containsKey(key);
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation().toString() + " type=" + b.getType().toString() + " indexed=" + contains);
+        if (WormholeXTreme.getThisPlugin() != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation().toString() + " type=" + b.getType().toString() + " indexed=" + contains);
+        }
         if (contains)
         {
             final Stargate s = getAllGateBlocks().get(key);
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation().toString());
+            if (WormholeXTreme.getThisPlugin() != null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation().toString());
+            }
             return s;
         }
-
-        // Fallback: check neighboring blocks in a 1-block radius (covers levers/buttons attached to nearby blocks)
-        try
+        if (WormholeXTreme.getThisPlugin() != null)
         {
-            final Location base = b.getLocation();
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    for (int dz = -1; dz <= 1; dz++)
-                    {
-                        if (dx == 0 && dy == 0 && dz == 0)
-                        {
-                            continue;
-                        }
-                        final Location nloc = normalizeBlockLocation(new Location(base.getWorld(), base.getBlockX() + dx, base.getBlockY() + dy, base.getBlockZ() + dz));
-                        if (getAllGateBlocks().containsKey(nloc))
-                        {
-                            final Stargate s = getAllGateBlocks().get(nloc);
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate neighbor lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for clicked loc=" + base.toString() + " neighbor=" + nloc.toString());
-                            return s;
-                        }
-                    }
-                }
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup miss for loc=" + b.getLocation().toString());
         }
-        catch (final Exception ex)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error during neighbor gate lookup: " + ex.getMessage());
-        }
-
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup miss for loc=" + b.getLocation().toString());
         return null;
     }
 
@@ -820,8 +798,9 @@ public class StargateManager
     {
         if (b != null)
         {
-            getAllGateBlocks().remove(b.getLocation());
-            GateSpatialIndex.remove(b.getLocation());
+            final Location norm = normalizeBlockLocation(b.getLocation());
+            getAllGateBlocks().remove(norm);
+            GateSpatialIndex.remove(norm);
         }
     }
 

@@ -70,6 +70,28 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
     /**
+     * Return a location offset slightly forward (in the gate facing direction)
+     * and up so minecarts arrive clear of the portal. Uses facing.getModX()/getModZ()
+     * to compute a small horizontal offset.
+     */
+    static Location forwardAndUp(final Location base, final BlockFace facing, final double forward, final double up)
+    {
+        if (base == null || base.getWorld() == null)
+        {
+            return base;
+        }
+        if (facing == null)
+        {
+            final Location out = base.clone();
+            out.add(0, up, 0);
+            return out;
+        }
+        final Location out = base.clone();
+        out.add(facing.getModX() * forward, up, facing.getModZ() * forward);
+        return out;
+    }
+
+    /**
      * Handle stargate minecart teleport event.
      * 
      * @param event
@@ -119,9 +141,9 @@ class WormholeXTremeVehicleListener implements Listener
                         ? st.getGateMinecartTeleportLocation()
                         : st.getGatePlayerTeleportLocation();
                     // If player is in a minecart, just move them one block up from the TP location
-                    final Location safeIrisTarget = (irisTarget != null)
-                        ? irisTarget.clone().add(0, 1.0, 0)
-                        : irisTarget;
+                                final Location safeIrisTarget = (irisTarget != null)
+                                    ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
+                                    : irisTarget;
                     veh.teleport(safeIrisTarget);
                     if (ConfigManager.getTimeoutShutdown() == 0)
                     {
@@ -152,7 +174,7 @@ class WormholeXTremeVehicleListener implements Listener
                         ? st.getGateMinecartTeleportLocation()
                         : st.getGatePlayerTeleportLocation();
                     // For non-player carts, use a simple one-block-up offset from configured TP
-                    final Location safeIrisTarget = (irisTarget != null) ? irisTarget.clone().add(0, 1.0, 0) : irisTarget;
+                    final Location safeIrisTarget = (irisTarget != null) ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0) : irisTarget;
                     veh.teleport(safeIrisTarget);
                     if (ConfigManager.getTimeoutShutdown() == 0)
                     {
@@ -183,15 +205,15 @@ class WormholeXTremeVehicleListener implements Listener
             }
             // As we all know stargates accelerate matter.
             new_speed.multiply(speed * 5);
-            if (st.getGateTarget().isGateIrisActive())
-            {
-                target = st.getGateMinecartTeleportLocation() != null
-                    ? st.getGateMinecartTeleportLocation()
-                    : st.getGatePlayerTeleportLocation();
-                final Location safeTarget = findSafeMinecartLocation(target);
-                veh.teleport(safeTarget);
-                veh.setVelocity(new_speed);
-            }
+                if (st.getGateTarget().isGateIrisActive())
+                {
+                    target = st.getGateMinecartTeleportLocation() != null
+                        ? st.getGateMinecartTeleportLocation()
+                        : st.getGatePlayerTeleportLocation();
+                    final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+                    veh.teleport(safeTarget);
+                    veh.setVelocity(new_speed);
+                }
             else
             {
                     if (e != null)
@@ -200,7 +222,7 @@ class WormholeXTremeVehicleListener implements Listener
                         veh.eject();
                         veh.remove();
                         // For player-occupied carts, simply move the TP location one block up to avoid sinking
-                        final Location safeTarget = (target != null) ? target.clone().add(0, 1.0, 0) : target;
+                        final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
                         final Minecart newveh = safeTarget.getWorld().spawn(safeTarget, Minecart.class);
                         final Event teleportevent = new StargateMinecartTeleportEvent(veh, newveh);
                         WormholeXTreme.getThisPlugin().getServer().getPluginManager().callEvent(teleportevent);
@@ -219,7 +241,7 @@ class WormholeXTremeVehicleListener implements Listener
                     }
                 else
                 {
-                    final Location safeTarget = (target != null) ? target.clone().add(0, 1.0, 0) : target;
+                    final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
                     veh.teleport(safeTarget);
                     veh.setVelocity(new_speed);
                 }
