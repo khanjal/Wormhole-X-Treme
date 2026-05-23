@@ -95,9 +95,8 @@ public class WormholeXTremeVehicleListenerEventTest
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
 
-        final VehicleMoveEvent ev = mock(VehicleMoveEvent.class);
-        when(ev.getVehicle()).thenReturn(cart);
-        when(ev.getTo()).thenReturn(toLoc);
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        final VehicleMoveEvent ev = new VehicleMoveEvent(cart, fromLoc, toLoc);
 
         final WormholeXTremeVehicleListener listener = new WormholeXTremeVehicleListener();
         listener.onVehicleMove(ev);
@@ -161,9 +160,8 @@ public class WormholeXTremeVehicleListenerEventTest
             return 1;
         }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
 
-        final VehicleMoveEvent ev = mock(VehicleMoveEvent.class);
-        when(ev.getVehicle()).thenReturn(boat);
-        when(ev.getTo()).thenReturn(toLoc);
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        final VehicleMoveEvent ev = new VehicleMoveEvent(boat, fromLoc, toLoc);
 
         final WormholeXTremeVehicleListener listener = new WormholeXTremeVehicleListener();
         listener.onVehicleMove(ev);

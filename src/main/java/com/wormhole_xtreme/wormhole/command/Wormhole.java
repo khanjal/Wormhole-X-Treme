@@ -506,7 +506,6 @@ public class Wormhole implements CommandExecutor
                     else
                     {
                         // getOfflinePlayer by name queries usercache (may return unknown UUID if name never joined)
-                        @SuppressWarnings("deprecation")
                         final org.bukkit.OfflinePlayer offline = Bukkit.getOfflinePlayer(newOwnerName);
                         if (offline.hasPlayedBefore() || offline.isOnline())
                         {
