@@ -8,8 +8,8 @@
 	<name>Wormhole-X-Treme</name>
 	 <properties>
 		 <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		 <maven.compiler.release>17</maven.compiler.release>
-		 <java.version>17</java.version>
+		 <maven.compiler.release>25</maven.compiler.release>
+		 <java.version>25</java.version>
 	 </properties>
 	<url>http://www.wormhole-xtreme.com</url>
 	<build>
@@ -17,7 +17,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.10.1</version>
+				<version>3.14.0</version>
 				<configuration>
 					<release>${java.version}</release>
 				</configuration>
@@ -25,7 +25,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M7</version>
+				<version>3.3.0</version>
 				<configuration>
 					<useModulePath>false</useModulePath>
 				</configuration>
