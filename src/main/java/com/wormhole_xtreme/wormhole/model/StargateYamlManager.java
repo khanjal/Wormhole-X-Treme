@@ -16,7 +16,6 @@ import org.bukkit.Server;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.GateSerializer;
 
 /**
  * Simple per-gate YAML manager.
@@ -80,9 +79,7 @@ public class StargateYamlManager
                         owner = legacyOwner;
                     }
                     final String gateDataB64 = (String) map.get("GateData");
-                    final String network = (String) map.getOrDefault("Network", "");
                     final String worldName = (String) map.getOrDefault("WorldName", "");
-                    final String worldEnv = (String) map.getOrDefault("WorldEnvironment", "");
 
                     if (gateDataB64 != null)
                     {

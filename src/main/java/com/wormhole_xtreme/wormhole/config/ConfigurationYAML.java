@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
@@ -23,9 +22,9 @@ import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLev
 public class ConfigurationYAML
 {
 
-    protected static void loadConfiguration(final PluginDescriptionFile desc)
+    protected static void loadConfiguration(final String pluginName)
     {
-        final File directory = new File("plugins" + File.separator + desc.getName() + File.separator);
+        final File directory = new File("plugins" + File.separator + pluginName + File.separator);
         if (!directory.exists())
         {
             directory.mkdir();
@@ -35,7 +34,7 @@ public class ConfigurationYAML
         if (!cfg.exists())
         {
             // write default file
-            writeFile(cfg, desc, DefaultSettings.config);
+            writeFile(cfg, pluginName, DefaultSettings.config);
         }
 
         try (InputStream in = new FileInputStream(cfg))
@@ -144,11 +143,11 @@ public class ConfigurationYAML
         }
     }
 
-    protected static void writeFile(final File file, final PluginDescriptionFile desc, final Setting[] config)
+    protected static void writeFile(final File file, final String pluginName, final Setting[] config)
     {
         try
         {
-            final File directory = new File("plugins" + File.separator + desc.getName() + File.separator);
+            final File directory = new File("plugins" + File.separator + pluginName + File.separator);
             if (!directory.exists())
             {
                 directory.mkdir();
@@ -181,11 +180,11 @@ public class ConfigurationYAML
     /**
      * Write current runtime configuration (from ConfigManager) to YAML.
      */
-    protected static void writeCurrentConfiguration(final File file, final PluginDescriptionFile desc)
+    protected static void writeCurrentConfiguration(final File file, final String pluginName)
     {
         try
         {
-            final File directory = new File("plugins" + File.separator + desc.getName() + File.separator);
+            final File directory = new File("plugins" + File.separator + pluginName + File.separator);
             if (!directory.exists())
             {
                 directory.mkdir();

@@ -4,7 +4,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.bukkit.Server;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.StargateYamlManager;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 import com.wormhole_xtreme.wormhole.storage.StorageBackend;
 import com.wormhole_xtreme.wormhole.storage.StorageFactory;

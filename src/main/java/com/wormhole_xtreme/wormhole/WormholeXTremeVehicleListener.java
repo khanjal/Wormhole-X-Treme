@@ -1,21 +1,5 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
 package com.wormhole_xtreme.wormhole;
 
 import java.util.logging.Level;
@@ -25,8 +9,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -228,18 +210,6 @@ class WormholeXTremeVehicleListener implements Listener
                                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after teleport failed: " + t.getMessage());
                             }
                         }
-                        if (!added)
-                        {
-                            try
-                            {
-                                veh.setPassenger(passenger);
-                                added = true;
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "setPassenger fallback failed: " + t.getMessage());
-                            }
-                        }
                         if (!added && passenger instanceof Player)
                         {
                             try
@@ -422,18 +392,6 @@ class WormholeXTremeVehicleListener implements Listener
                                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after teleport failed: " + t.getMessage());
                             }
                         }
-                        if (!added)
-                        {
-                            try
-                            {
-                                veh.setPassenger(passenger);
-                                added = true;
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "setPassenger fallback failed: " + t.getMessage());
-                            }
-                        }
                         if (!added && passenger instanceof Player)
                         {
                             try
@@ -614,14 +572,18 @@ class WormholeXTremeVehicleListener implements Listener
                 ? st.getGateTarget().getGateMinecartTeleportLocation()
                 : st.getGateTarget().getGatePlayerTeleportLocation();
             final Vehicle veh = (Vehicle) event.getVehicle();
+            if (veh == null)
+            {
+                return false;
+            }
             // Avoid re-triggering teleports for vehicles that were just teleported
-            if (veh != null && recentlyTeleported.contains(veh.getUniqueId()))
+            if (recentlyTeleported.contains(veh.getUniqueId()))
             {
                 return false;
             }
             final Vector v = veh.getVelocity();
             veh.setVelocity(nospeed);
-            final Entity e = veh.getPassenger();
+            final Entity e = veh.getPassengers().isEmpty() ? null : veh.getPassengers().get(0);
             if ((e != null) && (e instanceof Player))
             {
                 final Player p = (Player) e;
@@ -708,7 +670,6 @@ class WormholeXTremeVehicleListener implements Listener
 
             }
 
-            final double speed = v.length();
             final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
                 if (st.getGateTarget().isGateIrisActive())
                 {

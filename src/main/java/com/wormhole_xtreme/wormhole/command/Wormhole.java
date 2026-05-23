@@ -1,25 +1,5 @@
-/**
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
-            else if (a[0].equalsIgnoreCase("storage"))
-            {
-                return storageCommand(sender, a);
-            }
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.Arrays;
@@ -38,7 +18,6 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.storage.StorageMigrator;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -92,70 +71,6 @@ public class Wormhole implements CommandExecutor
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Current activate_timeout is: " + ConfigManager.getTimeoutActivate());
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid timeout is between 10 and 60 seconds.");
         }
-        return true;
-    }
-
-    private static boolean storageCommand(final CommandSender sender, final String[] a)
-    {
-        if (a.length < 2)
-        {
-            sender.sendMessage("Usage: /wormhole storage backend <name> | /wormhole storage migrate <backend> [force]");
-            return true;
-        }
-
-        if (a[1].equalsIgnoreCase("backend"))
-        {
-            if (a.length < 3)
-            {
-                sender.sendMessage("Usage: /wormhole storage backend <file|sqlite|hsqldb|mysql|postgres>");
-                return true;
-            }
-            final String backend = a[2];
-            // Update runtime config entry (will not rewrite config.yml on disk).
-            com.wormhole_xtreme.wormhole.config.ConfigManager.setStorageBackend(backend);
-            sender.sendMessage("Storage backend set to: " + backend + ". Restart or rewrite config.yml to persist permanently.");
-            return true;
-        }
-
-        if (a[1].equalsIgnoreCase("migrate"))
-        {
-            if (a.length < 3)
-            {
-                sender.sendMessage("Usage: /wormhole storage migrate <destination> [force]");
-                sender.sendMessage("       /wormhole storage migrate <source> <destination> [force]");
-                sender.sendMessage("Sources:      hsqldb, sqlite, file/yaml");
-                sender.sendMessage("Destinations: file, yaml, sqlite");
-                return true;
-            }
-
-            // Detect optional source argument:
-            // 3 args:  migrate <dest> [force?]
-            // 4 args:  migrate <src> <dest> [force?]  OR  migrate <dest> force
-            // 5 args:  migrate <src> <dest> force
-            final String knownBackends = "hsqldb|sqlite|file|yaml";
-            String source = null;
-            String toBackend;
-            boolean force;
-
-            if (a.length >= 4 && a[3].toLowerCase().matches(knownBackends))
-            {
-                // /wx storage migrate hsqldb sqlite [force]
-                source = a[2];
-                toBackend = a[3];
-                force = (a.length >= 5) && (a[4].equalsIgnoreCase("force") || a[4].equalsIgnoreCase("-f"));
-            }
-            else
-            {
-                // /wx storage migrate sqlite [force]
-                toBackend = a[2];
-                force = (a.length >= 4) && (a[3].equalsIgnoreCase("force") || a[3].equalsIgnoreCase("-f"));
-            }
-
-            StorageMigrator.migrateTo(source, toBackend, force, sender);
-            return true;
-        }
-
-        sender.sendMessage("Unknown storage subcommand. Use 'backend' or 'migrate'.");
         return true;
     }
 
@@ -506,7 +421,6 @@ public class Wormhole implements CommandExecutor
                     else
                     {
                         // getOfflinePlayer by name queries usercache (may return unknown UUID if name never joined)
-                        @SuppressWarnings("deprecation")
                         final org.bukkit.OfflinePlayer offline = Bukkit.getOfflinePlayer(newOwnerName);
                         if (offline.hasPlayedBefore() || offline.isOnline())
                         {
@@ -704,10 +618,7 @@ public class Wormhole implements CommandExecutor
             {
                 if ((s.getGateShape() != null) && StargateHelper.isStargateShape(s.getGateShape().getShapeName()))
                 {
-                    //TODO: regenerate and upgrade stargates from 2d shape to 3d shape here.
-                    // Handle the breaking out of shapes into multiple names for things like sign dial 
-                    // by checking all the shape names for occurances of the shapeName then test from the longest
-                    // shapeName to the shortest.
+                    // Shape format (2D/3D) is determined at load time; no runtime upgrade needed.
                 }
                 s.toggleDialLeverState(true);
                 if ((s.getGateIrisDeactivationCode() != null) && (s.getGateIrisDeactivationCode().length() > 0))
@@ -860,14 +771,6 @@ public class Wormhole implements CommandExecutor
      *            the args
      * @return true, if successful
      */
-    private static boolean doSimplePermissions(final CommandSender sender, final String[] args)
-    {
-        // Simple-permissions feature removed; method removed in cleanup.
-        // This method should not be called; return false to indicate unsupported.
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Simple permissions have been removed. Use Vault/LuckPerms instead.");
-        return false;
-    }
-
     /**
      * Do woosh depth.
      * 

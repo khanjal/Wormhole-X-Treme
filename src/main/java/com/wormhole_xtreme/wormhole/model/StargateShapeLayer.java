@@ -1,21 +1,5 @@
-/*
- * Wormhole X-Treme Plugin for Bukkit
- * Copyright (C) 2011 Ben Echols
- *                    Dean Bailey
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
@@ -81,8 +65,6 @@ public class StargateShapeLayer
      */
     protected StargateShapeLayer(final String[] layerLines, final int height, final int width)
     {
-        int numBlocks = 0;
-
         // 1. scan all lines for lines beginning with [  - that is the height of the gate
         for (int i = 0; i < layerLines.length; i++)
         {
@@ -96,7 +78,6 @@ public class StargateShapeLayer
                 {
                     if (mod.equalsIgnoreCase("S"))
                     {
-                        numBlocks++;
                         getLayerBlockPositions().add(point);
                     }
                     else if (mod.equalsIgnoreCase("P"))
@@ -188,8 +169,6 @@ public class StargateShapeLayer
                 j++;
             }
         }
-        //TODO: debug printout for the materials the gate uses.
-        //TODO: debug printout for the redstone_activated
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Sign Position: \"" + Arrays.toString(getLayerNameSignPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Player Exit Position: \"" + Arrays.toString(getLayerPlayerExitPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Minecart Exit Position: \"" + Arrays.toString(getLayerMinecartExitPosition()) + "\"");

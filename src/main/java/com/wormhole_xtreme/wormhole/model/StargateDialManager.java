@@ -1,21 +1,5 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.logging.Level;
@@ -24,6 +8,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
+import net.kyori.adventure.text.Component;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 
@@ -63,7 +49,7 @@ class StargateDialManager
             tsWs.setFacing(gate.getGateFacing());
             gate.getGateDialSignBlock().setBlockData(tsWs);
             gate.setGateDialSign((Sign) gate.getGateDialSignBlock().getState());
-            gate.getGateDialSign().setLine(0, "-" + gate.getGateName() + "-");
+            gate.getGateDialSign().getSide(Side.FRONT).line(0, Component.text("-" + gate.getGateName() + "-"));
 
             if (gate.getGateDialSignIndex() == -1)
             {
@@ -73,9 +59,9 @@ class StargateDialManager
             if ((gate.getGateNetwork().getNetworkSignGateList().size() == 0)
                 || (gate.getGateNetwork().getNetworkSignGateList().size() == 1))
             {
-                gate.getGateDialSign().setLine(1, "");
-                gate.getGateDialSign().setLine(2, "No Other Gates");
-                gate.getGateDialSign().setLine(3, "");
+                gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(""));
+                gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text("No Other Gates"));
+                gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
                 gate.getGateDialSign().update();
                 gate.setGateDialSignTarget(null);
                 return;
@@ -103,9 +89,9 @@ class StargateDialManager
                 gate.getGateSignOrder().clear();
                 gate.getGateSignOrder().put(Integer.valueOf(2),
                     gate.getGateNetwork().getNetworkSignGateList().get(gate.getGateDialSignIndex()));
-                gate.getGateDialSign().setLine(1, "");
-                gate.getGateDialSign().setLine(2, ">" + gate.getGateSignOrder().get(Integer.valueOf(2)).getGateName() + "<");
-                gate.getGateDialSign().setLine(3, "");
+                gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(""));
+                gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(">" + gate.getGateSignOrder().get(Integer.valueOf(2)).getGateName() + "<"));
+                gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
                 gate.setGateDialSignTarget(gate.getGateNetwork().getNetworkSignGateList().get(gate.getGateDialSignIndex()));
             }
             else if (networkSize == 3)
@@ -133,9 +119,9 @@ class StargateDialManager
                     if (orderIndex == 4) { orderIndex = 1; }
                     gate.setGateDialSignIndex(gate.getGateDialSignIndex() + 1);
                 }
-                gate.getGateDialSign().setLine(1, gate.getGateSignOrder().get(Integer.valueOf(1)).getGateName());
-                gate.getGateDialSign().setLine(2, ">" + gate.getGateSignOrder().get(Integer.valueOf(2)).getGateName() + "<");
-                gate.getGateDialSign().setLine(3, "");
+                gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(gate.getGateSignOrder().get(Integer.valueOf(1)).getGateName()));
+                gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(">" + gate.getGateSignOrder().get(Integer.valueOf(2)).getGateName() + "<"));
+                gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
                 gate.setGateDialSignTarget(gate.getGateSignOrder().get(Integer.valueOf(2)));
                 gate.setGateDialSignIndex(gate.getGateNetwork().getNetworkSignGateList()
                     .indexOf(gate.getGateSignOrder().get(Integer.valueOf(2))));
@@ -164,9 +150,9 @@ class StargateDialManager
                     orderIndex++;
                     gate.setGateDialSignIndex(gate.getGateDialSignIndex() + 1);
                 }
-                gate.getGateDialSign().setLine(1, gate.getGateSignOrder().get(Integer.valueOf(3)).getGateName());
-                gate.getGateDialSign().setLine(2, ">" + gate.getGateSignOrder().get(Integer.valueOf(2)).getGateName() + "<");
-                gate.getGateDialSign().setLine(3, gate.getGateSignOrder().get(Integer.valueOf(1)).getGateName());
+                gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(gate.getGateSignOrder().get(Integer.valueOf(3)).getGateName()));
+                gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(">" + gate.getGateSignOrder().get(Integer.valueOf(2)).getGateName() + "<"));
+                gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(gate.getGateSignOrder().get(Integer.valueOf(1)).getGateName()));
                 gate.setGateDialSignTarget(gate.getGateSignOrder().get(Integer.valueOf(2)));
                 gate.setGateDialSignIndex(gate.getGateNetwork().getNetworkSignGateList()
                     .indexOf(gate.getGateSignOrder().get(Integer.valueOf(2))));
@@ -190,10 +176,10 @@ class StargateDialManager
             dialWs.setFacing(gate.getGateFacing());
             gate.getGateDialSignBlock().setBlockData(dialWs);
             gate.setGateDialSign((Sign) gate.getGateDialSignBlock().getState());
-            gate.getGateDialSign().setLine(0, gate.getGateName());
-            gate.getGateDialSign().setLine(1, gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "");
-            gate.getGateDialSign().setLine(2, "");
-            gate.getGateDialSign().setLine(3, "");
+            gate.getGateDialSign().getSide(Side.FRONT).line(0, Component.text(gate.getGateName()));
+            gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : ""));
+            gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(""));
+            gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
             gate.getGateDialSign().update(true);
         }
     }
@@ -331,6 +317,10 @@ class StargateDialManager
      */
     static boolean dialStargate(final Stargate gate, final Stargate target, final boolean force)
     {
+        if (target == null)
+        {
+            return false;
+        }
         if (gate.getGateActivateTaskId() > 0)
         {
             WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());

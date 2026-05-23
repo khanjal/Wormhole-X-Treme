@@ -9,8 +9,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.model.GateSerializer;
-
 public class GateSerializerTest
 {
     @Test

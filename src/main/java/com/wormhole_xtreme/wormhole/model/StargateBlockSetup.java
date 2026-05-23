@@ -1,22 +1,5 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *   Copyright (C) 2026  Justin Harding
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.logging.Level;
@@ -26,6 +9,8 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
+import net.kyori.adventure.text.Component;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Powerable;
 
@@ -64,6 +49,10 @@ class StargateBlockSetup
         final BlockFace toward = gate.getGateFacing();
         final Block nameSign = gate.getGateNameBlockHolder();
         final Block placeBlock = nameSign.getRelative(toward);
+        if (placeBlock == null)
+        {
+            return;
+        }
 
         if (create)
         {
@@ -169,16 +158,16 @@ class StargateBlockSetup
             placeBlock.setBlockData(signData);
 
             final Sign sign = (Sign) placeBlock.getState();
-            sign.setLine(0, "-" + gate.getGateName() + "-");
+            sign.getSide(Side.FRONT).line(0, Component.text("-" + gate.getGateName() + "-"));
             if (gate.getGateNetwork() != null)
             {
-                sign.setLine(1, "N:" + gate.getGateNetwork().getNetworkName());
+                sign.getSide(Side.FRONT).line(1, Component.text("N:" + gate.getGateNetwork().getNetworkName()));
             }
             if (gate.getGateOwner() != null)
             {
                 final String ownerDisplay = gate.getGateOwnerName();
-                sign.setLine(2, "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
-                    ? ownerDisplay.substring(0, 13) : ownerDisplay));
+                sign.getSide(Side.FRONT).line(2, Component.text("O:" + (ownerDisplay != null && ownerDisplay.length() > 13
+                    ? ownerDisplay.substring(0, 13) : ownerDisplay)));
             }
             sign.update(true);
         }

@@ -1,22 +1,5 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *   Copyright (C) 2026  Justin Harding
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
 package com.wormhole_xtreme.wormhole;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -244,7 +227,7 @@ public class WormholeXTreme extends JavaPlugin
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
-                com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getDescription());
+                com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
                 final ArrayList<Stargate> gates = StargateManager.getAllGates();
                 // Store all our gates
                 for (final Stargate gate : gates)
@@ -351,7 +334,7 @@ public class WormholeXTreme extends JavaPlugin
         setScheduler(getThisPlugin().getServer().getScheduler());
         prettyLog(Level.INFO, true, "Load Beginning.");
         // Load our config files and set logging level right away.
-        ConfigManager.setupConfigs(getThisPlugin().getDescription());
+        ConfigManager.setupConfigs(getThisPlugin().getName());
         WormholeXTreme.setPrettyLogLevel(ConfigManager.getLogLevel());
         // Make sure DB is up to date with latest SCHEMA
         DBUpdateUtil.updateDB();
@@ -375,8 +358,8 @@ public class WormholeXTreme extends JavaPlugin
      */
     public void prettyLog(final Level severity, final boolean version, final String message)
     {
-        final String prettyName = ("[" + getThisPlugin().getDescription().getName() + "]");
-        final String prettyVersion = ("[v" + getThisPlugin().getDescription().getVersion() + "]");
+        final String prettyName = ("[" + getThisPlugin().getName() + "]");
+        final String prettyVersion = ("[v" + getThisPlugin().getPluginMeta().getVersion() + "]");
         String prettyLogLine = prettyName;
         if (version)
         {

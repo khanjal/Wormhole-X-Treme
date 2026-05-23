@@ -7,6 +7,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.sign.Side;
+import org.bukkit.block.sign.SignSide;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,11 +39,13 @@ public class StargateSignTest
     {
         final Directional signData = mock(Directional.class);
         final Sign signState = mock(Sign.class);
+        final SignSide signSide = mock(SignSide.class);
         final Location loc = mock(Location.class);
 
         when(signPlaceBlock.getBlockData()).thenReturn(signData);
         when(signPlaceBlock.getState()).thenReturn(signState);
         when(signPlaceBlock.getLocation()).thenReturn(loc);
+        when(signState.getSide(Side.FRONT)).thenReturn(signSide);
 
         return signData;
     }
