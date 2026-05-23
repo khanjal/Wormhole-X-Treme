@@ -618,10 +618,7 @@ public class Wormhole implements CommandExecutor
             {
                 if ((s.getGateShape() != null) && StargateHelper.isStargateShape(s.getGateShape().getShapeName()))
                 {
-                    //TODO: regenerate and upgrade stargates from 2d shape to 3d shape here.
-                    // Handle the breaking out of shapes into multiple names for things like sign dial 
-                    // by checking all the shape names for occurances of the shapeName then test from the longest
-                    // shapeName to the shortest.
+                    // Shape format (2D/3D) is determined at load time; no runtime upgrade needed.
                 }
                 s.toggleDialLeverState(true);
                 if ((s.getGateIrisDeactivationCode() != null) && (s.getGateIrisDeactivationCode().length() > 0))

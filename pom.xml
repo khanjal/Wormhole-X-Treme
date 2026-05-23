@@ -8,8 +8,8 @@
 	<name>Wormhole-X-Treme</name>
 	 <properties>
 		 <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		 <maven.compiler.release>25</maven.compiler.release>
-		 <java.version>25</java.version>
+		 <maven.compiler.release>17</maven.compiler.release>
+		 <java.version>17</java.version>
 	 </properties>
 	<url>http://www.wormhole-xtreme.com</url>
 	<build>
