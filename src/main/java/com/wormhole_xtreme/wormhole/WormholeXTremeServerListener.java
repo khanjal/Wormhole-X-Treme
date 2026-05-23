@@ -1,6 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
-package com.wormhole_xtreme.wormhole;
+﻿package com.wormhole_xtreme.wormhole;
 
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;

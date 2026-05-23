@@ -1,6 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (C) 2011 Ben Echols, Dean Bailey. See LICENSE.txt for terms.
-package com.wormhole_xtreme.wormhole.logic;
+﻿package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.logging.Level;
 
