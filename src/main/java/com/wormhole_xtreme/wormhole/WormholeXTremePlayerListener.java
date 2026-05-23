@@ -37,6 +37,8 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
+import org.bukkit.block.sign.Side;
+import net.kyori.adventure.text.Component;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
@@ -331,7 +333,7 @@ class WormholeXTremePlayerListener implements Listener
                             else if (StargateManager.completeStargate(player, newGate))
                             {
                                 player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                                newGate.getGateDialSign().setLine(0, "-" + newGate.getGateName() + "-");
+                                newGate.getGateDialSign().getSide(Side.FRONT).line(0, Component.text("-" + newGate.getGateName() + "-"));
                                 newGate.getGateDialSign().update();
                                 if (buildCost > 0)
                                 {

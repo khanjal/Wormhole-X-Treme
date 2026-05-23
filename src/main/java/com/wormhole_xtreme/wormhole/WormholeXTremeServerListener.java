@@ -43,12 +43,12 @@ class WormholeXTremeServerListener implements Listener
     @EventHandler
     public void onPluginDisable(final PluginDisableEvent event)
     {
-        if (event.getPlugin().getDescription().getName().equals("Permissions") && !ConfigManager.getPermissionsSupportDisable())
+        if (event.getPlugin().getName().equals("Permissions") && !ConfigManager.getPermissionsSupportDisable())
         {
             PermissionsSupport.disablePermissions();
         }
         // Help plugin integration removed
-        else if (event.getPlugin().getDescription().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
+        else if (event.getPlugin().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
         {
             WormholeWorldsSupport.disableWormholeWorlds();
         }
@@ -60,12 +60,12 @@ class WormholeXTremeServerListener implements Listener
     @EventHandler
     public void onPluginEnable(final PluginEnableEvent event)
     {
-        if (event.getPlugin().getDescription().getName().equals("Permissions") && !ConfigManager.getPermissionsSupportDisable())
+        if (event.getPlugin().getName().equals("Permissions") && !ConfigManager.getPermissionsSupportDisable())
         {
             PermissionsSupport.enablePermissions();
         }
         // Help plugin integration removed
-        else if (event.getPlugin().getDescription().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
+        else if (event.getPlugin().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
         {
             WormholeWorldsSupport.enableWormholeWorlds();
         }

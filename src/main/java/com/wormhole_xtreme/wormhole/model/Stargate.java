@@ -1515,15 +1515,6 @@ public class Stargate
     }
 
     /**
-     * After shutdown of stargate, spawn off task to set RecentActive = false;
-     * This way we can depend on RecentActive for gate fire/lava protection.
-     */
-    private void startAfterShutdownTimer()
-    {
-        // Delegated to StargateLifecycle.shutdownStargate — not called externally
-    }
-
-    /**
      * Stop activation timer.
      * 
      */

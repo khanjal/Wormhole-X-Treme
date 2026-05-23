@@ -46,62 +46,18 @@ public class Configuration
     private static File options = null;
 
     /**
-     * Invalid file.
-     * 
-     * @param file
-     *            the file
-     * @param desc
-     *            the desc
-     * @return true, if successful
-     */
-    private static boolean invalidFile(final File file, final PluginDescriptionFile desc)
-    {
-        BufferedReader bufferedreader = null;
-        try
-        {
-            bufferedreader = new BufferedReader(new FileReader(file));
-            for (String s = ""; (s = bufferedreader.readLine()) != null;)
-            {
-                if (s.indexOf(desc.getVersion()) > -1)
-                {
-                    return false;
-                }
-            }
-        }
-        catch (final IOException exception)
-        {
-            return true;
-        }
-        finally
-        {
-            try
-            {
-                if (bufferedreader != null)
-                {
-                    bufferedreader.close();
-                }
-            }
-            catch (final IOException e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failure to close stream: " + e.getMessage());
-            }
-        }
-        return true;
-    }
-
-    /**
      * Load configuration.
      * 
      * @param desc
      *            the desc
      */
-    protected static void loadConfiguration(final PluginDescriptionFile desc)
+    protected static void loadConfiguration(final String pluginName)
     {
         // Prefer YAML config if present, otherwise fall back to legacy flat file.
-        final File yamlFile = new File("plugins" + File.separator + desc.getName() + File.separator + "config.yml");
+        final File yamlFile = new File("plugins" + File.separator + pluginName + File.separator + "config.yml");
         if (yamlFile.exists())
         {
-            ConfigurationYAML.loadConfiguration(desc);
+            ConfigurationYAML.loadConfiguration(pluginName);
         }
         else
         {
@@ -113,167 +69,13 @@ public class Configuration
             }
             try
             {
-                ConfigurationYAML.writeCurrentConfiguration(yamlFile, desc);
+                ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Created default config.yml at: " + yamlFile.getPath());
             }
             catch (final Throwable t)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Failed to write default config.yml: " + t.getMessage());
             }
-        }
-    }
-
-    /**
-     * Read file.
-     * 
-     * @param file
-     *            the file
-     * @param desc
-     *            the desc
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
-     */
-    private static void readFile(final File file, final PluginDescriptionFile desc) throws IOException
-    {
-
-        for (final Setting element : DefaultSettings.config)
-        {
-
-            final String value = ConfigurationFlatFile.getValueFromSetting(file, element.getName(), element.getValue().toString());
-
-            //Attempt to parse the value as boolean
-            if (value.toLowerCase().contains("true") || value.toLowerCase().contains("false"))
-            {
-                final Setting s = new Setting(element.getName(), Boolean.parseBoolean(value), element.getDescription(), "WormholeXTreme");
-                ConfigManager.getConfigurations().put(s.getName(), s);
-            }
-            else
-            {
-                try
-                {
-                    // Check if this is a number
-                    final Setting s = new Setting(element.getName(), Integer.parseInt(value), element.getDescription(), "WormholeXTreme");
-                    ConfigManager.getConfigurations().put(s.getName(), s);
-                }
-                catch (final NumberFormatException e)
-                {
-                    Setting s = null;
-                    try
-                    {
-                        s = new Setting(element.getName(), Double.parseDouble(value), element.getDescription(), "WormholeXTreme");
-                    }
-                    catch (final NumberFormatException nfe)
-                    {
-                        // Probably an enum
-                        if (element.getName() == ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL)
-                        {
-                            s = new Setting(element.getName(), PermissionLevel.valueOf(value), element.getDescription(), "WormholeXTreme");
-                        }
-                        else
-                        {
-                            // I guess its a string
-                            s = new Setting(element.getName(), value, element.getDescription(), "WormholeXTreme");
-                        }
-                    }
-
-                    ConfigManager.getConfigurations().put(s.getName(), s);
-                }
-            }
-        }
-    }
-
-    /**
-     * Read file.
-     * 
-     * @param desc
-     *            the desc
-     */
-    private static void readFile(final PluginDescriptionFile desc)
-    {
-        final File directory = new File("plugins" + File.separator + desc.getName() + File.separator);
-        if ( !directory.exists())
-        {
-            try
-            {
-                directory.mkdir();
-            }
-            catch (final Exception e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to make directory: " + e.getMessage());
-            }
-        }
-        final String input = directory.getPath() + File.separator + "Settings.txt";
-        options = new File(input);
-        if ( !options.exists())
-        {
-            // Do NOT create legacy Settings.txt. Instead populate configuration with defaults.
-            for (final Setting element : DefaultSettings.config)
-            {
-                ConfigManager.getConfigurations().put(element.getName(), new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme"));
-            }
-        }
-        else
-        {
-            try
-            {
-                // Read existing legacy Settings.txt into the configuration map.
-                readFile(options, desc);
-            }
-            catch (final IOException e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to read file: " + e.getMessage());
-                // Fallback to defaults
-                for (final Setting element : DefaultSettings.config)
-                {
-                    ConfigManager.getConfigurations().put(element.getName(), new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme"));
-                }
-            }
-            if (invalidFile(options, desc))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Legacy Settings.txt present but invalid; ignoring and using defaults.");
-                for (final Setting element : DefaultSettings.config)
-                {
-                    ConfigManager.getConfigurations().put(element.getName(), new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme"));
-                }
-            }
-        }
-    }
-
-    /**
-     * Write file.
-     * 
-     * @param file
-     *            the file
-     * @param desc
-     *            the desc
-     * @param config
-     *            the config
-     */
-    private static void writeFile(final File file, final PluginDescriptionFile desc, final Setting[] config)
-    {
-        try
-        {
-            try
-            {
-                file.createNewFile();
-            }
-            catch (final Exception e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to Create File: " + e.getMessage());
-            }
-            final BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(file));
-
-            ConfigurationFlatFile.createNewHeader(bufferedwriter, desc.getName() + " " + desc.getVersion(), desc.getName() + " Config Settings", true);
-
-            for (final Setting element : config)
-            {
-                ConfigurationFlatFile.createNewSetting(bufferedwriter, element.getName(), element.getValue().toString(), element.getDescription());
-            }
-            bufferedwriter.close();
-        }
-        catch (final Exception exception)
-        {
-            exception.printStackTrace();
         }
     }
 
@@ -322,12 +124,12 @@ public class Configuration
     /**
      * Persist current runtime configuration to `config.yml`.
      */
-    public static void persistCurrentConfiguration(final PluginDescriptionFile desc)
+    public static void persistCurrentConfiguration(final String pluginName)
     {
         try
         {
-            final java.io.File yamlFile = new java.io.File("plugins" + java.io.File.separator + desc.getName() + java.io.File.separator + "config.yml");
-            ConfigurationYAML.writeCurrentConfiguration(yamlFile, desc);
+            final java.io.File yamlFile = new java.io.File("plugins" + java.io.File.separator + pluginName + java.io.File.separator + "config.yml");
+            ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
         }
         catch (final Throwable t)
         {

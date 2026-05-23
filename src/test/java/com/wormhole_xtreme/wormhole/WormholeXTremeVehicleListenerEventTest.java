@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -91,7 +91,7 @@ public class WormholeXTremeVehicleListenerEventTest
         StargateManager.addBlockIndex(ch, src);
 
         final Minecart cart = mock(Minecart.class);
-        when(cart.getPassenger()).thenReturn(null);
+        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
         when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
         when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
 
@@ -138,7 +138,7 @@ public class WormholeXTremeVehicleListenerEventTest
 
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
-        when(boat.getPassenger()).thenReturn(rider);
+        when(boat.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>singletonList(rider));
         when(boat.getUniqueId()).thenReturn(UUID.randomUUID());
         when(boat.isValid()).thenReturn(true);
         when(rider.isValid()).thenReturn(true);

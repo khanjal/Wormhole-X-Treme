@@ -22,8 +22,6 @@ package com.wormhole_xtreme.wormhole.config;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
-import org.bukkit.plugin.PluginDescriptionFile;
-
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
@@ -630,9 +628,9 @@ public class ConfigManager
      * @param pdf
      *            the new up configs
      */
-    public static void setupConfigs(final PluginDescriptionFile pdf)
+    public static void setupConfigs(final String pluginName)
     {
-        Configuration.loadConfiguration(pdf);
+        Configuration.loadConfiguration(pluginName);
     }
 
     /**

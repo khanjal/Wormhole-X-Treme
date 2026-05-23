@@ -176,7 +176,10 @@ class ConfigurationFlatFile
         }
         finally
         {
-            bufferedReader.close();
+            if (bufferedReader != null)
+            {
+                bufferedReader.close();
+            }
         }
         return defaultVal.trim();
     }

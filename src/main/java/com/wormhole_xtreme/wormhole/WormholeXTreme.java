@@ -244,7 +244,7 @@ public class WormholeXTreme extends JavaPlugin
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
-                com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getDescription());
+                com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
                 final ArrayList<Stargate> gates = StargateManager.getAllGates();
                 // Store all our gates
                 for (final Stargate gate : gates)
@@ -351,7 +351,7 @@ public class WormholeXTreme extends JavaPlugin
         setScheduler(getThisPlugin().getServer().getScheduler());
         prettyLog(Level.INFO, true, "Load Beginning.");
         // Load our config files and set logging level right away.
-        ConfigManager.setupConfigs(getThisPlugin().getDescription());
+        ConfigManager.setupConfigs(getThisPlugin().getName());
         WormholeXTreme.setPrettyLogLevel(ConfigManager.getLogLevel());
         // Make sure DB is up to date with latest SCHEMA
         DBUpdateUtil.updateDB();
@@ -375,8 +375,8 @@ public class WormholeXTreme extends JavaPlugin
      */
     public void prettyLog(final Level severity, final boolean version, final String message)
     {
-        final String prettyName = ("[" + getThisPlugin().getDescription().getName() + "]");
-        final String prettyVersion = ("[v" + getThisPlugin().getDescription().getVersion() + "]");
+        final String prettyName = ("[" + getThisPlugin().getName() + "]");
+        final String prettyVersion = ("[v" + getThisPlugin().getPluginMeta().getVersion() + "]");
         String prettyLogLine = prettyName;
         if (version)
         {

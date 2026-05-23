@@ -30,9 +30,6 @@ import org.bukkit.event.HandlerList;
 public class StargateMinecartTeleportEvent extends Event
 {
 
-    /** The Constant serialVersionUID. */
-    private static final long serialVersionUID = 1176071751488327352L;
-
     /** The old minecart. */
     private final Minecart oldMinecart;
 

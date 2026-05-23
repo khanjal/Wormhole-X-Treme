@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
@@ -228,18 +226,6 @@ class WormholeXTremeVehicleListener implements Listener
                                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after teleport failed: " + t.getMessage());
                             }
                         }
-                        if (!added)
-                        {
-                            try
-                            {
-                                veh.setPassenger(passenger);
-                                added = true;
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "setPassenger fallback failed: " + t.getMessage());
-                            }
-                        }
                         if (!added && passenger instanceof Player)
                         {
                             try
@@ -422,18 +408,6 @@ class WormholeXTremeVehicleListener implements Listener
                                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after teleport failed: " + t.getMessage());
                             }
                         }
-                        if (!added)
-                        {
-                            try
-                            {
-                                veh.setPassenger(passenger);
-                                added = true;
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "setPassenger fallback failed: " + t.getMessage());
-                            }
-                        }
                         if (!added && passenger instanceof Player)
                         {
                             try
@@ -614,14 +588,18 @@ class WormholeXTremeVehicleListener implements Listener
                 ? st.getGateTarget().getGateMinecartTeleportLocation()
                 : st.getGateTarget().getGatePlayerTeleportLocation();
             final Vehicle veh = (Vehicle) event.getVehicle();
+            if (veh == null)
+            {
+                return false;
+            }
             // Avoid re-triggering teleports for vehicles that were just teleported
-            if (veh != null && recentlyTeleported.contains(veh.getUniqueId()))
+            if (recentlyTeleported.contains(veh.getUniqueId()))
             {
                 return false;
             }
             final Vector v = veh.getVelocity();
             veh.setVelocity(nospeed);
-            final Entity e = veh.getPassenger();
+            final Entity e = veh.getPassengers().isEmpty() ? null : veh.getPassengers().get(0);
             if ((e != null) && (e instanceof Player))
             {
                 final Player p = (Player) e;
@@ -708,7 +686,6 @@ class WormholeXTremeVehicleListener implements Listener
 
             }
 
-            final double speed = v.length();
             final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
                 if (st.getGateTarget().isGateIrisActive())
                 {

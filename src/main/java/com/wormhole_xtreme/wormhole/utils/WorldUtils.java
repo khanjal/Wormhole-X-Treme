@@ -25,7 +25,6 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 

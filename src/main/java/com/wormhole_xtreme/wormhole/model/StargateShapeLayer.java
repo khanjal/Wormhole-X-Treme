@@ -81,8 +81,6 @@ public class StargateShapeLayer
      */
     protected StargateShapeLayer(final String[] layerLines, final int height, final int width)
     {
-        int numBlocks = 0;
-
         // 1. scan all lines for lines beginning with [  - that is the height of the gate
         for (int i = 0; i < layerLines.length; i++)
         {
@@ -96,7 +94,6 @@ public class StargateShapeLayer
                 {
                     if (mod.equalsIgnoreCase("S"))
                     {
-                        numBlocks++;
                         getLayerBlockPositions().add(point);
                     }
                     else if (mod.equalsIgnoreCase("P"))

@@ -10,6 +10,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import com.wormhole_xtreme.wormhole.model.GateSerializer;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -445,7 +447,7 @@ public final class StargateHelper
                         gate.setGateDialSignBlock(signBlock);
                         gate.setGateDialSign(signState);
                         // Read the name the player wrote on line 0 of the sign.
-                        final String signName = signState.getLine(0).trim();
+                        final String signName = PlainTextComponentSerializer.plainText().serialize(signState.getSide(Side.FRONT).line(0)).trim();
                         if (!signName.isEmpty())
                         {
                             gate.setGateName(signName);

@@ -107,12 +107,10 @@ public class StargateRestrictions
     private static class RecentArrival
     {
         private final long gateId;
-        private final long timeNs;
 
-        RecentArrival(final long gateId, final long timeNs)
+        RecentArrival(final long gateId)
         {
             this.gateId = gateId;
-            this.timeNs = timeNs;
         }
     }
 
@@ -126,7 +124,7 @@ public class StargateRestrictions
         {
             return;
         }
-        getPlayerRecentArrival().put(player, new RecentArrival(fromGate.getGateId(), System.nanoTime()));
+        getPlayerRecentArrival().put(player, new RecentArrival(fromGate.getGateId()));
         // Keep the flag for ~3 seconds (60 ticks) to mirror after-shutdown protection.
         final int timeoutTicks = 60;
         try

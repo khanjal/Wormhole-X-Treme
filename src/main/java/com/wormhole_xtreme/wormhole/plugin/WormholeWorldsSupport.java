@@ -76,7 +76,7 @@ public class WormholeWorldsSupport
                 final Plugin worldsTest = WormholeXTreme.getThisPlugin().getServer().getPluginManager().getPlugin("WormholeXTremeWorlds");
                 if (worldsTest != null)
                 {
-                    final String version = worldsTest.getDescription().getVersion();
+                    final String version = worldsTest.getPluginMeta().getVersion();
                     if (checkWorldsVersion(version))
                     {
                         try
