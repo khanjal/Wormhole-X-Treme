@@ -632,7 +632,10 @@ public class Wormhole implements CommandExecutor
                 {
                     try
                     {
-                        com.wormhole_xtreme.wormhole.model.StargateDialManager.teleportSignClicked(s, true);
+                        final Class<?> dialManagerClass = Class.forName("com.wormhole_xtreme.wormhole.model.StargateDialManager");
+                        final java.lang.reflect.Method teleportSignClicked = dialManagerClass.getDeclaredMethod("teleportSignClicked", Stargate.class, boolean.class);
+                        teleportSignClicked.setAccessible(true);
+                        teleportSignClicked.invoke(null, s, true);
                     }
                     catch (final Throwable ignore) {}
                 }

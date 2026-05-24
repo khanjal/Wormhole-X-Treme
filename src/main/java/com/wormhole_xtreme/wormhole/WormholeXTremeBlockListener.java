@@ -5,6 +5,7 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
@@ -21,6 +22,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * WormholeXTreme Block Listener.
@@ -43,21 +45,39 @@ class WormholeXTremeBlockListener implements Listener
      */
     private static boolean handleBlockBreak(final Player player, final Stargate stargate, final Block block)
     {
+        // Allow breaking the block directly under the dial button/lever if it is NOT the iris control block.
+        try
+        {
+            if (stargate != null && stargate.getGateDialLeverBlock() != null)
+            {
+                final Block belowDial = stargate.getGateDialLeverBlock().getRelative(BlockFace.DOWN);
+                if ((belowDial != null) && WorldUtils.isSameBlock(belowDial, block))
+                {
+                    // If the block under the dial is the iris control block, keep protection.
+                    if ((stargate.getGateIrisLeverBlock() == null) || !WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), block))
+                    {
+                        return false; // allow break
+                    }
+                }
+            }
+        }
+        catch (final Throwable ignore) {}
+
         // Require gate removal via command before manual block destruction.
         if (player != null)
         {
             try
             {
                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                    + "This block is part of the registered gate '" + stargate.getGateName() + "'.");
+                    + "This block is part of the registered gate '" + (stargate != null ? stargate.getGateName() : "unknown") + "'.");
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                    + "Run '/wormhole remove " + stargate.getGateName() + "' to remove the gate first (use -all to also destroy blocks).");
+                    + "Run '/wormhole remove " + (stargate != null ? stargate.getGateName() : "unknown") + "' to remove the gate first (use -all to also destroy blocks).");
             }
             catch (final Throwable ignore) {}
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked non-player block break on registered gate: " + stargate.getGateName());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked non-player block break on registered gate: " + (stargate != null ? stargate.getGateName() : "unknown") );
         }
         // Return true to signal that the break should be cancelled.
         return true;
