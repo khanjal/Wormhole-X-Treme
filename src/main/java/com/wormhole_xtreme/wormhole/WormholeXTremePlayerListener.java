@@ -13,13 +13,13 @@ import org.bukkit.entity.Boat;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
-import org.bukkit.block.sign.Side;
-import net.kyori.adventure.text.Component;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
@@ -299,36 +299,19 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     if (newGate.isGateSignPowered())
                     {
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate Design Valid with Sign Nav.");
-                        if (newGate.getGateName().equals(""))
+                        // Sign-powered gates follow the same /wormhole complete flow as regular gates,
+                        // so the player can specify a network and IDC code.
+                        final String signName = newGate.getGateName();
+                        StargateManager.addIncompleteStargate(player, newGate);
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Sign Nav Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
+                        if (signName.isEmpty())
                         {
-                            player.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"\"");
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
                         }
                         else
                         {
-                            final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
-                            if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-                            {
-                                player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                            }
-                            else if (StargateManager.completeStargate(player, newGate))
-                            {
-                                player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                                newGate.getGateDialSign().getSide(Side.FRONT).line(0, Component.text("-" + newGate.getGateName() + "-"));
-                                newGate.getGateDialSign().update();
-                                if (buildCost > 0)
-                                {
-                                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                                    player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                        + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                                }
-                            }
-                            else
-                            {
-                                player.sendMessage("Stargate constrution failed!?");
-                            }
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B" + signName + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
                         }
-
                     }
                     else
                     {
@@ -567,16 +550,17 @@ class WormholeXTremePlayerListener implements Listener
                 if (WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)
                     || player.isOp() || stargate.isOwner(player))
                 {
-                    if (stargate.tryClickTeleportSign(clickedBlock, player))
-                    {
-                        return true;
-                    }
+                    // Right-click advances forward; left-click goes backward.
+                    final boolean forward = (event.getAction() == Action.RIGHT_CLICK_BLOCK);
+                    stargate.tryClickTeleportSign(clickedBlock, player, forward);
                 }
                 else
                 {
                     player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    return true;
                 }
+                // Always cancel the interact event for a registered gate sign block
+                // so the sign editor never opens regardless of tryClickTeleportSign outcome.
+                return true;
             }
         }
         return false;

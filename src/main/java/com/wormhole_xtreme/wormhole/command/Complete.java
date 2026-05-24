@@ -53,7 +53,7 @@ public class Complete implements CommandExecutor, TabCompleter
         if (name.length() < 12)
         {
             String idc = "";
-            String network = "Public";
+            String network = "";
 
             for (int i = 1; i < args.length; i++)
             {

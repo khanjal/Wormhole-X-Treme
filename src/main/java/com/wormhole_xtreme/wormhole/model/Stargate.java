@@ -1518,7 +1518,18 @@ public class Stargate
      */
     public void teleportSignClicked()
     {
-        StargateDialManager.teleportSignClicked(this);
+        StargateDialManager.teleportSignClicked(this, true);
+    }
+
+    /**
+     * Teleport sign clicked with explicit navigation direction.
+     *
+     * @param forward {@code true} to advance to the next gate (right-click);
+     *                {@code false} to go to the previous gate (left-click)
+     */
+    public void teleportSignClicked(final boolean forward)
+    {
+        StargateDialManager.teleportSignClicked(this, forward);
     }
 
     /**
@@ -1587,5 +1598,19 @@ public class Stargate
     public boolean tryClickTeleportSign(final Block clicked, final Player player)
     {
         return StargateDialManager.tryClickTeleportSign(this, clicked, player);
+    }
+
+    /**
+     * Try click teleport sign with explicit navigation direction.
+     *
+     * @param clicked the block that was clicked
+     * @param player  the player who clicked
+     * @param forward {@code true} to advance to the next gate (right-click);
+     *                {@code false} to go to the previous gate (left-click)
+     * @return true, if successful
+     */
+    public boolean tryClickTeleportSign(final Block clicked, final Player player, final boolean forward)
+    {
+        return StargateDialManager.tryClickTeleportSign(this, clicked, player, forward);
     }
 }

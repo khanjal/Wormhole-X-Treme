@@ -80,6 +80,7 @@ public class StargateYamlManager
                     }
                     final String gateDataB64 = (String) map.get("GateData");
                     final String worldName = (String) map.getOrDefault("WorldName", "");
+                    final String network = (String) map.getOrDefault("Network", "");
 
                     if (gateDataB64 != null)
                     {
@@ -113,6 +114,11 @@ public class StargateYamlManager
                                         s.setGateOwnerName(owner);
                                     }
                                 }
+                            }
+                            if ((network != null) && !network.isEmpty())
+                            {
+                                StargateManager.addGateToNetwork(s, network);
+                                s.setGateNetwork(StargateManager.getStargateNetwork(network));
                             }
                             StargateManager.addStargate(s);
                             loaded++;

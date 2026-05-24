@@ -9,7 +9,6 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -234,79 +233,6 @@ public class StargateManager
      * 
      * @param p
      *            the p
-     * @param s
-     *            the s
-     * @return true, if successful
-     */
-    public static boolean completeStargate(final Player p, final Stargate s)
-    {
-        final Stargate posDupe = StargateManager.getStargate(s.getGateName());
-        if (posDupe == null)
-        {
-            s.setGateOwner(p.getUniqueId().toString());
-            s.setGateOwnerName(p.getName());
-            s.completeGate(s.getGateName(), "");
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + s.getGateName());
-            addStargate(s);
-                String dhdDirStr = "null";
-                final Block nameHolder = s.getGateNameBlockHolder();
-                final Block dial = s.getGateDialLeverBlock();
-                if (nameHolder != null && dial != null)
-                {
-                    final int dx = dial.getX() - nameHolder.getX();
-                    final int dz = dial.getZ() - nameHolder.getZ();
-                    final BlockFace dhdDir = Math.abs(dx) >= Math.abs(dz)
-                        ? (dx >= 0 ? BlockFace.EAST : BlockFace.WEST)
-                        : (dz >= 0 ? BlockFace.SOUTH : BlockFace.NORTH);
-                    dhdDirStr = dhdDir.toString();
-                }
-
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Gate debug: Name=" + s.getGateName()
-                    + " Owner=" + s.getGateOwner()
-                    + " DialLever=" + (s.getGateDialLeverBlock() != null ? s.getGateDialLeverBlock().getLocation().toString() : "null")
-                    + " DialLeverType=" + (s.getGateDialLeverBlock() != null ? s.getGateDialLeverBlock().getType().toString() : "null")
-                    + " IrisLever=" + (s.getGateIrisLeverBlock() != null ? s.getGateIrisLeverBlock().getLocation().toString() : "null")
-                    + " IrisLeverType=" + (s.getGateIrisLeverBlock() != null ? s.getGateIrisLeverBlock().getType().toString() : "null")
-                    + " DialSignBlock=" + (s.getGateDialSignBlock() != null ? s.getGateDialSignBlock().getLocation().toString() : "null")
-                    + " DialSignType=" + (s.getGateDialSignBlock() != null ? s.getGateDialSignBlock().getType().toString() : "null")
-                    + " RedstoneDial=" + (s.getGateRedstoneDialActivationBlock() != null ? s.getGateRedstoneDialActivationBlock().getLocation().toString() : "null")
-                    + " RedstoneDialType=" + (s.getGateRedstoneDialActivationBlock() != null ? s.getGateRedstoneDialActivationBlock().getType().toString() : "null")
-                    + " RedstoneGateActivated=" + (s.getGateRedstoneGateActivatedBlock() != null ? s.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
-                    + " RedstoneGateActivatedType=" + (s.getGateRedstoneGateActivatedBlock() != null ? s.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
-                    + " GateFacing=" + (s.getGateFacing() != null ? s.getGateFacing().toString() : "null")
-                    + " DhdDirection=" + dhdDirStr
-                );
-            // Dump all indexed block locations for this gate for debugging
-            try
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed blocks for gate=" + s.getGateName() + " -> Start");
-                for (final java.util.Map.Entry<Location, Stargate> e : getAllGateBlocks().entrySet())
-                {
-                    if (e.getValue() == s)
-                    {
-                        final Location loc = e.getKey();
-                        final org.bukkit.block.Block block = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "  idx=" + loc.toString() + " type=" + block.getType().toString());
-                    }
-                }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed blocks for gate=" + s.getGateName() + " -> End");
-            }
-            catch (final Exception ex)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error dumping indexed blocks: " + ex.getMessage());
-            }
-            StargateDBManager.stargateToSQL(s);
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Complete stargate.
-     * 
-     * @param p
-     *            the p
      * @param name
      *            the name
      * @param idc
@@ -351,6 +277,17 @@ public class StargateManager
                         + " RedstoneGateActivatedType=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
                     );
             StargateDBManager.stargateToSQL(complete);
+
+            // For sign-powered gates, initialize the DHD sign by cycling to the first available target.
+            if (complete.isGateSignPowered() && complete.getGateDialSignBlock() != null)
+            {
+                try
+                {
+                    StargateDialManager.teleportSignClicked(complete, true);
+                }
+                catch (final Throwable ignore) {}
+            }
+
             return true;
         }
 
@@ -490,6 +427,15 @@ public class StargateManager
         {
             gates.add(keys.nextElement());
         }
+
+        java.util.Collections.sort(gates, new java.util.Comparator<Stargate>()
+        {
+            @Override
+            public int compare(final Stargate a, final Stargate b)
+            {
+                return a.getGateName().compareToIgnoreCase(b.getGateName());
+            }
+        });
 
         return gates;
     }

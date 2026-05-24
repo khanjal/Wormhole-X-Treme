@@ -20,7 +20,8 @@ public class WormholeTabCompleter implements TabCompleter
     private static final List<String> SUBCOMMANDS = Collections.unmodifiableList(Arrays.asList(
         "list", "build", "remove", "idc", "force", "compass", "complete", "go", "owner",
         "portalmaterial", "irismaterial", "lightmaterial", "redstone", "custom",
-        "shutdown_timeout", "activate_timeout", "storage", "cooldown"
+        "shutdown_timeout", "activate_timeout", "storage", "cooldown",
+        "regenerate", "regen", "refresh"
     ));
 
     @Override
@@ -49,6 +50,28 @@ public class WormholeTabCompleter implements TabCompleter
         // args.length >= 2: provide context-aware completions
         switch (sub)
         {
+            case "list":
+                if (args.length == 2)
+                {
+                    final String netPfx = args[1].toLowerCase();
+                    final java.util.LinkedHashSet<String> nets = new java.util.LinkedHashSet<String>();
+                    nets.add("Public");
+                    for (final Stargate g : StargateManager.getAllGates())
+                    {
+                        if (g.getGateNetwork() != null)
+                        {
+                            nets.add(g.getGateNetwork().getNetworkName());
+                        }
+                    }
+                    for (final String n : nets)
+                    {
+                        if ((netPfx.length() == 0) || n.toLowerCase().startsWith(netPfx))
+                        {
+                            out.add(n);
+                        }
+                    }
+                }
+                return out;
             case "remove":
             case "idc":
             case "go":
@@ -58,6 +81,9 @@ public class WormholeTabCompleter implements TabCompleter
             case "lightmaterial":
             case "redstone":
             case "custom":
+            case "regenerate":
+            case "regen":
+            case "refresh":
                 // suggest gate names for commands that operate on existing gates
                 final String prefix = args[1].toLowerCase();
                 for (final Stargate g : StargateManager.getAllGates())

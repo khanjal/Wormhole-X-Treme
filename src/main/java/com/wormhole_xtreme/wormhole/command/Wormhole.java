@@ -628,9 +628,13 @@ public class Wormhole implements CommandExecutor
                     s.setupRedstone(true);
                 }
                 s.setupGateSign(true);
-                if (s.isGateSignPowered())
+                if (s.isGateSignPowered() && s.getGateDialSignBlock() != null)
                 {
-                    s.resetTeleportSign();
+                    try
+                    {
+                        com.wormhole_xtreme.wormhole.model.StargateDialManager.teleportSignClicked(s, true);
+                    }
+                    catch (final Throwable ignore) {}
                 }
                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Regenerating Gate: " + s.getGateName());
             }

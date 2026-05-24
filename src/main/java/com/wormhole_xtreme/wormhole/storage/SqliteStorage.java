@@ -16,6 +16,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.GateSerializer;
+import com.wormhole_xtreme.wormhole.model.StargateManager;
 
 /**
  * Lightweight SQLite storage scaffold. Implements StorageBackend.
@@ -80,15 +81,16 @@ public class SqliteStorage implements StorageBackend
         ResultSet rs = null;
         try
         {
-            // Try to read Owner if the column exists; fall back gracefully if not present.
+            // Try to read Owner and Network if those columns exist; fall back gracefully if not present.
             try
             {
-                stmt = conn.prepareStatement("SELECT GateName, Owner, GateData, WorldName FROM Stargates;");
+                stmt = conn.prepareStatement("SELECT GateName, Owner, Network, GateData, WorldName FROM Stargates;");
                 rs = stmt.executeQuery();
                 while (rs.next())
                 {
                     final String name = rs.getString("GateName");
                     final String owner = rs.getString("Owner");
+                    final String network = rs.getString("Network");
                     final byte[] data = rs.getBytes("GateData");
                     final String world = rs.getString("WorldName");
                     final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(world), name, null);
@@ -98,13 +100,18 @@ public class SqliteStorage implements StorageBackend
                         {
                             s.setGateOwner(owner);
                         }
+                        if ((network != null) && !network.isEmpty())
+                        {
+                            StargateManager.addGateToNetwork(s, network);
+                            s.setGateNetwork(StargateManager.getStargateNetwork(network));
+                        }
                         list.add(s);
                     }
                 }
             }
             catch (final SQLException e)
             {
-                // Older schema without Owner column: read without Owner
+                // Older schema without Owner/Network columns: read without those columns
                 if (stmt != null)
                 {
                     try { stmt.close(); } catch (final SQLException ignore) {}

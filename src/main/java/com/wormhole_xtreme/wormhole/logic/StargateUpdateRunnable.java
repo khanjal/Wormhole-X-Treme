@@ -53,9 +53,12 @@ public class StargateUpdateRunnable implements Runnable
     /** The action. */
     private final ActionToTake action;
 
+    /** Direction for DIAL_SIGN_CLICK: {@code true} = forward (right-click), {@code false} = backward (left-click). */
+    private final boolean forward;
+
     public StargateUpdateRunnable(final Player player, final ActionToTake action)
     {
-        this(null, player, action);
+        this(null, player, action, true);
     }
 
     /**
@@ -68,7 +71,7 @@ public class StargateUpdateRunnable implements Runnable
      */
     public StargateUpdateRunnable(final Stargate stargate, final ActionToTake action)
     {
-        this(stargate, null, action);
+        this(stargate, null, action, true);
     }
 
     /**
@@ -83,9 +86,24 @@ public class StargateUpdateRunnable implements Runnable
      */
     public StargateUpdateRunnable(final Stargate stargate, final Player player, final ActionToTake action)
     {
+        this(stargate, player, action, true);
+    }
+
+    /**
+     * Instantiates a new stargate update runnable with an explicit dial direction.
+     *
+     * @param stargate the gate
+     * @param player   the player (may be {@code null})
+     * @param action   the action
+     * @param forward  {@code true} = advance forward (right-click);
+     *                 {@code false} = go backward (left-click)
+     */
+    public StargateUpdateRunnable(final Stargate stargate, final Player player, final ActionToTake action, final boolean forward)
+    {
         this.stargate = stargate;
         this.action = action;
         this.player = player;
+        this.forward = forward;
     }
 
     /* (non-Javadoc)
@@ -112,7 +130,7 @@ public class StargateUpdateRunnable implements Runnable
                 stargate.stopAfterShutdownTimer();
                 break;
             case DIAL_SIGN_CLICK :
-                stargate.teleportSignClicked();
+                stargate.teleportSignClicked(forward);
                 if (player != null)
                 {
                     if (stargate.getGateDialSignTarget() != null)

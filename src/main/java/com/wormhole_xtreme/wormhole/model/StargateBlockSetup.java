@@ -150,10 +150,10 @@ class StargateBlockSetup
             }
 
             gate.getGateStructureBlocks().add(placeBlock.getLocation());
-            placeBlock.setType(gate.getGateShape().getShapeSignMaterial());
+            placeBlock.setType(gate.getGateShape().getShapeSignMaterial(), false);
             final Directional signData = (Directional) placeBlock.getBlockData();
             signData.setFacing(toward);
-            placeBlock.setBlockData(signData);
+            placeBlock.setBlockData(signData, false);
 
             final Sign sign = (Sign) placeBlock.getState();
             sign.getSide(Side.FRONT).line(0, Component.text("-" + gate.getGateName() + "-"));
@@ -167,7 +167,11 @@ class StargateBlockSetup
                 sign.getSide(Side.FRONT).line(2, Component.text("O:" + (ownerDisplay != null && ownerDisplay.length() > 13
                     ? ownerDisplay.substring(0, 13) : ownerDisplay)));
             }
-            sign.update(true);
+            sign.update(true, false);
+            // NOTE: gateDialSignBlock/gateDialSign are set during shape detection
+            // (check3DShape) from the [D] marker — the player-placed sign on the
+            // DHD.  Do NOT overwrite them here; this is the static gate frame sign
+            // and it should never be used as the dialer sign.
         }
         else
         {

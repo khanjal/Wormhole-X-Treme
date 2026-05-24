@@ -64,7 +64,7 @@ public class StargateSignTest
 
         gate.setupGateSign(true);
 
-        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
+        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN, false);
         verify(signData).setFacing(BlockFace.NORTH);
     }
 
@@ -82,7 +82,7 @@ public class StargateSignTest
 
         gate.setupGateSign(true);
 
-        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
+        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN, false);
         verify(signData).setFacing(BlockFace.SOUTH);
     }
 
@@ -100,7 +100,7 @@ public class StargateSignTest
 
         gate.setupGateSign(true);
 
-        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN);
+        verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN, false);
         verify(signData).setFacing(BlockFace.EAST);
     }
 

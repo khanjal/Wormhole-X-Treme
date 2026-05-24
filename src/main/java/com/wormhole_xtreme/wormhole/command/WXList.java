@@ -31,8 +31,37 @@ public class WXList implements CommandExecutor
             ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST)
             : true)
         {
-            final ArrayList<Stargate> gates = StargateManager.getAllGates();
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Available gates \u00A73::");
+            // Optional network filter: /wx list [network]
+            // "Public" (case-insensitive) matches gates with no assigned network.
+            final String filterNet = (args.length > 0) ? args[0].trim() : null;
+            final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
+
+            final ArrayList<Stargate> allGates = StargateManager.getAllGates();
+            final ArrayList<Stargate> gates = new ArrayList<Stargate>();
+            for (final Stargate g : allGates)
+            {
+                if (filterNet == null)
+                {
+                    gates.add(g);
+                }
+                else if (filterPublic && g.getGateNetwork() == null)
+                {
+                    gates.add(g);
+                }
+                else if (!filterPublic && g.getGateNetwork() != null && g.getGateNetwork().getNetworkName().equalsIgnoreCase(filterNet))
+                {
+                    gates.add(g);
+                }
+            }
+
+            final String header = filterNet != null
+                ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
+                : "Available gates \u00A73::";
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
+            if (gates.isEmpty())
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
+            }
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < gates.size(); i++)
             {
@@ -51,7 +80,6 @@ public class WXList implements CommandExecutor
             {
                 sender.sendMessage(sb.toString());
             }
-
         }
         else
         {
