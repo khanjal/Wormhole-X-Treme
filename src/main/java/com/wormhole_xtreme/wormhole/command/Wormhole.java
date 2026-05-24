@@ -921,121 +921,137 @@ public class Wormhole implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        if (CommandUtilities.playerCheck(sender)
-            ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG)
-            : true)
+        try
         {
-            final String[] a = CommandUtilities.commandEscaper(args);
-            if (a.length > 4)
+            if (CommandUtilities.playerCheck(sender)
+                ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG)
+                : true)
             {
-                return false;
-            }
-            if (a.length == 0)
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, wooshdepth, cooldown, restrict, custom.");
-                return true;
-            }
-            if (a[0].equalsIgnoreCase("owner"))
-            {
-                return doOwner(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("perm") || a[0].equalsIgnoreCase("perms"))
-            {
-                doPerms(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("portalmaterial"))
-            {
-                return doPortalMaterial(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("irismaterial"))
-            {
-                return doIrisMaterial(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("timeout") || a[0].equalsIgnoreCase("shutdown_timeout"))
-            {
-                return doShutdownTimeout(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("activate_timeout"))
-            {
-                return doActivateTimeout(sender, a);
-            }
-            
-            else if (a[0].equalsIgnoreCase("regenerate") || a[0].equalsIgnoreCase("regen"))
-            {
-                return doRegenerate(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("list"))
-            {
-                // Route to existing WXList executor for backwards-compatible listing
-                return new WXList().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("build"))
-            {
-                return new Build().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("complete"))
-            {
-                return new Complete().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("refresh"))
-            {
-                return new Refresh().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("compass"))
-            {
-                return new Compass().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("force"))
-            {
-                return new Force().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("go"))
-            {
-                return new Go().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("idc"))
-            {
-                return new WXIDC().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("remove"))
-            {
-                return new WXRemove().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-            }
-            else if (a[0].equalsIgnoreCase("redstone"))
-            {
-                return doRedstone(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("custom"))
-            {
-                return doCustom(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("lightmaterial"))
-            {
-                return doLightMaterial(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("wooshdepth"))
-            {
-                return doWooshDepth(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("cooldown"))
-            {
-                return doCooldown(sender, a);
-            }
-            else if (a[0].equalsIgnoreCase("restrict"))
-            {
-                return doRestrict(sender, a);
+                final String[] a = CommandUtilities.commandEscaper(args);
+                if (a.length > 4)
+                {
+                    return false;
+                }
+                if (a.length == 0)
+                {
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, wooshdepth, cooldown, restrict, custom.");
+                    return true;
+                }
+                if (a[0].equalsIgnoreCase("owner"))
+                {
+                    return doOwner(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("perm") || a[0].equalsIgnoreCase("perms"))
+                {
+                    doPerms(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("portalmaterial"))
+                {
+                    return doPortalMaterial(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("irismaterial"))
+                {
+                    return doIrisMaterial(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("timeout") || a[0].equalsIgnoreCase("shutdown_timeout"))
+                {
+                    return doShutdownTimeout(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("activate_timeout"))
+                {
+                    return doActivateTimeout(sender, a);
+                }
+                
+                else if (a[0].equalsIgnoreCase("regenerate") || a[0].equalsIgnoreCase("regen"))
+                {
+                    return doRegenerate(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("list"))
+                {
+                    // Route to existing WXList executor for backwards-compatible listing
+                    return new WXList().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("build"))
+                {
+                    return new Build().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("complete"))
+                {
+                    return new Complete().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("refresh"))
+                {
+                    return new Refresh().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("compass"))
+                {
+                    return new Compass().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("force"))
+                {
+                    return new Force().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("go"))
+                {
+                    return new Go().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("idc"))
+                {
+                    return new WXIDC().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("remove"))
+                {
+                    return new WXRemove().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
+                }
+                else if (a[0].equalsIgnoreCase("redstone"))
+                {
+                    return doRedstone(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("custom"))
+                {
+                    return doCustom(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("lightmaterial"))
+                {
+                    return doLightMaterial(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("wooshdepth"))
+                {
+                    return doWooshDepth(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("cooldown"))
+                {
+                    return doCooldown(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("restrict"))
+                {
+                    return doRestrict(sender, a);
+                }
+                else
+                {
+                    sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
+                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands are 'owner', 'perms', 'portalmaterial', 'irismaterial', 'lightmaterial', 'shutdown_timeout', 'activate_timeout', 'simple', 'regenerate', 'redstone', 'wooshdepth', 'cooldown', 'restrict', & 'custom'.");
+                }
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands are 'owner', 'perms', 'portalmaterial', 'irismaterial', 'lightmaterial', 'shutdown_timeout', 'activate_timeout', 'simple', 'regenerate', 'redstone', 'wooshdepth', 'cooldown', 'restrict', & 'custom'.");
+                sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             }
+            return true;
         }
-        else
+        catch (final Throwable t)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error executing /wormhole command: " + t.getMessage());
+            if (CommandUtilities.playerCheck(sender))
+            {
+                ((Player) sender).sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+            }
+            else
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+            }
+            return true;
         }
-        return true;
     }
 }

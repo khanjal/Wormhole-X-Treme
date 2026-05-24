@@ -27,65 +27,72 @@ public class WXList implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        if (CommandUtilities.playerCheck(sender)
-            ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST)
-            : true)
+        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
-            // Optional network filter: /wx list [network]
-            // "Public" (case-insensitive) matches gates with no assigned network.
-            final String filterNet = (args.length > 0) ? args[0].trim() : null;
-            final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
+            @Override
+            public Boolean call() throws Exception
+            {
+                if (CommandUtilities.playerCheck(sender)
+                    ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST)
+                    : true)
+                {
+                    // Optional network filter: /wx list [network]
+                    // "Public" (case-insensitive) matches gates with no assigned network.
+                    final String filterNet = (args.length > 0) ? args[0].trim() : null;
+                    final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
 
-            final ArrayList<Stargate> allGates = StargateManager.getAllGates();
-            final ArrayList<Stargate> gates = new ArrayList<Stargate>();
-            for (final Stargate g : allGates)
-            {
-                if (filterNet == null)
-                {
-                    gates.add(g);
-                }
-                else if (filterPublic && g.getGateNetwork() == null)
-                {
-                    gates.add(g);
-                }
-                else if (!filterPublic && g.getGateNetwork() != null && g.getGateNetwork().getNetworkName().equalsIgnoreCase(filterNet))
-                {
-                    gates.add(g);
-                }
-            }
+                    final ArrayList<Stargate> allGates = StargateManager.getAllGates();
+                    final ArrayList<Stargate> gates = new ArrayList<Stargate>();
+                    for (final Stargate g : allGates)
+                    {
+                        if (filterNet == null)
+                        {
+                            gates.add(g);
+                        }
+                        else if (filterPublic && g.getGateNetwork() == null)
+                        {
+                            gates.add(g);
+                        }
+                        else if (!filterPublic && g.getGateNetwork() != null && g.getGateNetwork().getNetworkName().equalsIgnoreCase(filterNet))
+                        {
+                            gates.add(g);
+                        }
+                    }
 
-            final String header = filterNet != null
-                ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
-                : "Available gates \u00A73::";
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
-            if (gates.isEmpty())
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
-            }
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < gates.size(); i++)
-            {
-                sb.append("\u00A77" + gates.get(i).getGateName());
-                if (i != gates.size() - 1)
-                {
-                    sb.append("\u00A78, ");
+                    final String header = filterNet != null
+                        ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
+                        : "Available gates \u00A73::";
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
+                    if (gates.isEmpty())
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
+                    }
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < gates.size(); i++)
+                    {
+                        sb.append("\u00A77" + gates.get(i).getGateName());
+                        if (i != gates.size() - 1)
+                        {
+                            sb.append("\u00A78, ");
+                        }
+                        if (sb.toString().length() >= 75)
+                        {
+                            sender.sendMessage(sb.toString());
+                            sb = new StringBuilder();
+                        }
+                    }
+                    if ( !sb.toString().equals(""))
+                    {
+                        sender.sendMessage(sb.toString());
+                    }
                 }
-                if (sb.toString().length() >= 75)
+                else
                 {
-                    sender.sendMessage(sb.toString());
-                    sb = new StringBuilder();
+                    sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                 }
+                return true;
             }
-            if ( !sb.toString().equals(""))
-            {
-                sender.sendMessage(sb.toString());
-            }
-        }
-        else
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-        }
-        return true;
+        });
     }
 
 }

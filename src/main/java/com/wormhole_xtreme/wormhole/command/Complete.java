@@ -55,16 +55,43 @@ public class Complete implements CommandExecutor, TabCompleter
             String idc = "";
             String network = "";
 
+            // Robust parsing for optional key=value arguments. Accepts:
+            // - idc=1234
+            // - idc= 1234 (user typed a space-separated value)
+            // - idc=    (empty value)
             for (int i = 1; i < args.length; i++)
             {
-                final String[] key_value_string = args[i].split("=");
-                if (key_value_string[0].equals("idc"))
+                final String token = args[i];
+                if (token == null || token.isEmpty())
                 {
-                    idc = key_value_string[1];
+                    continue;
                 }
-                else if (key_value_string[0].equals("net"))
+
+                final int eqPos = token.indexOf('=');
+                if (eqPos < 0)
                 {
-                    network = key_value_string[1];
+                    // Not a key=value token — skip it (user probably mistyped)
+                    continue;
+                }
+
+                final String key = token.substring(0, eqPos).trim();
+                String value = token.substring(eqPos + 1).trim();
+
+                // Support the common mistake: "idc= 1234" where value is the
+                // next whitespace-separated token.
+                if (value.isEmpty() && (i + 1) < args.length && !args[i + 1].contains("="))
+                {
+                    value = args[i + 1].trim();
+                    i++; // consume the value token
+                }
+
+                if ("idc".equalsIgnoreCase(key))
+                {
+                    idc = value;
+                }
+                else if ("net".equalsIgnoreCase(key))
+                {
+                    network = value;
                 }
             }
             if (WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
@@ -148,9 +175,21 @@ public class Complete implements CommandExecutor, TabCompleter
                 }
                 return true;
             }
-            return CommandUtilities.playerCheck(sender)
-                ? doComplete((Player) sender, arguments)
-                : true;
+            if (CommandUtilities.playerCheck(sender))
+            {
+                try
+                {
+                    return doComplete((Player) sender, arguments);
+                }
+                catch (final Exception e)
+                {
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error executing /wormhole complete: " + e.getMessage());
+                    final Player player = (Player) sender;
+                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
+                    return true;
+                }
+            }
+            return true;
         }
         return false;
     }

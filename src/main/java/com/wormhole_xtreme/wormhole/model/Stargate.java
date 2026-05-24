@@ -83,6 +83,8 @@ public class Stargate
     private Block gateDialSignBlock;
     /** Block that toggle the activation state of the gate if nearby redstone is activated. */
     private Block gateRedstoneDialActivationBlock;
+    /** Blocks to monitor for redstone input when auto-placing is disabled. */
+    private final ArrayList<Block> gateRedstoneDialMonitorBlocks = new ArrayList<Block>();
     /** Block that will toggle sign target when redstone nearby is activated. */
     private Block gateRedstoneSignActivationBlock;
     /** The gate redstone gate activated block. */
@@ -604,6 +606,18 @@ public class Stargate
     public Block getGateRedstoneDialActivationBlock()
     {
         return gateRedstoneDialActivationBlock;
+    }
+
+    /**
+     * Gets the list of blocks that should be monitored for redstone input.
+     * These are used for redstone-enabled shapes where the plugin does not
+     * place redstone dust but detects player-placed dust in the monitor area.
+     *
+     * @return modifiable list of monitor blocks (may be empty)
+     */
+    public ArrayList<Block> getGateRedstoneDialMonitorBlocks()
+    {
+        return gateRedstoneDialMonitorBlocks;
     }
 
     /**

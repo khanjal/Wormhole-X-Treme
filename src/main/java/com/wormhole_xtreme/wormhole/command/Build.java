@@ -60,17 +60,24 @@ public class Build implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        if (CommandUtilities.playerCheck(sender))
+        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
-            final String[] arguments = CommandUtilities.commandEscaper(args);
-            if ((arguments.length < 3) && (arguments.length > 0))
+            @Override
+            public Boolean call() throws Exception
             {
-                final Player player = (Player) sender;
-                return doBuild(player, arguments);
+                if (CommandUtilities.playerCheck(sender))
+                {
+                    final String[] arguments = CommandUtilities.commandEscaper(args);
+                    if ((arguments.length < 3) && (arguments.length > 0))
+                    {
+                        final Player player = (Player) sender;
+                        return doBuild(player, arguments);
+                    }
+                    return false;
+                }
+                return true;
             }
-            return false;
-        }
-        return true;
+        });
     }
 
 }

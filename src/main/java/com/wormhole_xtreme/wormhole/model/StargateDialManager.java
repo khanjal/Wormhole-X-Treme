@@ -387,31 +387,43 @@ class StargateDialManager
         {
             gate.setGateTarget(target);
             dialStargate(gate);
-            gate.getGateTarget().dialStargate();
 
-            if (gate.isGateActive() && gate.getGateTarget().isGateActive())
+            // The local activation step may clear the gate target in some error
+            // paths (for example if scheduling failed and shutdown was forced).
+            // Guard against that so we do not NPE when trying to dial the remote end.
+            final Stargate remote = gate.getGateTarget();
+            if (remote == null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                    "Dial aborted: remote target cleared during local activation for gate '" + gate.getGateName() + "'.");
+                return false;
+            }
+
+            remote.dialStargate();
+
+            if (gate.isGateActive() && remote.isGateActive())
             {
                 // Pre-load destination chunks so players/vehicles don't fall through unloaded terrain.
                 // Any brief load-time lag occurs here at dial time, not when the player walks through.
                 try
                 {
-                    final Location destLoc = gate.getGateTarget().getGatePlayerTeleportLocation();
+                    final Location destLoc = remote.getGatePlayerTeleportLocation();
                     WorldUtils.forceLoadDestinationChunks(destLoc);
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                        "Pre-loaded destination chunks for gate: " + gate.getGateTarget().getGateName());
+                        "Pre-loaded destination chunks for gate: " + remote.getGateName());
                 }
                 catch (final Throwable ignore) {}
                 return true;
             }
-            else if (gate.isGateActive() && !gate.getGateTarget().isGateActive())
+            else if (gate.isGateActive() && !remote.isGateActive())
             {
                 gate.shutdownStargate(true);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
                     "Far wormhole failed to open. Closing local wormhole for safety sake.");
             }
-            else if (!gate.isGateActive() && gate.getGateTarget().isGateActive())
+            else if (!gate.isGateActive() && remote.isGateActive())
             {
-                target.shutdownStargate(true);
+                remote.shutdownStargate(true);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
                     "Local wormhole failed to open. Closing far end wormhole for safety sake.");
             }

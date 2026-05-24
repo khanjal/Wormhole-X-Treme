@@ -168,6 +168,11 @@ public final class StargateHelper
         {
             return null;
         }
+        // Scan all shapes and pick the most specific match: prefer shapes that declare
+        // REDSTONE_ACTIVATED=TRUE over plain shapes with identical structure layouts,
+        // so StandardSignDialRedstone wins over StandardSignDial for the same frame.
+        Stargate best = null;
+        boolean bestIsRedstone = false;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())
         {
             if (shape instanceof Stargate3DShape)
@@ -175,11 +180,16 @@ public final class StargateHelper
                 final Stargate result = check3DShape(clickedBlock, direction, (Stargate3DShape) shape);
                 if (result != null)
                 {
-                    return result;
+                    final boolean isRedstone = ((Stargate3DShape) shape).isShapeRedstoneActivated();
+                    if (best == null || (!bestIsRedstone && isRedstone))
+                    {
+                        best = result;
+                        bestIsRedstone = isRedstone;
+                    }
                 }
             }
         }
-        return null;
+        return best;
     }
 
     /**
@@ -478,7 +488,10 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + rdPos[2] * right.getModX();
                 final int wy = oy + rdPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + rdPos[2] * right.getModZ();
-                gate.setGateRedstoneDialActivationBlock(world.getBlockAt(wx, wy, wz));
+                // Redstone activation blocks are intended to sit on top of the structure
+                // block. Use the block above the structure coordinate so we do not
+                // overwrite the frame material when placing redstone components.
+                gate.setGateRedstoneDialActivationBlock(world.getBlockAt(wx, wy + 1, wz));
                 gate.setGateRedstonePowered(true);
             }
 
@@ -489,7 +502,7 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + rsPos[2] * right.getModX();
                 final int wy = oy + rsPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + rsPos[2] * right.getModZ();
-                gate.setGateRedstoneSignActivationBlock(world.getBlockAt(wx, wy, wz));
+                gate.setGateRedstoneSignActivationBlock(world.getBlockAt(wx, wy + 1, wz));
             }
 
             // Redstone gate-activated output (RA)
@@ -499,9 +512,120 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + raPos[2] * right.getModX();
                 final int wy = oy + raPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + raPos[2] * right.getModZ();
-                gate.setGateRedstoneGateActivatedBlock(world.getBlockAt(wx, wy, wz));
+                gate.setGateRedstoneGateActivatedBlock(world.getBlockAt(wx, wy + 1, wz));
             }
         }
+
+        // Prevent RD/RS from being side-by-side: if both assigned and adjacent,
+        // prefer the dial activation (RD) and drop the sign-cycler (RS).
+        if ((gate.getGateRedstoneDialActivationBlock() != null) && (gate.getGateRedstoneSignActivationBlock() != null))
+        {
+            if (WorldUtils.isAdjacent(gate.getGateRedstoneDialActivationBlock(), gate.getGateRedstoneSignActivationBlock()))
+            {
+                gate.setGateRedstoneSignActivationBlock(null);
+            }
+        }
+
+        // If the shape is redstone-enabled and defines a redstone-activated output (RA)
+        // but does not explicitly define a redstone-dial activation block (RD),
+        // choose a safe RD location in front of the RA block. Avoid placing RD on
+        // the DHD/dial holder, the dial sign, the name holder, or any structure block.
+        if ((gate.getGateRedstoneGateActivatedBlock() != null) && (gate.getGateRedstoneDialActivationBlock() == null)
+            && (shape != null) && shape.isShapeRedstoneActivated())
+        {
+            try
+            {
+                final Block ra = gate.getGateRedstoneGateActivatedBlock();
+                final Block dial = gate.getGateDialLeverBlock();
+                final Block signBlock = gate.getGateDialSignBlock();
+                final Block nameHolder = gate.getGateNameBlockHolder();
+
+                final Block candidateFront = ra.getRelative(facing);
+                final Block candidateFrontUp = candidateFront.getRelative(BlockFace.UP);
+                final Block candidateRight = candidateFront.getRelative(WorldUtils.getPerpendicularRightDirection(facing));
+                final Block candidateRightUp = candidateRight.getRelative(BlockFace.UP);
+                final Block candidateAboveRa = ra.getRelative(BlockFace.UP);
+
+                final Block[] candidates = new Block[] { candidateFront, candidateFrontUp, candidateRight, candidateRightUp, candidateAboveRa };
+                Block chosen = null;
+                for (final Block c : candidates)
+                {
+                    if (c == null)
+                    {
+                        continue;
+                    }
+                    // Avoid colliding with player-placed activation holder or dial/sign/name holders
+                    if ((dial != null) && WorldUtils.isSameBlock(c, dial))
+                    {
+                        continue;
+                    }
+                    if ((signBlock != null) && WorldUtils.isSameBlock(c, signBlock))
+                    {
+                        continue;
+                    }
+                    if ((nameHolder != null) && WorldUtils.isSameBlock(c, nameHolder))
+                    {
+                        continue;
+                    }
+                    // Avoid replacing any structure block
+                    boolean collidesStructure = false;
+                    for (final org.bukkit.Location loc : gate.getGateStructureBlocks())
+                    {
+                        if (loc == null)
+                        {
+                            continue;
+                        }
+                        if ((loc.getBlockX() == c.getX()) && (loc.getBlockY() == c.getY()) && (loc.getBlockZ() == c.getZ()))
+                        {
+                            collidesStructure = true;
+                            break;
+                        }
+                    }
+                    if (collidesStructure)
+                    {
+                        continue;
+                    }
+                    chosen = c;
+                    break;
+                }
+
+                if (chosen == null)
+                {
+                    // Last-resort fallback: use block above RA (may overwrite non-structure blocks)
+                    chosen = candidateAboveRa;
+                }
+
+                if (chosen != null)
+                {
+                    gate.setGateRedstoneDialActivationBlock(chosen);
+                    gate.setGateRedstonePowered(true);
+                }
+            }
+            catch (final Throwable ignore) {}
+        }
+
+        // Instead of forcing placement of redstone dust in front of the activation
+        // holder we record a small set of monitor blocks for redstone-enabled
+        // shapes. The listener will treat power changes to these blocks as
+        // activation triggers. Monitor targets are the blocks below the
+        // activation holder (not the block the lever/button is attached to).
+        try
+        {
+            gate.getGateRedstoneDialMonitorBlocks().clear();
+            final Block dialHolder = gate.getGateDialLeverBlock();
+            if (dialHolder != null)
+            {
+                // the block below the holder (where a player would place dust)
+                final Block below = dialHolder.getRelative(BlockFace.DOWN);
+                gate.getGateRedstoneDialMonitorBlocks().add(below);
+                // also monitor the two blocks in front of that below-block
+                final Block front = below.getRelative(facing);
+                gate.getGateRedstoneDialMonitorBlocks().add(front);
+                final Block rightBlock = front.getRelative(WorldUtils.getPerpendicularRightDirection(facing));
+                gate.getGateRedstoneDialMonitorBlocks().add(rightBlock);
+            }
+        }
+        catch (final Throwable ignore) {}
 
         gate.setGateSignPowered(hasDialSign);
         return gate;

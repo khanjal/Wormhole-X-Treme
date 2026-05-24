@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
@@ -50,15 +51,55 @@ class WormholeXTremeBlockListener implements Listener
         {
             if (stargate != null && stargate.getGateDialLeverBlock() != null)
             {
-                final Block belowDial = stargate.getGateDialLeverBlock().getRelative(BlockFace.DOWN);
+                final Block dial = stargate.getGateDialLeverBlock();
+                final Block belowDial = dial.getRelative(BlockFace.DOWN);
+
+                // Determine whether the gate's iris lever is actually present (a placed LEVER),
+                // because model-only placeholders are assigned during shape detection.
+                Block irisBlock = null;
+                boolean irisPresent = false;
+                try
+                {
+                    irisBlock = stargate.getGateIrisLeverBlock();
+                    if (irisBlock != null && irisBlock.getType() == Material.LEVER)
+                    {
+                        irisPresent = true;
+                    }
+                }
+                catch (final Throwable ignore) {}
+
                 if ((belowDial != null) && WorldUtils.isSameBlock(belowDial, block))
                 {
-                    // If the block under the dial is the iris control block, keep protection.
-                    if ((stargate.getGateIrisLeverBlock() == null) || !WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), block))
+                    // If the block under the dial is the iris control block AND an actual
+                    // lever is present there, keep protection. Otherwise allow the break.
+                    if (!irisPresent || !WorldUtils.isSameBlock(irisBlock, block))
                     {
                         return false; // allow break
                     }
                 }
+
+                // Also allow breaking the block that would host the iris lever when
+                // an iris lever is not actually present (the "iris placeholder").
+                try
+                {
+                    BlockFace buttonFacing = stargate.getGateFacing(); // fallback
+                    final org.bukkit.block.data.BlockData bd = dial.getBlockData();
+                    if (bd instanceof Directional)
+                    {
+                        buttonFacing = ((Directional) bd).getFacing();
+                    }
+                    final Block backing = dial.getRelative(WorldUtils.getInverseDirection(buttonFacing));
+                    final Block dhdBase = backing.getRelative(BlockFace.DOWN);
+                    final Block irisCandidate = dhdBase.getRelative(stargate.getGateFacing());
+                    if ((irisCandidate != null) && WorldUtils.isSameBlock(irisCandidate, block))
+                    {
+                        if (!irisPresent || !WorldUtils.isSameBlock(irisBlock, block))
+                        {
+                            return false; // allow break
+                        }
+                    }
+                }
+                catch (final Throwable ignore) {}
             }
         }
         catch (final Throwable ignore) {}

@@ -210,4 +210,33 @@ public class CommandUtilities
             return false;
         }
     }
+
+    /**
+     * Run a command body safely, catching any Throwable and reporting a friendly
+     * message to the command sender (and logging the error).
+     *
+     * @param sender   command sender
+     * @param callable the command body to execute
+     * @return the boolean result the callable returned, or true if an error occurred
+     */
+    public static boolean runCommandSafe(final CommandSender sender, final java.util.concurrent.Callable<Boolean> callable)
+    {
+        try
+        {
+            return callable.call();
+        }
+        catch (final Throwable t)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error executing command: " + t.getMessage());
+            if (playerCheck(sender))
+            {
+                ((Player) sender).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+            }
+            else
+            {
+                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+            }
+            return true;
+        }
+    }
 }

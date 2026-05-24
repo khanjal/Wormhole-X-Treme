@@ -1,133 +1,147 @@
-﻿package com.wormhole_xtreme.wormhole;
+package com.wormhole_xtreme.wormhole;
 
-import java.util.logging.Level;
-
+import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.event.Listener;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockRedstoneEvent;
 
+import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
+import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
- * The listener interface for receiving wormholeXTremeRedstone events.
- * The class that is interested in processing a wormholeXTremeRedstone
- * event implements this interface, and the object created
- * with that class is registered with a component using the
- * component's <code>addWormholeXTremeRedstoneListener<code> method. When
- * the wormholeXTremeRedstone event occurs, that object's appropriate
- * method is invoked.
- * 
- * @see WormholeXTremeRedstoneEvent
+ * Listener for redstone events related to stargates.
  */
 class WormholeXTremeRedstoneListener implements Listener
 {
-    /**
-     * Checks if current is new.
-     * 
-     * @param oldCurrent
-     *            the old current
-     * @param newCurrent
-     *            the new current
-     * @return true, if is current new
-     */
-    private static boolean isCurrentNew(final int oldCurrent, final int newCurrent)
-    {
-        if (((oldCurrent == 0) && (newCurrent > 0)) || ((oldCurrent > 0) && (newCurrent == 0)))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Checks if current is on.
-     * 
-     * @param oldCurrent
-     *            the old current
-     * @param newCurrent
-     *            the new current
-     * @return true, if is current on
-     */
-    private static boolean isCurrentOn(final int oldCurrent, final int newCurrent)
-    {
-        return (newCurrent > 0) && (oldCurrent == 0)
-            ? true
-            : false;
-    }
-
-    /* (non-Javadoc)
-     * @see org.bukkit.event.block.BlockListener#onBlockRedstoneChange(org.bukkit.event.block.BlockRedstoneEvent)
-     */
     @EventHandler
     public void onBlockRedstoneChange(final BlockRedstoneEvent event)
     {
-        final Block block = event.getBlock();
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, false, "Caught redstone event on block: " + block.toString() + " oldCurrent: " + event.getOldCurrent() + " newCurrent: " + event.getNewCurrent());
-        if (StargateManager.isBlockInGate(block))
+        if (event == null)
         {
-            final Stargate stargate = StargateManager.getGateFromBlock(event.getBlock());
-            if (stargate.isGateRedstonePowered() && isCurrentNew(event.getOldCurrent(), event.getNewCurrent()))
+            return;
+        }
+
+        final Block block = event.getBlock();
+        if (block == null)
+        {
+            return;
+        }
+
+        Stargate stargate = StargateManager.getGateFromBlock(block);
+        if (stargate == null)
+        {
+            try
             {
-                // Sign-activation wire
-                if ((stargate.getGateRedstoneSignActivationBlock() != null) && block.equals(stargate.getGateRedstoneSignActivationBlock()) && isCurrentOn(event.getOldCurrent(), event.getNewCurrent()))
+                // Fallback: find a nearby indexed gate if the block itself isn't indexed
+                stargate = StargateManager.findNearestGateByBlock(block.getLocation(), 2, 2);
+            }
+            catch (final Throwable ignore) {}
+            if (stargate == null)
+            {
+                return;
+            }
+        }
+
+        // Only act on an actual power state change
+        if (event.getOldCurrent() == event.getNewCurrent())
+        {
+            return;
+        }
+
+        // Only handle rising-edge power for activation/shutdown
+        if ((event.getOldCurrent() == 0) && (event.getNewCurrent() > 0))
+        {
+            // If this gate is not configured for redstone activation, ignore
+            if (!stargate.isGateRedstonePowered())
+            {
+                return;
+            }
+
+            try
+            {
+                final Block dial = stargate.getGateDialLeverBlock();
+                final Block rdBlock = stargate.getGateRedstoneDialActivationBlock();
+                final Block rsBlock = stargate.getGateRedstoneSignActivationBlock();
+
+                final boolean isRedstoneDial = (rdBlock != null) && WorldUtils.isSameBlock(rdBlock, block);
+                final boolean isRedstoneSign = (rsBlock != null) && WorldUtils.isSameBlock(rsBlock, block);
+                final boolean isDialSame = (dial != null) && WorldUtils.isSameBlock(dial, block);
+                final boolean isDialAdjacent = (dial != null) && WorldUtils.isAdjacent(dial, block);
+
+                // Consider redstone wire adjacency to the dial as an activation trigger.
+                final boolean isWireAdjacent = (block.getType() == Material.REDSTONE_WIRE) && isDialAdjacent;
+
+                // Monitor-mode: if the gate defined monitor blocks we treat redstone
+                // on those blocks as an activation trigger rather than requiring the
+                // plugin to place redstone dust. This allows sign-only gates to keep
+                // their lever/button while still supporting player-placed redstone.
+                boolean isMonitorTriggered = false;
+                try
                 {
-                    if (stargate.isGateSignPowered())
+                    for (final Block m : stargate.getGateRedstoneDialMonitorBlocks())
                     {
-                        stargate.tryClickTeleportSign(stargate.getGateDialSignBlock());
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught redstone sign event on gate: " + stargate.getGateName() + " block: " + block.toString());
+                        if (m != null && WorldUtils.isSameBlock(m, block) && block.getType() == Material.REDSTONE_WIRE)
+                        {
+                            isMonitorTriggered = true;
+                            break;
+                        }
                     }
-                    else
+                }
+                catch (final Throwable ignore) {}
+
+                // RD block (or dial-adjacent wire or monitored wire): activate or shutdown
+                if (isRedstoneDial || isDialSame || isWireAdjacent || isMonitorTriggered)
+                {
+                    if (stargate.isGateActive() || stargate.isGateLightsActive())
                     {
-                        // Fallback to behave like a dial activation on non-sign gates
-                        if (stargate.isGateActive() && (stargate.getGateTarget() != null))
+                        // Gate already open — shut it down
+                        if (stargate.getGateTarget() != null)
                         {
                             stargate.shutdownStargate(true);
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught redstone shutdown event (sign wire) on gate: " + stargate.getGateName() + " block: " + block.toString());
                         }
-                        if (!stargate.isGateActive() && (stargate.getGateDialSignTarget() != null) && !stargate.isGateRecentlyActive())
+                        else
                         {
-                            stargate.dialStargate(stargate.getGateDialSignTarget(), false);
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught redstone dial event (sign wire) on gate: " + stargate.getGateName() + " block: " + block.toString());
+                            final Player activator = StargateManager.removeActivatorForStargate(stargate);
+                            stargate.stopActivationTimer();
+                            stargate.setGateActive(false);
+                            stargate.toggleDialLeverState(false);
+                            stargate.lightStargate(false);
+                            if (activator != null)
+                            {
+                                try
+                                {
+                                    activator.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+                                }
+                                catch (final Throwable ignore) {}
+                            }
+                        }
+                    }
+                    else if (stargate.isGateSignPowered())
+                    {
+                        // Gate is inactive and sign-powered: dial the currently selected sign target
+                        final Stargate signTarget = stargate.getGateDialSignTarget();
+                        if (signTarget != null)
+                        {
+                            stargate.dialStargate(signTarget, false);
                         }
                     }
                 }
-                // Dial activation wire
-                else if ((stargate.getGateRedstoneDialActivationBlock() != null) && block.equals(stargate.getGateRedstoneDialActivationBlock()) && isCurrentOn(event.getOldCurrent(), event.getNewCurrent()))
+
+                // RS block: cycle the sign target (forward direction)
+                if (isRedstoneSign && !stargate.isGateActive())
                 {
-                    if (stargate.isGateActive() && (stargate.getGateTarget() != null))
-                    {
-                        stargate.shutdownStargate(true);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught redstone shutdown event on gate: " + stargate.getGateName() + " block: " + block.toString());
-                    }
-                    if ( !stargate.isGateActive() && (stargate.getGateDialSignTarget() != null) && !stargate.isGateRecentlyActive())
-                    {
-                        stargate.dialStargate(stargate.getGateDialSignTarget(), false);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught redstone dial event on gate: " + stargate.getGateName() + " block: " + block.toString());
-                    }
-                }
-                // Direct lever/button on DHD (allow powering via lever/button without explicit redstone wire)
-                else if ((stargate.getGateDialLeverBlock() != null) && block.equals(stargate.getGateDialLeverBlock()) && isCurrentOn(event.getOldCurrent(), event.getNewCurrent()))
-                {
-                    if (stargate.isGateActive() && (stargate.getGateTarget() != null))
-                    {
-                        stargate.shutdownStargate(true);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught direct lever shutdown event on gate: " + stargate.getGateName() + " block: " + block.toString());
-                    }
-                    else if (!stargate.isGateActive() && (stargate.getGateDialSignTarget() != null) && !stargate.isGateRecentlyActive())
-                    {
-                        stargate.dialStargate(stargate.getGateDialSignTarget(), false);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught direct lever dial event on gate: " + stargate.getGateName() + " block: " + block.toString());
-                    }
-                }
-                // Iris lever: toggle iris
-                else if ((stargate.getGateIrisLeverBlock() != null) && block.equals(stargate.getGateIrisLeverBlock()) && isCurrentOn(event.getOldCurrent(), event.getNewCurrent()))
-                {
-                    stargate.toggleIrisActive(true);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught iris lever redstone event on gate: " + stargate.getGateName() + " block: " + block.toString());
+                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+                        WormholeXTreme.getThisPlugin(),
+                        new StargateUpdateRunnable(stargate, ActionToTake.DIAL_SIGN_CLICK),
+                        1L);
                 }
             }
+            catch (final Throwable ignore) {}
         }
     }
 }

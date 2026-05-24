@@ -13,6 +13,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Powerable;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -212,7 +213,8 @@ class StargateBlockSetup
     static void setupIrisLever(final Stargate gate, final boolean create)
     {
         if ((gate.getGateIrisLeverBlock() == null)
-            && (gate.getGateShape() != null))
+            && (gate.getGateShape() != null)
+            && !((gate.getGateShape() instanceof Stargate3DShape) && ((Stargate3DShape) gate.getGateShape()).isShapeRedstoneActivated()))
         {
             final Block button = gate.getGateDialLeverBlock();
             if (button != null)
@@ -237,7 +239,17 @@ class StargateBlockSetup
                 final Block backing = button.getRelative(WorldUtils.getInverseDirection(buttonFacing));
                 final Block dhdBase = backing.getRelative(BlockFace.DOWN);
                 final Block irisBlock = dhdBase.getRelative(gate.getGateFacing());
-                gate.setGateIrisLeverBlock(irisBlock);
+                // Do not claim the iris position if it is already occupied by an RD or RS
+                // redstone-activation block (e.g. StandardSignDialRedstone places [S:RD]
+                // directly below [S:A], which is exactly where this algorithm lands).
+                final Block rdBlock = gate.getGateRedstoneDialActivationBlock();
+                final Block rsBlock = gate.getGateRedstoneSignActivationBlock();
+                final boolean collidesRd = (rdBlock != null) && WorldUtils.isSameBlock(rdBlock, irisBlock);
+                final boolean collidesRs = (rsBlock != null) && WorldUtils.isSameBlock(rsBlock, irisBlock);
+                if (!collidesRd && !collidesRs)
+                {
+                    gate.setGateIrisLeverBlock(irisBlock);
+                }
             }
         }
         if (gate.getGateIrisLeverBlock() != null)
@@ -329,15 +341,29 @@ class StargateBlockSetup
         {
             if (create)
             {
-                gate.getGateStructureBlocks().add(gate.getGateRedstoneDialActivationBlock().getLocation());
-                gate.getGateRedstoneDialActivationBlock().setType(Material.REDSTONE_WIRE);
+                final Block rd = gate.getGateRedstoneDialActivationBlock();
+                try
+                {
+                    final Material current = rd.getType();
+                    if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
+                    {
+                        gate.getGateStructureBlocks().add(rd.getLocation());
+                        rd.setType(Material.REDSTONE_WIRE);
+                    }
+                    else
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping RD placement; target occupied: " + current);
+                    }
+                }
+                catch (final Throwable ignore) {}
             }
             else
             {
-                if (gate.getGateRedstoneGateActivatedBlock().getType() == Material.REDSTONE_WIRE)
+                final Block rd = gate.getGateRedstoneDialActivationBlock();
+                if (rd != null && rd.getType() == Material.REDSTONE_WIRE)
                 {
-                    gate.getGateStructureBlocks().remove(gate.getGateRedstoneDialActivationBlock().getLocation());
-                    gate.getGateRedstoneDialActivationBlock().setType(Material.AIR);
+                    gate.getGateStructureBlocks().remove(rd.getLocation());
+                    rd.setType(Material.AIR);
                 }
             }
         }
@@ -350,8 +376,21 @@ class StargateBlockSetup
         {
             if (create)
             {
-                gate.getGateStructureBlocks().add(gate.getGateRedstoneGateActivatedBlock().getLocation());
-                gate.getGateRedstoneGateActivatedBlock().setType(Material.LEVER);
+                final Block ra = gate.getGateRedstoneGateActivatedBlock();
+                try
+                {
+                    final Material current = ra.getType();
+                    if (current == Material.AIR)
+                    {
+                        gate.getGateStructureBlocks().add(ra.getLocation());
+                        ra.setType(Material.LEVER);
+                    }
+                    else
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping RA lever placement; target occupied: " + current);
+                    }
+                }
+                catch (final Throwable ignore) {}
             }
             else
             {
@@ -371,15 +410,29 @@ class StargateBlockSetup
         {
             if (create)
             {
-                gate.getGateStructureBlocks().add(gate.getGateRedstoneSignActivationBlock().getLocation());
-                gate.getGateRedstoneSignActivationBlock().setType(Material.REDSTONE_WIRE);
+                final Block rs = gate.getGateRedstoneSignActivationBlock();
+                try
+                {
+                    final Material current = rs.getType();
+                    if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
+                    {
+                        gate.getGateStructureBlocks().add(rs.getLocation());
+                        rs.setType(Material.REDSTONE_WIRE);
+                    }
+                    else
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping RS placement; target occupied: " + current);
+                    }
+                }
+                catch (final Throwable ignore) {}
             }
             else
             {
-                if (gate.getGateRedstoneGateActivatedBlock().getType() == Material.REDSTONE_WIRE)
+                final Block rs = gate.getGateRedstoneSignActivationBlock();
+                if (rs != null && rs.getType() == Material.REDSTONE_WIRE)
                 {
-                    gate.getGateStructureBlocks().remove(gate.getGateRedstoneSignActivationBlock().getLocation());
-                    gate.getGateRedstoneSignActivationBlock().setType(Material.AIR);
+                    gate.getGateStructureBlocks().remove(rs.getLocation());
+                    rs.setType(Material.AIR);
                 }
             }
         }

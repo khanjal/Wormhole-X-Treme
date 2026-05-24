@@ -29,46 +29,53 @@ public class Force implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        final String[] a = CommandUtilities.commandEscaper(args);
-        if (a.length == 1)
+        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
-            if (CommandUtilities.playerCheck(sender)
-                ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG)
-                : true)
+            @Override
+            public Boolean call() throws Exception
             {
-                if (a[0].equalsIgnoreCase("-all"))
+                final String[] a = CommandUtilities.commandEscaper(args);
+                if (a.length == 1)
                 {
-                    for (final Stargate gate : StargateManager.getAllGates())
+                    if (CommandUtilities.playerCheck(sender)
+                        ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG)
+                        : true)
                     {
-                        CommandUtilities.closeGate(gate, true);
+                        if (a[0].equalsIgnoreCase("-all"))
+                        {
+                            for (final Stargate gate : StargateManager.getAllGates())
+                            {
+                                CommandUtilities.closeGate(gate, true);
+                            }
+                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "All gates have been deactivated, darkened, and have had their iris (if any) opened.");
+                        }
+                        else if (StargateManager.isStargate(a[0]))
+                        {
+                            CommandUtilities.closeGate(StargateManager.getStargate(a[0]), true);
+                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + a[0] + " has been closed, darkened, and has had its iris (if any) opened.");
+                        }
+                        else
+                        {
+                            sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+                            return false;
+                        }
+
+                        if (CommandUtilities.playerCheck(sender))
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: \"" + ((Player) sender).getName() + "\" ran /wormhole force (alias: /wx force): " + Arrays.toString(a));
+                        }
                     }
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "All gates have been deactivated, darkened, and have had their iris (if any) opened.");
-                }
-                else if (StargateManager.isStargate(a[0]))
-                {
-                    CommandUtilities.closeGate(StargateManager.getStargate(a[0]), true);
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + a[0] + " has been closed, darkened, and has had its iris (if any) opened.");
+                    else
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                    }
+                    return true;
                 }
                 else
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
                     return false;
                 }
-
-                if (CommandUtilities.playerCheck(sender))
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: \"" + ((Player) sender).getName() + "\" ran /wormhole force (alias: /wx force): " + Arrays.toString(a));
-                }
             }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            }
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        });
     }
 }

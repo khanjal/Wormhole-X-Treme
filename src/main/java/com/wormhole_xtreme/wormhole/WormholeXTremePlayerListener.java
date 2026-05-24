@@ -364,6 +364,14 @@ class WormholeXTremePlayerListener implements Listener
                                     final com.wormhole_xtreme.wormhole.model.Stargate nearbyGate = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(b, face);
                                     if (nearbyGate != null)
                                     {
+                                        // Skip gates that are already fully registered — this prevents
+                                        // the "gate complete" prompt from firing when a player places
+                                        // a lever or button near an existing gate's structure blocks.
+                                        final org.bukkit.block.Block nearbyDial = nearbyGate.getGateDialLeverBlock();
+                                        if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
+                                        {
+                                            continue;
+                                        }
                                         foundNearby = true;
                                         if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD) && !StargateRestrictions.isPlayerBuildRestricted(player))
                                         {
