@@ -7,9 +7,6 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.block.sign.Side;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -112,13 +109,13 @@ class StargateDialManager
         });
 
         // Line 0: always this gate's name.
-        gate.getGateDialSign().getSide(Side.FRONT).line(0, Component.text("-" + gate.getGateName() + "-"));
+        gate.getGateDialSign().setLine(0, "-" + gate.getGateName() + "-");
 
         if (others.isEmpty())
         {
-            gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(""));
-            gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text("No Other Gates"));
-            gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
+            gate.getGateDialSign().setLine(1, "");
+            gate.getGateDialSign().setLine(2, "No Other Gates");
+            gate.getGateDialSign().setLine(3, "");
             gate.getGateDialSign().update(true, false);
             gate.setGateDialSignTarget(null);
             return;
@@ -147,17 +144,17 @@ class StargateDialManager
         if (others.size() == 1)
         {
             // Only one other gate: no prev/next context needed.
-            gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(""));
-            gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(">" + current.getGateName() + "<", NamedTextColor.GOLD));
-            gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
+            gate.getGateDialSign().setLine(1, "");
+            gate.getGateDialSign().setLine(2, ">" + current.getGateName() + "<");
+            gate.getGateDialSign().setLine(3, "");
         }
         else
         {
             final int prevIdx = (idx - 1 + others.size()) % others.size();
             final int nextIdx = (idx + 1) % others.size();
-            gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(others.get(prevIdx).getGateName(), NamedTextColor.GRAY));
-            gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(">" + current.getGateName() + "<", NamedTextColor.GOLD));
-            gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(others.get(nextIdx).getGateName(), NamedTextColor.GRAY));
+            gate.getGateDialSign().setLine(1, others.get(prevIdx).getGateName());
+            gate.getGateDialSign().setLine(2, ">" + current.getGateName() + "<");
+            gate.getGateDialSign().setLine(3, others.get(nextIdx).getGateName());
         }
 
         gate.getGateDialSign().update(true, false);
@@ -180,10 +177,10 @@ class StargateDialManager
             }
             gate.setGateDialSign((Sign) bState);
             gate.setGateDialSignIndex(-1);
-            gate.getGateDialSign().getSide(Side.FRONT).line(0, Component.text(gate.getGateName()));
-            gate.getGateDialSign().getSide(Side.FRONT).line(1, Component.text(gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public"));
-            gate.getGateDialSign().getSide(Side.FRONT).line(2, Component.text(""));
-            gate.getGateDialSign().getSide(Side.FRONT).line(3, Component.text(""));
+            gate.getGateDialSign().setLine(0, gate.getGateName());
+            gate.getGateDialSign().setLine(1, gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public");
+            gate.getGateDialSign().setLine(2, "");
+            gate.getGateDialSign().setLine(3, "");
             gate.getGateDialSign().update(true, false);
         }
     }
@@ -385,45 +382,51 @@ class StargateDialManager
 
         if (!target.isGateLightsActive() || force)
         {
-            gate.setGateTarget(target);
+            // First, attempt to activate the local gate. Do not assign the target
+            // until local activation succeeds to avoid the local activation path
+            // clearing the target (which previously caused NPEs and aborted dials).
             dialStargate(gate);
 
-            // The local activation step may clear the gate target in some error
-            // paths (for example if scheduling failed and shutdown was forced).
-            // Guard against that so we do not NPE when trying to dial the remote end.
-            final Stargate remote = gate.getGateTarget();
-            if (remote == null)
+            // If local activation failed, abort and leave state clean.
+            if (!gate.isGateActive())
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
-                    "Dial aborted: remote target cleared during local activation for gate '" + gate.getGateName() + "'.");
+                    "Dial aborted: local activation failed for gate '" + gate.getGateName() + "'.");
                 return false;
             }
 
-            remote.dialStargate();
+            // Assign the remote target now that local activation succeeded.
+            gate.setGateTarget(target);
 
-            if (gate.isGateActive() && remote.isGateActive())
+            // Attempt to activate the remote end.
+            try
+            {
+                target.dialStargate();
+            }
+            catch (final Throwable ignore) {}
+
+            if (gate.isGateActive() && target.isGateActive())
             {
                 // Pre-load destination chunks so players/vehicles don't fall through unloaded terrain.
-                // Any brief load-time lag occurs here at dial time, not when the player walks through.
                 try
                 {
-                    final Location destLoc = remote.getGatePlayerTeleportLocation();
+                    final Location destLoc = target.getGatePlayerTeleportLocation();
                     WorldUtils.forceLoadDestinationChunks(destLoc);
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                        "Pre-loaded destination chunks for gate: " + remote.getGateName());
+                        "Pre-loaded destination chunks for gate: " + target.getGateName());
                 }
                 catch (final Throwable ignore) {}
                 return true;
             }
-            else if (gate.isGateActive() && !remote.isGateActive())
+            else if (gate.isGateActive() && !target.isGateActive())
             {
                 gate.shutdownStargate(true);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
                     "Far wormhole failed to open. Closing local wormhole for safety sake.");
             }
-            else if (!gate.isGateActive() && remote.isGateActive())
+            else if (!gate.isGateActive() && target.isGateActive())
             {
-                remote.shutdownStargate(true);
+                target.shutdownStargate(true);
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
                     "Local wormhole failed to open. Closing far end wormhole for safety sake.");
             }

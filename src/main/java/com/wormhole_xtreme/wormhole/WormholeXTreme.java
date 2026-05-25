@@ -317,6 +317,61 @@ public class WormholeXTreme extends JavaPlugin
             }
             registerEvents(false);
             registerCommands();
+            // Periodic scan: teleport non-player entities that walk into active gates.
+            WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        for (final org.bukkit.World world : WormholeXTreme.getThisPlugin().getServer().getWorlds())
+                        {
+                            for (final org.bukkit.entity.Entity e : world.getEntities())
+                            {
+                                try
+                                {
+                                    if (e == null) continue;
+                                    if (e instanceof org.bukkit.entity.Player) continue;
+                                    if (e instanceof org.bukkit.entity.Vehicle) continue;
+                                    if (e.isInsideVehicle()) continue;
+                                    final org.bukkit.Location loc = e.getLocation();
+                                    final Stargate closest = StargateManager.findClosestStargate(loc);
+                                    if (closest == null || !closest.isGateActive() || closest.getGateTarget() == null) continue;
+                                    final double d2 = StargateManager.distanceSquaredToClosestGateBlock(loc, closest);
+                                    final double thresholdSq = (closest.isGateCustom()
+                                        ? closest.getGateCustomWooshDepthSquared()
+                                        : (closest.getGateShape() != null ? closest.getGateShape().getShapeWooshDepthSquared() : 0));
+                                    if ((thresholdSq != 0 && d2 <= thresholdSq) || d2 <= 1.0)
+                                    {
+                                        final org.bukkit.block.Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+                                        if (!StargateManager.isBlockInGate(b)) continue;
+                                        final org.bukkit.Location target = closest.getGateTarget().getGatePlayerTeleportLocation();
+                                        final org.bukkit.Location safeTarget = WormholeXTremeVehicleListener.forwardAndUp(target, closest.getGateTarget().getGateFacing(), 1.0, 1.0);
+                                        try
+                                        {
+                                            e.teleport(safeTarget);
+                                            if (!e.getPassengers().isEmpty())
+                                            {
+                                                final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<org.bukkit.entity.Entity>();
+                                                final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<org.bukkit.entity.Entity>();
+                                                WormholeXTremeVehicleListener.collectPassengerPairs(e, (java.util.List) parents, (java.util.List) children);
+                                                for (int i = 0; i < children.size(); i++)
+                                                {
+                                                    try { parents.get(i).addPassenger(children.get(i)); } catch (final Throwable ignore) {}
+                                                }
+                                            }
+                                        }
+                                        catch (final Throwable ignore) {}
+                                    }
+                                }
+                                catch (final Throwable ignore) {}
+                            }
+                        }
+                    }
+                    catch (final Throwable ignore) {}
+                }
+            }, 20L, 5L);
             prettyLog(Level.INFO, true, "Enable Completed.");
         }
     }

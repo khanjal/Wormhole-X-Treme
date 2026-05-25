@@ -7,8 +7,6 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.block.sign.Side;
-import net.kyori.adventure.text.Component;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Powerable;
 
@@ -157,16 +155,16 @@ class StargateBlockSetup
             placeBlock.setBlockData(signData, false);
 
             final Sign sign = (Sign) placeBlock.getState();
-            sign.getSide(Side.FRONT).line(0, Component.text("-" + gate.getGateName() + "-"));
+            sign.setLine(0, "-" + gate.getGateName() + "-");
             if (gate.getGateNetwork() != null)
             {
-                sign.getSide(Side.FRONT).line(1, Component.text("N:" + gate.getGateNetwork().getNetworkName()));
+                sign.setLine(1, "N:" + gate.getGateNetwork().getNetworkName());
             }
             if (gate.getGateOwner() != null)
             {
                 final String ownerDisplay = gate.getGateOwnerName();
-                sign.getSide(Side.FRONT).line(2, Component.text("O:" + (ownerDisplay != null && ownerDisplay.length() > 13
-                    ? ownerDisplay.substring(0, 13) : ownerDisplay)));
+                sign.setLine(2, "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
+                    ? ownerDisplay.substring(0, 13) : ownerDisplay));
             }
             sign.update(true, false);
             // NOTE: gateDialSignBlock/gateDialSign are set during shape detection

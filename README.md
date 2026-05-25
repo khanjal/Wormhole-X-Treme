@@ -6,17 +6,31 @@ This branch targets Java 17 and the Bukkit 1.20 API.
 
 ## Server Compatibility
 
-| Server | Compatible |
-|---|---|
-| CraftBukkit 1.20.4 | ✅ |
-| Spigot 1.20.4 | ✅ |
-| Paper 1.20.4 | ✅ |
-| Purpur / Pufferfish (Paper forks) | ✅ |
-| Folia | ❌ (regionised scheduler — not supported) |
+### Compatibility Matrix
 
-The plugin is compiled against the Paper API (`paper-api 1.20.4`) as a `provided` dependency, but uses **only standard Bukkit APIs** — no Paper-exclusive classes are referenced at runtime. It will load and run correctly on any Bukkit-compatible 1.20.4 server.
+| Runtime Server | Base/API lineage | Support tier | Notes |
+|---|---|---|---|
+| CraftBukkit 1.20.4 | Bukkit | Supported | Baseline Bukkit/Spigot API behavior |
+| Spigot 1.20.4 | Spigot (Bukkit+) | Primary target | **Compile target** (`spigot-api`) |
+| Paper 1.20.4 | Paper (Spigot+) | Supported | Verified runtime target |
+| Purpur / Pufferfish | Paper fork | Best effort | Usually compatible with Paper behavior |
+| Folia | Paper fork (region scheduler) | Not supported | Different scheduler/threading model |
 
-Java 17 or newer is required.
+The plugin is compiled against the Spigot API (`spigot-api 1.20.4`) as a `provided` dependency.
+
+Why Spigot over Bukkit for build target:
+- Bukkit is the conceptual base and broadest API lineage.
+- Spigot is the practical widest deployment target while remaining close to Bukkit API.
+- Building against Spigot gives broad compatibility across Spigot and most Paper-based servers without tying the plugin to Paper-only APIs.
+
+Java support policy:
+- Java 17 and 21: officially supported
+- Java 25: best-effort (CI coverage)
+
+Build policy recommendation:
+- Compile against Spigot only.
+- Run CI tests on Java 17/21/25.
+- Optionally add runtime smoke tests on Spigot and Paper server jars if you want explicit per-server verification.
 
 ## Build
 
