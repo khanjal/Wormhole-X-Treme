@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.permissions;
 import org.bukkit.entity.Player;
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 
