@@ -223,8 +223,7 @@ public class WormholeXTreme extends JavaPlugin
             }
             catch (final Exception e)
             {
-                prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
-                e.printStackTrace();
+                    prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
             }
     }
 
@@ -255,7 +254,6 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, false, "Caught Exception while trying to load support plugins." + e.getMessage());
-            e.printStackTrace();
         }
         registerEvents(true);
         if ( !ConfigManager.isWormholeWorldsSupportEnabled())

@@ -95,7 +95,7 @@ public class Configuration
         }
         catch (final Exception exception)
         {
-            exception.printStackTrace();
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write configuration file: " + exception.getMessage());
         }
     }
 

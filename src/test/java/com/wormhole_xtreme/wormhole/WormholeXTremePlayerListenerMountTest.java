@@ -105,7 +105,7 @@ public class WormholeXTremePlayerListenerMountTest
 
         // Track teleport and addPassenger invocations and simulate successful addPassenger
         final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
-        doAnswer(inv -> { teleports.incrementAndGet(); new Exception("[TEST-DEBUG] mount.teleport called").printStackTrace(); return null; }).when(mount).teleport(any(Location.class));
+        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "[TEST-DEBUG] mount.teleport called"); return null; }).when(mount).teleport(any(Location.class));
         final java.util.concurrent.atomic.AtomicInteger adds = new java.util.concurrent.atomic.AtomicInteger(0);
         doAnswer(inv -> { adds.incrementAndGet(); return true; }).when(mount).addPassenger(any());
 

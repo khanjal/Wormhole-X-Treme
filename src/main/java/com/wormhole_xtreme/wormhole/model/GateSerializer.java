@@ -732,7 +732,6 @@ public final class GateSerializer
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to store gate in DB, byte encoding failed: " + e.getMessage());
-            e.printStackTrace();
             final byte[] b = null;
             return b;
         }
