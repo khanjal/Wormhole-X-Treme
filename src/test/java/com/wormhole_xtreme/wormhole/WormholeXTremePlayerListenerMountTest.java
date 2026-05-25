@@ -130,7 +130,7 @@ public class WormholeXTremePlayerListenerMountTest
         listener.onPlayerMove(ev2);
 
         // Assert: mount was teleported and both riders were reattached
-        System.out.println("[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
+        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
         assert(teleports.get() > 0);
         assert(adds.get() >= 2);
         verify(mockScheduler, atLeastOnce()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(2L));
