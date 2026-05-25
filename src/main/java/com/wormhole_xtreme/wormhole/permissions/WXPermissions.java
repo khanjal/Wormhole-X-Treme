@@ -128,7 +128,6 @@ public class WXPermissions
                 case USE :
                 case LIST :
                 case COMPASS :
-                case GO :
                     return true;
                 default :
                     break;
@@ -225,7 +224,6 @@ public class WXPermissions
                 case USE :
                 case LIST :
                 case COMPASS :
-                case GO :
                     return true;
                 default :
                     return false;

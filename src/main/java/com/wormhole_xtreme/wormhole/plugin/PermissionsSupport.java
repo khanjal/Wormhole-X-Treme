@@ -27,8 +27,28 @@ public class PermissionsSupport
     {
         if (!ConfigManager.getPermissionsSupportDisable())
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission checks configured to use Vault/LuckPerms or Bukkit-native permissions.");
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "For best results, install and configure Vault and LuckPerms or another Vault-compatible provider.");
+            boolean providerFound = false;
+            try {
+                final Class<?> permClass = Class.forName("net.milkbowl.vault.permission.Permission");
+                final org.bukkit.plugin.RegisteredServiceProvider<?> rsp = WormholeXTreme.getThisPlugin().getServer().getServicesManager().getRegistration(permClass);
+                if (rsp != null) {
+                    providerFound = true;
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Vault provider detected; permission checks will use Vault/Bukkit provider.");
+                }
+            } catch (final Throwable ignore) {}
+
+            if (!providerFound)
+            {
+                if (ConfigManager.getPermissionsAutoFallback())
+                {
+                    ConfigManager.setPermissionsSupportDisable(true);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set PERMISSIONS_AUTO_FALLBACK=false.");
+                }
+                else
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "No Vault/LuckPerms provider detected; permission checks will rely on server built-in permission handling (player.hasPermission()).");
+                }
+            }
         }
         else
         {

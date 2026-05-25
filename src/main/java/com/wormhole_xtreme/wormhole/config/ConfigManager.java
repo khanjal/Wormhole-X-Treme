@@ -25,6 +25,8 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
+        /** Automatically fall back to simple permission mode when no Vault provider is detected. */
+        PERMISSIONS_AUTO_FALLBACK,
         /** The WORMHOL e_ us e_ i s_ teleport. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -358,6 +360,32 @@ public class ConfigManager
         {
             return false;
         }
+    }
+
+    /**
+     * Gets whether the plugin should automatically fall back to simple permission mode when no
+     * Vault/LuckPerms provider is detected. Default: true.
+     */
+    public static boolean getPermissionsAutoFallback()
+    {
+        Setting psd;
+        if ((psd = ConfigManager.getConfigurations().get(ConfigKeys.PERMISSIONS_AUTO_FALLBACK)) != null)
+        {
+            return psd.getBooleanValue();
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    /**
+     * Set the runtime Permissions support disable flag. This updates the in-memory configuration
+     * map; persisting to disk requires writing config.yml separately.
+     */
+    public static void setPermissionsSupportDisable(final boolean disabled)
+    {
+        configurations.put(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, disabled, "Permissions support disabled (runtime)", "WormholeXTreme"));
     }
 
     /**

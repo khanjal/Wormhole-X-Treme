@@ -1,0 +1,18 @@
+# Wormhole X-Treme - example config.yml
+# This sample highlights permission-related settings added in recent releases.
+
+# If true, the plugin will not attempt to attach to any external permission
+# provider (Vault/LuckPerms) even if one is available. Setting this to true
+# forces the plugin to operate in a conservative mode where advanced actions
+# require operator status.
+permissions-support-disable: false
+
+# If true (default), and no Vault-compatible permission provider is detected
+# at server startup, the plugin will automatically enable a simple permission
+# fallback mode so that basic use/dial actions continue to work. Advanced
+# actions remain restricted to operators or gate owners. Set this to false to
+# disable the automatic fallback.
+permissions-auto-fallback: true
+
+# Example storage key (other keys are appended at runtime if missing):
+# storage-backend: file

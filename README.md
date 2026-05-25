@@ -237,3 +237,13 @@ Notes:
 - Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
 - The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
 
+### Permission backend & auto-fallback
+
+The plugin prefers a Vault-compatible permissions provider (Vault + LuckPerms recommended). On first run the plugin will use the server's configured permission backend via the standard Bukkit `player.hasPermission(...)` API.
+
+- `permissions-support-disable` (boolean): If `true`, the plugin will not attempt to attach to any external permission provider even if one is available. Default: `false`.
+- `permissions-auto-fallback` (boolean): If `true` (default), and no Vault-compatible provider is detected at startup, the plugin will automatically enable a simple permission fallback mode so basic use actions continue to work; advanced actions remain restricted to operators or gate owners. Set this to `false` if you prefer to leave permission handling to server admins and not enable the fallback.
+
+Behavior note:
+- The `/wormhole go` command (teleport-to-gate) no longer grants access to all players by default. Use the `wormhole.go` permission node to grant command access to non-ops, or rely on operator/owner status. This ensures servers do not inadvertently expose teleport commands to all users when no permissions provider is present.
+
