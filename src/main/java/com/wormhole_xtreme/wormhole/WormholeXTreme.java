@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
-import com.nijiko.permissions.PermissionHandler;
 import com.wormhole_xtreme.worlds.handler.WorldHandler;
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.command.Wormhole;
@@ -44,11 +43,6 @@ public class WormholeXTreme extends JavaPlugin
     /** The server listener. */
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
 
-    /** The Permissions. */
-    private static PermissionHandler permissions = null;
-
-    // Help plugin removed; no external help integration.
-
     /** The wormhole x treme worlds. */
     private static WorldHandler worldHandler = null;
 
@@ -61,8 +55,6 @@ public class WormholeXTreme extends JavaPlugin
     /** The log. */
     private static Logger log = null;
 
-    // Help integration removed; no getHelp
-
     /**
      * Gets the logger.
      * 
@@ -71,16 +63,6 @@ public class WormholeXTreme extends JavaPlugin
     private static Logger getLog()
     {
         return log;
-    }
-
-    /**
-     * Gets the permissions.
-     * 
-     * @return the permissions
-     */
-    public static PermissionHandler getPermissions()
-    {
-        return permissions;
     }
 
     /**
@@ -158,17 +140,6 @@ public class WormholeXTreme extends JavaPlugin
     private static void setLog(final Logger log)
     {
         WormholeXTreme.log = log;
-    }
-
-    /**
-     * Sets the permissions.
-     * 
-     * @param permissions
-     *            the new permissions
-     */
-    public static void setPermissions(final PermissionHandler permissions)
-    {
-        WormholeXTreme.permissions = permissions;
     }
 
     /**

@@ -2,14 +2,15 @@ package com.wormhole_xtreme.wormhole.plugin;
 
 import java.util.logging.Level;
 
-import org.bukkit.plugin.Plugin;
-
-import com.nijikokun.bukkit.Permissions.Permissions;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
  * The Class PermissionsSupport.
+ * 
+ * Handles permission system initialization. Uses Vault/LuckPerms for permission checks via
+ * standard Bukkit API (player.hasPermission()). Falls back to built-in permission levels
+ * if no permission backend is available.
  * 
  * @author alron
  */
@@ -17,77 +18,29 @@ public class PermissionsSupport
 {
 
     /**
-     * Check permissions version.
+     * Setup permissions (informational only).
      * 
-     * @param version
-     *            the version
-     */
-    private static void checkPermissionsVersion(final String version)
-    {
-        final String v = version;
-        if ( !v.startsWith("2.5") && !v.startsWith("2.6") && !v.startsWith("2.7") && !v.startsWith("3.0"))
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Not a supported version of Permissions. Recommended is 3.0.x");
-        }
-
-    }
-
-    /**
-     * Disable permissions.
-     */
-    public static void disablePermissions()
-    {
-        if (WormholeXTreme.getPermissions() != null)
-        {
-            WormholeXTreme.setPermissions(null);
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Detached from Permissions plugin.");
-        }
-    }
-
-    /**
-     * Setup permissions.
+     * Permission checks are handled via Bukkit's standard player.hasPermission() API,
+     * which integrates with Vault, LuckPerms, and other permission providers.
      */
     public static void enablePermissions()
     {
-        if ( !ConfigManager.getPermissionsSupportDisable())
+        if (!ConfigManager.getPermissionsSupportDisable())
         {
-            if (WormholeXTreme.getPermissions() == null)
-            {
-                // Try Vault first
-                try {
-                    final Class<?> permClass = Class.forName("net.milkbowl.vault.permission.Permission");
-                    final org.bukkit.plugin.RegisteredServiceProvider<?> rsp = WormholeXTreme.getThisPlugin().getServer().getServicesManager().getRegistration(permClass);
-                    if (rsp != null) {
-                        WormholeXTreme.setPermissions(new com.nijiko.permissions.PermissionHandler(rsp.getProvider()));
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Attached to Vault permissions provider.");
-                        return;
-                    }
-                } catch (final Throwable ignore) {}
-                final Plugin test = WormholeXTreme.getThisPlugin().getServer().getPluginManager().getPlugin("Permissions");
-                if (test != null)
-                {
-                    final String v = test.getDescription().getVersion();
-                    checkPermissionsVersion(v);
-                    try
-                    {
-                        WormholeXTreme.setPermissions(((Permissions) test).getHandler());
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Attached to Permissions version " + v);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permissions attached (Complex mode). Use Vault/LuckPerms for management.");
-                    }
-                    catch (final ClassCastException e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to get Permissions Handler. Defaulting to built-in permissions.");
-                    }
-                }
-                else
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission Plugin not yet available. Defaulting to built-in permissions until Permissions is loaded.");
-                }
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission checks configured to use Vault/LuckPerms or Bukkit-native permissions.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "For best results, install and configure Vault and LuckPerms or another Vault-compatible provider.");
         }
         else
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission Plugin support disabled via configuration (config.yml).");
         }
+    }
+
+    /**
+     * Disable permissions (placeholder for compatibility).
+     */
+    public static void disablePermissions()
+    {
+        // No-op: permissions are handled via Bukkit API; no persistent handler to detach
     }
 }

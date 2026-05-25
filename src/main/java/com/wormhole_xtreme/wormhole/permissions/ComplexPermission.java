@@ -126,7 +126,7 @@ enum ComplexPermission
      */
     public boolean checkPermission(final Player player, final Stargate stargate, final String networkName)
     {
-        if ((player != null) && (WormholeXTreme.getPermissions() != null))
+        if (player != null)
         {
             boolean allowed = false;
 
@@ -135,14 +135,14 @@ enum ComplexPermission
                 case NETWORK_USE :
                 case NETWORK_BUILD :
                     allowed = networkName != null
-                        ? WormholeXTreme.getPermissions().has(player, complexPermissionNode + networkName)
+                        ? player.hasPermission(complexPermissionNode + networkName)
                         : false;
                     break;
                 case REMOVE_OWN :
-                    allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player) && WormholeXTreme.getPermissions().has(player, complexPermissionNode));
+                    allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player) && player.hasPermission(complexPermissionNode));
                     break;
                 default :
-                    allowed = WormholeXTreme.getPermissions().has(player, complexPermissionNode);
+                    allowed = player.hasPermission(complexPermissionNode);
                     break;
             }
             if (allowed)
