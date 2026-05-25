@@ -58,11 +58,18 @@ public class HsqldbStorage implements StorageBackend
     {
         try
         {
-            Class.forName("org.hsqldb.jdbcDriver");
+            try
+            {
+                Class.forName("org.hsqldb.jdbc.JDBCDriver");
+            }
+            catch (final ClassNotFoundException modernMissing)
+            {
+                Class.forName("org.hsqldb.jdbcDriver");
+            }
         }
         catch (final ClassNotFoundException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "HSQLDB driver not found — hsqldb.jar must be in the plugin's lib folder: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "HSQLDB driver not found on classpath: " + e.getMessage());
             return;
         }
 

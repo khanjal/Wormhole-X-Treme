@@ -80,13 +80,11 @@
 		</plugins>
 	</build>
 	<dependencies>
-		<!-- Legacy HSQLDB for migrating old gate data. Bundled in lib/ -->
+		<!-- Legacy HSQLDB for migrating old gate data. -->
 		<dependency>
-			<groupId>hsqldb</groupId>
+			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
-			<version>1.8.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/hsqldb.jar</systemPath>
+			<version>2.7.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.spigotmc</groupId>
