@@ -112,12 +112,9 @@ public class HsqldbStorage implements StorageBackend
         // Determine which worlds the server knows about so we can resolve block locations
         final List<World> worlds = server.getWorlds();
 
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        try
-        {
-            stmt = conn.prepareStatement("SELECT Name, GateData FROM Stargates;");
-            rs = stmt.executeQuery();
+           try (PreparedStatement stmt = conn.prepareStatement("SELECT Name, GateData FROM Stargates;");
+               ResultSet rs = stmt.executeQuery())
+           {
             int loaded = 0;
             int failed = 0;
             while (rs.next())
@@ -166,11 +163,6 @@ public class HsqldbStorage implements StorageBackend
         catch (final SQLException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "HSQLDB load error: " + e.getMessage());
-        }
-        finally
-        {
-            try { if (rs != null) rs.close(); } catch (final SQLException ignore) {}
-            try { if (stmt != null) stmt.close(); } catch (final SQLException ignore) {}
         }
         return list;
     }
