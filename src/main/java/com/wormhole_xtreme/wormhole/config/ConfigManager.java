@@ -66,6 +66,8 @@ public class ConfigManager
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
+        /** Tick interval for periodic non-player entity gate scan. */
+        ENTITY_SCAN_INTERVAL_TICKS,
         /** The configured storage backend. */
         STORAGE_BACKEND,
         /** SQLite file path for sqlite backend. */
@@ -407,6 +409,19 @@ public class ConfigManager
         {
             return 38;
         }
+    }
+
+    /**
+     * Tick interval for periodic non-player entity scan.
+     * A higher value reduces server load at the cost of slightly delayed teleport detection.
+     *
+     * @return scan interval in ticks (minimum 5)
+     */
+    public static int getEntityScanIntervalTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 20;
+        return Math.max(5, configured);
     }
 
     /**

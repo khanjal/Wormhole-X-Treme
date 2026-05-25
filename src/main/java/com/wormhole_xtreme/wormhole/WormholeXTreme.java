@@ -317,6 +317,8 @@ public class WormholeXTreme extends JavaPlugin
             }
             registerEvents(false);
             registerCommands();
+            final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
+            prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
             // Periodic scan: teleport non-player entities that walk into active gates.
             WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), new Runnable()
             {
@@ -371,7 +373,7 @@ public class WormholeXTreme extends JavaPlugin
                     }
                     catch (final Throwable ignore) {}
                 }
-            }, 20L, 5L);
+            }, 20L, entityScanIntervalTicks);
             prettyLog(Level.INFO, true, "Enable Completed.");
         }
     }
