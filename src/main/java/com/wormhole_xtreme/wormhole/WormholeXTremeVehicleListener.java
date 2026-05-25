@@ -3,9 +3,8 @@ package com.wormhole_xtreme.wormhole;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +43,7 @@ class WormholeXTremeVehicleListener implements Listener
     private final static Vector nospeed = new Vector();
 
     /** Vehicles recently teleported — short cooldown to avoid immediate re-trigger. */
-    private static final Set<UUID> recentlyTeleported = Collections.synchronizedSet(new HashSet<UUID>());
+    private static final Set<UUID> recentlyTeleported = ConcurrentHashMap.newKeySet();
 
     /**
      * Simple minecart safety helper – return one block above the preferred
