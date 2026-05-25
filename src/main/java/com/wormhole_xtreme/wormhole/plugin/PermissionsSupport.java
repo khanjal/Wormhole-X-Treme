@@ -66,7 +66,7 @@ public class PermissionsSupport
                 final Plugin test = WormholeXTreme.getThisPlugin().getServer().getPluginManager().getPlugin("Permissions");
                 if (test != null)
                 {
-                    final String v = test.getPluginMeta().getVersion();
+                    final String v = test.getDescription().getVersion();
                     checkPermissionsVersion(v);
                     try
                     {

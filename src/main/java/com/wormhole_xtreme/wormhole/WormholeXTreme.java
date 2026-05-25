@@ -412,7 +412,7 @@ public class WormholeXTreme extends JavaPlugin
     public void prettyLog(final Level severity, final boolean version, final String message)
     {
         final String prettyName = ("[" + getThisPlugin().getName() + "]");
-        final String prettyVersion = ("[v" + getThisPlugin().getPluginMeta().getVersion() + "]");
+        final String prettyVersion = ("[v" + getThisPlugin().getDescription().getVersion() + "]");
         String prettyLogLine = prettyName;
         if (version)
         {
