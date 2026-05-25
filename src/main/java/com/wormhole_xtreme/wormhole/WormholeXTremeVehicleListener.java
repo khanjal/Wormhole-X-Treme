@@ -311,15 +311,7 @@ class WormholeXTremeVehicleListener implements Listener
                 final Event teleportevent = new StargateMinecartTeleportEvent((Minecart) veh, (Minecart) newveh);
                 WormholeXTreme.getThisPlugin().getServer().getPluginManager().callEvent(teleportevent);
                 final UUID nid = newveh.getUniqueId();
-                recentlyTeleported.add(nid);
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        recentlyTeleported.remove(nid);
-                    }
-                }, 20L);
+                markVehicleRecentlyTeleported(nid);
                 // Attach pairs in order so parents are attached before children
                 for (int i = 0; i < children.size(); i++)
                 {
@@ -531,15 +523,7 @@ class WormholeXTremeVehicleListener implements Listener
                 final org.bukkit.entity.Entity ent = safeTarget.getWorld().spawnEntity(safeTarget, EntityType.BOAT);
                 final Vehicle newveh = (Vehicle) ent;
                 final UUID nid = newveh.getUniqueId();
-                recentlyTeleported.add(nid);
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        recentlyTeleported.remove(nid);
-                    }
-                }, 20L);
+                markVehicleRecentlyTeleported(nid);
                 // Attach pairs in order so parents are attached before children
                 for (int i = 0; i < children.size(); i++)
                 {
@@ -647,15 +631,7 @@ class WormholeXTremeVehicleListener implements Listener
                             if (veh != null)
                             {
                                 final UUID vid = veh.getUniqueId();
-                                recentlyTeleported.add(vid);
-                                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                                {
-                                    @Override
-                                    public void run()
-                                    {
-                                        recentlyTeleported.remove(vid);
-                                    }
-                                }, 20);
+                                markVehicleRecentlyTeleported(vid);
                             }
                             veh.teleport(safeIrisTarget);
                     if (ConfigManager.getTimeoutShutdown() == 0)
@@ -691,15 +667,7 @@ class WormholeXTremeVehicleListener implements Listener
                     if (veh != null)
                     {
                         final UUID vid = veh.getUniqueId();
-                        recentlyTeleported.add(vid);
-                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                recentlyTeleported.remove(vid);
-                            }
-                        }, 20);
+                        markVehicleRecentlyTeleported(vid);
                     }
                     veh.teleport(safeIrisTarget);
                     if (ConfigManager.getTimeoutShutdown() == 0)
@@ -721,15 +689,7 @@ class WormholeXTremeVehicleListener implements Listener
                     if (veh != null)
                     {
                         final UUID vid = veh.getUniqueId();
-                        recentlyTeleported.add(vid);
-                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                recentlyTeleported.remove(vid);
-                            }
-                        }, 20);
+                        markVehicleRecentlyTeleported(vid);
                     }
                     veh.teleport(safeTarget);
                     veh.setVelocity(new_speed);
@@ -740,15 +700,7 @@ class WormholeXTremeVehicleListener implements Listener
                 if (veh != null)
                 {
                     final UUID vid = veh.getUniqueId();
-                    recentlyTeleported.add(vid);
-                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            recentlyTeleported.remove(vid);
-                        }
-                    }, 20L);
+                    markVehicleRecentlyTeleported(vid);
                     if (!passengers.isEmpty())
                     {
                         // Occupied vehicle: dispatch to type-specific handler.
