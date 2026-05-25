@@ -1,3 +1,12 @@
+/*
+ * ATTRIBUTION: This file uses the package name 'com.nijiko.permissions' from the original
+ * Nijiko Permissions plugin, but is a newly written minimal Vault-compatible adapter
+ * for Wormhole X-Treme, NOT a direct copy of the original Nijiko implementation.
+ * Original project: https://github.com/nijikokun/Permissions (deprecated)
+ * This stub allows legacy code referencing the old API to work with modern Vault permissions.
+ * 
+ * Wormhole X-Treme is licensed under GPL v3.
+ */
 package com.nijiko.permissions;
 
 import org.bukkit.Bukkit;
@@ -6,7 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 /**
- * Minimal stub for old Permissions API handler with Vault bridge.
+ * Minimal Vault-compatible stub for old Permissions API handler.
+ * Written for Wormhole X-Treme to maintain backward compatibility.
  */
 public class PermissionHandler {
     private Object vault = null;
