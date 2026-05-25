@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400">
+  <rect width="100%" height="100%" fill="#1a1a1a" />
+  <g transform="translate(400,200)">
+    <circle r="140" fill="#2b8a78" stroke="#0a0a0a" stroke-width="10" />
+    <circle r="110" fill="#1a1a1a" />
+    <g transform="translate(-140,-40) scale(0.9)">
+      <rect x="0" y="0" width="280" height="80" rx="12" fill="#ffffff22" />
+    </g>
+    <text x="0" y="6" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle">Gate Placeholder</text>
+  </g>
+</svg>
