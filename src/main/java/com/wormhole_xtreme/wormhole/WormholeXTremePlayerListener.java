@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole;
+﻿package com.wormhole_xtreme.wormhole;
 
 import java.util.logging.Level;
 
@@ -647,7 +647,11 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
         final Player player = event.getPlayer();
-        System.out.println("[DEBUG] handlePlayerMoveEvent start player=" + player + " name=" + (player == null ? "<null>" : player.getName()));
+        if (player == null) {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "handlePlayerMoveEvent: event player is null, ignoring event.");
+            return false;
+        }
+        System.out.println("[DEBUG] handlePlayerMoveEvent start player=" + player + " name=" + player.getName());
         final Location toLocFinal = event.getTo();
         // Diagnostic: log from/to block types and Y fractional to help debug water bounce
         try
