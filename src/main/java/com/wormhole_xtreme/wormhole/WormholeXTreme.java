@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole;
+package com.wormhole_xtreme.wormhole;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;

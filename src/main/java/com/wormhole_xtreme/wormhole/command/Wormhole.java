@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.command;
+package com.wormhole_xtreme.wormhole.command;
 
 import java.util.Arrays;
 

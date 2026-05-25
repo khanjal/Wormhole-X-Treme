@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.model;
+package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;

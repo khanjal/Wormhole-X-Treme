@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.logic;
+package com.wormhole_xtreme.wormhole.logic;
 
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShape;

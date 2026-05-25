@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.utils;
+package com.wormhole_xtreme.wormhole.utils;
 
 import java.nio.ByteBuffer;
 

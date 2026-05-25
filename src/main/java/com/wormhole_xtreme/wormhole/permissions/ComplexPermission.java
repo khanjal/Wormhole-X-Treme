@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.permissions;
+package com.wormhole_xtreme.wormhole.permissions;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;

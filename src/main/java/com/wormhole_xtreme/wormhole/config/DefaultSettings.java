@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.config;
+package com.wormhole_xtreme.wormhole.config;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 
 /**

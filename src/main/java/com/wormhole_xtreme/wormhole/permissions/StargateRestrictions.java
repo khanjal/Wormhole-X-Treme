@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole.permissions;
+package com.wormhole_xtreme.wormhole.permissions;
 import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
