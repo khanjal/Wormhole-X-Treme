@@ -22,7 +22,7 @@ class DefaultSettings
         new Setting(ConfigKeys.LOG_LEVEL, "INFO", "Log level to use for minecraft logging purposes. Values are SEVERE, WARNING, INFO, CONFIG, FINE, FINER, and FINEST. In order of least to most logging output.", "WormholeXTreme"),
         new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates. Higher values reduce server load.", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_BACKEND, "file", "Storage backend to use: file|sqlite|hsqldb|mysql|postgres", "WormholeXTreme"),
-        new Setting(ConfigKeys.STORAGE_SQLITE_PATH, "plugins/WormholeXTreme/wormholes.db", "SQLite DB file path when using sqlite backend", "WormholeXTreme"),
+        new Setting(ConfigKeys.STORAGE_SQLITE_PATH, "plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite", "SQLite DB file path when using sqlite backend", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_JDBC_URL, "", "JDBC URL for remote DBs (mysql/postgres). Example: jdbc:postgresql://host:5432/dbname", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_JDBC_USER, "", "JDBC username for remote DBs", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_JDBC_PASSWORD, "", "JDBC password for remote DBs", "WormholeXTreme"),

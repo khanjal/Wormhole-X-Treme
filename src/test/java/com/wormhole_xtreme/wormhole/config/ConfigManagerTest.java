@@ -42,6 +42,6 @@ public class ConfigManagerTest
     @Test
     public void defaultSqlitePath()
     {
-        assertEquals("plugins/WormholeXTreme/wormholes.db", ConfigManager.getStorageSqlitePath(), "Default sqlite path should match expected value");
+        assertEquals("plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite", ConfigManager.getStorageSqlitePath(), "Default sqlite path should match expected value");
     }
 }

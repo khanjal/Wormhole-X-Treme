@@ -304,7 +304,7 @@ public class ConfigManager
     public static String getStorageSqlitePath()
     {
         final Setting s = configurations.get(ConfigKeys.STORAGE_SQLITE_PATH);
-        return (s != null) ? s.getStringValue() : "plugins/WormholeXTreme/wormholes.db";
+        return (s != null) ? s.getStringValue() : "plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite";
     }
 
     /**

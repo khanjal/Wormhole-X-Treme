@@ -1,8 +1,11 @@
 package com.wormhole_xtreme.wormhole.storage;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.bukkit.Server;
@@ -174,8 +177,14 @@ public class StorageMigrator
             gatesDir.mkdirs();
         }
 
-        int migrated = 0;
-        int skipped = 0;
+        final int sourceCount = gates.size();
+        final int destBefore = countYamlFiles(gatesDir);
+        sender.sendMessage("[WX] Source: " + sourceCount + " gate(s) to migrate.");
+        sender.sendMessage("[WX] Destination (" + gatesDir.getAbsolutePath() + "): " + destBefore + " gate(s) already present.");
+
+        int transferred = 0;
+        int duplicates = 0;
+        int failed = 0;
         for (final Stargate s : gates)
         {
             try
@@ -184,18 +193,26 @@ public class StorageMigrator
                 final File outFile = new File(gatesDir, fileName);
                 if (outFile.exists() && !force)
                 {
-                    skipped++;
+                    duplicates++;
                     continue;
                 }
                 StargateYamlManager.saveStargate(s);
-                migrated++;
+                transferred++;
             }
             catch (final Exception e)
             {
+                failed++;
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to migrate gate " + s.getGateName() + ": " + e.getMessage());
             }
         }
-        sender.sendMessage("[WX] Migration complete. Migrated: " + migrated + ", Skipped: " + skipped + ". Files: " + gatesDir.getAbsolutePath());
+
+        final int destAfter = countYamlFiles(gatesDir);
+        sender.sendMessage("[WX] --- Migration Summary (file) ---");
+        sender.sendMessage("[WX]   Source gates:       " + sourceCount);
+        sender.sendMessage("[WX]   Transferred:        " + transferred);
+        sender.sendMessage("[WX]   Duplicates skipped: " + duplicates);
+        sender.sendMessage("[WX]   Failed:             " + failed);
+        sender.sendMessage("[WX]   Destination total:  " + destAfter + " gate(s)");
     }
 
     private static void migrateGatesToSqlite(final List<Stargate> gates, final boolean force, final CommandSender sender, final Server server)
@@ -211,29 +228,101 @@ public class StorageMigrator
             return;
         }
 
-        int migrated = 0;
+        final int sourceCount = gates.size();
+        sender.sendMessage("[WX] Source: " + sourceCount + " gate(s) to migrate.");
+
+        // Load existing gate names to detect duplicates and report pre-migration destination count.
+        final Set<String> existingNames = new HashSet<String>();
+        int destBefore = 0;
+        try
+        {
+            final List<Stargate> existing = sqlite.loadStargates(server);
+            destBefore = existing.size();
+            for (final Stargate e : existing)
+            {
+                existingNames.add(e.getGateName());
+            }
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "SQLite: could not read existing gates for pre-count: " + t.getMessage());
+        }
+        sender.sendMessage("[WX] Destination (SQLite): " + destBefore + " gate(s) already present.");
+
+        int transferred = 0;
+        int duplicates = 0;
+        int failed = 0;
         for (final Stargate s : gates)
         {
             try
             {
+                if (existingNames.contains(s.getGateName()) && !force)
+                {
+                    duplicates++;
+                    continue;
+                }
                 sqlite.saveStargate(s);
-                migrated++;
+                transferred++;
             }
             catch (final Exception e)
             {
+                failed++;
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite: failed to write gate " + s.getGateName() + ": " + e.getMessage());
             }
         }
+
+        int destAfter = destBefore + transferred;
+        try
+        {
+            destAfter = sqlite.loadStargates(server).size();
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "SQLite: could not read final gate count: " + t.getMessage());
+        }
         sqlite.shutdown();
-        sender.sendMessage("[WX] SQLite migration complete. Written: " + migrated + " gate(s).");
+
+        sender.sendMessage("[WX] --- Migration Summary (sqlite) ---");
+        sender.sendMessage("[WX]   Source gates:       " + sourceCount);
+        sender.sendMessage("[WX]   Transferred:        " + transferred);
+        sender.sendMessage("[WX]   Duplicates skipped: " + duplicates);
+        sender.sendMessage("[WX]   Failed:             " + failed);
+        sender.sendMessage("[WX]   Destination total:  " + destAfter + " gate(s)");
     }
 
     /**
      * Load all stargates from the legacy HSQLDB database directly, bypassing the
      * currently-configured backend. Used so you can migrate without first editing config.yml.
      */
+    private static int countYamlFiles(final File dir)
+    {
+        if (!dir.exists() || !dir.isDirectory())
+        {
+            return 0;
+        }
+        final File[] files = dir.listFiles(new FilenameFilter()
+        {
+            @Override
+            public boolean accept(final File d, final String name)
+            {
+                return name.endsWith(".yml");
+            }
+        });
+        return (files != null) ? files.length : 0;
+    }
+
     private static List<Stargate> loadFromHsqldb(final Server server, final CommandSender sender)
     {
+        String hsqlBase;
+        try
+        {
+            hsqlBase = new File(WormholeXTreme.getThisPlugin().getDataFolder(), "WormholeXTreme").getAbsolutePath();
+        }
+        catch (final Throwable t)
+        {
+            hsqlBase = "plugins" + File.separator + "WormholeXTreme" + File.separator + "WormholeXTreme";
+        }
+        sender.sendMessage("[WX] HSQLDB: looking for legacy database at: " + hsqlBase + ".properties");
         final HsqldbStorage hsql = new HsqldbStorage();
         hsql.initialize();
         if (!hsql.isAvailable())
@@ -248,6 +337,8 @@ public class StorageMigrator
 
     private static List<Stargate> loadFromSqlite(final Server server, final CommandSender sender)
     {
+        final String sqlitePath = com.wormhole_xtreme.wormhole.config.ConfigManager.getStorageSqlitePath();
+        sender.sendMessage("[WX] SQLite: looking for database at: " + new File(sqlitePath).getAbsolutePath());
         final SqliteStorage sqlite = new SqliteStorage();
         try
         {
