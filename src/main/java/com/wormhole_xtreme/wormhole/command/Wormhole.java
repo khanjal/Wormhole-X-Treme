@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.storage.StorageMigrator;
 // HelpSupport removed
 
 /**
@@ -1027,6 +1028,42 @@ public class Wormhole implements CommandExecutor
                 else if (a[0].equalsIgnoreCase("restrict"))
                 {
                     return doRestrict(sender, a);
+                }
+                else if (a[0].equalsIgnoreCase("storage"))
+                {
+                    if ((a.length >= 2) && a[1].equalsIgnoreCase("migrate"))
+                    {
+                        // Usage:
+                        //  /wormhole storage migrate <dest> [force]
+                        //  /wormhole storage migrate hsqldb <dest> [force]
+                        if (a.length < 3)
+                        {
+                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole storage migrate <dest> [force] OR /wormhole storage migrate hsqldb <dest> [force]");
+                            return true;
+                        }
+                        if ("hsqldb".equalsIgnoreCase(a[2]))
+                        {
+                            if (a.length < 4)
+                            {
+                                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole storage migrate hsqldb <dest> [force]");
+                                return true;
+                            }
+                            final boolean force = (a.length >= 5 && "force".equalsIgnoreCase(a[4]));
+                            StorageMigrator.migrateTo("hsqldb", a[3], force, sender);
+                            return true;
+                        }
+                        else
+                        {
+                            final boolean force = (a.length >= 4 && "force".equalsIgnoreCase(a[3]));
+                            StorageMigrator.migrateTo(a[2], force, sender);
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
+                        return true;
+                    }
                 }
                 else
                 {
