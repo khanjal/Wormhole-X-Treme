@@ -46,35 +46,96 @@ public class StorageMigrator
             sender.sendMessage("[WX] Invalid destination backend specified.");
             return;
         }
-
         // --- Resolve source gates -----------------------------------------------
-        List<Stargate> gates;
+        List<Stargate> gates = Collections.emptyList();
 
-        final boolean sourceIsHsqldb = "hsqldb".equalsIgnoreCase(source);
-
-        if (sourceIsHsqldb)
+        // Explicit source handling (support 'hsqldb' and 'sqlite')
+        if (source != null)
         {
-            sender.sendMessage("[WX] Reading gates from legacy HSQLDB database...");
-            gates = loadFromHsqldb(server, sender);
-            if (gates.isEmpty())
+            if ("hsqldb".equalsIgnoreCase(source))
             {
-                return; // message already sent inside loadFromHsqldb
+                sender.sendMessage("[WX] Reading gates from legacy HSQLDB database...");
+                gates = loadFromHsqldb(server, sender);
+                if (gates.isEmpty())
+                {
+                    return; // message already sent inside loadFromHsqldb
+                }
+                sender.sendMessage("[WX] HSQLDB: " + gates.size() + " gate(s) read.");
             }
-            sender.sendMessage("[WX] HSQLDB: " + gates.size() + " gate(s) read.");
+            else if ("sqlite".equalsIgnoreCase(source))
+            {
+                sender.sendMessage("[WX] Reading gates from SQLite database...");
+                gates = loadFromSqlite(server, sender);
+                if (gates.isEmpty())
+                {
+                    return; // message already sent inside loadFromSqlite
+                }
+                sender.sendMessage("[WX] SQLite: " + gates.size() + " gate(s) read.");
+            }
+            else
+            {
+                sender.sendMessage("[WX] Unknown source '" + source + "'. Supported sources: hsqldb, sqlite, or omit to use current backend.");
+                return;
+            }
         }
         else
         {
-            // Use whatever is currently in memory (loaded by StargateDBManager on startup)
-            // or reload from the active backend now.
+            // No explicit source: try to auto-detect legacy DBs first (sqlite, then hsqldb),
+            // otherwise fall back to the currently configured backend in memory.
             try
             {
-                StargateDBManager.loadStargates(server);
+                // Prefer SQLite if a DB file exists
+                try
+                {
+                    final String sqlitePath = com.wormhole_xtreme.wormhole.config.ConfigManager.getStorageSqlitePath();
+                    final File sqliteFile = new File(sqlitePath);
+                    if (sqliteFile.exists())
+                    {
+                        sender.sendMessage("[WX] Detected SQLite DB at: " + sqliteFile.getAbsolutePath());
+                        gates = loadFromSqlite(server, sender);
+                        if (!gates.isEmpty())
+                        {
+                            sender.sendMessage("[WX] SQLite: " + gates.size() + " gate(s) read.");
+                        }
+                    }
+                }
+                catch (final Throwable ignore) {}
+
+                // If no gates yet, try legacy HSQLDB
+                if (gates.isEmpty())
+                {
+                    final List<Stargate> hsq = loadFromHsqldb(server, sender);
+                    if (!hsq.isEmpty())
+                    {
+                        gates = hsq;
+                        sender.sendMessage("[WX] HSQLDB: " + gates.size() + " gate(s) read.");
+                    }
+                }
+
+                // If still empty, load from the currently-configured backend
+                if (gates.isEmpty())
+                {
+                    try
+                    {
+                        StargateDBManager.loadStargates(server);
+                    }
+                    catch (final Throwable t)
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Warning: backend load during migration failed: " + t.getMessage());
+                    }
+                    gates = StargateManager.getAllGates();
+                }
             }
             catch (final Throwable t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Warning: backend load during migration failed: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Warning: auto-detect source failed: " + t.getMessage());
+                try
+                {
+                    StargateDBManager.loadStargates(server);
+                }
+                catch (final Throwable ignored) {}
+                gates = StargateManager.getAllGates();
             }
-            gates = StargateManager.getAllGates();
         }
 
         if (gates.isEmpty())
@@ -84,7 +145,7 @@ public class StorageMigrator
         }
 
         // --- Write to destination -----------------------------------------------
-        if (destination.equalsIgnoreCase("file") || destination.equalsIgnoreCase("yaml"))
+        if (destination.equalsIgnoreCase("file"))
         {
             sender.sendMessage("[WX] Starting migration to per-gate YAML files (non-destructive)...");
             migrateGatesToYaml(gates, force, sender);
@@ -98,7 +159,7 @@ public class StorageMigrator
             return;
         }
 
-        sender.sendMessage("[WX] Unknown destination '" + destination + "'. Supported: file, yaml, sqlite.");
+        sender.sendMessage("[WX] Unknown destination '" + destination + "'. Supported: file, sqlite.");
     }
 
     // -------------------------------------------------------------------------
@@ -107,15 +168,7 @@ public class StorageMigrator
 
     private static void migrateGatesToYaml(final List<Stargate> gates, final boolean force, final CommandSender sender)
     {
-        File gatesDir = null;
-        try
-        {
-            gatesDir = new File(WormholeXTreme.getThisPlugin().getDataFolder(), "gates");
-        }
-        catch (final Exception e)
-        {
-            gatesDir = new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "gates");
-        }
+        final File gatesDir = com.wormhole_xtreme.wormhole.model.StargateYamlManager.getGatesDir();
         if (!gatesDir.exists())
         {
             gatesDir.mkdirs();
@@ -190,6 +243,28 @@ public class StorageMigrator
         }
         final List<Stargate> gates = hsql.loadStargates(server);
         hsql.shutdown();
+        return gates;
+    }
+
+    private static List<Stargate> loadFromSqlite(final Server server, final CommandSender sender)
+    {
+        final SqliteStorage sqlite = new SqliteStorage();
+        try
+        {
+            sqlite.initialize();
+        }
+        catch (final Throwable t)
+        {
+            sender.sendMessage("[WX] SQLite: failed to initialise: " + t.getMessage());
+            return Collections.emptyList();
+        }
+        final List<Stargate> gates = sqlite.loadStargates(server);
+        sqlite.shutdown();
+        if (gates == null || gates.isEmpty())
+        {
+            sender.sendMessage("[WX] SQLite: no gates found or failed to read database.");
+            return Collections.emptyList();
+        }
         return gates;
     }
 }

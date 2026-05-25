@@ -44,7 +44,7 @@ Example insertion (Markdown):
 ```
 
 ## Troubleshooting
-- If you see `Invalid destination backend specified.` when running `/wx storage migrate`, ensure you provided a valid destination: `file`, `yaml`, or `sqlite`.
+- If you see `Invalid destination backend specified.` when running `/wx storage migrate`, ensure you provided a valid destination: `file` or `sqlite`.
 - For vehicle/boat teleport reattachment issues, run recent builds of Paper 1.20+ and use the vehicle-first teleport flow.
 
 ## Feedback and contributions

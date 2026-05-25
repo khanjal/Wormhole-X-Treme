@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
-import com.wormhole_xtreme.worlds.handler.WorldHandler;
 import com.wormhole_xtreme.wormhole.command.Dial;
 import com.wormhole_xtreme.wormhole.command.Wormhole;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -18,7 +17,6 @@ import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
-import com.wormhole_xtreme.wormhole.plugin.WormholeWorldsSupport;
 import com.wormhole_xtreme.wormhole.utils.DBUpdateUtil;
 
 /**
@@ -42,9 +40,6 @@ public class WormholeXTreme extends JavaPlugin
     private static final WormholeXTremeServerListener serverListener = new WormholeXTremeServerListener();
     /** The server listener. */
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
-
-    /** The wormhole x treme worlds. */
-    private static WorldHandler worldHandler = null;
 
     /** The Scheduler. */
     private static BukkitScheduler scheduler = null;
@@ -83,16 +78,6 @@ public class WormholeXTreme extends JavaPlugin
     public static WormholeXTreme getThisPlugin()
     {
         return thisPlugin;
-    }
-
-    /**
-     * Gets the wormhole x treme worlds.
-     * 
-     * @return the wormhole x treme worlds
-     */
-    public static WorldHandler getWorldHandler()
-    {
-        return worldHandler;
     }
 
     /**
@@ -176,17 +161,6 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.thisPlugin = thisPlugin;
     }
 
-    /**
-     * Sets the wormhole x treme worlds.
-     * 
-     * @param wormholeXTremeWorlds
-     *            the new wormhole x treme worlds
-     */
-    public static void setWorldHandler(final WorldHandler worldHandler)
-    {
-        WormholeXTreme.worldHandler = worldHandler;
-    }
-
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onDisable()
      */
@@ -246,105 +220,98 @@ public class WormholeXTreme extends JavaPlugin
                     prettyLog(Level.WARNING, false, "Failed to enable economy support: " + t.getMessage());
                 }
             }
-            if (ConfigManager.isWormholeWorldsSupportEnabled())
-            {
-                WormholeWorldsSupport.enableWormholeWorlds();
-            }
         }
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, false, "Caught Exception while trying to load support plugins." + e.getMessage());
         }
         registerEvents(true);
-        if ( !ConfigManager.isWormholeWorldsSupportEnabled())
+        // Load stargates.
+        prettyLog(Level.INFO, true, "Loading stargates.");
+        try
         {
-            // Now it's safe to load stargates which may create worlds.
-            prettyLog(Level.INFO, true, "Wormhole Worlds support disabled in settings; loading stargates now.");
-            try
+            final String backend = com.wormhole_xtreme.wormhole.config.ConfigManager.getStorageBackend();
+            prettyLog(Level.INFO, true, "Selected storage backend: " + backend);
+            StorageFactory.initialize();
+            final StorageBackend sb = StorageFactory.getBackend();
+            if (sb != null)
             {
-                final String backend = com.wormhole_xtreme.wormhole.config.ConfigManager.getStorageBackend();
-                prettyLog(Level.INFO, true, "Selected storage backend: " + backend);
-                StorageFactory.initialize();
-                final StorageBackend sb = StorageFactory.getBackend();
-                if (sb != null)
+                final java.util.List<Stargate> loaded = sb.loadStargates(getThisPlugin().getServer());
+                for (final Stargate s : loaded)
                 {
-                    final java.util.List<Stargate> loaded = sb.loadStargates(getThisPlugin().getServer());
-                    for (final Stargate s : loaded)
-                    {
-                        StargateManager.registerStargate(s);
-                    }
-                }
-                else
-                {
-                    StargateDBManager.loadStargates(getThisPlugin().getServer());
+                    StargateManager.registerStargate(s);
                 }
             }
-            catch (final Exception e)
+            else
             {
-                prettyLog(Level.WARNING, false, "Storage initialization failed, falling back to existing DB/YAML logic: " + e.getMessage());
                 StargateDBManager.loadStargates(getThisPlugin().getServer());
             }
-            registerEvents(false);
-            registerCommands();
-            final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
-            prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
-            // Periodic scan: teleport non-player entities that walk into active gates.
-            WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), new Runnable()
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, false, "Storage initialization failed, falling back to existing DB/YAML logic: " + e.getMessage());
+            StargateDBManager.loadStargates(getThisPlugin().getServer());
+        }
+        registerEvents(false);
+        registerCommands();
+        final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
+        prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
+        // Periodic scan: teleport non-player entities that walk into active gates.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), new Runnable()
+        {
+            @Override
+            public void run()
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
+                    for (final org.bukkit.World world : WormholeXTreme.getThisPlugin().getServer().getWorlds())
                     {
-                        for (final org.bukkit.World world : WormholeXTreme.getThisPlugin().getServer().getWorlds())
+                        for (final org.bukkit.entity.Entity e : world.getEntities())
                         {
-                            for (final org.bukkit.entity.Entity e : world.getEntities())
+                            try
                             {
-                                try
+                                if (e == null) continue;
+                                if (e instanceof org.bukkit.entity.Player) continue;
+                                if (e instanceof org.bukkit.entity.Vehicle) continue;
+                                if (e.isInsideVehicle()) continue;
+                                final org.bukkit.Location loc = e.getLocation();
+                                final Stargate closest = StargateManager.findClosestStargate(loc);
+                                if (closest == null || !closest.isGateActive() || closest.getGateTarget() == null) continue;
+                                final double d2 = StargateManager.distanceSquaredToClosestGateBlock(loc, closest);
+                                final double thresholdSq = (closest.isGateCustom()
+                                    ? closest.getGateCustomWooshDepthSquared()
+                                    : (closest.getGateShape() != null ? closest.getGateShape().getShapeWooshDepthSquared() : 0));
+                                if ((thresholdSq != 0 && d2 <= thresholdSq) || d2 <= 1.0)
                                 {
-                                    if (e == null) continue;
-                                    if (e instanceof org.bukkit.entity.Player) continue;
-                                    if (e instanceof org.bukkit.entity.Vehicle) continue;
-                                    if (e.isInsideVehicle()) continue;
-                                    final org.bukkit.Location loc = e.getLocation();
-                                    final Stargate closest = StargateManager.findClosestStargate(loc);
-                                    if (closest == null || !closest.isGateActive() || closest.getGateTarget() == null) continue;
-                                    final double d2 = StargateManager.distanceSquaredToClosestGateBlock(loc, closest);
-                                    final double thresholdSq = (closest.isGateCustom()
-                                        ? closest.getGateCustomWooshDepthSquared()
-                                        : (closest.getGateShape() != null ? closest.getGateShape().getShapeWooshDepthSquared() : 0));
-                                    if ((thresholdSq != 0 && d2 <= thresholdSq) || d2 <= 1.0)
+                                    final org.bukkit.block.Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+                                    if (!StargateManager.isBlockInGate(b)) continue;
+                                    final org.bukkit.Location target = closest.getGateTarget().getGatePlayerTeleportLocation();
+                                    final org.bukkit.Location safeTarget = WormholeXTremeVehicleListener.forwardAndUp(target, closest.getGateTarget().getGateFacing(), 1.0, 1.0);
+                                    try
                                     {
-                                        final org.bukkit.block.Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-                                        if (!StargateManager.isBlockInGate(b)) continue;
-                                        final org.bukkit.Location target = closest.getGateTarget().getGatePlayerTeleportLocation();
-                                        final org.bukkit.Location safeTarget = WormholeXTremeVehicleListener.forwardAndUp(target, closest.getGateTarget().getGateFacing(), 1.0, 1.0);
-                                        try
+                                        e.teleport(safeTarget);
+                                        if (!e.getPassengers().isEmpty())
                                         {
-                                            e.teleport(safeTarget);
-                                            if (!e.getPassengers().isEmpty())
+                                            final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<org.bukkit.entity.Entity>();
+                                            final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<org.bukkit.entity.Entity>();
+                                            WormholeXTremeVehicleListener.collectPassengerPairs(e, (java.util.List) parents, (java.util.List) children);
+                                            for (int i = 0; i < children.size(); i++)
                                             {
-                                                final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<org.bukkit.entity.Entity>();
-                                                final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<org.bukkit.entity.Entity>();
-                                                WormholeXTremeVehicleListener.collectPassengerPairs(e, (java.util.List) parents, (java.util.List) children);
-                                                for (int i = 0; i < children.size(); i++)
-                                                {
-                                                    try { parents.get(i).addPassenger(children.get(i)); } catch (final Throwable ignore) {}
-                                                }
+                                                try { parents.get(i).addPassenger(children.get(i)); } catch (final Throwable ignore) {}
                                             }
                                         }
-                                        catch (final Throwable ignore) {}
                                     }
+                                    catch (final Throwable ignore) {}
                                 }
-                                catch (final Throwable ignore) {}
                             }
+                            catch (final Throwable ignore) {}
                         }
                     }
-                    catch (final Throwable ignore) {}
                 }
-            }, 20L, entityScanIntervalTicks);
-            prettyLog(Level.INFO, true, "Enable Completed.");
-        }
+                catch (final Throwable ignore) {}
+            }
+        }, 20L, entityScanIntervalTicks);
+        prettyLog(Level.INFO, true, "Enable Completed.");
     }
 
     /* (non-Javadoc)

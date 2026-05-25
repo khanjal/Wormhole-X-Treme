@@ -124,12 +124,39 @@ public class WormholeTabCompleter implements TabCompleter
                     out.add("backend");
                     out.add("migrate");
                 }
-                else if (args.length == 3 && args[1].equalsIgnoreCase("backend"))
+                else if (args.length >= 3 && args[1].equalsIgnoreCase("backend"))
                 {
                     out.add("file");
                     out.add("sqlite");
                     out.add("mysql");
                     out.add("postgres");
+                }
+                else if (args.length >= 3 && args[1].equalsIgnoreCase("migrate"))
+                {
+                    // Suggest storage backends for both forms:
+                    //   migrate <to> [force]
+                    //   migrate <from> <to> [force]
+                    final List<String> backends = Arrays.asList("file", "sqlite", "hsqldb", "mysql", "postgres");
+                    // Determine which arg index the user is completing
+                    final int completingIndex = args.length - 1;
+                    final String migratePrefix = args[completingIndex].toLowerCase();
+                    if ((completingIndex == 2) || (completingIndex == 3))
+                    {
+                        for (final String b : backends)
+                        {
+                            if ((migratePrefix.length() == 0) || b.startsWith(migratePrefix))
+                            {
+                                out.add(b);
+                            }
+                        }
+                    }
+                    else if (completingIndex == 4)
+                    {
+                        if ("force".startsWith(migratePrefix) || migratePrefix.length() == 0)
+                        {
+                            out.add("force");
+                        }
+                    }
                 }
                 return out;
             case "cooldown":

@@ -23,20 +23,20 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class StargateYamlManager
 {
-    private static File getGatesDir()
+    public static File getGatesDir()
     {
         try
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                return new File(WormholeXTreme.getThisPlugin().getDataFolder(), "gates");
+                return new File(WormholeXTreme.getThisPlugin().getDataFolder(), "WormholeXTremeDB" + File.separator + "gates");
             }
         }
         catch (final Exception e)
         {
             // fallthrough to relative path
         }
-        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "gates");
+        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "WormholeXTremeDB" + File.separator + "gates");
     }
 
     public static void loadStargates(final Server server)

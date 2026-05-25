@@ -1,4 +1,4 @@
-﻿package com.wormhole_xtreme.wormhole;
+package com.wormhole_xtreme.wormhole;
 
 import java.util.logging.Level;
 
@@ -779,6 +779,18 @@ class WormholeXTremePlayerListener implements Listener
             }
 
             final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+
+            if (ConfigManager.isSameWorldOnly())
+            {
+                final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
+                if (targetWorld != null && !gateBlockFinal.getWorld().equals(targetWorld))
+                {
+                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Cross-world travel is disabled on this server.");
+                    player.setNoDamageTicks(5);
+                    return false;
+                }
+            }
+
             final Location safeTarget = findSafePlayerLocation(target);
             // Diagnostic logging for teleport issues
             if (WormholeXTreme.getThisPlugin() != null)

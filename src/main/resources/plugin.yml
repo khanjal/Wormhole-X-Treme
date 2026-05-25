@@ -2,29 +2,32 @@ name: WormholeXTreme
 main: com.wormhole_xtreme.wormhole.WormholeXTreme
 version: 1.0.0
 api-version: "1.20"
-authors: [Lologarithm, alron, Khan Jal]
+authors: ["Lologarithm", "alron", "Khan Jal"]
 softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
 description: >
-             Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
-             Iris, configurable Wormhole materials, and much much more.
-             
-commands:
-   dial:
-     description: Dial a remote Stargate, unlock IDC with optional password 
-     usage: |
-            /<command> <StarGate> [IDC]
-            <stargate> The StarGate to dial.
-            [IDC] Use optional password to open remote Iris.
-                     
-            
-   wormhole:
-     description: Wormhole administration and configuration commands (canonical admin command).
-     aliases: [wx]
-     usage: |
-            /<command> <commandtype> [ARG1] [ARG2]
-            Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, and custom.
+  Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
+  Iris, configurable Wormhole materials, and much much more.
 
-   # legacy wx* command entries removed; now provided as aliases under `wormhole`.
+commands:
+  dial:
+    description: Dial a remote Stargate, unlock IDC with optional password
+    usage: |
+      /<command> <StarGate> [IDC]
+      <stargate> The StarGate to dial.
+      [IDC] Use optional password to open remote Iris.
+
+  wormhole:
+    description: Wormhole administration and configuration commands (canonical admin command).
+    aliases: [wx]
+    usage: |
+      /<command> <commandtype> [ARG1] [ARG2]
+      Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, custom, storage.
+      Storage subcommands:
+        /<command> storage migrate <to> [force]         # Auto-detect source (sqlite/hsqldb/current)
+        /<command> storage migrate <from> <to> [force]  # Explicit source -> destination
+      Supported backends: file, sqlite, hsqldb, mysql, postgres
+
+  # legacy wx* command entries removed; now provided as aliases under `wormhole`.
 
 permissions:
   wormhole.use.sign:

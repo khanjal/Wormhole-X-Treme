@@ -86,14 +86,61 @@ public class SqliteStorage implements StorageBackend
                 try (PreparedStatement stmt = conn.prepareStatement("SELECT GateName, Owner, Network, GateData, WorldName FROM Stargates;");
                      ResultSet rs = stmt.executeQuery())
                 {
+                    final List<org.bukkit.World> serverWorlds = server.getWorlds();
+                    int loaded = 0;
+                    int failed = 0;
                     while (rs.next())
                     {
                         final String name = rs.getString("GateName");
                         final String owner = rs.getString("Owner");
                         final String network = rs.getString("Network");
                         final byte[] data = rs.getBytes("GateData");
-                        final String world = rs.getString("WorldName");
-                        final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(world), name, null);
+                        final String worldName = rs.getString("WorldName");
+
+                        if (data == null || data.length == 0)
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite: gate '" + name + "' has no data blob — skipping.");
+                            failed++;
+                            continue;
+                        }
+
+                        // Build a prioritized list of worlds to try parsing against.
+                        final java.util.List<org.bukkit.World> tryWorlds = new java.util.ArrayList<org.bukkit.World>();
+                        if (worldName != null && !worldName.isEmpty())
+                        {
+                            final org.bukkit.World w = server.getWorld(worldName);
+                            if (w != null)
+                            {
+                                tryWorlds.add(w);
+                            }
+                        }
+                        // Append all loaded worlds as fallback (avoids missing gates when WorldName mismatches)
+                        for (final org.bukkit.World w : serverWorlds)
+                        {
+                            if (!tryWorlds.contains(w))
+                            {
+                                tryWorlds.add(w);
+                            }
+                        }
+
+                        Stargate s = null;
+                        for (final org.bukkit.World w : tryWorlds)
+                        {
+                            try
+                            {
+                                s = GateSerializer.parseVersionedData(data, w, name, null);
+                                if (s != null)
+                                {
+                                    break;
+                                }
+                            }
+                            catch (final Throwable t)
+                            {
+                                // Wrong world or corrupt data for this world — try next
+                                continue;
+                            }
+                        }
+
                         if (s != null)
                         {
                             if ((owner != null) && (owner.length() > 0))
@@ -106,8 +153,15 @@ public class SqliteStorage implements StorageBackend
                                 s.setGateNetwork(StargateManager.getStargateNetwork(network));
                             }
                             list.add(s);
+                            loaded++;
+                        }
+                        else
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite: could not deserialise gate '" + name + "' in any known world.");
+                            failed++;
                         }
                     }
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "SQLite load complete: " + loaded + " loaded, " + failed + " failed.");
                 }
             }
             catch (final SQLException e)
@@ -116,17 +170,67 @@ public class SqliteStorage implements StorageBackend
                 try (PreparedStatement stmt = conn.prepareStatement("SELECT GateName, GateData, WorldName FROM Stargates;");
                      ResultSet rs = stmt.executeQuery())
                 {
+                    final List<org.bukkit.World> serverWorlds = server.getWorlds();
+                    int loaded = 0;
+                    int failed = 0;
                     while (rs.next())
                     {
                         final String name = rs.getString("GateName");
                         final byte[] data = rs.getBytes("GateData");
-                        final String world = rs.getString("WorldName");
-                        final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(world), name, null);
+                        final String worldName = rs.getString("WorldName");
+
+                        if (data == null || data.length == 0)
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite: gate '" + name + "' has no data blob — skipping.");
+                            failed++;
+                            continue;
+                        }
+
+                        final java.util.List<org.bukkit.World> tryWorlds = new java.util.ArrayList<org.bukkit.World>();
+                        if (worldName != null && !worldName.isEmpty())
+                        {
+                            final org.bukkit.World w = server.getWorld(worldName);
+                            if (w != null)
+                            {
+                                tryWorlds.add(w);
+                            }
+                        }
+                        for (final org.bukkit.World w : serverWorlds)
+                        {
+                            if (!tryWorlds.contains(w))
+                            {
+                                tryWorlds.add(w);
+                            }
+                        }
+
+                        Stargate s = null;
+                        for (final org.bukkit.World w : tryWorlds)
+                        {
+                            try
+                            {
+                                s = GateSerializer.parseVersionedData(data, w, name, null);
+                                if (s != null)
+                                {
+                                    break;
+                                }
+                            }
+                            catch (final Throwable t)
+                            {
+                                continue;
+                            }
+                        }
                         if (s != null)
                         {
                             list.add(s);
+                            loaded++;
+                        }
+                        else
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite: could not deserialise gate '" + name + "' in any known world.");
+                            failed++;
                         }
                     }
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "SQLite load complete: " + loaded + " loaded, " + failed + " failed.");
                 }
             }
         }

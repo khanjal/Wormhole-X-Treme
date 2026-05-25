@@ -5,10 +5,8 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 // Help plugin integration removed
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
-import com.wormhole_xtreme.wormhole.plugin.WormholeWorldsSupport;
 
 /**
  * WormholeXTreme Server Listener.
@@ -25,14 +23,9 @@ class WormholeXTremeServerListener implements Listener
     @EventHandler
     public void onPluginDisable(final PluginDisableEvent event)
     {
-        if (event.getPlugin().getName().equals("Permissions") && !ConfigManager.getPermissionsSupportDisable())
+        if (event.getPlugin().getName().equals("Permissions"))
         {
             PermissionsSupport.disablePermissions();
-        }
-        // Help plugin integration removed
-        else if (event.getPlugin().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
-        {
-            WormholeWorldsSupport.disableWormholeWorlds();
         }
     }
 
@@ -42,14 +35,9 @@ class WormholeXTremeServerListener implements Listener
     @EventHandler
     public void onPluginEnable(final PluginEnableEvent event)
     {
-        if (event.getPlugin().getName().equals("Permissions") && !ConfigManager.getPermissionsSupportDisable())
+        if (event.getPlugin().getName().equals("Permissions"))
         {
             PermissionsSupport.enablePermissions();
-        }
-        // Help plugin integration removed
-        else if (event.getPlugin().getName().equals("WormholeXTremeWorlds") && ConfigManager.isWormholeWorldsSupportEnabled())
-        {
-            WormholeWorldsSupport.enableWormholeWorlds();
         }
     }
 }

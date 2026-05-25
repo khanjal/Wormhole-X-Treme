@@ -263,19 +263,12 @@ public class WorldUtils
     {
         final World w = b.getWorld();
         final Chunk c = b.getChunk();
-        if (WormholeXTreme.getWorldHandler() != null)
+        final int cX = c.getX();
+        final int cZ = c.getZ();
+        if ( !w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getWorldHandler().addStickyChunk(c, "WormholeXTreme");
-        }
-        else
-        {
-            final int cX = c.getX();
-            final int cZ = c.getZ();
-            if ( !w.isChunkLoaded(cX, cZ))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Loading chunk: " + c.toString() + " on: " + w.getName());
-                w.loadChunk(cX, cZ);
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Loading chunk: " + c.toString() + " on: " + w.getName());
+            w.loadChunk(cX, cZ);
         }
     }
 
@@ -289,19 +282,12 @@ public class WorldUtils
     {
         final World w = b.getWorld();
         final Chunk c = b.getChunk();
-        if (WormholeXTreme.getWorldHandler() != null)
+        final int cX = c.getX();
+        final int cZ = c.getZ();
+        if (w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getWorldHandler().removeStickyChunk(c, "WormholeXTreme");
-        }
-        else
-        {
-            final int cX = c.getX();
-            final int cZ = c.getZ();
-            if (w.isChunkLoaded(cX, cZ))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
-                w.unloadChunkRequest(cX, cZ);
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
+            w.unloadChunkRequest(cX, cZ);
         }
     }
 }

@@ -18,7 +18,7 @@ class DefaultSettings
         new Setting(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true, "If true and no Vault provider is detected, automatically fall back to simple permission mode.", "WormholeXTreme"),
         new Setting(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, "The wormhole.use (or wormhole.simple.use) permission means that a user can teleport through gate. When false a user will be able to teleport but not activate a gate. When true only users with wormhole.use (or wormhole.simple.use) can even teleport.", "WormholeXTreme"),
         new Setting(ConfigKeys.HELP_SUPPORT_DISABLE, false, "If set to true, Help plugin will not be attached to even if available.", "WormholeXTreme"),
-        new Setting(ConfigKeys.WORLDS_SUPPORT_ENABLED, false, "If set to true, the Wormhole X-Treme will offload all of its Chunk and World loading functionality to Wormhole Extreme Worlds.", "WormholeXTreme"),
+        new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, players may only teleport through gates whose destination is in the same world. Cross-world travel will be blocked.", "WormholeXTreme"),
         new Setting(ConfigKeys.LOG_LEVEL, "INFO", "Log level to use for minecraft logging purposes. Values are SEVERE, WARNING, INFO, CONFIG, FINE, FINER, and FINEST. In order of least to most logging output.", "WormholeXTreme"),
         new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates. Higher values reduce server load.", "WormholeXTreme"),
         new Setting(ConfigKeys.STORAGE_BACKEND, "file", "Storage backend to use: file|sqlite|hsqldb|mysql|postgres", "WormholeXTreme"),

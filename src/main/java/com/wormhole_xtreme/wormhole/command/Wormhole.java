@@ -1,7 +1,5 @@
 package com.wormhole_xtreme.wormhole.command;
 
-import java.util.Arrays;
-
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -968,43 +966,54 @@ public class Wormhole implements CommandExecutor
                 {
                     return doRegenerate(sender, a);
                 }
-                else if (a[0].equalsIgnoreCase("list"))
+                else if (a[0].equalsIgnoreCase("storage"))
                 {
-                    // Route to existing WXList executor for backwards-compatible listing
-                    return new WXList().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("build"))
-                {
-                    return new Build().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("complete"))
-                {
-                    return new Complete().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("refresh"))
-                {
-                    return new Refresh().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("compass"))
-                {
-                    return new Compass().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("force"))
-                {
-                    return new Force().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("go"))
-                {
-                    return new Go().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("idc"))
-                {
-                    return new WXIDC().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
-                else if (a[0].equalsIgnoreCase("remove"))
-                {
-                    return new WXRemove().onCommand(sender, command, label, Arrays.copyOfRange(a, 1, a.length));
-                }
+                    if ((a.length >= 2) && a[1].equalsIgnoreCase("migrate"))
+                    {
+                        // Supported forms:
+                        //  /wormhole storage migrate <to> [force]                (auto-detect source)
+                        //  /wormhole storage migrate <from> <to> [force]          (explicit source -> destination)
+                        if (a.length < 3)
+                        {
+                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole storage migrate <to> [force] OR /wormhole storage migrate <from> <to> [force]");
+                            return true;
+                        }
+
+                        // Backwards-compatible single-arg form: treat a[2] as destination
+                        if (a.length == 3)
+                        {
+                            final boolean force = false;
+                            StorageMigrator.migrateTo(a[2], force, sender);
+                            return true;
+                        }
+
+                        // Two-arg or three-arg form
+                        if (a.length == 4)
+                        {
+                            // Could be: migrate <to> force  OR migrate <from> <to>
+                            if ("force".equalsIgnoreCase(a[3]))
+                            {
+                                StorageMigrator.migrateTo(a[2], true, sender);
+                                return true;
+                            }
+                            else
+                            {
+                                StorageMigrator.migrateTo(a[2], a[3], false, sender);
+                                return true;
+                            }
+                        }
+
+                        // a.length >= 5 -> migrate <from> <to> [force]
+                        final boolean force = (a.length >= 5 && "force".equalsIgnoreCase(a[4]));
+                        StorageMigrator.migrateTo(a[2], a[3], force, sender);
+                        return true;
+                    }
+                    else
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
+                        return true;
+                    }
+                    }
                 else if (a[0].equalsIgnoreCase("redstone"))
                 {
                     return doRedstone(sender, a);
@@ -1029,41 +1038,59 @@ public class Wormhole implements CommandExecutor
                 {
                     return doRestrict(sender, a);
                 }
-                else if (a[0].equalsIgnoreCase("storage"))
+
+                /*
+                 * Backwards-compat: many legacy commands were provided as separate
+                 * executors (wx remove, wx list, wx complete, wx go, etc.). The
+                 * plugin now exposes a canonical `/wormhole` command (alias: wx),
+                 * so delegate well-known legacy subcommands to their original
+                 * executors to preserve behavior for `/wx <subcommand>` and
+                 * `/wormhole <subcommand>` usages.
+                 */
+                else if (a[0].equalsIgnoreCase("remove"))
                 {
-                    if ((a.length >= 2) && a[1].equalsIgnoreCase("migrate"))
-                    {
-                        // Usage:
-                        //  /wormhole storage migrate <dest> [force]
-                        //  /wormhole storage migrate hsqldb <dest> [force]
-                        if (a.length < 3)
-                        {
-                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole storage migrate <dest> [force] OR /wormhole storage migrate hsqldb <dest> [force]");
-                            return true;
-                        }
-                        if ("hsqldb".equalsIgnoreCase(a[2]))
-                        {
-                            if (a.length < 4)
-                            {
-                                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole storage migrate hsqldb <dest> [force]");
-                                return true;
-                            }
-                            final boolean force = (a.length >= 5 && "force".equalsIgnoreCase(a[4]));
-                            StorageMigrator.migrateTo("hsqldb", a[3], force, sender);
-                            return true;
-                        }
-                        else
-                        {
-                            final boolean force = (a.length >= 4 && "force".equalsIgnoreCase(a[3]));
-                            StorageMigrator.migrateTo(a[2], force, sender);
-                            return true;
-                        }
-                    }
-                    else
-                    {
-                        sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
-                        return true;
-                    }
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.WXRemove().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("list"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.WXList().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("complete"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.Complete().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("go"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.Go().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("compass"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.Compass().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("build"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.Build().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("force"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.Force().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("refresh"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.Refresh().onCommand(sender, command, label, subArgs);
+                }
+                else if (a[0].equalsIgnoreCase("idc") || a[0].equalsIgnoreCase("wxidc"))
+                {
+                    final String[] subArgs = java.util.Arrays.copyOfRange(a, 1, a.length);
+                    return new com.wormhole_xtreme.wormhole.command.WXIDC().onCommand(sender, command, label, subArgs);
                 }
                 else
                 {

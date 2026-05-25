@@ -63,8 +63,8 @@ public class ConfigManager
         /** The HELP SUPPORT DISABLE. */
         HELP_SUPPORT_DISABLE,
 
-        /** The WORLDS SUPPORT DISABLE key. */
-        WORLDS_SUPPORT_ENABLED,
+        /** Restrict teleportation to same-world gates only. */
+        SAME_WORLD_ONLY,
 
         /** The LOG LEVEL. */
         LOG_LEVEL,
@@ -547,14 +547,15 @@ public class ConfigManager
     }
 
     /**
-     * Checks if is wormhole worlds support enabled.
+     * Checks if same-world-only mode is enabled.
+     * When true, players may only teleport through gates whose destination is in the same world.
      * 
-     * @return true, if is wormhole worlds support enabled
+     * @return true if cross-world gate travel is blocked
      */
-    public static boolean isWormholeWorldsSupportEnabled()
+    public static boolean isSameWorldOnly()
     {
         Setting wsd;
-        if ((wsd = ConfigManager.getConfigurations().get(ConfigKeys.WORLDS_SUPPORT_ENABLED)) != null)
+        if ((wsd = ConfigManager.getConfigurations().get(ConfigKeys.SAME_WORLD_ONLY)) != null)
         {
             return wsd.getBooleanValue();
         }
