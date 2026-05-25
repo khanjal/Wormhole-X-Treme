@@ -383,7 +383,6 @@ class WormholeXTremePlayerListener implements Listener
                                         {
                                             final String msg = "Permission denied on nearby/gate-detection: player='" + player.getName() + "' nearbyBlock='" + b.getLocation().toString() + "'";
                                             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
-                                            try { System.out.println("[WormholeXTreme] " + msg); } catch (final Throwable ignore) {}
                                             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                                         }
                                         break search;
@@ -511,7 +510,6 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
                     WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
-                    try { System.out.println("[WormholeXTreme] " + msg); } catch (final Throwable ignore) {}
                     player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                     return false;
                 }
@@ -651,7 +649,7 @@ class WormholeXTremePlayerListener implements Listener
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "handlePlayerMoveEvent: event player is null, ignoring event.");
             return false;
         }
-        System.out.println("[DEBUG] handlePlayerMoveEvent start player=" + player + " name=" + player.getName());
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "handlePlayerMoveEvent start player=" + player + " name=" + player.getName());
         final Location toLocFinal = event.getTo();
         // Diagnostic: log from/to block types and Y fractional to help debug water bounce
         try
@@ -853,7 +851,7 @@ class WormholeXTremePlayerListener implements Listener
                     try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(mount.getUniqueId()); } catch (final Throwable ignore) {}
                     try
                     {
-                        System.out.println("[DEBUG] invoking mount.teleport for player=" + player.getName() + " mount=" + mount);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "invoking mount.teleport for player=" + player.getName() + " mount=" + mount);
                         mount.teleport(mountTarget);
                         mountTeleported = true;
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport: teleported mount " + mount.getUniqueId() + " (" + mount.getType().name() + ") for player " + player.getName());
@@ -874,7 +872,7 @@ class WormholeXTremePlayerListener implements Listener
                         try
                         {
                             final boolean addedImmediate = mount.addPassenger(player);
-                            System.out.println("[DEBUG] immediate addPassenger parent=" + mount + " child=" + player + " result=" + addedImmediate);
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "immediate addPassenger parent=" + mount + " child=" + player + " result=" + addedImmediate);
                         }
                         catch (final Throwable t)
                         {
@@ -882,7 +880,7 @@ class WormholeXTremePlayerListener implements Listener
                         }
                     }
                     catch (final Throwable ignore) {}
-                    System.out.println("[DEBUG] after teleport branch: v=" + v + " mount=" + mount + " vehicleTeleported=" + vehicleTeleported + " mountTeleported=" + mountTeleported);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "after teleport branch: v=" + v + " mount=" + mount + " vehicleTeleported=" + vehicleTeleported + " mountTeleported=" + mountTeleported);
                 }
 
                 if (v != null && vehicleTeleported)
@@ -931,10 +929,10 @@ class WormholeXTremePlayerListener implements Listener
                                         {
                                             if (!psg.isValid()) { continue; }
                                             boolean added = false;
-                                            try { added = parent.addPassenger(psg); System.out.println("[DEBUG] parent.addPassenger called parent=" + parent + " child=" + psg + " result=" + added); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
+                                            try { added = parent.addPassenger(psg); WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "parent.addPassenger called parent=" + parent + " child=" + psg + " result=" + added); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                             if (!added)
                                             {
-                                                try { psg.teleport(parent.getLocation()); added = parent.addPassenger(psg); System.out.println("[DEBUG] parent.addPassenger after teleport parent=" + parent + " child=" + psg + " result=" + added); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after fallback teleport failed: " + t.getMessage()); }
+                                                try { psg.teleport(parent.getLocation()); added = parent.addPassenger(psg); WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "parent.addPassenger after teleport parent=" + parent + " child=" + psg + " result=" + added); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after fallback teleport failed: " + t.getMessage()); }
                                             }
                                             if (!added && psg instanceof Player)
                                             {
@@ -1005,15 +1003,15 @@ class WormholeXTremePlayerListener implements Listener
                             }
                         };
                         // 2-tick delay: no teleport-ack to wait for, client processes mount immediately.
-                        System.out.println("[DEBUG] scheduling mount reattach parents.size=" + parents.size() + " children.size=" + children.size() + " children=" + children);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "scheduling mount reattach parents.size=" + parents.size() + " children.size=" + children.size() + " children=" + children);
                         final int _sid_boat = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 2);
-                        System.out.println("[DEBUG] scheduled boat reattach sid=" + _sid_boat);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "scheduled boat reattach sid=" + _sid_boat);
                     }
                     catch (final Throwable ignore) {}
                 }
                 else if (mount != null && mountTeleported)
                 {
-                    System.out.println("[DEBUG] entering mount reattach branch for player=" + player.getName() + " mount=" + mount);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "entering mount reattach branch for player=" + player.getName() + " mount=" + mount);
                     // Horse/donkey/mule: treat like boat path (vehicle-first), schedule reattach.
                     vehiclePathUsed[0] = true;
                     event.setFrom(playerCurrentLoc);
@@ -1125,9 +1123,9 @@ class WormholeXTremePlayerListener implements Listener
                             }
                         };
                         // 2-tick delay: no teleport-ack to wait for, client processes mount immediately.
-                        System.out.println("[DEBUG] scheduling mount reattach parents.size=" + parents.size() + " children.size=" + children.size() + " children=" + children);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "scheduling mount reattach parents.size=" + parents.size() + " children.size=" + children.size() + " children=" + children);
                         final int _sid_mount = WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 2);
-                        System.out.println("[DEBUG] scheduled mount reattach sid=" + _sid_mount);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "scheduled mount reattach sid=" + _sid_mount);
                     }
                     catch (final Throwable ignore) {}
                 }
