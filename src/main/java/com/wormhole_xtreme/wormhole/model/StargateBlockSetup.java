@@ -7,11 +7,11 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Powerable;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -155,15 +155,15 @@ class StargateBlockSetup
             placeBlock.setBlockData(signData, false);
 
             final Sign sign = (Sign) placeBlock.getState();
-            sign.setLine(0, "-" + gate.getGateName() + "-");
+            sign.getSide(Side.FRONT).setLine(0, "-" + gate.getGateName() + "-");
             if (gate.getGateNetwork() != null)
             {
-                sign.setLine(1, "N:" + gate.getGateNetwork().getNetworkName());
+                sign.getSide(Side.FRONT).setLine(1, "N:" + gate.getGateNetwork().getNetworkName());
             }
             if (gate.getGateOwner() != null)
             {
                 final String ownerDisplay = gate.getGateOwnerName();
-                sign.setLine(2, "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
+                sign.getSide(Side.FRONT).setLine(2, "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
                     ? ownerDisplay.substring(0, 13) : ownerDisplay));
             }
             sign.update(true, false);

@@ -110,10 +110,17 @@ public class StargateManager
         {
             synchronized (net.getNetworkGateLock())
             {
-                net.getNetworkGateList().add(gate);
+                // Avoid adding the same gate multiple times.
+                if (!net.getNetworkGateList().contains(gate))
+                {
+                    net.getNetworkGateList().add(gate);
+                }
                 if (gate.isGateSignPowered())
                 {
-                    net.getNetworkSignGateList().add(gate);
+                    if (!net.getNetworkSignGateList().contains(gate))
+                    {
+                        net.getNetworkSignGateList().add(gate);
+                    }
                 }
             }
         }

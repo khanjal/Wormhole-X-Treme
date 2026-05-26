@@ -417,9 +417,25 @@ public class Wormhole implements CommandExecutor
                     }
                     else
                     {
-                        // getOfflinePlayer by name queries usercache (may return unknown UUID if name never joined)
-                        final org.bukkit.OfflinePlayer offline = Bukkit.getOfflinePlayer(newOwnerName);
-                        if (offline.hasPlayedBefore() || offline.isOnline())
+                        // Try to resolve a UUID from the server's cached offline players by name.
+                        // This avoids the deprecated Bukkit.getOfflinePlayer(String) call.
+                        org.bukkit.OfflinePlayer offline = null;
+                        try
+                        {
+                            for (final org.bukkit.OfflinePlayer op : Bukkit.getOfflinePlayers())
+                            {
+                                if (op == null) continue;
+                                final String oname = op.getName();
+                                if (oname != null && oname.equalsIgnoreCase(newOwnerName))
+                                {
+                                    offline = op;
+                                    break;
+                                }
+                            }
+                        }
+                        catch (final Throwable ignore) {}
+
+                        if (offline != null && (offline.hasPlayedBefore() || offline.isOnline()))
                         {
                             s.setGateOwner(offline.getUniqueId().toString());
                             s.setGateOwnerName(offline.getName() != null ? offline.getName() : newOwnerName);

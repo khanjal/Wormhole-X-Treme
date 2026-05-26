@@ -23,6 +23,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 import com.wormhole_xtreme.wormhole.event.StargateMinecartTeleportEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -679,13 +680,28 @@ class WormholeXTremeVehicleListener implements Listener
 
             }
 
-            final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
+                final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
                 if (st.getGateTarget().isGateIrisActive())
                 {
                     target = st.getGateMinecartTeleportLocation() != null
                         ? st.getGateMinecartTeleportLocation()
                         : st.getGatePlayerTeleportLocation();
                     final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+                    // set yaw from exit velocity so clients face travel direction
+                    try
+                    {
+                        if (safeTarget != null && new_speed != null)
+                        {
+                            final double dx = new_speed.getX();
+                            final double dz = new_speed.getZ();
+                            final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                                ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                                : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
+                            safeTarget.setYaw(yaw);
+                            safeTarget.setPitch(0f);
+                        }
+                    }
+                    catch (final Throwable ignore) {}
                     if (veh != null)
                     {
                         final UUID vid = veh.getUniqueId();
@@ -697,6 +713,21 @@ class WormholeXTremeVehicleListener implements Listener
             else
             {
                 final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+                // set yaw from exit velocity so clients face travel direction
+                try
+                {
+                    if (safeTarget != null && new_speed != null)
+                    {
+                        final double dx = new_speed.getX();
+                        final double dz = new_speed.getZ();
+                        final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                            ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                            : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
+                        safeTarget.setYaw(yaw);
+                        safeTarget.setPitch(0f);
+                    }
+                }
+                catch (final Throwable ignore) {}
                 if (veh != null)
                 {
                     final UUID vid = veh.getUniqueId();

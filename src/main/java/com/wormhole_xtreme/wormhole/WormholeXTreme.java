@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.Location;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import com.wormhole_xtreme.wormhole.command.Dial;
@@ -257,6 +258,8 @@ public class WormholeXTreme extends JavaPlugin
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
         // Periodic scan: teleport non-player entities that walk into active gates.
+        // Gate-driven scan: iterate active gates and check their portal block locations
+        // for nearby non-player entities (Spigot-compatible).
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), new Runnable()
         {
             @Override
@@ -264,48 +267,60 @@ public class WormholeXTreme extends JavaPlugin
             {
                 try
                 {
-                    for (final org.bukkit.World world : WormholeXTreme.getThisPlugin().getServer().getWorlds())
+                    final java.util.List<Stargate> gates = StargateManager.getAllGates();
+                    for (final Stargate gate : gates)
                     {
-                        for (final org.bukkit.entity.Entity e : world.getEntities())
+                        try
                         {
-                            try
+                            if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null) continue;
+                            final java.util.List<Location> portalBlocks = gate.getGatePortalBlocks();
+                            if (portalBlocks == null || portalBlocks.isEmpty()) continue;
+                            for (final Location pLoc : portalBlocks)
                             {
-                                if (e == null) continue;
-                                if (e instanceof org.bukkit.entity.Player) continue;
-                                if (e instanceof org.bukkit.entity.Vehicle) continue;
-                                if (e.isInsideVehicle()) continue;
-                                final org.bukkit.Location loc = e.getLocation();
-                                final Stargate closest = StargateManager.findClosestStargate(loc);
-                                if (closest == null || !closest.isGateActive() || closest.getGateTarget() == null) continue;
-                                final double d2 = StargateManager.distanceSquaredToClosestGateBlock(loc, closest);
-                                final double thresholdSq = (closest.isGateCustom()
-                                    ? closest.getGateCustomWooshDepthSquared()
-                                    : (closest.getGateShape() != null ? closest.getGateShape().getShapeWooshDepthSquared() : 0));
-                                if ((thresholdSq != 0 && d2 <= thresholdSq) || d2 <= 1.0)
+                                try
                                 {
-                                    final org.bukkit.block.Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-                                    if (!StargateManager.isBlockInGate(b)) continue;
-                                    final org.bukkit.Location target = closest.getGateTarget().getGatePlayerTeleportLocation();
-                                    final org.bukkit.Location safeTarget = WormholeXTremeVehicleListener.forwardAndUp(target, closest.getGateTarget().getGateFacing(), 1.0, 1.0);
-                                    try
+                                    if (pLoc == null || pLoc.getWorld() == null) continue;
+                                    final org.bukkit.World world = pLoc.getWorld();
+                                    final Location center = new Location(world, pLoc.getBlockX() + 0.5, pLoc.getBlockY() + 0.5, pLoc.getBlockZ() + 0.5);
+                                    final double rx = 0.6D, ry = 0.9D, rz = 0.6D;
+                                    final java.util.Collection<org.bukkit.entity.Entity> nearby = world.getNearbyEntities(center, rx, ry, rz);
+                                    for (final org.bukkit.entity.Entity e : nearby)
                                     {
-                                        e.teleport(safeTarget);
-                                        if (!e.getPassengers().isEmpty())
+                                        try
                                         {
-                                            final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<org.bukkit.entity.Entity>();
-                                            final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<org.bukkit.entity.Entity>();
-                                            WormholeXTremeVehicleListener.collectPassengerPairs(e, (java.util.List) parents, (java.util.List) children);
-                                            for (int i = 0; i < children.size(); i++)
+                                            if (e == null) continue;
+                                            if (e instanceof org.bukkit.entity.Player) continue;
+                                            if (e instanceof org.bukkit.entity.Vehicle) continue;
+                                            if (e.isInsideVehicle()) continue;
+                                            final org.bukkit.block.Block b = world.getBlockAt(pLoc.getBlockX(), pLoc.getBlockY(), pLoc.getBlockZ());
+                                            if (!StargateManager.isBlockInGate(b)) continue;
+                                            final org.bukkit.Location target = gate.getGateTarget().getGatePlayerTeleportLocation();
+                                            final org.bukkit.Location safeTarget = WormholeXTremeVehicleListener.forwardAndUp(target, gate.getGateTarget().getGateFacing(), 1.0, 1.0);
+                                            try
                                             {
-                                                try { parents.get(i).addPassenger(children.get(i)); } catch (final Throwable ignore) {}
+                                                // Mark recently teleported to avoid immediate retriggers
+                                                try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(e.getUniqueId()); } catch (final Throwable ignore) {}
+                                                e.teleport(safeTarget);
+                                                if (!e.getPassengers().isEmpty())
+                                                {
+                                                    final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<org.bukkit.entity.Entity>();
+                                                    final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<org.bukkit.entity.Entity>();
+                                                    WormholeXTremeVehicleListener.collectPassengerPairs(e, parents, children);
+                                                    for (int i = 0; i < children.size(); i++)
+                                                    {
+                                                        try { parents.get(i).addPassenger(children.get(i)); } catch (final Throwable ignore) {}
+                                                    }
+                                                }
                                             }
+                                            catch (final Throwable ignore) {}
                                         }
+                                        catch (final Throwable ignore) {}
                                     }
-                                    catch (final Throwable ignore) {}
                                 }
+                                catch (final Throwable ignore) {}
                             }
-                            catch (final Throwable ignore) {}
                         }
+                        catch (final Throwable ignore) {}
                     }
                 }
                 catch (final Throwable ignore) {}

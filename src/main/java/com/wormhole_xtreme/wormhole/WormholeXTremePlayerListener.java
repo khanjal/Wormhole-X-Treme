@@ -814,7 +814,29 @@ class WormholeXTremePlayerListener implements Listener
             // Track whether the vehicle-only path was taken (no explicit player teleport).
             final boolean[] vehiclePathUsed = { false };
             // Capture current vehicle/mount (if any) early so we can defer minecarts to the Vehicle listener.
-            final Entity preVehicle = player.getVehicle();
+            Entity preVehicle = player.getVehicle();
+            // Fallback: sometimes the server-side vehicle reference may be null due to timing
+            // (client-side dismounts, timing issues). Search nearby entities for one that lists
+            // the player as a passenger to better detect mounts like horses/camels.
+            if (preVehicle == null)
+            {
+                try
+                {
+                    for (final org.bukkit.entity.Entity e : player.getNearbyEntities(3.0, 2.0, 3.0))
+                    {
+                        try
+                        {
+                            if (e.getPassengers().contains(player))
+                            {
+                                preVehicle = e;
+                                break;
+                            }
+                        }
+                        catch (final Throwable ignore) {}
+                    }
+                }
+                catch (final Throwable ignore) {}
+            }
             final Vehicle v = (preVehicle instanceof Vehicle) ? (Vehicle) preVehicle : null;
             // Non-vehicle mounts (pigs, striders, horses, etc.) should be handled too.
             // Treat any non-`Vehicle` entity the player is riding as a mount so we
@@ -835,8 +857,23 @@ class WormholeXTremePlayerListener implements Listener
                 boolean mountTeleported = false;
                 if (v != null)
                 {
-                    final java.util.List<Entity> vehiclePassengers = new java.util.ArrayList<Entity>(v.getPassengers());
                     final Location vehTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, stargate.getGateTarget().getGateFacing(), 1.0, 1.0);
+                    // Set yaw on vehicle target so vehicle faces exit direction after teleport
+                    try
+                    {
+                        final org.bukkit.util.Vector exitVel = WormholeXTremeVehicleListener.computeExitVelocity(stargate.getGateTarget().getGateFacing(), v.getVelocity(), 5.0);
+                        if (vehTarget != null && exitVel != null)
+                        {
+                            final double dx = exitVel.getX();
+                            final double dz = exitVel.getZ();
+                            final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                                ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                                : WorldUtils.getDegreesFromBlockFace(stargate.getGateTarget().getGateFacing());
+                            vehTarget.setYaw(yaw);
+                            vehTarget.setPitch(0f);
+                        }
+                    }
+                    catch (final Throwable ignore) {}
                     // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
                     try { WorldUtils.forceLoadDestinationChunks(vehTarget); } catch (final Throwable ignore) {}
                     // Mark vehicle as recently teleported BEFORE the teleport so that the
@@ -857,8 +894,23 @@ class WormholeXTremePlayerListener implements Listener
                 // Handle non-Vehicle mounts (horses/donkeys/mules) by teleporting the mount first.
                 if (mount != null)
                 {
-                    final java.util.List<Entity> mountPassengers = new java.util.ArrayList<Entity>(mount.getPassengers());
                     final Location mountTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, stargate.getGateTarget().getGateFacing(), 1.0, 1.0);
+                    // Set yaw on mount target so mount faces exit direction after teleport
+                    try
+                    {
+                        final org.bukkit.util.Vector exitVelMount = WormholeXTremeVehicleListener.computeExitVelocity(stargate.getGateTarget().getGateFacing(), mount.getVelocity(), 5.0);
+                        if (mountTarget != null && exitVelMount != null)
+                        {
+                            final double dxm = exitVelMount.getX();
+                            final double dzm = exitVelMount.getZ();
+                            final float yawm = (Math.abs(dxm) > 0.0001 || Math.abs(dzm) > 0.0001)
+                                ? (float) Math.toDegrees(Math.atan2(-dxm, dzm))
+                                : WorldUtils.getDegreesFromBlockFace(stargate.getGateTarget().getGateFacing());
+                            mountTarget.setYaw(yawm);
+                            mountTarget.setPitch(0f);
+                        }
+                    }
+                    catch (final Throwable ignore) {}
                     try { WorldUtils.forceLoadDestinationChunks(mountTarget); } catch (final Throwable ignore) {}
                     try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(mount.getUniqueId()); } catch (final Throwable ignore) {}
                     try

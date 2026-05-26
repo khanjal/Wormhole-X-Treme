@@ -18,9 +18,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.storage.SqliteStorage;
-import com.wormhole_xtreme.wormhole.storage.StorageMigrator;
 
-import org.bukkit.command.CommandSender;
 
 public class StorageMigratorSqliteToFileTest
 {

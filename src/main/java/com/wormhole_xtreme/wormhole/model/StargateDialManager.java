@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -109,13 +110,13 @@ class StargateDialManager
         });
 
         // Line 0: always this gate's name.
-        gate.getGateDialSign().setLine(0, "-" + gate.getGateName() + "-");
+        gate.getGateDialSign().getSide(Side.FRONT).setLine(0, "-" + gate.getGateName() + "-");
 
         if (others.isEmpty())
         {
-            gate.getGateDialSign().setLine(1, "");
-            gate.getGateDialSign().setLine(2, "No Other Gates");
-            gate.getGateDialSign().setLine(3, "");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, "");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, "No Other Gates");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, "");
             gate.getGateDialSign().update(true, false);
             gate.setGateDialSignTarget(null);
             return;
@@ -144,17 +145,17 @@ class StargateDialManager
         if (others.size() == 1)
         {
             // Only one other gate: no prev/next context needed.
-            gate.getGateDialSign().setLine(1, "");
-            gate.getGateDialSign().setLine(2, ">" + current.getGateName() + "<");
-            gate.getGateDialSign().setLine(3, "");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, "");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, ">" + current.getGateName() + "<");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, "");
         }
         else
         {
             final int prevIdx = (idx - 1 + others.size()) % others.size();
             final int nextIdx = (idx + 1) % others.size();
-            gate.getGateDialSign().setLine(1, others.get(prevIdx).getGateName());
-            gate.getGateDialSign().setLine(2, ">" + current.getGateName() + "<");
-            gate.getGateDialSign().setLine(3, others.get(nextIdx).getGateName());
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, others.get(prevIdx).getGateName());
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, ">" + current.getGateName() + "<");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, others.get(nextIdx).getGateName());
         }
 
         gate.getGateDialSign().update(true, false);
@@ -177,10 +178,10 @@ class StargateDialManager
             }
             gate.setGateDialSign((Sign) bState);
             gate.setGateDialSignIndex(-1);
-            gate.getGateDialSign().setLine(0, gate.getGateName());
-            gate.getGateDialSign().setLine(1, gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public");
-            gate.getGateDialSign().setLine(2, "");
-            gate.getGateDialSign().setLine(3, "");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(0, gate.getGateName());
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, "");
+            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, "");
             gate.getGateDialSign().update(true, false);
         }
     }
