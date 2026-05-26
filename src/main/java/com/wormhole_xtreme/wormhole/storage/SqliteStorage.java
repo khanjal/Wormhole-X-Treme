@@ -70,6 +70,21 @@ public class SqliteStorage implements StorageBackend
                 ps.execute();
             }
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "SQLite storage initialized at: " + f.getAbsolutePath());
+
+            // Attempt to add a unique index on Name for legacy databases that lack one.
+            // This is a no-op if the index already exists.  It will fail silently if
+            // there are existing duplicate Name rows — those are handled by loadStargates.
+            try (PreparedStatement idx = conn.prepareStatement(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_stargates_name ON Stargates(Name);"))
+            {
+                idx.execute();
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "SQLite: unique index on Name ensured.");
+            }
+            catch (final SQLException idxEx)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "SQLite: could not create unique index on Name (legacy DB may still have duplicate rows): " + idxEx.getMessage());
+            }
         }
         catch (final SQLException e)
         {
@@ -93,20 +108,24 @@ public class SqliteStorage implements StorageBackend
 
         try
         {
-            // Schema uses Name column (matching legacy format). WorldName may be empty in old records;
-            // fall back to World column in that case.
+            // ORDER BY Id ASC so that for duplicate Name rows the highest Id (most recently saved)
+            // is processed last and wins in the deduplication map below.
+            // WorldName may be empty in old records; fall back to World column in that case.
             final String sql = "SELECT Name, Owner, Network, GateData,"
                 + " CASE WHEN WorldName IS NOT NULL AND length(WorldName) > 0 THEN WorldName ELSE World END AS WorldName"
-                + " FROM Stargates;";
+                + " FROM Stargates ORDER BY Id ASC;";
 
             try (PreparedStatement stmt = conn.prepareStatement(sql);
                  ResultSet rs = stmt.executeQuery())
             {
                 final List<org.bukkit.World> serverWorlds = server.getWorlds();
-                int loaded = 0;
+                // Use a LinkedHashMap keyed by Name to deduplicate: later rows (higher Id) overwrite earlier ones.
+                final java.util.LinkedHashMap<String, Stargate> dedupeMap = new java.util.LinkedHashMap<String, Stargate>();
+                int totalRows = 0;
                 int failed = 0;
                 while (rs.next())
                 {
+                    totalRows++;
                     final String name = rs.getString("Name");
                     final String owner = rs.getString("Owner");
                     final String network = rs.getString("Network");
@@ -167,8 +186,7 @@ public class SqliteStorage implements StorageBackend
                             StargateManager.addGateToNetwork(s, network);
                             s.setGateNetwork(StargateManager.getStargateNetwork(network));
                         }
-                        list.add(s);
-                        loaded++;
+                        dedupeMap.put(name, s);
                     }
                     else
                     {
@@ -176,7 +194,16 @@ public class SqliteStorage implements StorageBackend
                         failed++;
                     }
                 }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "SQLite load complete: " + loaded + " loaded, " + failed + " failed.");
+
+                list.addAll(dedupeMap.values());
+                final int dupeRowsRemoved = totalRows - failed - list.size();
+                if (dupeRowsRemoved > 0)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                        "SQLite: removed " + dupeRowsRemoved + " duplicate Name row(s) from " + totalRows + " total rows.");
+                }
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                    "SQLite load complete: " + list.size() + " unique gate(s) loaded, " + failed + " failed.");
             }
         }
         catch (final SQLException e)
@@ -200,19 +227,40 @@ public class SqliteStorage implements StorageBackend
         }
 
         final byte[] data = GateSerializer.stargatetoBinary(s);
-        try (PreparedStatement ps = conn.prepareStatement("INSERT OR REPLACE INTO Stargates (Name, Owner, Network, WorldName, WorldEnvironment, GateData) VALUES (?, ?, ?, ?, ?, ?);"))
+        final String name = s.getGateName();
+        final String owner = s.getGateOwner() != null ? s.getGateOwner() : "";
+        final String network = s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "";
+        final String worldName = s.getGateWorld() != null ? s.getGateWorld().getName() : "";
+        final String worldEnv = s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "";
+
+        // DELETE before INSERT so that existing rows with this Name (including any
+        // duplicate rows in legacy databases without a UNIQUE constraint) are removed
+        // before writing the latest state.  This is safer than INSERT OR REPLACE, which
+        // only triggers conflict-replacement when a UNIQUE / PRIMARY KEY constraint fires.
+        try (PreparedStatement del = conn.prepareStatement("DELETE FROM Stargates WHERE Name = ?;"))
         {
-            ps.setString(1, s.getGateName());
-            ps.setString(2, s.getGateOwner() != null ? s.getGateOwner() : "");
-            ps.setString(3, s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "");
-            ps.setString(4, s.getGateWorld() != null ? s.getGateWorld().getName() : "");
-            ps.setString(5, s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
+            del.setString(1, name);
+            del.executeUpdate();
+        }
+        catch (final SQLException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite: pre-save delete failed for '" + name + "': " + e.getMessage());
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(
+            "INSERT INTO Stargates (Name, Owner, Network, WorldName, WorldEnvironment, GateData) VALUES (?, ?, ?, ?, ?, ?);"))
+        {
+            ps.setString(1, name);
+            ps.setString(2, owner);
+            ps.setString(3, network);
+            ps.setString(4, worldName);
+            ps.setString(5, worldEnv);
             ps.setBytes(6, data);
             ps.executeUpdate();
         }
         catch (final SQLException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite save error for " + s.getGateName() + ": " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "SQLite save error for " + name + ": " + e.getMessage());
         }
     }
 
