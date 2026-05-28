@@ -187,7 +187,7 @@ public class CommandUtilities
      *            the boolean string
      * @return true, if is boolean
      */
-    static boolean isBoolean(final String booleanString)
+    public static boolean isBoolean(final String booleanString)
     {
         return booleanString.equalsIgnoreCase("true") || booleanString.equalsIgnoreCase("false");
     }
@@ -199,7 +199,7 @@ public class CommandUtilities
      *            the sender
      * @return true, if successful
      */
-    static boolean playerCheck(final CommandSender sender)
+    public static boolean playerCheck(final CommandSender sender)
     {
         if (sender instanceof Player)
         {
