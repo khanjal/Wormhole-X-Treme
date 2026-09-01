@@ -142,4 +142,80 @@ public class WormholeXTremePlayerListenerMountTest
         // Cleanup
         StargateManager.removeBlockIndex(ch);
     }
+
+    @Test
+    public void gateIsDetectedUnderMountWhenRiderClearsThePortal() throws Exception
+    {
+        // A tall mount (camel) puts the rider's own block above the portal, so the
+        // gate has to be found under the mount or the trip never triggers.
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        final int bx = 30, by = 64, bz = 40;
+
+        // The portal block — where the mount is standing.
+        final Block portal = mock(Block.class);
+        when(portal.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(portal.getWorld()).thenReturn(world);
+        when(portal.getType()).thenReturn(Material.WATER);
+        when(world.getBlockAt(bx, by, bz)).thenReturn(portal);
+
+        // Plain air blocks: where the rider's feet are (two up), and the block the
+        // bounding-box fallback also probes (one up from the mount).
+        for (final int dy : new int[] { 1, 2 })
+        {
+            final Block air = mock(Block.class);
+            when(air.getLocation()).thenReturn(new Location(world, bx, by + dy, bz));
+            when(air.getWorld()).thenReturn(world);
+            when(air.getType()).thenReturn(Material.AIR);
+            when(world.getBlockAt(bx, by + dy, bz)).thenReturn(air);
+        }
+
+        final Stargate src = new Stargate();
+        src.setGateName("srcCamel");
+        src.setGateActive(true);
+
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
+        target.setGateFacing(BlockFace.NORTH);
+        final Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
+        gateTargetField.setAccessible(true);
+        gateTargetField.set(src, target);
+
+        StargateManager.addBlockIndex(portal, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        // Mount stands in the portal block; rider sits two blocks higher.
+        final Pig mount = mock(Pig.class);
+        when(mount.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(mount.isValid()).thenReturn(true);
+        when(mount.getType()).thenReturn(EntityType.PIG);
+        when(mount.getLocation()).thenReturn(new Location(world, bx + 0.5, by, bz + 0.5));
+
+        final Player rider = mock(Player.class);
+        when(rider.getVehicle()).thenReturn((Entity) mount);
+        when(rider.isValid()).thenReturn(true);
+        when(rider.getName()).thenReturn("camelRider");
+
+        final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
+        doAnswer(inv -> { teleports.incrementAndGet(); return null; }).when(mount).teleport(any(Location.class));
+        doAnswer(inv -> true).when(mount).addPassenger(any());
+
+        doAnswer(inv -> {
+            final Runnable r = inv.getArgument(1, Runnable.class);
+            try { r.run(); } catch (final Throwable ignore) {}
+            return 1;
+        }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+
+        // Rider's own block (by + 2) is NOT a gate block — only the mount's is.
+        final Location fromLoc = new Location(world, bx + 0.5, by + 2, bz - 1.5);
+        final Location toLoc = new Location(world, bx + 0.5, by + 2, bz + 0.5);
+
+        new WormholeXTremePlayerListener().onPlayerMove(new PlayerMoveEvent(rider, fromLoc, toLoc));
+
+        org.junit.jupiter.api.Assertions.assertTrue(teleports.get() > 0,
+            "gate under the mount should have been detected and the mount teleported");
+
+        StargateManager.removeBlockIndex(portal);
+    }
 }

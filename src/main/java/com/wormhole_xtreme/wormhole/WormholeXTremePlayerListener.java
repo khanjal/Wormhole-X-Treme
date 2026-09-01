@@ -632,8 +632,87 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
+     * Returns true if {@code ridden} is a living mount this listener is responsible for.
+     *
+     * <p>Note that {@code instanceof Vehicle} does not make this distinction: in Bukkit
+     * {@code Pig} and {@code AbstractHorse} — so horses, camels, donkeys, mules and
+     * llamas, the whole point of the feature — all extend {@link Vehicle}. What actually
+     * separates the two cases is which event fires. Minecarts and boats raise
+     * {@code VehicleMoveEvent} and are handled by {@link WormholeXTremeVehicleListener};
+     * living mounts never raise it, so they can only be caught here off the rider's move.
+     * This predicate deliberately mirrors that listener's own filter so the two partition
+     * the space with no gap and no double-handling.
+     *
+     * @param ridden
+     *            the entity the player is riding, may be null
+     * @return true if this listener should handle it as a mount
+     */
+    private static boolean isLivingMount(final Entity ridden)
+    {
+        return ridden != null && !(ridden instanceof Minecart) && !(ridden instanceof Boat);
+    }
+
+    /**
+     * Finds a portal block of an active gate that {@code mount} is standing in.
+     *
+     * <p>Scans the blocks the mount's bounding box overlaps rather than a fixed cube
+     * around it, so a wide or tall mount is covered exactly and a small one costs
+     * only the handful of lookups it actually occupies.
+     *
+     * <p>Only portal blocks count. Matching any gate block would let a structure
+     * block win the search, and the caller requires a portal block — so the mount
+     * would be silently ignored even with its legs in the open wormhole.
+     *
+     * @param mount
+     *            the entity being ridden
+     * @return a portal block of an active gate, or null if the mount is not in one
+     */
+    private static Block findActiveGatePortalBlockAtMount(final Entity mount)
+    {
+        final Location ml = mount.getLocation();
+        if (ml == null || ml.getWorld() == null)
+        {
+            return null;
+        }
+        final org.bukkit.World world = ml.getWorld();
+
+        // Default to the mount's own block and the one above it, covering the common
+        // case when no bounding box is available.
+        int minX = ml.getBlockX(), maxX = minX;
+        int minY = ml.getBlockY(), maxY = minY + 1;
+        int minZ = ml.getBlockZ(), maxZ = minZ;
+        final org.bukkit.util.BoundingBox box = mount.getBoundingBox();
+        if (box != null)
+        {
+            minX = (int) Math.floor(box.getMinX());
+            maxX = (int) Math.floor(box.getMaxX());
+            minY = (int) Math.floor(box.getMinY());
+            maxY = (int) Math.floor(box.getMaxY());
+            minZ = (int) Math.floor(box.getMinZ());
+            maxZ = (int) Math.floor(box.getMaxZ());
+        }
+
+        for (int bx = minX; bx <= maxX; bx++)
+        {
+            for (int by = minY; by <= maxY; by++)
+            {
+                for (int bz = minZ; bz <= maxZ; bz++)
+                {
+                    final Block b = world.getBlockAt(bx, by, bz);
+                    final Stargate s = StargateManager.getGateFromBlock(b);
+                    if (s != null && s.isGateActive() && StargateManager.isPortalBlock(b))
+                    {
+                        return b;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Handle player move event.
-     * 
+     *
      * @param event
      *            the event
      * @return true, if successful
@@ -662,68 +741,23 @@ class WormholeXTremePlayerListener implements Listener
         Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
-        // If the player isn't technically in the portal block but is riding an animal
-        // that is partially in the portal (e.g. camel), attempt to detect the gate
-        // from the mount's location and treat that as the trigger so we teleport
-        // the mount/vehicle-first as intended.
+        // A rider's own block is not a reliable trigger: a camel is tall enough that
+        // the rider clears the portal entirely while the camel stands in it. When the
+        // player's block is not a gate, look for one under their mount instead so the
+        // mount-first teleport still fires.
         if (stargate == null)
         {
-            try
+            final Entity ridden = player.getVehicle();
+            if (isLivingMount(ridden))
             {
-                org.bukkit.entity.Entity preVehicleCandidate = player.getVehicle();
-                if (preVehicleCandidate == null)
+                final Block mountBlock = findActiveGatePortalBlockAtMount(ridden);
+                if (mountBlock != null)
                 {
-                    try
-                    {
-                        for (final org.bukkit.entity.Entity e : player.getNearbyEntities(3.0, 2.0, 3.0))
-                        {
-                            try
-                            {
-                                if (e.getPassengers().contains(player))
-                                {
-                                    preVehicleCandidate = e;
-                                    break;
-                                }
-                            }
-                            catch (final Throwable ignore) {}
-                        }
-                    }
-                    catch (final Throwable ignore) {}
-                }
-
-                if (preVehicleCandidate != null && !(preVehicleCandidate instanceof Vehicle))
-                {
-                    final Location ml = preVehicleCandidate.getLocation();
-                    final org.bukkit.World w = (ml == null) ? null : ml.getWorld();
-                    if (w != null)
-                    {
-                        boolean found = false;
-                        for (int dx = -2; dx <= 2 && !found; dx++)
-                        {
-                            for (int dy = -2; dy <= 2 && !found; dy++)
-                            {
-                                for (int dz = -2; dz <= 2 && !found; dz++)
-                                {
-                                    try
-                                    {
-                                        final Block b = w.getBlockAt(ml.getBlockX() + dx, ml.getBlockY() + dy, ml.getBlockZ() + dz);
-                                        final Stargate s2 = StargateManager.getGateFromBlock(b);
-                                        if (s2 != null && s2.isGateActive())
-                                        {
-                                            stargate = s2;
-                                            gateBlockFinal = b;
-                                            found = true;
-                                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + preVehicleCandidate + " at block=" + b.getLocation().toString());
-                                        }
-                                    }
-                                    catch (final Throwable ignore) {}
-                                }
-                            }
-                        }
-                    }
+                    gateBlockFinal = mountBlock;
+                    stargate = StargateManager.getGateFromBlock(mountBlock);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
                 }
             }
-            catch (final Throwable ignore) {}
         }
 
         if (stargate != null && stargate.isGateActive() && StargateManager.isPortalBlock(gateBlockFinal))
@@ -891,29 +925,7 @@ class WormholeXTremePlayerListener implements Listener
             // Track whether the vehicle-only path was taken (no explicit player teleport).
             final boolean[] vehiclePathUsed = { false };
             // Capture current vehicle/mount (if any) early so we can defer minecarts to the Vehicle listener.
-            Entity preVehicle = player.getVehicle();
-            // Fallback: sometimes the server-side vehicle reference may be null due to timing
-            // (client-side dismounts, timing issues). Search nearby entities for one that lists
-            // the player as a passenger to better detect mounts like horses/camels.
-            if (preVehicle == null)
-            {
-                try
-                {
-                    for (final org.bukkit.entity.Entity e : player.getNearbyEntities(3.0, 2.0, 3.0))
-                    {
-                        try
-                        {
-                            if (e.getPassengers().contains(player))
-                            {
-                                preVehicle = e;
-                                break;
-                            }
-                        }
-                        catch (final Throwable ignore) {}
-                    }
-                }
-                catch (final Throwable ignore) {}
-            }
+            final Entity preVehicle = player.getVehicle();
             final Vehicle v = (preVehicle instanceof Vehicle) ? (Vehicle) preVehicle : null;
             // Non-vehicle mounts (pigs, striders, horses, etc.) should be handled too.
             // Treat any non-`Vehicle` entity the player is riding as a mount so we
