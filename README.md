@@ -216,9 +216,31 @@ say — is still detected, and gates built from it keep the materials named in t
 `.shape` file. The plugin logs those materials once at startup so you know a
 `gate-material-groups` entry would let you reuse that palette across other shapes.
 
-The plugin does **not** rewrite `config.yml` to add groups for them. Editing a server's
-configuration on its behalf is not something it should do silently; the log line tells you
-what you could add, and the choice stays yours.
+When a shape's palette is unambiguous, the plugin adds it to `config.yml` for you, the
+same way missing scalar keys are appended. A lone diamond gate with gold chevrons becomes:
+
+```yaml
+  # Added automatically from a gate shape using this frame material.
+  Diamond:
+    structure: DIAMOND_BLOCK
+    portal: WATER
+    iris: GLASS
+    light: GOLD_BLOCK
+```
+
+It takes effect immediately, not just after the next restart, and you can then apply that
+palette to any other geometry.
+
+"Unambiguous" is doing real work there. A group is identified by its frame material, so a
+frame material can name exactly one palette — and shapes do not necessarily agree. The
+stock shapes are the illustration: all seven are framed in obsidian but ask for three
+different irises (`GLASS`, `STONE`, `BEDROCK`). There is no single obsidian palette to
+derive, so none is offered and the plugin says so in the log. Guessing one would silently
+restyle whichever shapes lost the vote.
+
+Set `gate-material-groups-autodiscover: false` to curate the list by hand. With it off,
+discovered palettes are only logged — and a group you delete stays deleted instead of
+reappearing on the next restart.
 
 ### Why this is not just a config convenience
 

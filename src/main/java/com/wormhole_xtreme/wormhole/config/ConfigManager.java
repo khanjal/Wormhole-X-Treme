@@ -10,6 +10,9 @@ import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLev
  */
 public class ConfigManager
 {
+    /** Plugin folder name, remembered so config.yml can be located again after load. */
+    private static volatile String configuredPluginName = "WormholeXTreme";
+
 
     /**
      * The Enum ConfigKeys.
@@ -70,6 +73,8 @@ public class ConfigManager
         LOG_LEVEL,
         /** Tick interval for periodic non-player entity gate scan. */
         ENTITY_SCAN_INTERVAL_TICKS,
+        /** Whether to append newly-seen shape palettes to config.yml automatically. */
+        GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** The configured storage backend. */
         STORAGE_BACKEND,
         /** SQLite file path for sqlite backend. */
@@ -453,6 +458,32 @@ public class ConfigManager
     }
 
     /**
+     * Writes material groups discovered from gate shapes into config.yml.
+     *
+     * @param groups
+     *            the groups to add
+     */
+    public static void appendDiscoveredMaterialGroups(
+        final java.util.List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        ConfigurationYAML.appendMaterialGroups(ConfigurationYAML.getConfigFile(configuredPluginName), groups);
+    }
+
+    /**
+     * Whether an unrecognised shape palette should be appended to config.yml automatically.
+     *
+     * <p>Set this false if you prefer to curate the group list by hand; a group you delete
+     * will then stay deleted instead of reappearing on the next restart.
+     *
+     * @return true to auto-append discovered palettes
+     */
+    public static boolean isGateMaterialGroupsAutodiscover()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER);
+        return (s != null) ? s.getBooleanValue() : true;
+    }
+
+    /**
      * Gets the use cooldown group one.
      * 
      * @return the use cooldown group one
@@ -655,6 +686,7 @@ public class ConfigManager
      */
     public static void setupConfigs(final String pluginName)
     {
+        configuredPluginName = pluginName;
         Configuration.loadConfiguration(pluginName);
     }
 

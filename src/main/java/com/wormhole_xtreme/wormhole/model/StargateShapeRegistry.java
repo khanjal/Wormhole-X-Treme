@@ -172,33 +172,42 @@ public final class StargateShapeRegistry
     }
 
     /**
-     * Notes any shape whose frame material matches no configured material group.
+     * Surfaces palettes the loaded shapes imply but config.yml does not define, and — when
+     * {@code gate-material-groups-autodiscover} is on — writes them into config.yml so the
+     * admin can edit them and reuse them across other shapes.
      *
-     * <p>Such a shape works fine — it keeps its own materials and simply never picks up a
-     * palette — so this is information, not a warning. It exists because that fact is
-     * otherwise invisible: an admin who adds a custom blackstone shape has no way to know
-     * a matching {@code gate-material-groups} entry would let them reuse it across shapes.
-     *
-     * <p>Nothing is written to config.yml. Editing a server's configuration on its behalf
-     * is not this plugin's call to make.
+     * <p>A shape whose palette is not picked up still works: it keeps the materials named
+     * in its own file. Discovery only makes that palette reusable.
      */
     private static void reportShapesWithoutMaterialGroup()
     {
-        final java.util.Set<org.bukkit.Material> unmatched = new java.util.LinkedHashSet<org.bukkit.Material>();
-        for (final org.bukkit.Material m : getKnownStructureMaterials())
+        final java.util.List<MaterialGroup> discovered =
+            MaterialGroupRegistry.discoverUndeclaredGroups(getStargateShapes().values());
+        if (discovered.isEmpty())
         {
-            if (MaterialGroupRegistry.getGroupByStructureMaterial(m) == null)
+            return;
+        }
+
+        if (!com.wormhole_xtreme.wormhole.config.ConfigManager.isGateMaterialGroupsAutodiscover())
+        {
+            final java.util.List<String> names = new java.util.ArrayList<String>();
+            for (final MaterialGroup g : discovered)
             {
-                unmatched.add(m);
+                names.add(g.getName() + "=" + g.getStructureMaterial());
             }
-        }
-        if (!unmatched.isEmpty())
-        {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
-                "Shape frame materials with no matching material group: " + unmatched
-                + ". Gates built from these keep the materials named in their .shape file."
-                + " Add a gate-material-groups entry in config.yml to reuse the palette across shapes.");
+                "Gate shapes imply material groups not in config.yml: " + names
+                + ". Auto-discovery is off, so they were not added; those shapes keep their own materials.");
+            return;
         }
+
+        // Register in memory first so the palettes work this run, not just after a restart.
+        for (final MaterialGroup g : discovered)
+        {
+            MaterialGroupRegistry.registerDiscoveredGroup(g);
+        }
+        com.wormhole_xtreme.wormhole.config.ConfigManager.appendDiscoveredMaterialGroups(discovered);
+        rebuildKnownStructureMaterials();
     }
 
     /** Frame materials any loaded shape declares. Replaced wholesale on load. */

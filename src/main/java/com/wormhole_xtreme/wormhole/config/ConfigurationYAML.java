@@ -139,6 +139,122 @@ public class ConfigurationYAML
         }
     }
 
+    /** The config.yml key holding the nested material-group definitions. */
+    private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
+
+    /**
+     * Writes discovered material groups into config.yml.
+     *
+     * <p>Unlike the flat settings, these go <em>inside</em> an existing
+     * {@code gate-material-groups:} block rather than being appended to the end of the
+     * file. Appending a second top-level key of the same name would parse as a duplicate
+     * and silently discard whichever copy lost, taking the admin's own groups with it.
+     * When the key is absent entirely, the section is created at the end.
+     *
+     * @param cfg
+     *            the config file
+     * @param groups
+     *            the groups to write
+     * @return true if the file was modified
+     */
+    static boolean appendMaterialGroups(final File cfg, final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        if (groups == null || groups.isEmpty())
+        {
+            return false;
+        }
+        try
+        {
+            final List<String> lines = new ArrayList<>(java.nio.file.Files.readAllLines(cfg.toPath()));
+
+            final StringBuilder block = new StringBuilder();
+            for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+            {
+                block.append("  # Added automatically from a gate shape using this frame material.")
+                     .append(System.lineSeparator());
+                block.append("  ").append(g.getName()).append(':').append(System.lineSeparator());
+                block.append("    structure: ").append(g.getStructureMaterial().name()).append(System.lineSeparator());
+                block.append("    portal: ").append(g.getPortalMaterial().name()).append(System.lineSeparator());
+                block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
+                block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
+            }
+
+            int sectionStart = -1;
+            for (int i = 0; i < lines.size(); i++)
+            {
+                if (lines.get(i).startsWith(MATERIAL_GROUPS_KEY + ":"))
+                {
+                    sectionStart = i;
+                    break;
+                }
+            }
+
+            if (sectionStart < 0)
+            {
+                try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, true))
+                {
+                    writer.write(System.lineSeparator());
+                    writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
+                    writer.write(block.toString());
+                }
+            }
+            else
+            {
+                // The block ends at the first following line that is neither blank, nor a
+                // comment, nor indented — that line belongs to the next top-level key.
+                int insertAt = lines.size();
+                for (int i = sectionStart + 1; i < lines.size(); i++)
+                {
+                    final String line = lines.get(i);
+                    if (line.trim().isEmpty() || line.startsWith(" ") || line.trim().startsWith("#"))
+                    {
+                        continue;
+                    }
+                    insertAt = i;
+                    break;
+                }
+                // Step back over trailing blanks and comments so the new entries sit with
+                // the group definitions rather than after the next key's comment header.
+                while (insertAt > sectionStart + 1
+                    && (lines.get(insertAt - 1).trim().isEmpty() || lines.get(insertAt - 1).trim().startsWith("#")))
+                {
+                    insertAt--;
+                }
+                final List<String> inserted = new ArrayList<>(java.util.Arrays.asList(
+                    block.toString().split("\\R")));
+                lines.addAll(insertAt, inserted);
+                java.nio.file.Files.write(cfg.toPath(), lines);
+            }
+
+            final List<String> names = new ArrayList<>();
+            for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+            {
+                names.add(g.getName() + "=" + g.getStructureMaterial());
+            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
+            return true;
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Failed to add discovered material groups to config.yml: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets the config.yml file this plugin loads from.
+     *
+     * @param pluginName
+     *            the plugin folder name
+     * @return the config file, which may not exist
+     */
+    static File getConfigFile(final String pluginName)
+    {
+        return new File("plugins" + File.separator + pluginName + File.separator, "config.yml");
+    }
+
     private static void appendMissingSettings(final File cfg, final List<Setting> missing)
     {
         try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, true /* append */))

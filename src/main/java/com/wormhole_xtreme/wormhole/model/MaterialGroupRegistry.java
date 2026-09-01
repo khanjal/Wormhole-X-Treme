@@ -194,6 +194,131 @@ public final class MaterialGroupRegistry
     }
 
     /**
+     * Works out which palettes the loaded shapes imply but config.yml does not yet define.
+     *
+     * <p>Only unambiguous palettes are returned. A group is identified by its frame
+     * material, so a frame material can name exactly one palette — and shapes do not
+     * necessarily agree. The shipped set is the illustration: all seven are framed in
+     * obsidian but ask for three different irises (glass, stone, bedrock), so there is no
+     * single obsidian palette to derive and none is offered. A lone diamond gate with gold
+     * chevrons has no such conflict and is offered as "Diamond".
+     *
+     * <p>Shapes keep working either way. This only surfaces a palette so it can be reused
+     * across other geometry.
+     *
+     * @param shapes
+     *            every loaded shape
+     * @return palettes worth adding to config.yml, in frame-material order
+     */
+    public static List<MaterialGroup> discoverUndeclaredGroups(final Collection<StargateShape> shapes)
+    {
+        // Frame material -> the distinct material sets the shapes using it ask for.
+        final Map<Material, List<MaterialGroup>> byFrame = new LinkedHashMap<Material, List<MaterialGroup>>();
+        for (final StargateShape shape : shapes)
+        {
+            final Material frame = shape.getShapeStructureMaterial();
+            if (frame == null || getGroupByStructureMaterial(frame) != null)
+            {
+                continue; // already claimed by a configured group
+            }
+            List<MaterialGroup> seen = byFrame.get(frame);
+            if (seen == null)
+            {
+                seen = new ArrayList<MaterialGroup>();
+                byFrame.put(frame, seen);
+            }
+            final MaterialGroup candidate = new MaterialGroup(suggestGroupName(frame), frame,
+                shape.getShapePortalMaterial(), shape.getShapeIrisMaterial(), shape.getShapeLightMaterial());
+            if (!containsSameMaterials(seen, candidate))
+            {
+                seen.add(candidate);
+            }
+        }
+
+        final List<MaterialGroup> discovered = new ArrayList<MaterialGroup>();
+        for (final Map.Entry<Material, List<MaterialGroup>> entry : byFrame.entrySet())
+        {
+            if (entry.getValue().size() == 1)
+            {
+                discovered.add(entry.getValue().get(0));
+            }
+            else
+            {
+                warn("Shapes framed in " + entry.getKey() + " disagree on their other materials, so no"
+                    + " material group can be derived from them. Those shapes keep their own materials;"
+                    + " add a gate-material-groups entry by hand if you want that palette reusable.");
+            }
+        }
+        return discovered;
+    }
+
+    private static boolean containsSameMaterials(final List<MaterialGroup> seen, final MaterialGroup candidate)
+    {
+        for (final MaterialGroup g : seen)
+        {
+            if (g.getPortalMaterial() == candidate.getPortalMaterial()
+                && g.getIrisMaterial() == candidate.getIrisMaterial()
+                && g.getLightMaterial() == candidate.getLightMaterial())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Turns a frame material into a readable group name: DIAMOND_BLOCK becomes "Diamond",
+     * POLISHED_BLACKSTONE becomes "PolishedBlackstone".
+     *
+     * <p>Named after the material rather than the shape that revealed it, because the
+     * group belongs to the material — several shapes may end up sharing it, and naming it
+     * "MinimalSignDialRedstone" would be actively misleading.
+     *
+     * @param frame
+     *            the frame material
+     * @return a suggested group name
+     */
+    static String suggestGroupName(final Material frame)
+    {
+        final StringBuilder out = new StringBuilder();
+        for (final String part : frame.name().split("_"))
+        {
+            if (part.isEmpty() || "BLOCK".equals(part))
+            {
+                continue; // "DIAMOND_BLOCK" reads better as "Diamond"
+            }
+            out.append(part.charAt(0)).append(part.substring(1).toLowerCase());
+        }
+        final String name = out.toString();
+        return name.isEmpty() ? frame.name() : name;
+    }
+
+    /**
+     * Adds a discovered group to the in-memory registry so it takes effect immediately,
+     * without waiting for the next restart to re-read config.yml.
+     *
+     * @param group
+     *            the group to register
+     */
+    public static void registerDiscoveredGroup(final MaterialGroup group)
+    {
+        if (group == null || groupsByStructureMaterial.containsKey(group.getStructureMaterial()))
+        {
+            return;
+        }
+        final Map<String, MaterialGroup> byName = new LinkedHashMap<String, MaterialGroup>(groupsByName);
+        final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<Material, MaterialGroup>(groupsByStructureMaterial);
+        byName.put(group.getName().toLowerCase(), group);
+        byMaterial.put(group.getStructureMaterial(), group);
+        groupsByName = Collections.unmodifiableMap(byName);
+        groupsByStructureMaterial = Collections.unmodifiableMap(byMaterial);
+        if (defaultGroup == null)
+        {
+            defaultGroup = group;
+        }
+    }
+
+    /**
      * Parses a material name, tolerating a null or unrecognised value.
      *
      * @param groupName
