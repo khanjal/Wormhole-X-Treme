@@ -417,6 +417,34 @@ public class Stargate
     }
 
     /**
+     * Gets the tick delay between woosh animation steps.
+     *
+     * @return the woosh tick delay
+     */
+    public int getEffectiveWooshTicks()
+    {
+        if (gateCustom && (gateCustomWooshTicks >= 0))
+        {
+            return gateCustomWooshTicks;
+        }
+        return gateShape != null ? gateShape.getShapeWooshTicks() : 3;
+    }
+
+    /**
+     * Gets the tick delay between lighting animation steps.
+     *
+     * @return the light tick delay
+     */
+    public int getEffectiveLightTicks()
+    {
+        if (gateCustom && (gateCustomLightTicks >= 0))
+        {
+            return gateCustomLightTicks;
+        }
+        return gateShape != null ? gateShape.getShapeLightTicks() : 2;
+    }
+
+    /**
      * Gets the woosh depth used for splash effects.
      *
      * @return the woosh depth, 0 when the gate has none

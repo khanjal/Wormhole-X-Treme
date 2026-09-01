@@ -200,6 +200,48 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
+    public void customModeAloneDoesNotOptAGateOutOfItsPalette()
+    {
+        // Regression: /wormhole custom true used to snapshot the shape's materials into
+        // the gate. With shapes no longer declaring any, that snapshot captured the
+        // built-in defaults and pinned the gate to them forever — and `custom -all true`
+        // would have done it to every gate on the server.
+        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        atlantis.put("structure", "LAPIS_BLOCK");
+        atlantis.put("iris", "YELLOW_STAINED_GLASS");
+        atlantis.put("light", "SEA_LANTERN");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Atlantis", atlantis);
+        MaterialGroupRegistry.load(section);
+
+        final Stargate gate = new Stargate();
+        gate.setGateShape(new StargateShape());
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+        gate.setGateCustom(true);
+
+        // Custom mode with nothing actually overridden still follows the palette.
+        assertEquals(Material.YELLOW_STAINED_GLASS, gate.getEffectiveIrisMaterial());
+        assertEquals(Material.SEA_LANTERN, gate.getEffectiveLightMaterial());
+
+        // And an override that is set still wins, which is the point of custom mode.
+        gate.setGateCustomIrisMaterial(Material.BEDROCK);
+        assertEquals(Material.BEDROCK, gate.getEffectiveIrisMaterial());
+        assertEquals(Material.SEA_LANTERN, gate.getEffectiveLightMaterial());
+    }
+
+    @Test
+    public void unsetTickOverridesFallBackToTheShape()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateShape(new StargateShape());
+        gate.setGateCustom(true);
+
+        // -1 means "not overridden"; returning it would stall the woosh animation.
+        assertTrue(gate.getEffectiveWooshTicks() > 0);
+        assertTrue(gate.getEffectiveLightTicks() > 0);
+    }
+
+    @Test
     public void gateWithNoShapeAtAllStillReturnsUsableMaterials()
     {
         final Stargate gate = new Stargate();

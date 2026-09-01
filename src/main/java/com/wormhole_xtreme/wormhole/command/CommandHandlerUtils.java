@@ -83,39 +83,18 @@ public final class CommandHandlerUtils
         {
             if (customEnabled)
             {
+                // Nothing is copied out of the shape here. Custom mode means "this gate
+                // may carry its own overrides", and an override that has not been set is
+                // left null so the gate keeps resolving through its shape and material
+                // group. Snapshotting the shape's values used to be necessary because the
+                // old inline ternaries returned the custom field unconditionally; the
+                // effective-material accessors fall through instead.
+                //
+                // It is also actively harmful now that shapes declare no materials: the
+                // snapshot would capture the built-in defaults and pin the gate to them,
+                // permanently opting it out of every palette — and `custom -all true`
+                // would do that to every gate on the server at once.
                 stargate.setGateCustom(true);
-                if (stargate.getGateCustomIrisMaterial() == null)
-                {
-                    stargate.setGateCustomIrisMaterial(stargate.getGateShape().getShapeIrisMaterial());
-                }
-                if (stargate.getGateCustomLightMaterial() == null)
-                {
-                    stargate.setGateCustomLightMaterial(stargate.getGateShape().getShapeLightMaterial());
-                }
-                if (stargate.getGateCustomPortalMaterial() == null)
-                {
-                    stargate.setGateCustomPortalMaterial(stargate.getGateShape().getShapePortalMaterial());
-                }
-                if (stargate.getGateCustomStructureMaterial() == null)
-                {
-                    stargate.setGateCustomStructureMaterial(stargate.getGateShape().getShapeStructureMaterial());
-                }
-                if (stargate.getGateCustomLightTicks() == -1)
-                {
-                    stargate.setGateCustomLightTicks(stargate.getGateShape().getShapeLightTicks());
-                }
-                if (stargate.getGateCustomWooshTicks() == -1)
-                {
-                    stargate.setGateCustomWooshTicks(stargate.getGateShape().getShapeWooshTicks());
-                }
-                if (stargate.getGateCustomWooshDepth() == -1)
-                {
-                    stargate.setGateCustomWooshDepth(stargate.getGateShape().getShapeWooshDepth());
-                }
-                if (stargate.getGateCustomWooshDepthSquared() == -1)
-                {
-                    stargate.setGateCustomWooshDepthSquared(stargate.getGateShape().getShapeWooshDepthSquared());
-                }
             }
             else
             {

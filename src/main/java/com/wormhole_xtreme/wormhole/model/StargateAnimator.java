@@ -62,11 +62,7 @@ class StargateAnimator
                 {
                     gate.setGateAnimationStep3D(gate.getGateAnimationStep3D() + 1);
                 }
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), gate.isGateCustom()
-                    ? gate.getGateCustomWooshTicks()
-                    : gate.getGateShape() != null
-                        ? gate.getGateShape().getShapeWooshTicks()
-                        : 2);
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), gate.getEffectiveWooshTicks());
             }
             else
             {
@@ -103,11 +99,7 @@ class StargateAnimator
                 else
                 {
                     gate.setGateAnimationStep3D(gate.getGateAnimationStep3D() - 1);
-                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), gate.isGateCustom()
-                        ? gate.getGateCustomWooshTicks()
-                        : gate.getGateShape() != null
-                            ? gate.getGateShape().getShapeWooshTicks()
-                            : 2);
+                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), gate.getEffectiveWooshTicks());
                 }
             }
         }
@@ -239,11 +231,7 @@ class StargateAnimator
                 }
                 else
                 {
-                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.isGateCustom()
-                        ? gate.getGateCustomLightTicks()
-                        : gate.getGateShape() != null
-                            ? gate.getGateShape().getShapeLightTicks()
-                            : 2);
+                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
                 }
             }
         }
