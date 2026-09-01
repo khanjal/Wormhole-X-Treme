@@ -257,75 +257,11 @@ public class WormholeXTreme extends JavaPlugin
         registerCommands();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
         prettyLog(Level.INFO, true, "Non-player entity gate scan interval: " + entityScanIntervalTicks + " ticks");
-        // Periodic scan: teleport non-player entities that walk into active gates.
-        // Gate-driven scan: iterate active gates and check their portal block locations
-        // for nearby non-player entities (Spigot-compatible).
-        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                try
-                {
-                    final java.util.List<Stargate> gates = StargateManager.getAllGates();
-                    for (final Stargate gate : gates)
-                    {
-                        try
-                        {
-                            if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null) continue;
-                            final java.util.List<Location> portalBlocks = gate.getGatePortalBlocks();
-                            if (portalBlocks == null || portalBlocks.isEmpty()) continue;
-                            for (final Location pLoc : portalBlocks)
-                            {
-                                try
-                                {
-                                    if (pLoc == null || pLoc.getWorld() == null) continue;
-                                    final org.bukkit.World world = pLoc.getWorld();
-                                    final Location center = new Location(world, pLoc.getBlockX() + 0.5, pLoc.getBlockY() + 0.5, pLoc.getBlockZ() + 0.5);
-                                    final double rx = 0.6D, ry = 0.9D, rz = 0.6D;
-                                    final java.util.Collection<org.bukkit.entity.Entity> nearby = world.getNearbyEntities(center, rx, ry, rz);
-                                    for (final org.bukkit.entity.Entity e : nearby)
-                                    {
-                                        try
-                                        {
-                                            if (e == null) continue;
-                                            if (e instanceof org.bukkit.entity.Player) continue;
-                                            if (e instanceof org.bukkit.entity.Vehicle) continue;
-                                            if (e.isInsideVehicle()) continue;
-                                            final org.bukkit.block.Block b = world.getBlockAt(pLoc.getBlockX(), pLoc.getBlockY(), pLoc.getBlockZ());
-                                            if (!StargateManager.isBlockInGate(b)) continue;
-                                            final org.bukkit.Location target = gate.getGateTarget().getGatePlayerTeleportLocation();
-                                            final org.bukkit.Location safeTarget = WormholeXTremeVehicleListener.forwardAndUp(target, gate.getGateTarget().getGateFacing(), 1.0, 1.0);
-                                            try
-                                            {
-                                                // Mark recently teleported to avoid immediate retriggers
-                                                try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(e.getUniqueId()); } catch (final Throwable ignore) {}
-                                                e.teleport(safeTarget);
-                                                if (!e.getPassengers().isEmpty())
-                                                {
-                                                    final java.util.List<org.bukkit.entity.Entity> parents = new java.util.ArrayList<org.bukkit.entity.Entity>();
-                                                    final java.util.List<org.bukkit.entity.Entity> children = new java.util.ArrayList<org.bukkit.entity.Entity>();
-                                                    WormholeXTremeVehicleListener.collectPassengerPairs(e, parents, children);
-                                                    for (int i = 0; i < children.size(); i++)
-                                                    {
-                                                        try { parents.get(i).addPassenger(children.get(i)); } catch (final Throwable ignore) {}
-                                                    }
-                                                }
-                                            }
-                                            catch (final Throwable ignore) {}
-                                        }
-                                        catch (final Throwable ignore) {}
-                                    }
-                                }
-                                catch (final Throwable ignore) {}
-                            }
-                        }
-                        catch (final Throwable ignore) {}
-                    }
-                }
-                catch (final Throwable ignore) {}
-            }
-        }, 20L, entityScanIntervalTicks);
+        // Periodic sweep: send loose non-player entities that drift into an open
+        // wormhole through it. Players and vehicles have their own events; this covers
+        // dropped items and wandering mobs, which generate none.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            GateEntityScanner.create(), 20L, entityScanIntervalTicks);
         prettyLog(Level.INFO, true, "Enable Completed.");
     }
 

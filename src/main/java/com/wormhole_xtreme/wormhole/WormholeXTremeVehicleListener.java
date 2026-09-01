@@ -194,6 +194,21 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
 
+    /**
+     * Checks whether an entity was teleported through a gate in the last second.
+     *
+     * <p>The periodic entity scan consults this so an entity that lands in another
+     * active gate is not immediately sent back out of it.
+     *
+     * @param entityId the entity UUID
+     * @return true if it was teleported recently
+     */
+    static boolean isVehicleRecentlyTeleported(final UUID entityId)
+    {
+        return entityId != null && recentlyTeleported.contains(entityId);
+    }
+
+
     static boolean isPlayerRecentlyTeleportedByVehicle(final UUID playerId)
     {
         if (playerId == null) { return false; }

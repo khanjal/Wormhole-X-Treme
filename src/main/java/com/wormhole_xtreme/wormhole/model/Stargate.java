@@ -137,6 +137,90 @@ public class Stargate
     /** The gate custom woosh depth squared. */
     private int gateCustomWooshDepthSquared = -1;
 
+    /** Portal block coordinates as a set, for O(1) containment. Built lazily. */
+    private java.util.Set<Location> gatePortalBlockLookup = null;
+
+    /** Bounding box enclosing every portal block, for one-shot entity queries. Built lazily. */
+    private org.bukkit.util.BoundingBox gatePortalBounds = null;
+
+    /** Portal block count the caches were built from, used to spot a changed gate. */
+    private int gatePortalCacheSize = -1;
+
+    /**
+     * Rebuilds the portal block caches if the portal block list has changed size.
+     *
+     * <p>The list is exposed mutably via {@link #getGatePortalBlocks()}, so there is no
+     * mutation hook to invalidate on. Size is a good enough signal in practice: portal
+     * blocks are populated once during detection and cleared wholesale on teardown.
+     */
+    private void refreshPortalCaches()
+    {
+        if ((gatePortalBlockLookup != null) && (gatePortalCacheSize == gatePortalBlocks.size()))
+        {
+            return;
+        }
+        final java.util.Set<Location> lookup = new java.util.HashSet<Location>(Math.max(16, gatePortalBlocks.size() * 2));
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (final Location l : gatePortalBlocks)
+        {
+            if (l == null)
+            {
+                continue;
+            }
+            final int x = l.getBlockX(), y = l.getBlockY(), z = l.getBlockZ();
+            lookup.add(new Location(gateWorld, x, y, z));
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (z < minZ) minZ = z;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+            if (z > maxZ) maxZ = z;
+        }
+        gatePortalBlockLookup = lookup;
+        gatePortalBounds = lookup.isEmpty()
+            ? null
+            : new org.bukkit.util.BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
+        gatePortalCacheSize = gatePortalBlocks.size();
+    }
+
+    /**
+     * Checks whether the given block coordinates are one of this gate's portal blocks.
+     *
+     * <p>Backed by a set rather than a scan of the portal block list. This is called on
+     * every player move that lands on a gate block, and once per entity found near an
+     * active gate, so the linear version showed up on both hot paths.
+     *
+     * @param x
+     *            block x
+     * @param y
+     *            block y
+     * @param z
+     *            block z
+     * @return true if this is a portal interior block of this gate
+     */
+    public boolean isGatePortalBlockAt(final int x, final int y, final int z)
+    {
+        refreshPortalCaches();
+        return gatePortalBlockLookup.contains(new Location(gateWorld, x, y, z));
+    }
+
+    /**
+     * Gets a box enclosing every portal block of this gate.
+     *
+     * <p>Lets the periodic entity scan ask the world for entities near the whole gate in
+     * one query instead of one query per portal block — 21 of them for a Standard gate.
+     * The box is a cuboid and the gate interior is a ring, so callers must still confirm
+     * a candidate with {@link #isGatePortalBlockAt(int, int, int)}.
+     *
+     * @return the bounding box, or null if the gate has no portal blocks
+     */
+    public org.bukkit.util.BoundingBox getGatePortalBounds()
+    {
+        refreshPortalCaches();
+        return gatePortalBounds;
+    }
+
     /**
      * The palette this gate is built from. Set during detection; for gates read back from
      * storage it stays null until {@link #getGateMaterialGroup()} resolves it lazily from

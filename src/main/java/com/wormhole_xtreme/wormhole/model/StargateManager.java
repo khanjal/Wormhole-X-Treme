@@ -419,9 +419,27 @@ public class StargateManager
     }
 
     /**
-     * Get all gates.
-     * This is more expensive than some other methods so it probably shouldn't be called a lot.
-     * 
+     * Gets a live, unsorted view of every registered gate.
+     *
+     * <p>Use this for iteration. {@link #getAllGates()} copies every gate into a fresh
+     * list and sorts it by name, which is right for anything shown to a player but pure
+     * waste for a loop that just filters — and on a server with hundreds of gates, a
+     * repeating task doing that every few ticks allocates and sorts continuously.
+     *
+     * <p>The returned collection is backed by the live gate map, so it must not be
+     * modified and may change while being iterated.
+     *
+     * @return an unmodifiable view of the registered gates
+     */
+    public static java.util.Collection<Stargate> getAllGatesUnsorted()
+    {
+        return java.util.Collections.unmodifiableCollection(getStargateList().values());
+    }
+
+    /**
+     * Get all gates, sorted by name.
+     * This copies and sorts, so prefer {@link #getAllGatesUnsorted()} when iterating.
+     *
      * @return the array list
      */
     public static ArrayList<Stargate> getAllGates()
@@ -676,20 +694,7 @@ public class StargateManager
         {
             return false;
         }
-        try
-        {
-            for (final Location l : s.getGatePortalBlocks())
-            {
-                final Location ln = normalizeBlockLocation(l);
-                if (ln != null && ln.getWorld() != null && ln.getWorld().equals(norm.getWorld())
-                    && ln.getBlockX() == norm.getBlockX() && ln.getBlockY() == norm.getBlockY() && ln.getBlockZ() == norm.getBlockZ())
-                {
-                    return true;
-                }
-            }
-        }
-        catch (final Throwable ignore) {}
-        return false;
+        return s.isGatePortalBlockAt(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ());
     }
 
     /**
