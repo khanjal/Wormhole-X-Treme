@@ -195,6 +195,25 @@ class WormholeXTremeVehicleListener implements Listener
 
 
     /**
+     * Checks whether this listener owns the entity's movement through gates.
+     *
+     * <p>Only minecarts and boats raise {@link VehicleMoveEvent}, so only they are handled
+     * here. This is deliberately narrower than {@code instanceof Vehicle}: in Bukkit
+     * {@code Pig} and {@code AbstractHorse} — horses, camels, donkeys, mules, llamas — are
+     * all Vehicles, but they never raise the event. Testing for Vehicle therefore excludes
+     * ridable animals from this listener without including them anywhere else, which left
+     * a riderless horse unable to walk through a gate at all.
+     *
+     * @param entity
+     *            the entity to test, may be null
+     * @return true if VehicleMoveEvent will carry this entity through a gate
+     */
+    static boolean handlesMovementOf(final Entity entity)
+    {
+        return entity instanceof Minecart || entity instanceof Boat;
+    }
+
+    /**
      * Checks whether an entity was teleported through a gate in the last second.
      *
      * <p>The periodic entity scan consults this so an entity that lands in another
@@ -763,7 +782,7 @@ class WormholeXTremeVehicleListener implements Listener
     public void onVehicleMove(final VehicleMoveEvent event)
     {
         final Vehicle vehicle = event.getVehicle();
-        if (!(vehicle instanceof Minecart) && !(vehicle instanceof Boat))
+        if (!handlesMovementOf(vehicle))
         {
             return;
         }

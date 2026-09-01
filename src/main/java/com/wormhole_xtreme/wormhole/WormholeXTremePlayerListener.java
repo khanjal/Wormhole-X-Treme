@@ -643,7 +643,7 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static boolean isLivingMount(final Entity ridden)
     {
-        return ridden != null && !(ridden instanceof Minecart) && !(ridden instanceof Boat);
+        return ridden != null && !WormholeXTremeVehicleListener.handlesMovementOf(ridden);
     }
 
     /**

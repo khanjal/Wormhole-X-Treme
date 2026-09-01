@@ -299,6 +299,25 @@ were `Standard.shape` with different materials, which is exactly what a palette 
 Build `Standard.shape` in lapis for an Atlantis gate or polished blackstone for a Universe
 one.
 
+## What travels through a gate
+
+| | How it travels |
+|---|---|
+| Players | Their own move event |
+| Minecarts, boats | `VehicleMoveEvent`, with passengers re-seated on arrival |
+| Ridden animals (horse, camel, pig, donkey, llama, strider) | The rider's move event; the animal goes first and the rider is re-seated |
+| Mobs, animals, dropped items, XP orbs, armour stands | A periodic sweep of open gates |
+
+So yes — a zombie or skeleton that wanders into an open wormhole comes out the other
+side, as does a dropped item or a wandering cow. The sweep runs every
+`entity-scan-interval-ticks` (default 20) and only looks at gates that are currently open.
+
+Anything riding something else travels with its carrier rather than separately, and
+anything that just came through is ignored for a moment so it is not bounced straight back.
+
+Note that gates do not filter by mob type. If you dial a gate into a base and leave it
+open, hostile mobs can use it. Close gates you are not using, or put an iris on them.
+
 ## Redstone activation
 
 Two redstone activation modes are supported and controlled by blocks registered to the gate at build time.

@@ -144,9 +144,13 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
-        // Players move through gates on their own move events, vehicles on vehicle-move
-        // events, and a passenger travels with whatever is carrying it.
-        if (entity instanceof Player || entity instanceof Vehicle || entity.isInsideVehicle())
+        // Players move on their own move events, minecarts and boats on vehicle-move
+        // events, and a passenger travels with whatever is carrying it. Everything else is
+        // this sweep's job — including a riderless horse or camel, which raises no event of
+        // its own and was previously excluded here for being a Bukkit Vehicle.
+        if (entity instanceof Player
+            || WormholeXTremeVehicleListener.handlesMovementOf(entity)
+            || entity.isInsideVehicle())
         {
             return false;
         }
