@@ -314,11 +314,12 @@ This covers every projectile: arrows, tridents, snowballs, eggs, ender pearls, p
 fireballs.
 
 Projectiles are not found by the periodic sweep at all. Portal blocks are air, so an arrow
-crosses the ring in about one tick and keeps going — a sweep running once a second almost
-never sees it there. Each projectile is instead followed individually from the moment it is
-launched and checked every tick while in the air, so it crosses at the instant it reaches
-the portal, still travelling. Cost scales with how many projectiles are in flight, not with
-how many gates exist.
+passes through the ring and keeps going. Each one is instead followed individually from the
+moment it is launched, and every tick the plugin checks the *path* it travelled since the
+last tick rather than where it currently is — a drawn bow moves an arrow about three blocks
+per tick and a portal is one block thick, so checking its position alone steps straight over
+the gate. Cost scales with how many projectiles are in flight, not with how many gates
+exist.
 
 If one does arrive already stopped, it is relaunched at a bow's speed rather than trickling
 out of the destination.

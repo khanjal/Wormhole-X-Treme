@@ -68,7 +68,12 @@ public class ProjectileGateTrackerTest
         when(portal.getLocation()).thenReturn(new Location(world, BX, BY, BZ));
         when(portal.getWorld()).thenReturn(world);
         when(portal.getType()).thenReturn(org.bukkit.Material.AIR);
-        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(portal);
+        final Block elsewhere = mock(Block.class);
+        when(elsewhere.getLocation()).thenReturn(new Location(world, 0, 0, 0));
+        when(elsewhere.getWorld()).thenReturn(world);
+        when(elsewhere.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(elsewhere);
+        when(world.getBlockAt(BX, BY, BZ)).thenReturn(portal);
 
         final Stargate destination = new Stargate();
         destination.setGateName("destination");
@@ -156,6 +161,39 @@ public class ProjectileGateTrackerTest
         // The original is gone from the map and the replacement is followed in its place,
         // so an arrow can cross a second gate on the far side.
         assertEquals(1, ProjectileGateTracker.trackedCount());
+    }
+
+    @Test
+    public void anArrowThatOutrunsTheSamplingIsStillCaught()
+    {
+        // The case that made arrows only work with a block behind the gate. A drawn bow
+        // moves an arrow about three blocks a tick and a portal is one thick, so checking
+        // where the arrow *is* steps straight over the gate. Checking where it *went* does
+        // not: here it is four blocks short on one tick and two past on the next, never
+        // sampled inside the portal, and it must still cross.
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 4.5);
+        ticker.run();
+        verify(arrow, never()).remove();
+
+        arrowAt(BX + 0.5, BY, BZ - 2.5);
+        ticker.run();
+
+        verify(arrow).remove();
+        verify(world).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class));
+    }
+
+    @Test
+    public void aPathThatMissesTheGateEntirelyDoesNotCross()
+    {
+        // Sanity on the other side: walking the path must not make near misses count.
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 8.5, BY, BZ + 4.5);
+        ticker.run();
+        arrowAt(BX + 8.5, BY, BZ - 4.5);
+        ticker.run();
+
+        verify(arrow, never()).remove();
     }
 
     @Test

@@ -29,11 +29,16 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * never sees it in the portal, and when it does the arrow has usually already landed and
  * stopped, which is why arrows appeared to trickle out of the destination rather than fly.
  *
- * <p>So projectiles are watched individually instead. Each one is followed from launch and
- * checked every tick while it is in the air; the moment it is inside a portal block it goes
- * through. Cost scales with the number of projectiles actually in flight, not with the
- * number of gates, and a server where nobody is shooting anything pays for one pass over an
- * empty map per tick.
+ * <p>So projectiles are watched individually, and what is checked is the path they
+ * travelled rather than where they happen to be. A drawn bow puts an arrow at roughly three
+ * blocks per tick and a portal is one block thick, so sampling its position once a tick
+ * steps clean over the gate: in front of it on one tick, well past it on the next, never
+ * inside it. That is why an arrow only crossed when something behind the gate stopped it in
+ * the portal; with nothing there it flew through and landed beyond, untouched.
+ *
+ * <p>Each tick the segment from the previous position to the current one is walked in
+ * sub-block steps, and the crossing happens if any point along it lies in an open portal.
+ * Cost scales with the number of projectiles in flight, not with the number of gates.
  */
 class ProjectileGateTracker implements Listener
 {
@@ -43,8 +48,28 @@ class ProjectileGateTracker implements Listener
      */
     private static final int TRACK_TICKS = 200;
 
-    /** Projectiles in flight, mapped to the tick at which tracking should stop. */
-    private static final Map<Projectile, Integer> tracked = new ConcurrentHashMap<Projectile, Integer>();
+    /**
+     * How far apart the path between two ticks is sampled. A portal is one block thick, so
+     * anything below one block cannot step over it; half a block leaves margin for a
+     * projectile clipping the ring at an angle.
+     */
+    private static final double PATH_STEP = 0.5;
+
+    /** What is known about a projectile being followed. */
+    private static final class Tracked
+    {
+        private final int expiresAtTick;
+        private Location previous;
+
+        Tracked(final int expiresAtTick, final Location previous)
+        {
+            this.expiresAtTick = expiresAtTick;
+            this.previous = previous;
+        }
+    }
+
+    /** Projectiles in flight. */
+    private static final Map<Projectile, Tracked> tracked = new ConcurrentHashMap<Projectile, Tracked>();
 
     /** Ticks since the tracker started, used only to expire entries. */
     private static int tick = 0;
@@ -62,7 +87,8 @@ class ProjectileGateTracker implements Listener
         {
             return;
         }
-        tracked.put(event.getEntity(), Integer.valueOf(tick + TRACK_TICKS));
+        final Projectile projectile = event.getEntity();
+        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation()));
     }
 
     /**
@@ -82,19 +108,23 @@ class ProjectileGateTracker implements Listener
                 {
                     return;
                 }
-                final Iterator<Map.Entry<Projectile, Integer>> it = tracked.entrySet().iterator();
+                final Iterator<Map.Entry<Projectile, Tracked>> it = tracked.entrySet().iterator();
                 while (it.hasNext())
                 {
-                    final Map.Entry<Projectile, Integer> entry = it.next();
+                    final Map.Entry<Projectile, Tracked> entry = it.next();
                     final Projectile projectile = entry.getKey();
+                    final Tracked state = entry.getValue();
                     try
                     {
-                        if (!projectile.isValid() || (tick > entry.getValue().intValue()))
+                        if (!projectile.isValid() || (tick > state.expiresAtTick))
                         {
                             it.remove();
                             continue;
                         }
-                        if (sendThroughGateIfInside(projectile))
+                        final Location from = state.previous;
+                        final Location to = projectile.getLocation();
+                        state.previous = to;
+                        if (sendThroughGateOnPath(from, to, projectile))
                         {
                             // The original is consumed on the way through; the replacement
                             // is tracked in its place so it can cross another gate.
@@ -113,22 +143,67 @@ class ProjectileGateTracker implements Listener
     }
 
     /**
-     * Sends a projectile through a gate if it is currently inside one's portal.
+     * Sends a projectile through a gate if the path it just travelled crossed one.
      *
+     * <p>The segment is walked rather than the end point tested, because a projectile
+     * covers more ground in one tick than a portal is thick.
+     *
+     * @param from
+     *            where it was on the previous tick, may be null
+     * @param to
+     *            where it is now
      * @param projectile
-     *            the projectile to test
+     *            the projectile
      * @return true if it was sent through
      */
-    private static boolean sendThroughGateIfInside(final Projectile projectile)
+    private static boolean sendThroughGateOnPath(final Location from, final Location to, final Projectile projectile)
     {
-        final Location at = projectile.getLocation();
+        if (to == null || to.getWorld() == null)
+        {
+            return false;
+        }
+        if (from == null || from.getWorld() == null || !from.getWorld().equals(to.getWorld()))
+        {
+            return crossAt(to, projectile);
+        }
+
+        final int steps = Math.max(1, (int) Math.ceil(from.distance(to) / PATH_STEP));
+        final double dx = (to.getX() - from.getX()) / steps;
+        final double dy = (to.getY() - from.getY()) / steps;
+        final double dz = (to.getZ() - from.getZ()) / steps;
+
+        // Walked forwards, so a projectile that would reach two gates in one tick takes
+        // whichever it actually got to first.
+        for (int i = 0; i <= steps; i++)
+        {
+            final Location point = new Location(to.getWorld(),
+                from.getX() + (dx * i), from.getY() + (dy * i), from.getZ() + (dz * i));
+            if (crossAt(point, projectile))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sends a projectile through if this point on its path is inside an open portal.
+     *
+     * @param point
+     *            a point on the projectile's path
+     * @param projectile
+     *            the projectile
+     * @return true if it was sent through
+     */
+    private static boolean crossAt(final Location point, final Projectile projectile)
+    {
         final Stargate gate = StargateManager.getGateFromBlock(
-            at.getWorld().getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()));
+            point.getWorld().getBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()));
         if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null)
         {
             return false;
         }
-        if (!gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+        if (!gate.isGatePortalBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()))
         {
             return false;
         }
@@ -148,7 +223,7 @@ class ProjectileGateTracker implements Listener
      */
     static void track(final Projectile projectile)
     {
-        tracked.put(projectile, Integer.valueOf(tick + TRACK_TICKS));
+        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation()));
     }
 
     /**
