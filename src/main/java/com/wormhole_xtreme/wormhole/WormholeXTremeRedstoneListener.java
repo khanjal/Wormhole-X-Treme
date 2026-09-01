@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.logging.Level;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -139,33 +141,36 @@ class WormholeXTremeRedstoneListener implements Listener
                 // RD block (or dial-adjacent wire or monitored wire): activate or shutdown
                 if (isRedstoneDial || isDialSame || isWireAdjacent || isMonitorTriggered)
                 {
-                    if (stargate.isGateActive() || stargate.isGateLightsActive())
+                    if (stargate.isGateActive() && (stargate.getGateTarget() != null))
                     {
-                        // Gate already open — shut it down
-                        if (stargate.getGateTarget() != null)
+                        // Already open, so leave it alone. This used to close the gate,
+                        // which made repeated triggers useless: a second minecart over a
+                        // detector rail shut the wormhole the first one had opened.
+                        //
+                        // It does not re-dial either. Dialling restarts the shutdown timer,
+                        // so a cart crossing every few seconds would hold the gate open and
+                        // lock everyone else out. Doing nothing means the gate closes on its
+                        // own timer no matter how often it is triggered.
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                            "Redstone trigger on already-open gate " + stargate.getGateName() + "; leaving it open.");
+                    }
+                    else if (stargate.isGateLightsActive() && (stargate.getGateTarget() == null))
+                    {
+                        // Lit but never dialled. A second trigger deactivates it, which is
+                        // the only way to clear a gate somebody activated and walked away from.
+                        final Player activator = StargateManager.removeActivatorForStargate(stargate);
+                        stargate.stopActivationTimer();
+                        stargate.setGateActive(false);
+                        stargate.toggleDialLeverState(false);
+                        stargate.lightStargate(false);
+                        if (activator != null)
                         {
-                            stargate.shutdownStargate(true);
-                        }
-                        else
-                        {
-                            final Player activator = StargateManager.removeActivatorForStargate(stargate);
-                            stargate.stopActivationTimer();
-                            stargate.setGateActive(false);
-                            stargate.toggleDialLeverState(false);
-                            stargate.lightStargate(false);
-                            if (activator != null)
-                            {
-                                try
-                                {
-                                    activator.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
-                                }
-                                catch (final Throwable ignore) {}
-                            }
+                            activator.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
                         }
                     }
                     else if (stargate.isGateSignPowered())
                     {
-                        // Gate is inactive and sign-powered: dial the currently selected sign target
+                        // Closed and sign-powered: dial whatever the dial sign is showing.
                         final Stargate signTarget = stargate.getGateDialSignTarget();
                         if (signTarget != null)
                         {

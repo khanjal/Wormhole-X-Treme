@@ -55,6 +55,16 @@ On first run the plugin creates `plugins/WormholeXTreme/config.yml`. If you upda
 
 Important keys (kebab-case in `config.yml`):
 
+### Keeping gates from staying open
+
+`shutdown_timeout` closes a wormhole a set time after it is dialled, and dialling restarts
+that timer. `max-open-seconds` (default 300, 0 to disable) is a ceiling on the total time a
+wormhole may stay open, measured from when it first formed and **not** reset by re-dialling.
+
+It matters in two cases: anything that re-dials on a schedule, and `shutdown_timeout: 0`,
+which means "stay open until something goes through" and can otherwise leave a gate open
+indefinitely.
+
 Gates are stored as one YAML file each under `plugins/WormholeXTreme/.../gates`. There is
 no database to configure.
 

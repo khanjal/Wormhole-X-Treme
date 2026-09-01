@@ -52,6 +52,8 @@ class StargateLifecycle
         }
 
         gate.setGateTarget(null);
+        // Closed, so the next dial begins a fresh maximum open time.
+        gate.clearGateOpenedAt();
         if (timer)
         {
             gate.setGateRecentlyActive(true);

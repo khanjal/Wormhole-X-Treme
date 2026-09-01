@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import org.bukkit.Location;
@@ -42,7 +43,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void redstoneWireAdjacentToDhdTriggersShutdown()
+    public void redstoneOnAnAlreadyOpenGateLeavesItOpen()
     {
         final World world = mock(World.class);
         final int dx = 100, dy = 64, dz = 200;
@@ -71,17 +72,17 @@ public class WormholeXTremeRedstoneListenerTest
         gate.setGateActive(true);
         doReturn(new Stargate()).when(gate).getGateTarget();
 
-        // Prevent actual shutdown side-effects and verify invocation
         doNothing().when(gate).shutdownStargate(anyBoolean());
-
         StargateManager.registerStargate(gate);
 
-        final BlockRedstoneEvent ev = new BlockRedstoneEvent(wire, 0, 1);
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(wire, 0, 1));
 
-        final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
-        listener.onBlockRedstoneChange(ev);
-
-        verify(gate, atLeastOnce()).shutdownStargate(eq(true));
+        // A second cart over a detector rail used to shut the wormhole the first one
+        // opened. The gate is left to close on its own timer instead.
+        verify(gate, never()).shutdownStargate(anyBoolean());
+        // And it is not re-dialled either: dialling restarts the shutdown timer, so a
+        // repeatedly triggered gate would stay open and lock everyone else out.
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
 
         StargateManager.removeStargate(gate);
     }

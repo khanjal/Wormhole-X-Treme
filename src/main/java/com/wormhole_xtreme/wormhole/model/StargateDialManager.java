@@ -280,7 +280,28 @@ class StargateDialManager
             WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
         }
 
-        final int timeout = ConfigManager.getTimeoutShutdown() * 20;
+        // Measured from when the wormhole first opened, so re-dialling does not restart it.
+        gate.markGateOpened();
+
+        int timeout = ConfigManager.getTimeoutShutdown() * 20;
+
+        // Never let a re-dial push the shutdown past the maximum open time. Dialling
+        // restarts the shutdown timer, so without this clamp anything re-triggering a gate
+        // on a schedule would hold it open forever.
+        final long remainingMillis = gate.remainingOpenMillis(ConfigManager.getMaxOpenSeconds());
+        if (remainingMillis != Long.MAX_VALUE)
+        {
+            if (remainingMillis <= 0L)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "Wormhole \"" + gate.getGateName() + "\" reached its maximum open time; closing.");
+                gate.shutdownStargate(true);
+                return;
+            }
+            final int remainingTicks = (int) Math.max(1L, remainingMillis / 50L);
+            timeout = (timeout > 0) ? Math.min(timeout, remainingTicks) : remainingTicks;
+        }
+
         if (timeout > 0)
         {
             gate.setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(

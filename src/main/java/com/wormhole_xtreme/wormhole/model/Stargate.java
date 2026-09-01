@@ -95,6 +95,64 @@ public class Stargate
     private int gateActivateTaskId;
     /** The gate shutdown scheduler task id. */
     private int gateShutdownTaskId;
+
+    /**
+     * When this wormhole opened, in milliseconds, or 0 while closed.
+     *
+     * <p>Kept separate from the shutdown timer because that timer restarts every time the
+     * gate is dialled. Something re-dialling on a schedule — a minecart crossing a detector
+     * rail every few seconds — would otherwise hold a gate open indefinitely and lock
+     * everyone else out of it.
+     */
+    private long gateOpenedAtMillis = 0L;
+
+    /**
+     * Gets when this wormhole opened.
+     *
+     * @return the open time in milliseconds, or 0 if the gate is closed
+     */
+    public long getGateOpenedAtMillis()
+    {
+        return gateOpenedAtMillis;
+    }
+
+    /**
+     * Records that this wormhole has just opened, if it was not already.
+     *
+     * <p>Re-dialling an open gate deliberately does not restart this, so the maximum open
+     * time is measured from when the wormhole first formed.
+     */
+    public void markGateOpened()
+    {
+        if (gateOpenedAtMillis == 0L)
+        {
+            gateOpenedAtMillis = System.currentTimeMillis();
+        }
+    }
+
+    /**
+     * Clears the open time, so the next dial starts a fresh maximum.
+     */
+    public void clearGateOpenedAt()
+    {
+        gateOpenedAtMillis = 0L;
+    }
+
+    /**
+     * How much longer this wormhole may stay open before the maximum is reached.
+     *
+     * @param maxOpenSeconds
+     *            the configured maximum, 0 for no limit
+     * @return remaining milliseconds, or Long.MAX_VALUE when there is no limit
+     */
+    public long remainingOpenMillis(final int maxOpenSeconds)
+    {
+        if (maxOpenSeconds <= 0 || gateOpenedAtMillis == 0L)
+        {
+            return Long.MAX_VALUE;
+        }
+        return (gateOpenedAtMillis + (maxOpenSeconds * 1000L)) - System.currentTimeMillis();
+    }
     /** The gate after shutdown scheduler task id. */
     private int gateAfterShutdownTaskId;
     /** The gate animation step 3d. */

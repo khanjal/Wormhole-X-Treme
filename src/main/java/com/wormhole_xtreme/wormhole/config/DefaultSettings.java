@@ -12,6 +12,7 @@ class DefaultSettings
     final static Setting[] config = {
         new Setting(ConfigKeys.TIMEOUT_ACTIVATE, 30, "Number of seconds after a gate is activated, but before dialing before timing out.", "WormholeXTreme"),
         new Setting(ConfigKeys.TIMEOUT_SHUTDOWN, 38, "Number of seconds after a gate is dialed before automatically shutdown. With 0 timeout a gate won't shutdown until something goes through the gate.", "WormholeXTreme"),
+        new Setting(ConfigKeys.MAX_OPEN_SECONDS, 300, "Longest a wormhole may stay open, in seconds, however often it is re-dialled. Dialling restarts the shutdown timer, so without this a gate re-triggered on a schedule (a minecart over a detector rail, for example) would stay open forever and lock everyone else out. Measured from when the wormhole first opened. Set 0 for no limit.", "WormholeXTreme"),
         // Build restriction feature removed; permissions handled via Vault/LuckPerms
         new Setting(ConfigKeys.USE_COOLDOWN_ENABLED, false, "Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.", "WormholeXTreme"),
         new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If set to true, Permissions plugin will not be attached to even if available.", "WormholeXTreme"),

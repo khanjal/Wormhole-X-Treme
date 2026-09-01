@@ -31,6 +31,8 @@ public class ConfigManager
 
         /** The TIMEOU t_ shutdown. */
         TIMEOUT_SHUTDOWN,
+        /** Hard ceiling on how long a wormhole may stay open, however often it is re-dialled. */
+        MAX_OPEN_SECONDS,
 
         /** The BUIL d_ restrictio n_ enabled. */
         BUILD_RESTRICTION_ENABLED,
@@ -350,6 +352,22 @@ public class ConfigManager
      * 
      * @return Timeout in seconds.
      */
+    /**
+     * The longest a wormhole may stay open, however often it is re-dialled.
+     *
+     * <p>Dialling restarts the shutdown timer, so anything re-dialling on a schedule — a
+     * minecart crossing a detector rail, say — would hold a gate open forever and lock
+     * everyone else out. This is measured from when the wormhole first formed and is not
+     * reset by re-dialling. 0 disables the ceiling.
+     *
+     * @return the maximum open time in seconds
+     */
+    public static int getMaxOpenSeconds()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MAX_OPEN_SECONDS);
+        return (s != null) ? s.getIntValue() : 300;
+    }
+
     public static int getTimeoutShutdown()
     {
         Setting ts;
