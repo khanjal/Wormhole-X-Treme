@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.util.BoundingBox;
@@ -151,6 +152,14 @@ public final class GateEntityScanner implements Runnable
         if (entity instanceof Player
             || WormholeXTremeVehicleListener.handlesMovementOf(entity)
             || entity.isInsideVehicle())
+        {
+            return false;
+        }
+        // Item frames and paintings hang on a block rather than travelling through the
+        // world. Sending one through a gate tears it off its wall and leaves it orphaned at
+        // the far end, so a decorated gate frame would slowly strip itself every time the
+        // gate opened.
+        if (entity instanceof Hanging)
         {
             return false;
         }

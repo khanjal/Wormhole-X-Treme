@@ -289,10 +289,23 @@ one.
 | Minecarts, boats | `VehicleMoveEvent`, with passengers re-seated on arrival |
 | Ridden animals (horse, camel, pig, donkey, llama, strider) | The rider's move event; the animal goes first and the rider is re-seated |
 | Mobs, animals, dropped items, XP orbs, armour stands | A periodic sweep of open gates |
+| Item frames, paintings | Never — they hang on a block and stay put |
 
 So yes — a zombie or skeleton that wanders into an open wormhole comes out the other
 side, as does a dropped item or a wandering cow. The sweep runs every
-`entity-scan-interval-ticks` (default 20) and only looks at gates that are currently open.
+`entity-scan-interval-ticks` (default 20, i.e. once a second) and only looks at gates that
+are currently open.
+
+Because it polls rather than reacting to an event, a fast-moving entity can cross the
+portal between two sweeps and carry on through without travelling. Dropped items usually
+come to rest in the ring and get picked up on the next pass, but arrows and similar are
+hit-and-miss by nature. Lower the interval if you want it caught more reliably, at the cost
+of more frequent scanning.
+
+Projectiles are swept like anything else, which has two consequences worth knowing. An
+arrow fired into a gate can arrive at the far end and hit someone. And an ender pearl
+thrown through a gate teleports its owner to wherever it lands — across the wormhole —
+which sidesteps the permission and cooldown checks a player walking through would face.
 
 Anything riding something else travels with its carrier rather than separately, and
 anything that just came through is ignored for a moment so it is not bounced straight back.

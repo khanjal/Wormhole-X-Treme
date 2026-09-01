@@ -69,6 +69,32 @@ public class GateMovementOwnershipTest
     }
 
     @Test
+    public void thrownItemsAndOrbsAreSwept()
+    {
+        // Confirmed in game: drop an item into an open gate and it comes out the far side.
+        for (final Class<? extends Entity> type : java.util.Arrays.asList(
+            org.bukkit.entity.Item.class, org.bukkit.entity.ExperienceOrb.class))
+        {
+            assertFalse(WormholeXTremeVehicleListener.handlesMovementOf(mockOf(type)),
+                type.getSimpleName() + " should be left to the entity sweep");
+        }
+    }
+
+    @Test
+    public void hangingEntitiesAreNeverSwept()
+    {
+        // An item frame or painting is attached to a block. Sending one through a gate
+        // rips it off the wall and orphans it at the far end, so a decorated gate frame
+        // would strip itself every time the gate opened.
+        for (final Class<? extends Entity> type : java.util.Arrays.asList(
+            org.bukkit.entity.ItemFrame.class, org.bukkit.entity.Painting.class))
+        {
+            final Entity e = mockOf(type);
+            assertTrue(e instanceof org.bukkit.entity.Hanging, type.getSimpleName() + " should be Hanging");
+        }
+    }
+
+    @Test
     public void nullIsNobodysJob()
     {
         assertFalse(WormholeXTremeVehicleListener.handlesMovementOf(null));
