@@ -19,9 +19,92 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 public final class GateSerializer
 {
-    private static final byte StargateSaveVersion = 8;
+    private static final byte StargateSaveVersion = 9;
 
     private GateSerializer() {}
+
+    /**
+     * Reads one optional custom material.
+     *
+     * <p>Version 9 writes the material's name; version 8 wrote {@code Material.ordinal()}.
+     * Ordinals are a property of the enum's declaration order in the Bukkit jar the gate
+     * was saved against, and that order shifts whenever Minecraft adds or removes a block.
+     * A gate saved on one server version and read on another therefore silently came back
+     * with a different material — obsidian becoming glass, an iris becoming air — with no
+     * error to show for it. Names survive version changes; a material that genuinely no
+     * longer exists resolves to null and falls back to the shape or palette default.
+     *
+     * @param byteBuff
+     *            the buffer positioned at the material field
+     * @param byName
+     *            true for version 9+ (name-encoded), false for version 8 (ordinal)
+     * @param gateName
+     *            the gate being read, for the warning message
+     * @param field
+     *            which material this is, for the warning message
+     * @return the material, or null if none was stored or it no longer exists
+     */
+    private static Material readCustomMaterial(final ByteBuffer byteBuff, final boolean byName,
+        final String gateName, final String field)
+    {
+        if (!byName)
+        {
+            // Legacy version 8. Only trustworthy if this server runs the same Bukkit
+            // version the gate was saved on; there is no way to detect when it does not.
+            final int ordinal = byteBuff.getInt();
+            return (ordinal >= 0 && ordinal < Material.values().length) ? Material.values()[ordinal] : null;
+        }
+
+        final int length = byteBuff.getInt();
+        if (length <= 0)
+        {
+            return null; // no custom material stored
+        }
+        final byte[] raw = new byte[length];
+        byteBuff.get(raw);
+        final String materialName = new String(raw, java.nio.charset.StandardCharsets.UTF_8);
+        final Material material = Material.matchMaterial(materialName);
+        if (material == null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Gate \"" + gateName + "\" has an unknown custom " + field + " material \"" + materialName
+                + "\"; falling back to the shape or palette default.");
+        }
+        return material;
+    }
+
+    /**
+     * Writes one optional custom material as a length-prefixed name, or a length of 0
+     * when the gate has none. See {@link #readCustomMaterial} for why not the ordinal.
+     *
+     * @param dataArr
+     *            the buffer to write into
+     * @param material
+     *            the material, may be null
+     */
+    private static void writeCustomMaterial(final ByteBuffer dataArr, final Material material)
+    {
+        if (material == null)
+        {
+            dataArr.putInt(0);
+            return;
+        }
+        final byte[] raw = material.name().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        dataArr.putInt(raw.length);
+        dataArr.put(raw);
+    }
+
+    /**
+     * Gets the byte length {@link #writeCustomMaterial} will use for a material.
+     *
+     * @param material
+     *            the material, may be null
+     * @return the encoded size in bytes, including the length prefix
+     */
+    private static int customMaterialSize(final Material material)
+    {
+        return 4 + (material == null ? 0 : material.name().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+    }
 
     public static Stargate parseVersionedData(final byte[] gate_data, final World w, final String name, final StargateNetwork network)
     {
@@ -547,8 +630,11 @@ public final class GateSerializer
 
             return s;
         }
-        else if (s.getLoadedVersion() == 8)
+        // v8 and v9 share a layout; they differ only in how the four custom materials
+        // are encoded. See readCustomMaterial for why v9 exists.
+        else if (s.getLoadedVersion() == 8 || s.getLoadedVersion() == 9)
         {
+            final boolean materialsByName = s.getLoadedVersion() >= 9;
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
             byteBuff.get(blocArray);
@@ -636,22 +722,10 @@ public final class GateSerializer
             s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
 
             s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
-            final int gateCustomStructureMaterial = byteBuff.getInt();
-            s.setGateCustomStructureMaterial(gateCustomStructureMaterial >= 0 && gateCustomStructureMaterial < Material.values().length
-                ? Material.values()[gateCustomStructureMaterial]
-                : null);
-            final int gateCustomPortalMaterial = byteBuff.getInt();
-            s.setGateCustomPortalMaterial(gateCustomPortalMaterial >= 0 && gateCustomPortalMaterial < Material.values().length
-                ? Material.values()[gateCustomPortalMaterial]
-                : null);
-            final int gateCustomLightMaterial = byteBuff.getInt();
-            s.setGateCustomLightMaterial(gateCustomLightMaterial >= 0 && gateCustomLightMaterial < Material.values().length
-                ? Material.values()[gateCustomLightMaterial]
-                : null);
-            final int gateCustomIrisMaterial = byteBuff.getInt();
-            s.setGateCustomIrisMaterial(gateCustomIrisMaterial >= 0 && gateCustomIrisMaterial < Material.values().length
-                ? Material.values()[gateCustomIrisMaterial]
-                : null);
+            s.setGateCustomStructureMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "structure"));
+            s.setGateCustomPortalMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "portal"));
+            s.setGateCustomLightMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "light"));
+            s.setGateCustomIrisMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "iris"));
             s.setGateCustomWooshTicks(byteBuff.getInt());
             s.setGateCustomLightTicks(byteBuff.getInt());
             s.setGateCustomWooshDepth(byteBuff.getInt());
@@ -741,10 +815,16 @@ public final class GateSerializer
         final int locationSize = 32;
         final int blockSize = 12;
         final int numBytesWithVersion = 10;
-        final int numInts = 12;
+        // The four custom materials used to be fixed-width ordinals and were counted here;
+        // as of version 9 they are length-prefixed names and are sized individually below.
+        final int numInts = 8;
         final int numLongs = 2;
 
         int size = numBytesWithVersion + (numInts * 4) + (numLongs * 8) + (numBlocks * blockSize) + (numLocations * locationSize);
+        size += customMaterialSize(s.getGateCustomStructureMaterial())
+            + customMaterialSize(s.getGateCustomPortalMaterial())
+            + customMaterialSize(s.getGateCustomLightMaterial())
+            + customMaterialSize(s.getGateCustomIrisMaterial());
         size += (s.getGateStructureBlocks().size() * blockSize) + (s.getGatePortalBlocks().size() * blockSize);
         int numIntsOther = 2;
         for (int i = 0; i < s.getGateLightBlocks().size(); i++)
@@ -858,10 +938,10 @@ public final class GateSerializer
         dataArr.put(s.isGateRedstonePowered() ? (byte) 1 : (byte) 0);
         dataArr.put(s.isGateCustom() ? (byte) 1 : (byte) 0);
 
-        dataArr.putInt(s.getGateCustomStructureMaterial() != null ? s.getGateCustomStructureMaterial().ordinal() : -1);
-        dataArr.putInt(s.getGateCustomPortalMaterial() != null ? s.getGateCustomPortalMaterial().ordinal() : -1);
-        dataArr.putInt(s.getGateCustomLightMaterial() != null ? s.getGateCustomLightMaterial().ordinal() : -1);
-        dataArr.putInt(s.getGateCustomIrisMaterial() != null ? s.getGateCustomIrisMaterial().ordinal() : -1);
+        writeCustomMaterial(dataArr, s.getGateCustomStructureMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomPortalMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomLightMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomIrisMaterial());
         dataArr.putInt(s.getGateCustomWooshTicks());
         dataArr.putInt(s.getGateCustomLightTicks());
         dataArr.putInt(s.getGateCustomWooshDepth());
