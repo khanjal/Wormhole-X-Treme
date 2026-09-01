@@ -41,7 +41,7 @@ gate-material-groups:
     iris: YELLOW_STAINED_GLASS
     light: SEA_LANTERN
   Universe:
-    structure: DEEPSLATE_TILES
+    structure: POLISHED_BLACKSTONE
     portal: WATER
-    iris: POLISHED_DEEPSLATE
-    light: OCHRE_FROGLIGHT
+    iris: WHITE_STAINED_GLASS
+    light: SEA_LANTERN

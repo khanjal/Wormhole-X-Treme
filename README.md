@@ -207,7 +207,7 @@ should not be substitutable can opt out with `MATERIAL_GROUPS=Standard,Atlantis`
 
 Gate detection scans every registered shape in turn, running a full geometry-and-material
 check on each. Before material groups, a palette variant meant a whole extra `.shape`
-file — `StandardAtlantis.shape` is `Standard.shape` with four lines changed — so each
+file — `StandardAtlantis.shape` was `Standard.shape` with four lines changed — so each
 palette added a complete extra scan to every detection attempt.
 
 That matters more than it looks, because detection is not rare. Right-clicking a
@@ -219,9 +219,10 @@ With groups, the frame material is read from the world once and looked up in a m
 palettes cost nothing per detection. A server can offer twenty palettes and detection is
 exactly as fast as with one.
 
-The `StandardAtlantis.shape` and `StandardUniverse.shape` files still work and are kept so
-existing gates that reference them keep loading, but they are redundant now — the same
-gates can be built from `Standard.shape` in the Atlantis or Universe palette.
+The `StandardAtlantis.shape` and `StandardUniverse.shape` files have been removed: they
+were `Standard.shape` with different materials, which is exactly what a palette is now.
+Build `Standard.shape` in lapis for an Atlantis gate or polished blackstone for a Universe
+one.
 
 ## Redstone activation
 

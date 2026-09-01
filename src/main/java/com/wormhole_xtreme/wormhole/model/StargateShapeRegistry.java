@@ -71,8 +71,11 @@ public final class StargateShapeRegistry
             }
         };
 
+        // Geometry only. Palette variants used to live here as near-identical copies
+        // (StandardAtlantis, StandardUniverse); they are material groups in config.yml now,
+        // which keeps detection cost independent of how many palettes a server offers.
         final String[] defaultShapeNames = {"Standard.shape", "StandardSignDial.shape", "Minimal.shape",
-            "MinimalSignDial.shape", "StandardAtlantis.shape", "StandardUniverse.shape",
+            "MinimalSignDial.shape",
             "Horizontal.shape", "HorizontalSignDial.shape",
             "MinimalSignDialRedstone.shape"};
         for (final String shape : defaultShapeNames)
