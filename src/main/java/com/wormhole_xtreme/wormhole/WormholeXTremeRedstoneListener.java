@@ -11,6 +11,7 @@ import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -18,6 +19,42 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class WormholeXTremeRedstoneListener implements Listener
 {
+    /**
+     * How far from an indexed gate block a redstone change may be and still be
+     * attributed to that gate. The activation blocks sit one above a structure block,
+     * so anything wired into one is within a block or two of the indexed frame.
+     */
+    private static final int GATE_SEARCH_RADIUS = 2;
+
+    /**
+     * Returns true when a redstone change at {@code changed} should count as powering
+     * {@code activationBlock} — either it is that block, or it is a redstone component
+     * adjacent to it.
+     *
+     * <p>Adjacency here is the full 3x3x3 neighbourhood, so diagonals count even though
+     * redstone does not power diagonally. That matches the existing dial-lever check and
+     * errs toward activating a gate the player clearly wired up.
+     *
+     * @param activationBlock
+     *            the gate's RD or RS block, may be null when the shape defines none
+     * @param changed
+     *            the block whose redstone current changed
+     * @return true if this change should trigger the activation block
+     */
+    private static boolean isPoweringActivationBlock(final Block activationBlock, final Block changed)
+    {
+        if (activationBlock == null || changed == null)
+        {
+            return false;
+        }
+        if (WorldUtils.isSameBlock(activationBlock, changed))
+        {
+            return true;
+        }
+        return WorldUtils.isAdjacent(activationBlock, changed)
+            && MaterialUtils.isRedstoneSource(changed.getType());
+    }
+
     @EventHandler
     public void onBlockRedstoneChange(final BlockRedstoneEvent event)
     {
@@ -38,7 +75,7 @@ class WormholeXTremeRedstoneListener implements Listener
             try
             {
                 // Fallback: find a nearby indexed gate if the block itself isn't indexed
-                stargate = StargateManager.findNearestGateByBlock(block.getLocation(), 2, 2);
+                stargate = StargateManager.findNearestGateByBlock(block.getLocation(), GATE_SEARCH_RADIUS, GATE_SEARCH_RADIUS);
             }
             catch (final Throwable ignore) {}
             if (stargate == null)
@@ -68,8 +105,13 @@ class WormholeXTremeRedstoneListener implements Listener
                 final Block rdBlock = stargate.getGateRedstoneDialActivationBlock();
                 final Block rsBlock = stargate.getGateRedstoneSignActivationBlock();
 
-                final boolean isRedstoneDial = (rdBlock != null) && WorldUtils.isSameBlock(rdBlock, block);
-                final boolean isRedstoneSign = (rsBlock != null) && WorldUtils.isSameBlock(rsBlock, block);
+                // A signal counts when it lands on the activation block itself or on a
+                // redstone component touching it. Requiring an exact match meant only dust
+                // placed precisely on the RD position ever worked, which is not how anyone
+                // builds: dust run up to the block fires the event on the dust, and a
+                // detector rail beside the gate fires it on the rail.
+                final boolean isRedstoneDial = isPoweringActivationBlock(rdBlock, block);
+                final boolean isRedstoneSign = isPoweringActivationBlock(rsBlock, block);
                 final boolean isDialSame = (dial != null) && WorldUtils.isSameBlock(dial, block);
                 final boolean isDialAdjacent = (dial != null) && WorldUtils.isAdjacent(dial, block);
 

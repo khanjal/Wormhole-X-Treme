@@ -181,7 +181,17 @@ A gate with a redstone sign dial cycles through available network targets via a 
 
 A gate can be activated directly by a redstone signal on the `gateRedstoneDialActivationBlock`. When the signal goes high the gate dials its current sign target; when the signal drops the gate shuts down (if `shutdown_timeout` is `0`). Enable this mode per gate with `/wormhole redstone <gate> true`.
 
-Both modes work via `BlockRedstoneEvent` on `REDSTONE_WIRE` and are fully compatible with all Bukkit-based servers.
+Both modes work via `BlockRedstoneEvent` and are fully compatible with all Bukkit-based servers.
+
+A signal counts when it lands **on** the activation block or on any redstone component **touching** it — dust, a repeater, a comparator, a lever, a button, a pressure plate, an observer, a redstone block or torch, or a detector/powered/activator rail. You do not have to place dust exactly on the activation block.
+
+### Driving a gate with a minecart
+
+Run the track past the gate and put a **detector rail** in the line, then wire it into the gate's activation block (adjacent, or via dust). A cart rolling over the detector rail pulses the gate, which dials the target currently shown on its dial sign — so the cart can ride straight through.
+
+Use a detector rail, not a powered rail. A powered rail is already energised by whatever is switching it, so a cart passing over it changes nothing and produces no event. A detector rail emits a pulse only while a cart is on it, which is exactly the trigger you want.
+
+Note that a rising edge **toggles**: if the gate is already open when the pulse arrives, it shuts down instead of re-dialling. With `shutdown_timeout` set so the gate closes between carts this is invisible, but two carts passing inside one timeout window will close the gate on the second.
 
 ## Developer notes
 

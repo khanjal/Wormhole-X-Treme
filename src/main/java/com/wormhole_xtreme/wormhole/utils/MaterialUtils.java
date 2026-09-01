@@ -102,4 +102,46 @@ public final class MaterialUtils {
         final String name = m.name();
         return name.endsWith("_SIGN") || name.equals("SIGN");
     }
+
+    /**
+     * Returns true for blocks that can put a redstone signal into a neighbouring block:
+     * the wire and repeaters that carry one, and the components that emit one.
+     *
+     * <p>Used to decide whether a redstone change next to a gate's activation block
+     * counts as someone powering the gate. Buttons and pressure plates are matched by
+     * family rather than enumerated, so a new wood type does not silently stop working.
+     *
+     * <p>Powered rails are included alongside detector and activator rails. A powered
+     * rail does not actually emit a signal, but a player running a track into a gate
+     * reasonably expects it to trigger, and accepting it costs nothing — the event only
+     * fires when that rail's own power changes.
+     */
+    public static boolean isRedstoneSource(final Material m) {
+        if (m == null) return false;
+        if (isButton(m)) return true;
+        if (m.name().endsWith("_PRESSURE_PLATE")) return true;
+        switch (m) {
+            case REDSTONE_WIRE:
+            case REPEATER:
+            case COMPARATOR:
+            case REDSTONE_BLOCK:
+            case REDSTONE_TORCH:
+            case REDSTONE_WALL_TORCH:
+            case LEVER:
+            case DETECTOR_RAIL:
+            case ACTIVATOR_RAIL:
+            case POWERED_RAIL:
+            case TRIPWIRE_HOOK:
+            case OBSERVER:
+            case DAYLIGHT_DETECTOR:
+            case TARGET:
+            case SCULK_SENSOR:
+            case CALIBRATED_SCULK_SENSOR:
+            case LIGHTNING_ROD:
+            case TRAPPED_CHEST:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
