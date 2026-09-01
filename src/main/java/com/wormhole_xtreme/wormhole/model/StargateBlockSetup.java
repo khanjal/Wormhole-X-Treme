@@ -153,7 +153,7 @@ class StargateBlockSetup
             }
 
             gate.getGateStructureBlocks().add(placeBlock.getLocation());
-            placeBlock.setType(gate.getGateShape().getShapeSignMaterial(), false);
+            placeBlock.setType(gate.getEffectiveSignMaterial(), false);
             final Directional signData = (Directional) placeBlock.getBlockData();
             signData.setFacing(toward);
             placeBlock.setBlockData(signData, false);

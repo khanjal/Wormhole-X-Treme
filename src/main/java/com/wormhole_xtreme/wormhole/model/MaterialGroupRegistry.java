@@ -159,8 +159,9 @@ public final class MaterialGroupRegistry
                 final Material portal = defaulted(parseMaterial(groupName, "portal", values.get("portal")), Material.WATER);
                 final Material iris = defaulted(parseMaterial(groupName, "iris", values.get("iris")), Material.STONE);
                 final Material light = defaulted(parseMaterial(groupName, "light", values.get("light")), Material.GLOWSTONE);
+                final Material sign = defaulted(parseMaterial(groupName, "sign", values.get("sign")), Material.OAK_WALL_SIGN);
 
-                final MaterialGroup group = new MaterialGroup(groupName, structure, portal, iris, light);
+                final MaterialGroup group = new MaterialGroup(groupName, structure, portal, iris, light, sign);
                 byName.put(groupName.toLowerCase(), group);
                 byMaterial.put(structure, group);
                 if (first == null)
@@ -175,7 +176,7 @@ public final class MaterialGroupRegistry
             // No usable configuration: fall back to the classic obsidian gate so the
             // plugin still works on a server that has never touched this section.
             final MaterialGroup builtin = new MaterialGroup("Standard", Material.OBSIDIAN, Material.WATER,
-                Material.STONE, Material.GLOWSTONE);
+                Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN);
             byName.put(builtin.getName().toLowerCase(), builtin);
             byMaterial.put(builtin.getStructureMaterial(), builtin);
             first = builtin;
@@ -228,7 +229,8 @@ public final class MaterialGroupRegistry
                 byFrame.put(frame, seen);
             }
             final MaterialGroup candidate = new MaterialGroup(suggestGroupName(frame), frame,
-                shape.getShapePortalMaterial(), shape.getShapeIrisMaterial(), shape.getShapeLightMaterial());
+                shape.getShapePortalMaterial(), shape.getShapeIrisMaterial(), shape.getShapeLightMaterial(),
+                shape.getShapeSignMaterial());
             if (!containsSameMaterials(seen, candidate))
             {
                 seen.add(candidate);
@@ -258,7 +260,8 @@ public final class MaterialGroupRegistry
         {
             if (g.getPortalMaterial() == candidate.getPortalMaterial()
                 && g.getIrisMaterial() == candidate.getIrisMaterial()
-                && g.getLightMaterial() == candidate.getLightMaterial())
+                && g.getLightMaterial() == candidate.getLightMaterial()
+                && g.getSignMaterial() == candidate.getSignMaterial())
             {
                 return true;
             }

@@ -177,6 +177,7 @@ public class ConfigurationYAML
                 block.append("    portal: ").append(g.getPortalMaterial().name()).append(System.lineSeparator());
                 block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
                 block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
+                block.append("    sign: ").append(g.getSignMaterial().name()).append(System.lineSeparator());
             }
 
             int sectionStart = -1;

@@ -38,6 +38,9 @@ public final class MaterialGroup
     /** Material the light blocks become while the gate is active. */
     private final Material lightMaterial;
 
+    /** Wall-sign material used for the gate's name sign. */
+    private final Material signMaterial;
+
     /**
      * Instantiates a new material group.
      *
@@ -51,15 +54,18 @@ public final class MaterialGroup
      *            the engaged-iris material
      * @param lightMaterial
      *            the active-light material
+     * @param signMaterial
+     *            the wall-sign material for the gate name sign
      */
     public MaterialGroup(final String name, final Material structureMaterial, final Material portalMaterial,
-        final Material irisMaterial, final Material lightMaterial)
+        final Material irisMaterial, final Material lightMaterial, final Material signMaterial)
     {
         this.name = name;
         this.structureMaterial = structureMaterial;
         this.portalMaterial = portalMaterial;
         this.irisMaterial = irisMaterial;
         this.lightMaterial = lightMaterial;
+        this.signMaterial = signMaterial;
     }
 
     /**
@@ -111,6 +117,17 @@ public final class MaterialGroup
     public Material getLightMaterial()
     {
         return lightMaterial;
+    }
+
+    /**
+     * Gets the wall-sign material used for the gate's name sign. A nether-themed palette
+     * looks wrong with an oak sign, so this belongs to the palette like everything else.
+     *
+     * @return the sign material
+     */
+    public Material getSignMaterial()
+    {
+        return signMaterial;
     }
 
     @Override

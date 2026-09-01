@@ -100,7 +100,7 @@ public class MaterialGroupDiscoveryTest
     public void aDiscoveredGroupTakesEffectWithoutARestart()
     {
         final MaterialGroup diamond = new MaterialGroup("Diamond", Material.DIAMOND_BLOCK,
-            Material.WATER, Material.GLASS, Material.GOLD_BLOCK);
+            Material.WATER, Material.GLASS, Material.GOLD_BLOCK, Material.OAK_WALL_SIGN);
 
         MaterialGroupRegistry.registerDiscoveredGroup(diamond);
 

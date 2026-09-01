@@ -29,19 +29,23 @@ permissions-auto-fallback: true
 # portal:    what the interior shows while a wormhole is open.
 # iris:      what the iris is made of when engaged (a real, solid block).
 # light:     what the light blocks become while the gate is active.
+# sign:      wall-sign type used for the gate's name sign. Any *_WALL_SIGN material.
 gate-material-groups:
   Standard:
     structure: OBSIDIAN
     portal: WATER
     iris: STONE
     light: GLOWSTONE
+    sign: OAK_WALL_SIGN
   Atlantis:
     structure: LAPIS_BLOCK
     portal: WATER
     iris: YELLOW_STAINED_GLASS
     light: SEA_LANTERN
+    sign: WARPED_WALL_SIGN
   Universe:
     structure: POLISHED_BLACKSTONE
     portal: WATER
     iris: WHITE_STAINED_GLASS
     light: SEA_LANTERN
+    sign: CRIMSON_WALL_SIGN

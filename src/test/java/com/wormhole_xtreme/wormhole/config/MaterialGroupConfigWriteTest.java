@@ -44,7 +44,7 @@ public class MaterialGroupConfigWriteTest
     {
         final List<MaterialGroup> groups = new ArrayList<MaterialGroup>();
         groups.add(new MaterialGroup("Diamond", Material.DIAMOND_BLOCK, Material.WATER,
-            Material.GLASS, Material.GOLD_BLOCK));
+            Material.GLASS, Material.GOLD_BLOCK, Material.OAK_WALL_SIGN));
         return groups;
     }
 

@@ -12,48 +12,29 @@ import org.bukkit.Material;
 public final class MaterialUtils {
     private MaterialUtils() {}
 
-    /** Returns true for any button material. Delegates to LegacyCompat for legacy mappings. */
+    /**
+     * Returns true for any button material — every wood type plus stone and polished
+     * blackstone. These, and levers, are what a gate's DHD can be.
+     *
+     * <p>Matched by name rather than enumerated so a new wood type in a future Minecraft
+     * release works without a code change, which is the convention the rest of this class
+     * already follows. LEGACY_* constants are pre-1.13 compatibility entries and are not
+     * real placeable blocks, so they are excluded.
+     */
     public static boolean isButton(final Material m) {
         if (m == null) return false;
-        switch (m) {
-            case OAK_BUTTON:
-            case SPRUCE_BUTTON:
-            case BIRCH_BUTTON:
-            case JUNGLE_BUTTON:
-            case ACACIA_BUTTON:
-            case DARK_OAK_BUTTON:
-            case MANGROVE_BUTTON:
-            case CHERRY_BUTTON:
-            case BAMBOO_BUTTON:
-            case CRIMSON_BUTTON:
-            case WARPED_BUTTON:
-            case STONE_BUTTON:
-            case POLISHED_BLACKSTONE_BUTTON:
-                return true;
-            default:
-                return false;
-        }
+        final String name = m.name();
+        return name.endsWith("_BUTTON") && !name.startsWith("LEGACY_");
     }
 
-    /** Returns true for any wall-sign material. Delegates to LegacyCompat for legacy mappings. */
+    /**
+     * Returns true for any wall-sign material, matched by name so new wood types work
+     * without a code change. LEGACY_* constants are excluded.
+     */
     public static boolean isWallSign(final Material m) {
         if (m == null) return false;
-        switch (m) {
-            case OAK_WALL_SIGN:
-            case SPRUCE_WALL_SIGN:
-            case BIRCH_WALL_SIGN:
-            case JUNGLE_WALL_SIGN:
-            case ACACIA_WALL_SIGN:
-            case DARK_OAK_WALL_SIGN:
-            case CRIMSON_WALL_SIGN:
-            case WARPED_WALL_SIGN:
-            case MANGROVE_WALL_SIGN:
-            case CHERRY_WALL_SIGN:
-            case BAMBOO_WALL_SIGN:
-                return true;
-            default:
-                return false;
-        }
+        final String name = m.name();
+        return name.endsWith("_WALL_SIGN") && !name.startsWith("LEGACY_");
     }
 
     /** Returns true if the material represents ice we care about. */

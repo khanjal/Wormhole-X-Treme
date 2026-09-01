@@ -371,6 +371,27 @@ public class Stargate
     }
 
     /**
+     * Gets the wall-sign material for this gate's name sign.
+     *
+     * <p>There is no per-gate override for this one, so resolution is shape-then-palette.
+     *
+     * @return the sign material, never null
+     */
+    public Material getEffectiveSignMaterial()
+    {
+        if (gateShape != null && gateShape.hasExplicitSignMaterial())
+        {
+            return gateShape.getShapeSignMaterial();
+        }
+        final MaterialGroup group = getGateMaterialGroup();
+        if (group != null)
+        {
+            return group.getSignMaterial();
+        }
+        return gateShape != null ? gateShape.getShapeSignMaterial() : Material.OAK_WALL_SIGN;
+    }
+
+    /**
      * Gets the material the gate frame is built from.
      *
      * @return the structure material, never null

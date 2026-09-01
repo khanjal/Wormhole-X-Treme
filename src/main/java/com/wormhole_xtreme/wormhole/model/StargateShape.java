@@ -74,6 +74,7 @@ public class StargateShape
     private boolean explicitIrisMaterial = false;
     private boolean explicitStructureMaterial = false;
     private boolean explicitLightMaterial = false;
+    private boolean explicitSignMaterial = false;
 
     /**
      * Material groups this shape may be built from, lowercased. Empty means every
@@ -406,6 +407,9 @@ public class StargateShape
     /** @return true if the shape file named an active/light material outright */
     public boolean hasExplicitLightMaterial() { return explicitLightMaterial; }
 
+    /** @return true if the shape file named a sign material outright */
+    public boolean hasExplicitSignMaterial() { return explicitSignMaterial; }
+
     /**
      * Checks whether this shape may be built from the named material group.
      *
@@ -634,6 +638,7 @@ public class StargateShape
     public void setShapeSignMaterial(final Material shapeSignMaterial)
     {
         this.shapeSignMaterial = shapeSignMaterial;
+        explicitSignMaterial = true;
     }
 
     /**

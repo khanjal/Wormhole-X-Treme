@@ -189,7 +189,11 @@ gate-material-groups:
     portal: WATER
     iris: YELLOW_STAINED_GLASS
     light: SEA_LANTERN
+    sign: WARPED_WALL_SIGN
 ```
+
+`sign` sets the wall-sign type used for the gate's name sign — any `*_WALL_SIGN`
+material. The dial sign is placed by the player, so its type is whatever they used.
 
 A gate's palette is identified by the material of its **frame**, so every group must use a
 different `structure` material — build the Standard shape in obsidian and you get a
