@@ -2,12 +2,12 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -104,11 +104,8 @@ public class GateProjectileTest
         spawned = mock(Arrow.class);
         when(spawned.getUniqueId()).thenReturn(UUID.randomUUID());
         when(spawned.isValid()).thenReturn(true);
-        when(world.spawn(any(Location.class), any(Class.class), any(Consumer.class)))
-            .thenAnswer(inv -> {
-                ((Consumer<Entity>) inv.getArgument(2)).accept(spawned);
-                return spawned;
-            });
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenReturn(spawned);
     }
 
     @AfterEach
@@ -132,11 +129,29 @@ public class GateProjectileTest
     {
         GateEntityScanner.create().run();
 
-        final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
-        verify(spawned, atLeastOnce()).setVelocity(v.capture());
+        // spawnArrow creates it already travelling; a plain spawn produces something that
+        // behaves like an arrow which has already landed.
+        final org.mockito.ArgumentCaptor<Vector> dir = org.mockito.ArgumentCaptor.forClass(Vector.class);
+        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        verify(world).spawnArrow(any(Location.class), dir.capture(), speed.capture(), anyFloat(), any(Class.class));
 
-        assertTrue(v.getValue().getX() > 0, "should fly east, the way the destination gate faces");
-        assertEquals(2.4, v.getValue().length(), 1e-6, "speed should carry over");
+        assertTrue(dir.getValue().getX() > 0, "should fly east, the way the destination gate faces");
+        assertEquals(2.4, speed.getValue(), 1e-5, "speed should carry over");
+    }
+
+    @Test
+    public void theReplacementGetsItsVelocityAfterSpawningAndAgainNextTick()
+    {
+        // The bug that made three builds' worth of fixes look ineffective: velocity was
+        // only set inside the spawn callback, which runs before the entity joins the world
+        // and is discarded when it does. It has to be applied to the spawned entity, and
+        // again a tick later.
+        GateEntityScanner.create().run();
+
+        final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
+        verify(spawned, times(2)).setVelocity(v.capture());
+        assertTrue(v.getValue().getX() > 0, "should still be flying east on the re-apply");
+        assertEquals(2.4, v.getValue().length(), 1e-6);
     }
 
     @Test

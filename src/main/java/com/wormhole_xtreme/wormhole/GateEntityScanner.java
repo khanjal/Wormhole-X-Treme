@@ -147,37 +147,44 @@ public final class GateEntityScanner implements Runnable
      *            the projectile arriving at the gate
      * @param arrival
      *            where it should reappear
-     * @param exitFacing
-     *            the direction the destination gate faces
-     * @param incoming
-     *            the projectile's velocity before it was moved
-     * @return true if it was replaced; false to fall back to a plain teleport
+     * @param exit
+     *            the velocity the replacement should leave with
+     * @return the replacement, or null to fall back to a plain teleport
      */
-    private static boolean respawnProjectile(final Projectile projectile, final Location arrival,
-        final BlockFace exitFacing, final Vector incoming)
+    private static Entity respawnProjectile(final Projectile projectile, final Location arrival, final Vector exit)
     {
         try
         {
             final Class<? extends Entity> type = projectile.getType().getEntityClass();
             if (type == null || !Projectile.class.isAssignableFrom(type))
             {
-                return false;
+                return null;
             }
-            final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
-            final Entity spawned = arrival.getWorld().spawn(arrival, type, fresh ->
+
+            final Entity spawned;
+            if (AbstractArrow.class.isAssignableFrom(type))
             {
-                copyProjectileState(projectile, fresh);
-                fresh.setVelocity(exit);
-            });
-            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(spawned.getUniqueId());
+                // spawnArrow creates an arrow already travelling, which a plain spawn does
+                // not — a spawned-then-nudged arrow behaves like one that has landed.
+                final double speed = exit.length();
+                final Vector direction = (speed > 0) ? exit.clone().normalize() : exit.clone();
+                spawned = arrival.getWorld().spawnArrow(arrival, direction, (float) speed, 0f,
+                    type.asSubclass(AbstractArrow.class));
+            }
+            else
+            {
+                spawned = arrival.getWorld().spawn(arrival, type);
+            }
+
+            copyProjectileState(projectile, spawned);
             projectile.remove();
-            return true;
+            return spawned;
         }
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
                 "Could not respawn projectile through gate, falling back to teleport: " + e.getMessage());
-            return false;
+            return null;
         }
     }
 
@@ -299,27 +306,32 @@ public final class GateEntityScanner implements Runnable
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
+        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
 
         // A projectile cannot simply be moved. Teleporting an arrow leaves it flagged as
         // having landed — AbstractArrow.isInBlock() is readable but not settable — so it
-        // arrives at the far gate already "stuck" and drops out of the air no matter what
-        // velocity it is given. Replacing it with a fresh one carrying the same properties
-        // is the only way through the API.
-        if (entity instanceof Projectile && respawnProjectile((Projectile) entity, arrival, exitFacing, incoming))
+        // arrives at the far gate already stuck and drops out of the air. The original is
+        // consumed and a replacement fired instead.
+        final Entity arrived = (entity instanceof Projectile)
+            ? respawnProjectile((Projectile) entity, arrival, exit)
+            : null;
+
+        final Entity moved;
+        if (arrived != null)
         {
-            return;
+            moved = arrived;
+        }
+        else
+        {
+            entity.teleport(arrival);
+            moved = entity;
         }
 
-        entity.teleport(arrival);
-
-        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
-        applyVelocity(entity, exit);
-
-        // Teleporting clears an entity's motion, and a velocity set in the same tick is
-        // routinely lost to that — which is why an arrow arrived through the far gate and
-        // dropped straight to the ground instead of carrying on. Re-applying on the next
-        // tick makes it stick. Only worth doing for something that was actually moving, so
-        // a dropped item at rest does not schedule a task for nothing.
+        // Velocity is applied here rather than inside the spawn callback, and again on the
+        // next tick. Both matter: a spawn callback runs before the entity joins the world
+        // and its velocity is discarded when it does, and a teleport clears motion so a
+        // same-tick velocity is lost to that. Getting either wrong drops the arrow.
+        applyVelocity(moved, exit);
         if (incoming.lengthSquared() > MOVING_THRESHOLD_SQUARED)
         {
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
@@ -327,12 +339,17 @@ public final class GateEntityScanner implements Runnable
                 @Override
                 public void run()
                 {
-                    if (entity.isValid())
+                    if (moved.isValid())
                     {
-                        applyVelocity(entity, exit);
+                        applyVelocity(moved, exit);
                     }
                 }
             }, 1L);
+        }
+
+        if (arrived != null)
+        {
+            return; // a fresh projectile carries no passengers
         }
 
         final List<Entity> passengers = entity.getPassengers();
