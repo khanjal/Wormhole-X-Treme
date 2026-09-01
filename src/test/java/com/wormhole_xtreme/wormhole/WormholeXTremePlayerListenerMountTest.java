@@ -135,8 +135,10 @@ public class WormholeXTremePlayerListenerMountTest
 
         // Assert: mount was teleported and both riders were reattached
         WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
-        assert(teleports.get() > 0);
-        assert(adds.get() >= 2);
+        // JUnit assertions rather than the `assert` keyword, which only evaluates when the
+        // JVM runs with -ea and would otherwise let this test pass without checking anything.
+        org.junit.jupiter.api.Assertions.assertTrue(teleports.get() > 0, "the mount should have been teleported");
+        org.junit.jupiter.api.Assertions.assertTrue(adds.get() >= 2, "both riders should have been re-seated");
         verify(mockScheduler, atLeastOnce()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(2L));
 
         // Cleanup

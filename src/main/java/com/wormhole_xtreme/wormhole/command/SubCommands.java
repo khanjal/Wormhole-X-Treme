@@ -189,8 +189,9 @@ public final class SubCommands
         register("cooldown", aliases(), "/wormhole cooldown <one|two|three|true|false> [time]",
             new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, args ->
                 args.length == 2 ? prefixed(args[1], "one", "two", "three", "true", "false") : none());
-        register("restrict", aliases(), "/wormhole restrict <player> [count]",
-            new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, null);
+        register("restrict", aliases(), "/wormhole restrict <true|false>",
+            new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, args ->
+                args.length == 2 ? prefixed(args[1], "true", "false") : none());
     }
 
     private static void register(final String name, final List<String> aliases, final String usage,

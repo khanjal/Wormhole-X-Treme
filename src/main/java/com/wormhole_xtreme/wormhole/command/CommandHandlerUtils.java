@@ -71,12 +71,6 @@ public final class CommandHandlerUtils
         }
     }
 
-    public static int doRestrictionGroup(final String groupName, final boolean set, final int gateCount)
-    {
-        // Build restriction groups removed; feature deprecated.
-        return -1;
-    }
-
     public static void setGateCustomAll(final Stargate stargate, final boolean customEnabled)
     {
         if (stargate.getGateShape() != null)

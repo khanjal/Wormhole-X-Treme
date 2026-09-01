@@ -22,4 +22,8 @@
 /manifest.mf
 
 # Mac filesystem dust
-/.DS_Store.vscode/
+/.DS_Store
+
+# Editor settings
+/.vscode/
+PR-*-review.md
