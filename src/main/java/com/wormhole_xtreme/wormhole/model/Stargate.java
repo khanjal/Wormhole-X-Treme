@@ -381,12 +381,12 @@ public class Stargate
         {
             return gateCustomStructureMaterial;
         }
-        // A shape that names this material in its own file outranks the palette; the
-        // palette only supplies what the shape left unsaid.
-        if (gateShape != null && gateShape.hasExplicitStructureMaterial())
-        {
-            return gateShape.getShapeStructureMaterial();
-        }
+        // Unlike the other materials, the frame is not a styling choice the shape gets to
+        // state: it is whatever the player actually built the gate out of, and that is
+        // precisely what selected the palette. Preferring the shape's declaration here
+        // reports OBSIDIAN for a gate made of lapis, and StargateAnimator uses this value
+        // to restore light blocks after the lighting animation — so it would rebuild that
+        // gate's chevrons in the wrong material.
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
         {

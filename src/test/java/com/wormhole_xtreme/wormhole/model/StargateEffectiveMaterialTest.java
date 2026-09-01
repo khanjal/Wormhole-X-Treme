@@ -132,6 +132,32 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
+    public void frameMaterialFollowsThePaletteNotTheShapeDeclaration()
+    {
+        // Regression: a Standard-geometry gate built out of lapis resolves to the Atlantis
+        // palette. Reporting the shape's declared OBSIDIAN would be a lie about what is
+        // physically there, and StargateAnimator restores lit chevrons using this value —
+        // so it would rebuild a lapis gate's chevrons in obsidian.
+        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        atlantis.put("structure", "LAPIS_BLOCK");
+        atlantis.put("iris", "YELLOW_STAINED_GLASS");
+        atlantis.put("light", "SEA_LANTERN");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Atlantis", atlantis);
+        MaterialGroupRegistry.load(section);
+
+        final StargateShape standard = new StargateShape();
+        standard.setShapeStructureMaterial(Material.OBSIDIAN);
+        standard.setShapeIrisMaterial(Material.STONE);
+
+        final Stargate gate = new Stargate();
+        gate.setGateShape(standard);
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+
+        assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterial());
+    }
+
+    @Test
     public void gateWithNoShapeAtAllStillReturnsUsableMaterials()
     {
         final Stargate gate = new Stargate();
