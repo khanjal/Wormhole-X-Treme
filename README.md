@@ -169,6 +169,60 @@ An iris closes over the portal to block travel. When a remote gate's iris is act
 - Fix applied in this branch: the click handler now matches the exact lever block against the gate's stored `IrisLever` and `DialLever` positions, eliminating the misclassification.
 - If you still see unexpected behavior, check the server log for the gate's lever positions or use `/wormhole list` to inspect gate state.
 
+## Material groups
+
+A gate's **shape** is its geometry; its **material group** is what that geometry is built
+from. The two are independent, so one shape file can be built in any palette.
+
+Groups are defined in `config.yml` under `gate-material-groups`. The first listed is the
+default:
+
+```yaml
+gate-material-groups:
+  Standard:
+    structure: OBSIDIAN
+    portal: WATER
+    iris: STONE
+    light: GLOWSTONE
+  Atlantis:
+    structure: LAPIS_BLOCK
+    portal: WATER
+    iris: YELLOW_STAINED_GLASS
+    light: SEA_LANTERN
+```
+
+A gate's palette is identified by the material of its **frame**, so every group must use a
+different `structure` material — build the Standard shape in obsidian and you get a
+Standard gate, build the same shape in lapis and you get an Atlantis one. A group that
+reuses a frame material already claimed by another is rejected at load with a warning,
+since it would make detection ambiguous.
+
+Material resolution order for any gate is: an explicit per-gate override (`/wormhole
+portalmaterial` and friends), then the gate's material group, then the shape file's own
+`PORTAL_MATERIAL` / `IRIS_MATERIAL` / `ACTIVE_MATERIAL` defaults. A shape whose materials
+should not be substitutable can opt out with `MATERIAL_GROUPS=Standard,Atlantis` in the
+`.shape` file; with no such line, every group is accepted.
+
+### Why this is not just a config convenience
+
+Gate detection scans every registered shape in turn, running a full geometry-and-material
+check on each. Before material groups, a palette variant meant a whole extra `.shape`
+file — `StandardAtlantis.shape` is `Standard.shape` with four lines changed — so each
+palette added a complete extra scan to every detection attempt.
+
+That matters more than it looks, because detection is not rare. Right-clicking a
+directional block that is not a gate falls back to probing 26 surrounding blocks against 6
+faces, which is 156 detection calls for one click. At nine shapes that is over 1,400 full
+geometry scans; each extra palette-as-shape would add another 156.
+
+With groups, the frame material is read from the world once and looked up in a map, so
+palettes cost nothing per detection. A server can offer twenty palettes and detection is
+exactly as fast as with one.
+
+The `StandardAtlantis.shape` and `StandardUniverse.shape` files still work and are kept so
+existing gates that reference them keep loading, but they are redundant now — the same
+gates can be built from `Standard.shape` in the Atlantis or Universe palette.
+
 ## Redstone activation
 
 Two redstone activation modes are supported and controlled by blocks registered to the gate at build time.

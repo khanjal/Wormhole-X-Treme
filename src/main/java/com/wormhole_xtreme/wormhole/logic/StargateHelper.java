@@ -13,6 +13,8 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
 
 import com.wormhole_xtreme.wormhole.model.GateSerializer;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateNetwork;
@@ -227,6 +229,54 @@ public final class StargateHelper
      * </pre>
      * where the origin is derived from the activation-holder position.
      */
+    /**
+     * Decides which material this gate's frame must be made of, by reading the first
+     * frame position out of the world.
+     *
+     * <p>The shape's own {@code STARGATE_MATERIAL} always wins, so shapes that predate
+     * material groups keep behaving exactly as before. Otherwise the block is looked up
+     * in {@link MaterialGroupRegistry}: if it names a configured palette, and the shape
+     * does not restrict itself to other palettes, that palette's frame material is what
+     * the rest of the scan verifies against.
+     *
+     * @return the material every frame block must be, or null if the frame belongs to no
+     *         palette this shape accepts
+     */
+    private static org.bukkit.Material resolveStructureMaterial(final World world,
+                                                                 final Stargate3DShape shape,
+                                                                 final ArrayList<StargateShapeLayer> shapeLayers,
+                                                                 final int ox, final int oy, final int oz,
+                                                                 final BlockFace facing, final BlockFace right)
+    {
+        final org.bukkit.Material shapeMaterial = shape.getShapeStructureMaterial();
+        for (int layerIdx = 1; layerIdx < shapeLayers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = shapeLayers.get(layerIdx);
+            if (layer == null || layer.getLayerBlockPositions().isEmpty())
+            {
+                continue;
+            }
+            final Integer[] pos = layer.getLayerBlockPositions().get(0);
+            final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
+            final int wy = oy + pos[1];
+            final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
+            final org.bukkit.Material found = world.getBlockAt(wx, wy, wz).getType();
+
+            if (found == shapeMaterial)
+            {
+                return shapeMaterial;
+            }
+            final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(found);
+            if (group != null && shape.acceptsMaterialGroup(group.getName()))
+            {
+                return group.getStructureMaterial();
+            }
+            // First frame block read and it matched nothing — no point scanning the rest.
+            return null;
+        }
+        return shapeMaterial;
+    }
+
     private static Stargate check3DShape(final Block clickedBlock,
                                           final BlockFace facing,
                                           final Stargate3DShape shape)
@@ -270,8 +320,20 @@ public final class StargateHelper
         final int oz = holder.getZ() - (activationLayerIdx - 1) * facing.getModZ() - aCol * right.getModZ();
 
         final World world = clickedBlock.getWorld();
-        final org.bukkit.Material structMat = shape.getShapeStructureMaterial();
         final int numLayers = shapeLayers.size();
+
+        // Resolve the palette from what is actually standing in the world rather than
+        // testing the one material the shape happens to name. Reading the first frame
+        // block and looking it up is a single map lookup, so a server can offer any
+        // number of palettes without making detection slower. Doing it the other way —
+        // one .shape file per palette — costs a full extra geometry scan per palette on
+        // every detection attempt, and detection already runs up to 156 times for a
+        // single click on a directional block that is not a gate.
+        final org.bukkit.Material structMat = resolveStructureMaterial(world, shape, shapeLayers, ox, oy, oz, facing, right);
+        if (structMat == null)
+        {
+            return null; // frame is not built from any palette this shape accepts
+        }
 
         // Verify every structure (S) block has the expected material,
         // AND every portal (P) block is NOT the structure material.
@@ -309,6 +371,9 @@ public final class StargateHelper
 
         // All structure blocks match.  Build and populate the Stargate object.
         final Stargate gate = new Stargate();
+        // Record which palette matched so the gate's portal, iris and light materials
+        // come from it rather than from the shape's own defaults.
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroupByStructureMaterial(structMat));
         gate.setGateShape(shape);
         gate.setGateFacing(facing);
         gate.setGateWorld(world);

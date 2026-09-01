@@ -60,26 +60,10 @@ class WormholeXTremeEntityListener implements Listener
         final Player p = (Player) event.getEntity();
         final Location current = p.getLocation();
         final Stargate closest = StargateManager.findClosestStargate(current);
-        if ((closest != null) && (((closest.isGateCustom()
-            ? closest.getGateCustomPortalMaterial()
-                : closest.getGateShape() != null
-                ? closest.getGateShape().getShapePortalMaterial()
-                : Material.WATER) == Material.LAVA) || ((closest.getGateTarget() != null) && ((closest.getGateTarget().isGateCustom()
-            ? closest.getGateTarget().getGateCustomPortalMaterial()
-            : closest.getGateTarget().getGateShape() != null
-                ? closest.getGateTarget().getGateShape().getShapePortalMaterial()
-                : Material.WATER) == Material.LAVA))))
+        if ((closest != null) && (((closest.getEffectivePortalMaterial()) == Material.LAVA) || ((closest.getGateTarget() != null) && ((closest.getGateTarget().getEffectivePortalMaterial()) == Material.LAVA))))
         {
             final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
-            if ((closest.isGateActive() || closest.isGateRecentlyActive()) && (((blockDistanceSquared <= (closest.isGateCustom()
-                ? closest.getGateCustomWooshDepthSquared()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapeWooshDepthSquared()
-                    : 0)) && ((closest.isGateCustom()
-                ? closest.getGateCustomWooshDepth()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapeWooshDepth()
-                    : 0) != 0)) || (blockDistanceSquared <= 16)))
+            if ((closest.isGateActive() || closest.isGateRecentlyActive()) && (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 16)))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Event: \"" + event.getCause().toString() + "\" On: \"" + p.getName() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
                 p.setFireTicks(0);

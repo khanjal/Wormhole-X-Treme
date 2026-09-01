@@ -138,6 +138,184 @@ public class Stargate
     private int gateCustomWooshDepthSquared = -1;
 
     /**
+     * The palette this gate is built from. Set during detection; for gates read back from
+     * storage it stays null until {@link #getGateMaterialGroup()} resolves it lazily from
+     * the frame material in the world.
+     */
+    private MaterialGroup gateMaterialGroup = null;
+
+    /** Whether lazy group resolution has already run, so a genuine miss is not retried. */
+    private boolean gateMaterialGroupResolved = false;
+
+    /**
+     * Gets the material palette this gate is built from.
+     *
+     * <p>Resolution is lazy and cached. Gates loaded from storage do not persist their
+     * palette — it is recovered from the frame material in the world, which makes it
+     * self-healing (rebuild a gate in lapis and it becomes an Atlantis gate) and avoids
+     * touching the on-disk format. Doing it lazily rather than at load also keeps startup
+     * from forcing a chunk load for every gate on the server, which matters once a world
+     * has hundreds of them.
+     *
+     * @return the group, or null if the frame material matches no configured group
+     */
+    public MaterialGroup getGateMaterialGroup()
+    {
+        if (!gateMaterialGroupResolved)
+        {
+            gateMaterialGroupResolved = true;
+            if (gateMaterialGroup == null)
+            {
+                gateMaterialGroup = resolveMaterialGroupFromWorld();
+            }
+        }
+        return gateMaterialGroup;
+    }
+
+    /**
+     * Sets the material palette this gate is built from, skipping lazy resolution.
+     *
+     * @param group
+     *            the group, may be null
+     */
+    public void setGateMaterialGroup(final MaterialGroup group)
+    {
+        gateMaterialGroup = group;
+        gateMaterialGroupResolved = true;
+    }
+
+    /**
+     * Reads the gate's first frame block and looks its material up in the registry.
+     *
+     * @return the matching group, or null if the block is unreadable or unrecognised
+     */
+    private MaterialGroup resolveMaterialGroupFromWorld()
+    {
+        try
+        {
+            if (gateWorld == null || gateStructureBlocks.isEmpty())
+            {
+                return null;
+            }
+            final Location first = gateStructureBlocks.get(0);
+            final Material frame = gateWorld.getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()).getType();
+            return MaterialGroupRegistry.getGroupByStructureMaterial(frame);
+        }
+        catch (final Throwable ignore)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Gets the material the gate interior shows while a wormhole is open.
+     *
+     * <p>Resolution order is the same for every effective-material accessor: an explicit
+     * per-gate override set by an admin wins, then the gate's material palette, then the
+     * shape's own default.
+     *
+     * @return the portal material, never null
+     */
+    public Material getEffectivePortalMaterial()
+    {
+        if (gateCustom && (gateCustomPortalMaterial != null))
+        {
+            return gateCustomPortalMaterial;
+        }
+        final MaterialGroup group = getGateMaterialGroup();
+        if (group != null)
+        {
+            return group.getPortalMaterial();
+        }
+        return gateShape != null ? gateShape.getShapePortalMaterial() : Material.WATER;
+    }
+
+    /**
+     * Gets the material the iris is made of when engaged.
+     *
+     * @return the iris material, never null
+     */
+    public Material getEffectiveIrisMaterial()
+    {
+        if (gateCustom && (gateCustomIrisMaterial != null))
+        {
+            return gateCustomIrisMaterial;
+        }
+        final MaterialGroup group = getGateMaterialGroup();
+        if (group != null)
+        {
+            return group.getIrisMaterial();
+        }
+        return gateShape != null ? gateShape.getShapeIrisMaterial() : Material.STONE;
+    }
+
+    /**
+     * Gets the material the light blocks become while the gate is active.
+     *
+     * @return the light material, never null
+     */
+    public Material getEffectiveLightMaterial()
+    {
+        if (gateCustom && (gateCustomLightMaterial != null))
+        {
+            return gateCustomLightMaterial;
+        }
+        final MaterialGroup group = getGateMaterialGroup();
+        if (group != null)
+        {
+            return group.getLightMaterial();
+        }
+        return gateShape != null ? gateShape.getShapeLightMaterial() : Material.GLOWSTONE;
+    }
+
+    /**
+     * Gets the material the gate frame is built from.
+     *
+     * @return the structure material, never null
+     */
+    public Material getEffectiveStructureMaterial()
+    {
+        if (gateCustom && (gateCustomStructureMaterial != null))
+        {
+            return gateCustomStructureMaterial;
+        }
+        final MaterialGroup group = getGateMaterialGroup();
+        if (group != null)
+        {
+            return group.getStructureMaterial();
+        }
+        return gateShape != null ? gateShape.getShapeStructureMaterial() : Material.OBSIDIAN;
+    }
+
+    /**
+     * Gets the woosh depth used for splash effects.
+     *
+     * @return the woosh depth, 0 when the gate has none
+     */
+    public int getEffectiveWooshDepth()
+    {
+        if (gateCustom && (gateCustomWooshDepth >= 0))
+        {
+            return gateCustomWooshDepth;
+        }
+        return gateShape != null ? gateShape.getShapeWooshDepth() : 0;
+    }
+
+    /**
+     * Gets the woosh depth used for splash effects, squared for distance comparisons.
+     *
+     * @return the squared woosh depth
+     */
+    public int getEffectiveWooshDepthSquared()
+    {
+        if (gateCustom && (gateCustomWooshDepthSquared >= 0))
+        {
+            return gateCustomWooshDepthSquared;
+        }
+        return gateShape != null ? gateShape.getShapeWooshDepthSquared() : 0;
+    }
+
+    /**
      * Instantiates a new stargate.
      */
     public Stargate()

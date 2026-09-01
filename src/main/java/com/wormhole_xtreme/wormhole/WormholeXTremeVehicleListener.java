@@ -552,11 +552,7 @@ class WormholeXTremeVehicleListener implements Listener
         }
         catch (final Throwable ignore) {}
         final Stargate st = StargateManager.getGateFromBlock(ch);
-        if ((st != null) && st.isGateActive() && (st.getGateTarget() != null) && (ch.getType() == (st.isGateCustom()
-            ? st.getGateCustomPortalMaterial()
-            : st.getGateShape() != null
-                ? st.getGateShape().getShapePortalMaterial()
-                : org.bukkit.Material.WATER)))
+        if ((st != null) && st.isGateActive() && (st.getGateTarget() != null) && (ch.getType() == (st.getEffectivePortalMaterial())))
         {
             String gatenetwork;
             if (st.getGateNetwork() != null)

@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
@@ -99,6 +100,11 @@ public class ConfigurationYAML
                         missing.add(element);
                     }
                 }
+
+                // Material groups are a nested section, so they are read straight off the
+                // parsed YAML rather than through the flat Setting/ConfigKeys mechanism.
+                // A server with no such section falls back to the built-in Standard group.
+                loadMaterialGroups(map.get("gate-material-groups"));
             }
             // Append any missing keys to the existing file so future runs load them normally
             if (!missing.isEmpty())
@@ -109,6 +115,27 @@ public class ConfigurationYAML
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to read config.yml: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Hands the {@code gate-material-groups} section to the registry, tolerating a
+     * missing or malformed section.
+     *
+     * @param raw
+     *            the parsed value of the section, may be null
+     */
+    private static void loadMaterialGroups(final Object raw)
+    {
+        if (raw instanceof Map)
+        {
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> section = (Map<String, Object>) raw;
+            MaterialGroupRegistry.load(section);
+        }
+        else
+        {
+            MaterialGroupRegistry.load(null);
         }
     }
 

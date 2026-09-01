@@ -31,16 +31,8 @@ class StargateAnimator
      */
     static void animateOpening(final Stargate gate)
     {
-        final Material wooshMaterial = gate.isGateCustom()
-            ? gate.getGateCustomPortalMaterial()
-            : gate.getGateShape() != null
-                ? gate.getGateShape().getShapePortalMaterial()
-                : Material.WATER;
-        final int wooshDepth = gate.isGateCustom()
-            ? gate.getGateCustomWooshDepth()
-            : gate.getGateShape() != null
-                ? gate.getGateShape().getShapeWooshDepth()
-                : 0;
+        final Material wooshMaterial = gate.getEffectivePortalMaterial();
+        final int wooshDepth = gate.getEffectiveWooshDepth();
 
         if ((gate.getGateWooshBlocks() != null) && (gate.getGateWooshBlocks().size() > 0))
         {
@@ -233,11 +225,7 @@ class StargateAnimator
                     for (final Location l : gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()))
                     {
                         final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                        b.setType(gate.isGateCustom()
-                            ? gate.getGateCustomLightMaterial()
-                            : gate.getGateShape() != null
-                                ? gate.getGateShape().getShapeLightMaterial()
-                                : Material.GLOWSTONE);
+                        b.setType(gate.getEffectiveLightMaterial());
                     }
                 }
 
@@ -271,11 +259,7 @@ class StargateAnimator
                         for (final Location l : gate.getGateLightBlocks().get(i))
                         {
                             final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                            b.setType(gate.isGateCustom()
-                                ? gate.getGateCustomStructureMaterial()
-                                : gate.getGateShape() != null
-                                    ? gate.getGateShape().getShapeStructureMaterial()
-                                    : Material.OBSIDIAN);
+                            b.setType(gate.getEffectiveStructureMaterial());
                         }
                     }
                 }

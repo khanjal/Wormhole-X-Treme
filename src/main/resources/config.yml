@@ -16,3 +16,32 @@ permissions-auto-fallback: true
 
 # Example storage key (other keys are appended at runtime if missing):
 # storage-backend: file
+# Material groups define the palettes a stargate can be built from. The first group
+# listed is the default. A gate's palette is identified by the material of its frame,
+# so each group must use a different `structure` material — build the same shape in
+# obsidian and you get a Standard gate, in lapis an Atlantis one.
+#
+# Geometry lives in the .shape files and is completely independent of these palettes:
+# any shape can be built in any group, so adding a palette here does not need a new
+# .shape file. A shape may opt out by listing `MATERIAL_GROUPS=Standard,Atlantis`.
+#
+# structure: the frame. Identifies the group, so it must be unique.
+# portal:    what the interior shows while a wormhole is open.
+# iris:      what the iris is made of when engaged (a real, solid block).
+# light:     what the light blocks become while the gate is active.
+gate-material-groups:
+  Standard:
+    structure: OBSIDIAN
+    portal: WATER
+    iris: STONE
+    light: GLOWSTONE
+  Atlantis:
+    structure: LAPIS_BLOCK
+    portal: WATER
+    iris: YELLOW_STAINED_GLASS
+    light: SEA_LANTERN
+  Universe:
+    structure: DEEPSLATE_TILES
+    portal: WATER
+    iris: POLISHED_DEEPSLATE
+    light: OCHRE_FROGLIGHT

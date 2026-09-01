@@ -191,6 +191,10 @@ public class Stargate3DShape extends StargateShape
             {
                 setShapeRedstoneActivated(Boolean.valueOf(line.split("=")[1]));
             }
+            else if (line.startsWith("MATERIAL_GROUPS=") && (line.split("=").length > 1))
+            {
+                setShapeMaterialGroups(line.split("=")[1]);
+            }
         }
 
         setShapeWooshDepth(wooshDepth > 0

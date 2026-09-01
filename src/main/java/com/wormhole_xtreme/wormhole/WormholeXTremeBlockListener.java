@@ -153,22 +153,10 @@ class WormholeXTremeBlockListener implements Listener
             final Location current = event.getBlock().getLocation();
             // Localized lookup: scan nearby indexed gate blocks instead of iterating all gates
             final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
-            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.isGateCustom()
-                ? closest.getGateCustomPortalMaterial()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapePortalMaterial()
-                    : Material.WATER) == Material.LAVA))
+            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.getEffectivePortalMaterial()) == Material.LAVA))
             {
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
-                if (((blockDistanceSquared <= (closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepthSquared()
-                    : closest.getGateShape() != null
-                        ? closest.getGateShape().getShapeWooshDepthSquared()
-                        : 0)) && ((closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepth()
-                    : closest.getGateShape() != null
-                        ? closest.getGateShape().getShapeWooshDepth()
-                        : 0) != 0)) || (blockDistanceSquared <= 25))
+                if (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 25))
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Block Burn Distance Squared: \"" + blockDistanceSquared + "\"");
                     event.setCancelled(true);
@@ -221,20 +209,10 @@ class WormholeXTremeBlockListener implements Listener
             final Location current = event.getBlock().getLocation();
             // Localized lookup: scan nearby indexed gate blocks instead of iterating all gates
             final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
-            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.isGateCustom()
-                ? closest.getGateCustomPortalMaterial()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapePortalMaterial()
-                    : Material.WATER) == Material.LAVA))
+            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.getEffectivePortalMaterial()) == Material.LAVA))
             {
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
-                if (((blockDistanceSquared <= (closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepthSquared()
-                    : closest.getGateShape().getShapeWooshDepthSquared())) && ((closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepth()
-                    : closest.getGateShape() != null
-                        ? closest.getGateShape().getShapeWooshDepth()
-                        : 0) != 0)) || (blockDistanceSquared <= 25))
+                if (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 25))
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Block Type: \"" + event.getBlock().getType().toString() + "\" Proximity Block Ignite: \"" + event.getCause().toString() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
                     event.setCancelled(true);

@@ -64,6 +64,15 @@ public class StargateShape
     /** The sign material used for name and dial signs. */
     private Material shapeSignMaterial = Material.OAK_WALL_SIGN;
 
+    /**
+     * Material groups this shape may be built from, lowercased. Empty means every
+     * configured group is accepted, which is the default and what most shapes want:
+     * geometry and palette are independent, so any shape can be built in any palette.
+     * A shape restricts this only when a palette would make it ambiguous against
+     * another shape with the same frame layout.
+     */
+    private final java.util.Set<String> shapeMaterialGroups = new java.util.HashSet<String>();
+
     /** The shape woosh ticks. */
     private int shapeWooshTicks = 3;
 
@@ -374,6 +383,46 @@ public class StargateShape
      * 
      * @return the shape structure material
      */
+    /**
+     * Checks whether this shape may be built from the named material group.
+     *
+     * @param groupName
+     *            the group name, case-insensitive
+     * @return true if the shape declares no restriction, or names this group
+     */
+    public boolean acceptsMaterialGroup(final String groupName)
+    {
+        if (shapeMaterialGroups.isEmpty())
+        {
+            return true;
+        }
+        return groupName != null && shapeMaterialGroups.contains(groupName.toLowerCase());
+    }
+
+    /**
+     * Restricts this shape to a comma-separated list of material group names.
+     * An empty or blank list clears the restriction.
+     *
+     * @param csv
+     *            the comma-separated group names from the shape file
+     */
+    public void setShapeMaterialGroups(final String csv)
+    {
+        shapeMaterialGroups.clear();
+        if (csv == null)
+        {
+            return;
+        }
+        for (final String part : csv.split(","))
+        {
+            final String trimmed = part.trim().toLowerCase();
+            if (!trimmed.isEmpty())
+            {
+                shapeMaterialGroups.add(trimmed);
+            }
+        }
+    }
+
     public Material getShapeStructureMaterial()
     {
         return shapeStructureMaterial;
