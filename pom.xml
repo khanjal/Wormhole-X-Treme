@@ -102,17 +102,30 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Added for YAML configuration and per-gate YAML export/import -->
+		<!--
+			Both of these are compile-time only; neither is shaded into the jar.
+
+			SnakeYAML ships with the server — spigot-api declares it, and Bukkit's own
+			YamlConfiguration uses it. Bundling our own copy added ~600KB and risked
+			shadowing the server's newer version on our classloader.
+
+			SQLite is fetched at runtime by the server via the `libraries` block in
+			plugin.yml, which keeps a ~13MB driver out of a plugin most servers run on
+			flat files.
+		-->
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
+			<!-- Compiled against 2.0; the server supplies 2.2 at runtime. The API used
+			     here (Yaml load/dump, DumperOptions) is unchanged between them. -->
 			<version>2.0</version>
+			<scope>provided</scope>
 		</dependency>
-		<!-- SQLite for optional lightweight DB backend -->
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
 			<version>3.42.0.0</version>
+			<scope>provided</scope>
 		</dependency>
 		<!-- Test dependencies -->
 		<dependency>

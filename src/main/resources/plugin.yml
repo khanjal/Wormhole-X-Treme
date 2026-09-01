@@ -4,6 +4,12 @@ version: 1.0.0
 api-version: "1.20"
 authors: ["Lologarithm", "alron", "Khan Jal"]
 softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
+
+# Downloaded by the server from Maven Central on first start and cached in its
+# libraries/ folder, rather than bundled here. Only needed if storage-backend is
+# set to sqlite; the default file backend does not touch it.
+libraries:
+  - org.xerial:sqlite-jdbc:3.42.0.0
 description: >
   Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
   Iris, configurable Wormhole materials, and much much more.

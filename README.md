@@ -44,7 +44,16 @@ Build (skips tests):
 mvn -DskipTests package
 ```
 
-Output jar: `target/WormholeXTreme-1.0.0.jar`
+Output jar: `target/WormholeXTreme-1.0.0.jar` (~300KB).
+
+Nothing is bundled into the jar. SnakeYAML comes from the server — Spigot declares it
+and Bukkit's own config system uses it. The SQLite driver is declared in `plugin.yml`
+under `libraries:`, so the server fetches it from Maven Central on first start and caches
+it in its own `libraries/` folder.
+
+That means a server needs outbound network access the first time it loads this plugin
+**if** `storage-backend` is set to `sqlite`. The default `file` backend never touches the
+driver, so an air-gapped server on flat files is unaffected.
 
 ## Configuration
 
