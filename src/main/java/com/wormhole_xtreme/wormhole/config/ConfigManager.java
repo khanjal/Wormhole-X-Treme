@@ -75,16 +75,6 @@ public class ConfigManager
         ENTITY_SCAN_INTERVAL_TICKS,
         /** Whether to append newly-seen shape palettes to config.yml automatically. */
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
-        /** The configured storage backend. */
-        STORAGE_BACKEND,
-        /** SQLite file path for sqlite backend. */
-        STORAGE_SQLITE_PATH,
-        /** JDBC URL for MySQL/Postgres backends. */
-        STORAGE_JDBC_URL,
-        /** JDBC user for DB backends. */
-        STORAGE_JDBC_USER,
-        /** JDBC password for DB backends. */
-        STORAGE_JDBC_PASSWORD,
         /** Whether economy (Vault) integration is enabled. */
         ECONOMY_ENABLED,
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
@@ -283,33 +273,6 @@ public class ConfigManager
     protected static ConcurrentHashMap<ConfigKeys, Setting> getConfigurations()
     {
         return configurations;
-    }
-
-    /**
-     * Set the storage backend at runtime.
-     * This updates the in-memory configuration map; persisting to disk requires writing config.yml separately.
-     */
-    public static void setStorageBackend(final String backend)
-    {
-        configurations.put(ConfigKeys.STORAGE_BACKEND, new Setting(ConfigKeys.STORAGE_BACKEND, backend, "Storage backend", "WormholeXTreme"));
-    }
-
-    /**
-     * Get the configured storage backend.
-     */
-    public static String getStorageBackend()
-    {
-        final Setting s = configurations.get(ConfigKeys.STORAGE_BACKEND);
-        return (s != null) ? s.getStringValue() : "file";
-    }
-
-    /**
-     * Get sqlite path from configuration.
-     */
-    public static String getStorageSqlitePath()
-    {
-        final Setting s = configurations.get(ConfigKeys.STORAGE_SQLITE_PATH);
-        return (s != null) ? s.getStringValue() : "plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite";
     }
 
     /**

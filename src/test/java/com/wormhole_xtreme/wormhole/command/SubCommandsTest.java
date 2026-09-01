@@ -137,14 +137,4 @@ public class SubCommandsTest
         }
     }
 
-    @Test
-    public void storageCompletionFollowsBothMigrateForms()
-    {
-        final SubCommands.Entry storage = SubCommands.find("storage");
-        assertTrue(storage.completeArgs(new String[] { "storage", "" }).contains("migrate"));
-        // migrate <to> and migrate <from> <to> both take a backend at these positions.
-        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "" }).contains("sqlite"));
-        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "sqlite", "" }).contains("file"));
-        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "sqlite", "file", "" }).contains("force"));
-    }
 }

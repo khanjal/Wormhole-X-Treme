@@ -241,7 +241,7 @@ class WormholeXTremePlayerListener implements Listener
                 com.wormhole_xtreme.wormhole.model.StargateManager.addGateToNetwork(fresh, oldNet.getNetworkName());
             }
             com.wormhole_xtreme.wormhole.model.StargateManager.registerStargate(fresh);
-            com.wormhole_xtreme.wormhole.model.StargateDBManager.stargateToSQL(fresh);
+            com.wormhole_xtreme.wormhole.model.StargateDBManager.saveStargate(fresh);
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                 + "Gate '" + oldName + "' refreshed successfully.");
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,

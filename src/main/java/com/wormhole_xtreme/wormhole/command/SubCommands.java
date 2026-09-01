@@ -191,26 +191,6 @@ public final class SubCommands
                 args.length == 2 ? prefixed(args[1], "one", "two", "three", "true", "false") : none());
         register("restrict", aliases(), "/wormhole restrict <player> [count]",
             new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, null);
-        register("storage", aliases(), "/wormhole storage <backend|migrate> ...",
-            new com.wormhole_xtreme.wormhole.command.handlers.StorageCommand(), false, args ->
-            {
-                if (args.length == 2) return prefixed(args[1], "backend", "migrate");
-                final String last = args[args.length - 1];
-                if ("backend".equalsIgnoreCase(args[1]) && args.length == 3)
-                {
-                    return prefixed(last, "file", "sqlite");
-                }
-                if ("migrate".equalsIgnoreCase(args[1]))
-                {
-                    // migrate <to> [force] and migrate <from> <to> [force] are both valid.
-                    if (args.length == 3 || args.length == 4)
-                    {
-                        return prefixed(last, "file", "sqlite");
-                    }
-                    if (args.length == 5) return prefixed(last, "force");
-                }
-                return none();
-            });
     }
 
     private static void register(final String name, final List<String> aliases, final String usage,

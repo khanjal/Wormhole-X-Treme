@@ -5,11 +5,6 @@ api-version: "1.20"
 authors: ["Lologarithm", "alron", "Khan Jal"]
 softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
 
-# Downloaded by the server from Maven Central on first start and cached in its
-# libraries/ folder, rather than bundled here. Only needed if storage-backend is
-# set to sqlite; the default file backend does not touch it.
-libraries:
-  - org.xerial:sqlite-jdbc:3.42.0.0
 description: >
   Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
   Iris, configurable Wormhole materials, and much much more.
@@ -30,7 +25,7 @@ commands:
       Gates:    list, build, complete, remove, regenerate, refresh
       Travel:   go, compass, force
       Per gate: owner, idc, redstone, custom, portalmaterial, irismaterial, lightmaterial, wooshdepth
-      Server:   perms, shutdown_timeout, activate_timeout, cooldown, restrict, storage
+      Server:   perms, shutdown_timeout, activate_timeout, cooldown, restrict
       Run /<command> with no arguments for the full list.
 
   # legacy wx* command entries removed; now provided as aliases under `wormhole`.

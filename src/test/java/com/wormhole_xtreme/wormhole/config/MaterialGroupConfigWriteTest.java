@@ -60,7 +60,7 @@ public class MaterialGroupConfigWriteTest
     {
         final File cfg = new File(tempDir, "config.yml");
         Files.write(cfg.toPath(), java.util.Arrays.asList(
-            "storage-backend: file",
+            "log-level: INFO",
             "",
             "# Material groups",
             "gate-material-groups:",
@@ -82,7 +82,7 @@ public class MaterialGroupConfigWriteTest
         assertEquals("DIAMOND_BLOCK", ((Map<String, Object>) groups.get("Diamond")).get("structure"));
         assertEquals("GOLD_BLOCK", ((Map<String, Object>) groups.get("Diamond")).get("light"));
         // Keys on either side of the section must be untouched.
-        assertEquals("file", parsed.get("storage-backend"));
+        assertEquals("INFO", parsed.get("log-level"));
         assertEquals("INFO", parsed.get("log-level"));
     }
 
@@ -90,7 +90,7 @@ public class MaterialGroupConfigWriteTest
     public void sectionIsCreatedWhenTheConfigHasNoneYet() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList("storage-backend: file"));
+        Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));
 
         assertTrue(ConfigurationYAML.appendMaterialGroups(cfg, diamond()));
 
@@ -98,7 +98,7 @@ public class MaterialGroupConfigWriteTest
         final Map<String, Object> groups = (Map<String, Object>) parsed.get("gate-material-groups");
         assertNotNull(groups);
         assertTrue(groups.containsKey("Diamond"));
-        assertEquals("file", parsed.get("storage-backend"));
+        assertEquals("INFO", parsed.get("log-level"));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class MaterialGroupConfigWriteTest
     public void nothingIsWrittenForAnEmptyGroupList() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
-        Files.write(cfg.toPath(), java.util.Arrays.asList("storage-backend: file"));
+        Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));
         final byte[] before = Files.readAllBytes(cfg.toPath());
 
         assertFalse(ConfigurationYAML.appendMaterialGroups(cfg, new ArrayList<MaterialGroup>()));

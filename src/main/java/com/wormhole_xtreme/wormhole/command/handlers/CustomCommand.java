@@ -144,7 +144,7 @@ public class CustomCommand implements SubCommand
             gate.setGateCustomPortalMaterial(null);
             gate.setGateCustomLightMaterial(null);
             gate.setGateCustomIrisMaterial(null);
-            StargateDBManager.stargateToSQL(gate);
+            StargateDBManager.saveStargate(gate);
         }
         WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false,
             "Cleared snapshotted material overrides from " + affected.size() + " gate(s): " + gateNames(affected));

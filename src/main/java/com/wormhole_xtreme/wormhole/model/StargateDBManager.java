@@ -1,109 +1,65 @@
 package com.wormhole_xtreme.wormhole.model;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.bukkit.Server;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
-import com.wormhole_xtreme.wormhole.storage.StorageBackend;
-import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 
 /**
- * Adapter for storage backends.
- * Delegates to configured `StorageBackend` (sqlite/file) or falls back to YAML.
+ * Gate persistence.
+ *
+ * <p>Gates live in one YAML file each under {@code plugins/WormholeXTreme/.../gates}.
+ * There used to be a pluggable backend behind this — HSQLDB originally, later SQLite —
+ * but a keyed store of a few thousand small records read once at startup gets nothing
+ * from a database engine that a folder of files does not already give, and the drivers
+ * were most of the plugin's download size. The abstraction went with them.
  */
 public class StargateDBManager
 {
-    // Delegates to StorageFactory for backend lifecycle and access
-
     /**
-     * Load stargates using the selected backend. Falls back to YAML loader if no backend is present.
+     * Loads every stored gate and registers it.
+     *
+     * @param server
+     *            the server, used to resolve worlds
      */
     public static void loadStargates(final Server server)
     {
-        final StorageBackend backend = StorageFactory.getBackend();
-        if (backend != null)
-        {
-            final List<Stargate> loaded = backend.loadStargates(server);
-            for (final Stargate s : loaded)
-            {
-                // If backend returned a gate without an Owner, try to recover Owner from per-gate YAML file.
-                if ((s.getGateOwner() == null) || (s.getGateOwner().length() == 0))
-                {
-                    try
-                    {
-                        final String ownerFromYaml = StargateYamlManager.readOwnerFromYaml(s.getGateName());
-                        if ((ownerFromYaml != null) && (ownerFromYaml.length() > 0))
-                        {
-                            s.setGateOwner(ownerFromYaml);
-                        }
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Could not recover owner for " + s.getGateName() + " from YAML: " + e.getMessage());
-                    }
-                }
-                StargateManager.registerStargate(s);
-            }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, loaded.size() + " Wormholes loaded from configured storage backend.");
-            return;
-        }
-        // Fallback to YAML per-gate loader
         StargateYamlManager.loadStargates(server);
     }
 
     /**
-     * Save or update a stargate to the active backend. Falls back to YAML if no backend.
+     * Writes a gate to disk, creating or replacing its file.
+     *
+     * @param s
+     *            the gate to store
      */
-    public static void stargateToSQL(final Stargate s)
+    public static void saveStargate(final Stargate s)
     {
-        final StorageBackend backend = StorageFactory.getBackend();
-        if (backend != null)
-        {
-            try
-            {
-                backend.saveStargate(s);
-                return;
-            }
-            catch (final Exception e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Backend save failed, falling back to YAML: " + e.getMessage());
-            }
-        }
         StargateYamlManager.saveStargate(s);
     }
 
     /**
-     * Remove stargate from storage backend (or YAML). Safe when backend is null.
+     * Deletes a gate's stored file.
+     *
+     * @param s
+     *            the gate to forget
      */
-    protected static void removeStargateFromSQL(final Stargate s)
+    public static void removeStargate(final Stargate s)
     {
-        final StorageBackend backend = StorageFactory.getBackend();
-        if (backend != null)
-        {
-            try
-            {
-                backend.removeStargate(s);
-                return;
-            }
-            catch (final Exception e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Backend delete failed, falling back to YAML remove: " + e.getMessage());
-            }
-        }
         StargateYamlManager.removeStargate(s);
     }
 
     /**
-     * Shutdown backend if present.
+     * Nothing to close: the YAML store holds no handles between operations.
      */
     public static void shutdown()
     {
-        StorageFactory.shutdown();
     }
 
     /**
      * Legacy individual permissions storage is no longer supported. Return empty map.
+     *
+     * @return an empty map
      */
     public static ConcurrentHashMap<String, PermissionLevel> getAllIndividualPermissions()
     {
@@ -113,6 +69,11 @@ public class StargateDBManager
 
     /**
      * No-op for storing individual permissions; recommend using external permission plugin.
+     *
+     * @param player
+     *            the player
+     * @param pl
+     *            the level
      */
     public static void storeIndividualPermissionInDB(final String player, final PermissionLevel pl)
     {

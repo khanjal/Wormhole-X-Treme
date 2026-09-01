@@ -8,19 +8,8 @@ This guide provides quick-start instructions and examples for server operators a
 
 ## Quick commands
 - Admin command namespace: `/wormhole` (alias `/wx`).
-- Example: migrate storage to file (YAML):
-
-```
-/wormhole storage migrate file
-```
-
-- Migrate explicitly from SQLite to file:
-
-```
-/wormhole storage migrate sqlite file
-```
-
-Add `force` to overwrite YAML files when migrating to `file`.
+- Gates are stored as one YAML file each under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
+  There is no database backend to configure or migrate.
 
 ## Common user actions
 - Teleport to a gate (requires permission): `/wormhole go <gateName>`
@@ -44,7 +33,6 @@ Example insertion (Markdown):
 ```
 
 ## Troubleshooting
-- If you see `Invalid destination backend specified.` when running `/wx storage migrate`, ensure you provided a valid destination: `file` or `sqlite`.
 - For vehicle/boat teleport reattachment issues, run recent builds of Paper 1.20+ and use the vehicle-first teleport flow.
 
 ## Feedback and contributions

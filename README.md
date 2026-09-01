@@ -46,14 +46,8 @@ mvn -DskipTests package
 
 Output jar: `target/WormholeXTreme-1.0.0.jar` (~300KB).
 
-Nothing is bundled into the jar. SnakeYAML comes from the server — Spigot declares it
-and Bukkit's own config system uses it. The SQLite driver is declared in `plugin.yml`
-under `libraries:`, so the server fetches it from Maven Central on first start and caches
-it in its own `libraries/` folder.
-
-That means a server needs outbound network access the first time it loads this plugin
-**if** `storage-backend` is set to `sqlite`. The default `file` backend never touches the
-driver, so an air-gapped server on flat files is unaffected.
+Nothing is bundled into the jar and the plugin has no runtime dependencies. SnakeYAML
+comes from the server — Spigot declares it and Bukkit's own config system uses it.
 
 ## Configuration
 
@@ -61,8 +55,8 @@ On first run the plugin creates `plugins/WormholeXTreme/config.yml`. If you upda
 
 Important keys (kebab-case in `config.yml`):
 
-- `storage-backend`: `file` (default, one YAML file per gate) or `sqlite`.
-- `storage-sqlite-path`: path to the SQLite file when using the `sqlite` backend.
+Gates are stored as one YAML file each under `plugins/WormholeXTreme/.../gates`. There is
+no database to configure.
 
 Permissions are intended to be handled by Vault/LuckPerms. Legacy simple permissions were removed.
 
@@ -83,15 +77,7 @@ booleans depending on where you are in the line.
 
 **Server** — `perms <player> <level>`, `shutdown_timeout <seconds>` (alias `timeout`),
 `activate_timeout <seconds>`, `cooldown <one|two|three|true|false> [time]`,
-`restrict <player> [count]`, `storage ...`
-
-### Storage
-
-- `/wormhole storage backend <file|sqlite>` — set the backend at runtime.
-- `/wormhole storage migrate <to> [force]` — migrate, auto-detecting the source.
-- `/wormhole storage migrate <from> <to> [force]` — migrate from an explicit source.
-
-`force` overwrites existing YAML when migrating to the `file` backend.
+`restrict <player> [count]`
 
 ### Clearing snapshotted material overrides
 
@@ -107,20 +93,17 @@ a snapshot — someone who deliberately set an iris to stone meant stone, and a 
 match on one material is not evidence of anything. Gates you genuinely customised are left
 alone.
 
-## Storage and Migration
+## Storage
 
-- `file` backend uses per-gate YAML files stored in `plugins/WormholeXTreme/gates/` (one YAML per gate). This is the default.
-- `sqlite` backend stores gates in a single SQLite DB file (path from config).
+Gates are stored as one YAML file each, under
+`plugins/WormholeXTreme/WormholeXTremeDB/gates/`. Back them up by copying the folder; edit
+them by hand if you need to.
 
-HSQLDB support has been removed. It was the storage used by the original plugin, so if you
-are upgrading from a very old install with a `WormholeXTreme.script`/`.properties` database,
-migrate it with a build from before its removal first, or rebuild the gates by hand.
-
-Migration notes:
-- `/wormhole storage migrate <to> [force]` migrates from the current backend.
-- `/wormhole storage migrate sqlite file [force]` reads explicitly from SQLite.
-- Migration is non-destructive by default: existing YAML files are skipped unless `force` is used.
-
+There is no database backend and nothing to configure. Earlier versions offered HSQLDB and
+SQLite; both are gone. A few thousand small records read once at startup and written one at
+a time gains nothing from a database engine, and the drivers were over 95% of the plugin's
+download size. If you are coming from an install that used one of them, migrate with a
+build from before their removal, or rebuild the gates.
 
 ## Shapes
 
@@ -356,13 +339,12 @@ Note that a rising edge **toggles**: if the gate is already open when the pulse 
 - `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
 - All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
 - Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
-- Code now provides a `StorageBackend` interface and a `SqliteStorage` scaffold at `src/main/java/com/wormhole_xtreme/wormhole/storage/`.
 - `StargateYamlManager` handles per-gate YAML read/write.
 - `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
 
 ## Troubleshooting
 
-- If gates disappear after restart: check `plugins/WormholeXTreme/gates/` for YAML files or the configured DB file at `storage-sqlite-path`/JDBC URL.
+- If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
 - Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
 
 ## Economy

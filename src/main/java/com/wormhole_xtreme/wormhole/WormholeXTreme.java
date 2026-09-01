@@ -13,8 +13,6 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.storage.StorageBackend;
-import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
@@ -179,7 +177,7 @@ public class WormholeXTreme extends JavaPlugin
                     {
                         gate.shutdownStargate(false);
                     }
-                    StargateDBManager.stargateToSQL(gate);
+                    StargateDBManager.saveStargate(gate);
                 }
 
                 StargateDBManager.shutdown();
@@ -230,26 +228,11 @@ public class WormholeXTreme extends JavaPlugin
         prettyLog(Level.INFO, true, "Loading stargates.");
         try
         {
-            final String backend = com.wormhole_xtreme.wormhole.config.ConfigManager.getStorageBackend();
-            prettyLog(Level.INFO, true, "Selected storage backend: " + backend);
-            StorageFactory.initialize();
-            final StorageBackend sb = StorageFactory.getBackend();
-            if (sb != null)
-            {
-                final java.util.List<Stargate> loaded = sb.loadStargates(getThisPlugin().getServer());
-                for (final Stargate s : loaded)
-                {
-                    StargateManager.registerStargate(s);
-                }
-            }
-            else
-            {
-                StargateDBManager.loadStargates(getThisPlugin().getServer());
-            }
+            StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, false, "Storage initialization failed, falling back to existing DB/YAML logic: " + e.getMessage());
+            prettyLog(Level.WARNING, false, "Failed to load stored gates: " + e.getMessage());
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         registerEvents(false);

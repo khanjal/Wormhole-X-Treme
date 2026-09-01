@@ -14,8 +14,6 @@ permissions-support-disable: false
 # disable the automatic fallback.
 permissions-auto-fallback: true
 
-# Example storage key (other keys are appended at runtime if missing):
-# storage-backend: file
 # Material groups define the palettes a stargate can be built from. The first group
 # listed is the default. A gate's palette is identified by the material of its frame,
 # so each group must use a different `structure` material — build the same shape in

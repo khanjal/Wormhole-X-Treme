@@ -283,7 +283,7 @@ public class StargateManager
                         + " RedstoneGateActivated=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
                         + " RedstoneGateActivatedType=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
                     );
-            StargateDBManager.stargateToSQL(complete);
+            StargateDBManager.saveStargate(complete);
 
             // For sign-powered gates, initialize the DHD sign by cycling to the first available target.
             if (complete.isGateSignPowered() && complete.getGateDialSignBlock() != null)
@@ -799,7 +799,7 @@ public class StargateManager
     public static void removeStargate(final Stargate s)
     {
         getStargateList().remove(normalizeGateName(s.getGateName()));
-        StargateDBManager.removeStargateFromSQL(s);
+        StargateDBManager.removeStargate(s);
         if (s.getGateNetwork() != null)
         {
             synchronized (s.getGateNetwork().getNetworkGateLock())

@@ -43,22 +43,4 @@ public class ConfigManagerTest
         }
     }
 
-    @Test
-    public void defaultStorageBackendIsFile()
-    {
-        assertEquals("file", ConfigManager.getStorageBackend(), "Default storage backend should be 'file'");
-    }
-
-    @Test
-    public void setAndGetStorageBackend()
-    {
-        ConfigManager.setStorageBackend("sqlite");
-        assertEquals("sqlite", ConfigManager.getStorageBackend(), "Storage backend should reflect set value");
-    }
-
-    @Test
-    public void defaultSqlitePath()
-    {
-        assertEquals("plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite", ConfigManager.getStorageSqlitePath(), "Default sqlite path should match expected value");
-    }
 }

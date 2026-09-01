@@ -109,9 +109,8 @@
 			YamlConfiguration uses it. Bundling our own copy added ~600KB and risked
 			shadowing the server's newer version on our classloader.
 
-			SQLite is fetched at runtime by the server via the `libraries` block in
-			plugin.yml, which keeps a ~13MB driver out of a plugin most servers run on
-			flat files.
+			Gates are stored as one YAML file each, so the plugin needs no database
+			driver at all.
 		-->
 		<dependency>
 			<groupId>org.yaml</groupId>
@@ -119,12 +118,6 @@
 			<!-- Compiled against 2.0; the server supplies 2.2 at runtime. The API used
 			     here (Yaml load/dump, DumperOptions) is unchanged between them. -->
 			<version>2.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.xerial</groupId>
-			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.42.0.0</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- Test dependencies -->
