@@ -60,18 +60,44 @@ Permissions are intended to be handled by Vault/LuckPerms. Legacy simple permiss
 
 ## Commands
 
-All commands are run as `/wormhole <subcommand> ...` unless otherwise noted.
+Everything is a subcommand of `/wormhole` (aliased `/wx`). Run it with no arguments for the
+list; tab completion offers subcommand names, then gate names, networks, backends or
+booleans depending on where you are in the line.
 
-- `/wormhole list` — list available gates.
-- `/wormhole custom [stargate|-all] <true|false>` — toggle custom-shape mode for a gate or all gates.
-- `/wormhole cooldown [false|true|group] <time>` — manage use cooldowns (group names: `one`, `two`, `three`).
-- `/wormhole activate` — (varies by server) activate gate; see plugin help output.
+**Gates** — `list [network]`, `build <shape>`, `complete <name> [idc=IDC] [net=NET]`,
+`remove <gate>`, `regenerate <gate>` (alias `regen`), `refresh`
 
-Storage commands (admin):
-- `/wormhole storage backend <file|sqlite|mysql|postgres>` — set storage backend at runtime (use `config.yml` rewrite to persist).
-- `/wormhole storage migrate <backend> [force]` — migrate gates to the specified backend. `force` overwrites existing YAML when migrating to file.
+**Travel** — `go <gate>`, `compass`, `force <gate>`
 
-Other administrative commands (examples): `/wormhole owner`, `/wormhole custom`, `/wormhole irismaterial`, `/wormhole lightmaterial`, etc. Use plugin help (or `/help` with the HelpSupport plugin) for the full command list.
+**Per gate** — `owner <gate> [player]`, `idc <gate> [code]`, `redstone <gate> [true|false]`,
+`custom <gate> [true|false]`, `portalmaterial`, `irismaterial`, `lightmaterial`,
+`wooshdepth`
+
+**Server** — `perms <player> <level>`, `shutdown_timeout <seconds>` (alias `timeout`),
+`activate_timeout <seconds>`, `cooldown <one|two|three|true|false> [time]`,
+`restrict <player> [count]`, `storage ...`
+
+### Storage
+
+- `/wormhole storage backend <file|sqlite|mysql|postgres>` — set the backend at runtime.
+- `/wormhole storage migrate <to> [force]` — migrate, auto-detecting the source.
+- `/wormhole storage migrate <from> <to> [force]` — migrate from an explicit source.
+
+`force` overwrites existing YAML when migrating to the `file` backend.
+
+### Clearing snapshotted material overrides
+
+Older versions of `/wormhole custom <gate> true` copied the shape's materials into the
+gate's own override fields. Those copies pin a gate to the materials that were current at
+the time and stop it following its [material group](#material-groups).
+
+`/wormhole custom -clean` reports which gates are affected. `/wormhole custom -clean confirm`
+clears them, after which those gates follow their palette again.
+
+Only a gate whose *whole set* of four overrides matches the built-in defaults is treated as
+a snapshot — someone who deliberately set an iris to stone meant stone, and a coincidental
+match on one material is not evidence of anything. Gates you genuinely customised are left
+alone.
 
 ## Storage and Migration
 

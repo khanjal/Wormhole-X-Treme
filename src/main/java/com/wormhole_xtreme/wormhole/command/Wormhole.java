@@ -214,72 +214,18 @@ public class Wormhole implements CommandExecutor
                 if (a.length == 0)
                 {
                     sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, wooshdepth, cooldown, restrict, custom.");
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: " + SubCommands.nameList());
                     return true;
                 }
-                if (a[0].equalsIgnoreCase("owner"))
+
+                final SubCommands.Entry entry = SubCommands.find(a[0]);
+                if (entry != null)
                 {
-                    return doOwner(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("perm") || a[0].equalsIgnoreCase("perms"))
-                {
-                    return new com.wormhole_xtreme.wormhole.command.handlers.PermsCommand().execute(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("portalmaterial"))
-                {
-                    return doPortalMaterial(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("irismaterial"))
-                {
-                    return doIrisMaterial(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("timeout") || a[0].equalsIgnoreCase("shutdown_timeout"))
-                {
-                    return doShutdownTimeout(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("activate_timeout"))
-                {
-                    return doActivateTimeout(sender, a);
-                }
-                
-                else if (a[0].equalsIgnoreCase("regenerate") || a[0].equalsIgnoreCase("regen"))
-                {
-                    return doRegenerate(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("storage"))
-                {
-                    return new com.wormhole_xtreme.wormhole.command.handlers.StorageCommand().execute(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("redstone"))
-                {
-                    return doRedstone(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("custom"))
-                {
-                    return doCustom(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("lightmaterial"))
-                {
-                    return doLightMaterial(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("wooshdepth"))
-                {
-                    return doWooshDepth(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("cooldown"))
-                {
-                    return doCooldown(sender, a);
-                }
-                else if (a[0].equalsIgnoreCase("restrict"))
-                {
-                    return doRestrict(sender, a);
+                    return entry.run(sender, a);
                 }
 
-                else
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands are 'owner', 'perms', 'portalmaterial', 'irismaterial', 'lightmaterial', 'shutdown_timeout', 'activate_timeout', 'simple', 'regenerate', 'redstone', 'wooshdepth', 'cooldown', 'restrict', & 'custom'.");
-                }
+                sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands: " + SubCommands.nameList());
             }
             else
             {

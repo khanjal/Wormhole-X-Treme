@@ -20,12 +20,12 @@ commands:
     description: Wormhole administration and configuration commands (canonical admin command).
     aliases: [wx]
     usage: |
-      /<command> <commandtype> [ARG1] [ARG2]
-      Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, custom, storage.
-      Storage subcommands:
-        /<command> storage migrate <to> [force]         # Auto-detect source (sqlite/hsqldb/current)
-        /<command> storage migrate <from> <to> [force]  # Explicit source -> destination
-      Supported backends: file, sqlite, hsqldb, mysql, postgres
+      /<command> <subcommand> [args]
+      Gates:    list, build, complete, remove, regenerate, refresh
+      Travel:   go, compass, force
+      Per gate: owner, idc, redstone, custom, portalmaterial, irismaterial, lightmaterial, wooshdepth
+      Server:   perms, shutdown_timeout, activate_timeout, cooldown, restrict, storage
+      Run /<command> with no arguments for the full list.
 
   # legacy wx* command entries removed; now provided as aliases under `wormhole`.
 
