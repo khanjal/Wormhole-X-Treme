@@ -97,24 +97,18 @@ public class WXPermissions
         {
             return false;
         }
+        // An operator may do anything with a gate, with or without a permissions plugin
+        // installed. This deliberately outranks a negated node: on a server where someone
+        // has been given op, that is taken as the final word.
+        //
+        // Written as a blanket allow rather than a list of the permission types that
+        // happen to exist today. It used to be a switch naming all ten with
+        // `default: return false`, so adding an eleventh type and forgetting to list it
+        // would have silently denied it to operators — the failure would look like a
+        // permissions plugin misconfiguration rather than a missing case.
         if (player.isOp())
         {
-            switch (permissiontype)
-            {
-                case DAMAGE :
-                case REMOVE :
-                case CONFIG :
-                case GO :
-                case SIGN :
-                case DIALER :
-                case USE :
-                case LIST :
-                case COMPASS :
-                case BUILD :
-                    return true;
-                default :
-                    return false;
-            }
+            return true;
         }
         // If a gate exists but has no owner, treat it as public: allow common use actions.
         // This makes owner==null gates usable by any player.

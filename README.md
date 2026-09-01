@@ -58,7 +58,14 @@ Important keys (kebab-case in `config.yml`):
 Gates are stored as one YAML file each under `plugins/WormholeXTreme/.../gates`. There is
 no database to configure.
 
-Permissions are intended to be handled by Vault/LuckPerms. Legacy simple permissions were removed.
+Permissions go through Bukkit's `player.hasPermission()`, so any permission plugin works —
+LuckPerms, a Vault-bridged provider, or the server's own `ops.json`. There is no separate
+permission system to configure, and Vault is not required for permissions (only for economy,
+which is optional and detected at runtime).
+
+**An operator may do anything with a gate**, with or without a permissions plugin. This
+deliberately outranks a negated node: on a server where someone has been given op, that is
+taken as the final word.
 
 ## Commands
 
