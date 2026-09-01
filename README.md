@@ -315,8 +315,18 @@ side, as does a dropped item or a wandering cow. The sweep runs every
 Anything riding something else travels with its carrier rather than separately, and
 anything that just came through is ignored for a moment so it is not bounced straight back.
 
-Note that gates do not filter by mob type. If you dial a gate into a base and leave it
-open, hostile mobs can use it. Close gates you are not using, or put an iris on them.
+### A wormhole runs one way
+
+Dialling leaves the origin gate holding a target and the destination gate holding none,
+and every path that moves something through a gate keys off having a target. The
+destination end is therefore an exit, not an entrance: nothing travels back up an open
+wormhole, and a player who walks into the destination ring is pushed back out rather than
+sent anywhere.
+
+That means a gate dialled out of your base is not a door mobs can wander in through. Things
+standing in *your* gate are sent to the far end, never the reverse. Gates do not filter by
+mob type, so a creeper in your own gate room will happily be sent along with you — but
+nothing arrives from the other side on its own.
 
 ## Redstone activation
 
