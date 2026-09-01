@@ -9,7 +9,7 @@ import com.wormhole_xtreme.wormhole.storage.StorageBackend;
 import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 
 /**
- * Adapter for storage backends. Replaces legacy HSQLDB-specific manager.
+ * Adapter for storage backends.
  * Delegates to configured `StorageBackend` (sqlite/file) or falls back to YAML.
  */
 public class StargateDBManager

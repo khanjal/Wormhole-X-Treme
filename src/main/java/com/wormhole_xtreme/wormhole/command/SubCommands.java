@@ -198,14 +198,14 @@ public final class SubCommands
                 final String last = args[args.length - 1];
                 if ("backend".equalsIgnoreCase(args[1]) && args.length == 3)
                 {
-                    return prefixed(last, "file", "sqlite", "mysql", "postgres");
+                    return prefixed(last, "file", "sqlite");
                 }
                 if ("migrate".equalsIgnoreCase(args[1]))
                 {
                     // migrate <to> [force] and migrate <from> <to> [force] are both valid.
                     if (args.length == 3 || args.length == 4)
                     {
-                        return prefixed(last, "file", "sqlite", "hsqldb", "mysql", "postgres");
+                        return prefixed(last, "file", "sqlite");
                     }
                     if (args.length == 5) return prefixed(last, "force");
                 }

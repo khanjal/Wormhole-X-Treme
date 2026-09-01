@@ -144,7 +144,7 @@ public class SubCommandsTest
         assertTrue(storage.completeArgs(new String[] { "storage", "" }).contains("migrate"));
         // migrate <to> and migrate <from> <to> both take a backend at these positions.
         assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "" }).contains("sqlite"));
-        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "hsqldb", "" }).contains("file"));
-        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "hsqldb", "file", "" }).contains("force"));
+        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "sqlite", "" }).contains("file"));
+        assertTrue(storage.completeArgs(new String[] { "storage", "migrate", "sqlite", "file", "" }).contains("force"));
     }
 }

@@ -27,10 +27,9 @@ public class StorageMigrator
      * If force is false existing YAML files will not be overwritten.
      *
      * Usage from in-game or console:
-     *   /wx migrate file          — HSQLDB (or current backend) → per-gate YAML files
-     *   /wx migrate sqlite        — HSQLDB (or current backend) → SQLite
-     *   /wx migrate hsqldb file   — explicitly read from HSQLDB then write to YAML
-     *   /wx migrate hsqldb sqlite — explicitly read from HSQLDB then write to SQLite
+     *   /wx migrate file          — current backend → per-gate YAML files
+     *   /wx migrate sqlite        — current backend → SQLite
+     *   /wx migrate sqlite file   — explicitly read from SQLite then write to YAML
      */
     public static void migrateTo(final String backend, final boolean force, final CommandSender sender)
     {
@@ -52,20 +51,10 @@ public class StorageMigrator
         // --- Resolve source gates -----------------------------------------------
         List<Stargate> gates = Collections.emptyList();
 
-        // Explicit source handling (support 'hsqldb' and 'sqlite')
+        // Explicit source handling
         if (source != null)
         {
-            if ("hsqldb".equalsIgnoreCase(source))
-            {
-                sender.sendMessage("[WX] Reading gates from legacy HSQLDB database...");
-                gates = loadFromHsqldb(server, sender);
-                if (gates.isEmpty())
-                {
-                    return; // message already sent inside loadFromHsqldb
-                }
-                sender.sendMessage("[WX] HSQLDB: " + gates.size() + " gate(s) read.");
-            }
-            else if ("sqlite".equalsIgnoreCase(source))
+            if ("sqlite".equalsIgnoreCase(source))
             {
                 sender.sendMessage("[WX] Reading gates from SQLite database...");
                 gates = loadFromSqlite(server, sender);
@@ -77,14 +66,14 @@ public class StorageMigrator
             }
             else
             {
-                sender.sendMessage("[WX] Unknown source '" + source + "'. Supported sources: hsqldb, sqlite, or omit to use current backend.");
+                sender.sendMessage("[WX] Unknown source '" + source + "'. Supported source: sqlite, or omit to use current backend.");
                 return;
             }
         }
         else
         {
-            // No explicit source: try to auto-detect legacy DBs first (sqlite, then hsqldb),
-            // otherwise fall back to the currently configured backend in memory.
+            // No explicit source: try to auto-detect a legacy SQLite DB first, otherwise
+            // fall back to the currently configured backend in memory.
             try
             {
                 // Prefer SQLite if a DB file exists
@@ -103,17 +92,6 @@ public class StorageMigrator
                     }
                 }
                 catch (final Throwable ignore) {}
-
-                // If no gates yet, try legacy HSQLDB
-                if (gates.isEmpty())
-                {
-                    final List<Stargate> hsq = loadFromHsqldb(server, sender);
-                    if (!hsq.isEmpty())
-                    {
-                        gates = hsq;
-                        sender.sendMessage("[WX] HSQLDB: " + gates.size() + " gate(s) read.");
-                    }
-                }
 
                 // If still empty, load from the currently-configured backend
                 if (gates.isEmpty())
@@ -291,8 +269,7 @@ public class StorageMigrator
     }
 
     /**
-     * Load all stargates from the legacy HSQLDB database directly, bypassing the
-     * currently-configured backend. Used so you can migrate without first editing config.yml.
+     * Counts the per-gate YAML files in a directory, for the before/after migration report.
      */
     private static int countYamlFiles(final File dir)
     {
@@ -309,30 +286,6 @@ public class StorageMigrator
             }
         });
         return (files != null) ? files.length : 0;
-    }
-
-    private static List<Stargate> loadFromHsqldb(final Server server, final CommandSender sender)
-    {
-        String hsqlBase;
-        try
-        {
-            hsqlBase = new File(WormholeXTreme.getThisPlugin().getDataFolder(), "WormholeXTreme").getAbsolutePath();
-        }
-        catch (final Throwable t)
-        {
-            hsqlBase = "plugins" + File.separator + "WormholeXTreme" + File.separator + "WormholeXTreme";
-        }
-        sender.sendMessage("[WX] HSQLDB: looking for legacy database at: " + hsqlBase + ".properties");
-        final HsqldbStorage hsql = new HsqldbStorage();
-        hsql.initialize();
-        if (!hsql.isAvailable())
-        {
-            sender.sendMessage("[WX] HSQLDB: no legacy database files found — nothing to migrate.");
-            return Collections.emptyList();
-        }
-        final List<Stargate> gates = hsql.loadStargates(server);
-        hsql.shutdown();
-        return gates;
     }
 
     private static List<Stargate> loadFromSqlite(final Server server, final CommandSender sender)

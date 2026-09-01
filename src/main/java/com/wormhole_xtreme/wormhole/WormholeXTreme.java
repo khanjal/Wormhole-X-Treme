@@ -18,7 +18,6 @@ import com.wormhole_xtreme.wormhole.storage.StorageFactory;
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 import com.wormhole_xtreme.wormhole.plugin.PermissionsSupport;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
-import com.wormhole_xtreme.wormhole.utils.DBUpdateUtil;
 
 /**
  * WormholeXtreme for Bukkit.
@@ -278,8 +277,6 @@ public class WormholeXTreme extends JavaPlugin
         // Load our config files and set logging level right away.
         ConfigManager.setupConfigs(getThisPlugin().getName());
         WormholeXTreme.setPrettyLogLevel(ConfigManager.getLogLevel());
-        // Make sure DB is up to date with latest SCHEMA
-        DBUpdateUtil.updateDB();
         // Load our shapes and internal permissions. Stargates are loaded in onEnable
         // because world creation is not allowed during plugin startup (onLoad).
         StargateShapeRegistry.loadShapes();

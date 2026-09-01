@@ -28,13 +28,6 @@ public class StorageFactory
                 backend = s;
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Storage backend: SQLite initialized.");
             }
-            else if (b != null && b.equalsIgnoreCase("hsqldb"))
-            {
-                final HsqldbStorage h = new HsqldbStorage();
-                h.initialize();
-                backend = h;
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Storage backend: HSQLDB (read-only legacy) initialized.");
-            }
             else
             {
                 backend = null; // use YAML per-gate files

@@ -52,9 +52,8 @@ On first run the plugin creates `plugins/WormholeXTreme/config.yml`. If you upda
 
 Important keys (kebab-case in `config.yml`):
 
-- `storage-backend`: `file` (default), `sqlite`, `mysql`, `postgres`
-- `storage-sqlite-path`: path to SQLite file when using `sqlite` backend.
-- `storage-jdbc-url`, `storage-jdbc-user`, `storage-jdbc-password`: for JDBC backends.
+- `storage-backend`: `file` (default, one YAML file per gate) or `sqlite`.
+- `storage-sqlite-path`: path to the SQLite file when using the `sqlite` backend.
 
 Permissions are intended to be handled by Vault/LuckPerms. Legacy simple permissions were removed.
 
@@ -79,7 +78,7 @@ booleans depending on where you are in the line.
 
 ### Storage
 
-- `/wormhole storage backend <file|sqlite|mysql|postgres>` — set the backend at runtime.
+- `/wormhole storage backend <file|sqlite>` — set the backend at runtime.
 - `/wormhole storage migrate <to> [force]` — migrate, auto-detecting the source.
 - `/wormhole storage migrate <from> <to> [force]` — migrate from an explicit source.
 
@@ -101,27 +100,18 @@ alone.
 
 ## Storage and Migration
 
-- `file` backend uses per-gate YAML files stored in `plugins/WormholeXTreme/gates/` (one YAML per gate).
-- `sqlite` backend stores gates in an SQLite DB file (path from config). A `SqliteStorage` scaffold is provided.
-- Legacy HSQLDB containers are supported for migration as a read-only source; the plugin ships a migration adapter to read old `Stargates(Name, GateData)` rows and export them to a writable backend.
+- `file` backend uses per-gate YAML files stored in `plugins/WormholeXTreme/gates/` (one YAML per gate). This is the default.
+- `sqlite` backend stores gates in a single SQLite DB file (path from config).
+
+HSQLDB support has been removed. It was the storage used by the original plugin, so if you
+are upgrading from a very old install with a `WormholeXTreme.script`/`.properties` database,
+migrate it with a build from before its removal first, or rebuild the gates by hand.
 
 Migration notes:
-- The built-in migrator supports reading from the currently-configured backend or explicitly from legacy HSQLDB. Use `/wormhole storage migrate hsqldb <dest>` to read directly from legacy `.properties/.script` HSQLDB files in the plugin data folder.
-- Examples:
-	- Migrate from HSQLDB to per-gate YAML files (non-destructive):
-
-		/wormhole storage migrate hsqldb file
-
-	- Migrate from HSQLDB to SQLite:
-
-		/wormhole storage migrate hsqldb sqlite
-
-	- Force overwrite existing YAML files when migrating to `file`:
-
-		/wormhole storage migrate hsqldb file force
-
+- `/wormhole storage migrate <to> [force]` migrates from the current backend.
+- `/wormhole storage migrate sqlite file [force]` reads explicitly from SQLite.
 - Migration is non-destructive by default: existing YAML files are skipped unless `force` is used.
-- The migrator opens legacy HSQLDB read-only and does not modify the original DB files; still, keep external backups before large migrations.
+
 
 ## Shapes
 

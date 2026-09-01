@@ -14,10 +14,10 @@ This guide provides quick-start instructions and examples for server operators a
 /wormhole storage migrate file
 ```
 
-- Migrate explicitly from legacy HSQLDB to file:
+- Migrate explicitly from SQLite to file:
 
 ```
-/wormhole storage migrate hsqldb file
+/wormhole storage migrate sqlite file
 ```
 
 Add `force` to overwrite YAML files when migrating to `file`.
