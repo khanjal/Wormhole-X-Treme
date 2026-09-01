@@ -2,6 +2,75 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.1.0 (2026-09-01)
+
+First published release. The original project ended at 0.854; 1.0.0 was an internal
+milestone of this fork and was never tagged or released.
+
+Requires **Java 17** and a **Minecraft 1.20.4** server. Runs on CraftBukkit, Spigot, Paper,
+Purpur and Pufferfish from a single jar. Folia is not supported.
+
+### Gates
+
+- Portal interiors are now server-side `AIR` with the portal material drawn to nearby
+  clients, so travellers no longer drown or float in a water gate. The iris is deliberately
+  still a real block — a client-only iris would let players walk through a closed one.
+- Ridden animals travel with their rider, and riderless horses, camels, pigs, donkeys,
+  llamas and striders can walk through on their own. They previously fell between two code
+  paths because Bukkit classifies them as `Vehicle` while they raise no `VehicleMoveEvent`.
+- Minecarts and boats teleport again. They had stopped entirely: the vehicle listener still
+  compared the portal block's material, which can never match once the portal is air.
+- Projectiles cross gates and keep flying, retaining their shooter so kills stay credited.
+  They are consumed and re-fired rather than teleported, and detection walks the path
+  travelled each tick because at bow speed an arrow steps over a one-block-thick portal.
+- Mobs, animals, dropped items and XP orbs travel; item frames and paintings do not.
+- Wormholes are one way. Only the origin holds a target, so a gate dialled out of a base is
+  not a door mobs can wander back through.
+- Redstone activates a gate from any component touching its activation block, so a detector
+  rail wired into a gate now works.
+
+### Material groups
+
+Shapes describe geometry; `config.yml` describes palettes, selected by the material a gate
+is actually built from. One shape file now builds as a Standard, Atlantis or Universe gate.
+`StandardAtlantis.shape` and `StandardUniverse.shape` are removed — they were `Standard.shape`
+with four lines changed.
+
+### Storage
+
+Gates are one YAML file each. HSQLDB and SQLite are gone, along with the storage backend
+abstraction and the `mysql`/`postgres` options that were advertised but never implemented.
+
+Custom gate materials are persisted by name rather than enum ordinal. Ordinals shift between
+Minecraft versions, so a gate could previously come back a different colour.
+
+### Commands
+
+One registry now drives dispatch, tab completion and help. Nine subcommands — `list`, `go`,
+`remove`, `idc`, `compass`, `force`, `refresh`, `build`, `complete` — were offered by tab
+completion and dispatched by nothing. `wooshdepth` and `restrict` worked but were never
+suggested.
+
+`/wormhole custom -clean` clears material overrides snapshotted by the old custom-mode
+behaviour. `/wormhole restrict` no longer takes a group and count: that form silently
+rewrote cooldown timers and read a stub that always returned -1.
+
+### Performance
+
+- The plugin bundles nothing and has no runtime dependencies. The jar went from 15.3 MB to
+  under 300 KB.
+- The entity sweep issues one spatial query per gate rather than one per portal block.
+- Gate detection resolves a palette with a single map lookup, so palettes cost nothing.
+- Movement handlers skip work when the block has not changed, and hot logging is guarded.
+
+### Fixes
+
+- Fixed an NPE on every move event for a gate that was activated but never dialled.
+- Fixed the light-material command offering `GLOWING_REDSTONE_ORE`, which is not a material
+  on 1.20.
+- Exception handling no longer swallows `Error`, and anything that changes plugin state now
+  reports when it fails.
+
 ## 1.0.0 (2026-05-14)
 
 ### Bug fixes

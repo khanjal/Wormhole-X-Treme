@@ -42,10 +42,19 @@ jobs:
           echo "JAR=$JAR" >> "$GITHUB_OUTPUT"
           echo "JAR_NAME=$(basename $JAR)" >> "$GITHUB_OUTPUT"
 
+      - name: Read Minecraft version from plugin.yml
+        id: mc
+        run: |
+          MC=$(grep -m1 '^api-version:' src/main/resources/plugin.yml | tr -d '"' | awk '{print $2}')
+          echo "MC=$MC" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Wormhole X-Treme ${{ github.ref_name }}"
+          # The Minecraft version is the axis that matters. Server flavour is not: the
+          # plugin uses only the Bukkit API, so one jar serves CraftBukkit, Spigot, Paper,
+          # Purpur and Pufferfish.
+          name: "Wormhole X-Treme ${{ github.ref_name }} (MC ${{ steps.mc.outputs.MC }})"
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: ${{ steps.jar.outputs.JAR }}
