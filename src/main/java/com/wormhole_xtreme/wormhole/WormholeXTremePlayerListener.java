@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -1487,6 +1488,10 @@ class WormholeXTremePlayerListener implements Listener
     @EventHandler
     public void onPlayerMove(final PlayerMoveEvent event)
     {
+        // Before the cancel check, so a player held at the mouth of a gate is still let
+        // out of the flight exemption when they step away.
+        updatePortalFlightExemption(event.getPlayer(), event.getTo());
+
         if (handlePlayerMoveEvent(event))
         {
             event.setCancelled(true);
@@ -1541,6 +1546,111 @@ class WormholeXTremePlayerListener implements Listener
     private static final long[] ARRIVAL_REDRAW_TICKS = { 1L, 10L, 30L, 60L };
 
     /**
+     * Players granted flight because they are standing in a portal, by id.
+     *
+     * <p>Only ones this class granted it to, so a creative player or someone another plugin
+     * has given flight is never stripped of it on the way out of a gate.
+     */
+    private static final java.util.Set<java.util.UUID> portalFlightGranted =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * Grants or withdraws the flight exemption a player needs to stand in a portal.
+     *
+     * <p>A portal is AIR on the server with the portal material drawn over it on the
+     * client, so a traveller does not drown in a water gate or burn in a lava one. The cost
+     * is that the two disagree about physics. The client is simulating water: it floats the
+     * player upward and reports them rising. The server sees them climbing through open air
+     * with nothing holding them up, decides that is flight, and kicks them.
+     *
+     * <p>Nothing here can make the server agree with the client — the whole point is that
+     * the block is not really water. What it can do is stop the disagreement being fatal,
+     * by allowing flight for exactly as long as the player is inside the portal.
+     *
+     * <p>Withdrawn on the way out, and only from players this granted it to. Someone in
+     * creative, or with flight from another plugin, keeps what they came in with.
+     *
+     * @param player
+     *            the player who moved
+     * @param at
+     *            where they moved to
+     */
+    private static void updatePortalFlightExemption(final Player player, final Location at)
+    {
+        if ((player == null) || (at == null))
+        {
+            return;
+        }
+        try
+        {
+            final boolean inPortal = isInsideOpenPortal(at);
+            final java.util.UUID id = player.getUniqueId();
+
+            if (inPortal)
+            {
+                // Already able to fly, by game mode or by another plugin: leave it alone,
+                // and do not record it, or the way out would take away what it did not give.
+                if (!player.getAllowFlight())
+                {
+                    player.setAllowFlight(true);
+                    portalFlightGranted.add(id);
+                }
+            }
+            else if (portalFlightGranted.remove(id))
+            {
+                clearGrantedFlight(player);
+            }
+        }
+        // On the move path, so a failure here must never disturb the event.
+        catch (final RuntimeException ignore) {}
+    }
+
+    /**
+     * Takes back flight this class granted, unless the player's game mode provides it.
+     *
+     * @param player
+     *            the player to withdraw from
+     */
+    private static void clearGrantedFlight(final Player player)
+    {
+        try
+        {
+            if ((player.getGameMode() == org.bukkit.GameMode.CREATIVE)
+                || (player.getGameMode() == org.bukkit.GameMode.SPECTATOR))
+            {
+                return;
+            }
+            player.setFlying(false);
+            player.setAllowFlight(false);
+        }
+        catch (final RuntimeException ignore) {}
+    }
+
+    /**
+     * Whether a location is inside the portal of a gate that is currently open.
+     *
+     * <p>Walks the open gates rather than every gate, and the containment test behind it is
+     * a hash lookup, so this stays cheap on a path that runs whenever a player crosses a
+     * block boundary.
+     *
+     * @param at
+     *            the location to test
+     * @return true if an open gate's portal covers that block
+     */
+    private static boolean isInsideOpenPortal(final Location at)
+    {
+        for (final Stargate gate : StargateManager.getOpenGates())
+        {
+            if ((gate.getGateWorld() != null) && gate.getGateWorld().equals(at.getWorld())
+                && gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Redraws open portals for a player who has just arrived somewhere.
      *
      * @param player
@@ -1589,7 +1699,26 @@ class WormholeXTremePlayerListener implements Listener
         if (!event.isCancelled())
         {
             refreshPortalVisualsFor(event.getPlayer());
+            // Arriving lands the traveller in the ring, where the client immediately starts
+            // floating them on water the server does not have. Waiting for their first move
+            // event to grant the exemption would be waiting until after the rise that gets
+            // them kicked for it.
+            updatePortalFlightExemption(event.getPlayer(), event.getTo());
         }
+    }
+
+    /**
+     * Drops any portal flight exemption held by a player who has left.
+     *
+     * <p>Ids of players who never come back would otherwise sit in the set forever.
+     *
+     * @param event
+     *            the quit
+     */
+    @EventHandler
+    public void onPlayerQuit(final PlayerQuitEvent event)
+    {
+        portalFlightGranted.remove(event.getPlayer().getUniqueId());
     }
 
     /**
