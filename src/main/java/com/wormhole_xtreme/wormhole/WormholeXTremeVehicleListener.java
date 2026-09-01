@@ -567,7 +567,12 @@ class WormholeXTremeVehicleListener implements Listener
         }
         catch (final Throwable ignore) {}
         final Stargate st = StargateManager.getGateFromBlock(ch);
-        if ((st != null) && st.isGateActive() && (st.getGateTarget() != null) && (ch.getType() == (st.getEffectivePortalMaterial())))
+        // Ask the gate whether this is one of its portal blocks rather than comparing the
+        // block's material to the portal material. An open portal is server-side AIR — the
+        // portal material is drawn to clients only, so travellers are not subject to its
+        // physics — which means the material comparison never matched and no vehicle ever
+        // made it through. The player and entity paths already ask the gate.
+        if ((st != null) && st.isGateActive() && (st.getGateTarget() != null) && StargateManager.isPortalBlock(ch))
         {
             String gatenetwork;
             if (st.getGateNetwork() != null)

@@ -73,7 +73,11 @@ public class WormholeXTremeVehicleListenerEventTest
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
-        when(ch.getType()).thenReturn(Material.WATER);
+        // An open portal is AIR on the server; the portal material is drawn to clients
+        // only. Stubbing WATER here is what let the material-comparison bug pass tests
+        // while no vehicle could actually enter a gate in game.
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
 
         final Stargate src = new Stargate();
         src.setGateName("src");
@@ -89,6 +93,8 @@ public class WormholeXTremeVehicleListenerEventTest
         gateTargetField.set(src, target);
 
         StargateManager.addBlockIndex(ch, src);
+        // Portal membership comes from the gate's block list, not the block's material.
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         final Minecart cart = mock(Minecart.class);
         when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
@@ -121,7 +127,11 @@ public class WormholeXTremeVehicleListenerEventTest
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
-        when(ch.getType()).thenReturn(Material.WATER);
+        // An open portal is AIR on the server; the portal material is drawn to clients
+        // only. Stubbing WATER here is what let the material-comparison bug pass tests
+        // while no vehicle could actually enter a gate in game.
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
 
         final Stargate src = new Stargate();
         src.setGateName("srcBoat");
@@ -135,6 +145,8 @@ public class WormholeXTremeVehicleListenerEventTest
         gateTargetField2.set(src, target);
 
         StargateManager.addBlockIndex(ch, src);
+        // Portal membership comes from the gate's block list, not the block's material.
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         final Boat boat = mock(Boat.class);
         final Player rider = mock(Player.class);
