@@ -159,6 +159,26 @@ public final class StargateHelper
     // ---------------------------------------------------------------------
 
     /**
+     * Checks whether a block could be part of some gate's frame.
+     *
+     * <p>Both lookups are O(1), which makes this a cheap way to rule out a candidate
+     * position before paying for a geometry scan against every registered shape.
+     *
+     * @param material
+     *            the material to test
+     * @return true if any loaded shape or configured material group builds frames from it
+     */
+    public static boolean isPossibleGateFrameMaterial(final org.bukkit.Material material)
+    {
+        if (material == null)
+        {
+            return false;
+        }
+        return StargateShapeRegistry.getKnownStructureMaterials().contains(material)
+            || MaterialGroupRegistry.getGroupByStructureMaterial(material) != null;
+    }
+
+    /**
      * Attempts to find a valid stargate whose activation button/lever is
      * {@code clickedBlock} facing {@code direction}.  Iterates every loaded
      * 3-D shape and returns the first match, or {@code null} if none match.

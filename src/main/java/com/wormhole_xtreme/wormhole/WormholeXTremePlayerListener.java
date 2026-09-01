@@ -31,6 +31,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -340,59 +341,10 @@ class WormholeXTremePlayerListener implements Listener
             }
             else
             {
-                // Fallback: try nearby blocks as the DHD button (covers some placements where lever is offset)
-                boolean foundNearby = false;
-                final org.bukkit.World world = clickedBlock.getWorld();
-                final int radius = 1;
-                search:
-                for (int dx = -radius; dx <= radius; dx++)
-                {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        for (int dz = -radius; dz <= radius; dz++)
-                        {
-                            if (dx == 0 && dy == 0 && dz == 0)
-                            {
-                                continue;
-                            }
-                            final org.bukkit.block.Block b = world.getBlockAt(clickedBlock.getX() + dx, clickedBlock.getY() + dy, clickedBlock.getZ() + dz);
-                            final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
-                            for (final org.bukkit.block.BlockFace face : faces)
-                            {
-                                try
-                                {
-                                    final com.wormhole_xtreme.wormhole.model.Stargate nearbyGate = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(b, face);
-                                    if (nearbyGate != null)
-                                    {
-                                        // Skip gates that are already fully registered — this prevents
-                                        // the "gate complete" prompt from firing when a player places
-                                        // a lever or button near an existing gate's structure blocks.
-                                        final org.bukkit.block.Block nearbyDial = nearbyGate.getGateDialLeverBlock();
-                                        if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
-                                        {
-                                            continue;
-                                        }
-                                        foundNearby = true;
-                                        if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD) && !StargateRestrictions.isPlayerBuildRestricted(player))
-                                        {
-                                            // register incomplete and prompt for /wormhole complete
-                                            StargateManager.addIncompleteStargate(player, nearbyGate);
-                                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");
-                                        }
-                                        else
-                                        {
-                                            final String msg = "Permission denied on nearby/gate-detection: player='" + player.getName() + "' nearbyBlock='" + b.getLocation().toString() + "'";
-                                            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
-                                            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                                        }
-                                        break search;
-                                    }
-                                }
-                                catch (final Throwable ignore) {}
-                            }
-                        }
-                    }
-                }
+                // Fallback: the player may have clicked beside the DHD rather than on
+                // it, so probe the surrounding blocks. See findGateFromNearbyDial for why
+                // this is filtered rather than brute-forced.
+                final boolean foundNearby = findGateFromNearbyDial(clickedBlock, player);
 
                 if (!foundNearby)
                 {
@@ -712,6 +664,159 @@ class WormholeXTremePlayerListener implements Listener
 
     /** Maximum re-seat attempts before a passenger is given up on. */
     private static final int MAX_REATTACH_ATTEMPTS = 12;
+
+    /** Faces probed when a candidate dial block does not report its own orientation. */
+    private static final BlockFace[] PROBE_FACES = { BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
+        BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
+
+    /**
+     * Checks whether a block could be the dial device of an as-yet-unregistered gate.
+     *
+     * <p>A DHD is always something a player can click: a button, which the plugin swaps
+     * for a lever on first activation, or a lever already.
+     *
+     * @param block
+     *            the candidate
+     * @return true if it could be a dial block
+     */
+    private static boolean isPossibleDialBlock(final Block block)
+    {
+        if (block == null)
+        {
+            return false;
+        }
+        final Material type = block.getType();
+        return type == Material.LEVER || MaterialUtils.isButton(type);
+    }
+
+    /**
+     * Looks for a complete but unregistered gate whose dial block sits next to the block
+     * the player actually clicked.
+     *
+     * <p>This exists because a player can click the frame beside their lever rather than
+     * the lever itself. It used to brute-force the problem: 26 surrounding blocks against
+     * 6 faces each, so 156 full detection calls per click, every one of them running a
+     * geometry check against every registered shape. That fires on any click on a
+     * directional block — a lever, a button, stairs, a furnace, a sign — so on a busy
+     * server it ran constantly and almost always found nothing.
+     *
+     * <p>It is now filtered on two cheap facts before any geometry work happens. A
+     * candidate must look like a dial block, and the block it is mounted on must be a
+     * frame material some shape or palette actually uses. A candidate that reports its own
+     * orientation is probed on that face alone rather than all six. In the overwhelmingly
+     * common case — a click near no gate at all — this does a couple of dozen block reads
+     * and no shape scans whatsoever.
+     *
+     * @param clickedBlock
+     *            the block the player clicked
+     * @param player
+     *            the clicking player
+     * @return true if a candidate gate was found and the player was told about it
+     */
+    private static boolean findGateFromNearbyDial(final Block clickedBlock, final Player player)
+    {
+        final org.bukkit.World world = clickedBlock.getWorld();
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dz = -1; dz <= 1; dz++)
+                {
+                    if (dx == 0 && dy == 0 && dz == 0)
+                    {
+                        continue;
+                    }
+                    final Block candidate = world.getBlockAt(clickedBlock.getX() + dx,
+                        clickedBlock.getY() + dy, clickedBlock.getZ() + dz);
+                    if (!isPossibleDialBlock(candidate))
+                    {
+                        continue;
+                    }
+                    for (final BlockFace face : probeFaces(candidate))
+                    {
+                        // The dial hangs on a frame block, so if the block behind it is not
+                        // a frame material no shape can match here.
+                        final Block holder = candidate.getRelative(WorldUtils.getInverseDirection(face));
+                        if (holder == null || !StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
+                        {
+                            continue;
+                        }
+                        final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
+                        if (nearbyGate == null)
+                        {
+                            continue;
+                        }
+                        // Skip gates that are already fully registered — this prevents the
+                        // "gate complete" prompt from firing when a player places a lever
+                        // or button near an existing gate's structure blocks.
+                        final Block nearbyDial = nearbyGate.getGateDialLeverBlock();
+                        if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
+                        {
+                            continue;
+                        }
+                        announceNearbyGate(nearbyGate, candidate, player);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets the faces worth probing for a candidate dial block: the one it actually faces
+     * when it reports an orientation, otherwise all six.
+     *
+     * @param candidate
+     *            the candidate dial block
+     * @return the faces to probe
+     */
+    private static BlockFace[] probeFaces(final Block candidate)
+    {
+        try
+        {
+            final org.bukkit.block.data.BlockData data = candidate.getBlockData();
+            if (data instanceof org.bukkit.block.data.Directional)
+            {
+                final BlockFace facing = ((org.bukkit.block.data.Directional) data).getFacing();
+                if (facing != null)
+                {
+                    return new BlockFace[] { facing };
+                }
+            }
+        }
+        catch (final Throwable ignore) {}
+        return PROBE_FACES;
+    }
+
+    /**
+     * Registers a detected-but-unnamed gate against the player and tells them how to
+     * finish it, or explains why they may not.
+     *
+     * @param nearbyGate
+     *            the detected gate
+     * @param candidate
+     *            the dial block it was detected from, for the denial log line
+     * @param player
+     *            the clicking player
+     */
+    private static void announceNearbyGate(final Stargate nearbyGate, final Block candidate, final Player player)
+    {
+        if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD)
+            && !StargateRestrictions.isPlayerBuildRestricted(player))
+        {
+            StargateManager.addIncompleteStargate(player, nearbyGate);
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");
+        }
+        else
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                "Permission denied on nearby/gate-detection: player='" + player.getName()
+                + "' nearbyBlock='" + candidate.getLocation().toString() + "'");
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+        }
+    }
 
     /**
      * Teleports a player through a gate on their own, with no mount involved.

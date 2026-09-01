@@ -166,5 +166,37 @@ public final class StargateShapeRegistry
         {
             getStargateShapes().put("Standard", new StargateShape());
         }
+
+        rebuildKnownStructureMaterials();
+    }
+
+    /** Frame materials any loaded shape declares. Replaced wholesale on load. */
+    private static volatile java.util.Set<org.bukkit.Material> knownStructureMaterials = java.util.Collections.emptySet();
+
+    /**
+     * Gets every frame material a loaded shape declares.
+     *
+     * <p>Lets a caller reject a candidate gate position with one block read instead of a
+     * geometry scan per shape: if the block a lever is mounted on is not a frame material
+     * for any shape, no shape can match there.
+     *
+     * @return an unmodifiable set of frame materials
+     */
+    public static java.util.Set<org.bukkit.Material> getKnownStructureMaterials()
+    {
+        return knownStructureMaterials;
+    }
+
+    private static void rebuildKnownStructureMaterials()
+    {
+        final java.util.Set<org.bukkit.Material> materials = new java.util.HashSet<org.bukkit.Material>();
+        for (final StargateShape shape : getStargateShapes().values())
+        {
+            if (shape.getShapeStructureMaterial() != null)
+            {
+                materials.add(shape.getShapeStructureMaterial());
+            }
+        }
+        knownStructureMaterials = java.util.Collections.unmodifiableSet(materials);
     }
 }
