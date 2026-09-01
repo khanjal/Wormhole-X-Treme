@@ -223,6 +223,44 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
+     * Speed given to a projectile that reaches a gate with no momentum left. Roughly a
+     * fully drawn bow.
+     */
+    private static final double PROJECTILE_LAUNCH_SPEED = 3.0;
+
+    /**
+     * Works out how fast something should leave the destination gate.
+     *
+     * <p>Preserving the arrival speed is right for anything still moving, but a projectile
+     * usually is not. Portal blocks are air, so an arrow flies straight through the ring
+     * and sticks in whatever is behind it; the sweep only comes round up to a second later
+     * and finds it stopped. Carrying that zero across is what made arrows drop out of the
+     * destination no matter how the velocity was applied.
+     *
+     * <p>So a projectile that has landed, or is barely moving, is relaunched at a sensible
+     * speed rather than at the speed it happens to have. Anything else keeps its own.
+     *
+     * @param entity
+     *            the entity crossing the gate
+     * @param incoming
+     *            its velocity on arrival
+     * @return the velocity to derive the exit speed from
+     */
+    private static Vector launchSpeed(final Entity entity, final Vector incoming)
+    {
+        if (!(entity instanceof Projectile))
+        {
+            return incoming;
+        }
+        final boolean stopped = (entity instanceof AbstractArrow) && ((AbstractArrow) entity).isInBlock();
+        if (stopped || incoming.lengthSquared() < (PROJECTILE_LAUNCH_SPEED * PROJECTILE_LAUNCH_SPEED))
+        {
+            return new Vector(PROJECTILE_LAUNCH_SPEED, 0, 0);
+        }
+        return incoming;
+    }
+
+    /**
      * Squared speed above which an entity counts as travelling under its own momentum,
      * rather than sitting in the portal. Chosen well below a walking pace.
      */
@@ -306,7 +344,7 @@ public final class GateEntityScanner implements Runnable
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
-        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
+        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, launchSpeed(entity, incoming), 1.0);
 
         // A projectile cannot simply be moved. Teleporting an arrow leaves it flagged as
         // having landed — AbstractArrow.isInBlock() is readable but not settable — so it
@@ -332,7 +370,7 @@ public final class GateEntityScanner implements Runnable
         // and its velocity is discarded when it does, and a teleport clears motion so a
         // same-tick velocity is lost to that. Getting either wrong drops the arrow.
         applyVelocity(moved, exit);
-        if (incoming.lengthSquared() > MOVING_THRESHOLD_SQUARED)
+        if (exit.lengthSquared() > MOVING_THRESHOLD_SQUARED)
         {
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
             {

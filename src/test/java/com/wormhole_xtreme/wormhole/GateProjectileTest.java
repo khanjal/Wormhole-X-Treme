@@ -136,7 +136,8 @@ public class GateProjectileTest
         verify(world).spawnArrow(any(Location.class), dir.capture(), speed.capture(), anyFloat(), any(Class.class));
 
         assertTrue(dir.getValue().getX() > 0, "should fly east, the way the destination gate faces");
-        assertEquals(2.4, speed.getValue(), 1e-5, "speed should carry over");
+        // 2.4 is below the launch floor, so it leaves at 3.0 rather than dribbling out.
+        assertEquals(3.0, speed.getValue(), 1e-5);
     }
 
     @Test
@@ -151,7 +152,7 @@ public class GateProjectileTest
         final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
         verify(spawned, times(2)).setVelocity(v.capture());
         assertTrue(v.getValue().getX() > 0, "should still be flying east on the re-apply");
-        assertEquals(2.4, v.getValue().length(), 1e-6);
+        assertEquals(3.0, v.getValue().length(), 1e-6);
     }
 
     @Test
@@ -169,6 +170,55 @@ public class GateProjectileTest
         verify(spawned).setKnockbackStrength(1);
         verify(spawned).setPierceLevel(3);
         verify(spawned).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+    }
+
+    @Test
+    public void anArrowThatHasAlreadyLandedIsRelaunchedNotDroppedAgain()
+    {
+        // The actual cause of arrows falling out of the destination. Portal blocks are air,
+        // so an arrow flies through the ring and sticks in whatever is behind it; the sweep
+        // finds it up to a second later, stopped. Preserving that zero speed produced a
+        // replacement with no momentum, which is exactly what was seen in play.
+        when(arrow.getVelocity()).thenReturn(new Vector(0, 0, 0));
+        when(arrow.isInBlock()).thenReturn(true);
+
+        GateEntityScanner.create().run();
+
+        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
+        assertEquals(3.0, speed.getValue(), 1e-5, "a stalled arrow should leave at bow speed");
+
+        final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
+        verify(spawned, atLeastOnce()).setVelocity(v.capture());
+        assertEquals(3.0, v.getValue().length(), 1e-6);
+        assertTrue(v.getValue().getX() > 0, "and still leave the way the gate faces");
+    }
+
+    @Test
+    public void aSlowProjectileIsBroughtUpToLaunchSpeed()
+    {
+        // An arrow caught mid-flight but already slowed would otherwise dribble out.
+        when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -0.2));
+        when(arrow.isInBlock()).thenReturn(false);
+
+        GateEntityScanner.create().run();
+
+        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
+        assertEquals(3.0, speed.getValue(), 1e-5);
+    }
+
+    @Test
+    public void aFastArrowKeepsItsOwnSpeed()
+    {
+        // Anything already travelling faster than the launch floor is left alone.
+        when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -5.0));
+
+        GateEntityScanner.create().run();
+
+        final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
+        verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
+        assertEquals(5.0, speed.getValue(), 1e-5);
     }
 
     @Test

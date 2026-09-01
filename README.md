@@ -312,6 +312,12 @@ is still credited correctly. Splash potions keep their effect.
 This covers every projectile: arrows, tridents, snowballs, eggs, ender pearls, potions and
 fireballs.
 
+A projectile is usually not still moving by the time the gate notices it. Portal blocks are
+air, so an arrow passes through the ring and sticks in whatever is behind it, and the sweep
+comes round afterwards and finds it stopped. Rather than sending a motionless arrow out of
+the destination, one that has landed or slowed below a bow's speed is relaunched at that
+speed. Anything already faster keeps its own.
+
 One consequence is worth knowing: an ender pearl thrown through a gate teleports its owner
 to wherever it lands — across the wormhole — which sidesteps the permission and cooldown
 checks a player walking through would face.
