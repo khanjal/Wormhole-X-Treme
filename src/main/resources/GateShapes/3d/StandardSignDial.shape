@@ -49,6 +49,13 @@ Version=2
 #    [RA] = Redstone gate Activated block. This block will provide redstone charge when the gate is activated.
 #           This block should be on top of a [S] block.
 
+#    This shape marks three redstone points, all on the DHD side (layer 4):
+#      [RD] redstone dust on top of the activation block  -> dials the sign's target
+#      [RA] a lever on the side of the bottom pillar block -> switched on while open
+#    There is no [RS] here: the only free spot left is beside [RD], and adjacent dust
+#    connects, so a pulse would cycle the destination and then dial it. Use
+#    MinimalSignDialRedstone if you want redstone target cycling as well.
+
 GateShape=
 
 Layer#1=
@@ -83,9 +90,9 @@ Layer#4=
 [I][I][I][I][I][I][I]
 [I][I][I][I:W#3][I][I][I]
 [I][I][I:W#3][I:W#3][I:W#3][I][I]
-[I][I][I][I:W#3][I][I][I]
+[I][I][I][I:W#3][I][RD][I]
 [I][I][I][I][I][S:A][S:D]
-[I][I][I][I][I][S:RA][S]
+[I][I][I][I][RA][S][S]
 
 # Number of ticks to wait before activating each # of the woosh. 1 tick = ~50ms
 WOOSH_TICKS = 3;

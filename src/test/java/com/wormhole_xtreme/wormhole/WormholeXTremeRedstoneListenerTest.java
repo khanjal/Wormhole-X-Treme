@@ -88,6 +88,80 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
+    public void theSignCycleBlockIsIgnoredWhileTheGateIsOpen()
+    {
+        // The [RA] lever is the gate's own output, switched on the moment the gate opens,
+        // and in MinimalSignDialRedstone it sits diagonally next to [RD] and [RS] on the
+        // neighbouring layer. Since a signal counts anywhere within a block of a marker,
+        // opening the gate necessarily lands a signal on both inputs. This guard is the
+        // only reason that is harmless: without it a gate would advance its own dial sign
+        // every single time it opened.
+        final World world = mock(World.class);
+        final int cx = 400, cy = 64, cz = 500;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("raNextToRs");
+
+        final Block cycle = mock(Block.class);
+        when(cycle.getLocation()).thenReturn(new Location(world, cx, cy, cz));
+        when(cycle.getX()).thenReturn(cx);
+        when(cycle.getY()).thenReturn(cy);
+        when(cycle.getZ()).thenReturn(cz);
+
+        // The lever one block over and one block up: the [RA] position relative to [RS].
+        final Block lever = mock(Block.class);
+        when(lever.getLocation()).thenReturn(new Location(world, cx + 1, cy + 1, cz));
+        when(lever.getX()).thenReturn(cx + 1);
+        when(lever.getY()).thenReturn(cy + 1);
+        when(lever.getZ()).thenReturn(cz);
+        when(lever.getType()).thenReturn(Material.LEVER);
+
+        gate.setGateRedstoneSignActivationBlock(cycle);
+        gate.setGateRedstonePowered(true);
+        StargateManager.registerStargate(gate);
+
+        // Cycling the sign is a scheduled task, and the listener swallows Throwable, so
+        // asserting on a real scheduler is the only way to tell "guarded" apart from
+        // "threw an NPE on the way and nobody noticed".
+        final org.bukkit.scheduler.BukkitScheduler scheduler =
+            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        setScheduler(scheduler);
+        try
+        {
+            gate.setGateActive(true);
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(lever, 0, 15));
+            verify(scheduler, never()).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+
+            // The same signal on a closed gate does cycle it, which is what proves the
+            // check above is the guard doing the work and not the signal failing to reach.
+            gate.setGateActive(false);
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(lever, 0, 15));
+            verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+        }
+        finally
+        {
+            setScheduler(null);
+            StargateManager.removeStargate(gate);
+        }
+    }
+
+    /** The scheduler is a private static, and the sign cycle goes through it. */
+    private static void setScheduler(final org.bukkit.scheduler.BukkitScheduler scheduler)
+    {
+        try
+        {
+            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("scheduler");
+            f.setAccessible(true);
+            f.set(null, scheduler);
+        }
+        catch (final ReflectiveOperationException e)
+        {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Test
     public void rdBlockRisingEdgeOnInactiveSignGateDialsSignTarget()
     {
         final World world = mock(World.class);

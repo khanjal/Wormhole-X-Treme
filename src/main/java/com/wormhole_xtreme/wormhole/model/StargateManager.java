@@ -192,6 +192,15 @@ public class StargateManager
             {
                 addBlockIndex(s.getGateRedstoneDialActivationBlock(), s);
             }
+            // The sign cycle block was the one activation block left out of the index. A
+            // redstone event looks the gate up by the block it fired on, so without this
+            // entry a pulse at [RS] only found the gate when it happened to land within the
+            // fallback search radius of [RD] — which it does in MinimalSignDialRedstone,
+            // where the two are two blocks apart, and would not in a wider shape.
+            if (s.getGateRedstoneSignActivationBlock() != null)
+            {
+                addBlockIndex(s.getGateRedstoneSignActivationBlock(), s);
+            }
             if (s.getGateRedstoneGateActivatedBlock() != null)
             {
                 addBlockIndex(s.getGateRedstoneGateActivatedBlock(), s);

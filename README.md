@@ -383,9 +383,13 @@ A redstone gate is a **sign gate with redstone inputs**. Redstone does not choos
 destination — the dial sign does, exactly as if a player were clicking it. Redstone just
 presses the buttons. A shape without a `[D]` dial sign block cannot be redstone-dialled.
 
-Use `MinimalSignDialRedstone.shape`. Its layout is not the same as `MinimalSignDial` —
-it is a block taller and the pillars are further apart — so building the plain sign-dial
-gate will not give you a redstone one.
+Two shapes take redstone: `MinimalSignDialRedstone` and `StandardSignDial`. The minimal one
+is covered first because it carries the full set of markers; if you already have a Standard
+gate built, skip to [Redstone on a Standard gate](#redstone-on-a-standard-gate).
+
+`MinimalSignDialRedstone.shape` is not laid out like `MinimalSignDial` — it is a block
+taller and the pillars are further apart — so building the plain sign-dial gate will not
+give you a redstone one.
 
 ```
 Layer 1 — the ring              Layer 2 — behind it, the DHD side
@@ -416,6 +420,33 @@ is showing, so with no target selected a pulse does nothing.
 
 A signal counts when it lands on the marked block **or on any redstone component touching
 it**, so you can run dust up to it rather than having to land exactly on the cell.
+
+### Redstone on a Standard gate
+
+`StandardSignDial` also takes redstone, on the DHD side (layer 4), next to the activation
+block and dial sign:
+
+```
+   y=2   .  .  R          #  gate frame block   .  leave empty
+   y=1   .  A  D          A  activation block   D  dial sign holder
+   y=0   V  #  #          R  [RD]  dial       -> redstone dust
+                          V  [RA]  gate open  -> lever
+```
+
+`R` goes on top of the activation block; `V` hangs on the side of the pillar below it.
+Neither is a frame block, so an existing Standard gate does not need rebuilding — place the
+dust and the lever and run `/wormhole redstone <gate> true`.
+
+There is no `[RS]` cycle block on this shape. The only free block top left is the one right
+beside `[RD]`, and a signal counts anywhere within a block of a marker, so a single pulse
+would cycle the destination and then dial whatever it landed on. Use
+`MinimalSignDialRedstone` if you want redstone target cycling as well as redstone dialling;
+on a Standard gate, click the sign to choose the destination and let redstone do the
+dialling.
+
+`[RA]` is deliberately two blocks below `[RD]` rather than beside it. The plugin switches
+that lever on itself when the gate opens, so keeping it out of range stops the gate's own
+output from feeding back into its dial input.
 
 ### Driving a gate with a minecart
 

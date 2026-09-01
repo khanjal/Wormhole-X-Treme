@@ -257,8 +257,9 @@ public final class StargateHelper
      * space is where the redstone goes. Written as {@code [S:RA]} the cell <em>is</em> the
      * frame block, so the redstone belongs on top of it, one block higher.
      *
-     * <p>MinimalSignDialRedstone uses the first form and StandardSignDial the second, so
-     * assuming either one on its own breaks the other.
+     * <p>Every shape that ships today writes the bare form, but the other one is what the
+     * older shapes used and is still accepted, so assuming either on its own is wrong. What
+     * both forms are for is the same: landing the redstone on a cell nothing is built in.
      *
      * @param layer
      *            the layer the marker is on
@@ -268,7 +269,7 @@ public final class StargateHelper
      *            the world height of the marker cell
      * @return the world height the redstone component belongs at
      */
-    private static int redstoneComponentY(final StargateShapeLayer layer, final int[] markerPos, final int baseY)
+    static int redstoneComponentY(final StargateShapeLayer layer, final int[] markerPos, final int baseY)
     {
         for (final Integer[] block : layer.getLayerBlockPositions())
         {
