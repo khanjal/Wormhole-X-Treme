@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
@@ -45,6 +46,9 @@ public class GateOneWayTest
         // markVehicleRecentlyTeleported schedules the un-mark, so the sweep needs a
         // scheduler or it dies before teleporting and every test passes vacuously.
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        // Run delayed tasks inline so the next-tick velocity re-apply is observable here.
+        when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
+            .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
         final java.lang.reflect.Field sf = WormholeXTreme.class.getDeclaredField("scheduler");
         sf.setAccessible(true);
         sf.set(null, scheduler);
@@ -89,6 +93,7 @@ public class GateOneWayTest
         when(zombie.getLocation()).thenReturn(new Location(world, x + 0.5, y, z + 0.5));
         when(zombie.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(zombie.isInsideVehicle()).thenReturn(false);
+        when(zombie.isValid()).thenReturn(true);
         when(zombie.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, -1.5));
         when(world.getNearbyEntities(any(BoundingBox.class)))
             .thenReturn(Collections.<Entity>singletonList(zombie));
@@ -171,13 +176,44 @@ public class GateOneWayTest
 
             final org.mockito.ArgumentCaptor<org.bukkit.util.Vector> sent =
                 org.mockito.ArgumentCaptor.forClass(org.bukkit.util.Vector.class);
-            verify(zombie).setVelocity(sent.capture());
+            // Set once immediately and once on the next tick: teleporting clears motion and
+            // a same-tick velocity is routinely lost to it, which left arrows dropping.
+            verify(zombie, times(2)).setVelocity(sent.capture());
             final org.bukkit.util.Vector v = sent.getValue();
 
             assertTrue(v.getX() > 0, "should leave heading east, the way the far gate faces");
             assertEquals(0.0, v.getZ(), 1e-9, "the original northward component should be gone");
             // Speed is preserved; only the direction changes, so a slow entity stays slow.
             assertEquals(1.5, v.length(), 1e-6);
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    @Test
+    public void anEntityAtRestIsNotGivenANextTickReapply()
+    {
+        // A dropped item sitting in the portal has no momentum to preserve, so it must not
+        // cost a scheduled task each time it is swept.
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        try
+        {
+            setTarget(origin, destination);
+        }
+        catch (final Exception e)
+        {
+            throw new IllegalStateException(e);
+        }
+        StargateManager.registerStargate(origin);
+        final Entity item = zombieIn(origin, 10, 64, 20);
+        when(item.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, 0));
+        try
+        {
+            GateEntityScanner.create().run();
+            verify(item, times(1)).setVelocity(any(org.bukkit.util.Vector.class));
         }
         finally
         {

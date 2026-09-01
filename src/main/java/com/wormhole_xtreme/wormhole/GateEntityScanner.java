@@ -135,6 +135,33 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
+     * Squared speed above which an entity counts as travelling under its own momentum,
+     * rather than sitting in the portal. Chosen well below a walking pace.
+     */
+    private static final double MOVING_THRESHOLD_SQUARED = 0.01;
+
+    /**
+     * Sets an entity's velocity, tolerating an entity that has since been removed.
+     *
+     * @param entity
+     *            the entity
+     * @param velocity
+     *            the velocity to apply
+     */
+    private static void applyVelocity(final Entity entity, final Vector velocity)
+    {
+        try
+        {
+            entity.setVelocity(velocity);
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Could not set exit velocity after gate sweep: " + e.getMessage());
+        }
+    }
+
+    /**
      * Decides whether an entity found in a wormhole is this sweep's responsibility.
      *
      * @param entity
@@ -192,14 +219,28 @@ public final class GateEntityScanner implements Runnable
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
         entity.teleport(arrival);
-        try
+
+        final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
+        applyVelocity(entity, exit);
+
+        // Teleporting clears an entity's motion, and a velocity set in the same tick is
+        // routinely lost to that — which is why an arrow arrived through the far gate and
+        // dropped straight to the ground instead of carrying on. Re-applying on the next
+        // tick makes it stick. Only worth doing for something that was actually moving, so
+        // a dropped item at rest does not schedule a task for nothing.
+        if (incoming.lengthSquared() > MOVING_THRESHOLD_SQUARED)
         {
-            entity.setVelocity(WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0));
-        }
-        catch (final RuntimeException e)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                "Could not set exit velocity after gate sweep: " + e.getMessage());
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (entity.isValid())
+                    {
+                        applyVelocity(entity, exit);
+                    }
+                }
+            }, 1L);
         }
 
         final List<Entity> passengers = entity.getPassengers();
