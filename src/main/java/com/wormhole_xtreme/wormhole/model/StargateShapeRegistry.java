@@ -168,6 +168,37 @@ public final class StargateShapeRegistry
         }
 
         rebuildKnownStructureMaterials();
+        reportShapesWithoutMaterialGroup();
+    }
+
+    /**
+     * Notes any shape whose frame material matches no configured material group.
+     *
+     * <p>Such a shape works fine — it keeps its own materials and simply never picks up a
+     * palette — so this is information, not a warning. It exists because that fact is
+     * otherwise invisible: an admin who adds a custom blackstone shape has no way to know
+     * a matching {@code gate-material-groups} entry would let them reuse it across shapes.
+     *
+     * <p>Nothing is written to config.yml. Editing a server's configuration on its behalf
+     * is not this plugin's call to make.
+     */
+    private static void reportShapesWithoutMaterialGroup()
+    {
+        final java.util.Set<org.bukkit.Material> unmatched = new java.util.LinkedHashSet<org.bukkit.Material>();
+        for (final org.bukkit.Material m : getKnownStructureMaterials())
+        {
+            if (MaterialGroupRegistry.getGroupByStructureMaterial(m) == null)
+            {
+                unmatched.add(m);
+            }
+        }
+        if (!unmatched.isEmpty())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                "Shape frame materials with no matching material group: " + unmatched
+                + ". Gates built from these keep the materials named in their .shape file."
+                + " Add a gate-material-groups entry in config.yml to reuse the palette across shapes.");
+        }
     }
 
     /** Frame materials any loaded shape declares. Replaced wholesale on load. */

@@ -197,11 +197,28 @@ Standard gate, build the same shape in lapis and you get an Atlantis one. A grou
 reuses a frame material already claimed by another is rejected at load with a warning,
 since it would make detection ambiguous.
 
-Material resolution order for any gate is: an explicit per-gate override (`/wormhole
-portalmaterial` and friends), then the gate's material group, then the shape file's own
-`PORTAL_MATERIAL` / `IRIS_MATERIAL` / `ACTIVE_MATERIAL` defaults. A shape whose materials
-should not be substitutable can opt out with `MATERIAL_GROUPS=Standard,Atlantis` in the
-`.shape` file; with no such line, every group is accepted.
+Material resolution order for any gate is:
+
+1. An explicit per-gate override (`/wormhole portalmaterial` and friends).
+2. A material named outright in the shape file. `Horizontal.shape` asks for a `GLASS`
+   iris because a horizontal gate is meant to be seen through, and the palette does not
+   overrule that.
+3. The gate's material group, for anything the shape left unsaid.
+4. The built-in defaults, for a shape with no palette match at all.
+
+A shape may also restrict which palettes it accepts with `MATERIAL_GROUPS=Standard,Atlantis`
+in the `.shape` file; with no such line, every group is accepted.
+
+### Shapes whose materials are not in any group
+
+Nothing breaks. A shape framed in a material no group declares — a custom blackstone gate,
+say — is still detected, and gates built from it keep the materials named in their own
+`.shape` file. The plugin logs those materials once at startup so you know a
+`gate-material-groups` entry would let you reuse that palette across other shapes.
+
+The plugin does **not** rewrite `config.yml` to add groups for them. Editing a server's
+configuration on its behalf is not something it should do silently; the log line tells you
+what you could add, and the choice stays yours.
 
 ### Why this is not just a config convenience
 

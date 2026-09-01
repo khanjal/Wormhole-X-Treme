@@ -65,6 +65,17 @@ public class StargateShape
     private Material shapeSignMaterial = Material.OAK_WALL_SIGN;
 
     /**
+     * Materials this shape's file named outright, as opposed to inheriting the defaults
+     * above. A shape that asks for a glass iris means it — a horizontal gate is meant to
+     * be seen through — so an explicit value outranks whatever palette the gate resolves
+     * to. Anything the file leaves unsaid is the palette's to fill in.
+     */
+    private boolean explicitPortalMaterial = false;
+    private boolean explicitIrisMaterial = false;
+    private boolean explicitStructureMaterial = false;
+    private boolean explicitLightMaterial = false;
+
+    /**
      * Material groups this shape may be built from, lowercased. Empty means every
      * configured group is accepted, which is the default and what most shapes want:
      * geometry and palette are independent, so any shape can be built in any palette.
@@ -383,6 +394,18 @@ public class StargateShape
      * 
      * @return the shape structure material
      */
+    /** @return true if the shape file named a portal material outright */
+    public boolean hasExplicitPortalMaterial() { return explicitPortalMaterial; }
+
+    /** @return true if the shape file named an iris material outright */
+    public boolean hasExplicitIrisMaterial() { return explicitIrisMaterial; }
+
+    /** @return true if the shape file named a structure material outright */
+    public boolean hasExplicitStructureMaterial() { return explicitStructureMaterial; }
+
+    /** @return true if the shape file named an active/light material outright */
+    public boolean hasExplicitLightMaterial() { return explicitLightMaterial; }
+
     /**
      * Checks whether this shape may be built from the named material group.
      *
@@ -498,6 +521,7 @@ public class StargateShape
     public void setShapeIrisMaterial(final Material shapeIrisMaterial)
     {
         this.shapeIrisMaterial = shapeIrisMaterial;
+        explicitIrisMaterial = true;
     }
 
     /**
@@ -509,6 +533,7 @@ public class StargateShape
     public void setShapeLightMaterial(final Material shapeLightMaterial)
     {
         this.shapeLightMaterial = shapeLightMaterial;
+        explicitLightMaterial = true;
     }
 
     /**
@@ -553,6 +578,7 @@ public class StargateShape
     public void setShapePortalMaterial(final Material shapePortalMaterial)
     {
         this.shapePortalMaterial = shapePortalMaterial;
+        explicitPortalMaterial = true;
     }
 
     /**
@@ -597,6 +623,7 @@ public class StargateShape
     public void setShapeStructureMaterial(final Material shapeStructureMaterial)
     {
         this.shapeStructureMaterial = shapeStructureMaterial;
+        explicitStructureMaterial = true;
     }
 
     public Material getShapeSignMaterial()

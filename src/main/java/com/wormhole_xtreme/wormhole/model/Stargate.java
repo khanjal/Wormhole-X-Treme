@@ -306,6 +306,12 @@ public class Stargate
         {
             return gateCustomPortalMaterial;
         }
+        // A shape that names this material in its own file outranks the palette; the
+        // palette only supplies what the shape left unsaid.
+        if (gateShape != null && gateShape.hasExplicitPortalMaterial())
+        {
+            return gateShape.getShapePortalMaterial();
+        }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
         {
@@ -324,6 +330,12 @@ public class Stargate
         if (gateCustom && (gateCustomIrisMaterial != null))
         {
             return gateCustomIrisMaterial;
+        }
+        // A shape that names this material in its own file outranks the palette; the
+        // palette only supplies what the shape left unsaid.
+        if (gateShape != null && gateShape.hasExplicitIrisMaterial())
+        {
+            return gateShape.getShapeIrisMaterial();
         }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
@@ -344,6 +356,12 @@ public class Stargate
         {
             return gateCustomLightMaterial;
         }
+        // A shape that names this material in its own file outranks the palette; the
+        // palette only supplies what the shape left unsaid.
+        if (gateShape != null && gateShape.hasExplicitLightMaterial())
+        {
+            return gateShape.getShapeLightMaterial();
+        }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)
         {
@@ -362,6 +380,12 @@ public class Stargate
         if (gateCustom && (gateCustomStructureMaterial != null))
         {
             return gateCustomStructureMaterial;
+        }
+        // A shape that names this material in its own file outranks the palette; the
+        // palette only supplies what the shape left unsaid.
+        if (gateShape != null && gateShape.hasExplicitStructureMaterial())
+        {
+            return gateShape.getShapeStructureMaterial();
         }
         final MaterialGroup group = getGateMaterialGroup();
         if (group != null)

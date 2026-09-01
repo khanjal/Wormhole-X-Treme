@@ -83,6 +83,55 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
+    public void shapeMaterialNamedInItsFileOutranksThePalette()
+    {
+        // Regression: Horizontal.shape asks for a GLASS iris — a horizontal gate is meant
+        // to be seen through — but is framed in obsidian, so it resolves to the Standard
+        // palette. The palette must not overwrite what the shape asked for by name.
+        final Map<String, Object> standard = new LinkedHashMap<String, Object>();
+        standard.put("structure", "OBSIDIAN");
+        standard.put("iris", "STONE");
+        standard.put("light", "GLOWSTONE");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Standard", standard);
+        MaterialGroupRegistry.load(section);
+
+        final StargateShape shape = new StargateShape();
+        shape.setShapeStructureMaterial(Material.OBSIDIAN);
+        shape.setShapeIrisMaterial(Material.GLASS);
+
+        final Stargate gate = new Stargate();
+        gate.setGateShape(shape);
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN));
+
+        assertEquals(Material.GLASS, gate.getEffectiveIrisMaterial());
+        // The light material was never named by this shape, so the palette supplies it.
+        assertEquals(Material.GLOWSTONE, gate.getEffectiveLightMaterial());
+    }
+
+    @Test
+    public void paletteStillSuppliesWhatTheShapeLeavesUnsaid()
+    {
+        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        atlantis.put("structure", "LAPIS_BLOCK");
+        atlantis.put("iris", "YELLOW_STAINED_GLASS");
+        atlantis.put("light", "SEA_LANTERN");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Atlantis", atlantis);
+        MaterialGroupRegistry.load(section);
+
+        // A shape straight from the constructor has named nothing, so every material
+        // comes from the palette — this is the case that makes palettes useful at all.
+        final Stargate gate = new Stargate();
+        gate.setGateShape(new StargateShape());
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+
+        assertEquals(Material.YELLOW_STAINED_GLASS, gate.getEffectiveIrisMaterial());
+        assertEquals(Material.SEA_LANTERN, gate.getEffectiveLightMaterial());
+        assertEquals(Material.LAPIS_BLOCK, gate.getEffectiveStructureMaterial());
+    }
+
+    @Test
     public void gateWithNoShapeAtAllStillReturnsUsableMaterials()
     {
         final Stargate gate = new Stargate();
