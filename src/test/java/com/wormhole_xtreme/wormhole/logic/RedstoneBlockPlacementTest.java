@@ -22,13 +22,13 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 /**
  * Where a redstone-capable shape's [RD], [RS] and [RA] cells end up in the world.
  *
- * <p>These are markers, not frame blocks — nothing is built at them, and the shape places
- * each directly above an [S] cell, which is what "this block should be on top of a [S]
- * block" means in the shape file. The gate used to register the block one <em>above</em>
- * each marker, which is a frame block. RD and RS still worked by accident, because redstone
- * placed on the marked cell is adjacent to the block above it, but [RA] did not: the
- * gate-activated output only fires when its block is a lever, and the block one above the
- * marker is part of the frame, so the lever a player placed was never found.
+ * <p>There are two conventions and the code has to tell them apart. A bare [RA] is not a
+ * frame block: it is the empty cell above one, and that cell is where the redstone goes —
+ * MinimalSignDialRedstone is written this way. An [S:RA] <em>is</em> the frame block, so the
+ * redstone belongs one above it — StandardSignDial is written that way.
+ *
+ * <p>Assuming either convention alone breaks the other shape, which happened twice: first
+ * always adding one, then always not.
  */
 public class RedstoneBlockPlacementTest
 {
@@ -104,6 +104,47 @@ public class RedstoneBlockPlacementTest
         final StargateShapeLayer ring = shape.getShapeLayers().get(1);
         assertTrue(structureHeights(ring).contains(ring.getLayerRedstoneGateActivatedPosition()[1] + 1),
             "the block above [RA] is frame, so a lever there could never be found");
+    }
+
+    @Test
+    public void theOtherMarkerConventionIsAFrameBlockAndNeedsTheBlockAbove()
+    {
+        // StandardSignDial writes its marker as [S:RA] — the cell is the frame block, so
+        // the lever belongs one above. MinimalSignDialRedstone writes a bare [RA] sitting
+        // on a frame block, where the lever belongs at the marker. Assuming either
+        // convention on its own breaks the other shape, which is what happened twice.
+        final java.util.List<String> lines;
+        try
+        {
+            lines = Files.readAllLines(
+                Paths.get("src/main/resources/GateShapes/3d/StandardSignDial.shape"));
+        }
+        catch (final java.io.IOException e)
+        {
+            throw new IllegalStateException(e);
+        }
+        final Stargate3DShape standard = new Stargate3DShape(lines.toArray(new String[0]));
+
+        StargateShapeLayer withRa = null;
+        for (final StargateShapeLayer layer : standard.getShapeLayers())
+        {
+            if (layer != null && layer.getLayerRedstoneGateActivatedPosition().length >= 3)
+            {
+                withRa = layer;
+            }
+        }
+        assertNotNull(withRa, "StandardSignDial should mark a gate-activated block");
+
+        final int[] ra = withRa.getLayerRedstoneGateActivatedPosition();
+        boolean markerIsFrame = false;
+        for (final Integer[] b : withRa.getLayerBlockPositions())
+        {
+            if (b[1].intValue() == ra[1] && b[2].intValue() == ra[2])
+            {
+                markerIsFrame = true;
+            }
+        }
+        assertTrue(markerIsFrame, "[S:RA] is itself a frame block, unlike a bare [RA]");
     }
 
     @Test

@@ -250,6 +250,37 @@ public final class StargateHelper
      * where the origin is derived from the activation-holder position.
      */
     /**
+     * Works out the world height a redstone marker's component belongs at.
+     *
+     * <p>The shapes use two conventions and both are valid. Written bare, as {@code [RA]},
+     * the cell is not a frame block: it is an empty space sitting on top of one, and that
+     * space is where the redstone goes. Written as {@code [S:RA]} the cell <em>is</em> the
+     * frame block, so the redstone belongs on top of it, one block higher.
+     *
+     * <p>MinimalSignDialRedstone uses the first form and StandardSignDial the second, so
+     * assuming either one on its own breaks the other.
+     *
+     * @param layer
+     *            the layer the marker is on
+     * @param markerPos
+     *            the marker's grid position
+     * @param baseY
+     *            the world height of the marker cell
+     * @return the world height the redstone component belongs at
+     */
+    private static int redstoneComponentY(final StargateShapeLayer layer, final int[] markerPos, final int baseY)
+    {
+        for (final Integer[] block : layer.getLayerBlockPositions())
+        {
+            if ((block[1].intValue() == markerPos[1]) && (block[2].intValue() == markerPos[2]))
+            {
+                return baseY + 1; // [S:RA] — the marker is the frame block, so sit on top
+            }
+        }
+        return baseY; // [RA] — the marker is already the empty cell above the frame
+    }
+
+    /**
      * Decides which material this gate's frame must be made of, by reading the first
      * frame position out of the world.
      *
@@ -573,11 +604,8 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + rdPos[2] * right.getModX();
                 final int wy = oy + rdPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + rdPos[2] * right.getModZ();
-                // The [RD] cell is itself the spot the redstone goes; the shape places it
-                // directly above an [S] block, which is what "on top of a [S] block" in the
-                // shape file means. Adding one here pointed the gate at that frame block
-                // instead of the marked cell.
-                gate.setGateRedstoneDialActivationBlock(world.getBlockAt(wx, wy, wz));
+                gate.setGateRedstoneDialActivationBlock(
+                    world.getBlockAt(wx, redstoneComponentY(layer, rdPos, wy), wz));
                 gate.setGateRedstonePowered(true);
             }
 
@@ -588,7 +616,8 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + rsPos[2] * right.getModX();
                 final int wy = oy + rsPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + rsPos[2] * right.getModZ();
-                gate.setGateRedstoneSignActivationBlock(world.getBlockAt(wx, wy, wz));
+                gate.setGateRedstoneSignActivationBlock(
+                    world.getBlockAt(wx, redstoneComponentY(layer, rsPos, wy), wz));
             }
 
             // Redstone gate-activated output (RA)
@@ -598,10 +627,11 @@ public final class StargateHelper
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + raPos[2] * right.getModX();
                 final int wy = oy + raPos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + raPos[2] * right.getModZ();
-                // Matters more here than for RD and RS: the gate-activated output only
-                // fires when this block is a lever, so pointing one block high meant the
-                // lever a player placed on the marked cell was never found or toggled.
-                gate.setGateRedstoneGateActivatedBlock(world.getBlockAt(wx, wy, wz));
+                // Matters most here: the gate-activated output only fires when this block
+                // is a lever, so getting the height wrong means the lever a player placed
+                // is never found or toggled.
+                gate.setGateRedstoneGateActivatedBlock(
+                    world.getBlockAt(wx, redstoneComponentY(layer, raPos, wy), wz));
             }
         }
 
