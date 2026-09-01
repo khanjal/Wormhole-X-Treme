@@ -237,14 +237,28 @@ public class Stargate
     }
 
     /**
-     * Fill gate interior.
-     * 
-     * @param typeId
-     *            the type id
+     * Opens or clears the portal interior. The server-side blocks stay AIR;
+     * {@code material} is the appearance shown to nearby clients.
+     *
+     * @param material
+     *            the appearance to show clients, or {@link Material#AIR} to clear
      */
     public void fillGateInterior(final Material material)
     {
         StargateBlockSetup.fillGateInterior(this, material);
+    }
+
+    /**
+     * Fills the portal interior with real, solid iris blocks. Unlike
+     * {@link #fillGateInterior(Material)} this places actual server-side blocks,
+     * because the iris has to physically stop travellers.
+     *
+     * @param material
+     *            the iris material to place
+     */
+    public void fillGateIris(final Material material)
+    {
+        StargateBlockSetup.fillGateIris(this, material);
     }
 
     /**

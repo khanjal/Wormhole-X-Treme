@@ -46,6 +46,9 @@ class WormholeXTremeVehicleListener implements Listener
     /** Vehicles recently teleported — short cooldown to avoid immediate re-trigger. */
     private static final Set<UUID> recentlyTeleported = ConcurrentHashMap.newKeySet();
 
+    /** Players teleported via a vehicle — suppresses a duplicate solo teleport from PlayerListener. */
+    private static final Set<UUID> recentlyTeleportedPlayersByVehicle = ConcurrentHashMap.newKeySet();
+
     /**
      * Simple minecart safety helper – return one block above the preferred
      * arrival location so players/carts don't spawn inside blocks.
@@ -176,6 +179,28 @@ class WormholeXTremeVehicleListener implements Listener
     }
 
 
+    static void markPlayerRecentlyTeleportedByVehicle(final UUID playerId)
+    {
+        if (playerId == null) { return; }
+        recentlyTeleportedPlayersByVehicle.add(playerId);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                recentlyTeleportedPlayersByVehicle.remove(playerId);
+            }
+        }, 10L);
+    }
+
+
+    static boolean isPlayerRecentlyTeleportedByVehicle(final UUID playerId)
+    {
+        if (playerId == null) { return false; }
+        return recentlyTeleportedPlayersByVehicle.contains(playerId);
+    }
+
+
     /**
      * Teleport an occupied minecart through a gate.
      * <p>
@@ -230,34 +255,8 @@ class WormholeXTremeVehicleListener implements Listener
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
+                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) {}
                                     try { child.teleport(parent.getLocation()); added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after teleport failed: " + t.getMessage()); }
-                                }
-                                if (!added && child instanceof Player)
-                                {
-                                    try
-                                    {
-                                        final java.lang.Class<?> cls = child.getClass();
-                                        try
-                                        {
-                                            final java.lang.reflect.Method m = cls.getMethod("startRiding", org.bukkit.entity.Entity.class, boolean.class);
-                                            m.invoke(child, parent, Boolean.TRUE);
-                                            added = true;
-                                        }
-                                        catch (final NoSuchMethodException ns)
-                                        {
-                                            try
-                                            {
-                                                final java.lang.reflect.Method m2 = cls.getMethod("startRiding", org.bukkit.entity.Entity.class);
-                                                m2.invoke(child, parent);
-                                                added = true;
-                                            }
-                                            catch (final NoSuchMethodException ns2) { }
-                                        }
-                                    }
-                                    catch (final Throwable t)
-                                    {
-                                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "reflective startRiding failed: " + t.getMessage());
-                                    }
                                 }
                                 if (added)
                                 {
@@ -400,34 +399,8 @@ class WormholeXTremeVehicleListener implements Listener
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
+                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) {}
                                     try { child.teleport(parent.getLocation()); added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after teleport failed: " + t.getMessage()); }
-                                }
-                                if (!added && child instanceof Player)
-                                {
-                                    try
-                                    {
-                                        final java.lang.Class<?> cls = child.getClass();
-                                        try
-                                        {
-                                            final java.lang.reflect.Method m = cls.getMethod("startRiding", org.bukkit.entity.Entity.class, boolean.class);
-                                            m.invoke(child, parent, Boolean.TRUE);
-                                            added = true;
-                                        }
-                                        catch (final NoSuchMethodException ns)
-                                        {
-                                            try
-                                            {
-                                                final java.lang.reflect.Method m2 = cls.getMethod("startRiding", org.bukkit.entity.Entity.class);
-                                                m2.invoke(child, parent);
-                                                added = true;
-                                            }
-                                            catch (final NoSuchMethodException ns2) { }
-                                        }
-                                    }
-                                    catch (final Throwable t)
-                                    {
-                                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "reflective startRiding failed: " + t.getMessage());
-                                    }
                                 }
                                 if (added)
                                 {
@@ -652,6 +625,7 @@ class WormholeXTremeVehicleListener implements Listener
                     else
                     {
                         StargateRestrictions.addPlayerUseCooldown(p);
+                        try { StargateRestrictions.addPlayerRecentArrival(p, st.getGateTarget()); } catch (final Throwable ignore) {}
                     }
                 }
             }
@@ -734,6 +708,15 @@ class WormholeXTremeVehicleListener implements Listener
                     markVehicleRecentlyTeleported(vid);
                     if (!passengers.isEmpty())
                     {
+                        // Mark all player passengers so PlayerListener does not solo-teleport them
+                        // when they are ejected by veh.teleport() on the source side.
+                        for (final Entity psg : passengers)
+                        {
+                            if (psg instanceof Player)
+                            {
+                                markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
+                            }
+                        }
                         // Occupied vehicle: dispatch to type-specific handler.
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
                         if (veh instanceof Boat)

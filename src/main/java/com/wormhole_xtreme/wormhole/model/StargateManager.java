@@ -658,6 +658,41 @@ public class StargateManager
     }
 
     /**
+     * Returns true if the given block location corresponds to a portal interior
+     * block for its owning Stargate (not structure blocks). This checks the
+     * gate's portal block list rather than the server-side block material so
+     * it works when the server keeps the logical block as AIR and renders
+     * visuals to clients.
+     */
+    public static boolean isPortalBlock(final Block b)
+    {
+        if (b == null || b.getWorld() == null)
+        {
+            return false;
+        }
+        final Location norm = normalizeBlockLocation(b.getLocation());
+        final Stargate s = getAllGateBlocks().get(norm);
+        if (s == null)
+        {
+            return false;
+        }
+        try
+        {
+            for (final Location l : s.getGatePortalBlocks())
+            {
+                final Location ln = normalizeBlockLocation(l);
+                if (ln != null && ln.getWorld() != null && ln.getWorld().equals(norm.getWorld())
+                    && ln.getBlockX() == norm.getBlockX() && ln.getBlockY() == norm.getBlockY() && ln.getBlockZ() == norm.getBlockZ())
+                {
+                    return true;
+                }
+            }
+        }
+        catch (final Throwable ignore) {}
+        return false;
+    }
+
+    /**
      * Checks if is stargate.
      * 
      * @param name

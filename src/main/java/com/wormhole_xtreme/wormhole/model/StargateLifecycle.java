@@ -209,28 +209,30 @@ class StargateLifecycle
     static void setIrisState(final Stargate gate, final boolean irisActive)
     {
         gate.setGateIrisActive(irisActive);
-        final Material interiorMat;
         if (gate.isGateIrisActive())
         {
-            interiorMat = gate.isGateCustom()
+            // The iris is a real barrier, so it is placed as real server-side blocks
+            // rather than drawn client-side the way the portal is.
+            gate.fillGateIris(gate.isGateCustom()
                 ? gate.getGateCustomIrisMaterial()
                 : gate.getGateShape() != null
                     ? gate.getGateShape().getShapeIrisMaterial()
-                    : Material.STONE;
+                    : Material.STONE);
         }
         else if (gate.isGateActive())
         {
-            interiorMat = gate.isGateCustom()
+            // Opening the iris on an active gate returns the interior to AIR with the
+            // portal drawn over it, which also clears the iris blocks placed above.
+            gate.fillGateInterior(gate.isGateCustom()
                 ? gate.getGateCustomPortalMaterial()
                 : gate.getGateShape() != null
                     ? gate.getGateShape().getShapePortalMaterial()
-                    : Material.WATER;
+                    : Material.WATER);
         }
         else
         {
-            interiorMat = Material.AIR;
+            gate.fillGateInterior(Material.AIR);
         }
-        gate.fillGateInterior(interiorMat);
         if ((gate.getGateIrisLeverBlock() != null)
             && (gate.getGateIrisLeverBlock().getType() == Material.LEVER))
         {

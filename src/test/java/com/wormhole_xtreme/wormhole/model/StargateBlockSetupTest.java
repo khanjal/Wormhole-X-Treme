@@ -42,7 +42,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void fillGateInteriorSetsTypeOnEveryPortalBlock()
+    public void fillGateInteriorSetsServerBlockToAirAndSendsVisualToClients()
     {
         final World world = mock(World.class);
         final Block b1 = mock(Block.class);
@@ -52,11 +52,48 @@ public class StargateBlockSetupTest
         gate.getGatePortalBlocks().add(new Location(null, 4, 5, 6));
         when(world.getBlockAt(1, 2, 3)).thenReturn(b1);
         when(world.getBlockAt(4, 5, 6)).thenReturn(b2);
+        when(world.getPlayers()).thenReturn(java.util.Collections.emptyList());
 
         StargateBlockSetup.fillGateInterior(gate, Material.WATER);
 
-        verify(b1).setType(Material.WATER);
-        verify(b2).setType(Material.WATER);
+        // Server logical block must always be AIR; client visuals are sent via sendBlockChange.
+        verify(b1).setType(Material.AIR);
+        verify(b2).setType(Material.AIR);
+    }
+
+    // -----------------------------------------------------------------------
+    // fillGateIris
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void fillGateIrisPlacesRealServerBlocksNotClientVisuals()
+    {
+        // Regression guard: the iris is the gate's barrier. If it is only drawn
+        // client-side (the way the portal is) a traveller walks straight through a
+        // closed iris, and anything resting on a horizontal gate's iris falls through.
+        final World world = mock(World.class);
+        final Block b1 = mock(Block.class);
+        final Block b2 = mock(Block.class);
+        gate.setGateWorld(world);
+        gate.getGatePortalBlocks().add(new Location(null, 1, 2, 3));
+        gate.getGatePortalBlocks().add(new Location(null, 4, 5, 6));
+        when(world.getBlockAt(1, 2, 3)).thenReturn(b1);
+        when(world.getBlockAt(4, 5, 6)).thenReturn(b2);
+
+        StargateBlockSetup.fillGateIris(gate, Material.STONE);
+
+        verify(b1).setType(Material.STONE);
+        verify(b2).setType(Material.STONE);
+        verify(b1, never()).setType(Material.AIR);
+        verify(b2, never()).setType(Material.AIR);
+        // No client-side visual is involved, so the player list is never consulted.
+        verify(world, never()).getPlayers();
+    }
+
+    @Test
+    public void fillGateIrisWithEmptyPortalBlocksDoesNothing()
+    {
+        assertDoesNotThrow(() -> StargateBlockSetup.fillGateIris(gate, Material.STONE));
     }
 
     // -----------------------------------------------------------------------

@@ -70,6 +70,7 @@ public class WormholeXTremePlayerListenerMountTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getWorld()).thenReturn(world);
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         when(ch.getType()).thenReturn(Material.WATER);
 
@@ -86,6 +87,8 @@ public class WormholeXTremePlayerListenerMountTest
         gateTargetField.set(src, target);
 
         StargateManager.addBlockIndex(ch, src);
+        // isPortalBlock checks getGatePortalBlocks(), so register the block there too.
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
 
         // Create a mount (pig) and two player riders
         final Pig mount = mock(Pig.class);
@@ -121,7 +124,8 @@ public class WormholeXTremePlayerListenerMountTest
         org.junit.jupiter.api.Assertions.assertNotNull(rider2.getVehicle(), "rider2.getVehicle() should be non-null and return mount");
 
         // Act: simulate both players moving into the gate portal block
-        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        // fromLoc must be a different block coordinate from toLoc so hasChangedBlockCoordinates returns true.
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 1.5);
         final PlayerMoveEvent ev1 = new PlayerMoveEvent(rider1, fromLoc, toLoc);
         final PlayerMoveEvent ev2 = new PlayerMoveEvent(rider2, fromLoc, toLoc);
 

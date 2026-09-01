@@ -1,6 +1,8 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.logging.Level;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -8,8 +10,10 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.block.sign.Side;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Powerable;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -469,27 +473,103 @@ class StargateBlockSetup
         }
     }
 
+    /** Radius, in blocks, within which clients are sent portal visual updates. */
+    private static final double VISUAL_RADIUS = 64.0;
+
     /**
-     * Sets all portal blocks to {@link Material#AIR}.
+     * Sends a client-side-only appearance for every portal block of {@code gate}.
+     * <p>
+     * The recipient list is resolved once per call rather than once per block: a
+     * Standard gate has 21 portal blocks and the woosh animation redraws them on
+     * every frame, so a per-block player scan multiplies quickly on a busy world.
+     *
+     * @param gate     the gate whose portal blocks are being redrawn
+     * @param material the appearance to send to clients
+     */
+    private static void sendPortalVisual(final Stargate gate, final Material material)
+    {
+        final List<Location> portalBlocks = gate.getGatePortalBlocks();
+        if (portalBlocks.isEmpty())
+        {
+            return;
+        }
+        // Portal blocks all sit within a gate-sized box, so proximity to any one of
+        // them is a good enough filter for the whole gate.
+        final Location reference = new Location(gate.getGateWorld(),
+            portalBlocks.get(0).getBlockX(), portalBlocks.get(0).getBlockY(), portalBlocks.get(0).getBlockZ());
+        final List<Player> recipients = new ArrayList<Player>();
+        for (final Player p : gate.getGateWorld().getPlayers())
+        {
+            if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
+            {
+                recipients.add(p);
+            }
+        }
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        // Built only once nobody-is-watching has been ruled out: createBlockData()
+        // needs a live server, and the woosh animation calls this every frame.
+        final BlockData blockData = material.createBlockData();
+        for (final Location bc : portalBlocks)
+        {
+            final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(at, blockData);
+            }
+        }
+    }
+
+    /**
+     * Sets all portal blocks to {@link Material#AIR}, both on the server and on
+     * nearby clients, clearing any client-side portal visual still being shown.
      *
      * @param gate the gate
      */
     static void deletePortalBlocks(final Stargate gate)
+    {
+        fillGateInterior(gate, Material.AIR);
+    }
+
+    /**
+     * Opens or clears the portal interior.
+     * <p>
+     * The server-side block is always {@link Material#AIR} so travellers standing in
+     * an active portal are not subject to the portal material's physics — no drowning
+     * or buoyancy in a water portal, no burning in a lava one. {@code material} is
+     * what nearby clients are shown instead, so the portal still looks solid.
+     * <p>
+     * This is deliberately <em>not</em> how the iris is drawn: see
+     * {@link #fillGateIris(Stargate, Material)}.
+     *
+     * @param gate     the gate
+     * @param material the appearance to show clients; {@link Material#AIR} clears the portal
+     */
+    static void fillGateInterior(final Stargate gate, final Material material)
     {
         for (final Location bc : gate.getGatePortalBlocks())
         {
             final Block b = gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             b.setType(Material.AIR);
         }
+        sendPortalVisual(gate, material);
     }
 
     /**
-     * Fills every portal block with the given material.
+     * Fills every portal block with a real, solid iris block.
+     * <p>
+     * The iris is the gate's barrier, so unlike the portal it must exist server-side:
+     * a client-only iris would let a traveller walk straight through a closed one, and
+     * would drop anything standing on a horizontal gate's iris. Placing real blocks
+     * also makes the server send its own block updates, which clears any portal visual
+     * clients were still showing for these positions.
      *
      * @param gate     the gate
-     * @param material the material to place
+     * @param material the iris material to place
      */
-    static void fillGateInterior(final Stargate gate, final Material material)
+    static void fillGateIris(final Stargate gate, final Material material)
     {
         for (final Location bc : gate.getGatePortalBlocks())
         {

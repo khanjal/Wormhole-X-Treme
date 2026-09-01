@@ -659,14 +659,74 @@ class WormholeXTremePlayerListener implements Listener
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerMove: " + player.getName() + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
         }
         catch (final Throwable ignore) {}
-        final Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
-        final Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
+        Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
+        Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
-        if (stargate != null && stargate.isGateActive() && (gateBlockFinal.getType() == (stargate.isGateCustom()
-            ? stargate.getGateCustomPortalMaterial()
-            : stargate.getGateShape() != null
-                ? stargate.getGateShape().getShapePortalMaterial()
-                : Material.WATER)))
+        // If the player isn't technically in the portal block but is riding an animal
+        // that is partially in the portal (e.g. camel), attempt to detect the gate
+        // from the mount's location and treat that as the trigger so we teleport
+        // the mount/vehicle-first as intended.
+        if (stargate == null)
+        {
+            try
+            {
+                org.bukkit.entity.Entity preVehicleCandidate = player.getVehicle();
+                if (preVehicleCandidate == null)
+                {
+                    try
+                    {
+                        for (final org.bukkit.entity.Entity e : player.getNearbyEntities(3.0, 2.0, 3.0))
+                        {
+                            try
+                            {
+                                if (e.getPassengers().contains(player))
+                                {
+                                    preVehicleCandidate = e;
+                                    break;
+                                }
+                            }
+                            catch (final Throwable ignore) {}
+                        }
+                    }
+                    catch (final Throwable ignore) {}
+                }
+
+                if (preVehicleCandidate != null && !(preVehicleCandidate instanceof Vehicle))
+                {
+                    final Location ml = preVehicleCandidate.getLocation();
+                    final org.bukkit.World w = (ml == null) ? null : ml.getWorld();
+                    if (w != null)
+                    {
+                        boolean found = false;
+                        for (int dx = -2; dx <= 2 && !found; dx++)
+                        {
+                            for (int dy = -2; dy <= 2 && !found; dy++)
+                            {
+                                for (int dz = -2; dz <= 2 && !found; dz++)
+                                {
+                                    try
+                                    {
+                                        final Block b = w.getBlockAt(ml.getBlockX() + dx, ml.getBlockY() + dy, ml.getBlockZ() + dz);
+                                        final Stargate s2 = StargateManager.getGateFromBlock(b);
+                                        if (s2 != null && s2.isGateActive())
+                                        {
+                                            stargate = s2;
+                                            gateBlockFinal = b;
+                                            found = true;
+                                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + preVehicleCandidate + " at block=" + b.getLocation().toString());
+                                        }
+                                    }
+                                    catch (final Throwable ignore) {}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (final Throwable ignore) {}
+        }
+
+        if (stargate != null && stargate.isGateActive() && StargateManager.isPortalBlock(gateBlockFinal))
         {
             // If this gate has an outgoing target, it's the origin side: handle teleport as before.
             if (stargate.getGateTarget() != null)
@@ -704,7 +764,17 @@ class WormholeXTremePlayerListener implements Listener
                     }
                     return true;
                 }
-                // otherwise fall through: gate active but not an incoming destination
+                // Gate is active but has neither an outgoing target nor an incoming
+                // wormhole — an activated-but-undialed gate. There is nowhere to send
+                // the player, so let them walk through the empty ring untouched.
+                // Everything below this point dereferences getGateTarget().
+                return false;
+            }
+            // Suppress solo teleport if this player was just ejected by a vehicle that VehicleListener
+            // already teleported — the player must exit riding the vehicle, not as a solo traveller.
+            if (WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(player.getUniqueId()))
+            {
+                return false;
             }
             String gatenetwork;
             if (stargate.getGateNetwork() != null)
@@ -716,6 +786,13 @@ class WormholeXTremePlayerListener implements Listener
                 gatenetwork = "Public";
             }
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
+
+            // Refill player's air while inside the portal to avoid drowning/breath decrease.
+            try
+            {
+                try { player.setRemainingAir(player.getMaximumAir()); } catch (final Throwable ignore) {}
+            }
+            catch (final Throwable ignore) {}
 
             if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
             {
@@ -855,6 +932,9 @@ class WormholeXTremePlayerListener implements Listener
             {
                 boolean vehicleTeleported = false;
                 boolean mountTeleported = false;
+                // Array holders so anonymous Runnable closures can access the computed exit velocities.
+                final org.bukkit.util.Vector[] vExitVelHolder = { null };
+                final org.bukkit.util.Vector[] mountExitVelHolder = { null };
                 if (v != null)
                 {
                     final Location vehTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, stargate.getGateTarget().getGateFacing(), 1.0, 1.0);
@@ -862,6 +942,7 @@ class WormholeXTremePlayerListener implements Listener
                     try
                     {
                         final org.bukkit.util.Vector exitVel = WormholeXTremeVehicleListener.computeExitVelocity(stargate.getGateTarget().getGateFacing(), v.getVelocity(), 5.0);
+                        vExitVelHolder[0] = exitVel;
                         if (vehTarget != null && exitVel != null)
                         {
                             final double dx = exitVel.getX();
@@ -899,6 +980,7 @@ class WormholeXTremePlayerListener implements Listener
                     try
                     {
                         final org.bukkit.util.Vector exitVelMount = WormholeXTremeVehicleListener.computeExitVelocity(stargate.getGateTarget().getGateFacing(), mount.getVelocity(), 5.0);
+                        mountExitVelHolder[0] = exitVelMount;
                         if (mountTarget != null && exitVelMount != null)
                         {
                             final double dxm = exitVelMount.getX();
@@ -996,34 +1078,8 @@ class WormholeXTremePlayerListener implements Listener
                                             try { added = parent.addPassenger(psg); WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "parent.addPassenger called parent=" + parent + " child=" + psg + " result=" + added); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                             if (!added)
                                             {
+                                                try { if (parent.getPassengers().contains(psg)) { attached[i] = true; continue; } } catch (final Throwable ignore) {}
                                                 try { psg.teleport(parent.getLocation()); added = parent.addPassenger(psg); WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "parent.addPassenger after teleport parent=" + parent + " child=" + psg + " result=" + added); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after fallback teleport failed: " + t.getMessage()); }
-                                            }
-                                            if (!added && psg instanceof Player)
-                                            {
-                                                try
-                                                {
-                                                    final java.lang.Class<?> cls = psg.getClass();
-                                                    try
-                                                    {
-                                                        final java.lang.reflect.Method m = cls.getMethod("startRiding", org.bukkit.entity.Entity.class, boolean.class);
-                                                        m.invoke(psg, parent, Boolean.TRUE);
-                                                        added = true;
-                                                    }
-                                                    catch (final NoSuchMethodException ns)
-                                                    {
-                                                        try
-                                                        {
-                                                            final java.lang.reflect.Method m2 = cls.getMethod("startRiding", org.bukkit.entity.Entity.class);
-                                                            m2.invoke(psg, parent);
-                                                            added = true;
-                                                        }
-                                                        catch (final NoSuchMethodException ns2) { }
-                                                    }
-                                                }
-                                                catch (final Throwable t)
-                                                {
-                                                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "reflective startRiding failed: " + t.getMessage());
-                                                }
                                             }
                                             if (added)
                                             {
@@ -1043,7 +1099,7 @@ class WormholeXTremePlayerListener implements Listener
                                     }
                                     if (remaining == 0)
                                     {
-                                        try { v.setVelocity(new Vector(0, 0, 0)); v.setFireTicks(0); } catch (final Throwable ignore) {}
+                                        try { v.setVelocity(vExitVelHolder[0] != null ? vExitVelHolder[0] : new Vector(0, 0, 0)); v.setFireTicks(0); } catch (final Throwable ignore) {}
                                         if (v instanceof Boat)
                                         {
                                             final Location resyncLoc = v.getLocation();
@@ -1121,34 +1177,8 @@ class WormholeXTremePlayerListener implements Listener
                                             try { added = parent.addPassenger(psg); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                             if (!added)
                                             {
+                                                try { if (parent.getPassengers().contains(psg)) { attached[i] = true; continue; } } catch (final Throwable ignore) {}
                                                 try { psg.teleport(parent.getLocation()); added = parent.addPassenger(psg); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after fallback teleport failed: " + t.getMessage()); }
-                                            }
-                                            if (!added && psg instanceof Player)
-                                            {
-                                                try
-                                                {
-                                                    final java.lang.Class<?> cls = psg.getClass();
-                                                    try
-                                                    {
-                                                        final java.lang.reflect.Method m = cls.getMethod("startRiding", org.bukkit.entity.Entity.class, boolean.class);
-                                                        m.invoke(psg, parent, Boolean.TRUE);
-                                                        added = true;
-                                                    }
-                                                    catch (final NoSuchMethodException ns)
-                                                    {
-                                                        try
-                                                        {
-                                                            final java.lang.reflect.Method m2 = cls.getMethod("startRiding", org.bukkit.entity.Entity.class);
-                                                            m2.invoke(psg, parent);
-                                                            added = true;
-                                                        }
-                                                        catch (final NoSuchMethodException ns2) { }
-                                                    }
-                                                }
-                                                catch (final Throwable t)
-                                                {
-                                                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "reflective startRiding failed: " + t.getMessage());
-                                                }
                                             }
                                             if (added)
                                             {
@@ -1168,7 +1198,7 @@ class WormholeXTremePlayerListener implements Listener
                                     }
                                     if (remaining == 0)
                                     {
-                                        // All attached — nothing else to do here.
+                                        try { mount.setVelocity(mountExitVelHolder[0] != null ? mountExitVelHolder[0] : new Vector(0, 0, 0)); mount.setFireTicks(0); } catch (final Throwable ignore) {}
                                     }
                                     else if (attempts[0] < MAX_ATTEMPTS)
                                     {
