@@ -1037,6 +1037,30 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
+     * Refuses a player's step into a gate they may not enter, and tells them why.
+     *
+     * <p>Cancelling the move event is the entire job. Bukkit returns the player to
+     * {@code event.getFrom()} and the client corrects itself smoothly, which is the
+     * idiomatic way to refuse movement.
+     *
+     * <p>This used to do three things at once: rewrite the event's from and to, fire a
+     * {@code player.teleport()}, and then cancel — three mechanisms competing within one
+     * tick, which rubber-banded the player. It also teleported them to
+     * {@code getGatePlayerTeleportLocation()}, the gate's <em>arrival</em> point, so
+     * refusing entry actually pulled them further into the ring rather than holding them
+     * out of it. It set no-damage ticks too, on a path where nothing deals damage.
+     *
+     * @param player
+     *            the player to hold back
+     * @return true, so the caller cancels the move event
+     */
+    private static boolean refuseGateEntry(final Player player)
+    {
+        player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+        return true;
+    }
+
+    /**
      * Handle player move event.
      *
      * @param event
@@ -1119,22 +1143,7 @@ class WormholeXTremePlayerListener implements Listener
                 if (incomingActive)
                 {
                     // Block entry into destination gate while an incoming wormhole is active.
-                    player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
-                    player.setNoDamageTicks(5);
-                    final Location prev = stargate.getGatePlayerTeleportLocation();
-                    if (prev != null)
-                    {
-                        event.setFrom(prev);
-                        event.setTo(prev);
-                        // A failure here means the player was not held out of the gate.
-                        try { player.teleport(prev); }
-                        catch (final RuntimeException e)
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                                "Failed to hold " + player.getName() + " out of gate: " + e.getMessage());
-                        }
-                    }
-                    return true;
+                    return refuseGateEntry(player);
                 }
                 // Gate is active but has neither an outgoing target nor an incoming
                 // wormhole — an activated-but-undialed gate. There is nowhere to send
@@ -1172,22 +1181,7 @@ class WormholeXTremePlayerListener implements Listener
             // Prevent immediate re-entry to the gate the player just exited from.
             if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
             {
-                player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
-                player.setNoDamageTicks(5);
-                final Location prev = stargate.getGatePlayerTeleportLocation();
-                if (prev != null)
-                {
-                    event.setFrom(prev);
-                    event.setTo(prev);
-                    // A failure here means the player was not held out of the gate.
-                    try { player.teleport(prev); }
-                    catch (final RuntimeException e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                            "Failed to hold " + player.getName() + " out of gate: " + e.getMessage());
-                    }
-                }
-                return true;
+                return refuseGateEntry(player);
             }
 
             if (ConfigManager.isUseCooldownEnabled())
