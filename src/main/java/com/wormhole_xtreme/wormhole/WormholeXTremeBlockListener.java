@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole;
 
 import java.util.logging.Level;
@@ -23,19 +5,24 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
-import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -44,7 +31,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * @author Ben Echols (Lologarithm)
  * @author Dean Bailey (alron)
  */
-class WormholeXTremeBlockListener extends BlockListener
+class WormholeXTremeBlockListener implements Listener
 {
     /**
      * Handle block break.
@@ -59,73 +46,88 @@ class WormholeXTremeBlockListener extends BlockListener
      */
     private static boolean handleBlockBreak(final Player player, final Stargate stargate, final Block block)
     {
-        final boolean allowed = WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE);
-        if (allowed)
+        // Allow breaking the block directly under the dial button/lever if it is NOT the iris control block.
+        try
         {
-            if ( !WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), block))
+            if (stargate != null && stargate.getGateDialLeverBlock() != null)
             {
-                if ((stargate.getGateDialSignBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialSignBlock(), block))
+                final Block dial = stargate.getGateDialLeverBlock();
+                final Block belowDial = dial.getRelative(BlockFace.DOWN);
+
+                // Determine whether the gate's iris lever is actually present (a placed LEVER),
+                // because model-only placeholders are assigned during shape detection.
+                Block irisBlock = null;
+                boolean irisPresent = false;
+                try
                 {
-                    player.sendMessage("Destroyed DHD Sign. You will be unable to change dialing target from this gate.");
-                    player.sendMessage("You can rebuild it later.");
-                    stargate.setGateDialSign(null);
+                    irisBlock = stargate.getGateIrisLeverBlock();
+                    if (irisBlock != null && irisBlock.getType() == Material.LEVER)
+                    {
+                        irisPresent = true;
+                    }
                 }
-                else if (block.getTypeId() == (stargate.isGateCustom()
-                    ? stargate.getGateCustomIrisMaterial().getId()
-                    : stargate.getGateShape() != null
-                        ? stargate.getGateShape().getShapeIrisMaterial().getId()
-                        : 1))
+                catch (final Throwable ignore) {}
+
+                if ((belowDial != null) && WorldUtils.isSameBlock(belowDial, block))
                 {
-                    return true;
+                    // If the block under the dial is the iris control block AND an actual
+                    // lever is present there, keep protection. Otherwise allow the break.
+                    if (!irisPresent || !WorldUtils.isSameBlock(irisBlock, block))
+                    {
+                        return false; // allow break
+                    }
                 }
-                else
+
+                // Also allow breaking the block that would host the iris lever when
+                // an iris lever is not actually present (the "iris placeholder").
+                try
                 {
-                    if (stargate.isGateActive())
+                    BlockFace buttonFacing = stargate.getGateFacing(); // fallback
+                    final org.bukkit.block.data.BlockData bd = dial.getBlockData();
+                    if (bd instanceof Directional)
                     {
-                        stargate.setGateActive(false);
-                        stargate.fillGateInterior(0);
+                        buttonFacing = ((Directional) bd).getFacing();
                     }
-                    if (stargate.isGateLightsActive())
+                    final Block backing = dial.getRelative(WorldUtils.getInverseDirection(buttonFacing));
+                    final Block dhdBase = backing.getRelative(BlockFace.DOWN);
+                    final Block irisCandidate = dhdBase.getRelative(stargate.getGateFacing());
+                    if ((irisCandidate != null) && WorldUtils.isSameBlock(irisCandidate, block))
                     {
-                        stargate.lightStargate(false);
-                        stargate.stopActivationTimer();
-                        StargateManager.removeActivatedStargate(player);
+                        if (!irisPresent || !WorldUtils.isSameBlock(irisBlock, block))
+                        {
+                            return false; // allow break
+                        }
                     }
-                    stargate.resetTeleportSign();
-                    stargate.setupGateSign(false);
-                    if ( !stargate.getGateIrisDeactivationCode().equals(""))
-                    {
-                        stargate.setupIrisLever(false);
-                    }
-                    if (stargate.isGateRedstonePowered())
-                    {
-                        stargate.setupRedstone(false);
-                    }
-                    StargateManager.removeStargate(stargate);
-                    player.sendMessage("Stargate Destroyed: " + stargate.getGateName());
                 }
+                catch (final Throwable ignore) {}
             }
-            else
+        }
+        catch (final Throwable ignore) {}
+
+        // Require gate removal via command before manual block destruction.
+        if (player != null)
+        {
+            try
             {
-                player.sendMessage("Destroyed DHD. You will be unable to dial out from this gate.");
-                player.sendMessage("You can rebuild it later.");
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "This block is part of the registered gate '" + (stargate != null ? stargate.getGateName() : "unknown") + "'.");
+                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                    + "Run '/wormhole remove " + (stargate != null ? stargate.getGateName() : "unknown") + "' to remove the gate first (use -all to also destroy blocks).");
             }
-            return false;
+            catch (final Throwable ignore) {}
         }
         else
         {
-            if (player != null)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player: " + player.getName() + " denied block destroy on: " + stargate.getGateName());
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked non-player block break on registered gate: " + (stargate != null ? stargate.getGateName() : "unknown") );
         }
+        // Return true to signal that the break should be cancelled.
         return true;
     }
 
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockBreak(org.bukkit.event.block.BlockBreakEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockBreak(final BlockBreakEvent event)
     {
         if ( !event.isCancelled())
@@ -143,30 +145,18 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockBurn(org.bukkit.event.block.BlockBurnEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockBurn(final BlockBurnEvent event)
     {
         if ( !event.isCancelled())
         {
             final Location current = event.getBlock().getLocation();
-            final Stargate closest = StargateManager.findClosestStargate(current);
-            //TODO This is bad, very bad for performance!
-            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.isGateCustom()
-                ? closest.getGateCustomPortalMaterial()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapePortalMaterial()
-                    : Material.STATIONARY_WATER) == Material.STATIONARY_LAVA))
+            // Localized lookup: scan nearby indexed gate blocks instead of iterating all gates
+            final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
+            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.getEffectivePortalMaterial()) == Material.LAVA))
             {
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
-                if (((blockDistanceSquared <= (closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepthSquared()
-                    : closest.getGateShape() != null
-                        ? closest.getGateShape().getShapeWooshDepthSquared()
-                        : 0)) && ((closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepth()
-                    : closest.getGateShape() != null
-                        ? closest.getGateShape().getShapeWooshDepth()
-                        : 0) != 0)) || (blockDistanceSquared <= 25))
+                if (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 25))
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Block Burn Distance Squared: \"" + blockDistanceSquared + "\"");
                     event.setCancelled(true);
@@ -178,7 +168,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockDamage(org.bukkit.event.block.BlockDamageEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockDamage(final BlockDamageEvent event)
     {
         if ( !event.isCancelled())
@@ -196,7 +186,7 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockFlow(org.bukkit.event.block.BlockFromToEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockFromTo(final BlockFromToEvent event)
     {
         if ( !event.isCancelled())
@@ -211,27 +201,18 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockIgnite(org.bukkit.event.block.BlockIgniteEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockIgnite(final BlockIgniteEvent event)
     {
         if ( !event.isCancelled())
         {
             final Location current = event.getBlock().getLocation();
-            final Stargate closest = StargateManager.findClosestStargate(current);
-            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.isGateCustom()
-                ? closest.getGateCustomPortalMaterial()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapePortalMaterial()
-                    : Material.STATIONARY_WATER) == Material.STATIONARY_LAVA))
+            // Localized lookup: scan nearby indexed gate blocks instead of iterating all gates
+            final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
+            if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()) && ((closest.getEffectivePortalMaterial()) == Material.LAVA))
             {
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
-                if (((blockDistanceSquared <= (closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepthSquared()
-                    : closest.getGateShape().getShapeWooshDepthSquared())) && ((closest.isGateCustom()
-                    ? closest.getGateCustomWooshDepth()
-                    : closest.getGateShape() != null
-                        ? closest.getGateShape().getShapeWooshDepth()
-                        : 0) != 0)) || (blockDistanceSquared <= 25))
+                if (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 25))
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Block Type: \"" + event.getBlock().getType().toString() + "\" Proximity Block Ignite: \"" + event.getCause().toString() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
                     event.setCancelled(true);
@@ -243,13 +224,30 @@ class WormholeXTremeBlockListener extends BlockListener
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockPhysics(org.bukkit.event.block.BlockPhysicsEvent)
      */
-    @Override
+    @EventHandler
     public void onBlockPhysics(final BlockPhysicsEvent event)
     {
         if ( !event.isCancelled())
         {
             final Block block = event.getBlock();
-            if (StargateManager.isBlockInGate(block) && (block.getTypeId() != 55))
+            // Protect nearby ice from melting when gates use water as their portal material
+            final Material t = block.getType();
+            if (MaterialUtils.isIce(t))
+            {
+                final Location loc = block.getLocation();
+                final Stargate closest = StargateManager.findNearestGateByBlock(loc, 10, 5);
+                if ((closest != null) && (closest.isGateActive() || closest.isGateRecentlyActive()))
+                {
+                    final double d2 = StargateManager.distanceSquaredToClosestGateBlock(loc, closest);
+                    if (d2 <= 16)
+                    {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+            }
+
+            if (StargateManager.isBlockInGate(block) && (block.getType() != org.bukkit.Material.REDSTONE_WIRE))
             {
                 event.setCancelled(true);
             }

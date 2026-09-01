@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import org.bukkit.command.Command;
@@ -43,59 +25,66 @@ public class WXIDC implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        final String[] a = CommandUtilities.commandEscaper(args);
-        if (a.length >= 1)
+        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
-
-            if (StargateManager.isStargate(a[0]))
+            @Override
+            public Boolean call() throws Exception
             {
-                final Stargate s = StargateManager.getStargate(a[0]);
-                if ( !s.isGateSignPowered() && (s.getGateIrisLeverBlock() != null))
+                final String[] a = CommandUtilities.commandEscaper(args);
+                if (a.length >= 1)
                 {
-                    if (CommandUtilities.playerCheck(sender)
-                        ? (WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG) || ((s.getGateOwner() != null) && s.getGateOwner().equals(((Player) sender).getName())))
-                        : true)
+
+                    if (StargateManager.isStargate(a[0]))
                     {
-                        // 2. if args other than name - do a set                
-                        if (a.length >= 2)
+                        final Stargate s = StargateManager.getStargate(a[0]);
+                        if ( !s.isGateSignPowered() && (s.getGateIrisLeverBlock() != null))
                         {
-                            if (a[1].equals("-clear"))
+                            if (CommandUtilities.playerCheck(sender)
+                                ? (WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG) || s.isOwner((Player) sender))
+                                : true)
                             {
-                                // Remove from big list of all blocks
-                                StargateManager.removeBlockIndex(s.getGateIrisLeverBlock());
-                                // Set code to "" and then remove it from stargates block list
-                                s.setIrisDeactivationCode("");
+                                // 2. if args other than name - do a set                
+                                if (a.length >= 2)
+                                {
+                                    if (a[1].equals("-clear"))
+                                    {
+                                        // Remove from big list of all blocks
+                                        StargateManager.removeBlockIndex(s.getGateIrisLeverBlock());
+                                        // Set code to "" and then remove it from stargates block list
+                                        s.setIrisDeactivationCode("");
+                                    }
+                                    else
+                                    {
+                                        // Set code
+                                        s.setIrisDeactivationCode(a[1]);
+                                        // Make sure that block is in index
+                                        StargateManager.addBlockIndex(s.getGateIrisLeverBlock(), s);
+                                    }
+                                }
+
+                                // 3. always display current value at end.
+                                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
                             }
                             else
                             {
-                                // Set code
-                                s.setIrisDeactivationCode(a[1]);
-                                // Make sure that block is in index
-                                StargateManager.addBlockIndex(s.getGateIrisLeverBlock(), s);
+                                sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                             }
                         }
-
-                        // 3. always display current value at end.
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
+                        else
+                        {
+                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
+                        }
                     }
                     else
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    }
-                }
-                else
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
-                }
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Stargate: " + a[0]);
+                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Stargate: " + a[0]);
 
+                    }
+                    return true;
+                }
+                return false;
             }
-            return true;
-        }
-        return false;
+        });
     }
 
 }

@@ -1,32 +1,10 @@
-/**
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.permissions;
-
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
-
 import org.bukkit.entity.Player;
-
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 
 /**
@@ -46,14 +24,7 @@ enum ComplexPermission
     /** Compass Use */
     USE_COMPASS("wormhole.use.compass"),
 
-    /** Use Cooldown Group One */
-    USE_COOLDOWN_GROUP_ONE("wormhole.cooldown.groupone"),
-
-    /** Use Cooldown Group two. */
-    USE_COOLDOWN_GROUP_TWO("wormhole.cooldown.grouptwo"),
-
-    /** Use Cooldown Group three. */
-    USE_COOLDOWN_GROUP_THREE("wormhole.cooldown.groupthree"),
+    // Per-group cooldown permission nodes removed; cooldowns handled centrally when enabled.
 
     /** Remove Own */
     REMOVE_OWN("wormhole.remove.own"),
@@ -63,15 +34,8 @@ enum ComplexPermission
 
     /** Build */
     BUILD("wormhole.build"),
-
-    /** Build Restriction Group one. */
-    BUILD_RESTRICTION_GROUP_ONE("wormhole.build.groupone"),
-
-    /** Build Restriction Group two. */
-    BUILD_RESTRICTION_GROUP_TWO("wormhole.build.grouptwo"),
-
-    /** Build Restriction Group three. */
-    BUILD_RESTRICTION_GROUP_THREE("wormhole.build.groupthree"),
+    /** Build */
+    // Build restriction group permission nodes removed; use standard permission backend instead.
 
     /** Config */
     CONFIG("wormhole.config"),
@@ -162,7 +126,7 @@ enum ComplexPermission
      */
     public boolean checkPermission(final Player player, final Stargate stargate, final String networkName)
     {
-        if ((player != null) && (WormholeXTreme.getPermissions() != null) && !ConfigManager.getSimplePermissions())
+        if (player != null)
         {
             boolean allowed = false;
 
@@ -171,14 +135,14 @@ enum ComplexPermission
                 case NETWORK_USE :
                 case NETWORK_BUILD :
                     allowed = networkName != null
-                        ? WormholeXTreme.getPermissions().has(player, complexPermissionNode + networkName)
+                        ? player.hasPermission(complexPermissionNode + networkName)
                         : false;
                     break;
                 case REMOVE_OWN :
-                    allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.getGateOwner().equals(player.getName()) && WormholeXTreme.getPermissions().has(player, complexPermissionNode));
+                    allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player) && player.hasPermission(complexPermissionNode));
                     break;
                 default :
-                    allowed = WormholeXTreme.getPermissions().has(player, complexPermissionNode);
+                    allowed = player.hasPermission(complexPermissionNode);
                     break;
             }
             if (allowed)

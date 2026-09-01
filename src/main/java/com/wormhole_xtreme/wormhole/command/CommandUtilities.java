@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
@@ -32,7 +14,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * @author Dean Bailey (alron)
  * @author Ben Echols (Lologarithm)
  */
-class CommandUtilities
+public class CommandUtilities
 {
 
     /**
@@ -134,8 +116,28 @@ class CommandUtilities
      * @param destroy
      *            true to destroy gate blocks
      */
-    static void gateRemove(final Stargate stargate, final boolean destroy)
+    public static void gateRemove(final Stargate stargate, final boolean destroy)
     {
+        // Ensure the gate is fully deactivated and cleaned up before removal.
+        try
+        {
+            stargate.shutdownStargate(false);
+        }
+        catch (final Exception e)
+        {
+            // Be conservative: log and continue with removal to avoid leaving stale DB entries.
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error shutting down gate before removal: " + e.getMessage());
+        }
+        // Remove any activator/player mapping referencing this stargate.
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.StargateManager.removeActivatorForStargate(stargate);
+        }
+        catch (final Exception e)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "No activator mapping to remove or error: " + e.getMessage());
+        }
+
         stargate.setupGateSign(false);
         stargate.resetTeleportSign();
         if ( !stargate.getGateIrisDeactivationCode().equals(""))
@@ -185,7 +187,7 @@ class CommandUtilities
      *            the boolean string
      * @return true, if is boolean
      */
-    static boolean isBoolean(final String booleanString)
+    public static boolean isBoolean(final String booleanString)
     {
         return booleanString.equalsIgnoreCase("true") || booleanString.equalsIgnoreCase("false");
     }
@@ -197,7 +199,7 @@ class CommandUtilities
      *            the sender
      * @return true, if successful
      */
-    static boolean playerCheck(final CommandSender sender)
+    public static boolean playerCheck(final CommandSender sender)
     {
         if (sender instanceof Player)
         {
@@ -206,6 +208,35 @@ class CommandUtilities
         else
         {
             return false;
+        }
+    }
+
+    /**
+     * Run a command body safely, catching any Throwable and reporting a friendly
+     * message to the command sender (and logging the error).
+     *
+     * @param sender   command sender
+     * @param callable the command body to execute
+     * @return the boolean result the callable returned, or true if an error occurred
+     */
+    public static boolean runCommandSafe(final CommandSender sender, final java.util.concurrent.Callable<Boolean> callable)
+    {
+        try
+        {
+            return callable.call();
+        }
+        catch (final Throwable t)
+        {
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error executing command: " + t.getMessage());
+            if (playerCheck(sender))
+            {
+                ((Player) sender).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+            }
+            else
+            {
+                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+            }
+            return true;
         }
     }
 }

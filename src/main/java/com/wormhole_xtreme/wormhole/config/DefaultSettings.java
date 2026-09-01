@@ -1,25 +1,5 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.config;
-
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
  * The Class DefaultSettings.
@@ -32,21 +12,20 @@ class DefaultSettings
     final static Setting[] config = {
         new Setting(ConfigKeys.TIMEOUT_ACTIVATE, 30, "Number of seconds after a gate is activated, but before dialing before timing out.", "WormholeXTreme"),
         new Setting(ConfigKeys.TIMEOUT_SHUTDOWN, 38, "Number of seconds after a gate is dialed before automatically shutdown. With 0 timeout a gate won't shutdown until something goes through the gate.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BUILD_RESTRICTION_ENABLED, false, "Enable build count restrictions. Reuires complex permissions.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE, 1, "Total number of stargates a member of build restriction group one can build.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO, 2, "Total number of stargates a member of build restriction group two can build.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE, 3, "Total number of stargates a member of build restriction group three can build.", "WormholeXTreme"),
-        new Setting(ConfigKeys.USE_COOLDOWN_ENABLED, false, "Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes. Requires complex permissions enabled.", "WormholeXTreme"),
-        new Setting(ConfigKeys.USE_COOLDOWN_GROUP_ONE, 120, "Cooldown time in seconds between stargate use for members of use cooldown group one.", "WormholeXTreme"),
-        new Setting(ConfigKeys.USE_COOLDOWN_GROUP_TWO, 60, "Cooldown time in seconds between stargate use for members of use cooldown group two.", "WormholeXTreme"),
-        new Setting(ConfigKeys.USE_COOLDOWN_GROUP_THREE, 30, "Cooldown time in seconds between stargate use for members of use cooldown group three.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BUILT_IN_PERMISSIONS_ENABLED, false, "This should be set to true if you want the built in permissions enabled. This setting does nothing if you have Permissions plugin installed.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL, PermissionLevel.WORMHOLE_USE_PERMISSION, "If built in permissions are being used, this is the default level of control users (non-ops) have.", "WormholeXTreme"),
-        new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If set to true, Permissions plugin will not be attached to evem if available.", "WormholeXTreme"),
-        new Setting(ConfigKeys.SIMPLE_PERMISSIONS, false, "If using Permissions plugin based permissions, setting this to true switches WormholeXTreme to use an extremely simplified permissions set ('wormhole.simple.use', 'wormhole.simple.build', 'wormhole.simple.config', and 'wormhole.simple.remove').", "WormholeXTreme"),
+        // Build restriction feature removed; permissions handled via Vault/LuckPerms
+        new Setting(ConfigKeys.USE_COOLDOWN_ENABLED, false, "Enable Cooldown timers on stargate usage. Timer only activates on passage through wormholes.", "WormholeXTreme"),
+        new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, false, "If set to true, Permissions plugin will not be attached to even if available.", "WormholeXTreme"),
+        new Setting(ConfigKeys.PERMISSIONS_AUTO_FALLBACK, true, "If true and no Vault provider is detected, automatically fall back to simple permission mode.", "WormholeXTreme"),
         new Setting(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, "The wormhole.use (or wormhole.simple.use) permission means that a user can teleport through gate. When false a user will be able to teleport but not activate a gate. When true only users with wormhole.use (or wormhole.simple.use) can even teleport.", "WormholeXTreme"),
         new Setting(ConfigKeys.HELP_SUPPORT_DISABLE, false, "If set to true, Help plugin will not be attached to even if available.", "WormholeXTreme"),
-        new Setting(ConfigKeys.WORLDS_SUPPORT_ENABLED, false, "If set to true, the Wormhole X-Treme will offload all of its Chunk and World loading functionality to Wormhole Extreme Worlds.", "WormholeXTreme"),
-        new Setting(ConfigKeys.LOG_LEVEL, "INFO", "Log level to use for minecraft logging purposes. Values are SEVERE, WARNING, INFO, CONFIG, FINE, FINER, and FINEST. In order of least to most logging output.", "WormholeXTreme")};
+        new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, players may only teleport through gates whose destination is in the same world. Cross-world travel will be blocked.", "WormholeXTreme"),
+        new Setting(ConfigKeys.LOG_LEVEL, "INFO", "Log level to use for minecraft logging purposes. Values are SEVERE, WARNING, INFO, CONFIG, FINE, FINER, and FINEST. In order of least to most logging output.", "WormholeXTreme"),
+        new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates. Higher values reduce server load.", "WormholeXTreme"),
+        new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Only unambiguous palettes are added: if two shapes share a frame material but disagree on their other materials, neither is added. Set false to curate the list by hand.", "WormholeXTreme"),
+        new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin (e.g. EssentialsX). When false all economy features are disabled regardless of cost settings.", "WormholeXTreme"),
+        new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. Set to 0.0 to disable use cost.", "WormholeXTreme"),
+        new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme")
+    };
 
 }
+

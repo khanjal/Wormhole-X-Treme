@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole;
 
 import java.util.List;
@@ -26,9 +8,11 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityListener;
+import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -39,7 +23,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * @author Ben Echols (Lologarithm)
  * @author Dean Bailey (alron)
  */
-class WormholeXTremeEntityListener extends EntityListener
+class WormholeXTremeEntityListener implements Listener
 {
 
     /**
@@ -76,26 +60,10 @@ class WormholeXTremeEntityListener extends EntityListener
         final Player p = (Player) event.getEntity();
         final Location current = p.getLocation();
         final Stargate closest = StargateManager.findClosestStargate(current);
-        if ((closest != null) && (((closest.isGateCustom()
-            ? closest.getGateCustomPortalMaterial()
-            : closest.getGateShape() != null
-                ? closest.getGateShape().getShapePortalMaterial()
-                : Material.STATIONARY_WATER) == Material.STATIONARY_LAVA) || ((closest.getGateTarget() != null) && ((closest.getGateTarget().isGateCustom()
-            ? closest.getGateTarget().getGateCustomPortalMaterial()
-            : closest.getGateTarget().getGateShape() != null
-                ? closest.getGateTarget().getGateShape().getShapePortalMaterial()
-                : Material.STATIONARY_WATER) == Material.STATIONARY_LAVA))))
+        if ((closest != null) && (((closest.getEffectivePortalMaterial()) == Material.LAVA) || ((closest.getGateTarget() != null) && ((closest.getGateTarget().getEffectivePortalMaterial()) == Material.LAVA))))
         {
             final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
-            if ((closest.isGateActive() || closest.isGateRecentlyActive()) && (((blockDistanceSquared <= (closest.isGateCustom()
-                ? closest.getGateCustomWooshDepthSquared()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapeWooshDepthSquared()
-                    : 0)) && ((closest.isGateCustom()
-                ? closest.getGateCustomWooshDepth()
-                : closest.getGateShape() != null
-                    ? closest.getGateShape().getShapeWooshDepth()
-                    : 0) != 0)) || (blockDistanceSquared <= 16)))
+            if ((closest.isGateActive() || closest.isGateRecentlyActive()) && (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 16)))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Event: \"" + event.getCause().toString() + "\" On: \"" + p.getName() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
                 p.setFireTicks(0);
@@ -108,7 +76,7 @@ class WormholeXTremeEntityListener extends EntityListener
     /* (non-Javadoc)
      * @see org.bukkit.event.entity.EntityListener#onEntityDamage(org.bukkit.event.entity.EntityDamageEvent)
      */
-    @Override
+    @EventHandler
     public void onEntityDamage(final EntityDamageEvent event)
     {
         if ( !event.isCancelled() && (event.getCause().equals(DamageCause.FIRE) || event.getCause().equals(DamageCause.FIRE_TICK) || event.getCause().equals(DamageCause.LAVA)))
@@ -126,7 +94,7 @@ class WormholeXTremeEntityListener extends EntityListener
     /* (non-Javadoc)
      * @see org.bukkit.event.entity.EntityListener#onEntityExplode(org.bukkit.event.entity.EntityExplodeEvent)
      */
-    @Override
+    @EventHandler
     public void onEntityExplode(final EntityExplodeEvent event)
     {
         if ( !event.isCancelled())
@@ -137,5 +105,35 @@ class WormholeXTremeEntityListener extends EntityListener
                 event.setCancelled(true);
             }
         }
+    }
+
+    @EventHandler
+    public void onEntityDismount(final EntityDismountEvent event)
+    {
+        if (event == null || event.isCancelled())
+        {
+            return;
+        }
+        try
+        {
+            final org.bukkit.entity.Entity who = event.getEntity();
+            final org.bukkit.entity.Entity dismounted = event.getDismounted();
+            if (who instanceof Player)
+            {
+                final Player p = (Player) who;
+                final Location loc = p.getLocation();
+                final Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+                final Stargate s = StargateManager.getGateFromBlock(b);
+                if (s != null && s.isGateActive() && StargateManager.isPortalBlock(b))
+                {
+                    try
+                    {
+                        event.setCancelled(true);
+                    }
+                    catch (final Throwable ignore) {}
+                }
+            }
+        }
+        catch (final Throwable ignore) {}
     }
 }

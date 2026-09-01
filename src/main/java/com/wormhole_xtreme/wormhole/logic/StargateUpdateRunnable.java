@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.logic;
 
 import java.util.logging.Level;
@@ -71,9 +53,12 @@ public class StargateUpdateRunnable implements Runnable
     /** The action. */
     private final ActionToTake action;
 
+    /** Direction for DIAL_SIGN_CLICK: {@code true} = forward (right-click), {@code false} = backward (left-click). */
+    private final boolean forward;
+
     public StargateUpdateRunnable(final Player player, final ActionToTake action)
     {
-        this(null, player, action);
+        this(null, player, action, true);
     }
 
     /**
@@ -86,7 +71,7 @@ public class StargateUpdateRunnable implements Runnable
      */
     public StargateUpdateRunnable(final Stargate stargate, final ActionToTake action)
     {
-        this(stargate, null, action);
+        this(stargate, null, action, true);
     }
 
     /**
@@ -101,9 +86,24 @@ public class StargateUpdateRunnable implements Runnable
      */
     public StargateUpdateRunnable(final Stargate stargate, final Player player, final ActionToTake action)
     {
+        this(stargate, player, action, true);
+    }
+
+    /**
+     * Instantiates a new stargate update runnable with an explicit dial direction.
+     *
+     * @param stargate the gate
+     * @param player   the player (may be {@code null})
+     * @param action   the action
+     * @param forward  {@code true} = advance forward (right-click);
+     *                 {@code false} = go backward (left-click)
+     */
+    public StargateUpdateRunnable(final Stargate stargate, final Player player, final ActionToTake action, final boolean forward)
+    {
         this.stargate = stargate;
         this.action = action;
         this.player = player;
+        this.forward = forward;
     }
 
     /* (non-Javadoc)
@@ -130,7 +130,7 @@ public class StargateUpdateRunnable implements Runnable
                 stargate.stopAfterShutdownTimer();
                 break;
             case DIAL_SIGN_CLICK :
-                stargate.teleportSignClicked();
+                stargate.teleportSignClicked(forward);
                 if (player != null)
                 {
                     if (stargate.getGateDialSignTarget() != null)

@@ -98,22 +98,14 @@ WOOSH_TICKS = 3;
 # Number of ticks to wait before activating each # of the lights. 1 tick = ~50ms
 LIGHT_TICKS = 3;
 
-# None of the follow materials are required, they will default if not set.
-# Portal material the material the [P] blocks will be when gate is active.
-# Suggested values are as follows: STATIONARY_WATER, STATIONARY_LAVA, PORTAL, and AIR
-PORTAL_MATERIAL=STATIONARY_WATER
-
-# Iris material is the material the [P] block become when iris is active
-# Suggested values are as follows: STONE, DIAMOND_BLOCK, GLASS, IRON_BLOCK, BEDROCK, OBSIDIAN, GLOWSTONE and LAPIS_BLOCK
+# The rest of this gate's appearance comes from its material group in config.yml, chosen
+# by the material the frame is actually built from: build this shape in obsidian for a
+# Standard gate, in lapis for an Atlantis one.
+#
+# The iris is the exception. This gate lies flat and you look down through it, so a
+# transparent iris is part of the shape rather than a colour choice, and it is pinned here.
+# An explicit material outranks the material group, so this stays glass in every palette.
 IRIS_MATERIAL=GLASS
-
-# Stargate material is the material the [O] blocks are made of
-# Reasonable values are as follows: STONE, DIAMOND_BLOCK, GLASS, IRON_BLOCK, BEDROCK, OBSIDIAN, GLOWSTONE and LAPIS_BLOCK
-STARGATE_MATERIAL=OBSIDIAN
-
-# Active material is the material that :L blocks become when gate is active
-# Suggested Values are as follows: GLOWSTONE and GLOWING_REDSTONE_ORE
-ACTIVE_MATERIAL=GLOWSTONE
 
 # Redstone activated is the parameter to allow redstone to the DHD lever to activate the gate.
 REDSTONE_ACTIVATED=FALSE

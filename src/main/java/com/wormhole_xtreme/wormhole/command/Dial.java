@@ -1,21 +1,3 @@
-/**
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.logging.Level;
@@ -92,16 +74,76 @@ public class Dial implements CommandExecutor
                         }
                     }
 
+                    // If target still has an active iris (no valid IDC provided), block the dial attempt.
+                    if (target.isGateIrisActive())
+                    {
+                        CommandUtilities.closeGate(start, false);
+                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is active; provide the IDC to unlock.");
+                        return true;
+                    }
+
                     if (start.dialStargate(target, false))
                     {
                         player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
                     }
                     else
                     {
-                        CommandUtilities.closeGate(start, false);
-                        player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+                        // Attempt recovery only when the target isn't legitimately in use.
+                        boolean targetInUse = false;
+                        try
+                        {
+                            if (target.isGateActive() || (target.getGateTarget() != null))
+                            {
+                                targetInUse = true;
+                            }
+                            else
+                            {
+                                for (final Stargate s : StargateManager.getAllGates())
+                                {
+                                    if ((s != null) && (s != start) && (s.getGateTarget() != null) && (s.getGateTarget() == target) && s.isGateActive())
+                                    {
+                                        targetInUse = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        catch (final Throwable ignore) {}
+
+                        if (targetInUse)
+                        {
+                            // Target is actively connected; don't attempt force-recovery.
+                            CommandUtilities.closeGate(start, false);
+                            player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+                        }
+                        else
+                        {
+                            // Attempt recovery: remove stale activator mapping and retry with force.
+                            if (WormholeXTreme.getThisPlugin() != null)
+                            {
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
+                            }
+                            StargateManager.removeActivatorForStargate(target);
+                            if (start.dialStargate(target, true))
+                            {
+                                if (WormholeXTreme.getThisPlugin() != null)
+                                {
+                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery succeeded for target " + target.getGateName());
+                                }
+                                player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+                            }
+                            else
+                            {
+                                if (WormholeXTreme.getThisPlugin() != null)
+                                {
+                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Dial recovery failed for target " + target.getGateName());
+                                }
+                                CommandUtilities.closeGate(start, false);
+                                player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+                            }
+                        }
+                        }
                     }
-                }
                 else
                 {
                     CommandUtilities.closeGate(start, false);
@@ -126,14 +168,21 @@ public class Dial implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        final String[] arguments = CommandUtilities.commandEscaper(args);
-        if ((arguments.length < 3) && (arguments.length > 0))
+        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
-            return CommandUtilities.playerCheck(sender)
-                ? doDial((Player) sender, arguments)
-                : true;
-        }
-        return false;
+            @Override
+            public Boolean call() throws Exception
+            {
+                final String[] arguments = CommandUtilities.commandEscaper(args);
+                if ((arguments.length < 3) && (arguments.length > 0))
+                {
+                    return CommandUtilities.playerCheck(sender)
+                        ? doDial((Player) sender, arguments)
+                        : true;
+                }
+                return false;
+            }
+        });
     }
 
 }

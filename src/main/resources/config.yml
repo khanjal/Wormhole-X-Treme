@@ -1,0 +1,49 @@
+# Wormhole X-Treme - example config.yml
+# This sample highlights permission-related settings added in recent releases.
+
+# If true, the plugin will not attempt to attach to any external permission
+# provider (Vault/LuckPerms) even if one is available. Setting this to true
+# forces the plugin to operate in a conservative mode where advanced actions
+# require operator status.
+permissions-support-disable: false
+
+# If true (default), and no Vault-compatible permission provider is detected
+# at server startup, the plugin will automatically enable a simple permission
+# fallback mode so that basic use/dial actions continue to work. Advanced
+# actions remain restricted to operators or gate owners. Set this to false to
+# disable the automatic fallback.
+permissions-auto-fallback: true
+
+# Material groups define the palettes a stargate can be built from. The first group
+# listed is the default. A gate's palette is identified by the material of its frame,
+# so each group must use a different `structure` material — build the same shape in
+# obsidian and you get a Standard gate, in lapis an Atlantis one.
+#
+# Geometry lives in the .shape files and is completely independent of these palettes:
+# any shape can be built in any group, so adding a palette here does not need a new
+# .shape file. A shape may opt out by listing `MATERIAL_GROUPS=Standard,Atlantis`.
+#
+# structure: the frame. Identifies the group, so it must be unique.
+# portal:    what the interior shows while a wormhole is open.
+# iris:      what the iris is made of when engaged (a real, solid block).
+# light:     what the light blocks become while the gate is active.
+# sign:      wall-sign type used for the gate's name sign. Any *_WALL_SIGN material.
+gate-material-groups:
+  Standard:
+    structure: OBSIDIAN
+    portal: WATER
+    iris: STONE
+    light: GLOWSTONE
+    sign: OAK_WALL_SIGN
+  Atlantis:
+    structure: LAPIS_BLOCK
+    portal: WATER
+    iris: YELLOW_STAINED_GLASS
+    light: SEA_LANTERN
+    sign: WARPED_WALL_SIGN
+  Universe:
+    structure: POLISHED_BLACKSTONE
+    portal: WATER
+    iris: WHITE_STAINED_GLASS
+    light: SEA_LANTERN
+    sign: CRIMSON_WALL_SIGN

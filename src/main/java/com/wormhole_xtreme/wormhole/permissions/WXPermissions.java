@@ -1,29 +1,8 @@
-/**
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.permissions;
-
 import org.bukkit.entity.Player;
-
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
+
 
 /**
  * The Class WXPermissions.
@@ -67,19 +46,8 @@ public class WXPermissions
         GO,
 
         /** The COMPASS permission. */
-        COMPASS,
-
-        USE_COOLDOWN_GROUP_ONE,
-
-        USE_COOLDOWN_GROUP_TWO,
-
-        USE_COOLDOWN_GROUP_THREE,
-
-        BUILD_RESTRICTION_GROUP_ONE,
-        BUILD_RESTRICTION_GROUP_TWO,
-        BUILD_RESTRICTION_GROUP_THREE;
+        COMPASS;
     }
-
     /**
      * Check wx permissions.
      * 
@@ -148,33 +116,45 @@ public class WXPermissions
                     return false;
             }
         }
-        else if ( !ConfigManager.getPermissionsSupportDisable() && (WormholeXTreme.getPermissions() != null))
+        // If a gate exists but has no owner, treat it as public: allow common use actions.
+        // This makes owner==null gates usable by any player.
+        if ((stargate != null) && (stargate.getGateOwner() == null))
+        {
+            switch (permissiontype)
+            {
+                case SIGN :
+                case DIALER :
+                case USE :
+                case LIST :
+                case COMPASS :
+                    return true;
+                default :
+                    break;
+            }
+        }
+        // Gate owner should always be allowed to use and manage their own gate.
+        if ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player))
+        {
+            switch (permissiontype)
+            {
+                case DAMAGE :
+                case REMOVE :
+                case CONFIG :
+                case GO :
+                case SIGN :
+                case DIALER :
+                case USE :
+                case LIST :
+                case COMPASS :
+                case BUILD :
+                    return true;
+                default :
+                    return false;
+            }
+        }
+        else if (!ConfigManager.getPermissionsSupportDisable())
         {
 
-            if (ConfigManager.getSimplePermissions())
-            {
-                switch (permissiontype)
-                {
-                    case LIST :
-                        return (SimplePermission.CONFIG.checkPermission(player) || SimplePermission.USE.checkPermission(player));
-                    case GO :
-                    case CONFIG :
-                        return SimplePermission.CONFIG.checkPermission(player);
-                    case DAMAGE :
-                    case REMOVE :
-                        return (SimplePermission.REMOVE.checkPermission(player) || SimplePermission.CONFIG.checkPermission(player));
-                    case COMPASS :
-                    case SIGN :
-                    case DIALER :
-                    case USE :
-                        return SimplePermission.USE.checkPermission(player);
-                    case BUILD :
-                        return SimplePermission.BUILD.checkPermission(player);
-                    default :
-                        return false;
-                }
-            }
-            else
             {
                 String networkName = "Public";
                 switch (permissiontype)
@@ -224,18 +204,8 @@ public class WXPermissions
                             }
                         }
                         return ((ComplexPermission.BUILD.checkPermission(player) && (networkName.equals("Public") || ( !networkName.equals("Public") && ComplexPermission.NETWORK_BUILD.checkPermission(player, networkName)))));
-                    case USE_COOLDOWN_GROUP_ONE :
-                        return ComplexPermission.USE_COOLDOWN_GROUP_ONE.checkPermission(player);
-                    case USE_COOLDOWN_GROUP_TWO :
-                        return ComplexPermission.USE_COOLDOWN_GROUP_TWO.checkPermission(player);
-                    case USE_COOLDOWN_GROUP_THREE :
-                        return ComplexPermission.USE_COOLDOWN_GROUP_THREE.checkPermission(player);
-                    case BUILD_RESTRICTION_GROUP_ONE :
-                        return ComplexPermission.BUILD_RESTRICTION_GROUP_ONE.checkPermission(player);
-                    case BUILD_RESTRICTION_GROUP_TWO :
-                        return ComplexPermission.BUILD_RESTRICTION_GROUP_TWO.checkPermission(player);
-                    case BUILD_RESTRICTION_GROUP_THREE :
-                        return ComplexPermission.BUILD_RESTRICTION_GROUP_THREE.checkPermission(player);
+                    // legacy cooldown group permission checks removed
+                    // legacy build-group permission checks removed
                     default :
                         return false;
                 }
@@ -243,34 +213,21 @@ public class WXPermissions
         }
         else
         {
-            if (stargate != null)
+            // Simple mode: no permission plugin installed.
+            // Any player may use/dial/travel through gates.
+            // Build, remove, and config actions require OP (already handled above).
+            switch (permissiontype)
             {
-                PermissionLevel lvl = null;
-                switch (permissiontype)
-                {
-                    case DAMAGE :
-                    case REMOVE :
-                    case CONFIG :
-                    case GO :
-                        lvl = PermissionsManager.getPermissionLevel(player, stargate);
-                        return (lvl == PermissionLevel.WORMHOLE_FULL_PERMISSION);
-                    case SIGN :
-                    case DIALER :
-                    case USE :
-                    case LIST :
-                    case COMPASS :
-                        lvl = PermissionsManager.getPermissionLevel(player, stargate);
-                        return (lvl == PermissionLevel.WORMHOLE_CREATE_PERMISSION) || (lvl == PermissionLevel.WORMHOLE_USE_PERMISSION) || (lvl == PermissionLevel.WORMHOLE_FULL_PERMISSION);
-                    case BUILD :
-                        lvl = PermissionsManager.getPermissionLevel(player, stargate);
-                        return (lvl == PermissionLevel.WORMHOLE_CREATE_PERMISSION) || (lvl == PermissionLevel.WORMHOLE_FULL_PERMISSION);
-                    default :
-                        return false;
-
-                }
+                case SIGN :
+                case DIALER :
+                case USE :
+                case LIST :
+                case COMPASS :
+                    return true;
+                default :
+                    return false;
             }
         }
-        return false;
     }
 
     /**

@@ -1,29 +1,13 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -31,7 +15,6 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 
-// TODO: Auto-generated Javadoc
 /**
  * WormholeXtreme Stargate Manager.
  * 
@@ -62,6 +45,8 @@ public class StargateManager
     // List of blocks that are part of an active animation. Only use this to make sure water doesn't flow everywhere.
     /** The Constant opening_animation_blocks. */
     private static final ConcurrentHashMap<Location, Block> openingAnimationBlocks = new ConcurrentHashMap<Location, Block>();
+    // Keep the original material for each animated block so we can restore it after the woosh
+    private static final ConcurrentHashMap<Location, Material> openingAnimationOriginalMaterials = new ConcurrentHashMap<Location, Material>();
 
     /**
      * This method adds a stargate that has been activated but not dialed by a player.
@@ -91,7 +76,17 @@ public class StargateManager
     {
         if ((b != null) && (s != null))
         {
-            getAllGateBlocks().put(b.getLocation(), s);
+            final Location norm = normalizeBlockLocation(b.getLocation());
+            getAllGateBlocks().put(norm, s);
+            GateSpatialIndex.add(norm);
+            try
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
+            }
+            catch (final Exception e)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error logging indexed block: " + e.getMessage());
+            }
         }
     }
 
@@ -115,10 +110,17 @@ public class StargateManager
         {
             synchronized (net.getNetworkGateLock())
             {
-                net.getNetworkGateList().add(gate);
+                // Avoid adding the same gate multiple times.
+                if (!net.getNetworkGateList().contains(gate))
+                {
+                    net.getNetworkGateList().add(gate);
+                }
                 if (gate.isGateSignPowered())
                 {
-                    net.getNetworkSignGateList().add(gate);
+                    if (!net.getNetworkSignGateList().contains(gate))
+                    {
+                        net.getNetworkSignGateList().add(gate);
+                    }
                 }
             }
         }
@@ -158,15 +160,56 @@ public class StargateManager
      */
     protected static void addStargate(final Stargate s)
     {
-        getStargateList().put(s.getGateName(), s);
+        getStargateList().put(normalizeGateName(s.getGateName()), s);
         for (final Location b : s.getGateStructureBlocks())
         {
-            getAllGateBlocks().put(b, s);
+            final Location norm = normalizeBlockLocation(b);
+            getAllGateBlocks().put(norm, s);
+            GateSpatialIndex.add(norm);
         }
         for (final Location b : s.getGatePortalBlocks())
         {
-            getAllGateBlocks().put(b, s);
+            final Location norm = normalizeBlockLocation(b);
+            getAllGateBlocks().put(norm, s);
+            GateSpatialIndex.add(norm);
         }
+        // Index explicit activation-related blocks so player interactions find the gate.
+        try
+        {
+            if (s.getGateDialLeverBlock() != null)
+            {
+                addBlockIndex(s.getGateDialLeverBlock(), s);
+            }
+            if (s.getGateIrisLeverBlock() != null)
+            {
+                addBlockIndex(s.getGateIrisLeverBlock(), s);
+            }
+            if (s.getGateDialSignBlock() != null)
+            {
+                addBlockIndex(s.getGateDialSignBlock(), s);
+            }
+            if (s.getGateRedstoneDialActivationBlock() != null)
+            {
+                addBlockIndex(s.getGateRedstoneDialActivationBlock(), s);
+            }
+            if (s.getGateRedstoneGateActivatedBlock() != null)
+            {
+                addBlockIndex(s.getGateRedstoneGateActivatedBlock(), s);
+            }
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error indexing gate activation blocks: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Public wrapper to register a stargate from other packages.
+     * Delegates to protected addStargate.
+     */
+    public static void registerStargate(final Stargate s)
+    {
+        addStargate(s);
     }
 
     // Network functions
@@ -190,31 +233,6 @@ public class StargateManager
         {
             return getStargateNetworks().get(name);
         }
-    }
-
-    /**
-     * Complete stargate.
-     * 
-     * @param p
-     *            the p
-     * @param s
-     *            the s
-     * @return true, if successful
-     */
-    public static boolean completeStargate(final Player p, final Stargate s)
-    {
-        final Stargate posDupe = StargateManager.getStargate(s.getGateName());
-        if (posDupe == null)
-        {
-            s.setGateOwner(p.getName());
-            s.completeGate(s.getGateName(), "");
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + s.getGateName());
-            addStargate(s);
-            StargateDBManager.stargateToSQL(s);
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -247,11 +265,36 @@ public class StargateManager
                 complete.setGateNetwork(net);
             }
 
-            complete.setGateOwner(p.getName());
+            complete.setGateOwner(p.getUniqueId().toString());
+            complete.setGateOwnerName(p.getName());
             complete.completeGate(name, idc);
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
             addStargate(complete);
-            StargateDBManager.stargateToSQL(complete);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Gate debug: Name=" + complete.getGateName()
+                        + " Owner=" + complete.getGateOwner()
+                        + " DialLever=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getLocation().toString() : "null")
+                        + " DialLeverType=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getType().toString() : "null")
+                        + " IrisLever=" + (complete.getGateIrisLeverBlock() != null ? complete.getGateIrisLeverBlock().getLocation().toString() : "null")
+                        + " IrisLeverType=" + (complete.getGateIrisLeverBlock() != null ? complete.getGateIrisLeverBlock().getType().toString() : "null")
+                        + " DialSignBlock=" + (complete.getGateDialSignBlock() != null ? complete.getGateDialSignBlock().getLocation().toString() : "null")
+                        + " DialSignType=" + (complete.getGateDialSignBlock() != null ? complete.getGateDialSignBlock().getType().toString() : "null")
+                        + " RedstoneDial=" + (complete.getGateRedstoneDialActivationBlock() != null ? complete.getGateRedstoneDialActivationBlock().getLocation().toString() : "null")
+                        + " RedstoneDialType=" + (complete.getGateRedstoneDialActivationBlock() != null ? complete.getGateRedstoneDialActivationBlock().getType().toString() : "null")
+                        + " RedstoneGateActivated=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
+                        + " RedstoneGateActivatedType=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
+                    );
+            StargateDBManager.saveStargate(complete);
+
+            // For sign-powered gates, initialize the DHD sign by cycling to the first available target.
+            if (complete.isGateSignPowered() && complete.getGateDialSignBlock() != null)
+            {
+                try
+                {
+                    StargateDialManager.teleportSignClicked(complete, true);
+                }
+                catch (final Throwable ignore) {}
+            }
+
             return true;
         }
 
@@ -314,6 +357,48 @@ public class StargateManager
     }
 
     /**
+     * Find a stargate by scanning nearby indexed gate blocks.
+     * This is a local-area lookup that avoids iterating all gates and is
+     * intended for event handlers that only need nearby gates.
+     *
+     * @param loc base location to search around
+     * @param radiusXZ horizontal search radius in blocks
+     * @param radiusY vertical search radius in blocks
+     * @return a nearby Stargate if any indexed gate block is within the search box, otherwise null
+     */
+    public static Stargate findNearestGateByBlock(final Location loc, final int radiusXZ, final int radiusY)
+    {
+        if (loc == null)
+        {
+            return null;
+        }
+
+        final java.util.Set<Location> candidates = GateSpatialIndex.collectLocationsWithinRadius(loc, radiusXZ, radiusY);
+        if (candidates == null || candidates.isEmpty())
+        {
+            return null;
+        }
+
+        Stargate best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (final Location l : candidates)
+        {
+            final Stargate s = getAllGateBlocks().get(l);
+            if (s == null)
+            {
+                continue;
+            }
+            final double d = getSquaredDistance(loc, l);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = s;
+            }
+        }
+        return best;
+    }
+
+    /**
      * Gets the activated stargates.
      * 
      * @return the activated stargates
@@ -334,9 +419,27 @@ public class StargateManager
     }
 
     /**
-     * Get all gates.
-     * This is more expensive than some other methods so it probably shouldn't be called a lot.
-     * 
+     * Gets a live, unsorted view of every registered gate.
+     *
+     * <p>Use this for iteration. {@link #getAllGates()} copies every gate into a fresh
+     * list and sorts it by name, which is right for anything shown to a player but pure
+     * waste for a loop that just filters — and on a server with hundreds of gates, a
+     * repeating task doing that every few ticks allocates and sorts continuously.
+     *
+     * <p>The returned collection is backed by the live gate map, so it must not be
+     * modified and may change while being iterated.
+     *
+     * @return an unmodifiable view of the registered gates
+     */
+    public static java.util.Collection<Stargate> getAllGatesUnsorted()
+    {
+        return java.util.Collections.unmodifiableCollection(getStargateList().values());
+    }
+
+    /**
+     * Get all gates, sorted by name.
+     * This copies and sorts, so prefer {@link #getAllGatesUnsorted()} when iterating.
+     *
      * @return the array list
      */
     public static ArrayList<Stargate> getAllGates()
@@ -350,6 +453,15 @@ public class StargateManager
             gates.add(keys.nextElement());
         }
 
+        java.util.Collections.sort(gates, new java.util.Comparator<Stargate>()
+        {
+            @Override
+            public int compare(final Stargate a, final Stargate b)
+            {
+                return a.getGateName().compareToIgnoreCase(b.getGateName());
+            }
+        });
+
         return gates;
     }
 
@@ -362,11 +474,28 @@ public class StargateManager
      */
     public static Stargate getGateFromBlock(final Block b)
     {
-        if (getAllGateBlocks().containsKey(b.getLocation()))
+        final Location key = normalizeBlockLocation(b.getLocation());
+        final boolean contains = getAllGateBlocks().containsKey(key);
+        // Guarded because this is the most-called method in the plugin — every player
+        // move, every vehicle move, and every tracked projectile every tick. Unguarded it
+        // built two Location strings and a Material name per call and discarded them all.
+        if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
         {
-            return getAllGateBlocks().get(b.getLocation());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation() + " type=" + b.getType() + " indexed=" + contains);
         }
-
+        if (contains)
+        {
+            final Stargate s = getAllGateBlocks().get(key);
+            if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation());
+            }
+            return s;
+        }
+        if (WormholeXTreme.getThisPlugin() != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup miss for loc=" + b.getLocation().toString());
+        }
         return null;
     }
 
@@ -381,6 +510,19 @@ public class StargateManager
     }
 
     /**
+     * Returns the name of the incomplete stargate for a player, or null if none.
+     * Useful for diagnostics when completion fails.
+     *
+     * @param p the player
+     * @return gate name or null
+     */
+    public static String getIncompleteStargateName(final Player p)
+    {
+        final Stargate s = getIncompleteStargates().get(p);
+        return s != null ? s.getGateName() : null;
+    }
+
+    /**
      * Gets the opening animation blocks.
      * 
      * @return the opening animation blocks
@@ -388,6 +530,24 @@ public class StargateManager
     protected static ConcurrentHashMap<Location, Block> getOpeningAnimationBlocks()
     {
         return openingAnimationBlocks;
+    }
+
+    protected static ConcurrentHashMap<Location, Material> getOpeningAnimationOriginalMaterials()
+    {
+        return openingAnimationOriginalMaterials;
+    }
+
+    /**
+     * Normalize a location to its block coordinates (integer XYZ) while preserving world.
+     * Use this when storing/retrieving map keys that represent block positions.
+     */
+    protected static Location normalizeBlockLocation(final Location loc)
+    {
+        if (loc == null || loc.getWorld() == null)
+        {
+            return loc;
+        }
+        return new Location(loc.getWorld(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     /**
@@ -448,9 +608,14 @@ public class StargateManager
      */
     public static Stargate getStargate(final String name)
     {
-        if (getStargateList().containsKey(name))
+        if (name == null)
         {
-            return getStargateList().get(name);
+            return null;
+        }
+        final String key = normalizeGateName(name);
+        if (getStargateList().containsKey(key))
+        {
+            return getStargateList().get(key);
         }
         else
         {
@@ -509,7 +674,30 @@ public class StargateManager
      */
     public static boolean isBlockInGate(final Block b)
     {
-        return getAllGateBlocks().containsKey(b.getLocation()) || getOpeningAnimationBlocks().containsKey(b.getLocation());
+        final Location key = normalizeBlockLocation(b.getLocation());
+        return getAllGateBlocks().containsKey(key) || getOpeningAnimationBlocks().containsKey(key);
+    }
+
+    /**
+     * Returns true if the given block location corresponds to a portal interior
+     * block for its owning Stargate (not structure blocks). This checks the
+     * gate's portal block list rather than the server-side block material so
+     * it works when the server keeps the logical block as AIR and renders
+     * visuals to clients.
+     */
+    public static boolean isPortalBlock(final Block b)
+    {
+        if (b == null || b.getWorld() == null)
+        {
+            return false;
+        }
+        final Location norm = normalizeBlockLocation(b.getLocation());
+        final Stargate s = getAllGateBlocks().get(norm);
+        if (s == null)
+        {
+            return false;
+        }
+        return s.isGatePortalBlockAt(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ());
     }
 
     /**
@@ -521,7 +709,16 @@ public class StargateManager
      */
     public static boolean isStargate(final String name)
     {
-        return getStargateList().containsKey(name);
+        if (name == null)
+        {
+            return false;
+        }
+        return getStargateList().containsKey(normalizeGateName(name));
+    }
+
+    private static String normalizeGateName(final String name)
+    {
+        return name == null ? null : name.toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -541,6 +738,32 @@ public class StargateManager
     }
 
     /**
+     * Remove and return the player who activated the given stargate, if any.
+     * This is used to force-clear stale activations when the gate is lit but the
+     * activating player mapping is missing or the activator is offline.
+     *
+     * @param s the stargate
+     * @return the Player who activated the gate (and was removed), or null if none
+     */
+    public static Player removeActivatorForStargate(final Stargate s)
+    {
+        if (s == null)
+        {
+            return null;
+        }
+        for (final java.util.Map.Entry<Player, Stargate> e : getActivatedStargates().entrySet())
+        {
+            if (e.getValue() == s)
+            {
+                final Player p = e.getKey();
+                getActivatedStargates().remove(p);
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /**
      * This method removes an index mapping block location to stargate.
      * NOTE: This method does not verify that the block has actually been removed from a gate
      * so it may not persist and can be readded when server is restarted.
@@ -552,7 +775,9 @@ public class StargateManager
     {
         if (b != null)
         {
-            getAllGateBlocks().remove(b.getLocation());
+            final Location norm = normalizeBlockLocation(b.getLocation());
+            getAllGateBlocks().remove(norm);
+            GateSpatialIndex.remove(norm);
         }
     }
 
@@ -576,8 +801,8 @@ public class StargateManager
      */
     public static void removeStargate(final Stargate s)
     {
-        getStargateList().remove(s.getGateName());
-        StargateDBManager.removeStargateFromSQL(s);
+        getStargateList().remove(normalizeGateName(s.getGateName()));
+        StargateDBManager.removeStargate(s);
         if (s.getGateNetwork() != null)
         {
             synchronized (s.getGateNetwork().getNetworkGateLock())
@@ -607,11 +832,41 @@ public class StargateManager
         for (final Location b : s.getGateStructureBlocks())
         {
             getAllGateBlocks().remove(b);
+            GateSpatialIndex.remove(b);
         }
 
         for (final Location b : s.getGatePortalBlocks())
         {
             getAllGateBlocks().remove(b);
+            GateSpatialIndex.remove(b);
+        }
+        // Also remove any explicit activation-related blocks (dial lever, iris lever, dial sign, redstone activators)
+        try
+        {
+            if (s.getGateDialLeverBlock() != null)
+            {
+                removeBlockIndex(s.getGateDialLeverBlock());
+            }
+            if (s.getGateIrisLeverBlock() != null)
+            {
+                removeBlockIndex(s.getGateIrisLeverBlock());
+            }
+            if (s.getGateDialSignBlock() != null)
+            {
+                removeBlockIndex(s.getGateDialSignBlock());
+            }
+            if (s.getGateRedstoneDialActivationBlock() != null)
+            {
+                removeBlockIndex(s.getGateRedstoneDialActivationBlock());
+            }
+            if (s.getGateRedstoneGateActivatedBlock() != null)
+            {
+                removeBlockIndex(s.getGateRedstoneGateActivatedBlock());
+            }
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Error removing activation block indices: " + e.getMessage());
         }
     }
 

@@ -1,26 +1,9 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.utils;
 
 import java.util.logging.Level;
 
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -47,17 +30,22 @@ public class WorldUtils
         switch (blockFace)
         {
             case NORTH :
-                return (float) 90;
-            case EAST :
                 return (float) 180;
-            case SOUTH :
+            case EAST :
                 return (float) 270;
-            case WEST :
+            case SOUTH :
                 return (float) 0;
+            case WEST :
+                return (float) 90;
             default :
                 return (float) 0;
         }
     }
+
+    /**
+     * Returns true if the material is any form of ice that we care about.
+     */
+    // NOTE: ice-related predicates have moved to MaterialUtils
 
     /**
      * Gets the inverse direction.
@@ -217,6 +205,79 @@ public class WorldUtils
     }
 
     /**
+     * Returns true if two blocks are within a 1-block radius (inclusive) of each other.
+     */
+    /**
+     * Checks whether two locations sit in different blocks.
+     *
+     * <p>Movement events fire many times per block travelled — a walking player or a
+     * rolling minecart generates them continuously — but gate detection only has anything
+     * to say when the block changes. This is the first-line guard on those handlers.
+     *
+     * @param from
+     *            the previous location
+     * @param to
+     *            the new location
+     * @return true if the block coordinates differ
+     */
+    public static boolean hasChangedBlock(final Location from, final Location to)
+    {
+        if (from == null || to == null)
+        {
+            return true;
+        }
+        return from.getBlockX() != to.getBlockX()
+            || from.getBlockY() != to.getBlockY()
+            || from.getBlockZ() != to.getBlockZ();
+    }
+
+    public static boolean isAdjacent(final Block b1, final Block b2)
+    {
+        if ((b1 == null) || (b2 == null))
+        {
+            return false;
+        }
+        final int dx = Math.abs(b1.getX() - b2.getX());
+        final int dy = Math.abs(b1.getY() - b2.getY());
+        final int dz = Math.abs(b1.getZ() - b2.getZ());
+        return (dx <= 1) && (dy <= 1) && (dz <= 1);
+    }
+
+    /**
+     * Force-loads the 3x3 chunk neighbourhood centred on the given location.
+     * Called when a stargate connection is established so the destination terrain
+     * is ready before any entity teleports through.
+     *
+     * @param loc the centre of the area to pre-load
+     */
+    public static void forceLoadDestinationChunks(final Location loc)
+    {
+        if (loc == null || loc.getWorld() == null)
+        {
+            return;
+        }
+        final World w = loc.getWorld();
+        final int cx = loc.getBlockX() >> 4;
+        final int cz = loc.getBlockZ() >> 4;
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                try
+                {
+                    if (!w.isChunkLoaded(cx + dx, cz + dz))
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Pre-loading destination chunk (" + (cx + dx) + "," + (cz + dz) + ") on: " + w.getName());
+                        w.loadChunk(cx + dx, cz + dz);
+                    }
+                }
+                catch (final Throwable ignore) {}
+            }
+        }
+    }
+
+
+    /**
      * Schedule chunk load.
      * 
      * @param b
@@ -226,19 +287,12 @@ public class WorldUtils
     {
         final World w = b.getWorld();
         final Chunk c = b.getChunk();
-        if (WormholeXTreme.getWorldHandler() != null)
+        final int cX = c.getX();
+        final int cZ = c.getZ();
+        if ( !w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getWorldHandler().addStickyChunk(c, "WormholeXTreme");
-        }
-        else
-        {
-            final int cX = c.getX();
-            final int cZ = c.getZ();
-            if ( !w.isChunkLoaded(cX, cZ))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Loading chunk: " + c.toString() + " on: " + w.getName());
-                w.loadChunk(cX, cZ);
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Loading chunk: " + c.toString() + " on: " + w.getName());
+            w.loadChunk(cX, cZ);
         }
     }
 
@@ -252,19 +306,12 @@ public class WorldUtils
     {
         final World w = b.getWorld();
         final Chunk c = b.getChunk();
-        if (WormholeXTreme.getWorldHandler() != null)
+        final int cX = c.getX();
+        final int cZ = c.getZ();
+        if (w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getWorldHandler().removeStickyChunk(c, "WormholeXTreme");
-        }
-        else
-        {
-            final int cX = c.getX();
-            final int cZ = c.getZ();
-            if (w.isChunkLoaded(cX, cZ))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
-                w.unloadChunkRequest(cX, cZ);
-            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
+            w.unloadChunkRequest(cX, cZ);
         }
     }
 }

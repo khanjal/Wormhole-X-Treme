@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
@@ -32,6 +14,18 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class Stargate3DShape extends StargateShape
 {
+    private static Material parseMaterialName(final String name) {
+        if (name == null) return null;
+        final String n = name.trim().toUpperCase();
+        switch (n) {
+            case "STATIONARY_WATER":
+                return Material.WATER;
+            case "STATIONARY_LAVA":
+                return Material.LAVA;
+            default:
+                try { return Material.valueOf(n); } catch (final IllegalArgumentException e) { return null; }
+        }
+    }
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
      */
@@ -112,7 +106,6 @@ public class Stargate3DShape extends StargateShape
             }
             else if (line.startsWith("Layer"))
             {
-                // TODO : Add some debug output for each layer!
                 // 1. get layer #
                 final int layer = Integer.valueOf(line.trim().split("[#=]")[1]);
 
@@ -163,19 +156,28 @@ public class Stargate3DShape extends StargateShape
             }
             else if (line.contains("PORTAL_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapePortalMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapePortalMaterial(m);
             }
             else if (line.contains("IRIS_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapeIrisMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeIrisMaterial(m);
             }
             else if (line.contains("STARGATE_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapeStructureMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeStructureMaterial(m);
             }
             else if (line.contains("ACTIVE_MATERIAL=") && (line.split("=").length > 1))
             {
-                setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeLightMaterial(m);
+            }
+            else if (line.contains("SIGN_MATERIAL=") && (line.split("=").length > 1))
+            {
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeSignMaterial(m);
             }
             else if (line.contains("LIGHT_TICKS=") && (line.split("=").length > 1))
             {
@@ -188,6 +190,10 @@ public class Stargate3DShape extends StargateShape
             else if (line.startsWith("REDSTONE_ACTIVATED=") && (line.split("=").length > 1))
             {
                 setShapeRedstoneActivated(Boolean.valueOf(line.split("=")[1]));
+            }
+            else if (line.startsWith("MATERIAL_GROUPS=") && (line.split("=").length > 1))
+            {
+                setShapeMaterialGroups(line.split("=")[1]);
             }
         }
 

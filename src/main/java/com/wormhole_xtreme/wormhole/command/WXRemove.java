@@ -1,21 +1,3 @@
-/**
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import org.bukkit.command.Command;
@@ -43,45 +25,62 @@ public class WXRemove implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        final String[] a = CommandUtilities.commandEscaper(args);
-        if ((a.length >= 1) && (a.length <= 2))
+        try
         {
-            if (a[0].equals("-all"))
+            final String[] a = CommandUtilities.commandEscaper(args);
+            if ((a.length >= 1) && (a.length <= 2))
             {
-                return false;
-            }
-            final Stargate s = StargateManager.getStargate(a[0]);
-
-            if (s != null)
-            {
-                if (CommandUtilities.playerCheck(sender)
-                    ? WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE)
-                    : true)
+                if (a[0].equals("-all"))
                 {
-                    boolean destroy = false;
-                    if ((a.length == 2) && a[1].equalsIgnoreCase("-all"))
+                    return false;
+                }
+                final Stargate s = StargateManager.getStargate(a[0]);
+
+                if (s != null)
+                {
+                    if (CommandUtilities.playerCheck(sender)
+                        ? WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE)
+                        : true)
                     {
-                        destroy = true;
+                        boolean destroy = false;
+                        if ((a.length == 2) && a[1].equalsIgnoreCase("-all"))
+                        {
+                            destroy = true;
+                        }
+                        CommandUtilities.gateRemove(s, destroy);
+                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole Removed: " + s.getGateName());
                     }
-                    CommandUtilities.gateRemove(s, destroy);
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole Removed: " + s.getGateName());
+                    else
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                    }
+
                 }
                 else
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
                 }
-
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
+                return false;
             }
+            return true;
         }
-        else
+        catch (final Throwable t)
         {
-            return false;
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error executing /wx remove: " + t.getMessage());
+            if (CommandUtilities.playerCheck(sender))
+            {
+                final Player p = (Player) sender;
+                p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An error occurred while removing the gate. Check server logs.");
+            }
+            else
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An error occurred while removing the gate. Check server logs.");
+            }
+            return true;
         }
-        return true;
     }
 
 }

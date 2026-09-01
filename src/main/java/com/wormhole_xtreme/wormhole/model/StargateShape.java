@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
@@ -68,7 +50,7 @@ public class StargateShape
     private int shapeWooshDepthSquared = 0;
 
     /** The portal material. */
-    private Material shapePortalMaterial = Material.STATIONARY_WATER;
+    private Material shapePortalMaterial = Material.WATER;
 
     /** The iris material. */
     private Material shapeIrisMaterial = Material.STONE;
@@ -78,6 +60,30 @@ public class StargateShape
 
     /** The active material. */
     private Material shapeLightMaterial = Material.GLOWSTONE;
+
+    /** The sign material used for name and dial signs. */
+    private Material shapeSignMaterial = Material.OAK_WALL_SIGN;
+
+    /**
+     * Materials this shape's file named outright, as opposed to inheriting the defaults
+     * above. A shape that asks for a glass iris means it — a horizontal gate is meant to
+     * be seen through — so an explicit value outranks whatever palette the gate resolves
+     * to. Anything the file leaves unsaid is the palette's to fill in.
+     */
+    private boolean explicitPortalMaterial = false;
+    private boolean explicitIrisMaterial = false;
+    private boolean explicitStructureMaterial = false;
+    private boolean explicitLightMaterial = false;
+    private boolean explicitSignMaterial = false;
+
+    /**
+     * Material groups this shape may be built from, lowercased. Empty means every
+     * configured group is accepted, which is the default and what most shapes want:
+     * geometry and palette are independent, so any shape can be built in any palette.
+     * A shape restricts this only when a palette would make it ambiguous against
+     * another shape with the same frame layout.
+     */
+    private final java.util.Set<String> shapeMaterialGroups = new java.util.HashSet<String>();
 
     /** The shape woosh ticks. */
     private int shapeWooshTicks = 3;
@@ -236,9 +242,11 @@ public class StargateShape
             {
                 setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
             }
+            else if (line.contains("SIGN_MATERIAL"))
+            {
+                try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase())); } catch (final Exception e) { /* ignore unknown */ }
+            }
         }
-        //TODO: debug printout for the materials the gate uses.
-        //TODO: debug printout for the redstone_activated
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Sign Position: \"" + Arrays.toString(getShapeSignPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Enter Position: \"" + Arrays.toString(getShapeEnterPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Button Position [Left/Right,Up/Down,Forward/Back]: \"" + Arrays.toString(getShapeToGateCorner()) + "\"");
@@ -387,6 +395,61 @@ public class StargateShape
      * 
      * @return the shape structure material
      */
+    /** @return true if the shape file named a portal material outright */
+    public boolean hasExplicitPortalMaterial() { return explicitPortalMaterial; }
+
+    /** @return true if the shape file named an iris material outright */
+    public boolean hasExplicitIrisMaterial() { return explicitIrisMaterial; }
+
+    /** @return true if the shape file named a structure material outright */
+    public boolean hasExplicitStructureMaterial() { return explicitStructureMaterial; }
+
+    /** @return true if the shape file named an active/light material outright */
+    public boolean hasExplicitLightMaterial() { return explicitLightMaterial; }
+
+    /** @return true if the shape file named a sign material outright */
+    public boolean hasExplicitSignMaterial() { return explicitSignMaterial; }
+
+    /**
+     * Checks whether this shape may be built from the named material group.
+     *
+     * @param groupName
+     *            the group name, case-insensitive
+     * @return true if the shape declares no restriction, or names this group
+     */
+    public boolean acceptsMaterialGroup(final String groupName)
+    {
+        if (shapeMaterialGroups.isEmpty())
+        {
+            return true;
+        }
+        return groupName != null && shapeMaterialGroups.contains(groupName.toLowerCase());
+    }
+
+    /**
+     * Restricts this shape to a comma-separated list of material group names.
+     * An empty or blank list clears the restriction.
+     *
+     * @param csv
+     *            the comma-separated group names from the shape file
+     */
+    public void setShapeMaterialGroups(final String csv)
+    {
+        shapeMaterialGroups.clear();
+        if (csv == null)
+        {
+            return;
+        }
+        for (final String part : csv.split(","))
+        {
+            final String trimmed = part.trim().toLowerCase();
+            if (!trimmed.isEmpty())
+            {
+                shapeMaterialGroups.add(trimmed);
+            }
+        }
+    }
+
     public Material getShapeStructureMaterial()
     {
         return shapeStructureMaterial;
@@ -462,6 +525,7 @@ public class StargateShape
     public void setShapeIrisMaterial(final Material shapeIrisMaterial)
     {
         this.shapeIrisMaterial = shapeIrisMaterial;
+        explicitIrisMaterial = true;
     }
 
     /**
@@ -473,6 +537,7 @@ public class StargateShape
     public void setShapeLightMaterial(final Material shapeLightMaterial)
     {
         this.shapeLightMaterial = shapeLightMaterial;
+        explicitLightMaterial = true;
     }
 
     /**
@@ -517,6 +582,7 @@ public class StargateShape
     public void setShapePortalMaterial(final Material shapePortalMaterial)
     {
         this.shapePortalMaterial = shapePortalMaterial;
+        explicitPortalMaterial = true;
     }
 
     /**
@@ -561,6 +627,18 @@ public class StargateShape
     public void setShapeStructureMaterial(final Material shapeStructureMaterial)
     {
         this.shapeStructureMaterial = shapeStructureMaterial;
+        explicitStructureMaterial = true;
+    }
+
+    public Material getShapeSignMaterial()
+    {
+        return shapeSignMaterial;
+    }
+
+    public void setShapeSignMaterial(final Material shapeSignMaterial)
+    {
+        this.shapeSignMaterial = shapeSignMaterial;
+        explicitSignMaterial = true;
     }
 
     /**

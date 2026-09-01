@@ -1,21 +1,3 @@
-/**
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
@@ -45,38 +27,72 @@ public class WXList implements CommandExecutor
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        if (CommandUtilities.playerCheck(sender)
-            ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST)
-            : true)
+        return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
-            final ArrayList<Stargate> gates = StargateManager.getAllGates();
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Available gates \u00A73::");
-            StringBuilder sb = new StringBuilder();
-            // TODO: Add checks for complex permissions enabled users running this command and only display what they have access to use.
-            for (int i = 0; i < gates.size(); i++)
+            @Override
+            public Boolean call() throws Exception
             {
-                sb.append("\u00A77" + gates.get(i).getGateName());
-                if (i != gates.size() - 1)
+                if (CommandUtilities.playerCheck(sender)
+                    ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST)
+                    : true)
                 {
-                    sb.append("\u00A78, ");
-                }
-                if (sb.toString().length() >= 75)
-                {
-                    sender.sendMessage(sb.toString());
-                    sb = new StringBuilder();
-                }
-            }
-            if ( !sb.toString().equals(""))
-            {
-                sender.sendMessage(sb.toString());
-            }
+                    // Optional network filter: /wx list [network]
+                    // "Public" (case-insensitive) matches gates with no assigned network.
+                    final String filterNet = (args.length > 0) ? args[0].trim() : null;
+                    final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
 
-        }
-        else
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-        }
-        return true;
+                    final ArrayList<Stargate> allGates = StargateManager.getAllGates();
+                    final ArrayList<Stargate> gates = new ArrayList<Stargate>();
+                    for (final Stargate g : allGates)
+                    {
+                        if (filterNet == null)
+                        {
+                            gates.add(g);
+                        }
+                        else if (filterPublic && g.getGateNetwork() == null)
+                        {
+                            gates.add(g);
+                        }
+                        else if (!filterPublic && g.getGateNetwork() != null && g.getGateNetwork().getNetworkName().equalsIgnoreCase(filterNet))
+                        {
+                            gates.add(g);
+                        }
+                    }
+
+                    final String header = filterNet != null
+                        ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
+                        : "Available gates \u00A73::";
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
+                    if (gates.isEmpty())
+                    {
+                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
+                    }
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < gates.size(); i++)
+                    {
+                        sb.append("\u00A77" + gates.get(i).getGateName());
+                        if (i != gates.size() - 1)
+                        {
+                            sb.append("\u00A78, ");
+                        }
+                        if (sb.toString().length() >= 75)
+                        {
+                            sender.sendMessage(sb.toString());
+                            sb = new StringBuilder();
+                        }
+                    }
+                    if ( !sb.toString().equals(""))
+                    {
+                        sender.sendMessage(sb.toString());
+                    }
+                }
+                else
+                {
+                    sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                }
+                return true;
+            }
+        });
     }
 
 }

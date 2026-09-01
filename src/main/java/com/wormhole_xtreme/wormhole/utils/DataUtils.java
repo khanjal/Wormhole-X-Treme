@@ -1,21 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.utils;
 
 import java.nio.ByteBuffer;
@@ -83,21 +65,6 @@ public class DataUtils
         return bb.array();
     }
 
-// TODO Remove unused code found by UCDetector
-//     /**
-//      * Byte array to int.
-//      * 
-//      * @param b
-//      *            the b
-//      * @param index
-//      *            the index
-//      * @return the int
-//      */
-//     public static final int byteArrayToInt(final byte[] b, final int index)
-//     {
-//         return (b[index] << 24) + ((b[index + 1] & 0xFF) << 16) + ((b[index + 2] & 0xFF) << 8) + (b[index + 3] & 0xFF);
-//     }
-
     /**
      * Byte to boolean.
      * 
@@ -116,19 +83,6 @@ public class DataUtils
             return false;
         }
     }
-
-// TODO Remove unused code found by UCDetector
-//     /**
-//      * Int to byte array.
-//      * 
-//      * @param value
-//      *            the value
-//      * @return the byte[]
-//      */
-//     public static final byte[] intToByteArray(final int value)
-//     {
-//         return new byte[]{(byte) (value >>> 24), (byte) (value >>> 16), (byte) (value >>> 8), (byte) value};
-//     }
 
     /**
      * Location from bytes.

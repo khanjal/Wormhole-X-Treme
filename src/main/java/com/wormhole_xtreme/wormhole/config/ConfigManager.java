@@ -1,27 +1,7 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Copyright (C) 2011  Ben Echols
- *                       Dean Bailey
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.wormhole_xtreme.wormhole.config;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-
-import org.bukkit.plugin.PluginDescriptionFile;
 
 import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
@@ -30,6 +10,9 @@ import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLev
  */
 public class ConfigManager
 {
+    /** Plugin folder name, remembered so config.yml can be located again after load. */
+    private static volatile String configuredPluginName = "WormholeXTreme";
+
 
     /**
      * The Enum ConfigKeys.
@@ -45,10 +28,8 @@ public class ConfigManager
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
-
-        /** The SIMPLE PERMISSIONS. */
-        SIMPLE_PERMISSIONS,
-
+        /** Automatically fall back to simple permission mode when no Vault provider is detected. */
+        PERMISSIONS_AUTO_FALLBACK,
         /** The WORMHOL e_ us e_ i s_ teleport. */
         WORMHOLE_USE_IS_TELEPORT,
 
@@ -85,11 +66,21 @@ public class ConfigManager
         /** The HELP SUPPORT DISABLE. */
         HELP_SUPPORT_DISABLE,
 
-        /** The WORLDS SUPPORT DISABLE key. */
-        WORLDS_SUPPORT_ENABLED,
+        /** Restrict teleportation to same-world gates only. */
+        SAME_WORLD_ONLY,
 
         /** The LOG LEVEL. */
-        LOG_LEVEL
+        LOG_LEVEL,
+        /** Tick interval for periodic non-player entity gate scan. */
+        ENTITY_SCAN_INTERVAL_TICKS,
+        /** Whether to append newly-seen shape palettes to config.yml automatically. */
+        GATE_MATERIAL_GROUPS_AUTODISCOVER,
+        /** Whether economy (Vault) integration is enabled. */
+        ECONOMY_ENABLED,
+        /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
+        ECONOMY_USE_COST,
+        /** Cost in currency units charged to build a gate. 0 = free. */
+        ECONOMY_BUILD_COST
     }
 
     /**
@@ -159,7 +150,19 @@ public class ConfigManager
         playerUseCooldownRestricted(errorHeader + "You must wait longer before using a stargate."),
 
         /** The player use cooldown wait time. */
-        playerUseCooldownWaitTime(errorHeader + "Current Wait (in seconds): ");
+        playerUseCooldownWaitTime(errorHeader + "Current Wait (in seconds): "),
+
+        /** Player recently arrived at gate. */
+        playerRecentArrival(errorHeader + "You can't enter an incoming wormhole"),
+
+        /** Insufficient funds message. */
+        economyInsufficientFunds(errorHeader + "Insufficient funds to use this gate."),
+
+        /** Charged for gate use message (prefix; amount and currency appended at runtime). */
+        economyCharged(normalHeader + "Charged "),
+
+        /** Charged for gate build message (prefix; amount and currency appended at runtime). */
+        economyBuildCharged(normalHeader + "Gate build cost charged: ");
 
         /** The m. */
         private final String m;
@@ -328,6 +331,32 @@ public class ConfigManager
     }
 
     /**
+     * Gets whether the plugin should automatically fall back to simple permission mode when no
+     * Vault/LuckPerms provider is detected. Default: true.
+     */
+    public static boolean getPermissionsAutoFallback()
+    {
+        Setting psd;
+        if ((psd = ConfigManager.getConfigurations().get(ConfigKeys.PERMISSIONS_AUTO_FALLBACK)) != null)
+        {
+            return psd.getBooleanValue();
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    /**
+     * Set the runtime Permissions support disable flag. This updates the in-memory configuration
+     * map; persisting to disk requires writing config.yml separately.
+     */
+    public static void setPermissionsSupportDisable(final boolean disabled)
+    {
+        configurations.put(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, disabled, "Permissions support disabled (runtime)", "WormholeXTreme"));
+    }
+
+    /**
      * Gets the setting.
      * 
      * @param configKey
@@ -339,23 +368,6 @@ public class ConfigManager
         return getConfigurations().get(configKey);
     }
 
-    /**
-     * Gets the simple permissions.
-     * 
-     * @return the simple permissions
-     */
-    public static boolean getSimplePermissions()
-    {
-        Setting sp;
-        if ((sp = ConfigManager.getConfigurations().get(ConfigKeys.SIMPLE_PERMISSIONS)) != null)
-        {
-            return sp.getBooleanValue();
-        }
-        else
-        {
-            return false;
-        }
-    }
 
     /**
      * Get Timeout Activate setting from ConfigKeys.
@@ -393,6 +405,45 @@ public class ConfigManager
         {
             return 38;
         }
+    }
+
+    /**
+     * Tick interval for periodic non-player entity scan.
+     * A higher value reduces server load at the cost of slightly delayed teleport detection.
+     *
+     * @return scan interval in ticks (minimum 5)
+     */
+    public static int getEntityScanIntervalTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS);
+        final int configured = (s != null) ? s.getIntValue() : 20;
+        return Math.max(5, configured);
+    }
+
+    /**
+     * Writes material groups discovered from gate shapes into config.yml.
+     *
+     * @param groups
+     *            the groups to add
+     */
+    public static void appendDiscoveredMaterialGroups(
+        final java.util.List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        ConfigurationYAML.appendMaterialGroups(ConfigurationYAML.getConfigFile(configuredPluginName), groups);
+    }
+
+    /**
+     * Whether an unrecognised shape palette should be appended to config.yml automatically.
+     *
+     * <p>Set this false if you prefer to curate the group list by hand; a group you delete
+     * will then stay deleted instead of reappearing on the next restart.
+     *
+     * @return true to auto-append discovered palettes
+     */
+    public static boolean isGateMaterialGroupsAutodiscover()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER);
+        return (s != null) ? s.getBooleanValue() : true;
     }
 
     /**
@@ -490,14 +541,15 @@ public class ConfigManager
     }
 
     /**
-     * Checks if is wormhole worlds support enabled.
+     * Checks if same-world-only mode is enabled.
+     * When true, players may only teleport through gates whose destination is in the same world.
      * 
-     * @return true, if is wormhole worlds support enabled
+     * @return true if cross-world gate travel is blocked
      */
-    public static boolean isWormholeWorldsSupportEnabled()
+    public static boolean isSameWorldOnly()
     {
         Setting wsd;
-        if ((wsd = ConfigManager.getConfigurations().get(ConfigKeys.WORLDS_SUPPORT_ENABLED)) != null)
+        if ((wsd = ConfigManager.getConfigurations().get(ConfigKeys.SAME_WORLD_ONLY)) != null)
         {
             return wsd.getBooleanValue();
         }
@@ -568,17 +620,6 @@ public class ConfigManager
     }
 
     /**
-     * Sets the simple permissions.
-     * 
-     * @param b
-     *            the new simple permissions
-     */
-    public static void setSimplePermissions(final boolean b)
-    {
-        ConfigManager.setConfigValue(ConfigKeys.SIMPLE_PERMISSIONS, b);
-    }
-
-    /**
      * Set timeout activate setting in ConfigKeys.
      * 
      * @param i
@@ -606,9 +647,10 @@ public class ConfigManager
      * @param pdf
      *            the new up configs
      */
-    public static void setupConfigs(final PluginDescriptionFile pdf)
+    public static void setupConfigs(final String pluginName)
     {
-        Configuration.loadConfiguration(pdf);
+        configuredPluginName = pluginName;
+        Configuration.loadConfiguration(pluginName);
     }
 
     /**
@@ -653,5 +695,26 @@ public class ConfigManager
     public static void setUseCooldownGroupTwo(final int time)
     {
         setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_TWO, time);
+    }
+
+    /** Returns true if Vault economy integration is enabled in config. */
+    public static boolean isEconomyEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ECONOMY_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    /** Cost charged when a player walks through a gate. 0 = free. */
+    public static double getEconomyUseCost()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ECONOMY_USE_COST);
+        return s != null ? s.getDoubleValue() : 0.0;
+    }
+
+    /** Cost charged when a player builds a gate. 0 = free. */
+    public static double getEconomyBuildCost()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ECONOMY_BUILD_COST);
+        return s != null ? s.getDoubleValue() : 0.0;
     }
 }

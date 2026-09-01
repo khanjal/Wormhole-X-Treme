@@ -2,25 +2,35 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.wormhole_xtreme.wormhole</groupId>
-	<version>0.854</version>
+	<version>1.0.0</version>
 	<artifactId>WormholeXTreme</artifactId>
 	<packaging>jar</packaging>
 	<name>Wormhole-X-Treme</name>
-	<properties>
-	   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
+	 <properties>
+		 <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		 <maven.compiler.release>17</maven.compiler.release>
+		 <java.version>17</java.version>
+	 </properties>
 	<url>http://www.wormhole-xtreme.com</url>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.3.2</version>
+				<version>3.14.0</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<release>${java.version}</release>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.3.0</version>
+				<configuration>
+					<useModulePath>false</useModulePath>
+				</configuration>
+			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
@@ -33,57 +43,101 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<descriptors>
-						<descriptor>src/main/assembly/package.xml</descriptor>
-					</descriptors>
-				</configuration>
-				<version>2.2</version>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.4.1</version>
 				<executions>
 					<execution>
-						<id>make-assembly</id>
 						<phase>package</phase>
 						<goals>
-							<goal>single</goal>
+							<goal>shade</goal>
 						</goals>
+						<configuration>
+							<!-- Replace the primary artifact with the shaded jar (no -shaded classifier) -->
+							<shadedArtifactAttached>false</shadedArtifactAttached>
+							<!-- Write output directly to the project's finalName so no -shaded jar remains -->
+							<outputFile>${project.build.directory}/${project.build.finalName}.jar</outputFile>
+							<!-- Avoid producing a dependency-reduced POM to keep the build simple -->
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+										<exclude>META-INF/MANIFEST.MF</exclude>
+										<exclude>module-info.class</exclude>
+										<exclude>META-INF/versions/*/module-info.class</exclude>
+									</excludes>
+								</filter>
+							</filters>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>com.wormhole_xtreme.wormhole.WormholeXTreme</mainClass>
+								</transformer>
+							</transformers>
+						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.6</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Medium</threshold>
+					<failOnError>true</failOnError>
+					<includeTests>false</includeTests>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
 		<dependency>
-			<groupId>org.bukkit</groupId>
-			<artifactId>bukkit</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-			<type>jar</type>
-			<scope>compile</scope>
+			<groupId>org.spigotmc</groupId>
+			<artifactId>spigot-api</artifactId>
+			<version>1.20.4-R0.1-SNAPSHOT</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!--
+			Both of these are compile-time only; neither is shaded into the jar.
+
+			SnakeYAML ships with the server — spigot-api declares it, and Bukkit's own
+			YamlConfiguration uses it. Bundling our own copy added ~600KB and risked
+			shadowing the server's newer version on our classloader.
+
+			Gates are stored as one YAML file each, so the plugin needs no database
+			driver at all.
+		-->
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<!-- Compiled against 2.0; the server supplies 2.2 at runtime. The API used
+			     here (Yaml load/dump, DumperOptions) is unchanged between them. -->
+			<version>2.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<!-- Test dependencies -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.9.2</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.nijikokun.bukkit</groupId>
-			<artifactId>Permissions</artifactId>
-			<version>[2.7,3.1)</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>me.taylorkelly</groupId>
-			<artifactId>help</artifactId>
-			<version>[0.2,)</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.wormhole_xtreme.worlds</groupId>
-			<artifactId>WormholeXTremeWorlds</artifactId>
-			<version>[0.5,)</version>
-			<type>jar</type>
-			<scope>compile</scope>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>5.12.0</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<dependencyManagement>
-		<dependencies>
-		</dependencies>
-	</dependencyManagement>
+	<repositories>
+		<repository>
+			<id>spigotmc-repo</id>
+			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+		</repository>
+	</repositories>
 </project>

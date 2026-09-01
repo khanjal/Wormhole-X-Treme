@@ -1,72 +1,60 @@
 name: WormholeXTreme
 main: com.wormhole_xtreme.wormhole.WormholeXTreme
-version: 0.854
-authors: [Lologarithm, alron]
-softdepend: [Permissions, Help, WormholeXTremeWorlds]
+version: 1.0.0
+api-version: "1.20"
+authors: ["Lologarithm", "alron", "Khan Jal"]
+softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
+
 description: >
-             Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
-             Iris, configurable Wormhole materials, and much much more.
-             
+  Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC,
+  Iris, configurable Wormhole materials, and much much more.
+
 commands:
-   dial:
-     description: Dial a remote Stargate, unlock IDC with optional password 
-     usage: |
-            /<command> <StarGate> [IDC]
-            <stargate> The StarGate to dial.
-            [IDC] Use optional password to open remote Iris.
-                     
-            
-   wormhole:
-     description: Wormhole administration and configuration commands.
-     usage: |
-            /<command> <commandtype> [ARG1] [ARG2]
-            Valid Commandtypes - owner, perms, portalmaterial, irismaterial, lightmaterial, shutdown_timeout, activate_timeout, simple, regenerate, redstone, and custom.
+  dial:
+    description: Dial a remote Stargate, unlock IDC with optional password
+    usage: |
+      /<command> <StarGate> [IDC]
+      <stargate> The StarGate to dial.
+      [IDC] Use optional password to open remote Iris.
 
-   wxlist:
-     description: List all Stargates.
-     usage: |
-            /<command> - List all Stargates.
-            
-   wxbuild:
-     description: Automatically Build Stargate.
-     usage: |
-            /<command> <GateShape>
-            <GateShape> The GateShape to build.
-            After placing a DHD with a button (and sign if wanted) running this command then pressing the button will cause the specified <GateShape> to be built.
-            
-   wxremove:
-     description: Remove a stargate, optionally destroy its blocks.
-     usage: |
-            /<command> <GateName> [-all]
-            <GateName> The GateName to remove.
-            [-all] destroys gate blocks too.
+  wormhole:
+    description: Wormhole administration and configuration commands (canonical admin command).
+    aliases: [wx]
+    usage: |
+      /<command> <subcommand> [args]
+      Gates:    list, build, complete, remove, regenerate, refresh
+      Travel:   go, compass, force
+      Per gate: owner, idc, redstone, custom, portalmaterial, irismaterial, lightmaterial, wooshdepth
+      Server:   perms, shutdown_timeout, activate_timeout, cooldown, restrict
+      Run /<command> with no arguments for the full list.
 
-   wxcompass:
-     description: Point compass needle at nearest Stargate.
-     usage: |
-            /<command> - Point compass needle at nearest Stargate.
-            
-   wxcomplete:
-     description: Complete StarGate construction.
-     usage: |
-            /<command> <GateName> idc=[IDC] net=[Net]
-            <GateName> The name to give new Stargate.
-            [IDC] Optional password to give Stargate.
-            [Net] Optional network for Stargate.
-            
-   wxidc:
-     description: Gets or sets a gates IDC code.
-     usage: |
-            /<command> <GateName> <optional_set_idc>
-            Requires being either owner or have wormhole.config
-            set -clear to remove the IDC
+  # legacy wx* command entries removed; now provided as aliases under `wormhole`.
 
-   wxforce:
-     description: Forcefully shut down, darken, and open the iris of either a single or all gates.
-     usage: |
-            /<command> <gateName|-all>
-
-   wxgo:
-     description: Teleport to specified wormhole.
-     usage: |
-            /<command> <GateName>
+permissions:
+  wormhole.use.sign:
+    description: Allow using sign-based dialers and sign interactions.
+    default: false
+  wormhole.use.dialer:
+    description: Allow using the dialer to initiate a gate dial.
+    default: false
+  wormhole.use.compass:
+    description: Allow using the compass command to point to gates.
+    default: false
+  wormhole.remove.own:
+    description: Allow removing gates you own.
+    default: false
+  wormhole.remove.all:
+    description: Allow removing any gate (admin-level).
+    default: op
+  wormhole.build:
+    description: Allow building gates using automation commands.
+    default: op
+  wormhole.config:
+    description: Allow changing plugin configuration via command.
+    default: op
+  wormhole.list:
+    description: Allow listing gates via command.
+    default: false
+  wormhole.go:
+    description: Allow teleporting to gates via command.
+    default: false

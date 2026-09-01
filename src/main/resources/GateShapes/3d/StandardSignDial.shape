@@ -85,29 +85,21 @@ Layer#4=
 [I][I][I:W#3][I:W#3][I:W#3][I][I]
 [I][I][I][I:W#3][I][I][I]
 [I][I][I][I][I][S:A][S:D]
-[I][I][I][I][I][S][S]
+[I][I][I][I][I][S:RA][S]
 
 # Number of ticks to wait before activating each # of the woosh. 1 tick = ~50ms
 WOOSH_TICKS = 3;
 # Number of ticks to wait before activating each # of the lights. 1 tick = ~50ms
 LIGHT_TICKS = 2;
 
-# None of the follow materials are required, they will default if not set.
-# Portal material the material the [P] blocks will be when gate is active.
-# Suggested values are as follows: STATIONARY_WATER, STATIONARY_LAVA, PORTAL, and AIR
-PORTAL_MATERIAL=STATIONARY_WATER
-
-# Iris material is the material the [P] block become when iris is active
-# Suggested values are as follows: STONE, DIAMOND_BLOCK, GLASS, IRON_BLOCK, BEDROCK, OBSIDIAN, GLOWSTONE and LAPIS_BLOCK
-IRIS_MATERIAL=STONE
-
-# Stargate material is the material the [O] blocks are made of
-# Reasonable values are as follows: STONE, DIAMOND_BLOCK, GLASS, IRON_BLOCK, BEDROCK, OBSIDIAN, GLOWSTONE and LAPIS_BLOCK
-STARGATE_MATERIAL=OBSIDIAN
-
-# Active material is the material that :L blocks become when gate is active
-# Suggested Values are as follows: GLOWSTONE and GLOWING_REDSTONE_ORE
-ACTIVE_MATERIAL=GLOWSTONE
+# Materials are not set here. A gate's appearance comes from its material group in
+# config.yml, chosen by the material the frame is actually built from: build this shape
+# in obsidian for a Standard gate, in lapis for an Atlantis one.
+#
+# A shape may still pin a material if this geometry genuinely requires one, by setting
+# PORTAL_MATERIAL, IRIS_MATERIAL, STARGATE_MATERIAL or ACTIVE_MATERIAL here. An explicit
+# value outranks the material group, so use it only when the shape really does need to
+# look a particular way regardless of palette.
 
 # Redstone activated is the parameter to allow redstone to/from redstone locations.
-REDSTONE_ACTIVATED=FALSE
+REDSTONE_ACTIVATED=TRUE
