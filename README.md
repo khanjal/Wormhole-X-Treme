@@ -302,9 +302,15 @@ come to rest in the ring and get picked up on the next pass, but arrows and simi
 hit-and-miss by nature. Lower the interval if you want it caught more reliably, at the cost
 of more frequent scanning.
 
-Projectiles travel like anything else, and arrive pointing out of the destination gate
-rather than continuing on their original heading. Speed is preserved, so an arrow leaves
-the far end as fast as it entered and can hit someone standing there.
+Projectiles are handled differently from everything else. An arrow cannot be moved through
+a gate: teleporting one leaves it flagged as having landed, so it arrives at the far end
+already stuck and drops out of the air. Instead the original is consumed at the source and
+an identical one is fired out of the destination gate — same speed, same shooter, and for
+arrows the same damage, crit, knockback, pierce and pickup rules, so a kill through a gate
+is still credited correctly. Splash potions keep their effect.
+
+This covers every projectile: arrows, tridents, snowballs, eggs, ender pearls, potions and
+fireballs.
 
 One consequence is worth knowing: an ender pearl thrown through a gate teleports its owner
 to wherever it lands — across the wormhole — which sidesteps the permission and cooldown

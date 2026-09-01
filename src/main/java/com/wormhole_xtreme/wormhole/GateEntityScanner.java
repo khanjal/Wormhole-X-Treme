@@ -12,7 +12,9 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Hanging;
+import org.bukkit.entity.Projectile;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
@@ -135,6 +137,85 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
+     * Replaces a projectile with an identical one at the destination, flying outward.
+     *
+     * <p>Everything that makes the projectile behave and score correctly is carried over:
+     * its shooter, so kills are still credited and an ender pearl still teleports the
+     * player who threw it, plus the arrow properties that affect damage and pickup.
+     *
+     * @param projectile
+     *            the projectile arriving at the gate
+     * @param arrival
+     *            where it should reappear
+     * @param exitFacing
+     *            the direction the destination gate faces
+     * @param incoming
+     *            the projectile's velocity before it was moved
+     * @return true if it was replaced; false to fall back to a plain teleport
+     */
+    private static boolean respawnProjectile(final Projectile projectile, final Location arrival,
+        final BlockFace exitFacing, final Vector incoming)
+    {
+        try
+        {
+            final Class<? extends Entity> type = projectile.getType().getEntityClass();
+            if (type == null || !Projectile.class.isAssignableFrom(type))
+            {
+                return false;
+            }
+            final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
+            final Entity spawned = arrival.getWorld().spawn(arrival, type, fresh ->
+            {
+                copyProjectileState(projectile, fresh);
+                fresh.setVelocity(exit);
+            });
+            WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(spawned.getUniqueId());
+            projectile.remove();
+            return true;
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Could not respawn projectile through gate, falling back to teleport: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Copies the state that makes a replacement projectile behave like the original.
+     *
+     * @param from
+     *            the projectile arriving at the gate
+     * @param to
+     *            its replacement at the destination
+     */
+    private static void copyProjectileState(final Projectile from, final Entity to)
+    {
+        to.setFireTicks(from.getFireTicks());
+        if (to instanceof Projectile)
+        {
+            // Kill credit, and for an ender pearl, who gets teleported when it lands.
+            ((Projectile) to).setShooter(from.getShooter());
+        }
+        if ((from instanceof org.bukkit.entity.ThrownPotion) && (to instanceof org.bukkit.entity.ThrownPotion))
+        {
+            // Without this the potion still splashes but has no effect.
+            ((org.bukkit.entity.ThrownPotion) to).setItem(((org.bukkit.entity.ThrownPotion) from).getItem());
+        }
+        if ((from instanceof AbstractArrow) && (to instanceof AbstractArrow))
+        {
+            final AbstractArrow a = (AbstractArrow) from;
+            final AbstractArrow b = (AbstractArrow) to;
+            b.setDamage(a.getDamage());
+            b.setCritical(a.isCritical());
+            b.setKnockbackStrength(a.getKnockbackStrength());
+            b.setPierceLevel(a.getPierceLevel());
+            b.setPickupStatus(a.getPickupStatus());
+            b.setShotFromCrossbow(a.isShotFromCrossbow());
+        }
+    }
+
+    /**
      * Squared speed above which an entity counts as travelling under its own momentum,
      * rather than sitting in the portal. Chosen well below a walking pace.
      */
@@ -218,6 +299,17 @@ public final class GateEntityScanner implements Runnable
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
+
+        // A projectile cannot simply be moved. Teleporting an arrow leaves it flagged as
+        // having landed — AbstractArrow.isInBlock() is readable but not settable — so it
+        // arrives at the far gate already "stuck" and drops out of the air no matter what
+        // velocity it is given. Replacing it with a fresh one carrying the same properties
+        // is the only way through the API.
+        if (entity instanceof Projectile && respawnProjectile((Projectile) entity, arrival, exitFacing, incoming))
+        {
+            return;
+        }
+
         entity.teleport(arrival);
 
         final Vector exit = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0);
