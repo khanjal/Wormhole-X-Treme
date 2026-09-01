@@ -139,4 +139,69 @@ public class GateEntryRefusalTest
 
         verify(player, never()).setNoDamageTicks(anyInt());
     }
+
+    // -----------------------------------------------------------------------
+    // Walking back out
+    // -----------------------------------------------------------------------
+
+    /** A step from the portal block itself to the block outside it. */
+    private PlayerMoveEvent walkOutOfDestination()
+    {
+        final Location from = new Location(world, BX + 0.5, BY, BZ + 0.5);
+        final Location to = new Location(world, BX + 0.5, BY, BZ - 1.5);
+        final PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
+        new WormholeXTremePlayerListener().onPlayerMove(event);
+        return event;
+    }
+
+    @Test
+    public void walkingOutOfTheExitEndIsAllowed()
+    {
+        // The traveller who just came through arrives standing in the ring, and refusing a
+        // move is cancelling it — which holds them exactly where they are. Applying the
+        // refusal to someone already inside trapped them: every step cancelled, the message
+        // repeated once per move, until the client gave up and dropped the connection.
+        final PlayerMoveEvent event = walkOutOfDestination();
+
+        assertFalse(event.isCancelled(), "a player already in the portal must be able to leave it");
+        verify(player, never()).sendMessage(contains("incoming wormhole"));
+    }
+
+    @Test
+    public void aPlayerStandingInTheExitIsNotTrappedByRepeatedAttempts()
+    {
+        // The failure was not one refused step, it was never being able to take one. Each
+        // of these is a fresh event, the way the client retries after a cancelled move.
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            assertFalse(walkOutOfDestination().isCancelled(),
+                "attempt " + attempt + " should not be cancelled");
+        }
+        verify(player, never()).sendMessage(contains("incoming wormhole"));
+    }
+
+    @Test
+    public void movingWithinTheExitPortalIsAllowed()
+    {
+        // Shuffling inside the ring is still not an entry, so it must not be refused
+        // either. Both ends of this move are the portal block.
+        final Location from = new Location(world, BX + 0.2, BY, BZ + 0.2);
+        final Location to = new Location(world, BX + 0.8, BY, BZ + 0.8);
+        final PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
+
+        new WormholeXTremePlayerListener().onPlayerMove(event);
+
+        assertFalse(event.isCancelled());
+    }
+
+    @Test
+    public void walkingInIsStillRefusedAfterTheWalkingOutFix()
+    {
+        // The control: letting people out must not have let people in. This is the case
+        // the whole refusal exists for — a wormhole is an exit at this end, so a mob or a
+        // player must not be able to walk back through it.
+        assertTrue(walkIntoDestination().isCancelled(),
+            "stepping in from outside is still refused");
+        verify(player).sendMessage(contains("incoming wormhole"));
+    }
 }

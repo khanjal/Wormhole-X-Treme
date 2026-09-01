@@ -1146,8 +1146,22 @@ class WormholeXTremePlayerListener implements Listener
 
                 if (incomingActive)
                 {
-                    // Block entry into destination gate while an incoming wormhole is active.
-                    return refuseGateEntry(player);
+                    // Refusing a move means cancelling it, which holds the player where
+                    // they already are. That is the right answer for someone stepping in
+                    // from outside, and a trap for someone already standing inside: the
+                    // traveller who just came out of this wormhole gets every move
+                    // cancelled, cannot walk clear of the ring, and is told they may not
+                    // enter an incoming wormhole once per move until the client gives up
+                    // and drops the connection.
+                    //
+                    // So only hold back the ones on their way in. Anyone already in the
+                    // portal is on their way out, which is exactly what should happen.
+                    final Location fromLoc = event.getFrom();
+                    if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
+                    {
+                        return refuseGateEntry(player);
+                    }
+                    return false;
                 }
                 // Gate is active but has neither an outgoing target nor an incoming
                 // wormhole — an activated-but-undialed gate. There is nowhere to send
@@ -1510,35 +1524,52 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
-     * Redraws open portals for a player who has just arrived somewhere.
+     * When a redraw is retried after a player arrives somewhere, in ticks.
      *
-     * <p>Deferred by a tick because on teleport and respawn the client is still being sent
-     * the destination chunks; a block change racing that arrives before the chunk it
-     * belongs to and is overwritten by it.
+     * <p>The portal is drawn over the client's copy of the chunk, so it only sticks once
+     * the client actually holds that chunk. On arrival it usually does not yet, and a block
+     * change that lands first is simply overwritten by the chunk that follows it.
+     *
+     * <p>How long that takes is not observable from the server and is not a fixed cost. A
+     * short hop reuses chunks the client already has, while a trip across the world makes
+     * it fetch and render everything from scratch — which is why a single redraw one tick
+     * later worked for a gate nearby and did nothing at all for a distant one. Rather than
+     * guess a delay, redraw a few times across the couple of seconds an arrival can take.
+     * Each pass is a handful of block changes to one player, and a redundant pass costs
+     * nothing visible: the client is being told what it is already showing.
+     */
+    private static final long[] ARRIVAL_REDRAW_TICKS = { 1L, 10L, 30L, 60L };
+
+    /**
+     * Redraws open portals for a player who has just arrived somewhere.
      *
      * @param player
      *            the player to redraw for
      */
     private static void refreshPortalVisualsFor(final Player player)
     {
-        try
+        for (final long delay : ARRIVAL_REDRAW_TICKS)
         {
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
-                WormholeXTreme.getThisPlugin(),
-                new Runnable()
-                {
-                    @Override
-                    public void run()
+            try
+            {
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+                    WormholeXTreme.getThisPlugin(),
+                    new Runnable()
                     {
-                        StargateManager.refreshPortalVisuals(player);
-                    }
-                },
-                1L);
-        }
-        catch (final RuntimeException ignore)
-        {
-            // No scheduler yet, during startup or in tests. Nothing is drawn at that point
-            // either, so there is nothing to restore.
+                        @Override
+                        public void run()
+                        {
+                            StargateManager.refreshPortalVisuals(player);
+                        }
+                    },
+                    delay);
+            }
+            catch (final RuntimeException ignore)
+            {
+                // No scheduler yet, during startup or in tests. Nothing is drawn at that
+                // point either, so there is nothing to restore.
+                return;
+            }
         }
     }
 
