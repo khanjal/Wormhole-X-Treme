@@ -377,13 +377,46 @@ Both modes work via `BlockRedstoneEvent` and are fully compatible with all Bukki
 
 A signal counts when it lands **on** the activation block or on any redstone component **touching** it — dust, a repeater, a comparator, a lever, a button, a pressure plate, an observer, a redstone block or torch, or a detector/powered/activator rail. You do not have to place dust exactly on the activation block.
 
+### Building a redstone gate
+
+A redstone gate is a **sign gate with redstone inputs**. Redstone does not choose a
+destination — the dial sign does, exactly as if a player were clicking it. Redstone just
+presses the buttons. A shape without a `[D]` dial sign block cannot be redstone-dialled.
+
+Use `MinimalSignDialRedstone.shape`, which marks three cells:
+
+| Marker | What it is | What you put there |
+|---|---|---|
+| `[RD]` | Dial | Redstone dust, or run a signal to a component touching it |
+| `[RS]` | Next target | Same — each pulse advances the dial sign one destination |
+| `[RA]` | Gate-is-open output | A **lever**, which the plugin flips on while the wormhole is open |
+
+None of these are frame blocks — you do not build the gate material at them. Each sits
+directly on top of a frame block, so think of them as the spot immediately above the
+frame where your redstone goes.
+
+A signal counts when it lands on the marked block **or on any redstone component touching
+it**, so you can run dust up to it rather than having to land exactly on the cell.
+
 ### Driving a gate with a minecart
 
-Run the track past the gate and put a **detector rail** in the line, then wire it into the gate's activation block (adjacent, or via dust). A cart rolling over the detector rail pulses the gate, which dials the target currently shown on its dial sign — so the cart can ride straight through.
+Run the track past the gate and put a **detector rail** in the line, then wire it to the
+`[RD]` block. A cart rolling over the detector rail dials whatever the dial sign is
+currently showing, so the cart can ride straight through.
 
-Use a detector rail, not a powered rail. A powered rail is already energised by whatever is switching it, so a cart passing over it changes nothing and produces no event. A detector rail emits a pulse only while a cart is on it, which is exactly the trigger you want.
+Use a detector rail, not a powered rail. A powered rail is already energised by whatever is
+switching it, so a cart passing over it changes nothing and produces no event. A detector
+rail emits a pulse only while a cart is on it, which is exactly the trigger you want.
 
-Note that a rising edge **toggles**: if the gate is already open when the pulse arrives, it shuts down instead of re-dialling. With `shutdown_timeout` set so the gate closes between carts this is invisible, but two carts passing inside one timeout window will close the gate on the second.
+A trigger on an already-open gate does nothing at all — it neither closes the gate nor
+re-dials it. Closing was the old behaviour and made repeated triggers useless: a second cart
+shut the wormhole the first one had opened. Re-dialling is not the answer either, because
+dialling restarts the shutdown timer, so a cart every few seconds would hold the gate open
+and lock everyone else out. Leaving it alone means the gate always closes on its own timer,
+however often it is triggered.
+
+A trigger on a gate that is lit but never dialled still deactivates it, which is the only
+way to clear a gate somebody activated and walked away from.
 
 ## Developer notes
 
