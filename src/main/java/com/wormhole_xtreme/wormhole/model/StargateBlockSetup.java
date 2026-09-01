@@ -523,6 +523,87 @@ class StargateBlockSetup
     }
 
     /**
+     * Redraws every open gate's portal for one player.
+     *
+     * <p>The portal is not a block in the world — the server keeps AIR there so travellers
+     * do not drown or burn in it, and each nearby client is sent a block change to make it
+     * look solid. That illusion lives only in the client's copy of the chunk, so anything
+     * that hands the client a fresh copy erases it: walking far enough away and back,
+     * relogging, changing worlds, or arriving by teleport. The client redraws the real
+     * block, which is AIR, and the portal simply is not there any more.
+     *
+     * <p>It is also never sent to anyone who was out of range when the gate opened, which
+     * is the common case for the far end of a trip: that gate opened while the traveller
+     * was still standing at the near one.
+     *
+     * <p>Walking the open gates rather than all of them keeps this proportional to how many
+     * portals are actually drawn, since it runs on every chunk boundary a player crosses.
+     *
+     * @param player
+     *            the player to redraw for
+     */
+    public static void refreshPortalVisuals(final Player player)
+    {
+        if ((player == null) || !player.isOnline())
+        {
+            return;
+        }
+        final Location playerAt = player.getLocation();
+        for (final Stargate gate : StargateManager.getOpenGates())
+        {
+            if (!shouldRedrawFor(gate, playerAt))
+            {
+                continue;
+            }
+            final BlockData blockData = gate.getEffectivePortalMaterial().createBlockData();
+            for (final Location bc : gate.getGatePortalBlocks())
+            {
+                player.sendBlockChange(
+                    new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
+                    blockData);
+            }
+        }
+    }
+
+    /**
+     * Whether one open gate's portal should be drawn for a player standing at a location.
+     *
+     * <p>Split out from {@link #refreshPortalVisuals(Player)} so the decision can be tested
+     * without a live server: everything past this point needs {@code createBlockData()},
+     * which does not work off a running Bukkit instance.
+     *
+     * @param gate
+     *            an open gate
+     * @param playerAt
+     *            where the player is
+     * @return true if the gate's portal blocks should be sent to that player
+     */
+    static boolean shouldRedrawFor(final Stargate gate, final Location playerAt)
+    {
+        // An iris is made of real blocks, which the client gets from the chunk like any
+        // other block. Redrawing here would paint the portal over the iris the gate is
+        // currently closed with.
+        if ((gate == null) || (playerAt == null) || gate.isGateIrisActive())
+        {
+            return false;
+        }
+        if ((gate.getGateWorld() == null) || !gate.getGateWorld().equals(playerAt.getWorld()))
+        {
+            return false;
+        }
+        final List<Location> portalBlocks = gate.getGatePortalBlocks();
+        if (portalBlocks.isEmpty())
+        {
+            return false;
+        }
+        // Portal blocks all sit within a gate-sized box, so distance to any one of them
+        // decides the whole gate, the same way the open-time send picks its recipients.
+        final Location reference = new Location(gate.getGateWorld(),
+            portalBlocks.get(0).getBlockX(), portalBlocks.get(0).getBlockY(), portalBlocks.get(0).getBlockZ());
+        return playerAt.distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS);
+    }
+
+    /**
      * Sets all portal blocks to {@link Material#AIR}, both on the server and on
      * nearby clients, clearing any client-side portal visual still being shown.
      *

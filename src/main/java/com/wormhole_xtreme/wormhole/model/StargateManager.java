@@ -42,6 +42,16 @@ public class StargateManager
     /** The player_builders. */
     private final static ConcurrentHashMap<Player, StargateShape> playerBuilders = new ConcurrentHashMap<Player, StargateShape>();
 
+    // Gates whose portal is currently drawn, kept as a set rather than found by filtering
+    // every gate. The portal is a client-side illusion that has to be redrawn whenever a
+    // player arrives or reloads a chunk, so this is read on player movement across chunk
+    // boundaries — a per-player, per-chunk event. Filtering the whole gate list there would
+    // scale that work with the number of gates on the server; this scales with the number
+    // of gates actually open, which is nearly always a handful.
+    /** The gates currently showing a portal. */
+    private static final java.util.Set<Stargate> openGates =
+        java.util.Collections.newSetFromMap(new ConcurrentHashMap<Stargate, Boolean>());
+
     // List of blocks that are part of an active animation. Only use this to make sure water doesn't flow everywhere.
     /** The Constant opening_animation_blocks. */
     private static final ConcurrentHashMap<Location, Block> openingAnimationBlocks = new ConcurrentHashMap<Location, Block>();
@@ -443,6 +453,58 @@ public class StargateManager
     public static java.util.Collection<Stargate> getAllGatesUnsorted()
     {
         return java.util.Collections.unmodifiableCollection(getStargateList().values());
+    }
+
+    /**
+     * Records whether a gate is currently showing a portal.
+     *
+     * <p>Called from {@link Stargate#setGateActive(boolean)} so the set cannot drift from
+     * the flag it mirrors.
+     *
+     * @param gate
+     *            the gate
+     * @param open
+     *            whether its portal is drawn
+     */
+    static void setGateOpenState(final Stargate gate, final boolean open)
+    {
+        if (open)
+        {
+            openGates.add(gate);
+        }
+        else
+        {
+            openGates.remove(gate);
+        }
+    }
+
+    /**
+     * The gates currently showing a portal.
+     *
+     * <p>The portal is drawn on clients rather than placed in the world, so it has to be
+     * redrawn for any player who was not nearby when it opened or whose client has since
+     * reloaded the chunk. This is the set to walk for that.
+     *
+     * @return an unmodifiable view of the open gates
+     */
+    public static java.util.Set<Stargate> getOpenGates()
+    {
+        return java.util.Collections.unmodifiableSet(openGates);
+    }
+
+    /**
+     * Redraws every open gate's portal for one player.
+     *
+     * <p>The portal exists only in each nearby client's copy of the chunk, so it has to be
+     * redrawn for anyone who arrives after the gate opened or whose client has reloaded the
+     * chunk since. See {@link StargateBlockSetup#refreshPortalVisuals(Player)}.
+     *
+     * @param player
+     *            the player to redraw for
+     */
+    public static void refreshPortalVisuals(final Player player)
+    {
+        StargateBlockSetup.refreshPortalVisuals(player);
     }
 
     /**

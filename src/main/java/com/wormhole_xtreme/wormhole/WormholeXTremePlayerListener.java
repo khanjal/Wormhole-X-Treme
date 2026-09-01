@@ -21,6 +21,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -1472,7 +1476,125 @@ class WormholeXTremePlayerListener implements Listener
         if (handlePlayerMoveEvent(event))
         {
             event.setCancelled(true);
+            return;
         }
+        if (hasChangedChunk(event.getFrom(), event.getTo()))
+        {
+            // Crossing into a chunk the client has not held before means the client is
+            // about to be sent that chunk's real contents, which wipes any portal drawn
+            // over it. Redrawing on the crossing covers walking up to a gate from out of
+            // range, and covers coming back to one after being away.
+            refreshPortalVisualsFor(event.getPlayer());
+        }
+    }
+
+    /**
+     * Whether a move crossed a chunk boundary.
+     *
+     * @param from
+     *            where the player was
+     * @param to
+     *            where the player is
+     * @return true if the two are in different chunks
+     */
+    private static boolean hasChangedChunk(final Location from, final Location to)
+    {
+        if ((from == null) || (to == null))
+        {
+            return false;
+        }
+        // Bit-shifting rather than getChunk(), which loads the chunk if it is not resident.
+        return ((from.getBlockX() >> 4) != (to.getBlockX() >> 4))
+            || ((from.getBlockZ() >> 4) != (to.getBlockZ() >> 4))
+            || !java.util.Objects.equals(from.getWorld(), to.getWorld());
+    }
+
+    /**
+     * Redraws open portals for a player who has just arrived somewhere.
+     *
+     * <p>Deferred by a tick because on teleport and respawn the client is still being sent
+     * the destination chunks; a block change racing that arrives before the chunk it
+     * belongs to and is overwritten by it.
+     *
+     * @param player
+     *            the player to redraw for
+     */
+    private static void refreshPortalVisualsFor(final Player player)
+    {
+        try
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+                WormholeXTreme.getThisPlugin(),
+                new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        StargateManager.refreshPortalVisuals(player);
+                    }
+                },
+                1L);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // No scheduler yet, during startup or in tests. Nothing is drawn at that point
+            // either, so there is nothing to restore.
+        }
+    }
+
+    /**
+     * Redraws open portals for a player arriving by teleport.
+     *
+     * <p>This is the case behind "the water is gone at the other end": the destination gate
+     * opened while the traveller was still standing at the source, far outside the range
+     * the portal is drawn to, so they were never sent it in the first place.
+     *
+     * @param event
+     *            the teleport
+     */
+    @EventHandler
+    public void onPlayerTeleport(final PlayerTeleportEvent event)
+    {
+        if (!event.isCancelled())
+        {
+            refreshPortalVisualsFor(event.getPlayer());
+        }
+    }
+
+    /**
+     * Redraws open portals for a player who has just joined.
+     *
+     * @param event
+     *            the join
+     */
+    @EventHandler
+    public void onPlayerJoin(final PlayerJoinEvent event)
+    {
+        refreshPortalVisualsFor(event.getPlayer());
+    }
+
+    /**
+     * Redraws open portals for a player who has changed world.
+     *
+     * @param event
+     *            the world change
+     */
+    @EventHandler
+    public void onPlayerChangedWorld(final PlayerChangedWorldEvent event)
+    {
+        refreshPortalVisualsFor(event.getPlayer());
+    }
+
+    /**
+     * Redraws open portals for a player who has just respawned.
+     *
+     * @param event
+     *            the respawn
+     */
+    @EventHandler
+    public void onPlayerRespawn(final PlayerRespawnEvent event)
+    {
+        refreshPortalVisualsFor(event.getPlayer());
     }
 }
 

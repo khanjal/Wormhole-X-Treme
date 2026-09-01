@@ -1287,6 +1287,7 @@ public class Stargate
     public void setGateActive(final boolean gateActive)
     {
         this.gateActive = gateActive;
+        StargateManager.setGateOpenState(this, gateActive);
     }
 
     /**
