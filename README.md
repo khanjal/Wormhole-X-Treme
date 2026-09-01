@@ -108,7 +108,13 @@ Default shapes are extracted from the jar on first run only — they will **not*
 
 ### Shape material parameters
 
-All material parameters are optional; each falls back to a sensible default if omitted.
+Shapes describe geometry. Appearance comes from the gate's [material group](#material-groups),
+chosen by the material the frame is actually built from — so the shipped shapes set no
+materials at all, and one shape file can be built as a Standard, Atlantis or Universe gate.
+
+The keys below still exist for a shape that genuinely must look a particular way whatever
+palette it resolves to. An explicit value outranks the material group, so setting one opts
+that material out of palettes entirely; leave it unset unless the geometry needs it.
 
 | Key | Default | Description |
 |---|---|---|

@@ -158,6 +158,48 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
+    public void oneGeometryRendersDifferentlyInEachPalette()
+    {
+        // The whole point of material groups, and only true since the sample shapes
+        // stopped declaring materials: build one shape in obsidian and it is a Standard
+        // gate, build it in lapis and it is an Atlantis one.
+        final Map<String, Object> standard = new LinkedHashMap<String, Object>();
+        standard.put("structure", "OBSIDIAN");
+        standard.put("iris", "STONE");
+        standard.put("light", "GLOWSTONE");
+        standard.put("sign", "OAK_WALL_SIGN");
+        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        atlantis.put("structure", "LAPIS_BLOCK");
+        atlantis.put("iris", "YELLOW_STAINED_GLASS");
+        atlantis.put("light", "SEA_LANTERN");
+        atlantis.put("sign", "WARPED_WALL_SIGN");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Standard", standard);
+        section.put("Atlantis", atlantis);
+        MaterialGroupRegistry.load(section);
+
+        // A shape parsed from a stripped sample file declares no materials at all.
+        final StargateShape geometryOnly = new StargateShape();
+
+        final Stargate plain = new Stargate();
+        plain.setGateShape(geometryOnly);
+        plain.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Standard"));
+
+        final Stargate themed = new Stargate();
+        themed.setGateShape(geometryOnly);
+        themed.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+
+        assertEquals(Material.OBSIDIAN, plain.getEffectiveStructureMaterial());
+        assertEquals(Material.STONE, plain.getEffectiveIrisMaterial());
+        assertEquals(Material.OAK_WALL_SIGN, plain.getEffectiveSignMaterial());
+
+        assertEquals(Material.LAPIS_BLOCK, themed.getEffectiveStructureMaterial());
+        assertEquals(Material.YELLOW_STAINED_GLASS, themed.getEffectiveIrisMaterial());
+        assertEquals(Material.SEA_LANTERN, themed.getEffectiveLightMaterial());
+        assertEquals(Material.WARPED_WALL_SIGN, themed.getEffectiveSignMaterial());
+    }
+
+    @Test
     public void gateWithNoShapeAtAllStillReturnsUsableMaterials()
     {
         final Stargate gate = new Stargate();
