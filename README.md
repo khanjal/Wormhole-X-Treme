@@ -302,10 +302,13 @@ come to rest in the ring and get picked up on the next pass, but arrows and simi
 hit-and-miss by nature. Lower the interval if you want it caught more reliably, at the cost
 of more frequent scanning.
 
-Projectiles are swept like anything else, which has two consequences worth knowing. An
-arrow fired into a gate can arrive at the far end and hit someone. And an ender pearl
-thrown through a gate teleports its owner to wherever it lands — across the wormhole —
-which sidesteps the permission and cooldown checks a player walking through would face.
+Projectiles travel like anything else, and arrive pointing out of the destination gate
+rather than continuing on their original heading. Speed is preserved, so an arrow leaves
+the far end as fast as it entered and can hit someone standing there.
+
+One consequence is worth knowing: an ender pearl thrown through a gate teleports its owner
+to wherever it lands — across the wormhole — which sidesteps the permission and cooldown
+checks a player walking through would face.
 
 Anything riding something else travels with its carrier rather than separately, and
 anything that just came through is ignored for a moment so it is not bounced straight back.

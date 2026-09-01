@@ -13,6 +13,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Hanging;
+import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.util.BoundingBox;
@@ -123,7 +125,7 @@ public final class GateEntityScanner implements Runnable
                 {
                     continue; // inside the bounding box but not in the wormhole itself
                 }
-                sendThrough(entity, arrival);
+                sendThrough(entity, arrival, target.getGateFacing());
             }
             catch (final Throwable t)
             {
@@ -169,17 +171,36 @@ public final class GateEntityScanner implements Runnable
     }
 
     /**
-     * Teleports an entity and re-seats anything riding it.
+     * Teleports an entity, points it out of the destination gate, and re-seats anything
+     * riding it.
+     *
+     * <p>Redirecting matters most for things that arrive under their own momentum. An
+     * arrow shot north into a gate used to come out of the far end still travelling north,
+     * whichever way that gate faced — often straight back into its own frame. Speed is
+     * preserved and only the direction changes, so an item that rolled in at walking pace
+     * still leaves at walking pace rather than being launched.
      *
      * @param entity
      *            the entity to move
      * @param arrival
      *            the destination
+     * @param exitFacing
+     *            the direction the destination gate faces
      */
-    private static void sendThrough(final Entity entity, final Location arrival)
+    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace exitFacing)
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
+        final Vector incoming = entity.getVelocity();
         entity.teleport(arrival);
+        try
+        {
+            entity.setVelocity(WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, incoming, 1.0));
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Could not set exit velocity after gate sweep: " + e.getMessage());
+        }
 
         final List<Entity> passengers = entity.getPassengers();
         if (passengers.isEmpty())

@@ -89,6 +89,7 @@ public class GateOneWayTest
         when(zombie.getLocation()).thenReturn(new Location(world, x + 0.5, y, z + 0.5));
         when(zombie.getPassengers()).thenReturn(Collections.<Entity>emptyList());
         when(zombie.isInsideVehicle()).thenReturn(false);
+        when(zombie.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, -1.5));
         when(world.getNearbyEntities(any(BoundingBox.class)))
             .thenReturn(Collections.<Entity>singletonList(zombie));
         return zombie;
@@ -146,6 +147,37 @@ public class GateOneWayTest
         {
             GateEntityScanner.create().run();
             verify(zombie, never()).teleport(any(Location.class));
+        }
+        finally
+        {
+            StargateManager.removeStargate(origin);
+        }
+    }
+
+    @Test
+    public void aSweptEntityLeavesPointingOutOfTheDestinationGate() throws Exception
+    {
+        // An arrow shot north into a gate used to arrive still travelling north, whichever
+        // way the far gate faced — often straight back into its own frame.
+        final Stargate destination = gateAt("destination", 99, 70, 99);
+        destination.setGateFacing(BlockFace.EAST);
+        final Stargate origin = gateAt("origin", 10, 64, 20);
+        setTarget(origin, destination);
+        StargateManager.registerStargate(origin);
+        final Entity zombie = zombieIn(origin, 10, 64, 20);
+        try
+        {
+            GateEntityScanner.create().run();
+
+            final org.mockito.ArgumentCaptor<org.bukkit.util.Vector> sent =
+                org.mockito.ArgumentCaptor.forClass(org.bukkit.util.Vector.class);
+            verify(zombie).setVelocity(sent.capture());
+            final org.bukkit.util.Vector v = sent.getValue();
+
+            assertTrue(v.getX() > 0, "should leave heading east, the way the far gate faces");
+            assertEquals(0.0, v.getZ(), 1e-9, "the original northward component should be gone");
+            // Speed is preserved; only the direction changes, so a slow entity stays slow.
+            assertEquals(1.5, v.length(), 1e-6);
         }
         finally
         {
