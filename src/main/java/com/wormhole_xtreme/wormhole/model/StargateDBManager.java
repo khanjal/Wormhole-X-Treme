@@ -1,9 +1,5 @@
 package com.wormhole_xtreme.wormhole.model;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import org.bukkit.Server;
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
  * Gate persistence.
@@ -56,27 +52,4 @@ public class StargateDBManager
     {
     }
 
-    /**
-     * Legacy individual permissions storage is no longer supported. Return empty map.
-     *
-     * @return an empty map
-     */
-    public static ConcurrentHashMap<String, PermissionLevel> getAllIndividualPermissions()
-    {
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Individual permissions storage is disabled; use Vault/LuckPerms.");
-        return new ConcurrentHashMap<String, PermissionLevel>();
-    }
-
-    /**
-     * No-op for storing individual permissions; recommend using external permission plugin.
-     *
-     * @param player
-     *            the player
-     * @param pl
-     *            the level
-     */
-    public static void storeIndividualPermissionInDB(final String player, final PermissionLevel pl)
-    {
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping storeIndividualPermissionInDB for " + player + " (disabled).");
-    }
 }

@@ -5,7 +5,6 @@ import java.util.logging.Level;
 import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
  * The Class Setting.
@@ -116,15 +115,6 @@ class Setting
         return name;
     }
 
-    /**
-     * Gets the permission level.
-     * 
-     * @return the permission level
-     */
-    public PermissionLevel getPermissionLevel()
-    {
-        return (PermissionLevel) value;
-    }
 
     /**
      * Gets the plugin name.

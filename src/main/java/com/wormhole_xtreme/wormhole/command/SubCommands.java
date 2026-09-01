@@ -180,8 +180,6 @@ public final class SubCommands
             new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
 
         // --- Server settings -------------------------------------------------
-        register("perms", aliases("perm"), "/wormhole perms <player> <level>",
-            new com.wormhole_xtreme.wormhole.command.handlers.PermsCommand(), false, null);
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
         register("activate_timeout", aliases(), "/wormhole activate_timeout <seconds>",

@@ -25,7 +25,7 @@ commands:
       Gates:    list, build, complete, remove, regenerate, refresh
       Travel:   go, compass, force
       Per gate: owner, idc, redstone, custom, portalmaterial, irismaterial, lightmaterial, wooshdepth
-      Server:   perms, shutdown_timeout, activate_timeout, cooldown, restrict
+      Server:   shutdown_timeout, activate_timeout, cooldown, restrict
       Run /<command> with no arguments for the full list.
 
   # legacy wx* command entries removed; now provided as aliases under `wormhole`.

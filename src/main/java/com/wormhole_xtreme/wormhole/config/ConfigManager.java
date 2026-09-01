@@ -3,7 +3,6 @@ package com.wormhole_xtreme.wormhole.config;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
  * The Class ConfigManager.
@@ -19,12 +18,6 @@ public class ConfigManager
      */
     public enum ConfigKeys
     {
-
-        /** The BUIL t_ i n_ permission s_ enabled. */
-        BUILT_IN_PERMISSIONS_ENABLED,
-
-        /** The BUIL t_ i n_ defaul t_ permissio n_ level. */
-        BUILT_IN_DEFAULT_PERMISSION_LEVEL,
 
         /** The PERMISSION SUPPORT DISABLE. */
         PERMISSIONS_SUPPORT_DISABLE,
@@ -227,43 +220,6 @@ public class ConfigManager
             : 2;
     }
 
-    /**
-     * Get Built in default permission level settings from ConfigKeys. Return sane PermissionLevel.
-     * Return default value if key is missing or broken.
-     * 
-     * @return the built in default permission level
-     */
-    public static PermissionLevel getBuiltInDefaultPermissionLevel()
-    {
-        Setting bidpl;
-        if ((bidpl = ConfigManager.getConfigurations().get(ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL)) != null)
-        {
-            return bidpl.getPermissionLevel();
-        }
-        else
-        {
-            return PermissionLevel.WORMHOLE_USE_PERMISSION;
-        }
-    }
-
-    /**
-     * Get Built in permissions enabled settings from ConfigKeys. Return sane boolean value.
-     * Return default value if key is missing or broken.
-     * 
-     * @return the built in permissions enabled
-     */
-    public static boolean getBuiltInPermissionsEnabled()
-    {
-        Setting bipe;
-        if ((bipe = ConfigManager.getConfigurations().get(ConfigKeys.BUILT_IN_PERMISSIONS_ENABLED)) != null)
-        {
-            return bipe.getBooleanValue();
-        }
-        else
-        {
-            return false;
-        }
-    }
 
     /**
      * Gets the configurations.

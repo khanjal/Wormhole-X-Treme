@@ -1,9 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager;
 
 /**
  * WormholeXtreme StargateNetwork.
@@ -26,9 +24,6 @@ public class StargateNetwork
     /** The gate lock. */
     private Object networkGateLock = new Object();
 
-    /** The individual permissions. */
-    private final HashMap<String, PermissionsManager.PermissionLevel> networkIndividualPermissions = new HashMap<String, PermissionsManager.PermissionLevel>();
-
     /**
      * Gets the network gate list.
      * 
@@ -47,16 +42,6 @@ public class StargateNetwork
     public Object getNetworkGateLock()
     {
         return networkGateLock;
-    }
-
-    /**
-     * Gets the network individual permissions.
-     * 
-     * @return the network individual permissions
-     */
-    public HashMap<String, PermissionsManager.PermissionLevel> getNetworkIndividualPermissions()
-    {
-        return networkIndividualPermissions;
     }
 
     /**

@@ -75,9 +75,9 @@ booleans depending on where you are in the line.
 `custom <gate> [true|false]`, `portalmaterial`, `irismaterial`, `lightmaterial`,
 `wooshdepth`
 
-**Server** — `perms <player> <level>`, `shutdown_timeout <seconds>` (alias `timeout`),
+**Server** — `shutdown_timeout <seconds>` (alias `timeout`),
 `activate_timeout <seconds>`, `cooldown <one|two|three|true|false> [time]`,
-`restrict <player> [count]`
+`restrict <true|false>`
 
 ### Clearing snapshotted material overrides
 

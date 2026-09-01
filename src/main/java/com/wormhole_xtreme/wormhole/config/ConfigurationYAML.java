@@ -15,7 +15,6 @@ import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
-import com.wormhole_xtreme.wormhole.permissions.PermissionsManager.PermissionLevel;
 
 /**
  * Loads and writes plugin configuration via YAML (`config.yml`).
@@ -75,17 +74,6 @@ public class ConfigurationYAML
                         else if (value instanceof Number)
                         {
                             s = new Setting(element.getName(), ((Number) value).doubleValue(), element.getDescription(), "WormholeXTreme");
-                        }
-                        else if (element.getName() == ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL)
-                        {
-                            try
-                            {
-                                s = new Setting(element.getName(), PermissionLevel.valueOf(value.toString()), element.getDescription(), "WormholeXTreme");
-                            }
-                            catch (final Exception e)
-                            {
-                                s = new Setting(element.getName(), element.getValue(), element.getDescription(), "WormholeXTreme");
-                            }
                         }
                         else
                         {
@@ -341,9 +329,7 @@ public class ConfigurationYAML
                 {
                     final com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys key = def.getName();
                     // Skip permission backend settings entirely
-                    if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILT_IN_PERMISSIONS_ENABLED
-                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.BUILT_IN_DEFAULT_PERMISSION_LEVEL
-                        || key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
+                    if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
                     {
                         skipped.add(key.name());
                         continue;
