@@ -98,14 +98,14 @@ WOOSH_TICKS = 3;
 # Number of ticks to wait before activating each # of the lights. 1 tick = ~50ms
 LIGHT_TICKS = 3;
 
-# Materials are not set here. A gate's appearance comes from its material group in
-# config.yml, chosen by the material the frame is actually built from: build this shape
-# in obsidian for a Standard gate, in lapis for an Atlantis one.
+# The rest of this gate's appearance comes from its material group in config.yml, chosen
+# by the material the frame is actually built from: build this shape in obsidian for a
+# Standard gate, in lapis for an Atlantis one.
 #
-# A shape may still pin a material if this geometry genuinely requires one, by setting
-# PORTAL_MATERIAL, IRIS_MATERIAL, STARGATE_MATERIAL or ACTIVE_MATERIAL here. An explicit
-# value outranks the material group, so use it only when the shape really does need to
-# look a particular way regardless of palette.
+# The iris is the exception. This gate lies flat and you look down through it, so a
+# transparent iris is part of the shape rather than a colour choice, and it is pinned here.
+# An explicit material outranks the material group, so this stays glass in every palette.
+IRIS_MATERIAL=GLASS
 
 # Redstone activated is the parameter to allow redstone to the DHD lever to activate the gate.
 REDSTONE_ACTIVATED=FALSE
