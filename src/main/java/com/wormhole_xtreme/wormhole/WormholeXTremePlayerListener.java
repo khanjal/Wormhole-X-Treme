@@ -36,7 +36,20 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * WormholeXtreme Player Listener.
- * 
+ *
+ * <p><b>On the {@code catch (RuntimeException ignore)} blocks in this class.</b> A gate
+ * teleport is a sequence of independent effects on the player and whatever they are
+ * riding — position, velocity, fall distance, air, passenger seating, chunk loading. Most
+ * are cosmetic settling, and one of them failing is not a reason to abandon the rest and
+ * leave the player half-moved. Those calls are individually guarded and deliberately
+ * silent.
+ *
+ * <p>That is the only thing a silent guard may cover. Anything that changes plugin state —
+ * a cooldown, an arrival marker, a gate registration — logs when it fails, because
+ * swallowing those hides real bugs and, in the cooldown's case, is exploitable. Nothing
+ * here catches {@link Throwable}: an {@link Error} is never something this plugin should
+ * absorb.
+ *
  * @author Ben Echols (Lologarithm)
  * @author Dean Bailey (alron)
  */
@@ -96,11 +109,16 @@ class WormholeXTremePlayerListener implements Listener
                                     break;
                                 }
                             }
-                            catch (final Throwable ignore) {}
+                            catch (final RuntimeException e)
+                            {
+                                // A throw here means a malformed shape, not a normal miss.
+                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                                    "Shape detection failed for face " + face + ": " + e.getMessage());
+                            }
                         }
                     }
                 }
-                catch (final Throwable t)
+                catch (final RuntimeException t)
                 {
                     com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete interactive detection error: " + t.getMessage());
                 }
@@ -147,16 +165,23 @@ class WormholeXTremePlayerListener implements Listener
                                 final org.bukkit.block.Block below = holding.getRelative(org.bukkit.block.BlockFace.DOWN);
                                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
                             }
-                            catch (final Throwable ignore) {}
+                            catch (final RuntimeException ignore) {}
                         }
                         WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: end diagnostics");
                     }
-                    catch (final Throwable ignore) {}
+                    // Diagnostics only: a failure here costs a log line, nothing more.
+                    catch (final RuntimeException ignore) {}
                     return true;
                 }
             }
         }
-        catch (final Throwable ignore) {}
+        catch (final RuntimeException e)
+        {
+            // This block completes a gate the player asked for, charges them, and messages
+            // them. Failing silently would leave them staring at an unbuilt gate.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Interactive /wormhole complete failed for " + player.getName() + ": " + e.getMessage());
+        }
 
         // --- /wormhole refresh pending check ---
         if (com.wormhole_xtreme.wormhole.command.Refresh.isPendingRefresh(player))
@@ -544,43 +569,60 @@ class WormholeXTremePlayerListener implements Listener
         final int z = preferred.getBlockZ();
         final int baseY = preferred.getBlockY();
 
-        // Prefer the exact stored location if it's safe (two passable blocks for head/feet and a solid block below)
+        // Prefer the exact stored location if it is safe, then search upward, then down.
         for (int dy = 0; dy <= 3; dy++)
         {
-            final int y = baseY + dy;
-            final org.bukkit.block.Block feet = w.getBlockAt(x, y, z);
-            final org.bukkit.block.Block head = w.getBlockAt(x, y + 1, z);
-            final org.bukkit.block.Block below = w.getBlockAt(x, y - 1, z);
-            try
+            if (isStandableAt(w, x, baseY + dy, z))
             {
-                if (feet.isPassable() && head.isPassable() && !below.isPassable())
-                {
-                    return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
-                }
+                return new Location(w, x + 0.5, baseY + dy, z + 0.5, preferred.getYaw(), preferred.getPitch());
             }
-            catch (final Throwable ignore) {}
         }
 
-        // Try downward search a few blocks
         for (int dy = 1; dy <= 3; dy++)
         {
             final int y = baseY - dy;
-            if (y < w.getMinHeight()) break;
-            final org.bukkit.block.Block feet = w.getBlockAt(x, y, z);
-            final org.bukkit.block.Block head = w.getBlockAt(x, y + 1, z);
-            final org.bukkit.block.Block below = w.getBlockAt(x, y - 1, z);
-            try
+            if (y < w.getMinHeight())
             {
-                if (feet.isPassable() && head.isPassable() && !below.isPassable())
-                {
-                    return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
-                }
+                break;
             }
-            catch (final Throwable ignore) {}
+            if (isStandableAt(w, x, y, z))
+            {
+                return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
+            }
         }
 
         // Fallback to the original preferred location
         return preferred.clone();
+    }
+
+    /**
+     * Checks whether a player can stand at the given block: head and feet clear, solid
+     * ground underneath.
+     *
+     * <p>The blocks are null-checked rather than wrapped in a catch. A world can return
+     * null for an unloaded or out-of-range column, and "no block there" is an ordinary
+     * answer meaning not standable — not an error worth swallowing.
+     *
+     * @param w
+     *            the world
+     * @param x
+     *            block x
+     * @param y
+     *            block y of the player's feet
+     * @param z
+     *            block z
+     * @return true if a player can stand there
+     */
+    private static boolean isStandableAt(final org.bukkit.World w, final int x, final int y, final int z)
+    {
+        final org.bukkit.block.Block feet = w.getBlockAt(x, y, z);
+        final org.bukkit.block.Block head = w.getBlockAt(x, y + 1, z);
+        final org.bukkit.block.Block below = w.getBlockAt(x, y - 1, z);
+        if (feet == null || head == null || below == null)
+        {
+            return false;
+        }
+        return feet.isPassable() && head.isPassable() && !below.isPassable();
     }
 
     /**
@@ -773,19 +815,15 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static BlockFace[] probeFaces(final Block candidate)
     {
-        try
+        final org.bukkit.block.data.BlockData data = candidate.getBlockData();
+        if (data instanceof org.bukkit.block.data.Directional)
         {
-            final org.bukkit.block.data.BlockData data = candidate.getBlockData();
-            if (data instanceof org.bukkit.block.data.Directional)
+            final BlockFace facing = ((org.bukkit.block.data.Directional) data).getFacing();
+            if (facing != null)
             {
-                final BlockFace facing = ((org.bukkit.block.data.Directional) data).getFacing();
-                if (facing != null)
-                {
-                    return new BlockFace[] { facing };
-                }
+                return new BlockFace[] { facing };
             }
         }
-        catch (final Throwable ignore) {}
         return PROBE_FACES;
     }
 
@@ -829,14 +867,14 @@ class WormholeXTremePlayerListener implements Listener
     private static void teleportPlayerAlone(final Player player, final Location safeTarget)
     {
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-        try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final Throwable ignore) {}
+        try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final RuntimeException ignore) {}
         player.teleport(safeTarget);
         try
         {
             player.setVelocity(new Vector(0, 0, 0));
             player.setFallDistance(0);
         }
-        catch (final Throwable ignore) {}
+        catch (final RuntimeException ignore) {}
     }
 
     /**
@@ -857,7 +895,7 @@ class WormholeXTremePlayerListener implements Listener
                 return true;
             }
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage());
         }
@@ -869,14 +907,14 @@ class WormholeXTremePlayerListener implements Listener
                 return true;
             }
         }
-        catch (final Throwable ignore) {}
+        catch (final RuntimeException ignore) {}
         // A passenger too far from its parent is refused, so close the gap and retry.
         try
         {
             passenger.teleport(parent.getLocation());
             return parent.addPassenger(passenger);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after position sync failed: " + t.getMessage());
         }
@@ -950,7 +988,7 @@ class WormholeXTremePlayerListener implements Listener
                                 remaining++;
                             }
                         }
-                        catch (final Throwable t)
+                        catch (final RuntimeException t)
                         {
                             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Exception during passenger reattach: " + t.getMessage());
                             remaining++;
@@ -964,7 +1002,7 @@ class WormholeXTremePlayerListener implements Listener
                             ridden.setVelocity(exitVelocity != null ? exitVelocity : new Vector(0, 0, 0));
                             ridden.setFireTicks(0);
                         }
-                        catch (final Throwable ignore) {}
+                        catch (final RuntimeException ignore) {}
                         if (ridden instanceof Boat)
                         {
                             final Location resyncLoc = ridden.getLocation();
@@ -973,7 +1011,7 @@ class WormholeXTremePlayerListener implements Listener
                                 @Override
                                 public void run()
                                 {
-                                    try { if (ridden.isValid()) { ridden.teleport(resyncLoc); } } catch (final Throwable ignore) {}
+                                    try { if (ridden.isValid()) { ridden.teleport(resyncLoc); } } catch (final RuntimeException ignore) {}
                                 }
                             }, 3L);
                         }
@@ -988,7 +1026,7 @@ class WormholeXTremePlayerListener implements Listener
                         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to reattach passengers to " + ridden.getUniqueId() + " after " + attempts[0] + " attempts");
                     }
                 }
-                catch (final Throwable t)
+                catch (final RuntimeException t)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception during passenger reattach: " + t.getMessage());
                 }
@@ -1025,7 +1063,8 @@ class WormholeXTremePlayerListener implements Listener
             final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerMove: " + player.getName() + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
         }
-        catch (final Throwable ignore) {}
+        // Diagnostics only, and on the move path, so never let it disturb the event.
+        catch (final RuntimeException ignore) {}
         Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
@@ -1070,7 +1109,7 @@ class WormholeXTremePlayerListener implements Listener
                         }
                     }
                 }
-                catch (final Throwable ignore) {}
+                catch (final RuntimeException ignore) {}
 
                 if (incomingActive)
                 {
@@ -1082,7 +1121,13 @@ class WormholeXTremePlayerListener implements Listener
                     {
                         event.setFrom(prev);
                         event.setTo(prev);
-                        try { player.teleport(prev); } catch (final Throwable ignore) {}
+                        // A failure here means the player was not held out of the gate.
+                        try { player.teleport(prev); }
+                        catch (final RuntimeException e)
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                                "Failed to hold " + player.getName() + " out of gate: " + e.getMessage());
+                        }
                     }
                     return true;
                 }
@@ -1109,12 +1154,9 @@ class WormholeXTremePlayerListener implements Listener
             }
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
 
-            // Refill player's air while inside the portal to avoid drowning/breath decrease.
-            try
-            {
-                try { player.setRemainingAir(player.getMaximumAir()); } catch (final Throwable ignore) {}
-            }
-            catch (final Throwable ignore) {}
+            // Refill the player's air while they stand in the portal so a water-material
+            // gate does not drown them. Cosmetic, so a failure is not worth reporting.
+            try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) {}
 
             if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
             {
@@ -1132,7 +1174,13 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     event.setFrom(prev);
                     event.setTo(prev);
-                    try { player.teleport(prev); } catch (final Throwable ignore) {}
+                    // A failure here means the player was not held out of the gate.
+                    try { player.teleport(prev); }
+                    catch (final RuntimeException e)
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                            "Failed to hold " + player.getName() + " out of gate: " + e.getMessage());
+                    }
                 }
                 return true;
             }
@@ -1245,13 +1293,13 @@ class WormholeXTremePlayerListener implements Listener
                             riddenTarget.setPitch(0f);
                         }
                     }
-                    catch (final Throwable ignore) {}
+                    catch (final RuntimeException ignore) {}
 
                     // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-                    try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final Throwable ignore) {}
+                    try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) {}
                     // Mark before the teleport so a VehicleMoveEvent in the same tick is
                     // suppressed and does not double-process this entry, zeroing the exit velocity.
-                    try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final Throwable ignore) {}
+                    try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) {}
 
                     boolean riddenTeleported = false;
                     try
@@ -1260,7 +1308,7 @@ class WormholeXTremePlayerListener implements Listener
                         riddenTeleported = true;
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport: teleported " + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
                     }
-                    catch (final Throwable tt)
+                    catch (final RuntimeException tt)
                     {
                         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
                     }
@@ -1297,8 +1345,12 @@ class WormholeXTremePlayerListener implements Listener
             {
                 com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
             }
-            catch (final Throwable ignore)
+            catch (final RuntimeException e)
             {
+                // Not fatal to the teleport that already happened, but a silently skipped
+                // cooldown lets a player re-enter immediately, so say so.
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                    "Failed to apply use cooldown for " + player.getName() + ": " + e.getMessage());
             }
             // Mark player as having just arrived from this gate to prevent immediate re-entry
             try
@@ -1308,8 +1360,12 @@ class WormholeXTremePlayerListener implements Listener
                     com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerRecentArrival(player, stargate.getGateTarget());
                 }
             }
-            catch (final Throwable ignore)
+            catch (final RuntimeException e)
             {
+                // Without this marker the player can walk straight back into the gate they
+                // just arrived from, so a failure is worth a line in the log.
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                    "Failed to mark recent arrival for " + player.getName() + ": " + e.getMessage());
             }
 
             // Schedule a short delayed task to re-apply zero velocity.
@@ -1322,23 +1378,22 @@ class WormholeXTremePlayerListener implements Listener
                     @Override
                     public void run()
                     {
-                        try
+                        if ((player == null) || (finalTarget == null))
                         {
-                            if ((player != null) && (finalTarget != null))
-                            {
-                                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final Throwable ignore) {}
-                                try { player.setFallDistance(0); } catch (final Throwable ignore) {}
-                                if (!skipTeleport)
-                                {
-                                    try { player.teleport(finalTarget); } catch (final Throwable ignore) {}
-                                }
-                            }
+                            return;
                         }
-                        catch (final Throwable ignore) {}
+                        // Settling the player after arrival. Each call is independently
+                        // best-effort: none of them failing is worth aborting the others.
+                        try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) {}
+                        try { player.setFallDistance(0); } catch (final RuntimeException ignore) {}
+                        if (!skipTeleport)
+                        {
+                            try { player.teleport(finalTarget); } catch (final RuntimeException ignore) {}
+                        }
                     }
                 }, 1L);
             }
-            catch (final Throwable ignore) {}
+            catch (final RuntimeException ignore) {}
             if (target != stargate.getGatePlayerTeleportLocation())
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
