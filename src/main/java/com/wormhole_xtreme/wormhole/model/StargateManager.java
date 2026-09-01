@@ -476,16 +476,19 @@ public class StargateManager
     {
         final Location key = normalizeBlockLocation(b.getLocation());
         final boolean contains = getAllGateBlocks().containsKey(key);
-        if (WormholeXTreme.getThisPlugin() != null)
+        // Guarded because this is the most-called method in the plugin — every player
+        // move, every vehicle move, and every tracked projectile every tick. Unguarded it
+        // built two Location strings and a Material name per call and discarded them all.
+        if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation().toString() + " type=" + b.getType().toString() + " indexed=" + contains);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation() + " type=" + b.getType() + " indexed=" + contains);
         }
         if (contains)
         {
             final Stargate s = getAllGateBlocks().get(key);
-            if (WormholeXTreme.getThisPlugin() != null)
+            if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation().toString());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation());
             }
             return s;
         }

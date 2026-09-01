@@ -178,6 +178,10 @@ public final class GateEntityScanner implements Runnable
 
             copyProjectileState(projectile, spawned);
             projectile.remove();
+            if (spawned instanceof Projectile)
+            {
+                ProjectileGateTracker.track((Projectile) spawned);
+            }
             return spawned;
         }
         catch (final RuntimeException e)
@@ -220,6 +224,31 @@ public final class GateEntityScanner implements Runnable
             b.setPickupStatus(a.getPickupStatus());
             b.setShotFromCrossbow(a.isShotFromCrossbow());
         }
+    }
+
+    /**
+     * Sends a projectile through a gate, consuming it and firing a replacement.
+     *
+     * <p>Called by {@link ProjectileGateTracker} the tick a projectile reaches a portal,
+     * which is the only moment it is actually there.
+     *
+     * @param projectile
+     *            the projectile crossing the gate
+     * @param gate
+     *            the gate it is entering
+     * @return true if it was sent through
+     */
+    static boolean sendProjectileThrough(final Projectile projectile, final Stargate gate)
+    {
+        final Stargate target = gate.getGateTarget();
+        final Location arrival = WormholeXTremeVehicleListener.forwardAndUp(
+            target.getGatePlayerTeleportLocation(), target.getGateFacing(), 1.0, 1.0);
+        if (arrival == null)
+        {
+            return false;
+        }
+        sendThrough(projectile, arrival, target.getGateFacing());
+        return true;
     }
 
     /**
@@ -307,6 +336,12 @@ public final class GateEntityScanner implements Runnable
         if (entity instanceof Player
             || WormholeXTremeVehicleListener.handlesMovementOf(entity)
             || entity.isInsideVehicle())
+        {
+            return false;
+        }
+        // Projectiles belong to ProjectileGateTracker, which follows each one and catches
+        // it the tick it reaches a portal. This sweep is far too slow to see one crossing.
+        if (entity instanceof Projectile)
         {
             return false;
         }

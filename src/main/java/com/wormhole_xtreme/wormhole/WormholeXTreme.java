@@ -39,6 +39,9 @@ public class WormholeXTreme extends JavaPlugin
     /** The server listener. */
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
 
+    /** Follows projectiles in flight so they cross a gate at the moment they reach it. */
+    private static final ProjectileGateTracker projectileTracker = new ProjectileGateTracker();
+
     /** The Scheduler. */
     private static BukkitScheduler scheduler = null;
 
@@ -109,6 +112,7 @@ public class WormholeXTreme extends JavaPlugin
             pm.registerEvents(redstoneListener, tp);
             pm.registerEvents(vehicleListener, tp);
             pm.registerEvents(entityListener, tp);
+            pm.registerEvents(projectileTracker, tp);
         }
     }
 
@@ -244,6 +248,10 @@ public class WormholeXTreme extends JavaPlugin
         // dropped items and wandering mobs, which generate none.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             GateEntityScanner.create(), 20L, entityScanIntervalTicks);
+        // Projectiles cross a portal in about a tick, far too fast for the sweep above to
+        // see, so they are followed individually and checked every tick while in flight.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            ProjectileGateTracker.createTicker(), 20L, 1L);
         prettyLog(Level.INFO, true, "Enable Completed.");
     }
 

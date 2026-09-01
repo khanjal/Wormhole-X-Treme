@@ -115,10 +115,18 @@ public class GateProjectileTest
         GateSpatialIndex.clear();
     }
 
+    /**
+     * Drives the crossing the way the tracker does: the projectile is at the portal now.
+     */
+    private void sendArrowThroughGate()
+    {
+        GateEntityScanner.sendProjectileThrough(arrow, origin);
+    }
+
     @Test
     public void theOriginalArrowIsConsumedRatherThanMoved()
     {
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         verify(arrow).remove();
         verify(arrow, never()).teleport(any(Location.class));
@@ -127,7 +135,7 @@ public class GateProjectileTest
     @Test
     public void aReplacementIsFiredOutOfTheDestinationGate()
     {
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         // spawnArrow creates it already travelling; a plain spawn produces something that
         // behaves like an arrow which has already landed.
@@ -147,7 +155,7 @@ public class GateProjectileTest
         // only set inside the spawn callback, which runs before the entity joins the world
         // and is discarded when it does. It has to be applied to the spawned entity, and
         // again a tick later.
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         final org.mockito.ArgumentCaptor<Vector> v = org.mockito.ArgumentCaptor.forClass(Vector.class);
         verify(spawned, times(2)).setVelocity(v.capture());
@@ -161,7 +169,7 @@ public class GateProjectileTest
         final Player shooter = mock(Player.class);
         when(arrow.getShooter()).thenReturn(shooter);
 
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         // Without the shooter, a kill through a gate is credited to nobody.
         verify(spawned).setShooter(shooter);
@@ -182,7 +190,7 @@ public class GateProjectileTest
         when(arrow.getVelocity()).thenReturn(new Vector(0, 0, 0));
         when(arrow.isInBlock()).thenReturn(true);
 
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
@@ -201,7 +209,7 @@ public class GateProjectileTest
         when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -0.2));
         when(arrow.isInBlock()).thenReturn(false);
 
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
@@ -214,7 +222,7 @@ public class GateProjectileTest
         // Anything already travelling faster than the launch floor is left alone.
         when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -5.0));
 
-        GateEntityScanner.create().run();
+        sendArrowThroughGate();
 
         final org.mockito.ArgumentCaptor<Float> speed = org.mockito.ArgumentCaptor.forClass(Float.class);
         verify(world).spawnArrow(any(Location.class), any(Vector.class), speed.capture(), anyFloat(), any(Class.class));
