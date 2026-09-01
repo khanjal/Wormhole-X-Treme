@@ -74,6 +74,30 @@ class ProjectileGateTracker implements Listener
     /** Ticks since the tracker started, used only to expire entries. */
     private static int tick = 0;
 
+    /** How often the any-gate-open flag is refreshed. Gates do not open and close faster. */
+    private static final int GATE_CHECK_INTERVAL = 20;
+
+    /**
+     * Whether any gate is currently open. When nothing is open a projectile cannot cross
+     * anything, so none are followed and the whole mechanism costs one boolean per launch
+     * and one empty-map check per tick. Recomputed once a second rather than per launch,
+     * because an arrow farm can launch far more often than gates change state.
+     */
+    private static volatile boolean anyGateOpen = false;
+
+    private static void refreshAnyGateOpen()
+    {
+        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+        {
+            if (gate.isGateActive() && (gate.getGateTarget() != null))
+            {
+                anyGateOpen = true;
+                return;
+            }
+        }
+        anyGateOpen = false;
+    }
+
     /**
      * Starts following a newly launched projectile.
      *
@@ -83,7 +107,7 @@ class ProjectileGateTracker implements Listener
     @EventHandler
     public void onProjectileLaunch(final ProjectileLaunchEvent event)
     {
-        if (event.isCancelled())
+        if (event.isCancelled() || !anyGateOpen)
         {
             return;
         }
@@ -104,6 +128,10 @@ class ProjectileGateTracker implements Listener
             public void run()
             {
                 tick++;
+                if ((tick % GATE_CHECK_INTERVAL) == 0)
+                {
+                    refreshAnyGateOpen();
+                }
                 if (tracked.isEmpty())
                 {
                     return;
@@ -224,6 +252,15 @@ class ProjectileGateTracker implements Listener
     static void track(final Projectile projectile)
     {
         tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation()));
+    }
+
+    /**
+     * Recomputes the any-gate-open flag immediately. Only for tests, which do not run the
+     * ticker often enough to hit the normal refresh.
+     */
+    static void refreshOpenGateFlagForTest()
+    {
+        refreshAnyGateOpen();
     }
 
     /**

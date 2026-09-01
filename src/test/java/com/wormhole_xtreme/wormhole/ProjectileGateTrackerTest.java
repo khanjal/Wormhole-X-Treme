@@ -109,6 +109,9 @@ public class ProjectileGateTrackerTest
             .thenReturn(spawned);
 
         ticker = ProjectileGateTracker.createTicker();
+        // The tracker only follows projectiles while a gate is open; the flag refreshes on
+        // the ticker, so prime it before any test launches anything.
+        ProjectileGateTracker.refreshOpenGateFlagForTest();
     }
 
     @AfterEach
@@ -204,6 +207,19 @@ public class ProjectileGateTrackerTest
         arrowAt(0, 64, 0);
 
         ticker.run();
+
+        assertEquals(0, ProjectileGateTracker.trackedCount());
+    }
+
+    @Test
+    public void nothingIsFollowedWhileNoGateIsOpen()
+    {
+        // The common case on any server: no wormhole open, so a projectile cannot cross
+        // anything and following it would be pure cost.
+        origin.setGateActive(false);
+        ProjectileGateTracker.refreshOpenGateFlagForTest();
+
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
 
         assertEquals(0, ProjectileGateTracker.trackedCount());
     }
