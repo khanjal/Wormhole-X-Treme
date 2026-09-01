@@ -298,6 +298,23 @@ public class WormholeXTreme extends JavaPlugin
      *            to prettyLog.
      * 
      */
+    /**
+     * Checks whether a message at this level would actually be emitted.
+     *
+     * <p>{@link #prettyLog} builds its prefix and concatenates the message before the
+     * logger gets a chance to discard it, and callers usually build the message eagerly
+     * too. On a per-tick path that is pure garbage. Guard those call sites with this.
+     *
+     * @param severity
+     *            the level the message would be logged at
+     * @return true if the message would be emitted
+     */
+    public boolean isLoggable(final Level severity)
+    {
+        final Logger log = getLog();
+        return log != null && log.isLoggable(severity);
+    }
+
     public void prettyLog(final Level severity, final boolean version, final String message)
     {
         final String prettyName = ("[" + getThisPlugin().getName() + "]");

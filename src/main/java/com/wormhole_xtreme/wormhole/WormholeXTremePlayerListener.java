@@ -1054,17 +1054,22 @@ class WormholeXTremePlayerListener implements Listener
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "handlePlayerMoveEvent: event player is null, ignoring event.");
             return false;
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "handlePlayerMoveEvent start player=" + player + " name=" + player.getName());
         final Location toLocFinal = event.getTo();
-        // Diagnostic: log from/to block types and Y fractional to help debug water bounce
-        try
+        // Every player crossing a block boundary reaches here, so the diagnostic is built
+        // only when it would actually be printed. It used to call Player.toString() and
+        // two extra getBlockAt() lookups on every crossing and throw all of it away.
+        if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
         {
-            final Block fromBlock = event.getFrom().getWorld().getBlockAt(event.getFrom().getBlockX(), event.getFrom().getBlockY(), event.getFrom().getBlockZ());
-            final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerMove: " + player.getName() + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
+            try
+            {
+                final Block fromBlock = event.getFrom().getWorld().getBlockAt(event.getFrom().getBlockX(), event.getFrom().getBlockY(), event.getFrom().getBlockZ());
+                final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerMove: " + player.getName()
+                    + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
+            }
+            // Diagnostics only, and on the move path, so never let it disturb the event.
+            catch (final RuntimeException ignore) {}
         }
-        // Diagnostics only, and on the move path, so never let it disturb the event.
-        catch (final RuntimeException ignore) {}
         Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 

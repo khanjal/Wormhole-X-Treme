@@ -556,16 +556,14 @@ class WormholeXTremeVehicleListener implements Listener
     {
         final Location l = event.getTo();
         final Block ch = l.getWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-        // Diagnostic: always log vehicle move into block for easier boat debugging
-        try
+        // Built only when FINE is actually enabled: this used to allocate a Location, two
+        // enum-name strings and a concatenation on every event, all of it discarded.
+        if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
         {
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                final String vt = (event.getVehicle() != null) ? event.getVehicle().getType().name() : "UNKNOWN";
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "VehicleMoveEvent: type=" + vt + " toBlock=" + ch.getLocation().toString() + " blockType=" + ch.getType().name());
-            }
+            final String vt = (event.getVehicle() != null) ? event.getVehicle().getType().name() : "UNKNOWN";
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "VehicleMoveEvent: type=" + vt
+                + " toBlock=" + ch.getLocation() + " blockType=" + ch.getType().name());
         }
-        catch (final Throwable ignore) {}
         final Stargate st = StargateManager.getGateFromBlock(ch);
         // Ask the gate whether this is one of its portal blocks rather than comparing the
         // block's material to the portal material. An open portal is server-side AIR — the
@@ -588,11 +586,6 @@ class WormholeXTremeVehicleListener implements Listener
                 : st.getGateTarget().getGatePlayerTeleportLocation();
             final Vehicle veh = (Vehicle) event.getVehicle();
             if (veh == null)
-            {
-                return false;
-            }
-            // Avoid re-triggering teleports for vehicles that were just teleported
-            if (recentlyTeleported.contains(veh.getUniqueId()))
             {
                 return false;
             }
@@ -769,9 +762,26 @@ class WormholeXTremeVehicleListener implements Listener
     @EventHandler
     public void onVehicleMove(final VehicleMoveEvent event)
     {
-        if (event.getVehicle() instanceof Minecart || event.getVehicle() instanceof Boat)
+        final Vehicle vehicle = event.getVehicle();
+        if (!(vehicle instanceof Minecart) && !(vehicle instanceof Boat))
         {
-            handleStargateVehicleTeleportEvent(event);
+            return;
         }
+        // A moving vehicle raises this event many times per block travelled, and gate
+        // detection has nothing to say until the block changes. Checking six ints here
+        // skips a block lookup, a map lookup and two Location allocations on the great
+        // majority of events — this fires roughly twenty times a second per rolling cart.
+        if (!WorldUtils.hasChangedBlock(event.getFrom(), event.getTo()))
+        {
+            return;
+        }
+        // A vehicle that just came through a gate lands in the destination portal and
+        // immediately raises a burst of move events. Rejecting it here, before the gate
+        // lookup, is the cheapest place to break that loop.
+        if (recentlyTeleported.contains(vehicle.getUniqueId()))
+        {
+            return;
+        }
+        handleStargateVehicleTeleportEvent(event);
     }
 }

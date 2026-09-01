@@ -207,6 +207,30 @@ public class WorldUtils
     /**
      * Returns true if two blocks are within a 1-block radius (inclusive) of each other.
      */
+    /**
+     * Checks whether two locations sit in different blocks.
+     *
+     * <p>Movement events fire many times per block travelled — a walking player or a
+     * rolling minecart generates them continuously — but gate detection only has anything
+     * to say when the block changes. This is the first-line guard on those handlers.
+     *
+     * @param from
+     *            the previous location
+     * @param to
+     *            the new location
+     * @return true if the block coordinates differ
+     */
+    public static boolean hasChangedBlock(final Location from, final Location to)
+    {
+        if (from == null || to == null)
+        {
+            return true;
+        }
+        return from.getBlockX() != to.getBlockX()
+            || from.getBlockY() != to.getBlockY()
+            || from.getBlockZ() != to.getBlockZ();
+    }
+
     public static boolean isAdjacent(final Block b1, final Block b2)
     {
         if ((b1 == null) || (b2 == null))
