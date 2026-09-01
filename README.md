@@ -383,17 +383,36 @@ A redstone gate is a **sign gate with redstone inputs**. Redstone does not choos
 destination — the dial sign does, exactly as if a player were clicking it. Redstone just
 presses the buttons. A shape without a `[D]` dial sign block cannot be redstone-dialled.
 
-Use `MinimalSignDialRedstone.shape`, which marks three cells:
+Use `MinimalSignDialRedstone.shape`. Its layout is not the same as `MinimalSignDial` —
+it is a block taller and the pillars are further apart — so building the plain sign-dial
+gate will not give you a redstone one.
 
-| Marker | What it is | What you put there |
-|---|---|---|
-| `[RD]` | Dial | Redstone dust, or run a signal to a component touching it |
-| `[RS]` | Next target | Same — each pulse advances the dial sign one destination |
-| `[RA]` | Gate-is-open output | A **lever**, which the plugin flips on while the wormhole is open |
+```
+Layer 1 — the ring              Layer 2 — behind it, the DHD side
+   y=5   .  .  .                   y=5   .  .  .
+   y=4   .  ~  .                   y=4   A  .  D
+   y=3   .  ~  .                   y=3   #  .  #
+   y=2   .  e  .                   y=2   R  m  C
+   y=1   .  V  .                   y=1   #  .  #
+   y=0   .  #  .                   y=0   .  .  .
 
-None of these are frame blocks — you do not build the gate material at them. Each sits
-directly on top of a frame block, so think of them as the spot immediately above the
-frame where your redstone goes.
+   #  gate frame block            ~  portal, leave empty
+   .  leave empty                 e  player exit    m  minecart exit
+   A  activation lever or button  D  dial sign
+   R  [RD]  dial          -> redstone dust
+   C  [RS]  next target   -> redstone dust
+   V  [RA]  gate is open  -> lever
+```
+
+`R`, `C` and `V` are not frame blocks — do not build gate material at them. Each sits
+directly on top of a frame block, which is why the shape file says they belong "on top of a
+[S] block".
+
+The two pillars are mirror images, so if `R` and `C` end up swapped the gate will cycle
+targets when you meant to dial. Swap the dust to the other side if that happens.
+
+Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign
+is showing, so with no target selected a pulse does nothing.
 
 A signal counts when it lands on the marked block **or on any redstone component touching
 it**, so you can run dust up to it rather than having to land exactly on the cell.
