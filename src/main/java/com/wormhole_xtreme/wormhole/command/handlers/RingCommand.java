@@ -14,13 +14,16 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
 import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPair;
+import com.wormhole_xtreme.wormhole.model.ring.RingOrientation;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.model.ring.RingTemplate;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 
 /**
@@ -99,8 +102,264 @@ public class RingCommand implements SubCommand
             player.sendMessage("You may not build transport rings.");
             return true;
         }
-        player.sendMessage("Ring creation is not wired up yet.");
+
+        final RingTemplate.Result found = RingTemplate.detect(
+            new BukkitBlockProbe(player.getWorld()),
+            player.getLocation().getBlockX(),
+            player.getLocation().getBlockY(),
+            player.getLocation().getBlockZ(),
+            ConfigManager.getRingReach(),
+            ConfigManager.getRingDefaultLight());
+        if (!found.isSuccess())
+        {
+            player.sendMessage(explain(found.getFailure()));
+            return true;
+        }
+
+        final Ring ring = found.getRing();
+        final String world = player.getWorld().getName();
+        final RingManager.Refusal refusal =
+            RingManager.checkPlacement(ring, world, ConfigManager.getRingMinSeparation());
+        if (refusal != null)
+        {
+            player.sendMessage(explain(refusal));
+            return true;
+        }
+        if (touchesGate(player, ring))
+        {
+            player.sendMessage("That circle overlaps a stargate. Rings and gates cannot share blocks.");
+            return true;
+        }
+
+        final RingManager.PendingRing waiting = RingManager.getPending(player.getUniqueId());
+        if (waiting == null)
+        {
+            return holdFirstEnd(player, ring, world);
+        }
+        return completePair(player, waiting, ring, world);
+    }
+
+    /**
+     * Takes the first end and waits for its partner.
+     *
+     * @param player
+     *            the builder
+     * @param ring
+     *            the end just read
+     * @param world
+     *            the world it is in
+     * @return true, the command was handled
+     */
+    private static boolean holdFirstEnd(final Player player, final Ring ring, final String world)
+    {
+        final int quota = ConfigManager.getRingMaxPairsPerPlayer();
+        if ((quota > 0) && !RingPermissions.has(player, RingPermissions.UNLIMITED)
+            && (RingManager.countPairsOwnedBy(player.getUniqueId().toString()) >= quota))
+        {
+            // Checked here rather than at the second end, so nobody builds two rings and
+            // only then finds out they were never going to be allowed the pair.
+            player.sendMessage("You already have " + quota + " ring pairs, which is the limit.");
+            return true;
+        }
+        RingManager.setPending(player.getUniqueId(), ring, world);
+        consumeTemplate(player, ring);
+        player.sendMessage("First ring registered in " + ring.getRingMaterial()
+            + ". Lay the other one and run this again to pair them.");
+        player.sendMessage("Run /wormhole ring cancel to put this one back.");
         return true;
+    }
+
+    /**
+     * Joins a waiting end to the one just built.
+     *
+     * @param player
+     *            the builder
+     * @param waiting
+     *            the end built first
+     * @param ring
+     *            the end just read
+     * @param world
+     *            the world the second end is in
+     * @return true, the command was handled
+     */
+    private static boolean completePair(final Player player, final RingManager.PendingRing waiting,
+        final Ring ring, final String world)
+    {
+        if (!waiting.getWorldName().equals(world))
+        {
+            // Said here rather than discovered later. Rings do not cross worlds, and finding
+            // that out after laying a second circle of slabs is a poor way to learn it.
+            player.sendMessage("Both ends have to be in the same world. Your first ring is in "
+                + waiting.getWorldName() + ", and this one is in " + world + ".");
+            player.sendMessage("Run /wormhole ring cancel to give up on that one.");
+            return true;
+        }
+        final int maxDistance = ConfigManager.getRingMaxLinkDistance();
+        if ((maxDistance > 0)
+            && (waiting.getRing().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
+        {
+            player.sendMessage("Those two rings are further apart than this server allows ("
+                + maxDistance + " blocks).");
+            return true;
+        }
+
+        final RingPair pair = new RingPair(RingManager.newId(), world, waiting.getRing(), ring);
+        pair.setOwner(player.getUniqueId().toString());
+        pair.setOwnerName(player.getName());
+        pair.setCreated(System.currentTimeMillis());
+        pair.setAccess(ConfigManager.getRingDefaultAccess());
+        pair.setStyle(ConfigManager.getRingDefaultStyle());
+
+        RingManager.clearPending(player.getUniqueId());
+        consumeTemplate(player, ring);
+        RingManager.addPair(pair, ConfigManager.getRingReach());
+        RingYamlManager.saveWorld(world);
+
+        player.sendMessage("Ring pair " + pair.getId() + " is live. Step into either end.");
+        player.sendMessage("It is " + pair.getAccess()
+            + (pair.getAccess() == RingAccess.PRIVATE
+                ? " — use /wormhole ring allow <player> to let others in." : "."));
+        return true;
+    }
+
+    /**
+     * Clears the slabs a ring was laid out in.
+     *
+     * <p>The template is scaffolding, not structure: once the ring is registered the circle
+     * comes up and the floor looks as it did. Only blocks that are still the slab the ring
+     * was read from are touched, so anything changed in between is left where it is.
+     *
+     * @param player
+     *            the builder, whose world this is
+     * @param ring
+     *            the ring whose template to clear
+     */
+    private static void consumeTemplate(final Player player, final Ring ring)
+    {
+        for (final int[] block : ring.perimeterBlocks())
+        {
+            final org.bukkit.block.Block at = player.getWorld().getBlockAt(block[0], block[1], block[2]);
+            if (at.getType() == ring.getRingMaterial())
+            {
+                at.setType(Material.AIR, false);
+            }
+        }
+    }
+
+    /**
+     * Puts a template back, for a first end somebody has given up on.
+     *
+     * @param player
+     *            the builder
+     * @param ring
+     *            the ring to lay out again
+     */
+    private static void restoreTemplate(final Player player, final Ring ring)
+    {
+        final boolean top = ring.getOrientation() == RingOrientation.CEILING;
+        for (final int[] block : ring.perimeterBlocks())
+        {
+            final org.bukkit.block.Block at = player.getWorld().getBlockAt(block[0], block[1], block[2]);
+            if (at.getType() != Material.AIR)
+            {
+                // Something is there now. Putting the slab back would destroy it, and the
+                // player can lay one more slab far more easily than they can undo that.
+                continue;
+            }
+            final org.bukkit.block.data.BlockData data = ring.getRingMaterial().createBlockData();
+            if (data instanceof org.bukkit.block.data.type.Slab)
+            {
+                final org.bukkit.block.data.type.Slab slab = (org.bukkit.block.data.type.Slab) data;
+                slab.setType(top
+                    ? org.bukkit.block.data.type.Slab.Type.TOP
+                    : org.bukkit.block.data.type.Slab.Type.BOTTOM);
+                at.setBlockData(slab, false);
+            }
+        }
+    }
+
+    /**
+     * Whether a ring would sit on top of a stargate.
+     *
+     * <p>Gates and rings both act on the move path and both animate their own blocks, so
+     * they are never allowed to share ground. Gates were built first, so rings give way.
+     *
+     * @param player
+     *            the builder, whose world this is
+     * @param ring
+     *            the ring being placed
+     * @return true if it touches gate blocks
+     */
+    private static boolean touchesGate(final Player player, final Ring ring)
+    {
+        for (final int[] block : ring.perimeterBlocks())
+        {
+            if (com.wormhole_xtreme.wormhole.model.StargateManager.isBlockInGate(
+                player.getWorld().getBlockAt(block[0], block[1], block[2])))
+            {
+                return true;
+            }
+        }
+        for (final int[] block : ring.interiorBlocks())
+        {
+            if (com.wormhole_xtreme.wormhole.model.StargateManager.isBlockInGate(
+                player.getWorld().getBlockAt(block[0], block[1], block[2])))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Says why a circle of slabs was not accepted.
+     *
+     * <p>Each reason gets its own sentence. Telling somebody looking straight at their ring
+     * that no ring was found would send them hunting the wrong problem entirely.
+     *
+     * @param failure
+     *            what detection objected to
+     * @return something the player can act on
+     */
+    private static String explain(final RingTemplate.Failure failure)
+    {
+        if (failure == RingTemplate.Failure.MIXED_MATERIALS)
+        {
+            return "That ring is built from more than one kind of slab. Use just one — "
+                + "whichever you pick is what the rings will be made of.";
+        }
+        if (failure == RingTemplate.Failure.MIXED_HALVES)
+        {
+            return "Some of those slabs rest on the floor and others hang from the ceiling. "
+                + "A ring has to be one or the other.";
+        }
+        if (failure == RingTemplate.Failure.INTERIOR_NOT_CLEAR)
+        {
+            return "That circle is filled in. Lay only the ring itself and leave the middle "
+                + "clear — that is where people stand.";
+        }
+        return "No ring of slabs here. Lay a circle of slabs and stand inside it.";
+    }
+
+    /**
+     * Says why a ring may not go where it was asked for.
+     *
+     * @param refusal
+     *            what placement objected to
+     * @return something the player can act on
+     */
+    private static String explain(final RingManager.Refusal refusal)
+    {
+        if (refusal == RingManager.Refusal.TOO_CLOSE)
+        {
+            return "There is another ring close by. Move this one further away and try again.";
+        }
+        if (refusal == RingManager.Refusal.OVERLAPS_RING)
+        {
+            return "That overlaps another ring. Two rings cannot share ground, whatever "
+                + "height they are at.";
+        }
+        return "That ring cannot go there.";
     }
 
     /**
@@ -112,12 +371,23 @@ public class RingCommand implements SubCommand
      */
     private static boolean cancel(final Player player)
     {
-        if (RingManager.clearPending(player.getUniqueId()) == null)
+        final RingManager.PendingRing waiting = RingManager.clearPending(player.getUniqueId());
+        if (waiting == null)
         {
             player.sendMessage("You have no half-built ring pair.");
             return true;
         }
-        player.sendMessage("Forgotten. The ring you already laid is still there as slabs.");
+        // The slabs were taken when that end was registered, so giving up has to give them
+        // back. Losing a circle of slabs for changing your mind would be a mean way to
+        // learn how this works.
+        if (player.getWorld().getName().equals(waiting.getWorldName()))
+        {
+            restoreTemplate(player, waiting.getRing());
+            player.sendMessage("Forgotten, and the slabs are back where you laid them.");
+            return true;
+        }
+        player.sendMessage("Forgotten. Its slabs were in " + waiting.getWorldName()
+            + ", so they have not been put back — go there and cancel from inside it to get them.");
         return true;
     }
 

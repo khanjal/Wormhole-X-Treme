@@ -101,14 +101,11 @@ public class RingAnimatorTest
         final Ring floor = ring(RingOrientation.FLOOR);
         final int perRing = RingPattern.ODD.getPerimeter().size();
 
-        final List<RingAnimator.Placement> arriving =
-            RingAnimator.deployFrame(floor, STYLE, RingAnimator.TOP_HALF_STEP);
-        assertEquals(perRing, arriving.size(), "still only one ring in the air");
-        assertEquals(64 + (RingAnimator.TOP_HALF_STEP / 2), arriving.get(0).getY());
-
-        final List<RingAnimator.Placement> next =
-            RingAnimator.deployFrame(floor, STYLE, RingAnimator.TOP_HALF_STEP + 1);
-        assertEquals(perRing * 2, next.size(), "now the second one comes out");
+        final int secondOut = RingAnimator.emergesOnFrame(STYLE, 1);
+        assertEquals(perRing, RingAnimator.deployFrame(floor, STYLE, secondOut - 1).size(),
+            "still only one ring in the air right up to the moment the next appears");
+        assertEquals(perRing * 2, RingAnimator.deployFrame(floor, STYLE, secondOut).size(),
+            "now the second one comes out");
     }
 
     @Test
@@ -178,15 +175,54 @@ public class RingAnimatorTest
         final List<RingAnimator.Placement> last =
             RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
 
-        boolean stillAtThePlane = false;
+        int atTheBottom = 0;
         for (final RingAnimator.Placement placement : last)
         {
-            if ((placement.getY() == 64) && !placement.isTop())
+            if ((placement.getY() == 64) && placement.isTop())
             {
-                stillAtThePlane = true;
+                atTheBottom++;
             }
         }
-        assertTrue(stillAtThePlane, "the last ring out is already where it belongs");
+        assertEquals(RingPattern.ODD.getPerimeter().size(), atTheBottom,
+            "the last ring out holds its place at the bottom of the stack");
+    }
+
+    @Test
+    public void theStackHangsHalfABlockClearOfTheFloor()
+    {
+        // The lowest ring lifts rather than resting where the template was, so the whole
+        // stack floats. A bottom slab there would read as part of the floor.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final List<RingAnimator.Placement> last =
+            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+
+        for (final RingAnimator.Placement placement : last)
+        {
+            assertFalse((placement.getY() == 64) && !placement.isTop(),
+                "nothing should still be sitting on the floor");
+        }
+    }
+
+    @Test
+    public void settledRingsLeaveHalfABlockOfAirBetweenThem()
+    {
+        // Half a block apart means one block centre to centre, because a slab is half a
+        // block thick. Every neighbouring pair in the stack should be exactly that.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final List<RingAnimator.Placement> last =
+            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+
+        final Set<Integer> heights = new HashSet<Integer>();
+        for (final RingAnimator.Placement placement : last)
+        {
+            assertTrue(placement.isTop(), "a settled stack is all top slabs");
+            heights.add(Integer.valueOf(placement.getY()));
+        }
+        assertEquals(RingAnimator.RING_COUNT, heights.size());
+        for (int y = 64; y < (64 + RingAnimator.RING_COUNT); y++)
+        {
+            assertTrue(heights.contains(Integer.valueOf(y)), "no ring at height " + y);
+        }
     }
 
     @Test
@@ -211,7 +247,11 @@ public class RingAnimatorTest
         final Ring floor = ring(RingOrientation.FLOOR);
         final int top = 64 + (RingAnimator.TOP_HALF_STEP / 2);
 
-        final List<RingAnimator.Placement> early = RingAnimator.retractFrame(floor, STYLE, 1);
+        // Not frame one. The nearest ring has its own little journey to undo first — the
+        // half block it hangs clear of the floor, and the settle it made on the way in — so
+        // it is gone once that many frames have played and not before.
+        final List<RingAnimator.Placement> early = RingAnimator.retractFrame(floor, STYLE,
+            RingAnimator.journeyFrames(RingAnimator.RING_COUNT - 1));
         assertEquals(RingAnimator.RING_COUNT - 1, levels(early).size(), "one has already gone");
         boolean lowestStillThere = false;
         boolean highestStillThere = false;
@@ -287,7 +327,8 @@ public class RingAnimatorTest
         assertEquals(perRing * RingAnimator.RING_COUNT,
             RingAnimator.deployFrame(floor, RingStyle.CONCURRENT, RingAnimator.TOP_HALF_STEP).size(),
             "every ring is out by the time the leader tops out");
-        assertEquals(RingAnimator.TOP_HALF_STEP + 1, RingAnimator.deployFrames(RingStyle.CONCURRENT));
+        assertEquals(RingAnimator.journeyFrames(0), RingAnimator.deployFrames(RingStyle.CONCURRENT),
+            "concurrently the whole thing lasts one ring's journey");
     }
 
     @Test
@@ -311,12 +352,46 @@ public class RingAnimatorTest
         final Ring floor = ring(RingOrientation.FLOOR);
         for (final RingStyle style : RingStyle.values())
         {
-            final List<RingAnimator.Placement> early = RingAnimator.retractFrame(floor, style, 1);
-            for (final RingAnimator.Placement placement : early)
+            // Only sequential holds the rest still while the nearest goes — concurrent
+            // brings the whole stack down together — so what both share is just the order.
+            final List<RingAnimator.Placement> early = RingAnimator.retractFrame(floor, style,
+                RingAnimator.journeyFrames(RingAnimator.RING_COUNT - 1));
+            assertEquals(RingAnimator.RING_COUNT - 1, levels(early).size(),
+                style + " should have lost exactly the nearest ring by now");
+        }
+    }
+
+    @Test
+    public void aRingOvershootsItsPlaceByHalfABlockAndDropsBackOntoIt()
+    {
+        // The settle. A ring rises past where it belongs, hangs there a frame, and comes
+        // back down onto it — which is what stops the stack arriving like a lift stopping.
+        final int resting = RingAnimator.restingHalfStep(0);
+        assertEquals(resting, RingAnimator.halfStepAt(0, resting), "reaches its place");
+        assertEquals(resting + RingAnimator.OVERSHOOT, RingAnimator.halfStepAt(0, resting + 1),
+            "and goes half a block past it");
+        assertEquals(resting, RingAnimator.halfStepAt(0, resting + 2), "then drops back");
+        assertEquals(resting, RingAnimator.halfStepAt(0, resting + 50), "and stays there");
+    }
+
+    @Test
+    public void theOvershootIsTheOnlyThingHigherThanTheFinishedStack()
+    {
+        // What the extra headroom is for. Nothing but the peak of the settle ever goes
+        // above where the top ring ends up.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final int settledTop = 64 + (RingAnimator.TOP_HALF_STEP / 2);
+        int highest = settledTop;
+        for (final RingStyle style : RingStyle.values())
+        {
+            for (int frame = 0; frame < RingAnimator.deployFrames(style); frame++)
             {
-                assertFalse((placement.getY() == 64) && !placement.isTop(),
-                    style + " kept the nearest ring past the first frame of retract");
+                for (final RingAnimator.Placement placement : RingAnimator.deployFrame(floor, style, frame))
+                {
+                    highest = Math.max(highest, placement.getY());
+                }
             }
         }
+        assertEquals(settledTop + 1, highest, "half a block of overshoot, and no more");
     }
 }

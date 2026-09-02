@@ -84,6 +84,8 @@ public class ConfigManager
         RING_REACH,
         /** Required distance between ring anchors, in blocks. */
         RING_MIN_SEPARATION,
+        /** Furthest two ends of a pair may be, in blocks. Zero means no limit. */
+        RING_MAX_LINK_DISTANCE,
         /** How many ring pairs one player may own. Zero means no limit. */
         RING_MAX_PAIRS_PER_PLAYER,
         /** What a newly built ring pair starts as: PUBLIC or PRIVATE. */
@@ -485,6 +487,21 @@ public class ConfigManager
     public static int getRingMinSeparation()
     {
         return Math.max(0, intSetting(ConfigKeys.RING_MIN_SEPARATION, 8));
+    }
+
+    /**
+     * Furthest apart the two ends of a pair may be.
+     *
+     * <p>Zero by default, because distance is not actually a cost — a teleport across twenty
+     * thousand blocks is the same work as one across twenty. What used to break was the far
+     * end sitting in an unloaded chunk when the cycle fired, and that is handled by pinning
+     * both ends for the length of a transit rather than by a limit here.
+     *
+     * @return the limit in blocks, or zero for none
+     */
+    public static int getRingMaxLinkDistance()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_DISTANCE, 0));
     }
 
     /**

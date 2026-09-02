@@ -1,9 +1,7 @@
 # Transport Rings — Design
 
-Status: in progress on `feature/rings`. Geometry, storage, access, the cycle and the
-Bukkit wiring are built and tested; template detection is not yet joined up to
-`/wormhole ring create`. This document records the decisions, and stays the place they are
-argued about.
+Status: built on `feature/rings` and ready to try in game. This document records the
+decisions, and stays the place they are argued about.
 
 Rings are a second way to travel, alongside stargates. They are deliberately *not* a
 variant of a gate: a gate is a named, addressable, dialable structure with a DHD, an iris,
@@ -383,14 +381,23 @@ the list. There is no sequence of commands that leaves a pair nobody can use or 
 
 ## Animation
 
-Four rings end up a block of clear space apart, and there are **two ways they get there**,
-both of which the show uses. `rings.default-style` picks the default and
+Five rings end up **half a block of clear air apart** — one block centre to centre, since a
+slab is half a block thick — with the lowest hanging half a block clear of the floor rather
+than resting on it. Top to bottom that is five blocks of headroom.
+
+Each ring **overshoots its place by half a block, hangs there a frame, and drops back onto
+it**: the small settle a heavy thing makes when it arrives. That is the only thing in the
+whole animation that ever goes above the finished stack, so it costs half a block of
+headroom and nothing else — five and a half in total.
+
+There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.
 
-- **Concurrent** — all four on their way at once, each leaving the plane a gap behind the
-  last, so the stack rises as a group and arrives together. Quicker, and the commoner look.
+- **Concurrent** — all five on their way at once, the next leaving the plane once the one
+  in front has risen a block, so the stack rises as a group and settles together. Quicker,
+  and the commoner look.
 - **Sequential** — strictly one at a time. The first out flies all the way to the furthest
-  position and stops; only then does the next emerge.
+  position and settles; only then does the next emerge.
 
 They differ *only* in when a ring leaves the plane. Where each ends up, how far it travels
 and how they come home are identical, so this is one number rather than two animations.
@@ -403,8 +410,9 @@ They then **stand still** for a couple of seconds with the travellers already go
 pause is most of what makes the effect read as a transport rather than as blocks moving, and
 it is why `HOLD` is a phase rather than the swap being followed straight by the retract.
 
-Coming back, the **nearest ring goes home first** and the one that flew highest is the last
-to leave. This needs no code of its own: retract is deploy played backwards, and a sequence
+Retract, being the reversal, lifts the stack that same half block before bringing it down —
+the settle read backwards, which looks like the rings unlatching before they go. The
+**nearest ring goes home first** and the one that flew highest is the last to leave. This needs no code of its own: retract is deploy played backwards, and a sequence
 that went out furthest-first returns nearest-first on its own. Writing it as a reversal
 rather than a second sequence also means the two can never disagree and strand a slab.
 
@@ -457,7 +465,7 @@ rings:
   hold-ticks: 40             # how long the stack stands before retracting
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
-  max-link-distance: 0       # 0 = unlimited
+  max-link-distance: 0       # 0 = unlimited; distance itself costs nothing
   default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
   default-access: PRIVATE    # what a newly built pair starts as
@@ -596,17 +604,19 @@ In rough order of how much they would hurt to get wrong:
 4. Both styles build the same stack, run to their own length, and return nearest-first.
 5. A packed block position survives the round trip at every height in the world, including
    the negative ones — the restore path unpacks these to decide which block to put back.
-6. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
-7. Overlapping footprints are refused at create, including against gate blocks.
-8. Pattern matching picks the right one of the two, and rejects a near-miss circle.
-9. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
+6. A ring overshoots its place by exactly half a block and drops back, and nothing else in
+   the animation ever goes higher than the settled stack.
+7. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
+8. Overlapping footprints are refused at create, including against gate blocks.
+9. Pattern matching picks the right one of the two, and rejects a near-miss circle.
+10. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
-10. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-11. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+11. A damaged entry in a world file is skipped with a log line, and the rest still loads.
+12. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
-12. Pairing refuses a second endpoint placed in a different world, and says why.
-13. `edit` without an id changes only the end the player is standing in; with an id it
+13. Pairing refuses a second endpoint placed in a different world, and says why.
+14. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.
-14. A private pair refuses a stranger, carries the owner and the people they named, and
+15. A private pair refuses a stranger, carries the owner and the people they named, and
     leaves an unpermitted player standing while everyone else goes.
-15. A stored pair with a missing or unreadable access field loads private, never public.
+16. A stored pair with a missing or unreadable access field loads private, never public.
