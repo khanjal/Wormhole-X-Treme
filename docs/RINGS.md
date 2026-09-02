@@ -696,8 +696,17 @@ show does it, and the arrival is always its opposite. Two separate settings coul
 the same way, and the landing would then look like a second departure rather than the answer
 to one. `rings.flash-ticks` is how long each ring stays lit.
 
-Whoever has just arrived sees the upward sweep from its beginning at their end, because the
-far stack has been standing there lit the whole time waiting for them.
+**Each sweep plays only at the ends it belongs to.** The first takes travellers in, so it runs
+where somebody is standing; the second puts them out, so it runs where somebody has landed. An
+end that is only receiving does not appear to swallow anybody first, and an end that is only
+sending does not flash again once it is empty. With people at both ends both sweeps play at
+both, which is right — every end is doing both jobs at once. A cycle carrying nobody shows no
+transport light at all, only the stacks standing there.
+
+**The sweep runs by height, not by ring number.** The two orientations number their rings from
+opposite ends, because the first one out travels furthest from its plane — the top of the
+stack for a floor ring and the bottom for a ceiling one. Lighting ring number *n* at both ends
+would have run the light down one stack and up the other.
 
 The lit ring is drawn **over** the stack rather than instead of it, so the rings that are not
 lit stay exactly where they are and nothing appears to move while the light passes.

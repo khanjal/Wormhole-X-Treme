@@ -661,4 +661,50 @@ public class RingAnimatorTest
             RingAnimator.ringAtRest(floor, RingAnimator.litRing(away.opposite(), last)).get(0).getY(),
             "and finishes where it started");
     }
+
+    @Test
+    public void theFlashRunsTheSameWayDownAFloorStackAndACeilingStack()
+    {
+        // Regression: the two orientations number their rings from opposite ends, because the
+        // first one out travels furthest from its plane. Lighting ring number n at both would
+        // have run the light down one stack and up the other.
+        final Ring standing = new Ring(0, 58, 0, RingPattern.ODD, RingOrientation.FLOOR,
+            Material.STONE_SLAB, Material.GLOWSTONE);
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(6);
+        assertEquals(standing.stackBase(), hanging.stackBase(), "same ground, for comparison");
+
+        int lastFloor = Integer.MAX_VALUE;
+        int lastCeiling = Integer.MAX_VALUE;
+        for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
+        {
+            final int fromTop = RingAnimator.litRing(RingFlashDirection.TOP_DOWN, frame);
+            final int onFloor = RingAnimator.ringAtRest(standing,
+                RingAnimator.ringFromTop(standing, fromTop)).get(0).getY();
+            final int onCeiling = RingAnimator.ringAtRest(hanging,
+                RingAnimator.ringFromTop(hanging, fromTop)).get(0).getY();
+
+            assertEquals(onFloor, onCeiling, "frame " + frame + " lit different heights");
+            assertTrue(onFloor < lastFloor, "top down should keep descending");
+            assertTrue(onCeiling < lastCeiling, "and descend at the ceiling ring too");
+            lastFloor = onFloor;
+            lastCeiling = onCeiling;
+        }
+    }
+
+    @Test
+    public void bottomUpRunsUpwardAtBothOrientationsToo()
+    {
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(6);
+        int last = Integer.MIN_VALUE;
+        for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
+        {
+            final int fromTop = RingAnimator.litRing(RingFlashDirection.BOTTOM_UP, frame);
+            final int y = RingAnimator.ringAtRest(hanging,
+                RingAnimator.ringFromTop(hanging, fromTop)).get(0).getY();
+            assertTrue(y > last, "bottom up should keep climbing");
+            last = y;
+        }
+    }
 }

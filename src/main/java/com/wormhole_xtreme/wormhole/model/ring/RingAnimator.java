@@ -437,12 +437,34 @@ public final class RingAnimator
      *            which way the light runs
      * @param frame
      *            which frame, from zero
-     * @return the ring index, counting from the first one out
+     * @return how far down the stack to light, counting the top as zero
      */
     public static int litRing(final RingFlashDirection direction, final int frame)
     {
-        // Ring zero is the one that flew highest, so counting up from it runs downward.
+        // Counted from the top of the stack rather than by ring number, because which ring is
+        // at the top depends on which way it travelled to get there. Turn this back into a
+        // ring with ringFromTop.
         return (direction == RingFlashDirection.TOP_DOWN) ? frame : (RING_COUNT - 1 - frame);
+    }
+
+    /**
+     * Which ring is the nth from the top of a finished stack.
+     *
+     * <p>Needed because the two orientations number their rings from opposite ends: the first
+     * one out travels furthest from its plane, which is the top of the stack for a floor ring
+     * and the bottom for a ceiling one. A flash that lit ring number n at both ends would
+     * therefore run downward at one and upward at the other.
+     *
+     * @param ring
+     *            the ring whose stack is being counted
+     * @param fromTop
+     *            how far down the stack, counting the top as zero
+     * @return the ring index at that height
+     */
+    public static int ringFromTop(final Ring ring, final int fromTop)
+    {
+        return (ring.getOrientation() == RingOrientation.CEILING)
+            ? (RING_COUNT - 1 - fromTop) : fromTop;
     }
 
     /**

@@ -287,12 +287,17 @@ public final class RingTransit
      */
     private static void runFlash(final RingCycle cycle, final World world, final int step)
     {
+        if (step == 0)
+        {
+            // Who is standing where, before the swap takes them away from it.
+            cycle.markDeparture();
+        }
         if (step >= RingAnimator.flashFrames())
         {
             swapAndArrive(cycle, world);
             return;
         }
-        cycle.drawFlash(ConfigManager.getRingFlashDirection(), step);
+        cycle.drawFlash(ConfigManager.getRingFlashDirection(), step, false);
         sweepAgain(cycle, world, step, false);
     }
 
@@ -337,7 +342,7 @@ public final class RingTransit
             settleThenRetract(cycle, world);
             return;
         }
-        cycle.drawFlash(ConfigManager.getRingFlashDirection().opposite(), step);
+        cycle.drawFlash(ConfigManager.getRingFlashDirection().opposite(), step, true);
         sweepAgain(cycle, world, step, true);
     }
 

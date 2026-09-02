@@ -526,6 +526,54 @@ public class RingCycleTest
     }
 
     @Test
+    public void theLightTakesPeopleInAtOneEndAndPutsThemOutAtTheOther()
+    {
+        // The two sweeps mean different things and belong to different ends. An end that is
+        // only receiving should not appear to swallow anybody first, and an end that is only
+        // sending should not flash again once it is empty.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.put(pair.getEndA(), new Traveller("alice", "a", true));
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+
+        // The lit ring is drawn over the stack, in the same blocks, so what changes is the
+        // material shown and not how many blocks are drawn. The top of each stack is three
+        // blocks up, on the ring's west edge.
+        final int top = 64 + (RingAnimator.TOP_HALF_STEP / 2);
+
+        cycle.markDeparture();
+        cycle.drawFlash(RingFlashDirection.TOP_DOWN, 0, false);
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, top, 0),
+            "the end alice is standing in lights as she is taken");
+        assertEquals(Material.STONE_SLAB, world.seenAt(497, top, 500),
+            "the end she has not reached yet does not");
+
+        cycle.flash();
+        cycle.drawFlash(RingFlashDirection.BOTTOM_UP, 0, true);
+        assertEquals(Material.GLOWSTONE, world.seenAt(497, 64, 500),
+            "the end she lands at lights as she arrives");
+        assertEquals(Material.STONE_SLAB, world.seenAt(-3, 64, 0),
+            "and the end she left is done");
+    }
+
+    @Test
+    public void aCycleCarryingNobodyShowsNoTransportLightAtAll()
+    {
+        // Nothing is being transported, so there is no transport to light. The stack still
+        // stands there, which is the honest picture of an empty committed cycle.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+
+        cycle.markDeparture();
+        cycle.drawFlash(RingFlashDirection.TOP_DOWN, 0, false);
+
+        final int top = 64 + (RingAnimator.TOP_HALF_STEP / 2);
+        assertEquals(Material.STONE_SLAB, world.seenAt(-3, top, 0), "no light at either end");
+        assertEquals(Material.STONE_SLAB, world.seenAt(497, top, 500));
+    }
+
+    @Test
     public void aFullRunLeavesNothingDrawnBehind()
     {
         // The thing that would otherwise leave a ring hanging in somebody's room until they

@@ -178,6 +178,18 @@ public class RingCycle
     /** How many travelled when this cycle flashed. */
     private int carried = 0;
 
+    /** Whether each end had somebody to send when the light started. */
+    private boolean departingA = false;
+
+    /** Whether each end had somebody to send when the light started. */
+    private boolean departingB = false;
+
+    /** Whether each end received anybody. */
+    private boolean arrivingA = false;
+
+    /** Whether each end received anybody. */
+    private boolean arrivingB = false;
+
     /**
      * Instantiates a cycle.
      *
@@ -378,6 +390,9 @@ public class RingCycle
         {
             world.deliver(passenger, pair.getEndA());
         }
+        // Whoever leaves A lands at B, so that is the end which will emit them.
+        arrivingB = !travellingFromA.isEmpty();
+        arrivingA = !travellingFromB.isEmpty();
         carried = travellingFromA.size() + travellingFromB.size();
         return carried;
     }
@@ -389,24 +404,67 @@ public class RingCycle
      * ring is drawn over the top of the stack rather than instead of it, so the rings that
      * are not lit stay exactly where they were and nothing appears to move.
      *
+     * <p>Each sweep plays only at the ends it belongs to. The first takes travellers in and
+     * runs where somebody is standing; the second puts them out and runs where somebody has
+     * landed. With people at both ends both sweeps play at both, which is right — every end
+     * is doing both jobs at once.
+     *
      * @param direction
      *            which way the light runs
      * @param step
      *            which frame, from zero
+     * @param arriving
+     *            true for the sweep after the swap, which plays where people landed
      */
-    public void drawFlash(final RingFlashDirection direction, final int step)
+    public void drawFlash(final RingFlashDirection direction, final int step,
+        final boolean arriving)
     {
-        clearRings();
-        drawPlacements(RingAnimator.settledStack(pair.getEndA(), pair.getEndA().getStyle()),
-            pair.getEndA().getRingMaterial());
-        drawPlacements(RingAnimator.settledStack(pair.getEndB(), pair.getEndB().getStyle()),
-            pair.getEndB().getRingMaterial());
+        drawSettled();
+        final int fromTop = RingAnimator.litRing(direction, step);
+        if (arriving ? arrivingA : departingA)
+        {
+            lightOneRing(pair.getEndA(), fromTop);
+        }
+        if (arriving ? arrivingB : departingB)
+        {
+            lightOneRing(pair.getEndB(), fromTop);
+        }
+    }
 
-        final int lit = RingAnimator.litRing(direction, step);
-        drawPlacements(RingAnimator.ringAtRest(pair.getEndA(), lit),
-            pair.getEndA().getFlashMaterial());
-        drawPlacements(RingAnimator.ringAtRest(pair.getEndB(), lit),
-            pair.getEndB().getFlashMaterial());
+    /**
+     * Lights the ring at one height of one stack.
+     *
+     * <p>By height rather than by ring number, because the two orientations number their
+     * rings from opposite ends — lighting number n at both would run the light down one stack
+     * and up the other.
+     *
+     * @param ring
+     *            the end to light
+     * @param fromTop
+     *            how far down its stack, counting the top as zero
+     */
+    private void lightOneRing(final Ring ring, final int fromTop)
+    {
+        drawPlacements(RingAnimator.ringAtRest(ring, RingAnimator.ringFromTop(ring, fromTop)),
+            ring.getFlashMaterial());
+    }
+
+    /**
+     * Notes which ends have somebody to send, before the light starts.
+     *
+     * <p>The two sweeps mean different things and belong to different ends. The first takes
+     * travellers in, so it plays where somebody is standing; the second puts them out, so it
+     * plays where somebody has landed. An end that is only receiving should not appear to
+     * swallow anybody first, and an end that is only sending should not flash again once it
+     * is empty.
+     *
+     * <p>Noted before the swap because afterwards there is nobody left at the near end to
+     * count, and the light that takes them has to know they were there.
+     */
+    public void markDeparture()
+    {
+        departingA = !occupants(pair.getEndA()).isEmpty();
+        departingB = !occupants(pair.getEndB()).isEmpty();
     }
 
     /**
