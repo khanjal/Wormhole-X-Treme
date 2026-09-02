@@ -208,6 +208,7 @@ public class WormholeXTreme extends JavaPlugin
     @Override
     public void onEnable()
     {
+        logStartupBanner();
         prettyLog(Level.INFO, true, "Enable Beginning.");
         // Try and attach to Permissions and iConomy and Help
         try
@@ -299,6 +300,35 @@ public class WormholeXTreme extends JavaPlugin
     {
         final Logger log = getLog();
         return log != null && log.isLoggable(severity);
+    }
+
+    /**
+     * Prints the plugin's name, version and host to the console on startup.
+     *
+     * <p>A gate ring seen face on, with the event horizon inside it. Kept to three lines
+     * because a banner is a courtesy in a log somebody is reading to find something else.
+     *
+     * <p>These go through the server logger rather than {@link #prettyLog}, which builds a
+     * {@code [WormholeXTreme]} prefix onto every line and would push the drawing sideways.
+     *
+     * <p>The characters are half-block and shade glyphs from the same range other plugins
+     * draw their banners with. A console that cannot render them shows replacement marks
+     * rather than failing, and only the banner is affected.
+     */
+    private void logStartupBanner()
+    {
+        try
+        {
+            final String version = getDescription().getVersion();
+            final String host = getServer().getName();
+            getLog().info("");
+            getLog().info("  ▄▀▀▄");
+            getLog().info(" ▐ ░░ ▌   Wormhole X-Treme v" + version);
+            getLog().info("  ▀▄▄▀    Running on " + host);
+            getLog().info("");
+        }
+        // Decoration only: a console that will not take it must not stop the plugin.
+        catch (final RuntimeException ignore) {}
     }
 
     public void prettyLog(final Level severity, final boolean version, final String message)
