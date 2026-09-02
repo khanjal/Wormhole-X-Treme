@@ -44,7 +44,8 @@ public class RingYamlManagerTest
         final RingPair pair = new RingPair(id, WORLD, a, b);
         pair.setOwner("069a79f4-44e9-4726-a5be-fca90e38aaf5");
         pair.setOwnerName("Justin");
-        pair.setLabel("Base to Mine");
+        a.setName("Base");
+        b.setName("Mine");
         pair.setCreated(1756771200000L);
         return pair;
     }
@@ -74,7 +75,8 @@ public class RingYamlManagerTest
         assertNotNull(loaded);
         assertEquals(WORLD, loaded.getWorldName());
         assertEquals("Justin", loaded.getOwnerName());
-        assertEquals("Base to Mine", loaded.getLabel());
+        assertEquals("Base", loaded.getEndA().getName());
+        assertEquals("Mine", loaded.getEndB().getName());
         assertEquals(1756771200000L, loaded.getCreated());
 
         assertEquals(10, loaded.getEndA().getAnchorX());
@@ -226,6 +228,37 @@ public class RingYamlManagerTest
         // An empty file is one that has to be read and skipped every startup, and a world
         // with no rings is better said by there being nothing there.
         assertEquals(0, directory.listFiles().length);
+    }
+
+    @Test
+    public void eachEndKeepsItsOwnName() throws IOException
+    {
+        // The name is per end because the useful thing to say is where somebody is going,
+        // and that is a different answer depending on which end they walked into.
+        RingManager.addPair(pair("name0001", 700, 700), REACH);
+        RingYamlManager.saveWorld(directory, WORLD);
+        RingManager.clear();
+        RingYamlManager.loadAll(directory, REACH);
+
+        final RingPair loaded = RingManager.getPair("name0001");
+        assertEquals("Base", loaded.getEndA().getName());
+        assertEquals("Mine", loaded.getEndB().getName());
+        assertEquals("Base to Mine (name0001)", loaded.describe());
+    }
+
+    @Test
+    public void aPairWithNoNamesFallsBackToItsId()
+    {
+        final Ring a = new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
+            Material.STONE_SLAB, Material.GLOWSTONE);
+        final Ring b = new Ring(200, 64, 200, RingPattern.ODD, RingOrientation.FLOOR,
+            Material.STONE_SLAB, Material.GLOWSTONE);
+        final RingPair unnamed = new RingPair("bare0001", WORLD, a, b);
+        assertEquals("bare0001", unnamed.describe());
+
+        // Half named is still worth saying, since one end is better than neither.
+        a.setName("Base");
+        assertEquals("Base to ? (bare0001)", unnamed.describe());
     }
 
     @Test

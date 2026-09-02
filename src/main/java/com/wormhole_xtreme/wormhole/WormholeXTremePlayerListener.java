@@ -1077,7 +1077,9 @@ class WormholeXTremePlayerListener implements Listener
         }
         if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair))
         {
-            com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(player);
+            final com.wormhole_xtreme.wormhole.model.ring.Ring far = pair.opposite(end.getRing());
+            com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(
+                player, far == null ? "" : far.getName());
         }
     }
 

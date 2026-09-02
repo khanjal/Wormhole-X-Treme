@@ -303,7 +303,7 @@ public final class SubCommands
     }
 
     /** The fields {@code /wormhole ring edit} understands. */
-    private static final String[] RING_FIELDS = { "ring", "light", "label", "access", "style" };
+    private static final String[] RING_FIELDS = { "ring", "light", "name", "access", "style" };
 
     /**
      * Completions for {@code /wormhole ring}.
@@ -396,7 +396,7 @@ public final class SubCommands
         {
             return materialNames(typed, false);
         }
-        // A label is whatever the player wants it to be.
+        // A name is whatever the player wants it to be.
         return none();
     }
 

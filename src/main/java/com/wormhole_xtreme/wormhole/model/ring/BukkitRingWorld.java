@@ -320,7 +320,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings
         // After the teleport, so it lands on a client that is already looking at the far end.
         if (entity instanceof Player)
         {
-            RingMessages.arrived((Player) entity);
+            RingMessages.arrived((Player) entity, destination.getName());
         }
     }
 

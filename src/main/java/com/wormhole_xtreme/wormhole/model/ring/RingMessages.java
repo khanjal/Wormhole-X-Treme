@@ -89,10 +89,15 @@ public final class RingMessages
      *
      * @param player
      *            who walked in
+     * @param destination
+     *            what the far end is called, or empty if it has no name
      */
-    public static void engaged(final Player player)
+    public static void engaged(final Player player, final String destination)
     {
-        status(player, NORMAL + "Transport rings engaging. Step clear to cancel.");
+        final String where = (destination == null) || destination.isEmpty()
+            ? "Transport rings engaging."
+            : ("Transport rings engaging — travelling to " + destination + ".");
+        status(player, NORMAL + where + " Step clear to cancel.");
     }
 
     /**
@@ -136,10 +141,14 @@ public final class RingMessages
      *
      * @param player
      *            the traveller
+     * @param destination
+     *            what this end is called, or empty if it has no name
      */
-    public static void arrived(final Player player)
+    public static void arrived(final Player player, final String destination)
     {
-        status(player, ACTIVE + "Transport complete.");
+        status(player, ACTIVE + ((destination == null) || destination.isEmpty()
+            ? "Transport complete."
+            : ("Arrived at " + destination + ".")));
     }
 
     /**

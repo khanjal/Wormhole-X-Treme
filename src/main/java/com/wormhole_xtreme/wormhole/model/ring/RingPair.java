@@ -47,9 +47,6 @@ public class RingPair
     /** Display name of the owner, resolved when it can be. */
     private String ownerName;
 
-    /** Optional display label. Empty means the listing falls back to the id. */
-    private String label = "";
-
     /** When the pair was created, epoch millis. */
     private long created;
 
@@ -166,21 +163,24 @@ public class RingPair
         this.ownerName = ownerName;
     }
 
-    /** @return the optional display label, empty when unset */
-    public String getLabel()
-    {
-        return label;
-    }
-
     /**
-     * Sets the display label.
+     * How this pair reads in a listing.
      *
-     * @param label
-     *            the label, or empty to clear it
+     * <p>Built from the two ends' names rather than stored, so it can never disagree with
+     * them. A pair with one end named still says something useful; a pair with neither falls
+     * back to its id, which is all there is to go on.
+     *
+     * @return something to call this pair
      */
-    public void setLabel(final String label)
+    public String describe()
     {
-        this.label = label == null ? "" : label;
+        final String a = endA.getName();
+        final String b = endB.getName();
+        if (a.isEmpty() && b.isEmpty())
+        {
+            return id;
+        }
+        return (a.isEmpty() ? "?" : a) + " to " + (b.isEmpty() ? "?" : b) + " (" + id + ")";
     }
 
     /** @return creation time, epoch millis */
@@ -341,7 +341,6 @@ public class RingPair
     @Override
     public String toString()
     {
-        final String name = label.isEmpty() ? id : (label + " (" + id + ")");
-        return name + " in " + worldName + ": " + endA + " <-> " + endB;
+        return describe() + " in " + worldName + ": " + endA + " <-> " + endB;
     }
 }

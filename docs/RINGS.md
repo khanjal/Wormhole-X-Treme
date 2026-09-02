@@ -16,7 +16,7 @@ it.
 | Activation | Button, sign, redstone, `/dial` | Walk into it |
 | Direction | One way per dial | Both ends fire together |
 | Appearance | Permanent structure | Invisible until it fires |
-| Identity | Player-chosen name | Generated id, optional label |
+| Identity | Player-chosen name | Generated id, each end optionally named |
 | Range | Cross-world, config permitting | Same world, always |
 
 ## Patterns
@@ -151,12 +151,11 @@ Pairs:
   7f3a1c2e:
     Owner: 069a79f4-44e9-4726-a5be-fca90e38aaf5
     OwnerName: Justin
-    Label: ""
     Created: 1756771200000
     Access: PRIVATE
     Allowed: [11111111-2222-3333-4444-555555555555]
-    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT}
-    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Style: SEQUENTIAL}
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT, Name: Base}
+    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Style: SEQUENTIAL, Name: Tower}
 ```
 
 A `Style` written at the pair level rather than on each end is how files from before it moved
@@ -188,7 +187,7 @@ and that is handled the way gates already handle it: dump to a temp file and `AT
 it into place, so a partial write is never visible. Loading tolerates damage per entry — a
 pair that will not parse is logged and skipped, and the rest of the world still loads.
 Rewriting the whole file on every change is not a concern because ring writes are rare and
-player-initiated: create, remove, relabel, recolour. Nothing writes on the travel path.
+player-initiated: create, remove, rename, recolour. Nothing writes on the travel path.
 
 Only the anchor, pattern and orientation are stored. The footprint is derived — storing 16
 or 20 block coordinates that are a pure function of three fields would just be something
@@ -207,14 +206,14 @@ storage after we decided it is not. Identity in commands and log lines stops bei
 the moment anything about the ring's position changes.
 
 If the real want is seeing what is there, a world file already lists every pair in one
-place, and `/wormhole ring list` reads it back with labels. If a location index ever
+place, and `/wormhole ring list` reads it back with names. If a location index ever
 genuinely becomes necessary it belongs in memory, where one already is.
 
 **Rings are not named.** The id is short random hex, used for the filename, for
 `/wormhole ring remove <id>`, and in log lines. Nothing addresses a ring by name at
-runtime, because point-to-point pairing means there is nothing to address. `Label` is
-optional and exists only so `/wormhole ring list` can read `Base <-> Deep Mine` instead of
-two hex strings.
+runtime, because point-to-point pairing means there is nothing to address. Each *end* may
+be named, which is what a listing reads back and what a traveller is told they are heading
+for; the pair itself has no name of its own.
 
 Format is plain YAML from the start. `GateSerializer` carries nine versions of legacy
 binary baggage; there is no reason to inherit that.
@@ -379,12 +378,16 @@ A trip says six things, and where each is said matters as much as what it says.
 
 | When | Message |
 |---|---|
-| You walk in | *Transport rings engaging. Step clear to cancel.* |
+| You walk in | *Transport rings engaging — travelling to Tower. Step clear to cancel.* |
 | Each second | *Transport in 3 seconds…* |
 | Everyone leaves | *Transport rings powering down.* |
 | The rings commit | *Rings deploying. Hold still.* |
-| You arrive | *Transport complete.* |
+| You arrive | *Arrived at Tower.* |
 | Too soon after a trip | *Rings recharging. Ready in 42 seconds.* |
+
+Where a name is set, the messages use it — you are told where you are going as you walk in
+and where you have got to when you land. Rings with no name fall back to *Transport rings
+engaging* and *Transport complete*, which is all there is to say about a place with no name.
 
 All of those go to the **action bar**, not chat. A ring speaks once a second while counting
 down and again when it fires, which in chat would be six lines per trip scrolling away
@@ -421,6 +424,25 @@ off.
 Shown for recharging and already-in-use. **Not** for a private pair: somebody being turned
 away from a ring that is not theirs has no business being shown its extent, and being told
 plainly that it is private is enough.
+
+## Names
+
+Each end can be called something — `/wormhole ring edit name Tower`, standing in the ring you
+mean.
+
+**The name belongs to the end, not the pair**, because the useful thing to say is where
+somebody is *going*, and that is a different answer depending on which end they walked into.
+One label on the pair could never do that.
+
+It also reads better in a listing. Two end names give *Base to Mine*, which says which two
+places are joined; a single pair label gave *Mine Line*, which only said that somebody had
+named it. So the listing text is now derived from the two names rather than stored, and can
+never disagree with them. A pair with one end named still says something useful; a pair with
+neither falls back to its id, which is all there is to go on.
+
+Naming by id is refused rather than applied to both ends. Calling both ends the same thing
+would defeat the point of having them, so the command asks you to stand in the one you mean —
+the only field where an id is not accepted.
 
 ## Access
 
@@ -641,7 +663,7 @@ one declaration.
 ```
 /wormhole ring create                     build the pad you are standing in; twice to pair
 /wormhole ring cancel                     discard a pending first endpoint
-/wormhole ring list                       your pairs, by label where set
+/wormhole ring list                       your pairs, by name where set
 /wormhole ring remove [id]                remove both ends
 /wormhole ring edit <field> <value>       edit the ring you are standing in
 /wormhole ring edit <id> <field> <value>  edit both ends of that pair
@@ -651,7 +673,7 @@ one declaration.
 
   fields:  ring <material>    the travelling slabs; must be a slab   per end
            light <material>   the countdown lights                   per end
-           label <text>       display only                           per pair
+           name <text>        what this end is called                per end
            access public|private                                     per pair
            style fast|slow                                            per end
 ```
@@ -665,15 +687,16 @@ one entry however many fields rings end up with.
 **Whether an id is given is what selects the scope**, and it reads the way people work.
 You are usually standing in the ring you want to change, having just walked to it to look
 at it, so the id is omitted and only that end changes. Naming a pair by id means you are
-somewhere else and thinking about the pair as a whole, so both ends change. `label` is a
-property of the pair and ignores the distinction; standing in either end sets it.
+somewhere else and thinking about the pair as a whole, so both ends change. `name` is the
+exception in the other direction: it is refused with an id, because calling both ends the
+same thing would defeat the point of having names at all.
 
 Working out which ring you are standing in costs nothing — it is the same `RingIndex`
 lookup the move path makes.
 
 **Every field completes its own values.** `ring` offers only slabs, because a slab is the
 only thing the command will accept — offering anything else would be offering a mistake.
-`light` offers any placeable block. `access` and `style` offer their words, and `label` is
+`light` offers any placeable block. `access` and `style` offer their words, and `name` is
 whatever the player wants.
 
 That is worth having because nobody remembers how `polished_deepslate_brick_slab` is spelled,

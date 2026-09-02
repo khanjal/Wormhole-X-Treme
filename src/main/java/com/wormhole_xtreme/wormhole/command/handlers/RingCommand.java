@@ -409,10 +409,9 @@ public class RingCommand implements SubCommand
             {
                 continue;
             }
-            final String name = pair.getLabel().isEmpty() ? pair.getId()
-                : (pair.getLabel() + " (" + pair.getId() + ")");
-            player.sendMessage(name + " — " + pair.getWorldName() + ", " + pair.getAccess()
-                + ", " + pair.getEndA().getStyle() + "/" + pair.getEndB().getStyle());
+            player.sendMessage(pair.describe() + " — " + pair.getWorldName() + ", "
+                + pair.getAccess() + ", " + pair.getEndA().getStyle() + "/"
+                + pair.getEndB().getStyle());
             shown++;
         }
         if (shown == 0)
@@ -472,7 +471,7 @@ public class RingCommand implements SubCommand
         }
         if (args.length <= (fieldAt + 1))
         {
-            player.sendMessage("Usage: /wormhole ring edit [id] <ring|light|label|access|style> <value>");
+            player.sendMessage("Usage: /wormhole ring edit [id] <ring|light|name|access|style> <value>");
             return true;
         }
         if (!RingPermissions.mayManage(player, pair))
@@ -495,10 +494,19 @@ public class RingCommand implements SubCommand
         {
             return setLightMaterial(player, pair, only, value);
         }
-        if ("label".equals(field))
+        if ("name".equals(field))
         {
-            pair.setLabel(value);
-            return saved(player, pair, "Label set to " + value + ".");
+            if (only == null)
+            {
+                // Naming both ends the same would defeat the point: the name exists so a
+                // traveller can be told where they are going, which differs by end.
+                player.sendMessage("Stand in the ring you want to name — naming a pair by id "
+                    + "would call both ends the same thing.");
+                return true;
+            }
+            only.setName(value);
+            return saved(player, pair, value.isEmpty()
+                ? "Name cleared." : ("This ring is now " + value + "."));
         }
         if ("access".equals(field))
         {
@@ -533,7 +541,7 @@ public class RingCommand implements SubCommand
             }
             return saved(player, pair, "Style set to " + chosen + ".");
         }
-        player.sendMessage("Fields are: ring, light, label, access, style.");
+        player.sendMessage("Fields are: ring, light, name, access, style.");
         return true;
     }
 
@@ -864,7 +872,7 @@ public class RingCommand implements SubCommand
         player.sendMessage("/wormhole ring cancel — forget a half-built pair");
         player.sendMessage("/wormhole ring list — your pairs");
         player.sendMessage("/wormhole ring remove [id] — remove both ends");
-        player.sendMessage("/wormhole ring edit [id] <ring|light|label|access|style> <value>");
+        player.sendMessage("/wormhole ring edit [id] <ring|light|name|access|style> <value>");
         player.sendMessage("/wormhole ring allow|deny <player> [id] — who may use a private pair");
         player.sendMessage("/wormhole ring owner <player> [id] — hand a pair to somebody else");
         return true;

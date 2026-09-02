@@ -218,7 +218,6 @@ public final class RingYamlManager
         final RingPair pair = new RingPair(id, worldName, endA, endB);
         pair.setOwner(String.valueOf(map.getOrDefault("Owner", "")));
         pair.setOwnerName(String.valueOf(map.getOrDefault("OwnerName", "")));
-        pair.setLabel(String.valueOf(map.getOrDefault("Label", "")));
         pair.setCreated(((Number) map.getOrDefault("Created", Long.valueOf(0L))).longValue());
         // Absent means private. A file written before access existed, or one somebody hand
         // edited badly, must not quietly open a ring to the whole server.
@@ -307,6 +306,7 @@ public final class RingYamlManager
         final Material light = Material.valueOf(String.valueOf(map.get("Light")));
         final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
         built.setStyle(map.containsKey("Style") ? readStyle(map.get("Style")) : fallback);
+        built.setName(String.valueOf(map.getOrDefault("Name", "")));
         return built;
     }
 
@@ -397,7 +397,6 @@ public final class RingYamlManager
         final Map<String, Object> out = new LinkedHashMap<String, Object>();
         out.put("Owner", pair.getOwner() == null ? "" : pair.getOwner());
         out.put("OwnerName", pair.getOwnerName() == null ? "" : pair.getOwnerName());
-        out.put("Label", pair.getLabel());
         out.put("Created", Long.valueOf(pair.getCreated()));
         out.put("Access", pair.getAccess().name());
         out.put("Allowed", new java.util.ArrayList<String>(pair.getAllowed()));
@@ -427,6 +426,7 @@ public final class RingYamlManager
         out.put("Ring", ring.getRingMaterial().name());
         out.put("Light", ring.getLightMaterial().name());
         out.put("Style", ring.getStyle().name());
+        out.put("Name", ring.getName());
         return out;
     }
 

@@ -41,7 +41,7 @@ public class RingTabCompletionTest
         assertTrue(fields.contains("light"));
         assertTrue(fields.contains("access"));
         assertTrue(fields.contains("style"));
-        assertTrue(fields.contains("label"));
+        assertTrue(fields.contains("name"));
     }
 
     @Test
@@ -111,9 +111,9 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void aLabelIsWhateverThePlayerWants()
+    public void aNameIsWhateverThePlayerWants()
     {
-        assertTrue(complete("ring", "edit", "label", "").isEmpty());
+        assertTrue(complete("ring", "edit", "name", "").isEmpty());
     }
 
     @Test

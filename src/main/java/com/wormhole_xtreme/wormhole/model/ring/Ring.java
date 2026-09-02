@@ -52,6 +52,9 @@ public class Ring
     /** How this end's stack comes out. Its own, so two ends can look different. */
     private RingStyle style = RingStyle.CONCURRENT;
 
+    /** What this end is called, if anything. Empty means it has no name. */
+    private String name = "";
+
     /**
      * Instantiates a new ring.
      *
@@ -169,6 +172,28 @@ public class Ring
     public void setStyle(final RingStyle style)
     {
         this.style = style == null ? RingStyle.CONCURRENT : style;
+    }
+
+    /** @return what this end is called, or empty if it has no name */
+    public String getName()
+    {
+        return name;
+    }
+
+    /**
+     * Sets what this end is called.
+     *
+     * <p>A name belongs to an end rather than to the pair because the useful thing to say is
+     * where somebody is <em>going</em>, and that is a different answer at each end. Two names
+     * also read better in a listing than one label ever did — "Base to Tower" says which two
+     * places are joined, where "Mine Line" only says somebody named it.
+     *
+     * @param name
+     *            the new name, or empty to clear it
+     */
+    public void setName(final String name)
+    {
+        this.name = (name == null) ? "" : name.trim();
     }
 
     /**
