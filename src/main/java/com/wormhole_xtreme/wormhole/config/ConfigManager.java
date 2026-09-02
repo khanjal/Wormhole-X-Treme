@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import com.wormhole_xtreme.wormhole.model.ring.RingFlashDirection;
 import org.bukkit.Material;
 
 
@@ -80,6 +81,10 @@ public class ConfigManager
         RING_DEPLOY_TICKS,
         /** Ticks the fully deployed stack stands still before the swap fires. */
         RING_SETTLE_TICKS,
+        /** Ticks each ring stays lit as the transport flash runs through the stack. */
+        RING_FLASH_TICKS,
+        /** Which way the transport flash runs: TOP_DOWN or BOTTOM_UP. */
+        RING_FLASH_DIRECTION,
         /** Ticks the ring stack stands still after the swap, before retracting. */
         RING_HOLD_TICKS,
         /** Block layers of passenger volume, measured from the ring plane into the room. */
@@ -472,6 +477,38 @@ public class ConfigManager
     public static int getRingSettleTicks()
     {
         return Math.max(0, intSetting(ConfigKeys.RING_SETTLE_TICKS, 20));
+    }
+
+    /**
+     * How long each ring stays lit as the flash runs through the stack.
+     *
+     * @return per-ring flash time in ticks
+     */
+    public static int getRingFlashTicks()
+    {
+        return Math.max(1, intSetting(ConfigKeys.RING_FLASH_TICKS, 3));
+    }
+
+    /**
+     * Which way the transport flash runs through the stack.
+     *
+     * <p>Top down by default, which is how the show does it. Bottom up is the same animation
+     * read the other way and costs nothing to offer.
+     *
+     * @return the flash direction
+     */
+    public static RingFlashDirection getRingFlashDirection()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_FLASH_DIRECTION);
+        try
+        {
+            return RingFlashDirection.valueOf(
+                String.valueOf(s == null ? "TOP_DOWN" : s.getStringValue()).toUpperCase());
+        }
+        catch (final RuntimeException e)
+        {
+            return RingFlashDirection.TOP_DOWN;
+        }
     }
 
     /**

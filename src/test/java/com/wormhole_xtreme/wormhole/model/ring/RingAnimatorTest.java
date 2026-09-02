@@ -458,4 +458,57 @@ public class RingAnimatorTest
             }
         }
     }
+
+    @Test
+    public void theFlashTouchesEveryRingExactlyOnce()
+    {
+        // The transport itself, given an animation rather than being an instant nobody sees.
+        for (final RingFlashDirection direction : RingFlashDirection.values())
+        {
+            final Set<Integer> touched = new HashSet<Integer>();
+            for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
+            {
+                assertTrue(touched.add(Integer.valueOf(RingAnimator.litRing(direction, frame))),
+                    direction + " lit the same ring twice");
+            }
+            assertEquals(RingAnimator.RING_COUNT, touched.size());
+        }
+    }
+
+    @Test
+    public void theFlashRunsDownFromTheTopOrUpFromTheFloor()
+    {
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final int highest = 64 + (RingAnimator.TOP_HALF_STEP / 2);
+
+        final int firstDown = RingAnimator.litRing(RingFlashDirection.TOP_DOWN, 0);
+        assertEquals(highest, RingAnimator.ringAtRest(floor, firstDown).get(0).getY(),
+            "top down starts at the ring that flew highest");
+
+        final int firstUp = RingAnimator.litRing(RingFlashDirection.BOTTOM_UP, 0);
+        assertEquals(64, RingAnimator.ringAtRest(floor, firstUp).get(0).getY(),
+            "bottom up starts at the floor");
+    }
+
+    @Test
+    public void theSettledStackIsWhatEveryFlashFrameIsDrawnOver()
+    {
+        // The lit ring is drawn over the stack, not instead of it, so nothing appears to
+        // move while the light passes through.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        for (final RingStyle style : RingStyle.values())
+        {
+            assertEquals(RingAnimator.RING_COUNT * RingPattern.ODD.getPerimeter().size(),
+                RingAnimator.settledStack(floor, style).size(), style + " settled stack");
+        }
+    }
+
+    @Test
+    public void theTwoEndsOfAPairCanDeployAtDifferentSpeeds()
+    {
+        // Style is per end, so a base and its outpost need not match. They still have to
+        // finish together, which is arranged by waiting for the slower of the two.
+        assertTrue(RingAnimator.deployFrames(RingStyle.SEQUENTIAL)
+            > RingAnimator.deployFrames(RingStyle.CONCURRENT));
+    }
 }

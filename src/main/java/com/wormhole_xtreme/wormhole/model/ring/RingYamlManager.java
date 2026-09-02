@@ -210,8 +210,11 @@ public final class RingYamlManager
     private static RingPair readPair(final String id, final String worldName,
         final Map<String, Object> map)
     {
-        final Ring endA = readRing((Map<String, Object>) map.get("A"));
-        final Ring endB = readRing((Map<String, Object>) map.get("B"));
+        // A pair written before style moved onto the end carries one value for both. Read
+        // it as the fallback for each so those files keep behaving exactly as they did.
+        final RingStyle shared = readStyle(map.get("Style"));
+        final Ring endA = readRing((Map<String, Object>) map.get("A"), shared);
+        final Ring endB = readRing((Map<String, Object>) map.get("B"), shared);
         final RingPair pair = new RingPair(id, worldName, endA, endB);
         pair.setOwner(String.valueOf(map.getOrDefault("Owner", "")));
         pair.setOwnerName(String.valueOf(map.getOrDefault("OwnerName", "")));
@@ -220,7 +223,6 @@ public final class RingYamlManager
         // Absent means private. A file written before access existed, or one somebody hand
         // edited badly, must not quietly open a ring to the whole server.
         pair.setAccess(readAccess(map.get("Access")));
-        pair.setStyle(readStyle(map.get("Style")));
         final Object allowed = map.get("Allowed");
         if (allowed instanceof java.util.List)
         {
@@ -290,9 +292,11 @@ public final class RingYamlManager
      *
      * @param map
      *            the stored fields
+     * @param fallback
+     *            the pair-level style to use when this end names none of its own
      * @return the ring
      */
-    private static Ring readRing(final Map<String, Object> map)
+    private static Ring readRing(final Map<String, Object> map, final RingStyle fallback)
     {
         final int x = ((Number) map.get("X")).intValue();
         final int y = ((Number) map.get("Y")).intValue();
@@ -301,7 +305,9 @@ public final class RingYamlManager
         final RingOrientation orientation = RingOrientation.valueOf(String.valueOf(map.get("Orientation")));
         final Material ring = Material.valueOf(String.valueOf(map.get("Ring")));
         final Material light = Material.valueOf(String.valueOf(map.get("Light")));
-        return new Ring(x, y, z, pattern, orientation, ring, light);
+        final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
+        built.setStyle(map.containsKey("Style") ? readStyle(map.get("Style")) : fallback);
+        return built;
     }
 
     /**
@@ -394,7 +400,6 @@ public final class RingYamlManager
         out.put("Label", pair.getLabel());
         out.put("Created", Long.valueOf(pair.getCreated()));
         out.put("Access", pair.getAccess().name());
-        out.put("Style", pair.getStyle().name());
         out.put("Allowed", new java.util.ArrayList<String>(pair.getAllowed()));
         out.put("A", writeRing(pair.getEndA()));
         out.put("B", writeRing(pair.getEndB()));
@@ -421,6 +426,7 @@ public final class RingYamlManager
         out.put("Orientation", ring.getOrientation().name());
         out.put("Ring", ring.getRingMaterial().name());
         out.put("Light", ring.getLightMaterial().name());
+        out.put("Style", ring.getStyle().name());
         return out;
     }
 

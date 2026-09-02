@@ -6,10 +6,9 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Material;
 
@@ -26,14 +25,17 @@ import org.bukkit.Material;
  * has not moved yet — are quiet ones that a live server would show only as damage after the
  * fact.
  *
- * <p><b>What is safe to write.</b> A travelling ring only ever fills air, so the animation
- * cannot eat somebody's build as it passes through. The countdown lights are the exception
- * and have to be: they are set into the floor or ceiling the ring is built into, so they
- * replace the solid block that is there — a handful of blocks the player themselves marked
- * out as a ring, every one remembered and put back at the end.
+ * <p><b>Nothing here changes the world.</b> The lights and the travelling rings are drawn to
+ * the clients who can see them and never written to the server's blocks, the same way a gate
+ * draws its portal. A ring is scenery that exists for five seconds, and making it real would
+ * mean a server stopped mid-cycle keeping it for good, block loggers recording a floor being
+ * replaced on every trip, and anyone able to mine the glowstone out of their own floor for
+ * free while it stood there.
  *
- * <p>Either way a block is only put back if it still holds what this cycle placed, so
- * nothing overwrites a block somebody changed while the rings were up.
+ * <p>That also makes putting things back trivial rather than delicate: since the real blocks
+ * were never touched, undoing a drawing is just showing the client what was always there.
+ * There is nothing to remember and nothing to get wrong — no saved materials to restore in
+ * the right order, and no need to check whether somebody changed a block underneath us.
  */
 public class RingCycle
 {
@@ -46,18 +48,9 @@ public class RingCycle
     public interface Surroundings
     {
         /**
-         * @param x
-         *            block x
-         * @param y
-         *            block y
-         * @param z
-         *            block z
-         * @return the material there, never null
-         */
-        Material materialAt(int x, int y, int z);
-
-        /**
-         * Puts a full block down.
+         * Shows a block where there is not one, to whoever can see this ring.
+         *
+         * <p>Shows, not places. The server's own block is untouched.
          *
          * @param x
          *            block x
@@ -66,12 +59,12 @@ public class RingCycle
          * @param z
          *            block z
          * @param material
-         *            what to place
+         *            what to show
          */
-        void setBlock(int x, int y, int z, Material material);
+        void showBlock(int x, int y, int z, Material material);
 
         /**
-         * Puts a slab down, filling one half of its block.
+         * Shows a slab filling one half of its block.
          *
          * @param x
          *            block x
@@ -84,7 +77,19 @@ public class RingCycle
          * @param top
          *            true to fill the upper half
          */
-        void setSlab(int x, int y, int z, Material material, boolean top);
+        void showSlab(int x, int y, int z, Material material, boolean top);
+
+        /**
+         * Shows what is really there, undoing a drawing.
+         *
+         * @param x
+         *            block x
+         * @param y
+         *            block y
+         * @param z
+         *            block z
+         */
+        void reveal(int x, int y, int z);
 
         /**
          * Everyone and everything standing in a volume.
@@ -115,11 +120,8 @@ public class RingCycle
     /** How deep each trigger volume runs. */
     private final int reach;
 
-    /** What each block held before this cycle touched it, by packed position. */
-    private final Map<Long, Material> restore = new LinkedHashMap<Long, Material>();
-
-    /** What this cycle last put in each block, so a changed block is left alone. */
-    private final Map<Long, Material> placed = new HashMap<Long, Material>();
+    /** Positions this cycle is currently drawing over, so they can be cleared again. */
+    private final Set<Long> drawn = new LinkedHashSet<Long>();
 
     /** How far through the current phase we are. */
     private int frame = 0;
@@ -187,7 +189,7 @@ public class RingCycle
      */
     public void abort()
     {
-        restoreEverything();
+        clearDrawing();
         pair.setPhase(RingPhase.IDLE);
         frame = 0;
     }
@@ -197,7 +199,7 @@ public class RingCycle
      */
     public void beginDeploy()
     {
-        restoreEverything();
+        clearDrawing();
         pair.setPhase(RingPhase.DEPLOY);
         frame = 0;
         drawDeployFrame(0);
@@ -211,20 +213,36 @@ public class RingCycle
     public boolean advanceFrame()
     {
         frame++;
-        if (frame >= RingAnimator.deployFrames(pair.getStyle()))
+        if (frame >= longestPhase())
         {
             return false;
         }
         if (pair.getPhase() == RingPhase.RETRACT)
         {
-            drawFrame(RingAnimator.retractFrame(pair.getEndA(), pair.getStyle(), frame),
-                RingAnimator.retractFrame(pair.getEndB(), pair.getStyle(), frame));
+            drawFrame(RingAnimator.retractFrame(pair.getEndA(), pair.getEndA().getStyle(), frame),
+                RingAnimator.retractFrame(pair.getEndB(), pair.getEndB().getStyle(), frame));
         }
         else
         {
             drawDeployFrame(frame);
         }
         return true;
+    }
+
+    /**
+     * How long the travelling phase runs for.
+     *
+     * <p>The longer of the two ends. Each end deploys at its own pace, so a concurrent stack
+     * finishes before a sequential one and simply stands there until the other is up: the
+     * swap needs both, and waiting for the slower is the only way to have it. A ring that has
+     * arrived holds its place anyway, so the wait costs nothing to draw.
+     *
+     * @return the number of frames
+     */
+    private int longestPhase()
+    {
+        return Math.max(RingAnimator.deployFrames(pair.getEndA().getStyle()),
+            RingAnimator.deployFrames(pair.getEndB().getStyle()));
     }
 
     /**
@@ -265,6 +283,47 @@ public class RingCycle
     }
 
     /**
+     * Draws one frame of the transport flash.
+     *
+     * <p>The stack is up and still; the light runs through it one ring at a time. The lit
+     * ring is drawn over the top of the stack rather than instead of it, so the rings that
+     * are not lit stay exactly where they were and nothing appears to move.
+     *
+     * @param direction
+     *            which way the light runs
+     * @param step
+     *            which frame, from zero
+     */
+    public void drawFlash(final RingFlashDirection direction, final int step)
+    {
+        clearDrawing();
+        drawPlacements(RingAnimator.settledStack(pair.getEndA(), pair.getEndA().getStyle()),
+            pair.getEndA().getRingMaterial());
+        drawPlacements(RingAnimator.settledStack(pair.getEndB(), pair.getEndB().getStyle()),
+            pair.getEndB().getRingMaterial());
+
+        final int lit = RingAnimator.litRing(direction, step);
+        drawPlacements(RingAnimator.ringAtRest(pair.getEndA(), lit),
+            pair.getEndA().getLightMaterial());
+        drawPlacements(RingAnimator.ringAtRest(pair.getEndB(), lit),
+            pair.getEndB().getLightMaterial());
+    }
+
+    /**
+     * Draws the stack plainly, with no ring lit.
+     *
+     * <p>What the rings look like either side of the flash.
+     */
+    public void drawSettled()
+    {
+        clearDrawing();
+        drawPlacements(RingAnimator.settledStack(pair.getEndA(), pair.getEndA().getStyle()),
+            pair.getEndA().getRingMaterial());
+        drawPlacements(RingAnimator.settledStack(pair.getEndB(), pair.getEndB().getStyle()),
+            pair.getEndB().getRingMaterial());
+    }
+
+    /**
      * Holds the stack still for a beat after the swap.
      */
     public void beginHold()
@@ -279,8 +338,8 @@ public class RingCycle
     {
         pair.setPhase(RingPhase.RETRACT);
         frame = 0;
-        drawFrame(RingAnimator.retractFrame(pair.getEndA(), pair.getStyle(), 0),
-            RingAnimator.retractFrame(pair.getEndB(), pair.getStyle(), 0));
+        drawFrame(RingAnimator.retractFrame(pair.getEndA(), pair.getEndA().getStyle(), 0),
+            RingAnimator.retractFrame(pair.getEndB(), pair.getEndB().getStyle(), 0));
     }
 
     /**
@@ -291,7 +350,7 @@ public class RingCycle
      */
     public void finish(final long cooldownUntil)
     {
-        restoreEverything();
+        clearDrawing();
         pair.setCooldownUntil(cooldownUntil);
         pair.setPhase(RingPhase.IDLE);
         frame = 0;
@@ -339,10 +398,7 @@ public class RingCycle
     {
         for (final int[] block : RingAnimator.lightBlocks(ring))
         {
-            // Lights go into the surface, so unlike the travelling slabs they have to be
-            // allowed to replace the solid block that is already there. It goes back on the
-            // way out like anything else this cycle touches.
-            place(block[0], block[1], block[2], ring.getLightMaterial(), false, false, true);
+            draw(block[0], block[1], block[2], ring.getLightMaterial(), false, false);
         }
     }
 
@@ -354,8 +410,8 @@ public class RingCycle
      */
     private void drawDeployFrame(final int index)
     {
-        drawFrame(RingAnimator.deployFrame(pair.getEndA(), pair.getStyle(), index),
-            RingAnimator.deployFrame(pair.getEndB(), pair.getStyle(), index));
+        drawFrame(RingAnimator.deployFrame(pair.getEndA(), pair.getEndA().getStyle(), index),
+            RingAnimator.deployFrame(pair.getEndB(), pair.getEndB().getStyle(), index));
     }
 
     /**
@@ -372,7 +428,7 @@ public class RingCycle
      */
     private void drawFrame(final List<RingAnimator.Placement> atA, final List<RingAnimator.Placement> atB)
     {
-        restoreEverything();
+        clearDrawing();
         drawPlacements(atA, pair.getEndA().getRingMaterial());
         drawPlacements(atB, pair.getEndB().getRingMaterial());
     }
@@ -389,24 +445,19 @@ public class RingCycle
     {
         for (final RingAnimator.Placement placement : placements)
         {
-            place(placement.getX(), placement.getY(), placement.getZ(), material, true,
-                placement.isTop(), false);
+            draw(placement.getX(), placement.getY(), placement.getZ(), material, true,
+                placement.isTop());
         }
     }
 
     /**
-     * Puts a block down if the space is free, remembering what was there.
+     * Shows a block to whoever can see this ring.
      *
-     * <p>The two things this cycle draws have opposite rules, and deliberately so.
-     *
-     * <p>A <b>travelling ring</b> may only fill air. It is decoration passing through a space
-     * that belongs to somebody else, so a blocked position is skipped and the frame is drawn
-     * with a gap in it — a far better outcome than a hole in somebody's wall.
-     *
-     * <p>A <b>light</b> is set into the surface the ring is built into, so it has to replace
-     * the solid block already there or it could never appear at all. That is safe for the
-     * same reason the ring's own footprint is: it is a handful of blocks the player marked
-     * out as a ring, every one of them is remembered, and they all go back at the end.
+     * <p>Drawn over whatever is really there, because nothing here is real: a light set into
+     * a floor has a floor block in its way by definition, and a ring passing through
+     * somebody's staircase should still look like a complete ring. Since the world is not
+     * being changed, covering a block costs nothing and the ring is never drawn with holes in
+     * it where the ground happened to be in the way.
      *
      * @param x
      *            block x
@@ -415,63 +466,42 @@ public class RingCycle
      * @param z
      *            block z
      * @param material
-     *            what to place
+     *            what to show
      * @param slab
-     *            true to place it as a slab
+     *            true to show it as a slab
      * @param top
      *            for a slab, true to fill the upper half
-     * @param replaceSolid
-     *            true to write over whatever is there rather than only over air
      */
-    private void place(final int x, final int y, final int z, final Material material,
-        final boolean slab, final boolean top, final boolean replaceSolid)
+    private void draw(final int x, final int y, final int z, final Material material,
+        final boolean slab, final boolean top)
     {
-        final long key = RingIndex.pack(x, y, z);
-        if (restore.containsKey(Long.valueOf(key)))
-        {
-            return;
-        }
-        final Material existing = world.materialAt(x, y, z);
-        if (!replaceSolid && (existing != Material.AIR))
-        {
-            return;
-        }
-        restore.put(Long.valueOf(key), existing);
-        placed.put(Long.valueOf(key), material);
+        drawn.add(Long.valueOf(RingIndex.pack(x, y, z)));
         if (slab)
         {
-            world.setSlab(x, y, z, material, top);
+            world.showSlab(x, y, z, material, top);
         }
         else
         {
-            world.setBlock(x, y, z, material);
+            world.showBlock(x, y, z, material);
         }
     }
 
     /**
-     * Puts back everything this cycle has written.
+     * Clears everything this cycle is drawing.
      *
-     * <p>A block is only restored if it still holds what this cycle put there. Somebody may
-     * have built on a ring while it was up, and undoing that would be this feature
-     * vandalising the world on their behalf. Either way the record is dropped, because the
-     * block is no longer ours to think about.
+     * <p>Just showing each client the block that was always there. Because the world was
+     * never modified there is nothing to restore in order, nothing to remember, and no way
+     * for this to damage anything — even if a player changed one of these blocks while the
+     * rings were up, what gets shown is simply whatever is now real.
      */
-    private void restoreEverything()
+    private void clearDrawing()
     {
-        for (final Map.Entry<Long, Material> entry : restore.entrySet())
+        for (final Long key : drawn)
         {
-            final long key = entry.getKey().longValue();
-            final int x = RingIndex.unpackX(key);
-            final int y = RingIndex.unpackY(key);
-            final int z = RingIndex.unpackZ(key);
-            final Material ours = placed.get(entry.getKey());
-            if ((ours != null) && (world.materialAt(x, y, z) != ours))
-            {
-                continue;
-            }
-            world.setBlock(x, y, z, entry.getValue());
+            final long packed = key.longValue();
+            world.reveal(RingIndex.unpackX(packed), RingIndex.unpackY(packed),
+                RingIndex.unpackZ(packed));
         }
-        restore.clear();
-        placed.clear();
+        drawn.clear();
     }
 }

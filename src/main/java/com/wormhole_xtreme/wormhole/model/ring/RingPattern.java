@@ -17,14 +17,14 @@ import java.util.List;
  * to parse, validate, document and get wrong for no benefit at all.
  *
  * <p>The odd pattern <em>is</em> the Standard gate's ring — the same profile,
- * {@code 3,5,7,7,7,5,3}, lying flat instead of standing up. The even one is the same
- * construction one block wider in each axis.
+ * {@code 3,5,7,7,7,5,3}, lying flat instead of standing up. The even one is a size down from
+ * it, for rooms that cannot spare seven blocks in both directions.
  *
  * <p>What makes them read as circles rather than as squares with clipped corners is that
- * each corner turns through <b>two diagonal steps</b> rather than one. That needs a diameter
- * of at least seven: at five, two steps collapses the shape into a diamond with five blocks
- * of standing room, and the only usable five-wide ring has a single-step corner and looks
- * like an octagon. Seven is the smallest ring that is properly round.
+ * each corner turns through <b>two diagonal steps</b> rather than one. Six is as small as
+ * that goes: at five, two steps collapses the shape into a diamond with almost no standing
+ * room, and the only usable five-wide ring has a single-step corner that looks like an
+ * octagon. So the two sizes here are the small round ring and the gate's own.
  *
  * <p>Each pattern is described by nothing but its row widths. Everything else — which cells
  * are perimeter, which are interior, where the anchor sits — is derived below, so adding a
@@ -47,8 +47,8 @@ public enum RingPattern
     /** Seven across, a true centre block, 16 perimeter blocks around a 21-block interior. */
     ODD(new int[] { 3, 5, 7, 7, 7, 5, 3 }),
 
-    /** Eight across, a 2x2 centre, 20 perimeter blocks around a 32-block interior. */
-    EVEN(new int[] { 4, 6, 8, 8, 8, 8, 6, 4 });
+    /** Six across, a 2x2 centre, 12 perimeter blocks around a 12-block interior. */
+    EVEN(new int[] { 2, 4, 6, 6, 4, 2 });
 
     /**
      * One cell of a pattern, as an offset from the ring's anchor block.

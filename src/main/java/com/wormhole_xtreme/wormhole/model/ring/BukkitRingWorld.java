@@ -11,7 +11,6 @@ import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
@@ -22,77 +21,171 @@ import org.bukkit.util.BoundingBox;
  * Everything the ring subsystem does to a real world, in one place.
  *
  * <p>This class exists to be boring. All the decisions — what order things happen in, who
- * travels, what gets put back — live in {@link RingCycle} and {@link RingAnimator}, where
- * they can be checked without a server. What is left here is placing blocks, reading blocks,
- * finding entities and moving them, with no logic worth arguing about.
+ * travels, what is drawn when — live in {@link RingCycle} and {@link RingAnimator}, where
+ * they can be checked without a server. What is left here is drawing blocks, finding
+ * entities and moving them, with no logic worth arguing about.
  *
- * <p>It is also the only class that knows a slab is a {@link Slab}, which is why the
- * half-block animation needs no special handling anywhere else.
+ * <p><b>Nothing here changes the world.</b> Rings and their lights are sent to clients as
+ * block changes and the server's own blocks are never touched, exactly as a gate draws its
+ * portal. A ring is scenery that exists for five seconds; making it real would mean a server
+ * stopped mid-cycle keeping it for good, block loggers recording a floor being replaced on
+ * every trip, and players able to mine free glowstone out of their own floor while it stood
+ * there. It also means nobody can stand on a rising ring or be shoved by one, which is the
+ * right behaviour and one less hazard to design around.
+ *
+ * <p>The cost of an illusion is that it only exists for those it was sent to, and that
+ * anything handing a client a fresh copy of the chunk erases it. Both are the same trade
+ * gates already make.
  */
 public class BukkitRingWorld implements RingCycle.Surroundings
 {
+    /** How far from a ring a player has to be to be sent its drawing. */
+    private static final int VIEW_DISTANCE = 96;
+
+    /** Squared, so the range check needs no square root. */
+    private static final double VIEW_DISTANCE_SQUARED = (double) VIEW_DISTANCE * VIEW_DISTANCE;
+
+    /** How long a computed audience is reused before being worked out again. */
+    private static final long AUDIENCE_TTL_MILLIS = 50L;
+
     /** The world this operates in. Both ends of a pair are always in it. */
     private final World world;
 
     /** How deep a trigger volume runs, needed to work out where arrivals land. */
     private final int reach;
 
+    /** The pair being drawn, whose two ends decide who can see it. */
+    private final RingPair pair;
+
+    /** Who is currently being drawn to. */
+    private List<Player> audience = new ArrayList<Player>();
+
+    /** When that list was last worked out. */
+    private long audienceComputedAt = 0L;
+
     /**
      * Instantiates a world adapter.
      *
      * @param world
      *            the world to operate in
+     * @param pair
+     *            the pair being drawn
      * @param reach
      *            how deep each trigger volume runs
      */
-    public BukkitRingWorld(final World world, final int reach)
+    public BukkitRingWorld(final World world, final RingPair pair, final int reach)
     {
         this.world = world;
+        this.pair = pair;
         this.reach = reach;
     }
 
-    /* (non-Javadoc)
-     * @see RingCycle.Surroundings#materialAt(int, int, int)
+    /**
+     * Who should be sent this pair's drawing.
+     *
+     * <p>Recomputed at most once a tick rather than per block, because a frame draws dozens
+     * of them and the answer cannot change in between. Recomputed at all, rather than fixed
+     * when the cycle starts, so that somebody who has just been carried to the far end sees
+     * the rings that brought them there.
+     *
+     * @return the players in range of either end
      */
-    @Override
-    public Material materialAt(final int x, final int y, final int z)
+    private List<Player> audience()
     {
-        return world.getBlockAt(x, y, z).getType();
+        final long now = System.currentTimeMillis();
+        if ((now - audienceComputedAt) < AUDIENCE_TTL_MILLIS)
+        {
+            return audience;
+        }
+        final List<Player> found = new ArrayList<Player>();
+        for (final Player player : world.getPlayers())
+        {
+            if (inRangeOf(player, pair.getEndA()) || inRangeOf(player, pair.getEndB()))
+            {
+                found.add(player);
+            }
+        }
+        audience = found;
+        audienceComputedAt = now;
+        return audience;
+    }
+
+    /**
+     * Whether a player is close enough to one end to be shown it.
+     *
+     * @param player
+     *            the player
+     * @param ring
+     *            the end
+     * @return true if they are in range
+     */
+    private static boolean inRangeOf(final Player player, final Ring ring)
+    {
+        final Location at = player.getLocation();
+        final double dx = at.getX() - ring.getAnchorX();
+        final double dy = at.getY() - ring.getAnchorY();
+        final double dz = at.getZ() - ring.getAnchorZ();
+        return ((dx * dx) + (dy * dy) + (dz * dz)) <= VIEW_DISTANCE_SQUARED;
     }
 
     /* (non-Javadoc)
-     * @see RingCycle.Surroundings#setBlock(int, int, int, org.bukkit.Material)
+     * @see RingCycle.Surroundings#showBlock(int, int, int, org.bukkit.Material)
      */
     @Override
-    public void setBlock(final int x, final int y, final int z, final Material material)
+    public void showBlock(final int x, final int y, final int z, final Material material)
     {
-        // Physics off. A ring is scenery that exists for a second or two, and letting it
-        // trigger falling sand, water flow or block updates would leave the world changed
-        // after the rings had gone.
-        world.getBlockAt(x, y, z).setType(material, false);
+        send(x, y, z, material.createBlockData());
     }
 
     /* (non-Javadoc)
-     * @see RingCycle.Surroundings#setSlab(int, int, int, org.bukkit.Material, boolean)
+     * @see RingCycle.Surroundings#showSlab(int, int, int, org.bukkit.Material, boolean)
      */
     @Override
-    public void setSlab(final int x, final int y, final int z, final Material material,
+    public void showSlab(final int x, final int y, final int z, final Material material,
         final boolean top)
     {
-        final Block block = world.getBlockAt(x, y, z);
         final BlockData data = material.createBlockData();
         if (data instanceof Slab)
         {
-            final Slab slab = (Slab) data;
-            slab.setType(top ? Slab.Type.TOP : Slab.Type.BOTTOM);
-            block.setBlockData(slab, false);
-            return;
+            ((Slab) data).setType(top ? Slab.Type.TOP : Slab.Type.BOTTOM);
         }
-        // A ring material is validated as a slab when it is set, so this should not happen.
-        // Placing it as a plain block still animates, just without half-block movement,
-        // which is a better outcome than a cycle that throws halfway through and leaves
-        // the rings standing.
-        block.setType(material, false);
+        // A ring material is validated as a slab wherever one is set, so the cast above
+        // should always hold. Showing it as a plain block if it somehow does not still
+        // animates — just in whole blocks — which beats throwing mid-cycle.
+        send(x, y, z, data);
+    }
+
+    /* (non-Javadoc)
+     * @see RingCycle.Surroundings#reveal(int, int, int)
+     */
+    @Override
+    public void reveal(final int x, final int y, final int z)
+    {
+        // Whatever is really there, which is whatever was always there: this class has not
+        // changed a block. If a player altered it while the rings were up, they see their
+        // own change, which is exactly right.
+        send(x, y, z, world.getBlockAt(x, y, z).getBlockData());
+    }
+
+    /**
+     * Sends one block change to everyone watching.
+     *
+     * @param x
+     *            block x
+     * @param y
+     *            block y
+     * @param z
+     *            block z
+     * @param data
+     *            what to show them
+     */
+    private void send(final int x, final int y, final int z, final BlockData data)
+    {
+        final Location at = new Location(world, x, y, z);
+        for (final Player player : audience())
+        {
+            player.sendBlockChange(at, data);
+        }
     }
 
     /* (non-Javadoc)

@@ -25,14 +25,14 @@ There are exactly two, and they are hardcoded. No `.shape` file format — a fil
 two fixed arrays is dead weight.
 
 The odd pattern **is the Standard gate's ring** — the same profile, `3,5,7,7,7,5,3`, lying
-flat instead of standing up. The even one is that same construction one block wider in each
-axis.
+flat instead of standing up. The even one is a size down from it, for rooms that cannot
+spare seven blocks in both directions.
 
 What makes them read as circles rather than as squares with clipped corners is that each
 corner turns through **two diagonal steps** rather than one. That needs a diameter of at
-least seven: at five, two steps collapses the shape into a diamond with five blocks of
-standing room, and the only usable five-wide ring has a single-step corner that looks like
-an octagon. Seven is the smallest ring that is properly round.
+least six: at five, two steps collapses the shape into a diamond with almost no standing
+room, and the only usable five-wide ring has a single-step corner that looks like an
+octagon. So the two sizes on offer are the small round ring and the gate's own.
 
 Odd — 7 across, disc profile `3,5,7,7,7,5,3`:
 
@@ -48,20 +48,18 @@ Odd — 7 across, disc profile `3,5,7,7,7,5,3`:
 
 16 perimeter blocks, 21 interior. Has a true centre block.
 
-Even — 8 across, disc profile `4,6,8,8,8,8,6,4`:
+Even — 6 across, disc profile `2,4,6,6,4,2`:
 
 ```
-. . # # # # . .
-. # · · · · # .
-# · · · · · · #
-# · · + · · · #
-# · · · · · · #
-# · · · · · · #
-. # · · · · # .
-. . # # # # . .
+. . # # . .
+. # · · # .
+# · + · · #
+# · · · · #
+. # · · # .
+. . # # . .
 ```
 
-20 perimeter blocks, 32 interior. Centre is a 2x2, and `+` marks the corner of it the ring
+12 perimeter blocks, 12 interior. Centre is a 2x2, and `+` marks the corner of it the ring
 is anchored to.
 
 `#` is the perimeter: what the player lays in slabs, and what animates. `·` is the
@@ -73,7 +71,7 @@ of slabs, not a disc, and whatever is already inside it (floor, carpet, a rail) 
 
 Offsets are stored as integer `(dx, dz)` pairs from an anchor block. For the odd pattern the
 anchor is the centre, giving offsets in `-3..+3`. For the even pattern there is no centre, so
-the anchor is the low-x/low-z block of the central 2x2, giving the asymmetric range `-3..+4`.
+the anchor is the low-x/low-z block of the central 2x2, giving the asymmetric range `-2..+3`.
 
 Neither table is written out. Each pattern is described by its row widths alone, and which
 cells are perimeter and which are interior is derived: a cell is on the outline when any of
@@ -157,10 +155,12 @@ Pairs:
     Created: 1756771200000
     Access: PRIVATE
     Allowed: [11111111-2222-3333-4444-555555555555]
-    Style: CONCURRENT
-    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
-    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT}
+    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Style: SEQUENTIAL}
 ```
+
+A `Style` written at the pair level rather than on each end is how files from before it moved
+look, and is read as the fallback for both, so those pairs keep behaving exactly as they did.
 
 The `World` field inside the file is authoritative, not the filename. World names can
 contain characters a filesystem will not take, so the name is sanitised on the way out and
@@ -226,7 +226,7 @@ IDLE        a move event inside either interior arms the pair
 COUNTDOWN   the ring's pattern lights up in the floor — ABORTS if both interiors go empty
 DEPLOY      rings rise — COMMITTED, no abort, runs to completion
 HOLD        the finished stack stands still for a second
-FLASH       snapshot both interiors in one tick, swap
+FLASH       light runs through the stack a ring at a time, then the swap
 HOLD        rings stand a moment more, travellers already gone
 RETRACT     rings return nearest-first, every block restored
 COOLDOWN    pair refuses all triggers
@@ -405,6 +405,31 @@ once people have started using it.
 Revoking the owner does nothing, because their access comes from ownership rather than from
 the list. There is no sequence of commands that leaves a pair nobody can use or change.
 
+## Rings are drawn, not built
+
+**Nothing in a cycle changes the world.** The lights and the travelling rings are sent to
+nearby clients as block changes and the server's own blocks are never touched, the same way
+a gate draws its portal.
+
+Making them real looked simpler and was worse in three separate ways. A server stopped
+mid-cycle would keep the rings for good, since nothing would be left running to take them
+down. Block-logging plugins would record a floor being replaced on every single trip. And
+for the few seconds a ring stood there, its glowstone and slabs were ordinary breakable
+blocks — mine one and you got a free glowstone, and the restore then skipped it and left a
+permanent hole in the floor.
+
+Drawing has none of those, and it makes putting things back trivial rather than delicate:
+since the real blocks were never touched, undoing a drawing is just showing the client what
+was always there. There is nothing to remember, nothing to restore in the right order, and no
+need to check whether somebody changed a block underneath us. It also means a ring can be
+drawn straight over whatever is in its way and still look like a complete ring, where placing
+real blocks had to skip those positions and leave gaps.
+
+It costs what a gate's portal costs: the drawing only exists for those it was sent to, and
+anything handing a client a fresh copy of the chunk erases it. Rings are also not solid, so
+nobody can stand on a rising ring or be shoved by one — which is the right behaviour, and one
+less hazard to design around.
+
 ## Animation
 
 Five rings end up **half a block of clear air apart** — one block centre to centre, since a
@@ -433,9 +458,11 @@ There are **two ways they get there**, both of which the show uses. `rings.defau
 They differ *only* in when a ring leaves the plane. Where each ends up, how far it travels
 and how they come home are identical, so this is one number rather than two animations.
 
-Style belongs to the pair, not to an end — the same reasoning as access. Both stacks have to
-be up for the swap, so ends with different timings would leave one standing and waiting on
-the other.
+Style belongs to the **end**, like the materials do. Nobody watches both at once — a
+traveller is at one of them, and by the time they can see the other they have arrived — so
+a base can deploy differently from the outpost it connects to. The two still have to finish
+together, and that is arranged by waiting for the slower of them rather than by forcing them
+to match; a ring that has arrived holds its place anyway, so the wait costs nothing to draw.
 
 The finished stack then **stands still for a second before anybody moves**, and again after.
 Taking people the instant the last ring stops reads as the teleport interrupting the rings;
@@ -461,6 +488,20 @@ skipped rather than overwritten — the animation must never eat a player's buil
 never restore a block someone changed underneath it.
 
 Ceiling rings run the same sequence with the travel direction inverted.
+
+## The transport flash
+
+With the stack up and still, the light runs through it one ring at a time and the travellers
+go as the last of them lights. It is the moment the whole cycle is built around: everything
+before it is the rings getting into position and everything after is them putting themselves
+away, so the transport itself gets an animation rather than being an instant nobody sees.
+
+`rings.flash-direction` is `TOP_DOWN` by default, which is how the show does it, and
+`BOTTOM_UP` is the same animation read the other way. `rings.flash-ticks` is how long each
+ring stays lit.
+
+The lit ring is drawn **over** the stack rather than instead of it, so the rings that are not
+lit stay exactly where they are and nothing appears to move while the light passes.
 
 ## Limits
 
@@ -497,6 +538,8 @@ rings:
   deploy-ticks: 2            # ticks between animation frames
   settle-ticks: 20           # stack stands still this long before the teleport
   hold-ticks: 40             # and this long after it, before retracting
+  flash-ticks: 3             # how long each ring stays lit as the light passes
+  flash-direction: TOP_DOWN  # or BOTTOM_UP
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited; distance itself costs nothing
@@ -527,7 +570,7 @@ one declaration.
            light <material>   the countdown lights                   per end
            label <text>       display only                           per pair
            access public|private                                     per pair
-           style concurrent|sequential                                per pair
+           style concurrent|sequential                                per end
 ```
 
 Everything adjustable lives under one `edit` verb rather than a subcommand per field. Gates
@@ -640,17 +683,20 @@ In rough order of how much they would hurt to get wrong:
    the negative ones — the restore path unpacks these to decide which block to put back.
 6. Rings climb a clear block apart and finish half a block apart, the gaps closing from the
    top down, and nothing ever rises above where the top ring settles.
-7. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
-8. Overlapping footprints are refused at create, including against gate blocks.
-9. Pattern matching picks the right one of the two, and rejects a near-miss circle.
-10. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
+7. A full cycle changes no real block, and leaves nothing drawn behind.
+8. The flash touches every ring exactly once, starting from the top or the floor as
+   configured.
+9. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
+10. Overlapping footprints are refused at create, including against gate blocks.
+11. Pattern matching picks the right one of the two, and rejects a near-miss circle.
+12. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
-11. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-12. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+13. A damaged entry in a world file is skipped with a log line, and the rest still loads.
+14. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
-13. Pairing refuses a second endpoint placed in a different world, and says why.
-14. `edit` without an id changes only the end the player is standing in; with an id it
+15. Pairing refuses a second endpoint placed in a different world, and says why.
+16. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.
-15. A private pair refuses a stranger, carries the owner and the people they named, and
+17. A private pair refuses a stranger, carries the owner and the people they named, and
     leaves an unpermitted player standing while everyone else goes.
-16. A stored pair with a missing or unreadable access field loads private, never public.
+18. A stored pair with a missing or unreadable access field loads private, never public.

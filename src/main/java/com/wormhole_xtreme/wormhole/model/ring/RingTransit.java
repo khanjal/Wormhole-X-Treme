@@ -58,7 +58,7 @@ public final class RingTransit
         }
 
         final int reach = ConfigManager.getRingReach();
-        final RingCycle cycle = new RingCycle(pair, new BukkitRingWorld(world, reach), reach);
+        final RingCycle cycle = new RingCycle(pair, new BukkitRingWorld(world, pair, reach), reach);
         // Both ends have to be loaded for the whole cycle. The far end is usually nowhere
         // near a player, and animating into an unloaded chunk writes blocks nobody will see
         // put back and lands travellers in terrain that has not been generated.
@@ -168,7 +168,7 @@ public final class RingTransit
                 {
                     try
                     {
-                        swapAndHold(cycle, world);
+                        runFlash(cycle, world, 0);
                     }
                     catch (final RuntimeException e)
                     {
@@ -176,6 +176,47 @@ public final class RingTransit
                     }
                 }
             }, ConfigManager.getRingSettleTicks());
+    }
+
+    /**
+     * Runs the light through the stack, one ring at a time, then moves everybody.
+     *
+     * <p>This is the moment the whole cycle is built around. Everything before it is the
+     * rings getting into position and everything after is them putting themselves away, so
+     * the transport itself gets an animation of its own rather than being an instant nobody
+     * sees.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     * @param step
+     *            which frame of the flash
+     */
+    private static void runFlash(final RingCycle cycle, final World world, final int step)
+    {
+        if (step >= RingAnimator.flashFrames())
+        {
+            swapAndHold(cycle, world);
+            return;
+        }
+        cycle.drawFlash(ConfigManager.getRingFlashDirection(), step);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        runFlash(cycle, world, step + 1);
+                    }
+                    catch (final RuntimeException e)
+                    {
+                        recover(cycle, world, e);
+                    }
+                }
+            }, ConfigManager.getRingFlashTicks());
     }
 
     /**
@@ -194,6 +235,8 @@ public final class RingTransit
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
                 "Ring pair " + cycle.getPair().getId() + " carried " + travelled + " passengers.");
         }
+        // Back to the plain stack: the light has passed and the travellers have gone.
+        cycle.drawSettled();
         cycle.beginHold();
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new Runnable()

@@ -13,11 +13,14 @@ package com.wormhole_xtreme.wormhole.model.ring;
  * in front; sequentially, not until it has stopped — which is why one enum and one changed
  * number covers both rather than two animations existing side by side.
  *
- * <p>Style belongs to the <em>pair</em>, not to an end, for the same reason access does:
- * both ends run as one cycle and the swap happens when both stacks are up. Ends with
- * different styles would finish deploying at different moments and one would stand waiting
- * on the other, which is a worse effect than either style on its own. Materials can differ
- * per end because they are cosmetic and local; timing is shared because the event is shared.
+ * <p>Style belongs to the <em>end</em>, like the materials do, because nobody ever watches
+ * both at once: a traveller is standing at one of them, and by the time they can see the
+ * other they have already arrived. So a base can deploy differently from the outpost it
+ * connects to, and neither is any the worse for it.
+ *
+ * <p>The two still have to finish together, since the swap needs both stacks up. That is
+ * arranged by waiting for the slower of them rather than by forcing them to match — a ring
+ * that has arrived holds its place regardless, so the wait costs nothing to draw.
  */
 public enum RingStyle
 {

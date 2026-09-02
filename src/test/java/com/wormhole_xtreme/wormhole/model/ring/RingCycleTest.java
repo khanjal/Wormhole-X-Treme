@@ -15,9 +15,13 @@ import org.junit.jupiter.api.Test;
  *
  * <p>A wrong swap does not throw. It puts somebody back where they started, or carries
  * somebody who was not allowed, and a live server shows that only as a confused player. A
- * wrong restore does not throw either — it leaves a slab standing in a floor, or eats a
- * block somebody had built, and nobody notices until the damage has been there a while.
- * Both are why the cycle reaches the world through an interface rather than through Bukkit.
+ * drawing left behind does not throw either — a ring simply stays hanging in somebody's
+ * room until they relog. Both are why the cycle reaches the world through an interface
+ * rather than through Bukkit.
+ *
+ * <p>The fake world below keeps the real blocks and the drawn ones apart, which is the whole
+ * point of the change these tests cover: rings are shown to clients and never written, so
+ * every test here can assert that the world came out of a cycle exactly as it went in.
  */
 public class RingCycleTest
 {
@@ -59,16 +63,39 @@ public class RingCycleTest
         }
     }
 
-    /** A world of blocks in a map, and passengers pinned to a ring. */
+    /** Real blocks and drawn blocks, kept deliberately apart. */
     private static final class FakeWorld implements RingCycle.Surroundings
     {
-        private final Map<Long, Material> blocks = new HashMap<Long, Material>();
+        /** What the server actually has. Nothing in the cycle may ever change this. */
+        private final Map<Long, Material> real = new HashMap<Long, Material>();
+
+        /** What clients are currently being shown over the top of it. */
+        private final Map<Long, Material> drawn = new HashMap<Long, Material>();
+
         private final Map<String, List<RingPassenger>> standing = new HashMap<String, List<RingPassenger>>();
         final List<String> deliveries = new ArrayList<String>();
 
-        void set(final int x, final int y, final int z, final Material material)
+        void setReal(final int x, final int y, final int z, final Material material)
         {
-            blocks.put(Long.valueOf(RingIndex.pack(x, y, z)), material);
+            real.put(Long.valueOf(RingIndex.pack(x, y, z)), material);
+        }
+
+        Material realAt(final int x, final int y, final int z)
+        {
+            final Material found = real.get(Long.valueOf(RingIndex.pack(x, y, z)));
+            return found == null ? Material.AIR : found;
+        }
+
+        /** What a client sees: the drawing if there is one, otherwise the real block. */
+        Material seenAt(final int x, final int y, final int z)
+        {
+            final Material shown = drawn.get(Long.valueOf(RingIndex.pack(x, y, z)));
+            return shown == null ? realAt(x, y, z) : shown;
+        }
+
+        int drawnCount()
+        {
+            return drawn.size();
         }
 
         void put(final Ring ring, final RingPassenger... passengers)
@@ -86,44 +113,30 @@ public class RingCycleTest
             return ring.getAnchorX() + ":" + ring.getAnchorY() + ":" + ring.getAnchorZ();
         }
 
-        int placedCount()
+        @Override
+        public void showBlock(final int x, final int y, final int z, final Material material)
         {
-            int count = 0;
-            for (final Material material : blocks.values())
-            {
-                if (material != Material.AIR)
-                {
-                    count++;
-                }
-            }
-            return count;
+            drawn.put(Long.valueOf(RingIndex.pack(x, y, z)), material);
         }
 
         @Override
-        public Material materialAt(final int x, final int y, final int z)
-        {
-            final Material found = blocks.get(Long.valueOf(RingIndex.pack(x, y, z)));
-            return found == null ? Material.AIR : found;
-        }
-
-        @Override
-        public void setBlock(final int x, final int y, final int z, final Material material)
-        {
-            set(x, y, z, material);
-        }
-
-        @Override
-        public void setSlab(final int x, final int y, final int z, final Material material,
+        public void showSlab(final int x, final int y, final int z, final Material material,
             final boolean top)
         {
-            set(x, y, z, material);
+            showBlock(x, y, z, material);
+        }
+
+        @Override
+        public void reveal(final int x, final int y, final int z)
+        {
+            drawn.remove(Long.valueOf(RingIndex.pack(x, y, z)));
         }
 
         @Override
         public List<RingPassenger> passengersIn(final List<int[]> volume)
         {
-            // The volume always belongs to one ring, so its first block identifies it well
-            // enough for a test: match on whichever ring's anchor lies inside it.
+            // The volume always belongs to one ring, so matching on whichever ring's anchor
+            // column lies inside it identifies it well enough for a test.
             for (final Map.Entry<String, List<RingPassenger>> entry : standing.entrySet())
             {
                 final String[] parts = entry.getKey().split(":");
@@ -239,7 +252,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void theCountdownLightsGoUpAndComeBackDownOnAbort()
+    public void theCountdownLightsAreDrawnAndCleanedUpOnAbort()
     {
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -247,11 +260,11 @@ public class RingCycleTest
 
         cycle.beginCountdown();
         assertEquals(RingPhase.COUNTDOWN, pair.getPhase());
-        assertEquals(RingPattern.ODD.getPerimeter().size() * 2, world.placedCount());
+        assertEquals(RingPattern.ODD.getPerimeter().size() * 2, world.drawnCount());
 
         cycle.abort();
         assertEquals(RingPhase.IDLE, pair.getPhase());
-        assertEquals(0, world.placedCount(), "nothing left behind");
+        assertEquals(0, world.drawnCount(), "nothing left drawn");
     }
 
     @Test
@@ -281,13 +294,76 @@ public class RingCycleTest
     }
 
     @Test
-    public void aFullRunPutsEveryBlockBackExactlyAsItWas()
+    public void aFullRunLeavesNothingDrawnBehind()
     {
-        // The thing that would otherwise leave slabs standing in somebody's floor forever.
+        // The thing that would otherwise leave a ring hanging in somebody's room until they
+        // next relogged.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
         final RingCycle cycle = new RingCycle(pair, world, REACH);
 
+        runWholeCycle(cycle);
+
+        assertEquals(RingPhase.IDLE, pair.getPhase());
+        assertEquals(0, world.drawnCount(), "not one block left drawn");
+    }
+
+    @Test
+    public void aWholeCycleNeverChangesASingleRealBlock()
+    {
+        // The point of drawing rather than placing. A server stopped mid-cycle keeps nothing,
+        // block loggers see nothing, and nobody can mine the glowstone out of their own floor
+        // while it is lit.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.setReal(-3, 63, 0, Material.STONE);
+        world.setReal(-3, 64, 0, Material.DIAMOND_BLOCK);
+
+        runWholeCycle(new RingCycle(pair, world, REACH));
+
+        assertEquals(Material.STONE, world.realAt(-3, 63, 0), "the floor was never replaced");
+        assertEquals(Material.DIAMOND_BLOCK, world.realAt(-3, 64, 0), "nor anything in the way");
+    }
+
+    @Test
+    public void aLightIsDrawnOverTheFloorItIsSetIntoAndThenTakenAway()
+    {
+        // A light sits inside the surface, so there is always a solid block where it goes.
+        // Drawing costs nothing, which is why it can simply cover it.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.setReal(-3, 63, 0, Material.STONE);
+
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+        cycle.beginCountdown();
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "the floor appears lit");
+        assertEquals(Material.STONE, world.realAt(-3, 63, 0), "but is still really stone");
+
+        cycle.abort();
+        assertEquals(Material.STONE, world.seenAt(-3, 63, 0), "and looks like stone again");
+    }
+
+    @Test
+    public void aRingIsDrawnStraightOverWhateverIsInItsWay()
+    {
+        // Since nothing is being replaced, a ring passing through somebody's staircase can
+        // simply be drawn over it and still look like a complete ring. Placing real blocks
+        // had to skip those positions and leave the ring with a hole in it.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.setReal(-3, 64, 0, Material.DIAMOND_BLOCK);
+
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+        cycle.beginCountdown();
+        cycle.beginDeploy();
+
+        assertEquals(Material.STONE_SLAB, world.seenAt(-3, 64, 0), "the ring is unbroken");
+        assertEquals(Material.DIAMOND_BLOCK, world.realAt(-3, 64, 0), "and the block is untouched");
+    }
+
+    /** Runs a cycle from countdown through to cooldown. */
+    private static void runWholeCycle(final RingCycle cycle)
+    {
         cycle.beginCountdown();
         cycle.beginDeploy();
         while (cycle.advanceFrame())
@@ -302,63 +378,6 @@ public class RingCycleTest
             // run the retract out
         }
         cycle.finish(0L);
-
-        assertEquals(RingPhase.IDLE, pair.getPhase());
-        assertEquals(0, world.placedCount(), "not one slab left standing");
-    }
-
-    @Test
-    public void aTravellingRingRefusesToWriteOverSomethingThatIsAlreadyThere()
-    {
-        // A ring passing through is decoration and whatever is in its way might not be, so a
-        // blocked position is skipped and the frame is drawn with a gap rather than a hole in
-        // somebody's wall.
-        final RingPair pair = pair();
-        final FakeWorld world = new FakeWorld();
-        world.set(-3, 64, 0, Material.DIAMOND_BLOCK);
-
-        final RingCycle cycle = new RingCycle(pair, world, REACH);
-        cycle.beginCountdown();
-        cycle.beginDeploy();
-
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0), "the slab gave way to it");
-        cycle.finish(0L);
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0), "and it survives the restore");
-    }
-
-    @Test
-    public void aLightDoesReplaceTheFloorItIsSetIntoAndPutsItBack()
-    {
-        // The one exception to the air-only rule, and it has to be: a light set into a floor
-        // has a floor block in the way by definition, so refusing to write over it would mean
-        // the pattern never appearing at all.
-        final RingPair pair = pair();
-        final FakeWorld world = new FakeWorld();
-        world.set(-3, 63, 0, Material.STONE);
-
-        final RingCycle cycle = new RingCycle(pair, world, REACH);
-        cycle.beginCountdown();
-        assertEquals(Material.GLOWSTONE, world.materialAt(-3, 63, 0), "the floor block lit up");
-
-        cycle.abort();
-        assertEquals(Material.STONE, world.materialAt(-3, 63, 0), "and the floor came back");
-    }
-
-    @Test
-    public void aBlockSomebodyChangedWhileTheRingsWereUpIsLeftAlone()
-    {
-        // Restoring here would be the plugin vandalising the world on somebody's behalf.
-        // The record is dropped instead: the block is no longer ours to think about.
-        final RingPair pair = pair();
-        final FakeWorld world = new FakeWorld();
-        world.set(-3, 63, 0, Material.STONE);
-        final RingCycle cycle = new RingCycle(pair, world, REACH);
-
-        cycle.beginCountdown();
-        world.set(-3, 63, 0, Material.DIAMOND_BLOCK);
-
-        cycle.abort();
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 63, 0));
     }
 
     @Test
@@ -367,7 +386,8 @@ public class RingCycleTest
         for (final RingStyle style : RingStyle.values())
         {
             final RingPair pair = pair();
-            pair.setStyle(style);
+            pair.getEndA().setStyle(style);
+            pair.getEndB().setStyle(style);
             final FakeWorld world = new FakeWorld();
             final RingCycle cycle = new RingCycle(pair, world, REACH);
 
@@ -387,7 +407,7 @@ public class RingCycleTest
                 // run it out
             }
             cycle.finish(0L);
-            assertEquals(0, world.placedCount(), style + " left something behind");
+            assertEquals(0, world.drawnCount(), style + " left something behind");
         }
     }
 
@@ -408,9 +428,9 @@ public class RingCycleTest
         final RingCycle cycle = new RingCycle(deep, world, REACH);
 
         cycle.beginCountdown();
-        assertTrue(world.placedCount() > 0, "the lights went up");
+        assertTrue(world.drawnCount() > 0, "the lights went up");
         cycle.abort();
-        assertEquals(0, world.placedCount(), "and came back down from the right blocks");
+        assertEquals(0, world.drawnCount(), "and came down from the right blocks");
     }
 
     @Test

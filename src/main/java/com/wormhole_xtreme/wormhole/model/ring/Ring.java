@@ -49,6 +49,9 @@ public class Ring
     /** What the perimeter shows during the countdown, before anything moves. */
     private Material lightMaterial;
 
+    /** How this end's stack comes out. Its own, so two ends can look different. */
+    private RingStyle style = RingStyle.CONCURRENT;
+
     /**
      * Instantiates a new ring.
      *
@@ -141,6 +144,31 @@ public class Ring
     public void setLightMaterial(final Material lightMaterial)
     {
         this.lightMaterial = lightMaterial;
+    }
+
+    /** @return how this end's stack comes out */
+    public RingStyle getStyle()
+    {
+        return style;
+    }
+
+    /**
+     * Sets how this end's stack comes out.
+     *
+     * <p>Per end rather than per pair. The two ends are never watched at once — a traveller
+     * is at one of them, and by the time they see the other they have already arrived — so
+     * there is nothing to be gained by forcing them to match, and a base can deploy
+     * differently from the outpost it connects to.
+     *
+     * <p>They do have to finish together, but that is arranged by waiting for the longer of
+     * the two rather than by making them the same.
+     *
+     * @param style
+     *            the new style
+     */
+    public void setStyle(final RingStyle style)
+    {
+        this.style = style == null ? RingStyle.CONCURRENT : style;
     }
 
     /**

@@ -208,7 +208,8 @@ public class RingCommand implements SubCommand
         pair.setOwnerName(player.getName());
         pair.setCreated(System.currentTimeMillis());
         pair.setAccess(ConfigManager.getRingDefaultAccess());
-        pair.setStyle(ConfigManager.getRingDefaultStyle());
+        waiting.getRing().setStyle(ConfigManager.getRingDefaultStyle());
+        ring.setStyle(ConfigManager.getRingDefaultStyle());
 
         RingManager.clearPending(player.getUniqueId());
         consumeTemplate(player, ring);
@@ -411,7 +412,7 @@ public class RingCommand implements SubCommand
             final String name = pair.getLabel().isEmpty() ? pair.getId()
                 : (pair.getLabel() + " (" + pair.getId() + ")");
             player.sendMessage(name + " — " + pair.getWorldName() + ", " + pair.getAccess()
-                + ", " + pair.getStyle());
+                + ", " + pair.getEndA().getStyle() + "/" + pair.getEndB().getStyle());
             shown++;
         }
         if (shown == 0)
@@ -514,16 +515,26 @@ public class RingCommand implements SubCommand
         }
         if ("style".equals(field))
         {
+            final RingStyle chosen;
             try
             {
-                pair.setStyle(RingStyle.valueOf(value.toUpperCase()));
+                chosen = RingStyle.valueOf(value.toUpperCase());
             }
             catch (final IllegalArgumentException e)
             {
                 player.sendMessage("Style is concurrent or sequential.");
                 return true;
             }
-            return saved(player, pair, "Style set to " + pair.getStyle() + ".");
+            if (only != null)
+            {
+                only.setStyle(chosen);
+            }
+            else
+            {
+                pair.getEndA().setStyle(chosen);
+                pair.getEndB().setStyle(chosen);
+            }
+            return saved(player, pair, "Style set to " + chosen + ".");
         }
         player.sendMessage("Fields are: ring, light, label, access, style.");
         return true;

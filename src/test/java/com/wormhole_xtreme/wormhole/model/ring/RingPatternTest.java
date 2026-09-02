@@ -22,15 +22,14 @@ import org.junit.jupiter.api.Test;
  * <p>The expected shapes, with {@code #} the perimeter and {@code ·} the interior:
  *
  * <pre>
- *   ODD (7)             EVEN (8)
- *  . . # # # . .      . . # # # # . .
- *  . # · · · # .      . # · · · · # .
- *  # · · · · · #      # · · · · · · #
- *  # · · · · · #      # · · · · · · #
- *  # · · · · · #      # · · · · · · #
- *  . # · · · # .      # · · · · · · #
- *  . . # # # . .      . # · · · · # .
- *                     . . # # # # . .
+ *   ODD (7)             EVEN (6)
+ *  . . # # # . .      . . # # . .
+ *  . # · · · # .      . # · · # .
+ *  # · · · · · #      # · · · · #
+ *  # · · · · · #      # · · · · #
+ *  # · · · · · #      . # · · # .
+ *  . # · · · # .      . . # # . .
+ *  . . # # # . .
  * </pre>
  */
 public class RingPatternTest
@@ -56,11 +55,22 @@ public class RingPatternTest
     }
 
     @Test
-    public void theEvenPatternIsTheSameConstructionOneBlockWider()
+    public void theEvenPatternIsTheSmallRoundOne()
     {
-        assertEquals(8, RingPattern.EVEN.getDiameter());
-        assertEquals(20, RingPattern.EVEN.getPerimeter().size());
-        assertEquals(32, RingPattern.EVEN.getInterior().size());
+        // A size down from the gate's ring, for rooms that cannot spare seven blocks each
+        // way. Six is as small as a two-step corner goes.
+        assertEquals(6, RingPattern.EVEN.getDiameter());
+        assertEquals(12, RingPattern.EVEN.getPerimeter().size());
+        assertEquals(12, RingPattern.EVEN.getInterior().size());
+    }
+
+    @Test
+    public void theEvenPatternIsSmallerThanTheOddOne()
+    {
+        // The two sizes on offer, and which is which. Odd is the gate's own ring; even is
+        // the one that fits somewhere tighter.
+        assertTrue(RingPattern.EVEN.getDiameter() < RingPattern.ODD.getDiameter());
+        assertTrue(RingPattern.EVEN.getInterior().size() < RingPattern.ODD.getInterior().size());
     }
 
     @Test
@@ -90,14 +100,14 @@ public class RingPatternTest
         // rather than -3..+3 — and getting it wrong shifts the whole ring one block without
         // changing its shape at all.
         final Set<String> interior = cells(RingPattern.EVEN.getInterior());
-        for (int dx = -2; dx <= 3; dx++)
+        for (int dx = -1; dx <= 2; dx++)
         {
-            for (int dz = -1; dz <= 2; dz++)
+            for (int dz = 0; dz <= 1; dz++)
             {
                 assertTrue(interior.contains(dx + "," + dz), "expected interior at " + dx + "," + dz);
             }
         }
-        assertFalse(interior.contains("-3,-1"), "the interior stops short of the outline");
+        assertFalse(interior.contains("-2,-1"), "the interior stops short of the outline");
     }
 
     @Test
@@ -114,12 +124,13 @@ public class RingPatternTest
         }
         assertTrue(odd.contains("-2,-2"), "but the diagonal itself is a block");
 
+        // The small ring turns the same corner in the same two steps, one block in.
         final Set<String> even = cells(RingPattern.EVEN.getPerimeter());
-        for (final String corner : new String[] { "-3,-3", "-2,-3", "-3,-2" })
+        for (final String corner : new String[] { "-2,-2", "-1,-2", "-2,-1" })
         {
             assertFalse(even.contains(corner), "even should not have a block at " + corner);
         }
-        assertTrue(even.contains("-2,-2"), "but the diagonal itself is a block");
+        assertTrue(even.contains("-1,-1"), "but the diagonal itself is a block");
     }
 
     @Test

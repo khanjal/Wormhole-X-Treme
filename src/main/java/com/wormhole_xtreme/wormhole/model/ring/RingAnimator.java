@@ -339,6 +339,63 @@ public final class RingAnimator
     }
 
     /**
+     * How many frames the transport flash takes.
+     *
+     * <p>One per ring: the light touches each in turn.
+     *
+     * @return the number of flash frames
+     */
+    public static int flashFrames()
+    {
+        return RING_COUNT;
+    }
+
+    /**
+     * Which ring is lit on a given frame of the flash.
+     *
+     * @param direction
+     *            which way the light runs
+     * @param frame
+     *            which frame, from zero
+     * @return the ring index, counting from the first one out
+     */
+    public static int litRing(final RingFlashDirection direction, final int frame)
+    {
+        // Ring zero is the one that flew highest, so counting up from it runs downward.
+        return (direction == RingFlashDirection.TOP_DOWN) ? frame : (RING_COUNT - 1 - frame);
+    }
+
+    /**
+     * One ring of the finished stack, where it came to rest.
+     *
+     * @param ring
+     *            the ring being animated
+     * @param index
+     *            which of the stack, counting from the first one out
+     * @return that ring's slabs
+     */
+    public static List<Placement> ringAtRest(final Ring ring, final int index)
+    {
+        final List<Placement> out = new ArrayList<Placement>();
+        addRing(out, ring, restingHalfStep(index));
+        return out;
+    }
+
+    /**
+     * The whole stack, standing still where it settled.
+     *
+     * @param ring
+     *            the ring being animated
+     * @param style
+     *            how the stack came out
+     * @return every slab of the finished stack
+     */
+    public static List<Placement> settledStack(final Ring ring, final RingStyle style)
+    {
+        return deployFrame(ring, style, deployFrames(style) - 1);
+    }
+
+    /**
      * The blocks the countdown lights occupy.
      *
      * <p>The ring's pattern, set into the surface it is built into — the floor beneath a
