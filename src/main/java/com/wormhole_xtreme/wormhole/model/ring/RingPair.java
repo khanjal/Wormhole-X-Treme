@@ -5,6 +5,10 @@
  */
 package com.wormhole_xtreme.wormhole.model.ring;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * A linked pair of transport rings, which is the unit everything else works in.
  *
@@ -48,6 +52,12 @@ public class RingPair
 
     /** When the pair was created, epoch millis. */
     private long created;
+
+    /** Whether anyone may use it, or only the owner and the people they named. */
+    private RingAccess access = RingAccess.PRIVATE;
+
+    /** UUID strings of players allowed to use it besides the owner. */
+    private final Set<String> allowed = ConcurrentHashMap.newKeySet();
 
     /** Where the pair is in its cycle. */
     private RingPhase phase = RingPhase.IDLE;
@@ -251,6 +261,78 @@ public class RingPair
     public boolean isOwnedBy(final String uuid)
     {
         return (owner != null) && owner.equals(uuid);
+    }
+
+    /** @return whether anyone may use it, or only those named */
+    public RingAccess getAccess()
+    {
+        return access;
+    }
+
+    /**
+     * Sets who may use this pair.
+     *
+     * @param access
+     *            the new access mode
+     */
+    public void setAccess(final RingAccess access)
+    {
+        this.access = access == null ? RingAccess.PRIVATE : access;
+    }
+
+    /** @return UUID strings of players allowed besides the owner, unmodifiable */
+    public Set<String> getAllowed()
+    {
+        return Collections.unmodifiableSet(allowed);
+    }
+
+    /**
+     * Adds a player to the allow list.
+     *
+     * @param uuid
+     *            the player's UUID string
+     * @return true if they were not already on it
+     */
+    public boolean allow(final String uuid)
+    {
+        return (uuid != null) && !uuid.isEmpty() && allowed.add(uuid);
+    }
+
+    /**
+     * Removes a player from the allow list.
+     *
+     * @param uuid
+     *            the player's UUID string
+     * @return true if they were on it
+     */
+    public boolean deny(final String uuid)
+    {
+        return (uuid != null) && allowed.remove(uuid);
+    }
+
+    /**
+     * Whether a player may travel by this pair.
+     *
+     * <p>This governs both arming a cycle and being carried by one. A private ring is not a
+     * free ride for whoever happens to be standing in it when its owner uses it: everyone in
+     * the volume is checked at the moment of the swap, and anyone who is not allowed simply
+     * stays where they are while the rings close around them.
+     *
+     * <p>Only players are subject to this. Mobs, items and vehicles travel as cargo, which
+     * costs nothing to allow because they cannot arm a ring in the first place — the trigger
+     * is a player move, so a private pair only ever fires because somebody permitted made it.
+     *
+     * @param uuid
+     *            the player's UUID string
+     * @return true if they may travel
+     */
+    public boolean mayUse(final String uuid)
+    {
+        if (access == RingAccess.PUBLIC)
+        {
+            return true;
+        }
+        return isOwnedBy(uuid) || ((uuid != null) && allowed.contains(uuid));
     }
 
     /* (non-Javadoc)

@@ -152,6 +152,8 @@ Pairs:
     OwnerName: Justin
     Label: ""
     Created: 1756771200000
+    Access: PRIVATE
+    Allowed: [11111111-2222-3333-4444-555555555555]
     A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
     B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
 ```
@@ -339,6 +341,42 @@ built from, which works because a gate's frame is permanent. A ring is invisible
 and has no frame to read, so there is nothing to identify a group by. Two plain config
 defaults plus per-ring overrides is the whole of it.
 
+## Access
+
+A pair is `PRIVATE` or `PUBLIC`, plus a list of players named by the owner. Private means
+the owner and whoever they have named; public means anyone.
+
+**Access belongs to the pair, not to an end**, and that is not filing convenience. Both ends
+fire together and everything in both interiors swaps in the same instant, so there is no way
+to authorise half of it — a pair whose ends disagreed would be one you could leave by and
+not return to, which is not a setting anybody wants and not a state the swap can express.
+This is exactly the opposite of materials, and for a reason worth keeping straight: a
+material is cosmetic and local, so each end can look like the room it is in. Access is
+functional and about the link.
+
+`mayUse` governs two things, not one: **arming a cycle and being carried by one**. A private
+ring is not a free ride for whoever happens to be standing in it when the owner uses it.
+Everyone in the volume is checked at the moment of the swap, and anyone not allowed simply
+stays put while the rings close and open around them.
+
+Only players are subject to any of this. Mobs, items and vehicles travel as cargo, which
+costs nothing to allow, because they cannot arm a ring in the first place — the trigger is a
+player move, so a private pair only ever fires because somebody permitted made it fire.
+
+**Private is the default**, which is the opposite of how gates behave and fits what rings
+are: a personal point-to-point link somebody built between two places they own, rather than
+public network infrastructure. `rings.default-access` flips it for a server that runs
+rings as shared transport.
+
+Access **fails closed** everywhere it can fail. A stored pair with no access field — which
+is what every pair written before this existed looks like — loads as private, and so does
+one whose access field is unreadable. Reading either as public would silently publish
+somebody's private link on upgrade, and that is the one mistake here that cannot be undone
+once people have started using it.
+
+Revoking the owner does nothing, because their access comes from ownership rather than from
+the list. There is no sequence of commands that leaves a pair nobody can use or change.
+
 ## Animation
 
 Half-block resolution comes from slab type rather than position. A `BOTTOM` slab fills the
@@ -392,6 +430,7 @@ rings:
   max-link-distance: 0       # 0 = unlimited
   default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
+  default-access: PRIVATE    # what a newly built pair starts as
   reach: 4                   # block layers of passenger volume, from the ring plane
 ```
 
@@ -407,10 +446,13 @@ one declaration.
 /wormhole ring remove [id]                remove both ends
 /wormhole ring edit <field> <value>       edit the ring you are standing in
 /wormhole ring edit <id> <field> <value>  edit both ends of that pair
+/wormhole ring allow <player> [id]        let somebody use it
+/wormhole ring deny <player> [id]         stop them
 
   fields:  ring <material>    the travelling slabs; must be a slab   per end
            light <material>   the countdown lights                   per end
            label <text>       display only                           per pair
+           access public|private                                     per pair
 ```
 
 Everything adjustable lives under one `edit` verb rather than a subcommand per field. Gates
@@ -431,6 +473,7 @@ lookup the move path makes.
 ```
 wormhole.ring.build       create and pair rings          default: op
 wormhole.ring.use         travel by ring                 default: true
+wormhole.ring.use.all     use any pair, private or not   default: op
 wormhole.ring.remove      remove your own pairs          default: true
 wormhole.ring.remove.all  remove anyone's pairs          default: op
 wormhole.ring.unlimited   bypass the per-player quota    default: op
@@ -487,3 +530,6 @@ In rough order of how much they would hurt to get wrong:
 10. Pairing refuses a second endpoint placed in a different world, and says why.
 11. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.
+12. A private pair refuses a stranger, carries the owner and the people they named, and
+    leaves an unpermitted player standing while everyone else goes.
+13. A stored pair with a missing or unreadable access field loads private, never public.

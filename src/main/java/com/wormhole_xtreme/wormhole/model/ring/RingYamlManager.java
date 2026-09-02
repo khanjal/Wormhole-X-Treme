@@ -217,7 +217,45 @@ public final class RingYamlManager
         pair.setOwnerName(String.valueOf(map.getOrDefault("OwnerName", "")));
         pair.setLabel(String.valueOf(map.getOrDefault("Label", "")));
         pair.setCreated(((Number) map.getOrDefault("Created", Long.valueOf(0L))).longValue());
+        // Absent means private. A file written before access existed, or one somebody hand
+        // edited badly, must not quietly open a ring to the whole server.
+        pair.setAccess(readAccess(map.get("Access")));
+        final Object allowed = map.get("Allowed");
+        if (allowed instanceof java.util.List)
+        {
+            for (final Object entry : (java.util.List<Object>) allowed)
+            {
+                pair.allow(String.valueOf(entry));
+            }
+        }
         return pair;
+    }
+
+    /**
+     * Reads the access mode, defaulting to the closed one.
+     *
+     * <p>Anything unreadable resolves to {@link RingAccess#PRIVATE}. Failing open would mean
+     * a corrupted field silently publishing somebody's private link, which is the one
+     * failure here that cannot be undone once people have used it.
+     *
+     * @param stored
+     *            the stored value, possibly null or nonsense
+     * @return the access mode
+     */
+    private static RingAccess readAccess(final Object stored)
+    {
+        if (stored == null)
+        {
+            return RingAccess.PRIVATE;
+        }
+        try
+        {
+            return RingAccess.valueOf(String.valueOf(stored));
+        }
+        catch (final IllegalArgumentException e)
+        {
+            return RingAccess.PRIVATE;
+        }
     }
 
     /**
@@ -328,6 +366,8 @@ public final class RingYamlManager
         out.put("OwnerName", pair.getOwnerName() == null ? "" : pair.getOwnerName());
         out.put("Label", pair.getLabel());
         out.put("Created", Long.valueOf(pair.getCreated()));
+        out.put("Access", pair.getAccess().name());
+        out.put("Allowed", new java.util.ArrayList<String>(pair.getAllowed()));
         out.put("A", writeRing(pair.getEndA()));
         out.put("B", writeRing(pair.getEndB()));
         return out;
