@@ -2,7 +2,7 @@
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
-This branch targets Java 17 and the Bukkit 1.20 API.
+This branch targets the Bukkit 1.21 API and builds as Java 17 bytecode.
 
 ## Contents
 
@@ -22,13 +22,21 @@ This branch targets Java 17 and the Bukkit 1.20 API.
 
 | Runtime Server | Base/API lineage | Support tier | Notes |
 |---|---|---|---|
-| CraftBukkit 1.20.4 | Bukkit | Supported | Baseline Bukkit/Spigot API behavior |
-| Spigot 1.20.4 | Spigot (Bukkit+) | Primary target | **Compile target** (`spigot-api`) |
-| Paper 1.20.4 | Paper (Spigot+) | Supported | Verified runtime target |
-| Purpur / Pufferfish | Paper fork | Best effort | Usually compatible with Paper behavior |
+| CraftBukkit 1.21.1 | Bukkit | Supported | Baseline Bukkit/Spigot API behaviour |
+| Spigot 1.21.1 | Spigot (Bukkit+) | Primary target | **Compile target** (`spigot-api`) |
+| Paper 1.21.1 | Paper (Spigot+) | Supported | Verified runtime target |
+| Purpur / Pufferfish | Paper fork | Best effort | Usually compatible with Paper behaviour |
 | Folia | Paper fork (region scheduler) | Not supported | Different scheduler/threading model |
 
-The plugin is compiled against the Spigot API (`spigot-api 1.20.4`) as a `provided` dependency.
+The plugin is compiled against the Spigot API (`spigot-api 1.21.1`) as a `provided` dependency.
+
+**Minecraft 1.21 requires the server to run on Java 21.** That is a requirement of the server,
+not of this plugin — the jar is Java 17 bytecode and runs fine on a Java 21 runtime. If your
+server is still on Java 17 it cannot run 1.21 at all, whatever plugins it has.
+
+Servers older than 1.21 are not supported by this build. `api-version` is `1.21`, and a 1.20
+server will refuse to load the plugin rather than run it and misbehave. Stay on the `v1.1.0`
+release for a 1.20.4 server.
 
 Why Spigot over Bukkit for build target:
 - Bukkit is the conceptual base and broadest API lineage.
@@ -36,8 +44,8 @@ Why Spigot over Bukkit for build target:
 - Building against Spigot gives broad compatibility across Spigot and most Paper-based servers without tying the plugin to Paper-only APIs.
 
 Java support policy:
-- Java 17 and 21: officially supported
-- Java 25: best-effort (CI coverage)
+- The plugin is built as Java 17 bytecode, and CI compiles and tests it on Java 17, 21 and 25.
+- The **server** must be on Java 21 or newer, because Minecraft 1.21 requires it.
 
 Build policy recommendation:
 - Compile against Spigot only.
