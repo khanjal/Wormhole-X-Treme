@@ -1088,6 +1088,14 @@ class WormholeXTremePlayerListener implements Listener
             com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(
                 player, far == null ? "" : far.getName());
         }
+        else if (justEntered)
+        {
+            // It refused. Whatever the reason, the ring itself is invisible, and being told
+            // something is wrong while standing on ground that looks like any other is no
+            // help at all — least of all when the thing to fix is inside the ring and they
+            // cannot see where it is.
+            com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
+        }
     }
 
     /**

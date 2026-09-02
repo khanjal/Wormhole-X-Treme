@@ -386,33 +386,71 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theCountdownLightsAreSetIntoTheSurfaceNotTheSpaceAboveIt()
+    public void thePadOpensAndTheLightSitsUnderTheOpening()
     {
-        // The slabs were laid on top of the floor, so the ring plane is the space the rings
-        // rise through. Lighting that would leave the pattern hanging in mid-air; the lights
-        // belong a block back, in the floor itself.
-        final List<int[]> onFloor = RingAnimator.lightBlocks(ring(RingOrientation.FLOOR));
-        assertEquals(RingPattern.ODD.getPerimeter().size(), onFloor.size());
-        for (final int[] light : onFloor)
+        // Not a pattern painted on the floor. The surface itself is taken away and the light
+        // shows from a block below it, so what a player sees is a lit recess the rings climb
+        // out of rather than a decorated floor.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        for (final int[] opened : RingAnimator.openedBlocks(floor))
         {
-            assertEquals(63, light[1], "a floor ring lights the floor beneath it");
+            assertEquals(63, opened[1], "the floor surface is what parts");
+        }
+        for (final int[] light : RingAnimator.lightBlocks(floor))
+        {
+            assertEquals(62, light[1], "and the light is under it");
         }
 
-        final List<int[]> onCeiling = RingAnimator.lightBlocks(ring(RingOrientation.CEILING));
-        for (final int[] light : onCeiling)
-        {
-            assertEquals(65, light[1], "a ceiling ring lights the ceiling above it");
-        }
+        // A ceiling ring opens upward into its ceiling for the same reason.
+        final Ring hanging = ring(RingOrientation.CEILING);
+        assertEquals(65, RingAnimator.openedBlocks(hanging).get(0)[1]);
+        assertEquals(66, RingAnimator.lightBlocks(hanging).get(0)[1]);
     }
 
     @Test
-    public void theRingsStillRiseFromThePlaneTheLightsSitBehind()
+    public void theOpeningAndTheLightCoverTheSamePatternAsTheRings()
     {
-        // The lights move but the rings do not: they still start where the template was, so
-        // they come up out of the lit pattern rather than out of it.
         final Ring floor = ring(RingOrientation.FLOOR);
-        assertEquals(63, RingAnimator.lightBlocks(floor).get(0)[1]);
+        final int perimeter = RingPattern.ODD.getPerimeter().size();
+        assertEquals(perimeter, RingAnimator.openedBlocks(floor).size());
+        assertEquals(perimeter, RingAnimator.lightBlocks(floor).size());
+    }
+
+    @Test
+    public void theRingsStillRiseFromThePlaneTheOpeningSitsBelow()
+    {
+        // The opening and the light moved; the rings did not. They still start where the
+        // template was, directly above the gap that has just appeared.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        assertEquals(62, RingAnimator.lightBlocks(floor).get(0)[1]);
+        assertEquals(63, RingAnimator.openedBlocks(floor).get(0)[1]);
         assertEquals(64, RingAnimator.deployFrame(floor, STYLE, 0).get(0).getY());
+    }
+
+    @Test
+    public void aFourBlockRoomIsDeepEnoughForACeilingRing()
+    {
+        // The top ring ends up level with the ceiling, which is fine: the half block under it
+        // and every gap within the stack are still there. Anything shallower would need the
+        // highest ring to rise to its place rather than fall to it.
+        assertEquals(3, Ring.MIN_CEILING_DROP, "a four-block room");
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(Ring.MIN_CEILING_DROP);
+
+        for (final RingStyle style : RingStyle.values())
+        {
+            for (int frame = 0; frame < RingAnimator.deployFrames(hanging, style); frame++)
+            {
+                final Set<String> seen = new HashSet<String>();
+                for (final RingAnimator.Placement placement
+                    : RingAnimator.deployFrame(hanging, style, frame))
+                {
+                    assertTrue(seen.add(placement.getY() + ":" + placement.isTop()
+                            + ":" + placement.getX() + ":" + placement.getZ()),
+                        style + " frame " + frame + " doubles up");
+                }
+            }
+        }
     }
 
     @Test

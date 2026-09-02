@@ -97,14 +97,20 @@ public final class RingAnimator
     public static final int TOP_HALF_STEP = BASE_HALF_STEP + ((RING_COUNT - 1) * SPACING);
 
     /**
-     * The shallowest a ceiling ring can be and still look like anything.
+     * The shallowest a ceiling ring can be and still fit its stack.
      *
-     * <p>Derived rather than chosen: its plane has to sit above the finished stack, or the
-     * top ring is already where it belongs and never moves — and the ring behind it then
-     * emerges on top of it, two rings in one place. One block above the top of the stack is
-     * the least that gives every ring somewhere to fall from.
+     * <p>Derived rather than chosen: the plane has to be at least as high as the top of the
+     * finished stack, or the highest ring would have to rise to reach its place rather than
+     * fall to it. Level with it is enough, which puts the top ring against the ceiling — no
+     * gap above it, but the half block below it and every gap within the stack are all still
+     * there.
+     *
+     * <p>This was briefly a block more, back when the first ring out stopped highest at both
+     * orientations. That ordering made the rings behind it descend through where it had
+     * settled, and the extra block was papering over it. Mirroring the order for ceiling
+     * rings fixed the real problem and gave the block back.
      */
-    public static final int MIN_CEILING_DROP = (TOP_HALF_STEP / 2) + 1;
+    public static final int MIN_CEILING_DROP = (TOP_HALF_STEP - 1) / 2;
 
 
     private RingAnimator() {}
@@ -500,10 +506,10 @@ public final class RingAnimator
     /**
      * The blocks the countdown lights occupy.
      *
-     * <p>The ring's pattern, set into the surface it is built into — the floor beneath a
-     * floor ring, the ceiling above a ceiling one — rather than into the space the rings will
-     * rise through. The rings still come up out of that lit pattern; they simply start a
-     * block nearer the room than the lights do.
+     * <p>The ring's pattern, lit a block under the surface it is built into. The surface
+     * itself is taken away at the same time (see {@link #openedBlocks}), so what shows is a
+     * lit recess in the ground rather than a pattern painted on it — somewhere the rings can
+     * plausibly come from.
      *
      * <p>Nothing travels during the countdown, which is what makes it the only phase that can
      * be called off cleanly.
@@ -515,5 +521,21 @@ public final class RingAnimator
     public static List<int[]> lightBlocks(final Ring ring)
     {
         return ring.perimeterBlocksAt(ring.lightPlaneY());
+    }
+
+    /**
+     * The blocks that are taken away while the ring works.
+     *
+     * <p>The surface the pattern is cut into: the floor a floor ring is set in, the ceiling a
+     * ceiling ring hangs from. Shown as air so the ring reads as having opened, with the lit
+     * recess below it and the rings climbing out.
+     *
+     * @param ring
+     *            the ring
+     * @return the block positions to clear, each as {@code {x, y, z}}
+     */
+    public static List<int[]> openedBlocks(final Ring ring)
+    {
+        return ring.perimeterBlocksAt(ring.openPlaneY());
     }
 }

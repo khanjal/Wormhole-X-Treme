@@ -443,18 +443,32 @@ public class Ring
     }
 
     /**
-     * The layer the countdown lights sit in.
+     * The layer that opens when the ring wakes: the surface itself.
      *
-     * <p>One block back against the direction the rings travel: into the floor beneath a
-     * floor ring, into the ceiling above a ceiling one. The template slabs rest in the space
-     * the rings rise <em>through</em>, so lighting that space would put the pattern hanging
-     * in the air rather than set into the surface it belongs to.
+     * <p>One block back against the direction the rings travel — the floor beneath a floor
+     * ring, the ceiling above a ceiling one. Shown as air while the ring is working, so the
+     * pattern reads as the surface parting rather than as something painted on it.
+     *
+     * @return the block layer to open
+     */
+    public int openPlaneY()
+    {
+        return anchorY - orientation.getTravel();
+    }
+
+    /**
+     * The layer the lights sit in, one below the surface that opens.
+     *
+     * <p>Under the opening rather than in it, so what a player sees is a lit recess with the
+     * rings climbing out of it. Lighting the surface itself made the pattern look painted on
+     * the floor; putting the light a block further down and taking the surface away makes the
+     * same pattern look like somewhere the rings come from.
      *
      * @return the block layer to light
      */
     public int lightPlaneY()
     {
-        return anchorY - orientation.getTravel();
+        return anchorY - (2 * orientation.getTravel());
     }
 
     /**

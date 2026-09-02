@@ -166,9 +166,9 @@ public class RingCycle
     /**
      * The pattern lit in the floor, which stays put for the whole cycle.
      *
-     * <p>The pad stays lit from the countdown until after the last ring has sunk back into
-     * it. Putting the lights out the moment the rings start rising would have the pad go dark
-     * exactly as it does the thing it was lit for.
+     * <p>The pad stays open and lit from the countdown until after the last ring has sunk
+     * back into it. Putting it out the moment the rings start rising would have the pad close
+     * exactly as it does the thing it opened for.
      */
     private final Set<Long> drawnLights = new LinkedHashSet<Long>();
 
@@ -606,6 +606,12 @@ public class RingCycle
      */
     private void showLights(final Ring ring)
     {
+        // The surface parts first, then the light shows through the gap it leaves. Drawn as
+        // one thing because they are one thing: a ring opening.
+        for (final int[] block : RingAnimator.openedBlocks(ring))
+        {
+            draw(drawnLights, block[0], block[1], block[2], Material.AIR, false, false);
+        }
         for (final int[] block : RingAnimator.lightBlocks(ring))
         {
             draw(drawnLights, block[0], block[1], block[2], ring.getLightMaterial(), false, false);

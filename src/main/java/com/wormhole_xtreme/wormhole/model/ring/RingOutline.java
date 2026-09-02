@@ -64,13 +64,19 @@ public final class RingOutline
             return;
         }
         final World world = player.getWorld();
-        final List<int[]> blocks = RingAnimator.lightBlocks(ring);
+        final List<int[]> blocks = new java.util.ArrayList<int[]>();
+        blocks.addAll(RingAnimator.openedBlocks(ring));
+        blocks.addAll(RingAnimator.lightBlocks(ring));
         try
         {
             final org.bukkit.block.data.BlockData lit = ring.getLightMaterial().createBlockData();
-            for (final int[] block : blocks)
+            final org.bukkit.block.data.BlockData open = org.bukkit.Material.AIR.createBlockData();
+            final int opened = RingAnimator.openedBlocks(ring).size();
+            for (int i = 0; i < blocks.size(); i++)
             {
-                player.sendBlockChange(new Location(world, block[0], block[1], block[2]), lit);
+                final int[] block = blocks.get(i);
+                player.sendBlockChange(new Location(world, block[0], block[1], block[2]),
+                    (i < opened) ? open : lit);
             }
         }
         // Purely a courtesy. If it cannot be drawn there is nothing to undo and nothing to

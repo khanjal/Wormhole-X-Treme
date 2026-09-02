@@ -82,12 +82,21 @@ So changing the sizes later, or adding a third pattern, is a one-line edit to a 
 
 1. Player lays the perimeter in slabs on top of the floor (or under the ceiling).
 2. Player stands anywhere inside it and runs `/wormhole ring create`.
-3. The plugin reads the template.
-4. The slabs are consumed and the surface returns to exactly what it was. The ring is
-   invisible from this point on.
+3. The plugin reads the template and remembers it.
+4. Same again somewhere else. When the pair is finished, **both** sets of slabs are consumed
+   and both surfaces return to exactly what they were.
 
 The slabs are a template, not structure. Nothing is left behind and nothing is placed — the
 footprint reads as ordinary floor.
+
+**They are taken at the end, not at each half.** An unpaired ring does nothing, so leaving its
+slabs costs nothing — while taking them at the first `create` meant a crash or a restart
+between the two halves cost somebody a circle of slabs for a ring that never existed.
+Cancelling therefore has nothing to give back: the circle is still lying where they left it,
+to pair later or pick up.
+
+One consequence: running `create` again inside the first circle finds that same ring, so it is
+refused rather than paired with itself.
 
 ### The template says more than its shape
 
@@ -463,7 +472,12 @@ countdown uses, sent only to them and taken back after `rings.outline-ticks`, so
 sees a ring flicker and nothing is written to the world. `rings.outline-on-refusal` turns it
 off.
 
-Shown **only for a recharging ring**. Not for one that is mid-cycle: that pad is already lit,
+Shown for **any refusal that leaves the pad dark** — recharging, and a ring that will not
+engage because an end is built in or has no floor. The blocked case is the one that needs it
+most: the thing to fix is inside a footprint the player cannot see, so being told something is
+wrong without being shown where is close to useless.
+
+Not for one that is mid-cycle: that pad is already lit,
 so there is nothing to point out, and drawing over it would put the cycle's own lights out
 when the outline expired. That is not hypothetical — it is what happened to anybody who
 stepped out of a ring and back in while it was counting down. The second entry took the
@@ -495,6 +509,16 @@ neither falls back to its id, which is all there is to go on.
 Naming by id is refused rather than applied to both ends. Calling both ends the same thing
 would defeat the point of having them, so the command asks you to stand in the one you mean —
 the only field where an id is not accepted.
+
+## Removing a pair gives the slabs back
+
+`/wormhole ring remove` lays both templates back out, in the slab each ring was built from.
+That is the slabs returned and a ready-made template in one: a ring can be picked up and moved
+somewhere else without re-mining the circle.
+
+Done in the pair's own world rather than the player's, since a pair can be removed by id from
+anywhere. A world that is not loaded is left alone and said so, rather than loading a world as
+a side effect of a command about something else.
 
 ## Access
 
@@ -557,9 +581,11 @@ the floor means each one stops above the last and none ever crosses another.
 The drop is measured when a cycle engages, not when the ring is built, because floors change.
 Two limits come with it:
 
-- **At least five blocks** from ceiling to floor. Derived, not chosen: the plane has to sit
-  above the finished stack or the top ring is already where it belongs, never moves, and the
-  ring behind it emerges on top of it.
+- **At least four blocks** from ceiling to floor. Derived, not chosen: the plane has to be at
+  least level with the top of the finished stack, or the highest ring would have to rise to
+  reach its place rather than fall to it. Level is enough, which puts the top ring against the
+  ceiling — no gap above it, but the half block below it and every gap within the stack are
+  all still there.
 - **At most `rings.max-ceiling-drop`**, ten by default. Past that the ring is over a shaft
   rather than a room, and rings that fall out of sight are not a transport.
 

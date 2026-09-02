@@ -539,8 +539,12 @@ The full design and the reasoning behind each decision is in [docs/RINGS.md](doc
 ### Building a ring pair
 
 Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do the same
-somewhere else in the same world and the two are paired. The slabs are consumed and the
-ground goes back to how it looked.
+somewhere else in the same world and the two are paired. Only then are both sets of slabs
+consumed and both surfaces returned to how they looked — an unpaired ring does nothing, so its
+slabs stay put until there is a pair to show for them, and a restart in between costs nothing.
+
+`/wormhole ring remove` lays both circles back out again, so a pair can be picked up and moved
+without re-mining anything.
 
 There are two shapes. The odd one is the Standard gate's own ring lying flat; the even one is
 a size down for tighter rooms.
@@ -568,9 +572,9 @@ Rules for the template:
   hung under a ceiling make a ceiling ring. Double slabs are not accepted, because a full
   block cannot say which surface it was laid against.
 - **Four blocks of headroom** above a floor ring for its stack.
-- A **ceiling ring needs a room five to ten blocks tall** — its rings fall to the floor and
+- A **ceiling ring needs a room four to ten blocks tall** — its rings fall to the floor and
   stack up from there, so it needs a floor near enough to reach and far enough for the stack
-  to form.
+  to form. At four the top ring rests against the ceiling, which is fine.
 - The footprint may not overlap another ring or any gate.
 - **Within reach of its partner** — 256 blocks on the ground, 384 in height.
 
@@ -582,8 +586,8 @@ Creation is two-step, so the first ring is remembered until you build its partne
 
 ### Using rings
 
-Walk in. The pattern lights up in the floor and counts down; step clear before it commits and
-it stands down. Once the rings start rising the trip is committed.
+Walk in. The floor opens along the ring's pattern with light showing from beneath it, and
+counts down; step clear before it commits and it stands down. Once the rings start rising the trip is committed.
 
 Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
 settling at 0.5, 1.5, 2.5 and 3.5 blocks up. A **ceiling ring** works the other way round: its

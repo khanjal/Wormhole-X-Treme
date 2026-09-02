@@ -437,7 +437,8 @@ public class RingCycleTest
 
         cycle.beginCountdown();
         assertEquals(RingPhase.COUNTDOWN, pair.getPhase());
-        assertEquals(RingPattern.ODD.getPerimeter().size() * 2, world.drawnCount());
+        // Two layers at each end now: the surface that parts, and the light under it.
+        assertEquals(RingPattern.ODD.getPerimeter().size() * 4, world.drawnCount());
 
         cycle.abort();
         assertEquals(RingPhase.IDLE, pair.getPhase());
@@ -478,28 +479,28 @@ public class RingCycleTest
         // was lit for.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
-        world.setReal(-3, 63, 0, Material.STONE);
+        world.setReal(-3, 62, 0, Material.STONE);
         final RingCycle cycle = new RingCycle(pair, world, REACH);
 
         cycle.beginCountdown();
-        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit while counting down");
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "lit while counting down");
 
         cycle.beginDeploy();
-        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "still lit as the rings rise");
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "still lit as the rings rise");
 
         while (cycle.advanceFrame())
         {
-            assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit for every frame");
+            assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "lit for every frame");
         }
         cycle.flash();
-        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit through the transport");
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "lit through the transport");
 
         cycle.beginRetract();
         while (cycle.advanceFrame())
         {
             // run it out
         }
-        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit as the rings come home");
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "lit as the rings come home");
     }
 
     @Test
@@ -509,20 +510,20 @@ public class RingCycleTest
         // follow a beat later rather than on the same tick.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
-        world.setReal(-3, 63, 0, Material.STONE);
+        world.setReal(-3, 62, 0, Material.STONE);
         final RingCycle cycle = new RingCycle(pair, world, REACH);
 
         cycle.beginCountdown();
         cycle.beginDeploy();
         cycle.clearRings();
 
-        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "the pad is still lit");
-        assertEquals(RingPattern.ODD.getPerimeter().size() * 2, world.drawnCount(),
-            "and only the lights are left drawn");
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "the pad is still lit");
+        assertEquals(RingPattern.ODD.getPerimeter().size() * 4, world.drawnCount(),
+            "and only the opening and its light are left drawn");
 
         cycle.clearLights();
         assertEquals(0, world.drawnCount());
-        assertEquals(Material.STONE, world.seenAt(-3, 63, 0));
+        assertEquals(Material.STONE, world.seenAt(-3, 62, 0));
     }
 
     @Test
@@ -606,21 +607,26 @@ public class RingCycleTest
     }
 
     @Test
-    public void aLightIsDrawnOverTheFloorItIsSetIntoAndThenTakenAway()
+    public void thePadAppearsToOpenAndThenCloseAgain()
     {
-        // A light sits inside the surface, so there is always a solid block where it goes.
-        // Drawing costs nothing, which is why it can simply cover it.
+        // The surface parts and the light shows from below it, so the ring reads as having
+        // opened rather than as a pattern painted on the ground. Neither block is really
+        // touched, which is why a ring can open in solid stone at all.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
         world.setReal(-3, 63, 0, Material.STONE);
+        world.setReal(-3, 62, 0, Material.STONE);
 
         final RingCycle cycle = new RingCycle(pair, world, REACH);
         cycle.beginCountdown();
-        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "the floor appears lit");
-        assertEquals(Material.STONE, world.realAt(-3, 63, 0), "but is still really stone");
+        assertEquals(Material.AIR, world.seenAt(-3, 63, 0), "the floor appears to open");
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "with light below the gap");
+        assertEquals(Material.STONE, world.realAt(-3, 63, 0), "and neither is really touched");
+        assertEquals(Material.STONE, world.realAt(-3, 62, 0));
 
         cycle.abort();
-        assertEquals(Material.STONE, world.seenAt(-3, 63, 0), "and looks like stone again");
+        assertEquals(Material.STONE, world.seenAt(-3, 63, 0), "the floor closes again");
+        assertEquals(Material.STONE, world.seenAt(-3, 62, 0));
     }
 
     @Test

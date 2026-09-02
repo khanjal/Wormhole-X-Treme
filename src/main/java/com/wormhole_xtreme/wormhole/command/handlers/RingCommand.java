@@ -162,13 +162,15 @@ public class RingCommand implements SubCommand
             return true;
         }
         RingManager.setPending(player.getUniqueId(), ring, world);
-        // Written now rather than at shutdown: the slabs are gone as of this moment, and a
-        // server that stops badly is exactly what this is protecting against.
         RingYamlManager.savePending();
-        consumeTemplate(player, ring);
-        player.sendMessage("First ring registered in " + ring.getRingMaterial()
+        // The slabs stay where they are until the pair is finished. Taking them now would
+        // mean a crash or a restart between the two halves cost somebody a circle of slabs
+        // for a ring that never existed — and leaving them costs nothing, since an unpaired
+        // ring does not work anyway.
+        player.sendMessage("First ring noted, in " + ring.getRingMaterial()
             + ". Lay the other one and run this again to pair them.");
-        player.sendMessage("Run /wormhole ring cancel to put this one back.");
+        player.sendMessage("Its slabs stay put until the pair is finished. "
+            + "Run /wormhole ring cancel to forget it.");
         return true;
     }
 
@@ -230,8 +232,22 @@ public class RingCommand implements SubCommand
             end.setFlashMaterial(ConfigManager.getRingDefaultFlash());
         }
 
+        if ((waiting.getRing().getAnchorX() == ring.getAnchorX())
+            && (waiting.getRing().getAnchorY() == ring.getAnchorY())
+            && (waiting.getRing().getAnchorZ() == ring.getAnchorZ()))
+        {
+            // The first ring's slabs are still lying there, so running the command again in
+            // the same circle finds the same ring. Pairing it with itself would make a
+            // transport that goes nowhere.
+            player.sendMessage("That is the ring you already laid. Go and build the other end.");
+            return true;
+        }
+
         RingManager.clearPending(player.getUniqueId());
         RingYamlManager.savePending();
+        // Both templates come up now, together, because only now is there a pair to show for
+        // them.
+        consumeTemplate(player, waiting.getRing());
         consumeTemplate(player, ring);
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world);
@@ -282,19 +298,45 @@ public class RingCommand implements SubCommand
     }
 
     /**
-     * Puts a template back, for a first end somebody has given up on.
+     * Lays both ends of a removed pair back out as slabs.
      *
-     * @param player
-     *            the builder
+     * <p>Done in the pair's own world rather than the player's, because a pair can be removed
+     * by id from anywhere. A world that is not loaded is left alone and said so, rather than
+     * loading a world as a side effect of a command about something else.
+     *
+     * @param pair
+     *            the pair that has been removed
+     * @return how many slabs were laid back down
+     */
+    private static int returnTemplates(final RingPair pair)
+    {
+        final org.bukkit.World world = org.bukkit.Bukkit.getWorld(pair.getWorldName());
+        if (world == null)
+        {
+            return 0;
+        }
+        return restoreTemplate(world, pair.getEndA()) + restoreTemplate(world, pair.getEndB());
+    }
+
+    /**
+     * Puts a template back, for a ring that has been given up on or removed.
+     *
+     * <p>Laid out as the ring it was, in the slab it was built from, so it is both the slabs
+     * back and a ready-made template if they want it somewhere else.
+     *
+     * @param world
+     *            the world the ring is in
      * @param ring
      *            the ring to lay out again
+     * @return how many slabs were laid down
      */
-    private static void restoreTemplate(final Player player, final Ring ring)
+    private static int restoreTemplate(final org.bukkit.World world, final Ring ring)
     {
         final boolean top = ring.getOrientation() == RingOrientation.CEILING;
+        int laid = 0;
         for (final int[] block : ring.perimeterBlocks())
         {
-            final org.bukkit.block.Block at = player.getWorld().getBlockAt(block[0], block[1], block[2]);
+            final org.bukkit.block.Block at = world.getBlockAt(block[0], block[1], block[2]);
             if (at.getType() != Material.AIR)
             {
                 // Something is there now. Putting the slab back would destroy it, and the
@@ -309,8 +351,10 @@ public class RingCommand implements SubCommand
                     ? org.bukkit.block.data.type.Slab.Type.TOP
                     : org.bukkit.block.data.type.Slab.Type.BOTTOM);
                 at.setBlockData(slab, false);
+                laid++;
             }
         }
+        return laid;
     }
 
     /**
@@ -412,18 +456,10 @@ public class RingCommand implements SubCommand
             player.sendMessage("You have no half-built ring pair.");
             return true;
         }
-        // The slabs were taken when that end was registered, so giving up has to give them
-        // back. Losing a circle of slabs for changing your mind would be a mean way to
-        // learn how this works.
         RingYamlManager.savePending();
-        if (player.getWorld().getName().equals(waiting.getWorldName()))
-        {
-            restoreTemplate(player, waiting.getRing());
-            player.sendMessage("Forgotten, and the slabs are back where you laid them.");
-            return true;
-        }
-        player.sendMessage("Forgotten. Its slabs were in " + waiting.getWorldName()
-            + ", so they have not been put back — go there and cancel from inside it to get them.");
+        // Nothing to give back: an unfinished pair never took the slabs in the first place.
+        player.sendMessage("Forgotten. The circle you laid is still there, so you can pair it "
+            + "later or take the slabs back yourself.");
         return true;
     }
 
@@ -479,7 +515,17 @@ public class RingCommand implements SubCommand
         }
         RingManager.removePair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(pair.getWorldName());
-        player.sendMessage("Removed both ends of " + pair.getId() + ".");
+
+        // The slabs were taken when the ring was built, so removing it gives them back —
+        // laid out as the ring they were, which is also the template for building it again
+        // somewhere else. Nobody should have to re-mine a circle they already paid for.
+        final int returned = returnTemplates(pair);
+        player.sendMessage("Removed both ends of " + pair.getId()
+            + (returned > 0 ? (" and put " + returned + " slabs back.") : "."));
+        if (returned == 0)
+        {
+            player.sendMessage("Its world is not loaded, so the slabs were left where they are.");
+        }
         return true;
     }
 
