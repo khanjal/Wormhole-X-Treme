@@ -46,8 +46,11 @@ public class Ring
     /** The travelling slabs. Must be a slab: the rise animation is built out of slab halves. */
     private Material ringMaterial;
 
-    /** What the perimeter shows during the countdown, before anything moves. */
+    /** What the pad shows from the countdown until the rings are home. */
     private Material lightMaterial;
+
+    /** What a ring turns to as the transport light passes through it. */
+    private Material flashMaterial;
 
     /** How this end's stack comes out. Its own, so two ends can look different. */
     private RingStyle style = RingStyle.CONCURRENT;
@@ -71,7 +74,7 @@ public class Ring
      * @param ringMaterial
      *            the travelling slabs; must be a slab
      * @param lightMaterial
-     *            what the perimeter shows during the countdown
+     *            what the pad shows while the ring is working; also the initial flash
      */
     public Ring(final int anchorX, final int anchorY, final int anchorZ, final RingPattern pattern,
         final RingOrientation orientation, final Material ringMaterial, final Material lightMaterial)
@@ -83,6 +86,9 @@ public class Ring
         this.orientation = orientation;
         this.ringMaterial = ringMaterial;
         this.lightMaterial = lightMaterial;
+        // Starts matched, so a ring that nobody has fiddled with looks like one thing rather
+        // than two. Setting them apart is what makes the transport read as its own moment.
+        this.flashMaterial = lightMaterial;
     }
 
     /** @return anchor x */
@@ -147,6 +153,28 @@ public class Ring
     public void setLightMaterial(final Material lightMaterial)
     {
         this.lightMaterial = lightMaterial;
+    }
+
+    /** @return what a ring turns to as the transport light passes through it */
+    public Material getFlashMaterial()
+    {
+        return flashMaterial;
+    }
+
+    /**
+     * Sets what a ring turns to as the transport light passes through it.
+     *
+     * <p>Separate from the pad's own light because they are two different moments. The pad
+     * lights to say the ring is working and stays lit throughout; the flash is the instant of
+     * transport running through the stack. Left matched they read as one effect, which is a
+     * fine default and a waste of the distinction.
+     *
+     * @param flashMaterial
+     *            the new material
+     */
+    public void setFlashMaterial(final Material flashMaterial)
+    {
+        this.flashMaterial = flashMaterial;
     }
 
     /** @return how this end's stack comes out */

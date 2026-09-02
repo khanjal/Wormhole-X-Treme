@@ -126,6 +126,24 @@ public class RingTabCompletionTest
     }
 
     @Test
+    public void theTwoLightsAreOfferedSeparatelyAndBothOfferGlowingBlocks()
+    {
+        // The pad light and the transport flash are two different moments, so they are two
+        // fields — but they draw from the same set, since both want something that looks lit.
+        assertTrue(complete("ring", "edit", "").contains("light"));
+        assertTrue(complete("ring", "edit", "").contains("flash"));
+        assertEquals(complete("ring", "edit", "light", ""), complete("ring", "edit", "flash", ""));
+        assertTrue(complete("ring", "edit", "flash", "").contains("sea_lantern"));
+    }
+
+    @Test
+    public void resetIsOfferedAndTakesNoValue()
+    {
+        assertTrue(complete("ring", "edit", "").contains("reset"));
+        assertTrue(complete("ring", "edit", "reset", "").isEmpty());
+    }
+
+    @Test
     public void aNameIsWhateverThePlayerWants()
     {
         assertTrue(complete("ring", "edit", "name", "").isEmpty());

@@ -307,6 +307,10 @@ public final class RingYamlManager
         final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
         built.setStyle(map.containsKey("Style") ? readStyle(map.get("Style")) : fallback);
         built.setName(String.valueOf(map.getOrDefault("Name", "")));
+        // A ring written before the flash was its own material used one for both, so falling
+        // back to the light keeps those looking exactly as they did.
+        final Material flash = Material.matchMaterial(String.valueOf(map.getOrDefault("Flash", "")));
+        built.setFlashMaterial(flash == null ? light : flash);
         return built;
     }
 
@@ -425,6 +429,7 @@ public final class RingYamlManager
         out.put("Orientation", ring.getOrientation().name());
         out.put("Ring", ring.getRingMaterial().name());
         out.put("Light", ring.getLightMaterial().name());
+        out.put("Flash", ring.getFlashMaterial().name());
         out.put("Style", ring.getStyle().name());
         out.put("Name", ring.getName());
         return out;

@@ -208,8 +208,11 @@ public class RingCommand implements SubCommand
         pair.setOwnerName(player.getName());
         pair.setCreated(System.currentTimeMillis());
         pair.setAccess(ConfigManager.getRingDefaultAccess());
-        waiting.getRing().setStyle(ConfigManager.getRingDefaultStyle());
-        ring.setStyle(ConfigManager.getRingDefaultStyle());
+        for (final Ring end : new Ring[] { waiting.getRing(), ring })
+        {
+            end.setStyle(ConfigManager.getRingDefaultStyle());
+            end.setFlashMaterial(ConfigManager.getRingDefaultFlash());
+        }
 
         RingManager.clearPending(player.getUniqueId());
         consumeTemplate(player, ring);
@@ -469,9 +472,11 @@ public class RingCommand implements SubCommand
             player.sendMessage("Stand in a ring, or name a pair by its id.");
             return true;
         }
-        if (args.length <= (fieldAt + 1))
+        final boolean noValue = args.length <= (fieldAt + 1);
+        if (noValue && !"reset".equalsIgnoreCase(args[fieldAt]))
         {
-            player.sendMessage("Usage: /wormhole ring edit [id] <ring|light|name|access|style> <value>");
+            player.sendMessage("Usage: /wormhole ring edit [id] "
+                + "<ring|light|flash|name|access|style|reset> [value]");
             return true;
         }
         if (!RingPermissions.mayManage(player, pair))
@@ -481,7 +486,7 @@ public class RingCommand implements SubCommand
         }
 
         final String field = args[fieldAt].toLowerCase();
-        final String value = join(args, fieldAt + 1);
+        final String value = noValue ? "" : join(args, fieldAt + 1);
         // Naming a pair means both ends; standing in one means that end only. Materials are
         // per end precisely so a base and a mine can each look like where they are.
         final Ring only = (named != null) ? null : endUnderfoot(player);
@@ -492,7 +497,11 @@ public class RingCommand implements SubCommand
         }
         if ("light".equals(field))
         {
-            return setLightMaterial(player, pair, only, value);
+            return setLightMaterial(player, pair, only, value, false);
+        }
+        if ("flash".equals(field))
+        {
+            return setLightMaterial(player, pair, only, value, true);
         }
         if ("name".equals(field))
         {
@@ -521,6 +530,10 @@ public class RingCommand implements SubCommand
             }
             return saved(player, pair, "Access set to " + pair.getAccess() + ".");
         }
+        if ("reset".equals(field))
+        {
+            return reset(player, pair, only);
+        }
         if ("style".equals(field))
         {
             final RingStyle chosen = RingStyle.parse(value);
@@ -541,7 +554,47 @@ public class RingCommand implements SubCommand
             }
             return saved(player, pair, "Style set to " + chosen + ".");
         }
-        player.sendMessage("Fields are: ring, light, name, access, style.");
+        player.sendMessage("Fields are: ring, light, flash, name, access, style, reset.");
+        return true;
+    }
+
+    /**
+     * Puts a ring's appearance back to what the server calls normal.
+     *
+     * <p>Deliberately narrow. It restores how a ring <em>looks and moves</em> — its slabs,
+     * its two lights and its deploy style — and leaves alone everything that would be
+     * unwelcome to lose without meaning to: who owns it, who is allowed on it, whether it is
+     * private, and what it is called. Undoing an experiment with colours should not quietly
+     * publish somebody's private link or forget that an end was called Tower.
+     *
+     * <p>It does cost the material read off the template, since that is what "back to the
+     * default" means for the ring. The message says so rather than leaving it to be noticed.
+     *
+     * @param player
+     *            the player
+     * @param pair
+     *            the pair
+     * @param only
+     *            the single end to reset, or null for both
+     * @return true, the command was handled
+     */
+    private static boolean reset(final Player player, final RingPair pair, final Ring only)
+    {
+        for (final Ring ring : (only != null)
+            ? new Ring[] { only } : new Ring[] { pair.getEndA(), pair.getEndB() })
+        {
+            ring.setRingMaterial(ConfigManager.getRingDefaultMaterial());
+            ring.setLightMaterial(ConfigManager.getRingDefaultLight());
+            ring.setFlashMaterial(ConfigManager.getRingDefaultFlash());
+            ring.setStyle(ConfigManager.getRingDefaultStyle());
+        }
+        player.sendMessage("Appearance reset to " + ConfigManager.getRingDefaultMaterial()
+            + " rings, " + ConfigManager.getRingDefaultLight() + " pad, "
+            + ConfigManager.getRingDefaultFlash() + " flash, "
+            + ConfigManager.getRingDefaultStyle() + " deploy"
+            + ((only != null) ? " for this end." : " for both ends."));
+        player.sendMessage("Access, allow list, names and owner are untouched.");
+        RingYamlManager.saveWorld(pair.getWorldName());
         return true;
     }
 
@@ -594,10 +647,12 @@ public class RingCommand implements SubCommand
      *            the single end to change, or null for both
      * @param value
      *            the material name
+     * @param flash
+     *            true for the transport light, false for the pad's own
      * @return true, the command was handled
      */
     private static boolean setLightMaterial(final Player player, final RingPair pair,
-        final Ring only, final String value)
+        final Ring only, final String value, final boolean flash)
     {
         final Material material = Material.matchMaterial(value);
         if ((material == null) || !material.isBlock())
@@ -605,16 +660,20 @@ public class RingCommand implements SubCommand
             player.sendMessage("That is not a block.");
             return true;
         }
-        if (only != null)
+        for (final Ring ring : (only != null)
+            ? new Ring[] { only } : new Ring[] { pair.getEndA(), pair.getEndB() })
         {
-            only.setLightMaterial(material);
+            if (flash)
+            {
+                ring.setFlashMaterial(material);
+            }
+            else
+            {
+                ring.setLightMaterial(material);
+            }
         }
-        else
-        {
-            pair.getEndA().setLightMaterial(material);
-            pair.getEndB().setLightMaterial(material);
-        }
-        return saved(player, pair, "Light material set to " + material + ".");
+        return saved(player, pair, (flash ? "Transport light set to " : "Pad light set to ")
+            + material + ".");
     }
 
     /**
@@ -872,7 +931,7 @@ public class RingCommand implements SubCommand
         player.sendMessage("/wormhole ring cancel — forget a half-built pair");
         player.sendMessage("/wormhole ring list — your pairs");
         player.sendMessage("/wormhole ring remove [id] — remove both ends");
-        player.sendMessage("/wormhole ring edit [id] <ring|light|name|access|style> <value>");
+        player.sendMessage("/wormhole ring edit [id] <ring|light|flash|name|access|style> <value>");
         player.sendMessage("/wormhole ring allow|deny <player> [id] — who may use a private pair");
         player.sendMessage("/wormhole ring owner <player> [id] — hand a pair to somebody else");
         return true;

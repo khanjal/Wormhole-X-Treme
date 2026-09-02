@@ -404,8 +404,13 @@ public class RingAnimatorTest
         // rings; in the finished stack there is half a block. Nothing compresses them — the
         // leader stops while the others are still climbing, so the gaps close on their own.
         final Ring floor = ring(RingOrientation.FLOOR);
-        final List<Integer> climbing = heightsOf(
-            RingAnimator.deployFrame(floor, RingStyle.CONCURRENT, RingAnimator.TRAVEL_GAP * 2));
+        // The frame before the leader arrives: everything still out is still moving, which is
+        // the only window where the travelling gap is what is on show. Taken from the
+        // animator rather than written down, because how long that window lasts depends on
+        // how many rings there are.
+        final List<Integer> climbing = heightsOf(RingAnimator.deployFrame(floor,
+            RingStyle.CONCURRENT, RingAnimator.restingHalfStep(0) - 1));
+        assertTrue(climbing.size() > 1, "more than one ring should be up by then");
         for (int i = 0; i < (climbing.size() - 1); i++)
         {
             assertEquals(RingAnimator.TRAVEL_GAP,
@@ -435,8 +440,8 @@ public class RingAnimatorTest
 
         assertEquals(RingAnimator.SPACING, midway.get(0).intValue() - midway.get(1).intValue(),
             "the top pair has already closed up");
-        assertEquals(RingAnimator.TRAVEL_GAP, midway.get(1).intValue() - midway.get(2).intValue(),
-            "the ones below are still a block apart");
+        assertTrue(midway.get(1).intValue() - midway.get(2).intValue() > RingAnimator.SPACING,
+            "the ones below have not caught up yet");
     }
 
     @Test

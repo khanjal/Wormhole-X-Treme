@@ -343,7 +343,14 @@ A ring has two, and they do different jobs:
 | | Default | Constraint | Shown |
 |---|---|---|---|
 | Ring | the slab it was laid in | **Must be a slab** (`minecraft:slabs`) | The travelling rings, during deploy and retract |
-| Light | `rings.default-light-material` | Any placeable block | The perimeter during the countdown |
+| Light | `rings.default-light-material` | Any placeable block | The pad, from the countdown until the rings are home |
+| Flash | `rings.default-flash-material` | Any placeable block | A ring, as the transport light passes through it |
+
+**The pad light and the transport flash are separate** because they are separate moments. The
+pad lights to say the ring is working and stays lit throughout; the flash is the instant of
+transport running up and down the stack. They start matched, so an untouched ring reads as
+one effect rather than two, and setting them apart is what makes the transport its own
+moment.
 
 The ring material is not really a default at all: it is read off the template, so the config
 value only applies if detection ever cannot say. The light has nothing to read, so it takes
@@ -533,19 +540,22 @@ less hazard to design around.
 
 ## Animation
 
-Four rings end up **half a block of clear air apart** — one block centre to centre, since a
+Three rings end up **half a block of clear air apart** — one block centre to centre, since a
 slab is half a block thick — with the lowest hanging half a block clear of the floor rather
-than resting on it. They settle at 0.5, 1.5, 2.5 and 3.5 blocks up, so the whole thing needs
-four blocks of headroom, which an ordinary room already has.
+than resting on it. They settle at 0.5, 1.5 and 2.5 blocks up, so the whole thing needs three
+blocks of headroom: the height of an ordinary room.
 
-**Four rather than the show's five**, because Minecraft's proportions are not the show's. The
-count is also the height: a slab is half a block thick, so rings cannot sit closer than a
-block apart centre to centre without touching, and there is no way to fit five rings into a
-short stack. A ring here has to be seven blocks across to read as round on a block grid,
-which is already enormous beside a player less than a block wide — five of them put a
-five-block tower around somebody 1.8 blocks tall. Four is closer to what a person standing in
-it should see. Measured against the ring's own width it is squatter than the show's, and the
-two proportions cannot both be had.
+**Three rather than the show's five**, because Minecraft's proportions are not the show's.
+The count is unavoidably the height — rings cannot sit closer than a block apart centre to
+centre without touching, so there is no way to fit five into a short stack. Meanwhile a ring
+here has to be seven blocks across to read as round on a block grid, which is already
+enormous beside a player less than a block wide. Five put a five-block tower around somebody
+1.8 blocks tall; three comes out at 1.7 times a player's height, against roughly 1.4 in the
+show.
+
+The trade is that it is squat measured against the ring's own width, where the show's stack
+is slightly taller than wide. The two proportions pull opposite ways and cannot both be had
+on this grid, and the one a player sees while standing in it is the one worth having.
 
 They **travel further apart than they land**. On the way up there is a full block of clear
 air between rings; the finished stack has half a block. Nothing compresses them — the leader
@@ -555,7 +565,7 @@ have been a second motion to keep in step with the first, for an effect that fal
 rings simply stopping when they get there.
 
 Because rings stop where they land, the finished stack is also the highest anything ever
-gets — so four blocks of headroom is the whole requirement.
+gets — so three blocks of headroom is the whole requirement.
 
 There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.
@@ -670,6 +680,7 @@ rings:
   max-link-distance: 0       # 0 = unlimited; distance itself costs nothing
   default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
+  default-flash-material: GLOWSTONE   # set it apart to make the transport its own moment
   default-access: PRIVATE    # what a newly built pair starts as
   default-style: CONCURRENT  # or SEQUENTIAL; how the stack comes out
   reach: 4                   # block layers of passenger volume, from the ring plane

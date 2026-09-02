@@ -358,9 +358,9 @@ public class RingCycle
 
         final int lit = RingAnimator.litRing(direction, step);
         drawPlacements(RingAnimator.ringAtRest(pair.getEndA(), lit),
-            pair.getEndA().getLightMaterial());
+            pair.getEndA().getFlashMaterial());
         drawPlacements(RingAnimator.ringAtRest(pair.getEndB(), lit),
-            pair.getEndB().getLightMaterial());
+            pair.getEndB().getFlashMaterial());
     }
 
     /**

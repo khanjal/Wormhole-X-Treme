@@ -139,7 +139,7 @@ booleans depending on where you are in the line.
 `wooshdepth`
 
 **Rings** — `ring create`, `ring cancel`, `ring list`, `ring remove [id]`,
-`ring edit [id] <ring|light|name|access|style> <value>`,
+`ring edit [id] <ring|light|flash|name|access|style|reset> [value]`,
 `ring allow|deny <player> [id]`, `ring owner <player> [id]`
 
 **Server** — `shutdown_timeout <seconds>` (alias `timeout`),
@@ -562,7 +562,7 @@ Rules for the template:
 - **All facing the same way.** Bottom slabs resting on a floor make a floor ring; top slabs
   hung under a ceiling make a ceiling ring. Double slabs are not accepted, because a full
   block cannot say which surface it was laid against.
-- **Four blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
+- **Three blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
 - The footprint may not overlap another ring or any gate.
 
 Each refusal says what is actually wrong — mixed slabs, mixed halves, a filled-in circle,
@@ -576,14 +576,15 @@ Creation is two-step, so the first ring is remembered until you build its partne
 Walk in. The pattern lights up in the floor and counts down; step clear before it commits and
 it stands down. Once the rings start rising the trip is committed.
 
-Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
-settling at 0.5 to 3.5 blocks up. The stack stands a second, the light runs down through it
-as you are taken and back up as you arrive, and the rings return nearest-first. The pad stays
-lit until a second after the last one is home.
+Three rings then rise out of the pad a block apart, closing to half a block as each one
+stops, settling at 0.5, 1.5 and 2.5 blocks up. The stack stands a second, the light runs down
+through it as you are taken and back up as you arrive, and the rings return nearest-first.
+The pad stays lit until a second after the last one is home.
 
-Four rather than the show's five: a slab is half a block thick, so rings cannot sit closer
+Three rather than the show's five: a slab is half a block thick, so rings cannot sit closer
 than a block apart without touching, which makes the ring count and the stack's height the
-same number. Five of them put a five-block tower around a player less than two blocks tall.
+same number. Five put a five-block tower around a player less than two blocks tall, where
+three comes out at about 1.7 times their height.
 
 Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
 subject to access rules; everything else rides along.
@@ -623,6 +624,7 @@ All under `rings:` in `config.yml`.
 | `default-access` | `PRIVATE` | What a newly built pair starts as. |
 | `default-style` | `CONCURRENT` | How the stack deploys. |
 | `default-light-material` | `GLOWSTONE` | What the pad lights up as. |
+| `default-flash-material` | `GLOWSTONE` | What a ring turns to as the transport light passes. |
 | `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template. |
 | `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `outline-ticks` | 40 | How long that outline stays up. |
@@ -633,10 +635,17 @@ edits that end; naming a pair by id edits both.
 | Field | Scope | Values |
 |---|---|---|
 | `ring` | per end | Any slab, read from the game's own `minecraft:slabs` tag. |
-| `light` | per end | Tab completion offers solid blocks that look lit. |
+| `light` | per end | The pad, lit while the ring works. Completion offers blocks that look lit. |
+| `flash` | per end | The transport light running through the stack. Same list. |
 | `name` | per end | Free text. Refused with an id — stand in the ring you mean. |
 | `access` | per pair | `public` or `private` |
 | `style` | per end | `fast` or `slow` (`concurrent` and `sequential` also work) |
+| `reset` | per end | Takes no value. Puts appearance back to the server's defaults. |
+
+`reset` restores how a ring looks and moves — slabs, both lights, deploy style — and leaves
+ownership, access, the allow list and names alone, since those are the things you would be
+annoyed to lose by undoing an experiment with colours. It does cost the material read off the
+template, because that is what "back to the default" means, and it says so when it runs.
 
 `style` decides how many rings are climbing at once, not how fast they move — `deploy-ticks`
 is the speed knob. `fast` sends several up together; `slow` sends one at a time.

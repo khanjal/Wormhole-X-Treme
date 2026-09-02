@@ -247,6 +247,44 @@ public class RingYamlManagerTest
     }
 
     @Test
+    public void theTwoLightsAreStoredSeparately() throws IOException
+    {
+        final RingPair pair = pair("lite0001", 900, 900);
+        pair.getEndA().setFlashMaterial(Material.SEA_LANTERN);
+        RingManager.addPair(pair, REACH);
+        RingYamlManager.saveWorld(directory, WORLD);
+        RingManager.clear();
+        RingYamlManager.loadAll(directory, REACH);
+
+        final RingPair loaded = RingManager.getPair("lite0001");
+        assertEquals(Material.GLOWSTONE, loaded.getEndA().getLightMaterial(), "the pad");
+        assertEquals(Material.SEA_LANTERN, loaded.getEndA().getFlashMaterial(), "the transport");
+    }
+
+    @Test
+    public void aRingStoredBeforeTheFlashExistedUsesItsPadLightForBoth() throws IOException
+    {
+        // Written when one material did both jobs. Falling back to the light keeps those
+        // rings looking exactly as they did rather than turning them a default colour.
+        final String yaml =
+            "World: world\n"
+            + "Pairs:\n"
+            + "  older001:\n"
+            + "    Owner: ''\n"
+            + "    OwnerName: ''\n"
+            + "    Created: 1\n"
+            + "    A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: SEA_LANTERN}\n"
+            + "    B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: SEA_LANTERN}\n";
+        Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
+
+        RingYamlManager.loadAll(directory, REACH);
+
+        final Ring end = RingManager.getPair("older001").getEndA();
+        assertEquals(Material.SEA_LANTERN, end.getLightMaterial());
+        assertEquals(Material.SEA_LANTERN, end.getFlashMaterial(), "and the flash matches it");
+    }
+
+    @Test
     public void aPairWithNoNamesFallsBackToItsId()
     {
         final Ring a = new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,

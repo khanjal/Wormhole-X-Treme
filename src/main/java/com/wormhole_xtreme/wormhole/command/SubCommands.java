@@ -303,7 +303,7 @@ public final class SubCommands
     }
 
     /** The fields {@code /wormhole ring edit} understands. */
-    private static final String[] RING_FIELDS = { "ring", "light", "name", "access", "style" };
+    private static final String[] RING_FIELDS = { "ring", "light", "flash", "name", "access", "style", "reset" };
 
     /**
      * Completions for {@code /wormhole ring}.
@@ -392,13 +392,13 @@ public final class SubCommands
             // the command is about to refuse.
             return materialNames(typed, true);
         }
-        if ("light".equalsIgnoreCase(field))
+        if ("light".equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
         {
             // Solid blocks that read as glowing. Offering all several hundred blocks was a
             // list nobody could use, and most of them look wrong set into a floor.
             return glowingNames(typed);
         }
-        // A name is whatever the player wants it to be.
+        // A name is whatever the player wants, and reset takes no value at all.
         return none();
     }
 

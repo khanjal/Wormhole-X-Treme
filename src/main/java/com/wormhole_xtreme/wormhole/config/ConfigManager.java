@@ -109,6 +109,8 @@ public class ConfigManager
         RING_DEFAULT_MATERIAL,
         /** What the countdown lights are made of. */
         RING_DEFAULT_LIGHT,
+        /** What a ring turns to as the transport light passes through it. */
+        RING_DEFAULT_FLASH,
         /** Whether to append newly-seen shape palettes to config.yml automatically. */
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** Whether economy (Vault) integration is enabled. */
@@ -684,6 +686,19 @@ public class ConfigManager
     public static Material getRingDefaultLight()
     {
         return materialSetting(ConfigKeys.RING_DEFAULT_LIGHT, Material.GLOWSTONE);
+    }
+
+    /**
+     * What a ring turns to as the transport light passes through it.
+     *
+     * <p>Matches the pad light by default, so an untouched ring reads as one effect rather
+     * than two. Setting them apart is what makes the transport its own moment.
+     *
+     * @return the flash material
+     */
+    public static Material getRingDefaultFlash()
+    {
+        return materialSetting(ConfigKeys.RING_DEFAULT_FLASH, getRingDefaultLight());
     }
 
     /**
