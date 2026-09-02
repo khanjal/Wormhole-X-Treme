@@ -308,10 +308,10 @@ public class RingCycleTest
     }
 
     @Test
-    public void theAnimationRefusesToWriteOverSomethingThatIsAlreadyThere()
+    public void aTravellingRingRefusesToWriteOverSomethingThatIsAlreadyThere()
     {
-        // A ring is decoration and whatever is in the way might not be, so a blocked
-        // position is skipped and the frame is drawn with a gap rather than a hole in
+        // A ring passing through is decoration and whatever is in its way might not be, so a
+        // blocked position is skipped and the frame is drawn with a gap rather than a hole in
         // somebody's wall.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -319,10 +319,29 @@ public class RingCycleTest
 
         final RingCycle cycle = new RingCycle(pair, world, REACH);
         cycle.beginCountdown();
+        cycle.beginDeploy();
 
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0));
-        cycle.abort();
+        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0), "the slab gave way to it");
+        cycle.finish(0L);
         assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0), "and it survives the restore");
+    }
+
+    @Test
+    public void aLightDoesReplaceTheFloorItIsSetIntoAndPutsItBack()
+    {
+        // The one exception to the air-only rule, and it has to be: a light set into a floor
+        // has a floor block in the way by definition, so refusing to write over it would mean
+        // the pattern never appearing at all.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.set(-3, 63, 0, Material.STONE);
+
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+        cycle.beginCountdown();
+        assertEquals(Material.GLOWSTONE, world.materialAt(-3, 63, 0), "the floor block lit up");
+
+        cycle.abort();
+        assertEquals(Material.STONE, world.materialAt(-3, 63, 0), "and the floor came back");
     }
 
     @Test
@@ -332,13 +351,14 @@ public class RingCycleTest
         // The record is dropped instead: the block is no longer ours to think about.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
+        world.set(-3, 63, 0, Material.STONE);
         final RingCycle cycle = new RingCycle(pair, world, REACH);
 
         cycle.beginCountdown();
-        world.set(-3, 64, 0, Material.DIAMOND_BLOCK);
+        world.set(-3, 63, 0, Material.DIAMOND_BLOCK);
 
         cycle.abort();
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0));
+        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 63, 0));
     }
 
     @Test

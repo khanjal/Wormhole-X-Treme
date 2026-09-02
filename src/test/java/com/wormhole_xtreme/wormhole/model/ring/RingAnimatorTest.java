@@ -305,16 +305,33 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theCountdownLightsAreThePerimeterInItsOwnPlane()
+    public void theCountdownLightsAreSetIntoTheSurfaceNotTheSpaceAboveIt()
     {
-        final Ring floor = ring(RingOrientation.FLOOR);
-        final List<int[]> lights = RingAnimator.lightBlocks(floor);
-
-        assertEquals(RingPattern.ODD.getPerimeter().size(), lights.size());
-        for (final int[] light : lights)
+        // The slabs were laid on top of the floor, so the ring plane is the space the rings
+        // rise through. Lighting that would leave the pattern hanging in mid-air; the lights
+        // belong a block back, in the floor itself.
+        final List<int[]> onFloor = RingAnimator.lightBlocks(ring(RingOrientation.FLOOR));
+        assertEquals(RingPattern.ODD.getPerimeter().size(), onFloor.size());
+        for (final int[] light : onFloor)
         {
-            assertEquals(64, light[1], "nothing has moved yet during the countdown");
+            assertEquals(63, light[1], "a floor ring lights the floor beneath it");
         }
+
+        final List<int[]> onCeiling = RingAnimator.lightBlocks(ring(RingOrientation.CEILING));
+        for (final int[] light : onCeiling)
+        {
+            assertEquals(65, light[1], "a ceiling ring lights the ceiling above it");
+        }
+    }
+
+    @Test
+    public void theRingsStillRiseFromThePlaneTheLightsSitBehind()
+    {
+        // The lights move but the rings do not: they still start where the template was, so
+        // they come up out of the lit pattern rather than out of it.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        assertEquals(63, RingAnimator.lightBlocks(floor).get(0)[1]);
+        assertEquals(64, RingAnimator.deployFrame(floor, STYLE, 0).get(0).getY());
     }
 
     @Test

@@ -178,6 +178,33 @@ public class Ring
     }
 
     /**
+     * The layer the countdown lights sit in.
+     *
+     * <p>One block back against the direction the rings travel: into the floor beneath a
+     * floor ring, into the ceiling above a ceiling one. The template slabs rest in the space
+     * the rings rise <em>through</em>, so lighting that space would put the pattern hanging
+     * in the air rather than set into the surface it belongs to.
+     *
+     * @return the block layer to light
+     */
+    public int lightPlaneY()
+    {
+        return anchorY - orientation.getTravel();
+    }
+
+    /**
+     * The perimeter, placed in a given layer rather than the anchor's own.
+     *
+     * @param y
+     *            the block layer to place them in
+     * @return the perimeter blocks at that height, each as {@code {x, y, z}}
+     */
+    public List<int[]> perimeterBlocksAt(final int y)
+    {
+        return layer(pattern.getPerimeter(), y);
+    }
+
+    /**
      * The blocks enclosed by the ring, in the anchor's own layer.
      *
      * <p>This is the floor of the trigger volume rather than the whole of it. For the space a

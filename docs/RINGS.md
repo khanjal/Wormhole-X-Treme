@@ -223,7 +223,7 @@ binary baggage; there is no reason to inherit that.
 
 ```
 IDLE        a move event inside either interior arms the pair
-COUNTDOWN   lights show in the ring's pattern — ABORTS if both interiors go empty
+COUNTDOWN   the ring's pattern lights up in the floor — ABORTS if both interiors go empty
 DEPLOY      rings rise — COMMITTED, no abort, runs to completion
 HOLD        the finished stack stands still for a second
 FLASH       snapshot both interiors in one tick, swap
@@ -309,6 +309,29 @@ their column, on the same not-a-block-we-own principle that governs every other 
 Arming stays interior-only: stepping on the ring's edge does not start a countdown, because
 the perimeter is a threshold you cross rather than a place you stand. The nudge only
 applies to a cycle already underway.
+
+## Where each layer sits
+
+The player lays the template **on top of** the floor, so the slabs occupy the space above it
+rather than the floor itself. That one fact fixes three heights:
+
+| | Height | Why |
+|---|---|---|
+| Countdown lights | one block **into** the surface | the pattern belongs in the floor, not hanging above it |
+| Ring plane (template, first frame of the rise) | the space the slabs were laid in | rings come up out of the lit pattern |
+| Passenger volume | from the ring plane into the room | that is where a standing player's feet are |
+
+A ceiling ring mirrors all of it: lights go up into the ceiling, rings descend from the
+space below it, passengers stand underneath.
+
+Lighting the ring plane instead would put the pattern floating a block above the ground with
+the rings starting inside it, which is why the lights and the rings sit in different layers
+rather than sharing one.
+
+This is also the one place the animation is allowed to replace a solid block. A light set
+into a floor has a floor block in the way by definition, so the air-only rule that protects
+everything else would mean the pattern never appearing at all. It is a handful of blocks the
+player themselves marked out as a ring, each one remembered and put back at the end.
 
 ## Materials
 

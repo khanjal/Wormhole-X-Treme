@@ -341,9 +341,13 @@ public final class RingAnimator
     /**
      * The blocks the countdown lights occupy.
      *
-     * <p>The ring's own perimeter, in its own plane — the pattern lighting up where the ring
-     * will come from, before anything has moved. Nothing travels during the countdown, which
-     * is what makes it the only phase that can be called off cleanly.
+     * <p>The ring's pattern, set into the surface it is built into — the floor beneath a
+     * floor ring, the ceiling above a ceiling one — rather than into the space the rings will
+     * rise through. The rings still come up out of that lit pattern; they simply start a
+     * block nearer the room than the lights do.
+     *
+     * <p>Nothing travels during the countdown, which is what makes it the only phase that can
+     * be called off cleanly.
      *
      * @param ring
      *            the ring counting down
@@ -351,6 +355,6 @@ public final class RingAnimator
      */
     public static List<int[]> lightBlocks(final Ring ring)
     {
-        return ring.perimeterBlocks();
+        return ring.perimeterBlocksAt(ring.lightPlaneY());
     }
 }

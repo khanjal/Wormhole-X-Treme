@@ -26,11 +26,14 @@ import org.bukkit.Material;
  * has not moved yet — are quiet ones that a live server would show only as damage after the
  * fact.
  *
- * <p><b>What is safe to write.</b> A block is only replaced if it is currently air, and only
- * put back if it still holds what this cycle put there. The first rule means the animation
- * never eats somebody's build; the second means it never overwrites a block somebody changed
- * while the rings were up. Anything failing either test is left alone, which is always the
- * safe answer because a ring is decoration and the block might not be.
+ * <p><b>What is safe to write.</b> A travelling ring only ever fills air, so the animation
+ * cannot eat somebody's build as it passes through. The countdown lights are the exception
+ * and have to be: they are set into the floor or ceiling the ring is built into, so they
+ * replace the solid block that is there — a handful of blocks the player themselves marked
+ * out as a ring, every one remembered and put back at the end.
+ *
+ * <p>Either way a block is only put back if it still holds what this cycle placed, so
+ * nothing overwrites a block somebody changed while the rings were up.
  */
 public class RingCycle
 {
@@ -336,7 +339,10 @@ public class RingCycle
     {
         for (final int[] block : RingAnimator.lightBlocks(ring))
         {
-            place(block[0], block[1], block[2], ring.getLightMaterial(), false, false);
+            // Lights go into the surface, so unlike the travelling slabs they have to be
+            // allowed to replace the solid block that is already there. It goes back on the
+            // way out like anything else this cycle touches.
+            place(block[0], block[1], block[2], ring.getLightMaterial(), false, false, true);
         }
     }
 
@@ -384,16 +390,23 @@ public class RingCycle
         for (final RingAnimator.Placement placement : placements)
         {
             place(placement.getX(), placement.getY(), placement.getZ(), material, true,
-                placement.isTop());
+                placement.isTop(), false);
         }
     }
 
     /**
      * Puts a block down if the space is free, remembering what was there.
      *
-     * <p>Only air is written over. A ring is decoration and whatever is already in the way
-     * might not be, so a blocked position is simply skipped — the frame is drawn with a gap
-     * in it, which is a far better outcome than a hole in somebody's wall.
+     * <p>The two things this cycle draws have opposite rules, and deliberately so.
+     *
+     * <p>A <b>travelling ring</b> may only fill air. It is decoration passing through a space
+     * that belongs to somebody else, so a blocked position is skipped and the frame is drawn
+     * with a gap in it — a far better outcome than a hole in somebody's wall.
+     *
+     * <p>A <b>light</b> is set into the surface the ring is built into, so it has to replace
+     * the solid block already there or it could never appear at all. That is safe for the
+     * same reason the ring's own footprint is: it is a handful of blocks the player marked
+     * out as a ring, every one of them is remembered, and they all go back at the end.
      *
      * @param x
      *            block x
@@ -407,9 +420,11 @@ public class RingCycle
      *            true to place it as a slab
      * @param top
      *            for a slab, true to fill the upper half
+     * @param replaceSolid
+     *            true to write over whatever is there rather than only over air
      */
     private void place(final int x, final int y, final int z, final Material material,
-        final boolean slab, final boolean top)
+        final boolean slab, final boolean top, final boolean replaceSolid)
     {
         final long key = RingIndex.pack(x, y, z);
         if (restore.containsKey(Long.valueOf(key)))
@@ -417,7 +432,7 @@ public class RingCycle
             return;
         }
         final Material existing = world.materialAt(x, y, z);
-        if (existing != Material.AIR)
+        if (!replaceSolid && (existing != Material.AIR))
         {
             return;
         }
