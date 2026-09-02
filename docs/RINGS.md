@@ -666,6 +666,22 @@ property of the pair and ignores the distinction; standing in either end sets it
 Working out which ring you are standing in costs nothing — it is the same `RingIndex`
 lookup the move path makes.
 
+**Every field completes its own values.** `ring` offers only slabs, because a slab is the
+only thing the command will accept — offering anything else would be offering a mistake.
+`light` offers any placeable block. `access` and `style` offer their words, and `label` is
+whatever the player wants.
+
+That is worth having because nobody remembers how `polished_deepslate_brick_slab` is spelled,
+and there are dozens of slabs and several hundred blocks to choose from. The awkward part is
+that `edit` takes an optional pair id, so the field sits at one of two positions and the
+value at one of two more. The completer decides from the word *before* the one being typed
+rather than from the argument count, which gets both forms right without having to know which
+one it is looking at.
+
+Pair ids are deliberately not completed. A tab completer is not told who is asking, so the
+choice was between listing every pair on the server and listing none, and none says less than
+it should rather than more.
+
 ```
 wormhole.ring.build       create and pair rings                  default: op
 wormhole.ring.use         travel by a ring you are allowed on    default: true
