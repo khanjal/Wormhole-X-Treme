@@ -498,8 +498,12 @@ public class ConfigManager
     /**
      * Which way the transport flash runs through the stack.
      *
-     * <p>Top down by default, which is how the show does it. Bottom up is the same animation
-     * read the other way and costs nothing to offer.
+     * <p>This is the <em>departure</em> sweep. The arrival that follows the swap always runs
+     * the other way, so the two mirror each other rather than being set separately — two
+     * settings could be pointed the same way, and then the landing would look like a second
+     * departure.
+     *
+     * <p>Top down by default, which is how the show does it.
      *
      * @return the flash direction
      */
@@ -557,13 +561,16 @@ public class ConfigManager
     }
 
     /**
-     * How long the stack stands still after the swap.
+     * How long the stack stands still once the light has finished.
+     *
+     * <p>After the arrival sweep and before the rings come home: a beat with the travellers
+     * standing there and the rings still up around them.
      *
      * @return hold in ticks
      */
     public static int getRingHoldTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_HOLD_TICKS, 40));
+        return Math.max(0, intSetting(ConfigKeys.RING_HOLD_TICKS, 20));
     }
 
     /**

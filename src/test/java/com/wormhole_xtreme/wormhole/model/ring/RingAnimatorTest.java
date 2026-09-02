@@ -542,4 +542,37 @@ public class RingAnimatorTest
         assertTrue(RingAnimator.deployFrames(RingStyle.parse("fast"))
             < RingAnimator.deployFrames(RingStyle.parse("slow")));
     }
+
+    @Test
+    public void theArrivalSweepRunsBackTheWayTheDepartureCame()
+    {
+        // Two sweeps, one each side of the transport: the light takes them one way and
+        // delivers them the other. Only the departure is configured, because two settings
+        // could be pointed the same way and then the landing would look like a second
+        // departure rather than the answer to one.
+        assertEquals(RingFlashDirection.BOTTOM_UP, RingFlashDirection.TOP_DOWN.opposite());
+        assertEquals(RingFlashDirection.TOP_DOWN, RingFlashDirection.BOTTOM_UP.opposite());
+        for (final RingFlashDirection direction : RingFlashDirection.values())
+        {
+            assertEquals(direction, direction.opposite().opposite());
+        }
+    }
+
+    @Test
+    public void theTwoSweepsTouchTheRingsInOppositeOrders()
+    {
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final int last = RingAnimator.flashFrames() - 1;
+        final RingFlashDirection away = RingFlashDirection.TOP_DOWN;
+
+        // Where the departure ends is where the arrival begins, and the other way about.
+        assertEquals(
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(away, last)).get(0).getY(),
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(away.opposite(), 0)).get(0).getY(),
+            "the light comes back from where it left");
+        assertEquals(
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(away, 0)).get(0).getY(),
+            RingAnimator.ringAtRest(floor, RingAnimator.litRing(away.opposite(), last)).get(0).getY(),
+            "and finishes where it started");
+    }
 }

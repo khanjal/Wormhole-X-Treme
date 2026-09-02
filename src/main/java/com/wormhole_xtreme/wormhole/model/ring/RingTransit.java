@@ -215,28 +215,90 @@ public final class RingTransit
     }
 
     /**
-     * Runs the light through the stack, one ring at a time, then moves everybody.
+     * The light running down through the stack as the travellers are taken.
      *
-     * <p>This is the moment the whole cycle is built around. Everything before it is the
-     * rings getting into position and everything after is them putting themselves away, so
-     * the transport itself gets an animation of its own rather than being an instant nobody
-     * sees.
+     * <p>The transport itself, given an animation rather than being an instant nobody sees.
+     * Everything before this is the rings getting into position and everything after is them
+     * putting themselves away.
      *
      * @param cycle
      *            the cycle running
      * @param world
      *            the world it is in
      * @param step
-     *            which frame of the flash
+     *            which frame of the sweep
      */
     private static void runFlash(final RingCycle cycle, final World world, final int step)
     {
         if (step >= RingAnimator.flashFrames())
         {
-            swapAndHold(cycle, world);
+            swapAndArrive(cycle, world);
             return;
         }
         cycle.drawFlash(ConfigManager.getRingFlashDirection(), step);
+        sweepAgain(cycle, world, step, false);
+    }
+
+    /**
+     * Moves everybody, then runs the light back the other way behind them.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     */
+    private static void swapAndArrive(final RingCycle cycle, final World world)
+    {
+        final int travelled = cycle.flash();
+        if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Ring pair " + cycle.getPair().getId() + " carried " + travelled + " passengers.");
+        }
+        runArrival(cycle, world, 0);
+    }
+
+    /**
+     * The light running back up through the stack, with the travellers already there.
+     *
+     * <p>The same sweep reversed, which is what makes the pair of them read as a departure
+     * and a landing rather than as one effect played twice. Whoever has just arrived sees it
+     * from the beginning at their end, because the far stack has been standing there lit the
+     * whole time waiting for them.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     * @param step
+     *            which frame of the sweep
+     */
+    private static void runArrival(final RingCycle cycle, final World world, final int step)
+    {
+        if (step >= RingAnimator.flashFrames())
+        {
+            settleThenRetract(cycle, world);
+            return;
+        }
+        cycle.drawFlash(ConfigManager.getRingFlashDirection().opposite(), step);
+        sweepAgain(cycle, world, step, true);
+    }
+
+    /**
+     * Books the next frame of whichever sweep is running.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     * @param step
+     *            the frame just drawn
+     * @param arriving
+     *            true for the sweep that follows the swap
+     */
+    private static void sweepAgain(final RingCycle cycle, final World world, final int step,
+        final boolean arriving)
+    {
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new Runnable()
             {
@@ -245,7 +307,14 @@ public final class RingTransit
                 {
                     try
                     {
-                        runFlash(cycle, world, step + 1);
+                        if (arriving)
+                        {
+                            runArrival(cycle, world, step + 1);
+                        }
+                        else
+                        {
+                            runFlash(cycle, world, step + 1);
+                        }
                     }
                     catch (final RuntimeException e)
                     {
@@ -256,22 +325,16 @@ public final class RingTransit
     }
 
     /**
-     * Moves everybody, then stands still again before bringing the rings home.
+     * The light has passed. Stand a moment, then bring the rings home.
      *
      * @param cycle
      *            the cycle running
      * @param world
      *            the world it is in
      */
-    private static void swapAndHold(final RingCycle cycle, final World world)
+    private static void settleThenRetract(final RingCycle cycle, final World world)
     {
-        final int travelled = cycle.flash();
-        if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                "Ring pair " + cycle.getPair().getId() + " carried " + travelled + " passengers.");
-        }
-        // Back to the plain stack: the light has passed and the travellers have gone.
+        // Back to the plain stack: the light has gone and so have the travellers.
         cycle.drawSettled();
         cycle.beginHold();
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),

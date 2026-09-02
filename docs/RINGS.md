@@ -226,8 +226,9 @@ IDLE        a move event inside either interior arms the pair
 COUNTDOWN   the pattern lights up, counting down out loud — ABORTS if both interiors empty
 DEPLOY      rings rise — COMMITTED, no abort, runs to completion
 HOLD        the finished stack stands still for a second
-FLASH       light runs through the stack a ring at a time, then the swap
-HOLD        rings stand a moment more, travellers already gone
+FLASH       light runs down through the stack, then the swap
+            then back up through it, with the travellers already there
+HOLD        rings stand a moment more
 RETRACT     rings return nearest-first
 LINGER      rings gone, pad still lit for a second
 COOLDOWN    pair refuses all triggers
@@ -566,14 +567,18 @@ Ceiling rings run the same sequence with the travel direction inverted.
 
 ## The transport flash
 
-With the stack up and still, the light runs through it one ring at a time and the travellers
-go as the last of them lights. It is the moment the whole cycle is built around: everything
-before it is the rings getting into position and everything after is them putting themselves
-away, so the transport itself gets an animation rather than being an instant nobody sees.
+With the stack up and still, the light runs through it one ring at a time — **twice, once
+each side of the transport.** It goes down as the travellers are taken and back up as they
+arrive, so the two sweeps read as a departure and a landing rather than as one effect played
+twice. Then the rings stand a beat and come home.
 
-`rings.flash-direction` is `TOP_DOWN` by default, which is how the show does it, and
-`BOTTOM_UP` is the same animation read the other way. `rings.flash-ticks` is how long each
-ring stays lit.
+Only the departure is configured. `rings.flash-direction` is `TOP_DOWN` by default, as the
+show does it, and the arrival is always its opposite. Two separate settings could be pointed
+the same way, and the landing would then look like a second departure rather than the answer
+to one. `rings.flash-ticks` is how long each ring stays lit.
+
+Whoever has just arrived sees the upward sweep from its beginning at their end, because the
+far stack has been standing there lit the whole time waiting for them.
 
 The lit ring is drawn **over** the stack rather than instead of it, so the rings that are not
 lit stay exactly where they are and nothing appears to move while the light passes.
@@ -612,9 +617,9 @@ rings:
   cycle-cooldown: 1200       # ticks, per pair
   deploy-ticks: 2            # ticks between animation frames
   settle-ticks: 20           # stack stands still this long before the teleport
-  hold-ticks: 40             # and this long after it, before retracting
+  hold-ticks: 20             # and this long after the light finishes, before retracting
   flash-ticks: 3             # how long each ring stays lit as the light passes
-  flash-direction: TOP_DOWN  # or BOTTOM_UP
+  flash-direction: TOP_DOWN  # departure; the arrival always runs the other way
   outline-on-refusal: true   # light the pattern for somebody a ring turns away
   outline-ticks: 40          # and for how long
   lights-linger-ticks: 20    # pad stays lit this long after the last ring is home
@@ -802,8 +807,8 @@ In rough order of how much they would hurt to get wrong:
 6. Rings climb a clear block apart and finish half a block apart, the gaps closing from the
    top down, and nothing ever rises above where the top ring settles.
 7. A full cycle changes no real block, and leaves nothing drawn behind.
-8. The flash touches every ring exactly once, starting from the top or the floor as
-   configured.
+8. The flash touches every ring exactly once, and the arrival sweep runs back the way the
+   departure came.
 9. A cancelled `RingTravelEvent` drops that passenger and carries everyone else, and is
    asked only after both ends have been read.
 10. The pad stays lit from the countdown until after the rings are home, and the rings can
