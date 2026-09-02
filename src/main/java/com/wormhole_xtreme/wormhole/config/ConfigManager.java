@@ -115,6 +115,13 @@ public class ConfigManager
         RING_DEFAULT_LIGHT,
         /** What a ring turns to as the transport light passes through it. */
         RING_DEFAULT_FLASH,
+        RING_SOUNDS_ENABLED,
+        RING_SOUND_VOLUME,
+        RING_SOUND_OPEN,
+        RING_SOUND_RING,
+        RING_SOUND_FLASH,
+        RING_SOUND_CLOSE,
+        RING_SOUND_REFUSED,
         /** Whether to append newly-seen shape palettes to config.yml automatically. */
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** Whether economy (Vault) integration is enabled. */
@@ -765,6 +772,110 @@ public class ConfigManager
      *            what to use when it cannot be read
      * @return the material
      */
+    /**
+     * Whether rings make any noise at all.
+     *
+     * @return true if ring sounds should play
+     */
+    public static boolean isRingSoundsEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_SOUNDS_ENABLED);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * How loud ring sounds are.
+     *
+     * <p>Bukkit scales audible range with volume, so this is a distance knob as much as a
+     * loudness one: at 1.0 a ring is heard about sixteen blocks away.
+     *
+     * @return the volume
+     */
+    public static float getRingSoundVolume()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_SOUND_VOLUME);
+        return (s == null) ? 1.0f : (float) s.getDoubleValue();
+    }
+
+    /**
+     * The sound a ring makes as its pad opens.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getRingSoundOpen()
+    {
+        return soundSetting(ConfigKeys.RING_SOUND_OPEN, "block.beacon.activate");
+    }
+
+    /**
+     * The sound each ring makes as it leaves the pad or returns to it.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getRingSoundRing()
+    {
+        return soundSetting(ConfigKeys.RING_SOUND_RING, "block.piston.extend");
+    }
+
+    /**
+     * The sound of the transport itself.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getRingSoundFlash()
+    {
+        return soundSetting(ConfigKeys.RING_SOUND_FLASH, "block.beacon.power_select");
+    }
+
+    /**
+     * The sound a ring makes as its pad closes.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getRingSoundClose()
+    {
+        return soundSetting(ConfigKeys.RING_SOUND_CLOSE, "block.beacon.deactivate");
+    }
+
+    /**
+     * The sound a ring makes when it turns somebody away.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getRingSoundRefused()
+    {
+        return soundSetting(ConfigKeys.RING_SOUND_REFUSED, "block.note_block.bass");
+    }
+
+    /**
+     * Reads a sound name.
+     *
+     * <p>Kept as text rather than resolved to a {@code Sound}, and played through the
+     * overload that takes a name. Two reasons: the sound type has been moving toward a
+     * registry-backed one across recent versions, which is exactly the kind of thing that
+     * cannot be asked about before a server has started; and a name passes straight through
+     * to the client, so a server with a resource pack can name its own sounds here.
+     *
+     * <p>An unknown name is silent rather than an error, which is what the client does with
+     * one anyway.
+     *
+     * @param key
+     *            the setting to read
+     * @param fallback
+     *            the sound to use when it is unset
+     * @return the sound name, trimmed; empty means play nothing
+     */
+    private static String soundSetting(final ConfigKeys key, final String fallback)
+    {
+        final Setting s = ConfigManager.getConfigurations().get(key);
+        if (s == null)
+        {
+            return fallback;
+        }
+        final String name = String.valueOf(s.getStringValue()).trim();
+        return "none".equalsIgnoreCase(name) ? "" : name;
+    }
+
     private static Material materialSetting(final ConfigKeys key, final Material fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);

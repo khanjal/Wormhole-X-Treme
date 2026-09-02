@@ -115,6 +115,7 @@ public final class RingTransit
         }
         surveyed.remove(pair.getId());
         cycle.beginCountdown();
+        RingSounds.opened(world, pair);
         countDown(cycle, world, armedBy, ConfigManager.getRingCountdownTicks());
         return true;
     }
@@ -249,6 +250,8 @@ public final class RingTransit
                     {
                         if (cycle.advanceFrame())
                         {
+                            RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(),
+                                cycle.getPair().getPhase() == RingPhase.RETRACT);
                             step(cycle, world);
                         }
                         else if (cycle.getPair().getPhase() == RingPhase.RETRACT)
@@ -322,6 +325,7 @@ public final class RingTransit
         {
             // Who is standing where, before the swap takes them away from it.
             cycle.markDeparture();
+            RingSounds.flashed(world, cycle.getPair());
         }
         if (step >= RingAnimator.flashFrames())
         {
@@ -466,6 +470,7 @@ public final class RingTransit
     private static void lingerThenClose(final RingCycle cycle, final World world)
     {
         cycle.clearRings();
+        RingSounds.closed(world, cycle.getPair());
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new Runnable()
             {

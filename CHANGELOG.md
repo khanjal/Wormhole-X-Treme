@@ -94,6 +94,23 @@ configured default. Build in quartz, try a colour you do not like, reset, and th
 back. The lights and the deploy style have no such history -- nobody builds those -- so those
 do take the server defaults.
 
+### Sound
+
+A ring drawn to clients and never built is otherwise a silent animation in somebody's floor,
+so cycles now make noise: the pad opening, one sound per ring as the stack builds, the
+transport itself, the pad closing, and a refusal heard by the player it concerns and nobody
+else.
+
+The pitch is what carries it. Each ring leaves a step higher than the one before, which makes
+four repeats of one sound read as a machine rather than four clicks -- and because the pitch
+follows the order rings leave rather than where they end up, the retract falls on its own and
+a floor ring and a ceiling ring climb through the same notes.
+
+Sounds are configured by name rather than chosen from a list, so anything the client knows
+works, including a sound from a resource pack. Set one to `none` for silence, or
+`sounds-enabled: false` for all of it. Names are never resolved to a `Sound` constant, which
+keeps this working whichever way that type is defined in a given API version.
+
 ### Access, permissions and events
 
 Access belongs to the pair; materials and style belong to each end. Both ends fire together,

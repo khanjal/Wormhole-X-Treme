@@ -1095,6 +1095,7 @@ class WormholeXTremePlayerListener implements Listener
             // help at all — least of all when the thing to fix is inside the ring and they
             // cannot see where it is.
             com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
+            com.wormhole_xtreme.wormhole.model.ring.RingSounds.refused(player);
         }
     }
 

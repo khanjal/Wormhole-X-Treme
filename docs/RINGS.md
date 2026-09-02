@@ -551,6 +551,38 @@ from the start, so there is no history for them to go back to and they do take t
 Rings stored before `Built` existed fall back to their current material on load, which is the
 best answer available and the right one for every ring nobody recoloured.
 
+## Sound
+
+A ring drawn to clients and never built is otherwise a silent animation in somebody's floor.
+The noise is most of what makes it read as machinery, so it is on by default.
+
+Sounds are stored as **names** and played through the overload that takes one, rather than
+resolved to a `Sound` constant. Two reasons. The sound type has been moving toward a
+registry-backed one across recent versions, and a registry cannot be asked about before the
+server has started -- the same trap that killed `Ring`'s class initialisation on 1.20.6. And a
+name passes straight to the client, so a server with a resource pack can put its own sounds in
+the config with no code involved. A name the client does not know is silent, which is what it
+does with one anyway, so an unknown name is not an error here either.
+
+The pitch on the per-ring sound carries the animation. Each ring leaves a step higher than the
+one before, which is what makes four repeats of one sound read as a stack building rather than
+as four clicks. Two things fall out of pitching by *the order rings leave* rather than by
+where they end up:
+
+- **The retract needs no special case.** The last ring out is the first one home, so replaying
+  the same pitches in the order the rings return makes the sequence fall on its own.
+- **A pair stays in tune with itself.** Both ends send their first ring first, whichever
+  direction that ring travels, so a floor ring and a ceiling ring climb through the same notes.
+  Pitching by height in the stack would have run the sound up at one end and down at the other
+  -- exactly the bug the transport flash had before it started counting from the top.
+
+The frames are not shared between ends, and do not need to be: a ceiling ring's rings have
+further to fall, so its stack takes longer to build. Each end climbs at its own pace.
+
+A refusal is heard by the player it concerns and nobody else. A ring that turns somebody away
+has done nothing the neighbours need to know about, and a busy pad would otherwise be a noise
+complaint.
+
 ## Access
 
 A pair is `PRIVATE` or `PUBLIC`, plus a list of players named by the owner. Private means
@@ -871,6 +903,13 @@ rings:
   flash-ticks: 3             # how long each ring stays lit as the light passes
   flash-direction: TOP_DOWN  # departure; the arrival always runs the other way
   outline-on-refusal: true   # light the pattern for somebody a ring turns away
+  sounds-enabled: true       # whether rings make any noise at all
+  sound-volume: 1.0          # also the audible range: 1.0 carries about sixteen blocks
+  sound-open: block.beacon.activate
+  sound-ring: block.piston.extend
+  sound-flash: block.beacon.power_select
+  sound-close: block.beacon.deactivate
+  sound-refused: block.note_block.bass
   outline-ticks: 40          # and for how long
   lights-linger-ticks: 20    # pad stays lit this long after the last ring is home
   max-pairs-per-player: 10

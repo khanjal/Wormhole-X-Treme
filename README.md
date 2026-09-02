@@ -727,6 +727,21 @@ All under `rings:` in `config.yml`.
 | `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template, and not what `reset` uses. |
 | `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `outline-ticks` | 40 | How long that outline stays up. |
+| `sounds-enabled` | `true` | Whether rings make any noise. Everything below is ignored when off. |
+| `sound-volume` | 1.0 | Bukkit scales audible range with volume, so this is a distance knob too — 1.0 carries about sixteen blocks. |
+| `sound-open` | `block.beacon.activate` | Played at both ends as the pad opens. |
+| `sound-ring` | `block.piston.extend` | Once per ring, pitch climbing as the stack builds and falling as it comes home. |
+| `sound-flash` | `block.beacon.power_select` | The moment of transport. |
+| `sound-close` | `block.beacon.deactivate` | Played as the pad closes. |
+| `sound-refused` | `block.note_block.bass` | Played to a turned-away player alone, not to the room. |
+
+Sounds are named, not chosen from a list, so anything the client knows works — including a
+sound from your own resource pack. Set one to `none` for silence. A name the client does not
+recognise is silent rather than an error, which is also what the client does with one.
+
+The pitch on `sound-ring` is what makes a deploy sound like a machine rather than four
+identical clicks: each ring leaves a step higher than the one before, and the retract replays
+the same notes in reverse, so it falls on the way home without being told to.
 
 Per-pair and per-end settings are changed with `/wormhole ring edit`. Standing in a ring
 edits that end; naming a pair by id edits both.
