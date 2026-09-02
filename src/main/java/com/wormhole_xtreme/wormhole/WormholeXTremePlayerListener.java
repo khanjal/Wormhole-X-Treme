@@ -1079,7 +1079,10 @@ class WormholeXTremePlayerListener implements Listener
             }
             return;
         }
-        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair, player))
+        // justEntered is passed on rather than gating the call: arming still has to happen on
+        // any move inside, which is what carries somebody back who stayed put after a trip.
+        // Only what the ring says about refusing is limited to walking in.
+        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair, player, justEntered))
         {
             final com.wormhole_xtreme.wormhole.model.ring.Ring far = pair.opposite(end.getRing());
             com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(

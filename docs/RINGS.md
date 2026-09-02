@@ -434,9 +434,18 @@ turned away from a pair that is not theirs.
 runs on each block boundary crossed, so a player wandering about on a pad that is recharging
 would otherwise be told so several times a second. Whether a step was an entry is decided by
 looking up where they came *from* as well as where they are — no timers and no remembered
-state. Arming is deliberately not filtered this way: it still happens on any move inside,
-which is what lets somebody who stays put after a trip be carried back once the cooldown
-passes.
+state.
+
+Arming is deliberately *not* filtered this way. It still happens on any move inside, which is
+what lets somebody who stayed put after a trip be carried back once the cooldown passes — so
+the entry flag is handed down to the refusal rather than used to skip the attempt. Getting
+that wrong is what made a blocked ring fill chat: a blocked pair never leaves `IDLE`, so it
+stays willing to fire, and every step inside it produced the same piece of news again.
+
+The same fact costs more than chat. Deciding a ring is blocked means reading every block of
+both interiors, so a blocked pair's answer is trusted for a second before the world is read
+again. Otherwise walking about inside a broken ring re-surveys it on every block crossed, for
+a fault the player has to go and physically repair.
 
 Refusals say which of the two reasons applies, because a player standing on a silent pad
 deserves to know whether it will fix itself. *Recharging* ends by itself; *already in use*

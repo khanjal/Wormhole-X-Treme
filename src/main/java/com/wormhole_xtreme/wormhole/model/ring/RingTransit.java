@@ -32,6 +32,19 @@ public final class RingTransit
     /** Pairs with a cycle running, so nothing starts a second one. */
     private static final Set<String> running = ConcurrentHashMap.newKeySet();
 
+    /**
+     * When a pair that was found blocked may be looked at again, by id.
+     *
+     * <p>A blocked pair never leaves {@code IDLE}, so it stays willing to fire and every step
+     * a player takes inside it asks again — and asking means reading every block of both
+     * interiors. Once a second is plenty for something a player has to go and physically fix.
+     */
+    private static final java.util.concurrent.ConcurrentMap<String, Long> surveyed =
+        new ConcurrentHashMap<String, Long>();
+
+    /** How long a blockage answer is trusted before the world is read again. */
+    private static final long SURVEY_TTL_MILLIS = 1000L;
+
     private RingTransit() {}
 
     /**
@@ -41,11 +54,24 @@ public final class RingTransit
      *            the pair to fire
      * @param armedBy
      *            who walked into it, so they can be told if it stands down again
+     * @param tellThem
+     *            true when this step took them into the ring, so a refusal is worth saying;
+     *            false while they are merely moving about inside it
      * @return true if a cycle started
      */
-    public static boolean start(final RingPair pair, final org.bukkit.entity.Player armedBy)
+    public static boolean start(final RingPair pair, final org.bukkit.entity.Player armedBy,
+        final boolean tellThem)
     {
-        if ((pair == null) || !pair.canFire(System.currentTimeMillis()))
+        final long now = System.currentTimeMillis();
+        if ((pair == null) || !pair.canFire(now))
+        {
+            return false;
+        }
+        // A pair found blocked a moment ago is still blocked. Skipping the survey keeps a
+        // player walking about inside a broken ring from re-reading both interiors on every
+        // block they cross.
+        final Long again = surveyed.get(pair.getId());
+        if ((again != null) && (now < again.longValue()))
         {
             return false;
         }
@@ -76,13 +102,18 @@ public final class RingTransit
         {
             release(world, pair);
             running.remove(pair.getId());
-            if ((armedBy != null) && armedBy.isOnline())
+            surveyed.put(pair.getId(), Long.valueOf(now + SURVEY_TTL_MILLIS));
+            // Said once, when they walk in. Every step taken inside a ring reaches here, and
+            // being told the far end is blocked on each of them is a wall of chat for one
+            // piece of news that has not changed.
+            if (tellThem && (armedBy != null) && armedBy.isOnline())
             {
                 RingMessages.cannotReceive(armedBy, blocked.getName(),
                     surroundings.survey(blocked));
             }
             return false;
         }
+        surveyed.remove(pair.getId());
         cycle.beginCountdown();
         countDown(cycle, world, armedBy, ConfigManager.getRingCountdownTicks());
         return true;
@@ -582,5 +613,6 @@ public final class RingTransit
     public static void clear()
     {
         running.clear();
+        surveyed.clear();
     }
 }
