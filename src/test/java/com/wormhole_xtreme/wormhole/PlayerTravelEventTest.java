@@ -230,6 +230,66 @@ public class PlayerTravelEventTest
     }
 
     @Test
+    public void aCancelledTripCostsThePlayerNothing()
+    {
+        // The event used to fire after the use cooldown had been spent and the fare taken,
+        // so cancelling left the player poorer, on cooldown, and exactly where they were.
+        // That defeats the point of a cancellable event: a combat tag or a jail would have
+        // charged people for journeys it then refused them.
+        //
+        // The cooldown is the observable half here, since it is this plugin's own state
+        // rather than an economy provider that is not installed in a test.
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+        GateEvents.setDispatcherForTest(e ->
+        {
+            raised.add(e);
+            if (e instanceof StargatePlayerTravelEvent)
+            {
+                ((StargatePlayerTravelEvent) e).setCancelled(true);
+            }
+        });
+        try
+        {
+            walkIn();
+
+            assertFalse(
+                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerUseCooldown(player),
+                "a refused trip must not spend the cooldown for a trip that never happened");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+    }
+
+    @Test
+    public void anAllowedTripStillSpendsTheCooldown()
+    {
+        // The control: deferring the cooldown past the event must not have lost it.
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
+        com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(true);
+        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+        try
+        {
+            walkIn();
+
+            assertTrue(
+                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerUseCooldown(player),
+                "a trip that actually happened should still put the player on cooldown");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.removePlayerUseCooldown(player);
+            com.wormhole_xtreme.wormhole.config.ConfigManager.setUseCooldownEnabled(false);
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+    }
+
+    @Test
     public void aListenerThatThrowsDoesNotStrandTheTraveller()
     {
         // Another plugin's listener is code this one does not control. A failure there is
