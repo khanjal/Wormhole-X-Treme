@@ -22,13 +22,15 @@ import org.junit.jupiter.api.Test;
  * <p>The expected shapes, with {@code #} the perimeter and {@code ·} the interior:
  *
  * <pre>
- *   ODD (5)          EVEN (6)
- *  . # # # .      . # # # # .
- *  # · · · #      # · · · · #
- *  # · · · #      # · · · · #
- *  # · · · #      # · · · · #
- *  . # # # .      # · · · · #
- *                 . # # # # .
+ *   ODD (7)             EVEN (8)
+ *  . . # # # . .      . . # # # # . .
+ *  . # · · · # .      . # · · · · # .
+ *  # · · · · · #      # · · · · · · #
+ *  # · · · · · #      # · · · · · · #
+ *  # · · · · · #      # · · · · · · #
+ *  . # · · · # .      # · · · · · · #
+ *  . . # # # . .      . # · · · · # .
+ *                     . . # # # # . .
  * </pre>
  */
 public class RingPatternTest
@@ -45,48 +47,57 @@ public class RingPatternTest
     }
 
     @Test
-    public void theOddPatternIsFiveAcrossWithTwelveEdgeBlocksAroundAThreeByThree()
+    public void theOddPatternIsTheStandardGatesOwnRing()
     {
-        assertEquals(5, RingPattern.ODD.getDiameter());
-        assertEquals(12, RingPattern.ODD.getPerimeter().size());
-        assertEquals(9, RingPattern.ODD.getInterior().size());
+        // Profile 3,5,7,7,7,5,3 — the same numbers as Standard.shape's Layer#1, lying flat.
+        assertEquals(7, RingPattern.ODD.getDiameter());
+        assertEquals(16, RingPattern.ODD.getPerimeter().size());
+        assertEquals(21, RingPattern.ODD.getInterior().size());
     }
 
     @Test
-    public void theEvenPatternIsSixAcrossWithSixteenEdgeBlocksAroundAFourByFour()
+    public void theEvenPatternIsTheSameConstructionOneBlockWider()
     {
-        assertEquals(6, RingPattern.EVEN.getDiameter());
-        assertEquals(16, RingPattern.EVEN.getPerimeter().size());
-        assertEquals(16, RingPattern.EVEN.getInterior().size());
+        assertEquals(8, RingPattern.EVEN.getDiameter());
+        assertEquals(20, RingPattern.EVEN.getPerimeter().size());
+        assertEquals(32, RingPattern.EVEN.getInterior().size());
     }
 
     @Test
-    public void theOddInteriorIsTheThreeByThreeCentredOnTheAnchor()
+    public void theOddInteriorIsItselfARoundedShapeNotARectangle()
     {
+        // 3,5,5,5,3 — the disc inset by one, which is what an outline encloses. A rectangle
+        // here would mean the corners had not really been cut.
         final Set<String> interior = cells(RingPattern.ODD.getInterior());
-        for (int dx = -1; dx <= 1; dx++)
+        final int[] widthByRow = { 3, 5, 5, 5, 3 };
+        for (int row = 0; row < widthByRow.length; row++)
         {
-            for (int dz = -1; dz <= 1; dz++)
+            final int dz = row - 2;
+            final int half = widthByRow[row] / 2;
+            for (int dx = -half; dx <= half; dx++)
             {
                 assertTrue(interior.contains(dx + "," + dz), "expected interior at " + dx + "," + dz);
             }
+            assertFalse(interior.contains((half + 1) + "," + dz), "interior too wide at dz " + dz);
         }
     }
 
     @Test
-    public void theEvenInteriorRunsMinusOneToPlusTwoBecauseTheAnchorIsACornerOfTheMiddleFour()
+    public void theEvenInteriorIsAnchoredToACornerOfTheMiddleFour()
     {
         // An even ring has no centre block, so it is anchored to the low-x, low-z block of
-        // its central 2x2. That is what makes the offsets asymmetric, and getting it wrong
-        // shifts the whole ring one block without changing its shape.
+        // its central 2x2. That is what makes the offsets asymmetric — they run -3..+4
+        // rather than -3..+3 — and getting it wrong shifts the whole ring one block without
+        // changing its shape at all.
         final Set<String> interior = cells(RingPattern.EVEN.getInterior());
-        for (int dx = -1; dx <= 2; dx++)
+        for (int dx = -2; dx <= 3; dx++)
         {
             for (int dz = -1; dz <= 2; dz++)
             {
                 assertTrue(interior.contains(dx + "," + dz), "expected interior at " + dx + "," + dz);
             }
         }
+        assertFalse(interior.contains("-3,-1"), "the interior stops short of the outline");
     }
 
     @Test
@@ -94,17 +105,21 @@ public class RingPatternTest
     {
         // The four corners of the bounding box are the whole reason these are circles. A
         // pattern that kept them would be a square with a hole in it.
+        // Each corner turns through two diagonal steps, so three cells are missing from it
+        // rather than one. A single cut would leave an octagon; two is what reads as round.
         final Set<String> odd = cells(RingPattern.ODD.getPerimeter());
-        assertFalse(odd.contains("-2,-2"));
-        assertFalse(odd.contains("2,-2"));
-        assertFalse(odd.contains("-2,2"));
-        assertFalse(odd.contains("2,2"));
+        for (final String corner : new String[] { "-3,-3", "-2,-3", "-3,-2" })
+        {
+            assertFalse(odd.contains(corner), "odd should not have a block at " + corner);
+        }
+        assertTrue(odd.contains("-2,-2"), "but the diagonal itself is a block");
 
         final Set<String> even = cells(RingPattern.EVEN.getPerimeter());
-        assertFalse(even.contains("-2,-2"));
-        assertFalse(even.contains("3,-2"));
-        assertFalse(even.contains("-2,3"));
-        assertFalse(even.contains("3,3"));
+        for (final String corner : new String[] { "-3,-3", "-2,-3", "-3,-2" })
+        {
+            assertFalse(even.contains(corner), "even should not have a block at " + corner);
+        }
+        assertTrue(even.contains("-2,-2"), "but the diagonal itself is a block");
     }
 
     @Test

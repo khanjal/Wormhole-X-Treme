@@ -24,36 +24,45 @@ it.
 There are exactly two, and they are hardcoded. No `.shape` file format — a file format for
 two fixed arrays is dead weight.
 
-Both are rasterised the same way the Standard gate's ring is (`Standard.shape`, Layer#1) —
-cells whose centre falls inside the circle — just at a smaller diameter. Standard is 7
-across and has room to cut its corners at two levels, profile `3,5,7,7,7,5,3`. At 5 and 6
-there is only room for one cut, which is not a simplification of the construction but the
-same construction with fewer rows.
+The odd pattern **is the Standard gate's ring** — the same profile, `3,5,7,7,7,5,3`, lying
+flat instead of standing up. The even one is that same construction one block wider in each
+axis.
 
-Odd — 5 across, disc profile `3,5,5,5,3`:
+What makes them read as circles rather than as squares with clipped corners is that each
+corner turns through **two diagonal steps** rather than one. That needs a diameter of at
+least seven: at five, two steps collapses the shape into a diamond with five blocks of
+standing room, and the only usable five-wide ring has a single-step corner that looks like
+an octagon. Seven is the smallest ring that is properly round.
 
-```
-. # # # .
-# · · · #
-# · · · #
-# · · · #
-. # # # .
-```
-
-12 perimeter blocks, 9 interior (3x3). Has a true centre block.
-
-Even — 6 across, disc profile `4,6,6,6,6,4`:
+Odd — 7 across, disc profile `3,5,7,7,7,5,3`:
 
 ```
-. # # # # .
-# · · · · #
-# · · · · #
-# · · · · #
-# · · · · #
-. # # # # .
+. . # # # . .
+. # · · · # .
+# · · · · · #
+# · · + · · #
+# · · · · · #
+. # · · · # .
+. . # # # . .
 ```
 
-16 perimeter blocks, 16 interior (4x4). Centre is a 2x2.
+16 perimeter blocks, 21 interior. Has a true centre block.
+
+Even — 8 across, disc profile `4,6,8,8,8,8,6,4`:
+
+```
+. . # # # # . .
+. # · · · · # .
+# · · · · · · #
+# · · + · · · #
+# · · · · · · #
+# · · · · · · #
+. # · · · · # .
+. . # # # # . .
+```
+
+20 perimeter blocks, 32 interior. Centre is a 2x2, and `+` marks the corner of it the ring
+is anchored to.
 
 `#` is the perimeter: what the player lays in slabs, and what animates. `·` is the
 interior: the trigger volume and the region that travels. The two never overlap, which
@@ -62,20 +71,14 @@ matters — a block cannot be both a thing that animates and a thing that holds 
 The player lays **only the perimeter**. The interior is left entirely alone — it is a ring
 of slabs, not a disc, and whatever is already inside it (floor, carpet, a rail) stays.
 
-Offsets are stored as integer `(dx, dz)` pairs from an anchor block. For the odd pattern
-the anchor is the centre, giving offsets in `-2..+2`. For the even pattern there is no
-centre, so the anchor is the low-x/low-z block of the central 2x2, giving the asymmetric
-range `-2..+3`.
+Offsets are stored as integer `(dx, dz)` pairs from an anchor block. For the odd pattern the
+anchor is the centre, giving offsets in `-3..+3`. For the even pattern there is no centre, so
+the anchor is the low-x/low-z block of the central 2x2, giving the asymmetric range `-3..+4`.
 
-```
-ODD   perimeter  dz=-2: dx -1,0,1   dz=-1..1: dx -2,2      dz=+2: dx -1,0,1
-      interior   dz=-1..1, dx=-1..1
-
-EVEN  perimeter  dz=-2: dx -1..2    dz=-1..2: dx -2,3      dz=+3: dx -1..2
-      interior   dz=-1..2, dx=-1..2
-```
-
-These are data. Changing the sizes later, or adding a third pattern, is a table edit.
+Neither table is written out. Each pattern is described by its row widths alone, and which
+cells are perimeter and which are interior is derived: a cell is on the outline when any of
+its four orthogonal neighbours is not part of the disc, which is simply what "outline" means.
+So changing the sizes later, or adding a third pattern, is a one-line edit to a profile.
 
 ## Construction
 
@@ -123,7 +126,7 @@ pending endpoint is persisted in `rings/pending.yml`, keyed by player, so a rest
 mid-build does not silently eat the player's slabs. It sits outside the world files because
 it is not yet a pair, and it records its own world so the second `create` can refuse an
 endpoint in a different one — with a message saying so, rather than a silent failure after
-the player has already laid sixteen slabs.
+the player has already laid twenty slabs.
 
 Orientation, once read, flips two things rather than one: the direction the slabs travel,
 and where the trigger volume sits — below a ceiling ring rather than above it. Arrival at a
@@ -187,8 +190,8 @@ pair that will not parse is logged and skipped, and the rest of the world still 
 Rewriting the whole file on every change is not a concern because ring writes are rare and
 player-initiated: create, remove, relabel, recolour. Nothing writes on the travel path.
 
-Only the anchor, pattern and orientation are stored. The footprint is derived — storing 12
-or 16 block coordinates that are a pure function of three fields would just be something
+Only the anchor, pattern and orientation are stored. The footprint is derived — storing 16
+or 20 block coordinates that are a pure function of three fields would just be something
 else to keep in sync.
 
 ### Why pairs are keyed by id and not by coordinates
@@ -242,13 +245,12 @@ late to abort, so the rings deploy, flash, send nothing, and retract.
 
 ### Countdown length is a constraint, not a preference
 
-The interior is 3x3 or 4x4, so getting clear of it — across the interior and over the
-perimeter — is roughly 2 to 3 blocks, well under a second at walking speed. The abort
-window is only real because the countdown comfortably exceeds that.
+A ring is seven or eight blocks across, so getting clear of one — over the interior and
+across the perimeter — is around four blocks from the middle, close to a second at walking
+pace. The abort window is only real because the countdown comfortably exceeds that.
 
-`rings.countdown` defaults to 60 ticks. Below roughly 20 the abort window stops being
-meaningful and rings begin taking people who were only walking past. Treat that as a
-documented floor rather than a free config value.
+`rings.countdown` defaults to 60 ticks and is floored at 30. Below that the abort window
+stops being meaningful and rings begin taking people who were only walking past.
 
 ## Trigger and re-arm
 

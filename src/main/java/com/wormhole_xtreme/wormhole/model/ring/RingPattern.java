@@ -16,10 +16,15 @@ import java.util.List;
  * two of them, they are fixed, and a file format for two constant tables would be a format
  * to parse, validate, document and get wrong for no benefit at all.
  *
- * <p>Both are rasterised the way the Standard gate's ring is: a cell belongs to the disc
- * when its centre falls inside the circle. Standard is seven across and has room to cut its
- * corners at two levels; at five and six there is only room for one cut, which is the same
- * construction with fewer rows rather than a cruder one.
+ * <p>The odd pattern <em>is</em> the Standard gate's ring — the same profile,
+ * {@code 3,5,7,7,7,5,3}, lying flat instead of standing up. The even one is the same
+ * construction one block wider in each axis.
+ *
+ * <p>What makes them read as circles rather than as squares with clipped corners is that
+ * each corner turns through <b>two diagonal steps</b> rather than one. That needs a diameter
+ * of at least seven: at five, two steps collapses the shape into a diamond with five blocks
+ * of standing room, and the only usable five-wide ring has a single-step corner and looks
+ * like an octagon. Seven is the smallest ring that is properly round.
  *
  * <p>Each pattern is described by nothing but its row widths. Everything else — which cells
  * are perimeter, which are interior, where the anchor sits — is derived below, so adding a
@@ -39,11 +44,11 @@ import java.util.List;
  */
 public enum RingPattern
 {
-    /** Five across, a true centre block, 12 perimeter blocks around a 3x3 interior. */
-    ODD(new int[] { 3, 5, 5, 5, 3 }),
+    /** Seven across, a true centre block, 16 perimeter blocks around a 21-block interior. */
+    ODD(new int[] { 3, 5, 7, 7, 7, 5, 3 }),
 
-    /** Six across, a 2x2 centre, 16 perimeter blocks around a 4x4 interior. */
-    EVEN(new int[] { 4, 6, 6, 6, 6, 4 });
+    /** Eight across, a 2x2 centre, 20 perimeter blocks around a 32-block interior. */
+    EVEN(new int[] { 4, 6, 8, 8, 8, 8, 6, 4 });
 
     /**
      * One cell of a pattern, as an offset from the ring's anchor block.
@@ -126,7 +131,7 @@ public enum RingPattern
      *
      * <p>Each row is centred in the grid, which is what makes the profile alone enough to
      * describe the shape. The grid is square and as wide as the widest row, so the odd
-     * pattern lands on a 5x5 and the even one on a 6x6.
+     * pattern lands on a 7x7 and the even one on an 8x8.
      *
      * @param profile
      *            row widths, top row first
@@ -157,8 +162,8 @@ public enum RingPattern
      *
      * <p>Offsets come out relative to the anchor at {@code (size - 1) / 2} on both axes.
      * For the odd pattern that is the true centre and the offsets are symmetric,
-     * {@code -2..+2}. The even pattern has no centre block, so the anchor is the low-x,
-     * low-z block of the central 2x2 and the offsets run {@code -2..+3}. That asymmetry is
+     * {@code -3..+3}. The even pattern has no centre block, so the anchor is the low-x,
+     * low-z block of the central 2x2 and the offsets run {@code -3..+4}. That asymmetry is
      * deliberate: an even ring has to be anchored to a real block somewhere, and picking a
      * corner of the middle four is the only choice that stays an integer.
      *

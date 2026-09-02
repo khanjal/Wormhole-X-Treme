@@ -315,14 +315,14 @@ public class RingCycleTest
         // somebody's wall.
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
-        world.set(-2, 64, 0, Material.DIAMOND_BLOCK);
+        world.set(-3, 64, 0, Material.DIAMOND_BLOCK);
 
         final RingCycle cycle = new RingCycle(pair, world, REACH);
         cycle.beginCountdown();
 
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-2, 64, 0));
+        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0));
         cycle.abort();
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-2, 64, 0), "and it survives the restore");
+        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0), "and it survives the restore");
     }
 
     @Test
@@ -335,10 +335,10 @@ public class RingCycleTest
         final RingCycle cycle = new RingCycle(pair, world, REACH);
 
         cycle.beginCountdown();
-        world.set(-2, 64, 0, Material.DIAMOND_BLOCK);
+        world.set(-3, 64, 0, Material.DIAMOND_BLOCK);
 
         cycle.abort();
-        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-2, 64, 0));
+        assertEquals(Material.DIAMOND_BLOCK, world.materialAt(-3, 64, 0));
     }
 
     @Test

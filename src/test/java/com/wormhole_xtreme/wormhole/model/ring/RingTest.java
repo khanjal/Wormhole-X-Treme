@@ -64,9 +64,9 @@ public class RingTest
         // column at different heights still means one animating through the other.
         final Ring ring = ring();
         assertTrue(ring.coversColumn(0, 0), "the anchor itself");
-        assertTrue(ring.coversColumn(-2, 0), "perimeter on the anchor row");
+        assertTrue(ring.coversColumn(-3, 0), "perimeter on the anchor row");
         assertTrue(ring.coversColumn(1, 1), "interior");
-        assertFalse(ring.coversColumn(-2, -2), "the cut corner is not part of the ring");
+        assertFalse(ring.coversColumn(-3, -3), "the cut corner is not part of the ring");
         assertFalse(ring.coversColumn(9, 9), "well outside");
     }
 
@@ -95,8 +95,8 @@ public class RingTest
     public void theTriggerVolumeRepeatsTheInteriorOncePerLayer()
     {
         final Ring ring = ring();
-        assertEquals(9, ring.interiorBlocks().size());
-        assertEquals(12, ring.perimeterBlocks().size());
-        assertEquals(9 * 4, ring.triggerVolumeBlocks(4).size());
+        assertEquals(21, ring.interiorBlocks().size());
+        assertEquals(16, ring.perimeterBlocks().size());
+        assertEquals(21 * 4, ring.triggerVolumeBlocks(4).size());
     }
 }

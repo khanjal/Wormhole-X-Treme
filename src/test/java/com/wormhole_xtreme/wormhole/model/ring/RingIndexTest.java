@@ -98,13 +98,13 @@ public class RingIndexTest
     @Test
     public void perimeterBlocksAreNotTriggers()
     {
-        // The corner-cut ring puts perimeter at dx=-2 on the anchor's own row. Standing
-        // there is standing on the ring, which must not start a cycle.
+        // The ring's own row has its outline at dx=-3. Standing there is standing on the
+        // ring, which must not start a cycle.
         final RingPair pair = pair(RingOrientation.FLOOR);
         RingIndex.add(pair, REACH);
 
-        assertNull(RingIndex.volumeAt(WORLD, 98, 64, 100), "the edge must not arm a ring");
-        assertNotNull(RingIndex.perimeterAt(WORLD, 98, 64, 100), "but it is still perimeter");
+        assertNull(RingIndex.volumeAt(WORLD, 97, 64, 100), "the edge must not arm a ring");
+        assertNotNull(RingIndex.perimeterAt(WORLD, 97, 64, 100), "but it is still perimeter");
     }
 
     @Test
@@ -132,7 +132,7 @@ public class RingIndexTest
 
         assertNull(RingIndex.volumeAt(WORLD, 100, 64, 100));
         assertNull(RingIndex.volumeAt(WORLD, 200, 64, 200));
-        assertNull(RingIndex.perimeterAt(WORLD, 98, 64, 100));
+        assertNull(RingIndex.perimeterAt(WORLD, 97, 64, 100));
     }
 
     @Test

@@ -428,14 +428,16 @@ public class ConfigManager
      * How long a ring pair counts down before committing.
      *
      * <p>Floored rather than taken as written. The abort window only means anything because
-     * the countdown outlasts the second or so it takes to walk clear of a ring; set much
-     * below that and rings start taking people who were only passing through.
+     * the countdown outlasts the time it takes to walk clear of a ring, and a ring is seven
+     * or eight blocks across — from the middle that is around four blocks to cover, close to
+     * a second at walking pace. Set much below that and rings start taking people who were
+     * only passing through.
      *
-     * @return countdown in ticks, at least 20
+     * @return countdown in ticks, at least 30
      */
     public static int getRingCountdownTicks()
     {
-        return Math.max(20, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 60));
+        return Math.max(30, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 60));
     }
 
     /**

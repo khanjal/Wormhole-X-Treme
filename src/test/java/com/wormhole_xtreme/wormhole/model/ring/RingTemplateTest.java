@@ -165,7 +165,7 @@ public class RingTemplateTest
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 64, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
         // Knock one slab out.
-        world.put(0, 64, -2, Material.AIR, null);
+        world.put(0, 64, -3, Material.AIR, null);
 
         assertFalse(detect(world, 0, 64, 0).isSuccess());
     }
@@ -177,7 +177,7 @@ public class RingTemplateTest
         // plainly see would send them looking for the wrong problem.
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 64, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
-        world.put(0, 64, -2, Material.DEEPSLATE_TILE_SLAB, RingTemplate.SlabHalf.BOTTOM);
+        world.put(0, 64, -3, Material.DEEPSLATE_TILE_SLAB, RingTemplate.SlabHalf.BOTTOM);
 
         final RingTemplate.Result result = detect(world, 0, 64, 0);
 
@@ -190,7 +190,7 @@ public class RingTemplateTest
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 64, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
-        world.put(0, 64, -2, Material.STONE_SLAB, RingTemplate.SlabHalf.TOP);
+        world.put(0, 64, -3, Material.STONE_SLAB, RingTemplate.SlabHalf.TOP);
 
         final RingTemplate.Result result = detect(world, 0, 64, 0);
 

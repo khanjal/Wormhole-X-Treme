@@ -65,12 +65,12 @@ public class RingManagerTest
     @Test
     public void twoRingsSharingEvenOneColumnAreRefused()
     {
-        // Two ODD rings four apart just touch: one ring's east edge lands on the other's
+        // Two ODD rings six apart just touch: one ring's east edge lands on the other's
         // west edge. That is enough, because the blocks they share are ones both animations
         // would write and both restore maps would claim as their own.
         RingManager.addPair(pairAt("aaaa1111", 0, 0), REACH);
         assertEquals(RingManager.Refusal.OVERLAPS_RING,
-            RingManager.checkPlacement(ringAt(4, 0), WORLD, SEPARATION));
+            RingManager.checkPlacement(ringAt(6, 0), WORLD, SEPARATION));
     }
 
     @Test
@@ -92,7 +92,7 @@ public class RingManagerTest
         // move along a bit; "overlaps" tells them it will never work there.
         RingManager.addPair(pairAt("aaaa1111", 0, 0), REACH);
         assertEquals(RingManager.Refusal.TOO_CLOSE,
-            RingManager.checkPlacement(ringAt(6, 0), WORLD, SEPARATION));
+            RingManager.checkPlacement(ringAt(7, 0), WORLD, SEPARATION));
     }
 
     @Test
