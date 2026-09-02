@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.2.0 (unreleased)
+## 1.2.0 (2026-09-02)
 
 ### Minecraft 1.20 through 1.21.10
 
