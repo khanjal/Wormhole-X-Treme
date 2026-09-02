@@ -518,7 +518,7 @@ class WormholeXTremePlayerListener implements Listener
             if (stargate != null)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                    "Player entered gate but wasn't active or didn't have a target.");
+                    "Player entered a gate that is not open, or a block of it that is not the portal.");
             }
             return false;
         }
@@ -553,45 +553,45 @@ class WormholeXTremePlayerListener implements Listener
     private static boolean handleMoveAtArrivalGate(final PlayerMoveEvent event, final Player player,
                                                    final Stargate stargate)
     {
-            // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
-            boolean incomingActive = false;
-            try
+        // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
+        boolean incomingActive = false;
+        try
+        {
+            for (final Stargate s : StargateManager.getAllGates())
             {
-                for (final Stargate s : StargateManager.getAllGates())
+                if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
                 {
-                    if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
-                    {
-                        incomingActive = true;
-                        break;
-                    }
+                    incomingActive = true;
+                    break;
                 }
             }
-            catch (final RuntimeException ignore) {}
+        }
+        catch (final RuntimeException ignore) {}
 
-            if (incomingActive)
+        if (incomingActive)
+        {
+            // Refusing a move means cancelling it, which holds the player where
+            // they already are. That is the right answer for someone stepping in
+            // from outside, and a trap for someone already standing inside: the
+            // traveller who just came out of this wormhole gets every move
+            // cancelled, cannot walk clear of the ring, and is told they may not
+            // enter an incoming wormhole once per move until the client gives up
+            // and drops the connection.
+            //
+            // So only hold back the ones on their way in. Anyone already in the
+            // portal is on their way out, which is exactly what should happen.
+            final Location fromLoc = event.getFrom();
+            if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
             {
-                // Refusing a move means cancelling it, which holds the player where
-                // they already are. That is the right answer for someone stepping in
-                // from outside, and a trap for someone already standing inside: the
-                // traveller who just came out of this wormhole gets every move
-                // cancelled, cannot walk clear of the ring, and is told they may not
-                // enter an incoming wormhole once per move until the client gives up
-                // and drops the connection.
-                //
-                // So only hold back the ones on their way in. Anyone already in the
-                // portal is on their way out, which is exactly what should happen.
-                final Location fromLoc = event.getFrom();
-                if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
-                {
-                    return refuseGateEntry(player);
-                }
-                return false;
+                return refuseGateEntry(player);
             }
-            // Gate is active but has neither an outgoing target nor an incoming
-            // wormhole — an activated-but-undialed gate. There is nowhere to send
-            // the player, so let them walk through the empty ring untouched.
-            // Everything below this point dereferences getGateTarget().
             return false;
+        }
+        // Gate is active but has neither an outgoing target nor an incoming
+        // wormhole — an activated-but-undialed gate. There is nowhere to send
+        // the player, so let them walk through the empty ring untouched.
+        // Everything below this point dereferences getGateTarget().
+        return false;
     }
 
     /**
