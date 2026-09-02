@@ -64,6 +64,7 @@ class StargateLifecycle
         // can re-enter after shutdown.
         try { StargateRestrictions.removeRecentArrivalsForGate(gate); } catch (final Throwable ignore) {}
 
+        GateSounds.closed(gate);
         gate.lightStargate(false);
         gate.toggleDialLeverState(false);
         gate.toggleRedstoneGateActivatedPower();

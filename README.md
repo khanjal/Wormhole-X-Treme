@@ -700,6 +700,28 @@ glowstone out of their own floor while it is lit. The trade is the same one gate
 effect only exists for players in range, and relogging or walking far away and back clears
 it. A "light" material therefore looks lit but does not actually illuminate anything.
 
+### Gate sounds
+
+Gates were silent until 1.3.0. Everything a gate does is already staged over time — chevrons
+light one at a time on `light-ticks`, the woosh rolls out over `woosh-ticks` — so the
+animation was there and only the noise was missing.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-sounds-enabled` | `true` | Whether gates make any noise. Everything below is ignored when off. |
+| `gate-sound-volume` | 1.5 | Also the audible range — 1.5 carries about twenty-four blocks, which suits something people walk towards. |
+| `gate-sound-activate` | `block.conduit.activate` | As a gate begins to dial. |
+| `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
+| `gate-sound-kawoosh` | `block.end_portal.spawn` | Once, as the wormhole establishes. |
+| `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
+
+The chevron pitch is spread across however many lighting steps the *shape* has, not across an
+assumed seven — so a three-chevron gate starts and ends on the same notes as a seven-chevron
+one, just in bigger steps.
+
+As with rings, sounds are named rather than picked from a list: anything the client knows
+works, including a sound from your own resource pack, and `none` silences one.
+
 ### Ring settings
 
 All under `rings:` in `config.yml`.

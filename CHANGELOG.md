@@ -224,6 +224,20 @@ Purpur and Pufferfish from a single jar. Folia is not supported.
 - Triggering an already-open gate does nothing rather than closing it, so a second minecart
   no longer shuts the wormhole the first one opened.
 
+### Gates make noise
+
+Gates were silent. Everything a gate does was already staged over time -- chevrons light one
+at a time on `light-ticks`, the woosh rolls out over `woosh-ticks` -- so the animation was
+there and only the sound was missing. There is now one as a gate begins to dial, one per
+chevron as it locks, one as the wormhole establishes, and one as it closes.
+
+The chevron pitch climbs through the sequence, spread across however many lighting steps the
+shape actually has rather than across an assumed seven. A three-chevron gate starts and ends
+on the same notes as a seven-chevron one, in bigger steps. It is driven off the same counter
+that drives the lights, so the sound cannot drift out of step with what it is describing.
+
+Configured the same way as ring sounds, by name, with `gate-sounds-enabled` over all of it.
+
 ### Material groups
 
 Shapes describe geometry; `config.yml` describes palettes, selected by the material a gate

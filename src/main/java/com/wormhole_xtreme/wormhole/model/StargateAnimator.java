@@ -34,6 +34,15 @@ class StargateAnimator
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
         final int wooshDepth = gate.getEffectiveWooshDepth();
 
+        // Both counters are only zero at the very start of an opening, so this fires once per
+        // wormhole rather than once per frame. Here rather than where the woosh is scheduled,
+        // because there are two paths into that and only one into this.
+        if (!gate.isGateAnimationRemoving() && (gate.getGateAnimationStep2D() == 0)
+            && (gate.getGateAnimationStep3D() == 0))
+        {
+            GateSounds.kawoosh(gate);
+        }
+
         if ((gate.getGateWooshBlocks() != null) && (gate.getGateWooshBlocks().size() > 0))
         {
             final ArrayList<Location> wooshBlockStep = gate.getGateWooshBlocks().get(gate.getGateAnimationStep3D());
@@ -201,6 +210,7 @@ class StargateAnimator
             if (gate.getGateLightingCurrentIteration() == 0)
             {
                 gate.setGateLightsActive(true);
+                GateSounds.activated(gate);
             }
             else if (!gate.isGateLightsActive())
             {
@@ -219,6 +229,10 @@ class StargateAnimator
                         final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
                         b.setType(gate.getEffectiveLightMaterial());
                     }
+                    // Off the same counter that drives the lights, so the sound cannot drift
+                    // out of step with what it is describing.
+                    GateSounds.chevron(gate, gate.getGateLightingCurrentIteration(),
+                        gate.getGateLightBlocks().size() - 1);
                 }
 
                 if (gate.getGateLightingCurrentIteration() >= gate.getGateLightBlocks().size() - 1)

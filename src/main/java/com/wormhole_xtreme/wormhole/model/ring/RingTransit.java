@@ -222,6 +222,10 @@ public final class RingTransit
             // walked away and the first at which it no longer matters that they did.
             RingMessages.committed(cycle.everyoneInside());
             cycle.beginDeploy();
+            // Frame zero is drawn by beginDeploy rather than by advanceFrame, and the first
+            // ring leaves on it -- so without this the ring that starts the whole animation
+            // is the one ring that makes no noise.
+            RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(), false);
             step(cycle, world);
         }
         catch (final RuntimeException e)
@@ -443,6 +447,8 @@ public final class RingTransit
                     try
                     {
                         cycle.beginRetract();
+                        // Same reason as the deploy: frame zero is already on screen.
+                        RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(), true);
                         step(cycle, world);
                     }
                     catch (final RuntimeException e)

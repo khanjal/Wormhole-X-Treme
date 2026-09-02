@@ -115,6 +115,12 @@ public class ConfigManager
         RING_DEFAULT_LIGHT,
         /** What a ring turns to as the transport light passes through it. */
         RING_DEFAULT_FLASH,
+        GATE_SOUNDS_ENABLED,
+        GATE_SOUND_VOLUME,
+        GATE_SOUND_ACTIVATE,
+        GATE_SOUND_CHEVRON,
+        GATE_SOUND_KAWOOSH,
+        GATE_SOUND_CLOSE,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -772,6 +778,71 @@ public class ConfigManager
      *            what to use when it cannot be read
      * @return the material
      */
+    /**
+     * Whether gates make any noise at all.
+     *
+     * @return true if gate sounds should play
+     */
+    public static boolean isGateSoundsEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUNDS_ENABLED);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * How loud gate sounds are.
+     *
+     * <p>Louder than rings by default, and deliberately: a gate is a landmark somebody walks
+     * towards, where a ring is something you are standing on.
+     *
+     * @return the volume
+     */
+    public static float getGateSoundVolume()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_VOLUME);
+        return (s == null) ? 1.5f : (float) s.getDoubleValue();
+    }
+
+    /**
+     * The sound a gate makes as it begins to dial.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundActivate()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate");
+    }
+
+    /**
+     * The sound each chevron makes as it locks.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundChevron()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close");
+    }
+
+    /**
+     * The sound of a wormhole establishing.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundKawoosh()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_KAWOOSH, "block.end_portal.spawn");
+    }
+
+    /**
+     * The sound of a wormhole closing.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundClose()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate");
+    }
+
     /**
      * Whether rings make any noise at all.
      *

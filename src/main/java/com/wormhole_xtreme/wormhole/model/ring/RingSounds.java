@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import org.bukkit.Location;
-import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -191,15 +190,8 @@ public final class RingSounds
         {
             return;
         }
-        try
-        {
-            player.playSound(player.getLocation(), sound, SoundCategory.BLOCKS,
-                ConfigManager.getRingSoundVolume(), 0.7f);
-        }
-        catch (final RuntimeException ignored)
-        {
-            // A sound the client cannot find is silent, which is the same outcome.
-        }
+        com.wormhole_xtreme.wormhole.utils.Sounds.playTo(player, sound,
+            ConfigManager.getRingSoundVolume(), 0.7f);
     }
 
     /**
@@ -248,7 +240,7 @@ public final class RingSounds
      * @param world
      *            the world to play it in
      * @param where
-     *            the location, whose world is filled in here
+     *            the location, whose world is filled in for it
      * @param sound
      *            the sound name
      * @param pitch
@@ -257,20 +249,11 @@ public final class RingSounds
     private static void play(final World world, final Location where, final String sound,
         final float pitch)
     {
-        if ((world == null) || !ConfigManager.isRingSoundsEnabled())
+        if (!ConfigManager.isRingSoundsEnabled())
         {
             return;
         }
-        try
-        {
-            where.setWorld(world);
-            world.playSound(where, sound, SoundCategory.BLOCKS,
-                ConfigManager.getRingSoundVolume(), pitch);
-        }
-        catch (final RuntimeException ignored)
-        {
-            // Not worth ending a transport over. A name the client does not know is silent
-            // anyway, so there is nothing here that a player could be told usefully.
-        }
+        com.wormhole_xtreme.wormhole.utils.Sounds.play(world, where, sound,
+            ConfigManager.getRingSoundVolume(), pitch);
     }
 }

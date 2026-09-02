@@ -94,6 +94,53 @@ public class RingSoundsTest
     }
 
     @Test
+    public void theFirstRingOutLeavesOnFrameZero()
+    {
+        // Worth pinning on its own, because frame zero is drawn when the phase begins rather
+        // than by the frame loop -- so anything that plays sounds only as it advances skips
+        // exactly this ring, and the animation loses the note it starts on. That is the bug
+        // this test exists for.
+        for (final RingStyle style : RingStyle.values())
+        {
+            final Ring ring = ring(RingOrientation.FLOOR);
+            ring.setStyle(style);
+            assertEquals(0, RingSounds.startFrame(ring, 0, false), style + " starts late");
+        }
+    }
+
+    @Test
+    public void everyRingIsHeardExactlyOnceAcrossAWholeDeploy()
+    {
+        // Walks the frames the way a cycle does, counting sounds. Four rings, four noises --
+        // whether they leave together or one at a time, and whichever way they travel.
+        for (final RingStyle style : RingStyle.values())
+        {
+            for (final RingOrientation orientation : RingOrientation.values())
+            {
+                for (final boolean retracting : new boolean[] { false, true })
+                {
+                    final Ring ring = ring(orientation);
+                    ring.setStyle(style);
+                    int heard = 0;
+                    for (int frame = 0;
+                        frame < RingAnimator.deployFrames(ring, style); frame++)
+                    {
+                        for (int index = 0; index < RingAnimator.RING_COUNT; index++)
+                        {
+                            if (RingSounds.startFrame(ring, index, retracting) == frame)
+                            {
+                                heard++;
+                            }
+                        }
+                    }
+                    assertEquals(RingAnimator.RING_COUNT, heard,
+                        style + " " + orientation + (retracting ? " retracting" : " deploying"));
+                }
+            }
+        }
+    }
+
+    @Test
     public void everyRingGetsItsOwnFrameSoNoneOfThemAreSilent()
     {
         // Sequential rings leave one at a time, so a shared frame would mean two sounds at
