@@ -55,6 +55,7 @@ public class StargateYamlManager
         }
         final Yaml yaml = new Yaml();
         int loaded = 0;
+        int movedExits = 0;
         for (final File f : files)
         {
             try (FileInputStream in = new FileInputStream(f))
@@ -120,6 +121,13 @@ public class StargateYamlManager
                                 StargateManager.addGateToNetwork(s, network);
                                 s.setGateNetwork(StargateManager.getStargateNetwork(network));
                             }
+                            // Gates written before the arrival point was moved clear of the
+                            // ring still land travellers inside the portal, and loading
+                            // restores what was stored rather than recomputing it.
+                            if (s.normalizeGatePlayerTeleportLocation())
+                            {
+                                movedExits++;
+                            }
                             StargateManager.addStargate(s);
                             loaded++;
                         }
@@ -137,6 +145,10 @@ public class StargateYamlManager
         if (WormholeXTreme.getThisPlugin() != null)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, loaded + " Wormholes loaded from YAML directory: " + GATES_DIR.getAbsolutePath());
+            if (movedExits > 0)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, movedExits + " gates had their arrival point moved out of the portal. Travellers were appearing inside the ring on those.");
+            }
         }
     }
 

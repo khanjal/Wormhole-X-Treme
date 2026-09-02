@@ -264,6 +264,56 @@ public class Stargate
     }
 
     /**
+     * Moves this gate's arrival point out of its own portal if that is where it sits.
+     *
+     * <p>Travellers should step out of a wormhole, not stand in it. Arriving inside means
+     * appearing waist-deep in the portal material, floating on water the server does not
+     * have, and having to walk out of the ring before anything looks right.
+     *
+     * <p>Gates built today are already placed a block clear of the ring, but that offset
+     * came after gates had been built and their arrival point written to disk, and loading
+     * restores the stored value rather than recomputing it. So old gates keep landing
+     * people inside, and no amount of fixing the build path reaches them.
+     *
+     * <p>Rather than key this off a format version, it asks the question directly: is the
+     * arrival point one of my portal blocks? A gate that is already correct is left alone,
+     * whatever wrote it, and one that is wrong is corrected however it got that way.
+     *
+     * @return true if the arrival point was moved
+     */
+    public boolean normalizeGatePlayerTeleportLocation()
+    {
+        if ((gatePlayerTeleportLocation == null) || (gateFacing == null))
+        {
+            return false;
+        }
+        if (!isGatePortalBlockAt(gatePlayerTeleportLocation.getBlockX(),
+                                 gatePlayerTeleportLocation.getBlockY(),
+                                 gatePlayerTeleportLocation.getBlockZ()))
+        {
+            return false;
+        }
+        // Step along the gate's facing until clear of the ring. One block does it for a
+        // flat gate; the loop covers a portal more than one block deep and stops rather
+        // than walking away for ever if the facing cannot get out.
+        final int maxSteps = 4;
+        for (int step = 1; step <= maxSteps; step++)
+        {
+            final double x = gatePlayerTeleportLocation.getX() + (gateFacing.getModX() * step);
+            final double y = gatePlayerTeleportLocation.getY() + (gateFacing.getModY() * step);
+            final double z = gatePlayerTeleportLocation.getZ() + (gateFacing.getModZ() * step);
+            final Location candidate = new Location(gateWorld, x, y, z,
+                gatePlayerTeleportLocation.getYaw(), gatePlayerTeleportLocation.getPitch());
+            if (!isGatePortalBlockAt(candidate.getBlockX(), candidate.getBlockY(), candidate.getBlockZ()))
+            {
+                gatePlayerTeleportLocation = candidate;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Gets a box enclosing every portal block of this gate.
      *
      * <p>Lets the periodic entity scan ask the world for entities near the whole gate in
