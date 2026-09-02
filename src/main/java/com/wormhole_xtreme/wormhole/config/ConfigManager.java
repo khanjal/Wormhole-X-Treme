@@ -89,6 +89,8 @@ public class ConfigManager
         RING_OUTLINE_ON_REFUSAL,
         /** How long that outline stays up, in ticks. */
         RING_OUTLINE_TICKS,
+        /** Ticks the pad stays lit after the last ring has sunk back into it. */
+        RING_LIGHTS_LINGER_TICKS,
         /** Ticks the ring stack stands still after the swap, before retracting. */
         RING_HOLD_TICKS,
         /** Block layers of passenger volume, measured from the ring plane into the room. */
@@ -513,6 +515,20 @@ public class ConfigManager
         {
             return RingFlashDirection.TOP_DOWN;
         }
+    }
+
+    /**
+     * How long the pad stays lit after the last ring has gone home.
+     *
+     * <p>The lights are lit for the whole cycle and outlive it by this much. Putting them out
+     * at the same instant the last ring sinks away reads as the whole thing being switched
+     * off rather than as the rings finishing.
+     *
+     * @return linger time in ticks
+     */
+    public static int getRingLightsLingerTicks()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_LIGHTS_LINGER_TICKS, 20));
     }
 
     /**

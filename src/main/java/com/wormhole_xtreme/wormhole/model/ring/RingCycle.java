@@ -137,8 +137,22 @@ public class RingCycle
     /** How deep each trigger volume runs. */
     private final int reach;
 
-    /** Positions this cycle is currently drawing over, so they can be cleared again. */
-    private final Set<Long> drawn = new LinkedHashSet<Long>();
+    /**
+     * The travelling rings, redrawn every frame.
+     *
+     * <p>Kept apart from the lights because the two have completely different lifetimes: this
+     * is replaced wholesale each frame, and the lights outlast all of it.
+     */
+    private final Set<Long> drawnRings = new LinkedHashSet<Long>();
+
+    /**
+     * The pattern lit in the floor, which stays put for the whole cycle.
+     *
+     * <p>The pad stays lit from the countdown until after the last ring has sunk back into
+     * it. Putting the lights out the moment the rings start rising would have the pad go dark
+     * exactly as it does the thing it was lit for.
+     */
+    private final Set<Long> drawnLights = new LinkedHashSet<Long>();
 
     /** How far through the current phase we are. */
     private int frame = 0;
@@ -228,11 +242,11 @@ public class RingCycle
     }
 
     /**
-     * Commits: takes the lights down and lets the rings start rising.
+     * Commits: the rings start rising, and the pad stays lit under them.
      */
     public void beginDeploy()
     {
-        clearDrawing();
+        clearRings();
         pair.setPhase(RingPhase.DEPLOY);
         frame = 0;
         drawDeployFrame(0);
@@ -336,7 +350,7 @@ public class RingCycle
      */
     public void drawFlash(final RingFlashDirection direction, final int step)
     {
-        clearDrawing();
+        clearRings();
         drawPlacements(RingAnimator.settledStack(pair.getEndA(), pair.getEndA().getStyle()),
             pair.getEndA().getRingMaterial());
         drawPlacements(RingAnimator.settledStack(pair.getEndB(), pair.getEndB().getStyle()),
@@ -356,7 +370,7 @@ public class RingCycle
      */
     public void drawSettled()
     {
-        clearDrawing();
+        clearRings();
         drawPlacements(RingAnimator.settledStack(pair.getEndA(), pair.getEndA().getStyle()),
             pair.getEndA().getRingMaterial());
         drawPlacements(RingAnimator.settledStack(pair.getEndB(), pair.getEndB().getStyle()),
@@ -448,7 +462,7 @@ public class RingCycle
     {
         for (final int[] block : RingAnimator.lightBlocks(ring))
         {
-            draw(block[0], block[1], block[2], ring.getLightMaterial(), false, false);
+            draw(drawnLights, block[0], block[1], block[2], ring.getLightMaterial(), false, false);
         }
     }
 
@@ -478,7 +492,7 @@ public class RingCycle
      */
     private void drawFrame(final List<RingAnimator.Placement> atA, final List<RingAnimator.Placement> atB)
     {
-        clearDrawing();
+        clearRings();
         drawPlacements(atA, pair.getEndA().getRingMaterial());
         drawPlacements(atB, pair.getEndB().getRingMaterial());
     }
@@ -495,8 +509,8 @@ public class RingCycle
     {
         for (final RingAnimator.Placement placement : placements)
         {
-            draw(placement.getX(), placement.getY(), placement.getZ(), material, true,
-                placement.isTop());
+            draw(drawnRings, placement.getX(), placement.getY(), placement.getZ(), material,
+                true, placement.isTop());
         }
     }
 
@@ -509,6 +523,9 @@ public class RingCycle
      * being changed, covering a block costs nothing and the ring is never drawn with holes in
      * it where the ground happened to be in the way.
      *
+     * @param into
+     *            which drawing this block belongs to, since the rings and the lights are
+     *            taken down at different times
      * @param x
      *            block x
      * @param y
@@ -522,10 +539,10 @@ public class RingCycle
      * @param top
      *            for a slab, true to fill the upper half
      */
-    private void draw(final int x, final int y, final int z, final Material material,
-        final boolean slab, final boolean top)
+    private void draw(final Set<Long> into, final int x, final int y, final int z,
+        final Material material, final boolean slab, final boolean top)
     {
-        drawn.add(Long.valueOf(RingIndex.pack(x, y, z)));
+        into.add(Long.valueOf(RingIndex.pack(x, y, z)));
         if (slab)
         {
             world.showSlab(x, y, z, material, top);
@@ -546,12 +563,44 @@ public class RingCycle
      */
     private void clearDrawing()
     {
-        for (final Long key : drawn)
+        clearRings();
+        clearLights();
+    }
+
+    /**
+     * Takes down the travelling rings, leaving the pad lit.
+     *
+     * <p>What happens when the last ring sinks back into the floor. The lights stay a moment
+     * longer, because a pad going dark at the same instant reads as the whole thing being
+     * switched off rather than as the rings finishing.
+     */
+    public void clearRings()
+    {
+        clear(drawnRings);
+    }
+
+    /**
+     * Puts the pad's lights out.
+     */
+    public void clearLights()
+    {
+        clear(drawnLights);
+    }
+
+    /**
+     * Shows the real block again everywhere in one drawing.
+     *
+     * @param positions
+     *            what to stop drawing over
+     */
+    private void clear(final Set<Long> positions)
+    {
+        for (final Long key : positions)
         {
             final long packed = key.longValue();
             world.reveal(RingIndex.unpackX(packed), RingIndex.unpackY(packed),
                 RingIndex.unpackZ(packed));
         }
-        drawn.clear();
+        positions.clear();
     }
 }

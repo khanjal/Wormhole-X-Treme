@@ -336,6 +336,61 @@ public class RingCycleTest
     }
 
     @Test
+    public void thePadStaysLitAllTheWayThroughTheCycle()
+    {
+        // The lights are lit for the whole trip, not just the countdown. Putting them out as
+        // the rings start rising would have the pad go dark exactly as it does the thing it
+        // was lit for.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.setReal(-3, 63, 0, Material.STONE);
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+
+        cycle.beginCountdown();
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit while counting down");
+
+        cycle.beginDeploy();
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "still lit as the rings rise");
+
+        while (cycle.advanceFrame())
+        {
+            assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit for every frame");
+        }
+        cycle.flash();
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit through the transport");
+
+        cycle.beginRetract();
+        while (cycle.advanceFrame())
+        {
+            // run it out
+        }
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "lit as the rings come home");
+    }
+
+    @Test
+    public void theRingsCanGoWhileThePadIsStillLit()
+    {
+        // What the linger is made of: the rings are taken down on their own, and the lights
+        // follow a beat later rather than on the same tick.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.setReal(-3, 63, 0, Material.STONE);
+        final RingCycle cycle = new RingCycle(pair, world, REACH);
+
+        cycle.beginCountdown();
+        cycle.beginDeploy();
+        cycle.clearRings();
+
+        assertEquals(Material.GLOWSTONE, world.seenAt(-3, 63, 0), "the pad is still lit");
+        assertEquals(RingPattern.ODD.getPerimeter().size() * 2, world.drawnCount(),
+            "and only the lights are left drawn");
+
+        cycle.clearLights();
+        assertEquals(0, world.drawnCount());
+        assertEquals(Material.STONE, world.seenAt(-3, 63, 0));
+    }
+
+    @Test
     public void aFullRunLeavesNothingDrawnBehind()
     {
         // The thing that would otherwise leave a ring hanging in somebody's room until they

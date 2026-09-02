@@ -165,9 +165,7 @@ public final class RingTransit
                         }
                         else if (cycle.getPair().getPhase() == RingPhase.RETRACT)
                         {
-                            cycle.finish(System.currentTimeMillis()
-                                + (ConfigManager.getRingCooldownTicks() * 50L));
-                            finished(cycle, world);
+                            lingerThenClose(cycle, world);
                         }
                         else
                         {
@@ -293,6 +291,43 @@ public final class RingTransit
                     }
                 }
             }, ConfigManager.getRingHoldTicks());
+    }
+
+    /**
+     * The last ring is home. Leave the pad lit a moment, then close the cycle.
+     *
+     * <p>The rings go and the lights stay. Putting both out on the same tick reads as the
+     * whole thing being switched off rather than as the rings finishing, and the pad going
+     * dark a beat later is what makes it look like it powered down rather than stopped.
+     *
+     * <p>The pair is still not idle during the wait, so nothing can re-arm it mid-fade.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     */
+    private static void lingerThenClose(final RingCycle cycle, final World world)
+    {
+        cycle.clearRings();
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        cycle.finish(System.currentTimeMillis()
+                            + (ConfigManager.getRingCooldownTicks() * 50L));
+                        finished(cycle, world);
+                    }
+                    catch (final RuntimeException e)
+                    {
+                        recover(cycle, world, e);
+                    }
+                }
+            }, ConfigManager.getRingLightsLingerTicks());
     }
 
     /**

@@ -228,8 +228,11 @@ DEPLOY      rings rise — COMMITTED, no abort, runs to completion
 HOLD        the finished stack stands still for a second
 FLASH       light runs through the stack a ring at a time, then the swap
 HOLD        rings stand a moment more, travellers already gone
-RETRACT     rings return nearest-first, every block restored
+RETRACT     rings return nearest-first
+LINGER      rings gone, pad still lit for a second
 COOLDOWN    pair refuses all triggers
+
+            the pad is lit from COUNTDOWN through to the end of LINGER
 ```
 
 Abort is confined to the countdown. Once the rings start deploying the cycle runs to the
@@ -454,6 +457,22 @@ once people have started using it.
 Revoking the owner does nothing, because their access comes from ownership rather than from
 the list. There is no sequence of commands that leaves a pair nobody can use or change.
 
+## The pad stays lit
+
+The lights come on with the countdown and stay on through everything — the rings rising, the
+transport, the rings coming home — and go out a second *after* the last one has sunk back
+into the floor.
+
+Putting them out when the rings start rising would have the pad go dark at exactly the moment
+it does the thing it was lit for. And putting them out on the same tick the last ring lands
+reads as the whole thing being switched off rather than as the rings finishing; a beat later
+reads as powering down. `rings.lights-linger-ticks` is that beat.
+
+Mechanically this is why the drawing is kept in two sets rather than one. The rings are
+replaced wholesale every frame; the lights are drawn once and outlast all of it. They never
+overlap — the lights sit a block inside the surface and the rings travel out of it — so
+neither has to know about the other.
+
 ## Rings are drawn, not built
 
 **Nothing in a cycle changes the world.** The lights and the travelling rings are sent to
@@ -591,6 +610,7 @@ rings:
   flash-direction: TOP_DOWN  # or BOTTOM_UP
   outline-on-refusal: true   # light the pattern for somebody a ring turns away
   outline-ticks: 40          # and for how long
+  lights-linger-ticks: 20    # pad stays lit this long after the last ring is home
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited; distance itself costs nothing
@@ -763,17 +783,19 @@ In rough order of how much they would hurt to get wrong:
    configured.
 9. A cancelled `RingTravelEvent` drops that passenger and carries everyone else, and is
    asked only after both ends have been read.
-10. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
-11. Overlapping footprints are refused at create, including against gate blocks.
-12. Pattern matching picks the right one of the two, and rejects a near-miss circle.
-13. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
+10. The pad stays lit from the countdown until after the rings are home, and the rings can
+    be taken down without taking the lights with them.
+11. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
+12. Overlapping footprints are refused at create, including against gate blocks.
+13. Pattern matching picks the right one of the two, and rejects a near-miss circle.
+14. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
-14. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-15. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+15. A damaged entry in a world file is skipped with a log line, and the rest still loads.
+16. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
-16. Pairing refuses a second endpoint placed in a different world, and says why.
-17. `edit` without an id changes only the end the player is standing in; with an id it
+17. Pairing refuses a second endpoint placed in a different world, and says why.
+18. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.
-18. A private pair refuses a stranger, carries the owner and the people they named, and
+19. A private pair refuses a stranger, carries the owner and the people they named, and
     leaves an unpermitted player standing while everyone else goes.
-19. A stored pair with a missing or unreadable access field loads private, never public.
+20. A stored pair with a missing or unreadable access field loads private, never public.
