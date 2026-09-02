@@ -2,27 +2,37 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## 1.2.0 (unreleased)
 
-### Minecraft 1.21.1
+### Minecraft 1.20.4 through 1.21.1
 
-Compiled against `spigot-api 1.21.1` with `api-version: 1.21`. No source change was needed
-for the API itself; everything that follows is about the consequences.
+Runs on 1.20.4, 1.20.6, 1.21 and 1.21.1. Every one of those is compiled and tested against
+in CI on each pull request, and a version is not claimed until it is in that matrix.
 
-- **The server must run Java 21.** That is Minecraft's requirement from 1.20.5 onward, not
-  this plugin's — the jar is still Java 17 bytecode. A server on Java 17 cannot run 1.21 at
-  all.
-- **A 1.20 server will now refuse to load this build** rather than loading it and misbehaving.
-  Stay on `v1.1.0` for 1.20.4.
-- Arrow knockback and the shot-from-crossbow flag are deprecated on 1.21, because both are
-  now derived from the weapon an arrow was fired from. A projectile that crosses a gate is
+The jar is compiled against the **oldest** supported server rather than the newest. A plugin
+built against an old API runs on newer servers; one built against a new API can call
+something an older server has never heard of, and nothing catches that until a player reports
+a crash. Compiling against the floor makes the compiler enforce it. CI covers the other
+direction — a newer server having removed something — by building against each supported
+version in turn.
+
+`spigot.api.version` in `pom.xml` selects the API, so CI can point one build at a different
+server version without editing anything.
+
+- Materials named in `config.yml` and the shape files are text resolved at runtime, so the
+  compiler never sees them and a renamed or removed material would only surface on a live
+  server. A test checks every shipped name against whatever API the build targets, which
+  means changing that target is what runs the check.
+- Arrow knockback and the shot-from-crossbow flag are deprecated from 1.21, because both are
+  now derived from the weapon an arrow was fired from. A projectile crossing a gate is
   consumed and re-fired, so it has no weapon to derive them from, and the deprecated setters
   are the only way to carry them across. They are kept deliberately: dropping them would
   quietly weaken every arrow that made the trip.
-- Materials named in `config.yml` and the shape files are text resolved at runtime, so the
-  compiler never sees them and a renamed or removed material would only surface on a live
-  server. A test now checks every shipped name against whatever API version the build targets,
-  which means raising that version is what runs the check.
+- **Minecraft 1.20.5 and later require the server to run Java 21.** That is the server's
+  requirement, not this plugin's; the jar remains Java 17 bytecode.
+
+Nothing here has been runtime-verified on a live server of any version. CI proves the plugin
+compiles and its tests pass against each API, not that a gate behaves correctly in game.
 
 ## 1.1.0 (2026-09-01)
 

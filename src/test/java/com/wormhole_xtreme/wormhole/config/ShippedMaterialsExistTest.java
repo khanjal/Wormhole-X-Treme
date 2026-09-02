@@ -54,11 +54,15 @@ public class ShippedMaterialsExistTest
         final Path shapes = Paths.get("src/main/resources/GateShapes");
         if (Files.isDirectory(shapes))
         {
-            for (final Path p : Files.list(shapes).toList())
+            // try-with-resources: Files.list holds an open directory handle until closed.
+            try (java.util.stream.Stream<Path> listing = Files.list(shapes))
             {
-                if (p.getFileName().toString().endsWith(".shape"))
+                for (final Path p : listing.toList())
                 {
-                    files.add(p);
+                    if (p.getFileName().toString().endsWith(".shape"))
+                    {
+                        files.add(p);
+                    }
                 }
             }
         }

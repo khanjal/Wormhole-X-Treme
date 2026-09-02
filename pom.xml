@@ -2,12 +2,24 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.wormhole_xtreme.wormhole</groupId>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 	<artifactId>WormholeXTreme</artifactId>
 	<packaging>jar</packaging>
 	<name>Wormhole-X-Treme</name>
 	 <properties>
 		 <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!--
+			Compile against the OLDEST server this plugin supports, not the newest. A plugin
+			built against an old API runs on newer servers; one built against a new API can
+			call something the old server has never heard of, and nothing catches that until
+			a player reports a crash. Building against the floor makes the compiler enforce
+			the floor.
+
+			CI overrides this with -Dspigot.api.version to also build against the newest
+			supported server, which is what catches an API that has been removed rather than
+			added. Both directions have to hold, and neither is checked by the other.
+		-->
+		<spigot.api.version>1.20.4-R0.1-SNAPSHOT</spigot.api.version>
 		 <maven.compiler.release>17</maven.compiler.release>
 		 <java.version>17</java.version>
 	 </properties>
@@ -119,7 +131,7 @@
 		<dependency>
 			<groupId>org.spigotmc</groupId>
 			<artifactId>spigot-api</artifactId>
-			<version>1.21.1-R0.1-SNAPSHOT</version>
+			<version>${spigot.api.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
