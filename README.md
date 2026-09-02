@@ -468,6 +468,41 @@ however often it is triggered.
 A trigger on a gate that is lit but never dialled still deactivates it, which is the only
 way to clear a gate somebody activated and walked away from.
 
+## Events for other plugins
+
+Gate lifecycle is published as Bukkit events, so another plugin can react without this one
+knowing it exists. Both live in `com.wormhole_xtreme.wormhole.events`.
+
+| Event | Fired |
+| --- | --- |
+| `StargateCreatedEvent` | after a gate is built, named, registered and saved |
+| `StargateRemovedEvent` | while a gate is being removed, before it is torn down |
+
+```java
+@EventHandler
+public void onGateCreated(final StargateCreatedEvent event)
+{
+    getLogger().info(event.getStargateName() + " built by "
+        + (event.getBuilder() != null ? event.getBuilder().getName() : "no player"));
+}
+```
+
+`getStargate()` gives the gate itself. `getBuilder()` and `getRemover()` give the player
+responsible, and are **null** when the gate was not created or removed by one — check before
+using them.
+
+The removal event fires *before* teardown, so the gate can still be read: name, owner,
+network, blocks and teleport location are all still populated, which is what a listener
+cleaning up its own records needs.
+
+Neither event is cancellable. Both are sent after the decision has been made and, in the
+case of creation, after the gate is already on disk. To prevent a gate being built, deny
+`wormhole.build` rather than listening for it.
+
+Refreshing a gate does **not** raise a removal. A refresh deregisters the gate and registers
+it again with freshly detected geometry, which is not the gate going away, so a listener is
+not told to discard what it knows about it.
+
 ## Developer notes
 
 - `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.

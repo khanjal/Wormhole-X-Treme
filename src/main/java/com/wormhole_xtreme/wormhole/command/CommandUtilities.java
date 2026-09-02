@@ -118,6 +118,43 @@ public class CommandUtilities
      */
     public static void gateRemove(final Stargate stargate, final boolean destroy)
     {
+        gateRemove(stargate, destroy, true, null);
+    }
+
+    /**
+     * Tears a gate down, optionally without announcing it.
+     *
+     * <p>Pass {@code announce} false when the gate is being deregistered in order to be
+     * registered again, such as a refresh picking up freshly detected geometry. That is not
+     * a removal and listeners should not be told it is one.
+     *
+     * @param stargate
+     *            the gate
+     * @param destroy
+     *            whether to delete the gate's blocks as well as its registration
+     * @param announce
+     *            whether this is a real removal listeners should hear about
+     */
+    public static void gateRemove(final Stargate stargate, final boolean destroy, final boolean announce)
+    {
+        gateRemove(stargate, destroy, announce, null);
+    }
+
+    /**
+     * Tears a gate down, naming the player responsible.
+     *
+     * @param stargate
+     *            the gate
+     * @param destroy
+     *            whether to delete the gate's blocks as well as its registration
+     * @param announce
+     *            whether this is a real removal listeners should hear about
+     * @param remover
+     *            the player removing it, or null if it was not a player
+     */
+    public static void gateRemove(final Stargate stargate, final boolean destroy, final boolean announce,
+                                  final org.bukkit.entity.Player remover)
+    {
         // Ensure the gate is fully deactivated and cleaned up before removal.
         try
         {
@@ -158,7 +195,7 @@ public class CommandUtilities
             stargate.deletePortalBlocks();
             stargate.deleteTeleportSign();
         }
-        StargateManager.removeStargate(stargate);
+        StargateManager.removeStargate(stargate, remover, announce);
     }
 
     /**

@@ -304,6 +304,10 @@ public class StargateManager
                     );
             StargateDBManager.saveStargate(complete);
 
+            // Announced once the gate is registered and saved, so a listener can look it
+            // up by name and find it already there.
+            com.wormhole_xtreme.wormhole.events.GateEvents.fireCreated(complete, p);
+
             // For sign-powered gates, initialize the DHD sign by cycling to the first available target.
             if (complete.isGateSignPowered() && complete.getGateDialSignBlock() != null)
             {
@@ -872,6 +876,47 @@ public class StargateManager
      */
     public static void removeStargate(final Stargate s)
     {
+        removeStargate(s, null, true);
+    }
+
+    /**
+     * Removes a gate, naming the player who did it.
+     *
+     * @param s
+     *            the gate to remove
+     * @param remover
+     *            the player removing it, or null if it was not a player
+     */
+    public static void removeStargate(final Stargate s, final Player remover)
+    {
+        removeStargate(s, remover, true);
+    }
+
+    /**
+     * Removes a gate, optionally without telling anyone.
+     *
+     * <p>{@code announce} exists for re-registration. Refreshing a gate deregisters it and
+     * registers it again with freshly detected geometry, which runs through this method but
+     * is not a removal: the gate is still there afterwards. Announcing it would tell a
+     * listener keeping its own records about that gate to throw them away, and it would do
+     * so every time anybody ran a refresh.
+     *
+     * <p>The event fires before any teardown, so a listener acting on it can still read the
+     * gate's name, owner, network, blocks and teleport location.
+     *
+     * @param s
+     *            the gate to remove
+     * @param remover
+     *            the player removing it, or null if it was not a player
+     * @param announce
+     *            whether to raise {@link com.wormhole_xtreme.wormhole.events.StargateRemovedEvent}
+     */
+    public static void removeStargate(final Stargate s, final Player remover, final boolean announce)
+    {
+        if (announce)
+        {
+            com.wormhole_xtreme.wormhole.events.GateEvents.fireRemoved(s, remover);
+        }
         getStargateList().remove(normalizeGateName(s.getGateName()));
         StargateDBManager.removeStargate(s);
         if (s.getGateNetwork() != null)
