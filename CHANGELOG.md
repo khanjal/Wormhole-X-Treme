@@ -28,6 +28,13 @@ Purpur and Pufferfish from a single jar. Folia is not supported.
   not a door mobs can wander back through.
 - Redstone activates a gate from any component touching its activation block, so a detector
   rail wired into a gate now works.
+- Redstone gates can actually be built. The shipped shapes marked their redstone cells one
+  block off, so a gate watched a wall for a signal and looked for a lever where a frame
+  block always is — no error, just redstone that never fired. Shapes write those markers two
+  different ways and both are now handled. `StandardSignDial` gained working markers, so a
+  Standard gate takes redstone without being rebuilt.
+- Triggering an already-open gate does nothing rather than closing it, so a second minecart
+  no longer shuts the wormhole the first one opened.
 
 ### Material groups
 
@@ -43,6 +50,16 @@ abstraction and the `mysql`/`postgres` options that were advertised but never im
 
 Custom gate materials are persisted by name rather than enum ordinal. Ordinals shift between
 Minecraft versions, so a gate could previously come back a different colour.
+
+### Permissions
+
+Permission checks go through `Player.hasPermission()`, which every permissions plugin
+implements, so LuckPerms and anything else Bukkit-compatible works with no glue. Operators
+are granted every gate permission outright rather than by a switch listing each type, which
+silently denied any type nobody remembered to add to it.
+
+The legacy built-in permission system is removed: 378 lines that read and wrote a store
+nothing consulted. Vault is used only for economy, and only if it is installed.
 
 ### Commands
 
@@ -70,6 +87,25 @@ rewrote cooldown timers and read a stub that always returned -1.
   on 1.20.
 - Exception handling no longer swallows `Error`, and anything that changes plugin state now
   reports when it fails.
+- The portal is redrawn for players who arrive after the gate opened. It is painted onto
+  each nearby client's copy of the chunk and was sent once, at open, to whoever was in range
+  then — so a traveller stepped out of a wormhole into an empty frame, and anyone who
+  reloaded a chunk lost it. Redrawn on arrival, join, respawn, world change and chunk
+  crossing, across a window rather than a single tick, since a client returning from a long
+  trip takes time to receive the chunk the portal is drawn on.
+- Travellers can walk out of the gate they arrived at. Refusing entry means cancelling the
+  move, which holds a player exactly where they are: correct for someone stepping in from
+  outside, and a trap for the one who just arrived inside. They were held in the ring, told
+  once per move that they could not enter an incoming wormhole, and eventually disconnected.
+- Standing in a portal no longer gets a player kicked for flying. The client simulates the
+  water it is shown and floats them; the server sees open air and calls that flight. Flight
+  is allowed for as long as they are inside, and withdrawn on the way out from players it
+  was granted to, so creative mode and other plugins keep what they gave.
+- Arrival points that sat inside the portal are moved clear of it on load. Gates built
+  before the exit was offset stored the old position, and loading restores what was stored
+  rather than recomputing it, so no fix to the build path ever reached them.
+- The version the server reports comes from the build. `plugin.yml` carried its own copy and
+  had drifted, so a jar built as 1.1.0 announced itself as 1.0.0.
 
 ## 1.0.0 (2026-05-14)
 
