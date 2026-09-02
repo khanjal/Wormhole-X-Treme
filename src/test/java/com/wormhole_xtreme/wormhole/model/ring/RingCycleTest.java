@@ -169,6 +169,15 @@ public class RingCycleTest
         /** Names of passengers an outside plugin refuses to carry. */
         final List<String> refuse = new ArrayList<String>();
 
+        /** Rings that have been built in or dug out since, by anchor key. */
+        final Map<String, RingBlockage> blocked = new HashMap<String, RingBlockage>();
+
+        @Override
+        public RingBlockage blockage(final Ring destination)
+        {
+            return blocked.get(key(destination));
+        }
+
         @Override
         public boolean mayTravel(final RingPassenger passenger, final Ring from, final Ring to)
         {
@@ -303,6 +312,69 @@ public class RingCycleTest
 
         assertEquals(1, new RingCycle(pair, world, REACH).flash());
         assertTrue(world.deliveries.contains("camel -> 500:64:500"));
+    }
+
+    @Test
+    public void nobodyIsSentIntoARingThatHasBeenBuiltIn()
+    {
+        // A ring is invisible and its inside is ordinary ground, so somebody can drop a block
+        // in one long after it was made. Arriving inside that block is the one outcome worse
+        // than not arriving, so the whole end simply takes nobody.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.put(pair.getEndA(), new Traveller("alice", "a", true));
+        world.blocked.put("500:64:500", RingBlockage.OBSTRUCTED);
+
+        assertEquals(0, new RingCycle(pair, world, REACH).flash());
+        assertTrue(world.deliveries.isEmpty());
+    }
+
+    @Test
+    public void aRingWithAHoleInItsFloorTakesNobodyEither()
+    {
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.put(pair.getEndA(), new Traveller("alice", "a", true));
+        world.blocked.put("500:64:500", RingBlockage.NO_GROUND);
+
+        assertEquals(0, new RingCycle(pair, world, REACH).flash());
+    }
+
+    @Test
+    public void oneBlockedEndDoesNotStopTheOtherDirection()
+    {
+        // The two directions are separate journeys. Somebody standing in the blocked end can
+        // still leave it — there is nothing wrong with departing from a ring you cannot
+        // arrive in — while nobody is sent the other way.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.put(pair.getEndA(), new Traveller("alice", "a", true));
+        world.put(pair.getEndB(), new Traveller("bob", "b", true));
+        world.blocked.put("500:64:500", RingBlockage.OBSTRUCTED);
+
+        assertEquals(1, new RingCycle(pair, world, REACH).flash());
+        assertTrue(world.deliveries.contains("bob -> 0:64:0"), "bob leaves the blocked end");
+        assertFalse(world.deliveries.contains("alice -> 500:64:500"), "alice is not sent into it");
+    }
+
+    @Test
+    public void aCycleThatCarriedNobodyOwesNoCooldown()
+    {
+        // The cooldown exists so an arrival cannot immediately re-fire the ring it landed in.
+        // A cycle that moved nobody has no arrival to guard against, so making somebody wait
+        // a minute to retry a trip that never happened would just punish them for stepping
+        // out of the ring.
+        final RingPair pair = pair();
+        final RingCycle cycle = new RingCycle(pair, new FakeWorld(), REACH);
+        assertEquals(0, cycle.flash(), "nobody was in it");
+        assertEquals(0, cycle.getCarried());
+
+        final RingPair carried = pair();
+        final FakeWorld busy = new FakeWorld();
+        busy.put(carried.getEndA(), new Traveller("alice", "a", true));
+        final RingCycle went = new RingCycle(carried, busy, REACH);
+        went.flash();
+        assertEquals(1, went.getCarried(), "and this one did carry somebody");
     }
 
     @Test

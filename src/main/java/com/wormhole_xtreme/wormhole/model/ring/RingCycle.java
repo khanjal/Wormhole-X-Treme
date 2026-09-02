@@ -118,6 +118,18 @@ public class RingCycle
         boolean mayTravel(RingPassenger passenger, Ring from, Ring to);
 
         /**
+         * Whether a ring is fit to receive anybody, and why not if it is not.
+         *
+         * <p>Asked before anybody is moved, because arriving inside a wall is the one outcome
+         * worse than not arriving at all.
+         *
+         * @param destination
+         *            the ring they would arrive at
+         * @return why it cannot take anybody, or null if it can
+         */
+        RingBlockage blockage(Ring destination);
+
+        /**
          * Moves a passenger to a ring.
          *
          * @param passenger
@@ -157,6 +169,9 @@ public class RingCycle
     /** How far through the current phase we are. */
     private int frame = 0;
 
+    /** How many travelled when this cycle flashed. */
+    private int carried = 0;
+
     /**
      * Instantiates a cycle.
      *
@@ -178,6 +193,20 @@ public class RingCycle
     public RingPair getPair()
     {
         return pair;
+    }
+
+    /**
+     * How many this cycle actually carried.
+     *
+     * <p>Read when it ends, to decide whether a cooldown is owed. A cycle that moved nobody
+     * has no arrival that could re-fire the rings, which is the only thing the cooldown is
+     * there to prevent.
+     *
+     * @return the number carried, or zero before the flash
+     */
+    public int getCarried()
+    {
+        return carried;
     }
 
     /** @return how far through the current phase the cycle is */
@@ -305,6 +334,11 @@ public class RingCycle
      * was rather than a half-finished one. A refusal drops that passenger and leaves the rest
      * of the trip alone.
      *
+     * <p>An end with nowhere to stand takes nobody. That is checked before the cycle starts
+     * and again here, because the few seconds a cycle runs are long enough for somebody to
+     * fill the far end in — and having watched the rings come up is no reason to be put
+     * inside a wall.
+     *
      * <p>Players who may not use this pair are dropped between the snapshot and the move.
      * A private ring is not a free ride for whoever happens to be standing in it: they stay
      * where they are while the rings close and open around them. Anything that is not a
@@ -320,10 +354,14 @@ public class RingCycle
         final List<RingPassenger> fromA = occupants(pair.getEndA());
         final List<RingPassenger> fromB = occupants(pair.getEndB());
 
-        final List<RingPassenger> travellingFromA =
-            permitted(fromA, pair.getEndA(), pair.getEndB());
-        final List<RingPassenger> travellingFromB =
-            permitted(fromB, pair.getEndB(), pair.getEndA());
+        // Asked once per end rather than per traveller: whether a ring can take anybody is
+        // a fact about the ring, and asking it twenty times would give the same answer.
+        final List<RingPassenger> travellingFromA = (world.blockage(pair.getEndB()) == null)
+            ? permitted(fromA, pair.getEndA(), pair.getEndB())
+            : new ArrayList<RingPassenger>();
+        final List<RingPassenger> travellingFromB = (world.blockage(pair.getEndA()) == null)
+            ? permitted(fromB, pair.getEndB(), pair.getEndA())
+            : new ArrayList<RingPassenger>();
 
         for (final RingPassenger passenger : travellingFromA)
         {
@@ -333,7 +371,8 @@ public class RingCycle
         {
             world.deliver(passenger, pair.getEndA());
         }
-        return travellingFromA.size() + travellingFromB.size();
+        carried = travellingFromA.size() + travellingFromB.size();
+        return carried;
     }
 
     /**

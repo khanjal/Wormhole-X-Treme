@@ -665,25 +665,48 @@ far stack has been standing there lit the whole time waiting for them.
 The lit ring is drawn **over** the stack rather than instead of it, so the rings that are not
 lit stay exactly where they are and nothing appears to move while the light passes.
 
-## Arriving somewhere that has changed
+## A ring that is no longer fit to arrive in
 
-A ring is invisible and its floor is ordinary ground, so nothing stops somebody paving over
-the far end long after it was built — or digging it out and leaving the ring hanging in
-mid-air. Neither breaks the ring, and both change where a traveller ought to land.
+A ring is invisible and its inside is ordinary ground, so nothing stops somebody building in
+one long after it was made, or digging its floor out. Either leaves an end that still fires
+and cannot honestly receive anybody.
 
-The arrival is therefore searched for rather than assumed. The middle of the ring first, then
-up to three blocks up and three down; failing that, every other interior column in turn. The
-interior is a known open area of twenty-odd columns, so if the centre has been filled in there
-is very likely somewhere else inside the ring to put them.
+**The rings refuse to engage, and say why.** Checked when somebody walks in, before the
+countdown starts, so nothing happens at all — a cycle that deploys, flashes and quietly
+carries nobody looks broken, where being told the far end is blocked points at the thing that
+actually needs fixing. The message names which end, says which of the two problems it is, and
+says that only the inside counts.
 
-Only headroom is required, not solid ground. A ring whose floor has been dug away still works
-and the traveller arrives and falls, which is the right answer — that is what standing where
-the floor used to be should do. Requiring ground would mean refusing to deliver anybody to a
-ring that still functions.
+The standard is strict on purpose, and it is the whole interior rather than a search for one
+clear square:
 
-If the whole footprint has been buried, they are sent to the middle regardless. Standing in a
-wall is bad; being silently left behind at the far end of a transport you watched fire is
-worse.
+- **Nothing built inside it.** Every interior column must be clear at the arrival layer and
+  the one above. A single block dropped in is enough to stop it.
+- **Ground under all of it.** Every interior column must have a solid block *directly*
+  beneath. Not somewhere beneath — a gap with a floor three blocks further down is still a
+  gap to fall through. Water and lava count as no ground, because landing in either is not
+  arriving.
+
+Somewhere to stand is not the same as somewhere fit to arrive. One block dropped into a
+seven-wide ring still leaves twenty free columns, and delivering people to whichever corner
+happened to be empty is not what a transport ring should do — so the arrival is always the
+middle, and nothing is searched for.
+
+**Only the inside counts.** What anybody has built around a ring is their business, and
+arriving next to it is no trouble: you can walk away, or step back in and go home.
+
+It is checked again at the flash, because the few seconds a cycle runs are long enough for
+somebody to fill the far end in, and having watched the rings come up is no reason to be put
+inside a wall. The two directions are judged separately — somebody standing in a blocked end
+can still leave it, since there is nothing wrong with departing from a ring you could not
+arrive in.
+
+### A trip that never happened owes no cooldown
+
+A cycle that carried nobody leaves the pair ready immediately. The cooldown exists so an
+arrival cannot re-fire the ring it just landed in; with no arrival there is nothing to guard
+against, and making somebody wait a minute to retry a trip that never happened would just
+punish them for having stepped out of the ring.
 
 ## Limits
 
@@ -923,8 +946,8 @@ In rough order of how much they would hurt to get wrong:
 14. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
 15. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-16. An arrival lands somewhere a player fits, even when the far end has been paved over or
-    dug out since it was built.
+16. A ring with one block built in it, or one block missing from its floor, refuses to
+    engage and says which of the two it is.
 17. Pairing refuses a second endpoint placed in a different world, and says why.
 18. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.

@@ -60,11 +60,29 @@ public final class RingTransit
         }
 
         final int reach = ConfigManager.getRingReach();
-        final RingCycle cycle = new RingCycle(pair, new BukkitRingWorld(world, pair, reach), reach);
+        final BukkitRingWorld surroundings = new BukkitRingWorld(world, pair, reach);
+        final RingCycle cycle = new RingCycle(pair, surroundings, reach);
         // Both ends have to be loaded for the whole cycle. The far end is usually nowhere
         // near a player, and animating into an unloaded chunk writes blocks nobody will see
-        // put back and lands travellers in terrain that has not been generated.
+        // put back and lands travellers in terrain that has not been generated. Held before
+        // the check below, since asking whether a ring is clear means reading its blocks.
         hold(world, pair);
+
+        // Refused outright rather than run and then found to have nowhere to put anybody.
+        // A cycle that deploys, flashes and quietly carries nobody looks broken; being told
+        // the far end is blocked points at the thing that actually needs fixing.
+        final Ring blocked = firstBlockedEnd(surroundings, pair);
+        if (blocked != null)
+        {
+            release(world, pair);
+            running.remove(pair.getId());
+            if ((armedBy != null) && armedBy.isOnline())
+            {
+                RingMessages.cannotReceive(armedBy, blocked.getName(),
+                    surroundings.blockage(blocked));
+            }
+            return false;
+        }
         cycle.beginCountdown();
         countDown(cycle, world, armedBy, ConfigManager.getRingCountdownTicks());
         return true;
@@ -114,6 +132,32 @@ public final class RingTransit
                     }
                 }
             }, step);
+    }
+
+    /**
+     * Whichever end has nowhere to put a traveller, if either has.
+     *
+     * <p>Both, not just the far one. A cycle carries people in both directions at once, so an
+     * end that has been built over would take arrivals from the other side into a wall
+     * whichever end somebody happened to walk into.
+     *
+     * @param surroundings
+     *            how to read the world
+     * @param pair
+     *            the pair about to fire
+     * @return the blocked end, or null if both are clear
+     */
+    private static Ring firstBlockedEnd(final BukkitRingWorld surroundings, final RingPair pair)
+    {
+        if (surroundings.blockage(pair.getEndA()) != null)
+        {
+            return pair.getEndA();
+        }
+        if (surroundings.blockage(pair.getEndB()) != null)
+        {
+            return pair.getEndB();
+        }
+        return null;
     }
 
     /**
@@ -394,8 +438,14 @@ public final class RingTransit
                 {
                     try
                     {
-                        cycle.finish(System.currentTimeMillis()
-                            + (ConfigManager.getRingCooldownTicks() * 50L));
+                        // No cooldown when nobody went. The wait exists so an arrival
+                        // cannot immediately re-fire the ring it landed in, and a cycle that
+                        // carried nobody has no arrival to guard against — making somebody
+                        // wait a minute to retry a trip that never happened is just a
+                        // punishment for having stepped out.
+                        cycle.finish((cycle.getCarried() == 0) ? 0L
+                            : (System.currentTimeMillis()
+                                + (ConfigManager.getRingCooldownTicks() * 50L)));
                         finished(cycle, world);
                     }
                     catch (final RuntimeException e)

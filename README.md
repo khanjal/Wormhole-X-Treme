@@ -589,17 +589,24 @@ left barely a sequence to watch.
 Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
 subject to access rules; everything else rides along.
 
-If somebody paves over the far end, or digs it out so the ring hangs in mid-air, the ring
-keeps working and the arrival is searched for: the middle of the ring first, then a few
-blocks up or down, then the rest of the interior. Only headroom is required, not ground — a
-ring whose floor has been dug away still works, and you arrive and fall, which is what
-standing where the floor used to be should do.
+If somebody builds inside a ring, or digs out its floor, the rings **refuse to engage** and
+tell you which end is at fault and which of the two problems it is. The standard is strict:
+every square inside the ring must be clear, and every one must have solid ground directly
+beneath it — one block built in, or one block missing from the floor, is enough. Water and
+lava count as no ground.
+
+Only the inside matters. What is built *around* a ring is your own business, and arriving
+next to it is no trouble since you can step back in and go home.
+
+A refused trip costs you nothing: no cycle runs, and the pair is ready to try again the
+moment the ring is cleared.
 
 Ride in on a horse or a camel and you arrive still on it. The mount is what travels and you
 are re-seated on it once you land, rather than the two of you being sent separately, which
 would drop you on the floor beside it.
 
-A pair will not fire again for a minute afterwards. Walking onto a pad that is recharging
+A pair will not fire again for a minute after carrying somebody — though a cycle that
+carried nobody, because everyone stepped out, leaves it ready straight away. Walking onto a pad that is recharging
 tells you how long is left and briefly lights the pattern so you can see where the ring is,
 since an idle one is invisible. Walking onto one that is already running just says so — its
 pad is lit already, so there is nothing to point out.

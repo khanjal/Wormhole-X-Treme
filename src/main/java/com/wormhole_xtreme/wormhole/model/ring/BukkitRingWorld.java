@@ -50,9 +50,6 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     /** How long a computed audience is reused before being worked out again. */
     private static final long AUDIENCE_TTL_MILLIS = 50L;
 
-    /** How far up or down to look for somewhere to stand at a blocked arrival. */
-    private static final int SEARCH = 3;
-
     /** The world this operates in. Both ends of a pair are always in it. */
     private final World world;
 
@@ -313,6 +310,13 @@ public class BukkitRingWorld implements RingCycle.Surroundings
         }
         final Entity entity = ((BukkitRingPassenger) passenger).getEntity();
         final Location arrival = arrivalPoint(destination);
+        if (arrival == null)
+        {
+            // Should not happen: the far end is checked before the cycle starts and again
+            // before anybody moves. Leaving them where they are is still the right answer if
+            // it somehow does.
+            return;
+        }
         // Keep the way they were facing. Being spun round on arrival is disorienting, and
         // unlike a gate a ring has no direction of its own to face them in.
         arrival.setYaw(entity.getLocation().getYaw());
@@ -411,95 +415,69 @@ public class BukkitRingWorld implements RingCycle.Surroundings
      *            the ring being arrived at
      * @return where to put a traveller
      */
-    public Location arrivalPoint(final Ring ring)
+    /* (non-Javadoc)
+     * @see RingCycle.Surroundings#blockage(Ring)
+     */
+    @Override
+    public RingBlockage blockage(final Ring ring)
     {
-        final int y = (ring.getOrientation() == RingOrientation.FLOOR)
-            ? ring.getAnchorY()
-            : (ring.getAnchorY() - (reach - 1));
-
-        // The middle first, then the rest of the interior. A ring is invisible and its floor
-        // is ordinary ground, so nothing stops somebody paving over the far end long after it
-        // was built — and arriving inside their new blocks would suffocate whoever came
-        // through. The interior is a known open area of twenty-odd columns, so if the middle
-        // has been filled in there is very likely somewhere else in the ring to put them.
-        final Location middle = standableAt(ring.getAnchorX(), y, ring.getAnchorZ());
-        if (middle != null)
-        {
-            return middle;
-        }
+        final int y = arrivalHeight(ring);
+        // Every column, not just the middle. Somewhere to stand is not the same as somewhere
+        // fit to arrive: one block dropped into a ring would still leave twenty free columns,
+        // and delivering people to whichever corner happened to be empty is not what a
+        // transport ring should do. One block in it stops the whole thing.
         for (final int[] block : ring.interiorBlocks())
         {
-            final Location elsewhere = standableAt(block[0], y, block[2]);
-            if (elsewhere != null)
+            if ((y - 1 < world.getMinHeight()) || ((y + 1) >= world.getMaxHeight()))
             {
-                return elsewhere;
+                return RingBlockage.NO_GROUND;
             }
-        }
-        // Nowhere in the whole ring is clear, which means it has been buried. Send them to
-        // the middle anyway: standing in a wall is bad, and being silently left behind at the
-        // far end of a transport they watched fire is worse.
-        return centreOf(ring.getAnchorX(), y, ring.getAnchorZ());
-    }
-
-    /**
-     * A place to stand in one column, at or near a given height.
-     *
-     * <p>Searches upward first and then down. Up is what escapes a floor somebody has paved
-     * over since the ring was built; down is what finds the ground again when they have dug
-     * it out instead. A ring left hanging in mid-air has no ground within reach, and that is
-     * a real answer rather than a failure — the traveller arrives and falls, which is what
-     * standing where the floor used to be should do.
-     *
-     * @param x
-     *            block x
-     * @param y
-     *            the height to start from
-     * @param z
-     *            block z
-     * @return somewhere to stand in that column, or null if there is nowhere
-     */
-    private Location standableAt(final int x, final int y, final int z)
-    {
-        for (int dy = 0; dy <= SEARCH; dy++)
-        {
-            if (roomToStand(x, y + dy, z))
+            if (!world.getBlockAt(block[0], y, block[2]).isPassable()
+                || !world.getBlockAt(block[0], y + 1, block[2]).isPassable())
             {
-                return centreOf(x, y + dy, z);
+                return RingBlockage.OBSTRUCTED;
             }
-        }
-        for (int dy = 1; dy <= SEARCH; dy++)
-        {
-            if (roomToStand(x, y - dy, z))
+            // Ground directly under every column, so nobody arrives over a hole somebody dug.
+            // Directly, not somewhere below: a gap with a floor three blocks further down is
+            // still a gap to fall through, and a ring you drop out of is not a ring that
+            // works. Water and lava are passable and count as no ground too, which is the
+            // right answer — landing in either is not arriving.
+            if (world.getBlockAt(block[0], y - 1, block[2]).isPassable())
             {
-                return centreOf(x, y - dy, z);
+                return RingBlockage.NO_GROUND;
             }
         }
         return null;
     }
 
     /**
-     * Whether a player fits here.
+     * The layer travellers arrive in.
      *
-     * <p>Feet and head only. Solid ground underneath is deliberately not required: a ring
-     * whose floor has been dug away still works, and refusing to deliver anybody to it would
-     * be a worse answer than letting them arrive and fall.
-     *
-     * @param x
-     *            block x
-     * @param y
-     *            block y of the feet
-     * @param z
-     *            block z
-     * @return true if there is room
+     * @param ring
+     *            the ring
+     * @return the block layer a traveller's feet land in
      */
-    private boolean roomToStand(final int x, final int y, final int z)
+    private int arrivalHeight(final Ring ring)
     {
-        if ((y < world.getMinHeight()) || ((y + 1) >= world.getMaxHeight()))
-        {
-            return false;
-        }
-        return world.getBlockAt(x, y, z).isPassable()
-            && world.getBlockAt(x, y + 1, z).isPassable();
+        return (ring.getOrientation() == RingOrientation.FLOOR)
+            ? ring.getAnchorY()
+            : (ring.getAnchorY() - (reach - 1));
+    }
+
+    /**
+     * Where travellers land at a ring.
+     *
+     * <p>Always the middle, with nothing searched for. A ring only fires at all when its whole
+     * interior is clear and floored, so the centre is as good as anywhere — and is where a
+     * transport ring ought to put people rather than whichever corner happened to be free.
+     *
+     * @param ring
+     *            the ring being arrived at
+     * @return where to put a traveller
+     */
+    public Location arrivalPoint(final Ring ring)
+    {
+        return centreOf(ring.getAnchorX(), arrivalHeight(ring), ring.getAnchorZ());
     }
 
     /**

@@ -170,6 +170,32 @@ public final class RingMessages
     }
 
     /**
+     * Somebody walked into a ring whose far end has been built over.
+     *
+     * <p>Chat rather than the action bar, and worded to send them looking in the right
+     * place. A ring that will not fire and cannot say why is indistinguishable from a broken
+     * one, and the thing to fix is usually at the other end entirely — so this names which
+     * end, says which of the two problems it is, and says that only the inside counts.
+     *
+     * @param player
+     *            who walked in
+     * @param destination
+     *            what the blocked end is called, or empty if it has no name
+     * @param why
+     *            what is wrong with it
+     */
+    public static void cannotReceive(final Player player, final String destination,
+        final RingBlockage why)
+    {
+        final String which = ((destination == null) || destination.isEmpty())
+            ? "The other end of these rings" : ("The " + destination + " end");
+        player.sendMessage(ERROR + which + (why == RingBlockage.NO_GROUND
+            ? " has a hole in its floor." : " has something built inside it."));
+        player.sendMessage(ERROR + "Clear the inside of that ring and try again. What is "
+            + "built around it does not matter.");
+    }
+
+    /**
      * Somebody walked into a ring that is already running a cycle.
      *
      * @param player
