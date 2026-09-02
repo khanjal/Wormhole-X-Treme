@@ -588,9 +588,10 @@ it stands down. Once the rings start rising the trip is committed.
 Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
 settling at 0.5, 1.5, 2.5 and 3.5 blocks up. A **ceiling ring** works the other way round: its
 rings fall from the ceiling all the way to the floor and stack up from there, so you end up
-standing inside them rather than under them. The stack stands a second, the light runs down
-through it as you are taken and back up as you arrive, and the rings return nearest-first.
-The pad stays lit until a second after the last one is home.
+standing inside them rather than under them. The stack stands a second, then the light runs
+down through the rings you are standing in as you are taken, and back up through the ones at
+the far end as you arrive — the near rings draw you in, the far ones put you out. Then the
+rings return nearest-first, and the pad stays lit until a second after the last one is home.
 
 Four rather than the show's five: a slab is half a block thick, so rings cannot sit closer
 than a block apart without touching, which makes the ring count and the stack's height the
