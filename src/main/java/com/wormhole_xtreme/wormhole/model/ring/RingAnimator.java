@@ -524,15 +524,33 @@ public final class RingAnimator
     }
 
     /**
-     * The blocks that are taken away while the ring works.
+     * What an opened block is drawn as.
+     *
+     * <p>A barrier rather than air, and the difference is the whole point: both are invisible
+     * to somebody walking over the pad, but a barrier is still a solid block to the client
+     * that was sent it.
+     *
+     * <p>Air was wrong because the floor is only opened <em>on the client</em>. The server's
+     * floor never moves, so a player told the ground had gone would predict a fall the server
+     * then refused, and the two would argue about it for as long as they stood there --
+     * felt as being stuck or dragged back while walking across a ring that was waking up.
+     * Drawing a barrier keeps the client's idea of the ground exactly where the server's is,
+     * and the hole stays a picture rather than something the player can fall into.
+     *
+     * <p>Visible only to somebody in creative holding a barrier, which is a fair price.
+     */
+    public static final org.bukkit.Material OPENED_MATERIAL = org.bukkit.Material.BARRIER;
+
+    /**
+     * The blocks that appear to be taken away while the ring works.
      *
      * <p>The surface the pattern is cut into: the floor a floor ring is set in, the ceiling a
-     * ceiling ring hangs from. Shown as air so the ring reads as having opened, with the lit
-     * recess below it and the rings climbing out.
+     * ceiling ring hangs from. Drawn as {@link #OPENED_MATERIAL} so the ring reads as having
+     * opened, with the lit recess below it and the rings climbing out.
      *
      * @param ring
      *            the ring
-     * @return the block positions to clear, each as {@code {x, y, z}}
+     * @return the block positions to open, each as {@code {x, y, z}}
      */
     public static List<int[]> openedBlocks(final Ring ring)
     {

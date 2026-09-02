@@ -50,9 +50,12 @@ glowstone was an ordinary breakable block -- mine one and the restore skipped it
 hole in the floor. Drawing also made the code simpler rather than harder: with the real
 blocks untouched, undoing a drawing is just showing the client what was always there.
 
-The pad opens rather than lights. The surface the pattern is cut into is drawn as air and the
-light shows from a block below it, so a waking ring reads as a lit recess the rings climb out
-of instead of a pattern painted on the ground.
+The pad opens rather than lights. The surface the pattern is cut into is drawn as an
+invisible barrier and the light shows from a block below it, so a waking ring reads as a lit
+recess the rings climb out of instead of a pattern painted on the ground. A barrier rather
+than air because the floor only opens on the client: told the ground had gone, a client
+predicts a fall the server refuses, and walking across a waking ring feels like being stuck.
+A drawing may make collision stronger than the block it covers, never weaker.
 
 ### Firing
 

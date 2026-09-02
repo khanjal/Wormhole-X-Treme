@@ -610,7 +610,8 @@ public class RingCycle
         // one thing because they are one thing: a ring opening.
         for (final int[] block : RingAnimator.openedBlocks(ring))
         {
-            draw(drawnLights, block[0], block[1], block[2], Material.AIR, false, false);
+            draw(drawnLights, block[0], block[1], block[2],
+                RingAnimator.OPENED_MATERIAL, false, false);
         }
         for (final int[] block : RingAnimator.lightBlocks(ring))
         {

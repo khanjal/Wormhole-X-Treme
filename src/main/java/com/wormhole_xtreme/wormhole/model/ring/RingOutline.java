@@ -70,7 +70,8 @@ public final class RingOutline
         try
         {
             final org.bukkit.block.data.BlockData lit = ring.getLightMaterial().createBlockData();
-            final org.bukkit.block.data.BlockData open = org.bukkit.Material.AIR.createBlockData();
+            final org.bukkit.block.data.BlockData open =
+                RingAnimator.OPENED_MATERIAL.createBlockData();
             final int opened = RingAnimator.openedBlocks(ring).size();
             for (int i = 0; i < blocks.size(); i++)
             {

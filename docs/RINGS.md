@@ -89,6 +89,21 @@ So changing the sizes later, or adding a third pattern, is a one-line edit to a 
 The slabs are a template, not structure. Nothing is left behind and nothing is placed — the
 footprint reads as ordinary floor.
 
+### The opening is a barrier, not air
+
+The pad opens on the client only -- the server's floor never moves. Drawing the surface as
+air therefore told the client the ground had gone while the server knew better: the client
+predicted a fall, the server refused it, and the two argued for as long as somebody stood
+there. Walking across a waking ring felt like getting stuck or dragged back.
+
+A barrier is invisible to the same eye and still a solid block to the client that was sent
+it, so the hole stays a picture rather than something to fall into. Visible only to somebody
+in creative holding a barrier, which is a fair price for movement that behaves.
+
+The general rule, worth remembering for anything else drawn client-side: a drawing may only
+ever make collision *stronger* than the block it covers, never weaker. Portals get away with
+air because their real block is air too.
+
 **They are taken at the end, not at each half.** An unpaired ring does nothing, so leaving its
 slabs costs nothing — while taking them at the first `create` meant a crash or a restart
 between the two halves cost somebody a circle of slabs for a ring that never existed.

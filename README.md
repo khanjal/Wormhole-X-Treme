@@ -649,7 +649,8 @@ Creation is two-step, so the first ring is remembered until you build its partne
 ### Using rings
 
 Walk in. The floor opens along the ring's pattern with light showing from beneath it, and
-counts down; step clear before it commits and it stands down. Once the rings start rising the trip is committed.
+counts down; step clear before it commits and it stands down. The opening is a picture, not a
+hole -- you can walk over a ring that is waking up without falling into it. Once the rings start rising the trip is committed.
 
 Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
 settling at 0.5, 1.5, 2.5 and 3.5 blocks up. A **ceiling ring** works the other way round: its

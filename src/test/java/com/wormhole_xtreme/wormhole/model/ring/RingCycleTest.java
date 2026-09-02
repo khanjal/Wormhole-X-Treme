@@ -619,7 +619,11 @@ public class RingCycleTest
 
         final RingCycle cycle = new RingCycle(pair, world, REACH);
         cycle.beginCountdown();
-        assertEquals(Material.AIR, world.seenAt(-3, 63, 0), "the floor appears to open");
+        assertEquals(RingAnimator.OPENED_MATERIAL, world.seenAt(-3, 63, 0),
+            "the floor appears to open");
+        assertNotEquals(Material.AIR, RingAnimator.OPENED_MATERIAL,
+            "the opening has to stay solid to the client, or walking over a waking ring "
+                + "fights the server over ground that never actually moved");
         assertEquals(Material.GLOWSTONE, world.seenAt(-3, 62, 0), "with light below the gap");
         assertEquals(Material.STONE, world.realAt(-3, 63, 0), "and neither is really touched");
         assertEquals(Material.STONE, world.realAt(-3, 62, 0));
