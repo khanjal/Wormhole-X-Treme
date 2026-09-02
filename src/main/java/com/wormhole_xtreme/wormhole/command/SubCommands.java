@@ -435,6 +435,54 @@ public final class SubCommands
      *            true to offer only slabs
      * @return the matching material names, lower case
      */
+    /**
+     * Whether the registry can answer what is a block.
+     *
+     * <p>From 1.20.6 on, {@link org.bukkit.Material#isBlock()} goes through the server's
+     * registry, which is not there before the server has finished starting -- and asking then
+     * throws rather than returning false. Probed once, because the answer cannot change
+     * within a run and a failed registry lookup is expensive to repeat for every material in
+     * the game on every tab press.
+     */
+    private static final boolean BLOCK_CHECK_WORKS = probeBlockCheck();
+
+    /**
+     * Asks whether the block check is usable.
+     *
+     * @return true if it answered
+     */
+    private static boolean probeBlockCheck()
+    {
+        try
+        {
+            org.bukkit.Material.STONE.isBlock();
+            return true;
+        }
+        // Throwable rather than Exception: a registry that is not ready fails in class
+        // initialisation, which arrives as an Error.
+        catch (final Throwable ignored)
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Whether a material is a block, as far as this server can say.
+     *
+     * <p>Without a registry to ask, everything is offered rather than nothing. A completion
+     * list with a few items in it is a much smaller problem than an empty one, and on a
+     * running server -- which is the only place a player can press tab -- the registry is
+     * always there.
+     *
+     * @param material
+     *            the material to judge
+     * @return true if it is a block, or if that cannot be determined
+     */
+    private static boolean isBlock(final org.bukkit.Material material)
+    {
+        return !BLOCK_CHECK_WORKS || material.isBlock();
+    }
+
     private static List<String> materialNames(final String typed, final boolean slabsOnly)
     {
         final String p = typed == null ? "" : typed.toLowerCase();
@@ -443,7 +491,7 @@ public final class SubCommands
         {
             // Legacy materials are duplicates of real ones under old names, and offering
             // them would double the list with things nobody should be typing.
-            if (material.isLegacy() || !material.isBlock())
+            if (material.isLegacy() || !isBlock(material))
             {
                 continue;
             }

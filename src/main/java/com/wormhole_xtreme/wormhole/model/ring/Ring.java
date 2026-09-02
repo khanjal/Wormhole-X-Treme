@@ -393,6 +393,13 @@ public class Ring
     /**
      * Works out which of the glowing blocks exist here.
      *
+     * <p>Existence is the only question asked. Whether each one is a block is not checked,
+     * because the list above is hand-written and every name in it is one — and from 1.20.6
+     * on, {@link Material#isBlock()} goes through the server's registry, which is not there
+     * yet while the plugin is loading. Asking here would have failed this class's own
+     * initialisation, and a class that fails to initialise stays failed: rings would have
+     * been dead for the rest of that server's run, over a check that could never say no.
+     *
      * @return the ones this server has
      */
     private static List<Material> resolveGlowing()
@@ -401,7 +408,7 @@ public class Ring
         for (final String name : GLOWING)
         {
             final Material material = Material.matchMaterial(name);
-            if ((material != null) && material.isBlock())
+            if (material != null)
             {
                 found.add(material);
             }
