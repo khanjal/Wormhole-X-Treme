@@ -511,330 +511,406 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
 
-        if (stargate != null && stargate.isGateActive() && StargateManager.isPortalBlock(gateBlockFinal))
+        // Everything past here is about what to do about the gate the player stepped into,
+        // and each answer is its own method. This reads as the order they are asked in.
+        if ((stargate == null) || !stargate.isGateActive() || !StargateManager.isPortalBlock(gateBlockFinal))
         {
-            // If this gate has an outgoing target, it's the origin side: handle teleport as before.
-            if (stargate.getGateTarget() != null)
+            if (stargate != null)
             {
-                // existing origin handling continues below
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "Player entered gate but wasn't active or didn't have a target.");
+            }
+            return false;
+        }
+
+        // A gate holding no target of its own is the far end of somebody else's wormhole,
+        // or one that was lit and walked away from. Either way there is nowhere to send
+        // anyone from here.
+        if (stargate.getGateTarget() == null)
+        {
+            return handleMoveAtArrivalGate(event, player, stargate);
+        }
+
+        return travelThroughGate(event, player, stargate, gateBlockFinal);
+    }
+
+    /**
+     * What a move means at a gate that holds no target of its own.
+     *
+     * <p>Two cases share this. A gate something is dialling <em>into</em> is an exit, and
+     * walking in from outside is refused so a wormhole cannot be used as a door in both
+     * directions. A gate activated but never dialled has nowhere to send anybody, so its
+     * ring is just a ring and a player may walk through it.
+     *
+     * @param event
+     *            the move
+     * @param player
+     *            the player moving
+     * @param stargate
+     *            the gate they are standing in
+     * @return true if the move should be cancelled
+     */
+    private static boolean handleMoveAtArrivalGate(final PlayerMoveEvent event, final Player player,
+                                                   final Stargate stargate)
+    {
+            // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
+            boolean incomingActive = false;
+            try
+            {
+                for (final Stargate s : StargateManager.getAllGates())
+                {
+                    if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
+                    {
+                        incomingActive = true;
+                        break;
+                    }
+                }
+            }
+            catch (final RuntimeException ignore) {}
+
+            if (incomingActive)
+            {
+                // Refusing a move means cancelling it, which holds the player where
+                // they already are. That is the right answer for someone stepping in
+                // from outside, and a trap for someone already standing inside: the
+                // traveller who just came out of this wormhole gets every move
+                // cancelled, cannot walk clear of the ring, and is told they may not
+                // enter an incoming wormhole once per move until the client gives up
+                // and drops the connection.
+                //
+                // So only hold back the ones on their way in. Anyone already in the
+                // portal is on their way out, which is exactly what should happen.
+                final Location fromLoc = event.getFrom();
+                if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
+                {
+                    return refuseGateEntry(player);
+                }
+                return false;
+            }
+            // Gate is active but has neither an outgoing target nor an incoming
+            // wormhole — an activated-but-undialed gate. There is nowhere to send
+            // the player, so let them walk through the empty ring untouched.
+            // Everything below this point dereferences getGateTarget().
+            return false;
+    }
+
+    /**
+     * Takes a player through a wormhole, or explains why they are not going.
+     *
+     * <p>Reads as the order the questions are asked in: may they use this gate, have they
+     * only just come out of it, are they on cooldown, can they pay, is the far end sealed,
+     * is it even in this world. Only once all of that has passed does anything move, and
+     * even then a listener may still say no.
+     *
+     * @param event
+     *            the move that carried them in
+     * @param player
+     *            the traveller
+     * @param stargate
+     *            the gate they entered, which holds the target
+     * @param gateBlockFinal
+     *            the portal block they are standing in
+     * @return true if the move should be cancelled
+     */
+    private static boolean travelThroughGate(final PlayerMoveEvent event, final Player player,
+                                             final Stargate stargate, final Block gateBlockFinal)
+    {
+        // Suppress solo teleport if this player was just ejected by a vehicle that VehicleListener
+        // already teleported — the player must exit riding the vehicle, not as a solo traveller.
+        if (WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(player.getUniqueId()))
+        {
+            return false;
+        }
+        String gatenetwork;
+        if (stargate.getGateNetwork() != null)
+        {
+            gatenetwork = stargate.getGateNetwork().getNetworkName();
+        }
+        else
+        {
+            gatenetwork = "Public";
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
+
+        // Refill the player's air while they stand in the portal so a water-material
+        // gate does not drown them. Cosmetic, so a failure is not worth reporting.
+        try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) {}
+
+        if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return false;
+        }
+
+        // Prevent immediate re-entry to the gate the player just exited from.
+        if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
+        {
+            return refuseGateEntry(player);
+        }
+
+        if (ConfigManager.isUseCooldownEnabled())
+        {
+            if (StargateRestrictions.isPlayerUseCooldown(player))
+            {
+                player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
+                player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
+                return false;
+            }
+            // Not applied here: the cooldown is set once the traveller has actually
+            // gone, further down. Setting it at the check as well spent the player's
+            // cooldown on a trip that had not happened yet and might still not.
+        }
+
+        // Affordability is checked here so the player is turned away for the right
+        // reason and in the right order, but the money does not move until the trip is
+        // certain: a listener may still stop it, and charging for a journey that never
+        // happened is the one outcome nobody can argue is correct.
+        double pendingUseCost = 0.0;
+        if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+        {
+            final double useCost = ConfigManager.getEconomyUseCost();
+            if (useCost > 0)
+            {
+                if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
+                {
+                    player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                    return false;
+                }
+                pendingUseCost = useCost;
+            }
+        }
+
+        if (stargate.getGateTarget().isGateIrisActive())
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+            player.setNoDamageTicks(5);
+            event.setFrom(stargate.getGatePlayerTeleportLocation());
+            event.setTo(stargate.getGatePlayerTeleportLocation());
+            player.teleport(stargate.getGatePlayerTeleportLocation());
+            return true;
+        }
+
+        final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
+
+        if (ConfigManager.isSameWorldOnly())
+        {
+            final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
+            if (targetWorld != null && !gateBlockFinal.getWorld().equals(targetWorld))
+            {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Cross-world travel is disabled on this server.");
+                player.setNoDamageTicks(5);
+                return false;
+            }
+        }
+
+        final Location safeTarget = findSafePlayerLocation(target);
+
+        // Every check this plugin makes has passed and nothing has moved yet, which is
+        // the only honest point to let another plugin object.
+        if (!com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
+                stargate, player, stargate.getGateTarget(), safeTarget))
+        {
+            return holdBackCancelledTraveller(event, stargate);
+        }
+
+        // Travel is settled, so the fare can be taken.
+        if (pendingUseCost > 0)
+        {
+            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, pendingUseCost);
+            player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
+                + pendingUseCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(pendingUseCost));
+        }
+        return performGateTeleport(event, player, stargate, target, safeTarget);
+    }
+
+    /**
+     * Moves the traveller, and records what follows from their having gone.
+     *
+     * <p>Reached only once travel is certain: every check has passed, no listener objected,
+     * and the fare is paid. What is left is the awkward part — a rider has to travel with
+     * whatever is carrying them, and the client has to be told about both in an order it
+     * will accept.
+     *
+     * @param event
+     *            the move that carried them in
+     * @param player
+     *            the traveller
+     * @param stargate
+     *            the gate they entered
+     * @param target
+     *            the far gate's arrival point, before the safe-location search
+     * @param safeTarget
+     *            where they will actually land
+     * @return true if the move should be cancelled
+     */
+    private static boolean performGateTeleport(final PlayerMoveEvent event, final Player player,
+                                               final Stargate stargate, final Location target,
+                                               final Location safeTarget)
+    {
+        // Diagnostic logging for teleport issues
+        if (WormholeXTreme.getThisPlugin() != null)
+        {
+            if (target == null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target is null for gate: " + stargate.getGateTarget().getGateName());
+            }
+            else if (target.getWorld() == null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target world is null for gate: " + stargate.getGateTarget().getGateName() + " loc: " + target.toString());
             }
             else
             {
-                // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
-                boolean incomingActive = false;
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting " + player.getName() + " to " + stargate.getGateTarget().getGateName() + " @ " + target.toString());
+            }
+        }
+        player.setNoDamageTicks(5);
+        // Capture the player's current position before any event/teleport manipulation.
+        final Location playerCurrentLoc = event.getFrom().clone();
+        // Track whether the vehicle-only path was taken (no explicit player teleport).
+        final boolean[] vehiclePathUsed = { false };
+        // Whatever the player is riding: boat, horse, camel, pig, strider. Minecarts
+        // are the one exception — they raise VehicleMoveEvent, so the vehicle listener
+        // owns them and teleports them in place with passenger state preserved.
+        final Entity ridden = player.getVehicle();
+        if (ridden instanceof Minecart)
+        {
+            return false;
+        }
+        // For every other flow, mark the event position to the safe target and continue.
+        event.setFrom(safeTarget);
+        event.setTo(safeTarget);
+        try
+        {
+            if (ridden != null)
+            {
+                final BlockFace exitFacing = stargate.getGateTarget().getGateFacing();
+                final Location riddenTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, exitFacing, 1.0, 1.0);
+                Vector exitVelocity = null;
                 try
                 {
-                    for (final Stargate s : StargateManager.getAllGates())
+                    exitVelocity = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, ridden.getVelocity(), 5.0);
+                    if (riddenTarget != null && exitVelocity != null)
                     {
-                        if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
-                        {
-                            incomingActive = true;
-                            break;
-                        }
+                        // Face the direction of travel so the client does not render the
+                        // mount spinning to its new yaw after arrival.
+                        final double dx = exitVelocity.getX();
+                        final double dz = exitVelocity.getZ();
+                        riddenTarget.setYaw((Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                            ? (float) Math.toDegrees(Math.atan2( -dx, dz))
+                            : WorldUtils.getDegreesFromBlockFace(exitFacing));
+                        riddenTarget.setPitch(0f);
                     }
                 }
                 catch (final RuntimeException ignore) {}
 
-                if (incomingActive)
+                // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
+                try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) {}
+                // Mark before the teleport so a VehicleMoveEvent in the same tick is
+                // suppressed and does not double-process this entry, zeroing the exit velocity.
+                try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) {}
+
+                boolean riddenTeleported = false;
+                try
                 {
-                    // Refusing a move means cancelling it, which holds the player where
-                    // they already are. That is the right answer for someone stepping in
-                    // from outside, and a trap for someone already standing inside: the
-                    // traveller who just came out of this wormhole gets every move
-                    // cancelled, cannot walk clear of the ring, and is told they may not
-                    // enter an incoming wormhole once per move until the client gives up
-                    // and drops the connection.
-                    //
-                    // So only hold back the ones on their way in. Anyone already in the
-                    // portal is on their way out, which is exactly what should happen.
-                    final Location fromLoc = event.getFrom();
-                    if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
-                    {
-                        return refuseGateEntry(player);
-                    }
-                    return false;
+                    ridden.teleport(riddenTarget);
+                    riddenTeleported = true;
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport: teleported " + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
                 }
-                // Gate is active but has neither an outgoing target nor an incoming
-                // wormhole — an activated-but-undialed gate. There is nowhere to send
-                // the player, so let them walk through the empty ring untouched.
-                // Everything below this point dereferences getGateTarget().
-                return false;
-            }
-            // Suppress solo teleport if this player was just ejected by a vehicle that VehicleListener
-            // already teleported — the player must exit riding the vehicle, not as a solo traveller.
-            if (WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(player.getUniqueId()))
-            {
-                return false;
-            }
-            String gatenetwork;
-            if (stargate.getGateNetwork() != null)
-            {
-                gatenetwork = stargate.getGateNetwork().getNetworkName();
-            }
-            else
-            {
-                gatenetwork = "Public";
-            }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
-
-            // Refill the player's air while they stand in the portal so a water-material
-            // gate does not drown them. Cosmetic, so a failure is not worth reporting.
-            try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) {}
-
-            if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
-            {
-                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                return false;
-            }
-
-            // Prevent immediate re-entry to the gate the player just exited from.
-            if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
-            {
-                return refuseGateEntry(player);
-            }
-
-            if (ConfigManager.isUseCooldownEnabled())
-            {
-                if (StargateRestrictions.isPlayerUseCooldown(player))
+                catch (final RuntimeException tt)
                 {
-                    player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
-                    player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
-                    return false;
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
                 }
-                // Not applied here: the cooldown is set once the traveller has actually
-                // gone, further down. Setting it at the check as well spent the player's
-                // cooldown on a trip that had not happened yet and might still not.
-            }
 
-            // Affordability is checked here so the player is turned away for the right
-            // reason and in the right order, but the money does not move until the trip is
-            // certain: a listener may still stop it, and charging for a journey that never
-            // happened is the one outcome nobody can argue is correct.
-            double pendingUseCost = 0.0;
-            if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
-            {
-                final double useCost = ConfigManager.getEconomyUseCost();
-                if (useCost > 0)
+                if (riddenTeleported)
                 {
-                    if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                        return false;
-                    }
-                    pendingUseCost = useCost;
-                }
-            }
-
-            if (stargate.getGateTarget().isGateIrisActive())
-            {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
-                player.setNoDamageTicks(5);
-                event.setFrom(stargate.getGatePlayerTeleportLocation());
-                event.setTo(stargate.getGatePlayerTeleportLocation());
-                player.teleport(stargate.getGatePlayerTeleportLocation());
-                return true;
-            }
-
-            final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
-
-            if (ConfigManager.isSameWorldOnly())
-            {
-                final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
-                if (targetWorld != null && !gateBlockFinal.getWorld().equals(targetWorld))
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Cross-world travel is disabled on this server.");
-                    player.setNoDamageTicks(5);
-                    return false;
-                }
-            }
-
-            final Location safeTarget = findSafePlayerLocation(target);
-
-            // Every check this plugin makes has passed and nothing has moved yet, which is
-            // the only honest point to let another plugin object.
-            if (!com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
-                    stargate, player, stargate.getGateTarget(), safeTarget))
-            {
-                return holdBackCancelledTraveller(event, stargate);
-            }
-
-            // Travel is settled, so the fare can be taken.
-            if (pendingUseCost > 0)
-            {
-                com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, pendingUseCost);
-                player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
-                    + pendingUseCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(pendingUseCost));
-            }
-            // Diagnostic logging for teleport issues
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                if (target == null)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target is null for gate: " + stargate.getGateTarget().getGateName());
-                }
-                else if (target.getWorld() == null)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target world is null for gate: " + stargate.getGateTarget().getGateName() + " loc: " + target.toString());
+                    // Ride-first: no player.teleport() at all, so there is no teleport-ack
+                    // race when the client processes the follow-up set-passengers packet.
+                    vehiclePathUsed[0] = true;
+                    event.setFrom(playerCurrentLoc);
+                    event.setTo(playerCurrentLoc);
+                    schedulePassengerReattach(ridden, player, exitVelocity);
                 }
                 else
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting " + player.getName() + " to " + stargate.getGateTarget().getGateName() + " @ " + target.toString());
-                }
-            }
-            player.setNoDamageTicks(5);
-            // Capture the player's current position before any event/teleport manipulation.
-            final Location playerCurrentLoc = event.getFrom().clone();
-            // Track whether the vehicle-only path was taken (no explicit player teleport).
-            final boolean[] vehiclePathUsed = { false };
-            // Whatever the player is riding: boat, horse, camel, pig, strider. Minecarts
-            // are the one exception — they raise VehicleMoveEvent, so the vehicle listener
-            // owns them and teleports them in place with passenger state preserved.
-            final Entity ridden = player.getVehicle();
-            if (ridden instanceof Minecart)
-            {
-                return false;
-            }
-            // For every other flow, mark the event position to the safe target and continue.
-            event.setFrom(safeTarget);
-            event.setTo(safeTarget);
-            try
-            {
-                if (ridden != null)
-                {
-                    final BlockFace exitFacing = stargate.getGateTarget().getGateFacing();
-                    final Location riddenTarget = WormholeXTremeVehicleListener.forwardAndUp(safeTarget, exitFacing, 1.0, 1.0);
-                    Vector exitVelocity = null;
-                    try
-                    {
-                        exitVelocity = WormholeXTremeVehicleListener.computeExitVelocity(exitFacing, ridden.getVelocity(), 5.0);
-                        if (riddenTarget != null && exitVelocity != null)
-                        {
-                            // Face the direction of travel so the client does not render the
-                            // mount spinning to its new yaw after arrival.
-                            final double dx = exitVelocity.getX();
-                            final double dz = exitVelocity.getZ();
-                            riddenTarget.setYaw((Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
-                                ? (float) Math.toDegrees(Math.atan2( -dx, dz))
-                                : WorldUtils.getDegreesFromBlockFace(exitFacing));
-                            riddenTarget.setPitch(0f);
-                        }
-                    }
-                    catch (final RuntimeException ignore) {}
-
-                    // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-                    try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) {}
-                    // Mark before the teleport so a VehicleMoveEvent in the same tick is
-                    // suppressed and does not double-process this entry, zeroing the exit velocity.
-                    try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) {}
-
-                    boolean riddenTeleported = false;
-                    try
-                    {
-                        ridden.teleport(riddenTarget);
-                        riddenTeleported = true;
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport: teleported " + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
-                    }
-                    catch (final RuntimeException tt)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
-                    }
-
-                    if (riddenTeleported)
-                    {
-                        // Ride-first: no player.teleport() at all, so there is no teleport-ack
-                        // race when the client processes the follow-up set-passengers packet.
-                        vehiclePathUsed[0] = true;
-                        event.setFrom(playerCurrentLoc);
-                        event.setTo(playerCurrentLoc);
-                        schedulePassengerReattach(ridden, player, exitVelocity);
-                    }
-                    else
-                    {
-                        // Could not move what they were riding; send the player through alone
-                        // rather than stranding them on the source side.
-                        teleportPlayerAlone(player, safeTarget);
-                    }
-                }
-                else
-                {
+                    // Could not move what they were riding; send the player through alone
+                    // rather than stranding them on the source side.
                     teleportPlayerAlone(player, safeTarget);
                 }
             }
-            catch (final Exception e)
+            else
             {
-                if (WormholeXTreme.getThisPlugin() != null)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception while teleporting " + player.getName() + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
-                }
+                teleportPlayerAlone(player, safeTarget);
             }
-            try
-            {
-                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
-            }
-            catch (final RuntimeException e)
-            {
-                // Not fatal to the teleport that already happened, but a silently skipped
-                // cooldown lets a player re-enter immediately, so say so.
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
-                    "Failed to apply use cooldown for " + player.getName() + ": " + e.getMessage());
-            }
-            // Mark player as having just arrived from this gate to prevent immediate re-entry
-            try
-            {
-                if (stargate.getGateTarget() != null)
-                {
-                    com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerRecentArrival(player, stargate.getGateTarget());
-                }
-            }
-            catch (final RuntimeException e)
-            {
-                // Without this marker the player can walk straight back into the gate they
-                // just arrived from, so a failure is worth a line in the log.
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
-                    "Failed to mark recent arrival for " + player.getName() + ": " + e.getMessage());
-            }
-
-            // Schedule a short delayed task to re-apply zero velocity.
-            // Skip the position teleport for the vehicle path — the client is repositioned by addPassenger.
-            try {
-                final Location finalTarget = target;
-                final boolean skipTeleport = vehiclePathUsed[0];
-                Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        if ((player == null) || (finalTarget == null))
-                        {
-                            return;
-                        }
-                        // Settling the player after arrival. Each call is independently
-                        // best-effort: none of them failing is worth aborting the others.
-                        try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) {}
-                        try { player.setFallDistance(0); } catch (final RuntimeException ignore) {}
-                        if (!skipTeleport)
-                        {
-                            try { player.teleport(finalTarget); } catch (final RuntimeException ignore) {}
-                        }
-                    }
-                }, 1L);
-            }
-            catch (final RuntimeException ignore) {}
-            if (target != stargate.getGatePlayerTeleportLocation())
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
-            }
-            if (ConfigManager.getTimeoutShutdown() == 0)
-            {
-                stargate.shutdownStargate(true);
-            }
-            return true;
         }
-        else if (stargate != null)
+        catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player entered gate but wasn't active or didn't have a target.");
+            if (WormholeXTreme.getThisPlugin() != null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception while teleporting " + player.getName() + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
+            }
         }
-        return false;
+        try
+        {
+            com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerUseCooldown(player);
+        }
+        catch (final RuntimeException e)
+        {
+            // Not fatal to the teleport that already happened, but a silently skipped
+            // cooldown lets a player re-enter immediately, so say so.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Failed to apply use cooldown for " + player.getName() + ": " + e.getMessage());
+        }
+        // Mark player as having just arrived from this gate to prevent immediate re-entry
+        try
+        {
+            if (stargate.getGateTarget() != null)
+            {
+                com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.addPlayerRecentArrival(player, stargate.getGateTarget());
+            }
+        }
+        catch (final RuntimeException e)
+        {
+            // Without this marker the player can walk straight back into the gate they
+            // just arrived from, so a failure is worth a line in the log.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Failed to mark recent arrival for " + player.getName() + ": " + e.getMessage());
+        }
+
+        // Schedule a short delayed task to re-apply zero velocity.
+        // Skip the position teleport for the vehicle path — the client is repositioned by addPassenger.
+        try {
+            final Location finalTarget = target;
+            final boolean skipTeleport = vehiclePathUsed[0];
+            Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if ((player == null) || (finalTarget == null))
+                    {
+                        return;
+                    }
+                    // Settling the player after arrival. Each call is independently
+                    // best-effort: none of them failing is worth aborting the others.
+                    try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) {}
+                    try { player.setFallDistance(0); } catch (final RuntimeException ignore) {}
+                    if (!skipTeleport)
+                    {
+                        try { player.teleport(finalTarget); } catch (final RuntimeException ignore) {}
+                    }
+                }
+            }, 1L);
+        }
+        catch (final RuntimeException ignore) {}
+        if (target != stargate.getGatePlayerTeleportLocation())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
+        }
+        if (ConfigManager.getTimeoutShutdown() == 0)
+        {
+            stargate.shutdownStargate(true);
+        }
+        return true;
     }
 
     /* (non-Javadoc)
