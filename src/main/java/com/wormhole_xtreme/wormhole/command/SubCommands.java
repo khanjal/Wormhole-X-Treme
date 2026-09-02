@@ -181,30 +181,8 @@ public final class SubCommands
 
         // --- Transport rings --------------------------------------------------
         register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
-            new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false, args ->
-            {
-                if (args.length == 2)
-                {
-                    return prefixed(args[1], "create", "cancel", "list", "remove", "edit",
-                        "allow", "deny", "owner");
-                }
-                if ((args.length == 3) && "edit".equalsIgnoreCase(args[1]))
-                {
-                    return prefixed(args[2], "ring", "light", "label", "access", "style");
-                }
-                if (args.length == 4)
-                {
-                    if ("access".equalsIgnoreCase(args[2]))
-                    {
-                        return prefixed(args[3], "public", "private");
-                    }
-                    if ("style".equalsIgnoreCase(args[2]))
-                    {
-                        return prefixed(args[3], "fast", "slow", "concurrent", "sequential");
-                    }
-                }
-                return none();
-            });
+            new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false,
+            SubCommands::completeRing);
 
         // --- Server settings -------------------------------------------------
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
@@ -321,6 +299,139 @@ public final class SubCommands
                 out.add(c);
             }
         }
+        return out;
+    }
+
+    /** The fields {@code /wormhole ring edit} understands. */
+    private static final String[] RING_FIELDS = { "ring", "light", "label", "access", "style" };
+
+    /**
+     * Completions for {@code /wormhole ring}.
+     *
+     * <p>{@code edit} comes in two forms — with a pair id and without — so the field can be
+     * at either of two positions and the value at either of two more. Rather than guess from
+     * the argument count alone, this looks at whether the word before the one being typed is
+     * a field name, which tells the two forms apart wherever they are.
+     *
+     * @param args
+     *            the full argument array, {@code ring} at index 0
+     * @return the candidates
+     */
+    private static List<String> completeRing(final String[] args)
+    {
+        if (args.length == 2)
+        {
+            return prefixed(args[1], "create", "cancel", "list", "remove", "edit",
+                "allow", "deny", "owner");
+        }
+        if (!"edit".equalsIgnoreCase(args[1]))
+        {
+            return none();
+        }
+        // Typing the word straight after "edit": either a field, or an id with the field
+        // still to come. Ids cannot be offered because a completer is not told who is asking,
+        // and listing every pair on the server would say more than it should.
+        if (args.length == 3)
+        {
+            return prefixed(args[2], RING_FIELDS);
+        }
+        // Otherwise the previous word decides: a field means a value goes here, and anything
+        // else means that word was an id and the field goes here instead.
+        final String previous = args[args.length - 2];
+        final String typed = args[args.length - 1];
+        return isRingField(previous) ? ringFieldValues(previous, typed) : prefixed(typed, RING_FIELDS);
+    }
+
+    /**
+     * Whether a word is one of the editable fields.
+     *
+     * @param word
+     *            the word to test
+     * @return true if it names a field
+     */
+    private static boolean isRingField(final String word)
+    {
+        for (final String field : RING_FIELDS)
+        {
+            if (field.equalsIgnoreCase(word))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * What can go in a given field.
+     *
+     * <p>The material fields are the reason this exists. There are around sixty slabs and
+     * several hundred blocks in the game, and nobody remembers how {@code polished_deepslate}
+     * is spelled — so the ring field offers only what it will actually accept, and the light
+     * field offers anything placeable.
+     *
+     * @param field
+     *            which field is being set
+     * @param typed
+     *            what has been typed of the value so far
+     * @return the candidates
+     */
+    private static List<String> ringFieldValues(final String field, final String typed)
+    {
+        if ("access".equalsIgnoreCase(field))
+        {
+            return prefixed(typed, "public", "private");
+        }
+        if ("style".equalsIgnoreCase(field))
+        {
+            return prefixed(typed, "fast", "slow", "concurrent", "sequential");
+        }
+        if ("ring".equalsIgnoreCase(field))
+        {
+            // Only slabs, because only a slab can move half a block at a time, which is the
+            // whole of the rise animation. Offering anything else would be offering something
+            // the command is about to refuse.
+            return materialNames(typed, true);
+        }
+        if ("light".equalsIgnoreCase(field))
+        {
+            return materialNames(typed, false);
+        }
+        // A label is whatever the player wants it to be.
+        return none();
+    }
+
+    /**
+     * Material names matching what has been typed.
+     *
+     * @param typed
+     *            what has been typed so far
+     * @param slabsOnly
+     *            true to offer only slabs
+     * @return the matching material names, lower case
+     */
+    private static List<String> materialNames(final String typed, final boolean slabsOnly)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.Material material : org.bukkit.Material.values())
+        {
+            // Legacy materials are duplicates of real ones under old names, and offering
+            // them would double the list with things nobody should be typing.
+            if (material.isLegacy() || !material.isBlock())
+            {
+                continue;
+            }
+            if (slabsOnly && !com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(material))
+            {
+                continue;
+            }
+            final String name = material.name().toLowerCase();
+            if (name.startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out);
         return out;
     }
 
