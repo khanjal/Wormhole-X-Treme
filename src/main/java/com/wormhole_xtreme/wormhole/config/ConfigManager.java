@@ -78,6 +78,8 @@ public class ConfigManager
         RING_COOLDOWN_TICKS,
         /** Ticks between frames of the ring deploy and retract animations. */
         RING_DEPLOY_TICKS,
+        /** Ticks the fully deployed stack stands still before the swap fires. */
+        RING_SETTLE_TICKS,
         /** Ticks the ring stack stands still after the swap, before retracting. */
         RING_HOLD_TICKS,
         /** Block layers of passenger volume, measured from the ring plane into the room. */
@@ -454,6 +456,20 @@ public class ConfigManager
     public static int getRingDeployTicks()
     {
         return Math.max(1, intSetting(ConfigKeys.RING_DEPLOY_TICKS, 2));
+    }
+
+    /**
+     * How long the finished stack stands still before anybody is moved.
+     *
+     * <p>The rings arrive, stand a beat, and only then is anyone taken. Swapping the instant
+     * the last ring stops reads as the animation being interrupted by the teleport rather
+     * than completing into it.
+     *
+     * @return settle pause in ticks
+     */
+    public static int getRingSettleTicks()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_SETTLE_TICKS, 20));
     }
 
     /**

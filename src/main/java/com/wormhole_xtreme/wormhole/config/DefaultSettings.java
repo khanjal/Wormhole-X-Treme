@@ -25,6 +25,7 @@ class DefaultSettings
         new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 60, "Ticks a transport ring counts down before it commits. Below about 20 the abort window stops being real and rings take people walking past.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_COOLDOWN_TICKS, 1200, "Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_DEPLOY_TICKS, 2, "Ticks between frames of the ring deploy and retract animations.", "WormholeXTreme"),
+        new Setting(ConfigKeys.RING_SETTLE_TICKS, 20, "Ticks the fully deployed ring stack stands still before the teleport fires. One second by default.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_HOLD_TICKS, 40, "Ticks the ring stack stands still after the swap, before it retracts.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_REACH, 4, "Block layers of passenger volume, from the ring plane into the room. Matters most for ceiling rings.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_MIN_SEPARATION, 8, "Required distance between ring anchors, in blocks. Overlap is refused regardless of this.", "WormholeXTreme"),

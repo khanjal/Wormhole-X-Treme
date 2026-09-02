@@ -221,9 +221,10 @@ binary baggage; there is no reason to inherit that.
 ```
 IDLE        a move event inside either interior arms the pair
 COUNTDOWN   lights show in the ring's pattern — ABORTS if both interiors go empty
-DEPLOY      rings rise one at a time — COMMITTED, no abort, runs to completion
+DEPLOY      rings rise — COMMITTED, no abort, runs to completion
+HOLD        the finished stack stands still for a second
 FLASH       snapshot both interiors in one tick, swap
-HOLD        rings stand stacked for a beat, travellers already gone
+HOLD        rings stand a moment more, travellers already gone
 RETRACT     rings return nearest-first, every block restored
 COOLDOWN    pair refuses all triggers
 ```
@@ -411,9 +412,12 @@ Style belongs to the pair, not to an end — the same reasoning as access. Both 
 be up for the swap, so ends with different timings would leave one standing and waiting on
 the other.
 
-They then **stand still** for a couple of seconds with the travellers already gone. That
-pause is most of what makes the effect read as a transport rather than as blocks moving, and
-it is why `HOLD` is a phase rather than the swap being followed straight by the retract.
+The finished stack then **stands still for a second before anybody moves**, and again after.
+Taking people the instant the last ring stops reads as the teleport interrupting the rings;
+letting them arrive, hold, and only then flash reads as the rings doing it. Those two pauses
+are most of what makes the effect read as a transport rather than as blocks moving, and are
+why `HOLD` is a phase either side of the swap rather than the swap following the deploy
+directly.
 
 Retract is the reversal, so the stack loosens back out to a block apart as it comes down.
 The **nearest ring goes home first** and the one that flew highest is the last to leave. This needs no code of its own: retract is deploy played backwards, and a sequence
@@ -466,7 +470,8 @@ rings:
   countdown: 60              # ticks; see the floor documented above
   cycle-cooldown: 1200       # ticks, per pair
   deploy-ticks: 2            # ticks between animation frames
-  hold-ticks: 40             # how long the stack stands before retracting
+  settle-ticks: 20           # stack stands still this long before the teleport
+  hold-ticks: 40             # and this long after it, before retracting
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited; distance itself costs nothing

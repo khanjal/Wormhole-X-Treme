@@ -133,7 +133,7 @@ public final class RingTransit
                         }
                         else
                         {
-                            swapAndHold(cycle, world);
+                            settleThenSwap(cycle, world);
                         }
                     }
                     catch (final RuntimeException e)
@@ -145,7 +145,41 @@ public final class RingTransit
     }
 
     /**
-     * The stack is up: move everybody, then stand still for a beat.
+     * The stack is up. Let it stand a moment, then move everybody.
+     *
+     * <p>The pause before the swap is deliberate and is the last beat of the animation
+     * rather than dead time. Taking people the instant the final ring stops reads as the
+     * teleport interrupting the rings; letting them arrive, hold, and only then flash reads
+     * as the rings doing it.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     */
+    private static void settleThenSwap(final RingCycle cycle, final World world)
+    {
+        cycle.beginHold();
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        swapAndHold(cycle, world);
+                    }
+                    catch (final RuntimeException e)
+                    {
+                        recover(cycle, world, e);
+                    }
+                }
+            }, ConfigManager.getRingSettleTicks());
+    }
+
+    /**
+     * Moves everybody, then stands still again before bringing the rings home.
      *
      * @param cycle
      *            the cycle running
