@@ -118,16 +118,22 @@ public class RingCycle
         boolean mayTravel(RingPassenger passenger, Ring from, Ring to);
 
         /**
-         * Whether a ring is fit to receive anybody, and why not if it is not.
+         * Measures a ring against the world, and reports anything wrong with it.
          *
-         * <p>Asked before anybody is moved, because arriving inside a wall is the one outcome
-         * worse than not arriving at all.
+         * <p>Does two things at once, and says so rather than pretending to be a pure
+         * question. It finds how far a ceiling ring's floor is and records it on the ring —
+         * which is what lets the stack form on the ground rather than under the ceiling —
+         * and it reports whether the ring is fit to receive anybody at all.
          *
-         * @param destination
-         *            the ring they would arrive at
+         * <p>Both need the same walk through the same blocks, and the answer to the second
+         * depends on the first, so splitting them would mean reading the world twice to
+         * learn one thing.
+         *
+         * @param ring
+         *            the ring to measure
          * @return why it cannot take anybody, or null if it can
          */
-        RingBlockage blockage(Ring destination);
+        RingBlockage survey(Ring ring);
 
         /**
          * Moves a passenger to a ring.
@@ -317,8 +323,9 @@ public class RingCycle
      */
     private int longestPhase()
     {
-        return Math.max(RingAnimator.deployFrames(pair.getEndA().getStyle()),
-            RingAnimator.deployFrames(pair.getEndB().getStyle()));
+        return Math.max(
+            RingAnimator.deployFrames(pair.getEndA(), pair.getEndA().getStyle()),
+            RingAnimator.deployFrames(pair.getEndB(), pair.getEndB().getStyle()));
     }
 
     /**
@@ -356,10 +363,10 @@ public class RingCycle
 
         // Asked once per end rather than per traveller: whether a ring can take anybody is
         // a fact about the ring, and asking it twenty times would give the same answer.
-        final List<RingPassenger> travellingFromA = (world.blockage(pair.getEndB()) == null)
+        final List<RingPassenger> travellingFromA = (world.survey(pair.getEndB()) == null)
             ? permitted(fromA, pair.getEndA(), pair.getEndB())
             : new ArrayList<RingPassenger>();
-        final List<RingPassenger> travellingFromB = (world.blockage(pair.getEndA()) == null)
+        final List<RingPassenger> travellingFromB = (world.survey(pair.getEndA()) == null)
             ? permitted(fromB, pair.getEndB(), pair.getEndA())
             : new ArrayList<RingPassenger>();
 

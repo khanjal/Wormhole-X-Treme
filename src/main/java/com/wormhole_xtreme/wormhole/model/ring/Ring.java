@@ -43,6 +43,14 @@ public class Ring
     /** Whether the ring is set into a floor or a ceiling. */
     private final RingOrientation orientation;
 
+    /**
+     * The shallowest a ceiling ring can be and still have room for its whole stack.
+     *
+     * <p>Kept where the stack's geometry is, so the two cannot drift apart: how much room a
+     * ceiling ring needs is a fact about how tall the stack is, and both change together.
+     */
+    public static final int MIN_CEILING_DROP = RingAnimator.MIN_CEILING_DROP;
+
     /** The travelling slabs. Must be a slab: the rise animation is built out of slab halves. */
     private Material ringMaterial;
 
@@ -57,6 +65,15 @@ public class Ring
 
     /** What this end is called, if anything. Empty means it has no name. */
     private String name = "";
+
+    /**
+     * How far below the plane the floor is, for a ceiling ring.
+     *
+     * <p>Runtime only, never stored: floors change, so this is measured when a cycle engages
+     * rather than remembered from when the ring was built. Meaningless for a floor ring,
+     * whose stack builds from the plane itself.
+     */
+    private int drop = 0;
 
     /**
      * Instantiates a new ring.
@@ -251,6 +268,68 @@ public class Ring
         {
             return null;
         }
+    }
+
+    /**
+     * How far below the plane this ring's stack is built.
+     *
+     * <p>Zero for a floor ring: its rings come out of the plane and stack up from there. For
+     * a ceiling ring it is the distance down to the floor, because the rings drop all the way
+     * to the ground and stack up around whoever is standing on it — a stack hanging from the
+     * ceiling of a tall room would leave the traveller standing under it rather than in it.
+     *
+     * <p>Never smaller than {@link #MIN_CEILING_DROP}, so a ring that has not been measured
+     * yet still describes a stack that fits rather than one folded through its own ceiling.
+     *
+     * @return the drop in blocks
+     */
+    public int getDrop()
+    {
+        return (orientation == RingOrientation.CEILING) ? Math.max(drop, MIN_CEILING_DROP) : 0;
+    }
+
+    /**
+     * Records how far below the plane the floor was found.
+     *
+     * @param drop
+     *            the distance in blocks
+     */
+    public void setDrop(final int drop)
+    {
+        this.drop = drop;
+    }
+
+    /**
+     * The layer the stack is built up from.
+     *
+     * <p>The plane for a floor ring, and the floor itself for a ceiling one. Everything about
+     * a settled stack is measured from here, which is what makes the two orientations produce
+     * the same stack in the end and differ only in how the rings get to it.
+     *
+     * @return the block layer a traveller's feet occupy
+     */
+    public int stackBase()
+    {
+        return anchorY - getDrop();
+    }
+
+    /**
+     * How deep this ring's trigger volume has to run.
+     *
+     * <p>A floor ring holds its passengers in the space just above it. A ceiling ring's stand
+     * on the floor, which may be most of a room below the plane, so its volume has to reach
+     * that far or nobody standing in the right place would ever set it off.
+     *
+     * @param reach
+     *            how deep a floor ring's volume runs
+     * @param maxDrop
+     *            the furthest a ceiling ring will look for its floor
+     * @return the number of block layers to cover
+     */
+    public int volumeDepth(final int reach, final int maxDrop)
+    {
+        // Two past the furthest floor: one for the feet standing on it, one for the head.
+        return (orientation == RingOrientation.CEILING) ? (maxDrop + 2) : reach;
     }
 
     /**

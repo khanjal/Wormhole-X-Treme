@@ -35,6 +35,7 @@ class DefaultSettings
         new Setting(ConfigKeys.RING_REACH, 4, "Block layers of passenger volume, from the ring plane into the room. Matters most for ceiling rings.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_MIN_SEPARATION, 8, "Required distance between ring anchors, in blocks. Overlap is refused regardless of this.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_MAX_LINK_DISTANCE, 256, "Furthest apart the two ends of a ring pair may be on the ground, in blocks. 256 is sixteen chunks: the whole of one base, nowhere near town to town. Gates are the long-haul option. Zero means no limit.", "WormholeXTreme"),
+        new Setting(ConfigKeys.RING_MAX_CEILING_DROP, 10, "How far below its plane a ceiling ring will look for the floor, in blocks. Its rings drop all the way down and stack up from there, so it needs a floor near enough to reach.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384, "Furthest apart the two ends of a ring pair may be in height, in blocks. 384 is the full height of the world, so bedrock to build limit is always allowed - going straight down is what rings are for. Zero means no limit.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_MAX_PAIRS_PER_PLAYER, 10, "How many ring pairs one player may own. Zero means no limit.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_DEFAULT_ACCESS, "PRIVATE", "What a newly built ring pair starts as: PUBLIC or PRIVATE.", "WormholeXTreme"),

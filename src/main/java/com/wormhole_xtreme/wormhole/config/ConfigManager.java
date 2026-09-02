@@ -101,6 +101,8 @@ public class ConfigManager
         RING_MAX_LINK_DISTANCE,
         /** Furthest two ends of a pair may be apart in height. Zero means no limit. */
         RING_MAX_LINK_HEIGHT,
+        /** Furthest below its plane a ceiling ring will look for the floor. */
+        RING_MAX_CEILING_DROP,
         /** How many ring pairs one player may own. Zero means no limit. */
         RING_MAX_PAIRS_PER_PLAYER,
         /** What a newly built ring pair starts as: PUBLIC or PRIVATE. */
@@ -575,6 +577,22 @@ public class ConfigManager
     public static int getRingHoldTicks()
     {
         return Math.max(0, intSetting(ConfigKeys.RING_HOLD_TICKS, 20));
+    }
+
+    /**
+     * How far below its plane a ceiling ring will look for the floor.
+     *
+     * <p>A ceiling ring drops its rings all the way down and they stack up from the floor, so
+     * it needs a floor near enough to reach. Ten blocks covers any room somebody would
+     * actually stand in; past that the ring is over a shaft rather than a room, and rings
+     * that fall out of sight are not a transport.
+     *
+     * @return the limit in blocks
+     */
+    public static int getRingMaxCeilingDrop()
+    {
+        return Math.max(com.wormhole_xtreme.wormhole.model.ring.Ring.MIN_CEILING_DROP,
+            intSetting(ConfigKeys.RING_MAX_CEILING_DROP, 10));
     }
 
     /**

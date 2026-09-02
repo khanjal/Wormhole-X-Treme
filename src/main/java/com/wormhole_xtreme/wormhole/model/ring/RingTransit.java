@@ -79,7 +79,7 @@ public final class RingTransit
             if ((armedBy != null) && armedBy.isOnline())
             {
                 RingMessages.cannotReceive(armedBy, blocked.getName(),
-                    surroundings.blockage(blocked));
+                    surroundings.survey(blocked));
             }
             return false;
         }
@@ -149,11 +149,11 @@ public final class RingTransit
      */
     private static Ring firstBlockedEnd(final BukkitRingWorld surroundings, final RingPair pair)
     {
-        if (surroundings.blockage(pair.getEndA()) != null)
+        if (surroundings.survey(pair.getEndA()) != null)
         {
             return pair.getEndA();
         }
-        if (surroundings.blockage(pair.getEndB()) != null)
+        if (surroundings.survey(pair.getEndB()) != null)
         {
             return pair.getEndB();
         }

@@ -183,7 +183,7 @@ public final class RingIndex
 
         final ConcurrentMap<Long, RingEnd> volume = volumes.computeIfAbsent(world,
             k -> new ConcurrentHashMap<Long, RingEnd>());
-        for (final int[] block : ring.triggerVolumeBlocks(reach))
+        for (final int[] block : ring.triggerVolumeBlocks(volumeDepth(ring, reach)))
         {
             volume.put(Long.valueOf(pack(block[0], block[1], block[2])), end);
         }
@@ -230,7 +230,7 @@ public final class RingIndex
         final ConcurrentMap<Long, RingEnd> volume = volumes.get(world);
         if (volume != null)
         {
-            for (final int[] block : ring.triggerVolumeBlocks(reach))
+            for (final int[] block : ring.triggerVolumeBlocks(volumeDepth(ring, reach)))
             {
                 volume.remove(Long.valueOf(pack(block[0], block[1], block[2])));
             }
@@ -251,6 +251,38 @@ public final class RingIndex
                 perimeters.remove(world);
             }
         }
+    }
+
+    /**
+     * How deep to index one ring's trigger volume.
+     *
+     * <p>A floor ring holds its passengers just above itself. A ceiling ring's stand on the
+     * floor, which can bemost of a room below the plane, so it has to be indexed all the
+     * way down to the furthest floor it could ever reach — otherwise somebody standing in
+     * exactly the right place would never set it off.
+     *
+     * <p>Read from config here rather than passed in, because the index is built once at
+     * load and the depth is a property of the ring rather than of the caller.
+     *
+     * @param ring
+     *            the ring being indexed
+     * @param reach
+     *            how deep a floor ring's volume runs
+     * @return the number of block layers to index
+     */
+    private static int volumeDepth(final Ring ring, final int reach)
+    {
+        int maxDrop = Ring.MIN_CEILING_DROP;
+        try
+        {
+            maxDrop = com.wormhole_xtreme.wormhole.config.ConfigManager.getRingMaxCeilingDrop();
+        }
+        // No config loaded, which happens in tests. The minimum still indexes a working ring.
+        catch (final RuntimeException ignored)
+        {
+            // deliberately silent
+        }
+        return ring.volumeDepth(reach, maxDrop);
     }
 
     /**

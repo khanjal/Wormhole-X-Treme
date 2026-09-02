@@ -24,6 +24,15 @@ public class RingAnimatorTest
     /** These tests describe the sequential look; the concurrent one has its own test. */
     private static final RingStyle STYLE = RingStyle.SEQUENTIAL;
 
+    /**
+     * A floor ring, for the frame arithmetic that does not care which ring it is.
+     *
+     * <p>A floor ring's stack builds from its own plane, so its timings are the same wherever
+     * it is. A ceiling ring's are not — they depend on how far it has to fall — which is why
+     * the animator asks for a ring rather than just a style.
+     */
+    private static final Ring ANY_FLOOR_RING = ring(RingOrientation.FLOOR);
+
     private static Ring ring(final RingOrientation orientation)
     {
         return new Ring(0, 64, 0, RingPattern.ODD, orientation, Material.STONE_SLAB, Material.GLOWSTONE);
@@ -87,11 +96,83 @@ public class RingAnimatorTest
     @Test
     public void aFloorRingRisesAndACeilingRingDescends()
     {
-        final RingAnimator.Placement up = RingAnimator.deployFrame(ring(RingOrientation.FLOOR), STYLE, 2).get(0);
-        final RingAnimator.Placement down = RingAnimator.deployFrame(ring(RingOrientation.CEILING), STYLE, 2).get(0);
+        final RingAnimator.Placement up =
+            RingAnimator.deployFrame(ring(RingOrientation.FLOOR), STYLE, 2).get(0);
+        assertEquals(65, up.getY(), "a floor ring climbs away from its plane");
 
-        assertEquals(65, up.getY());
-        assertEquals(63, down.getY());
+        // A ceiling ring in a room with somewhere to fall to. Its rings leave the plane and
+        // head for the floor, so two frames in it is below where it started rather than above.
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(6);
+        final RingAnimator.Placement down = RingAnimator.deployFrame(hanging, STYLE, 2).get(0);
+        assertEquals(63, down.getY(), "a ceiling ring drops towards its floor");
+    }
+
+    @Test
+    public void aCeilingRingsStackFormsOnTheFloorAndNotUnderTheCeiling()
+    {
+        // The whole point of a ceiling ring knowing its drop. Hanging the stack from the
+        // plane would leave a traveller in a tall room standing underneath the rings rather
+        // than inside them.
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(6);
+        final int floorLevel = 64 - 6;
+
+        final List<RingAnimator.Placement> settled =
+            RingAnimator.settledStack(hanging, RingStyle.CONCURRENT);
+        final Set<Integer> heights = new HashSet<Integer>();
+        for (final RingAnimator.Placement placement : settled)
+        {
+            heights.add(Integer.valueOf(placement.getY()));
+        }
+        assertEquals(RingAnimator.RING_COUNT, heights.size());
+        for (int y = floorLevel; y < (floorLevel + RingAnimator.RING_COUNT); y++)
+        {
+            assertTrue(heights.contains(Integer.valueOf(y)), "no ring at height " + y);
+        }
+    }
+
+    @Test
+    public void aCeilingRingAndAFloorRingBuildTheSameStack()
+    {
+        // Once each has landed there is nothing to tell them apart: same heights above the
+        // ground, same halves. Only the journey differed.
+        final Ring standing = new Ring(0, 58, 0, RingPattern.ODD, RingOrientation.FLOOR,
+            Material.STONE_SLAB, Material.GLOWSTONE);
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(6);
+
+        assertEquals(standing.stackBase(), hanging.stackBase(), "same ground");
+        assertEquals(levels(RingAnimator.settledStack(standing, RingStyle.CONCURRENT)),
+            levels(RingAnimator.settledStack(hanging, RingStyle.CONCURRENT)));
+    }
+
+    @Test
+    public void aCeilingRingStartsWhereItsTemplateHung()
+    {
+        // Continuity: the first frame appears exactly where the player laid the slabs, as the
+        // top half of the plane block, rather than a block away from it.
+        final Ring hanging = ring(RingOrientation.CEILING);
+        hanging.setDrop(6);
+        final RingAnimator.Placement first =
+            RingAnimator.deployFrame(hanging, RingStyle.CONCURRENT, 0).get(0);
+
+        assertEquals(64, first.getY(), "at the plane");
+        assertTrue(first.isTop(), "hanging in the top half of it, as a hung slab does");
+    }
+
+    @Test
+    public void aTallerCeilingRingTakesLongerToDeploy()
+    {
+        // Its rings have further to fall, which is why the animator needs the ring and not
+        // just the style.
+        final Ring shallow = ring(RingOrientation.CEILING);
+        shallow.setDrop(Ring.MIN_CEILING_DROP);
+        final Ring deep = ring(RingOrientation.CEILING);
+        deep.setDrop(9);
+
+        assertTrue(RingAnimator.deployFrames(deep, RingStyle.CONCURRENT)
+            > RingAnimator.deployFrames(shallow, RingStyle.CONCURRENT));
     }
 
     @Test
@@ -102,7 +183,7 @@ public class RingAnimatorTest
         final Ring floor = ring(RingOrientation.FLOOR);
         final int perRing = RingPattern.ODD.getPerimeter().size();
 
-        final int secondOut = RingAnimator.emergesOnFrame(STYLE, 1);
+        final int secondOut = RingAnimator.emergesOnFrame(ANY_FLOOR_RING, STYLE, 1);
         assertEquals(perRing, RingAnimator.deployFrame(floor, STYLE, secondOut - 1).size(),
             "still only one ring in the air right up to the moment the next appears");
         assertEquals(perRing * 2, RingAnimator.deployFrame(floor, STYLE, secondOut).size(),
@@ -115,8 +196,8 @@ public class RingAnimatorTest
         for (int index = 1; index < RingAnimator.RING_COUNT; index++)
         {
             final int previousArrives =
-                RingAnimator.emergesOnFrame(STYLE, index - 1) + RingAnimator.restingHalfStep(index - 1);
-            assertTrue(RingAnimator.emergesOnFrame(STYLE, index) > previousArrives,
+                RingAnimator.emergesOnFrame(ANY_FLOOR_RING, STYLE, index - 1) + RingAnimator.restingHalfStep(ANY_FLOOR_RING, index - 1);
+            assertTrue(RingAnimator.emergesOnFrame(ANY_FLOOR_RING, STYLE, index) > previousArrives,
                 "ring " + index + " left before ring " + (index - 1) + " had stopped");
         }
     }
@@ -129,7 +210,7 @@ public class RingAnimatorTest
         for (int index = 0; index < RingAnimator.RING_COUNT; index++)
         {
             assertEquals(perRing * (index + 1),
-                RingAnimator.deployFrame(floor, STYLE, RingAnimator.emergesOnFrame(STYLE, index)).size(),
+                RingAnimator.deployFrame(floor, STYLE, RingAnimator.emergesOnFrame(ANY_FLOOR_RING, STYLE, index)).size(),
                 "wrong number of rings out when ring " + index + " emerges");
         }
     }
@@ -139,7 +220,7 @@ public class RingAnimatorTest
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> last =
-            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE) - 1);
 
         assertEquals(RingAnimator.RING_COUNT, levels(last).size(), "every ring at its own level");
         assertEquals(RingPattern.ODD.getPerimeter().size() * RingAnimator.RING_COUNT, last.size());
@@ -153,7 +234,7 @@ public class RingAnimatorTest
         for (final RingOrientation orientation : RingOrientation.values())
         {
             final Ring subject = ring(orientation);
-            for (int frame = 0; frame < RingAnimator.deployFrames(STYLE); frame++)
+            for (int frame = 0; frame < RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE); frame++)
             {
                 final List<RingAnimator.Placement> placements = RingAnimator.deployFrame(subject, STYLE, frame);
                 final Set<String> seen = new HashSet<String>();
@@ -174,7 +255,7 @@ public class RingAnimatorTest
         // kept rising the stack would never form, it would just be a column leaving.
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> last =
-            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE) - 1);
 
         int atTheBottom = 0;
         for (final RingAnimator.Placement placement : last)
@@ -195,7 +276,7 @@ public class RingAnimatorTest
         // stack floats. A bottom slab there would read as part of the floor.
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> last =
-            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE) - 1);
 
         for (final RingAnimator.Placement placement : last)
         {
@@ -211,7 +292,7 @@ public class RingAnimatorTest
         // block thick. Every neighbouring pair in the stack should be exactly that.
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> last =
-            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+            RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE) - 1);
 
         final Set<Integer> heights = new HashSet<Integer>();
         for (final RingAnimator.Placement placement : last)
@@ -232,7 +313,7 @@ public class RingAnimatorTest
         // Written as a reversal rather than a second sequence, so the two cannot drift apart
         // and leave a slab stranded on the way down.
         final Ring floor = ring(RingOrientation.FLOOR);
-        final int frames = RingAnimator.deployFrames(STYLE);
+        final int frames = RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE);
 
         assertEquals(levels(RingAnimator.deployFrame(floor, STYLE, frames - 1)),
             levels(RingAnimator.retractFrame(floor, STYLE, 0)));
@@ -252,7 +333,7 @@ public class RingAnimatorTest
         // half block it hangs clear of the floor, and the settle it made on the way in — so
         // it is gone once that many frames have played and not before.
         final List<RingAnimator.Placement> early = RingAnimator.retractFrame(floor, STYLE,
-            RingAnimator.journeyFrames(RingAnimator.RING_COUNT - 1));
+            RingAnimator.journeyFrames(ANY_FLOOR_RING, RingAnimator.RING_COUNT - 1));
         assertEquals(RingAnimator.RING_COUNT - 1, levels(early).size(), "one has already gone");
         boolean lowestStillThere = false;
         boolean highestStillThere = false;
@@ -276,7 +357,7 @@ public class RingAnimatorTest
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> lastMoment =
-            RingAnimator.retractFrame(floor, STYLE, RingAnimator.deployFrames(STYLE) - 1);
+            RingAnimator.retractFrame(floor, STYLE, RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE) - 1);
 
         assertEquals(1, levels(lastMoment).size(), "one ring left");
         assertEquals(64, lastMoment.get(0).getY(), "back at the plane it started from");
@@ -294,7 +375,7 @@ public class RingAnimatorTest
             interior.add(block[0] + ":" + block[2]);
         }
 
-        for (int frame = 0; frame < RingAnimator.deployFrames(STYLE); frame++)
+        for (int frame = 0; frame < RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE); frame++)
         {
             for (final RingAnimator.Placement placement : RingAnimator.deployFrame(floor, STYLE, frame))
             {
@@ -342,29 +423,29 @@ public class RingAnimatorTest
         // is never more than one. They still arrive in order, top first.
         final Ring floor = ring(RingOrientation.FLOOR);
         final int perRing = RingPattern.ODD.getPerimeter().size();
-        final int whenLeaderArrives = RingAnimator.restingHalfStep(0);
+        final int whenLeaderArrives = RingAnimator.restingHalfStep(ANY_FLOOR_RING, 0);
 
         assertTrue(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT, whenLeaderArrives).size()
             > perRing, "several rings should be up by the time the leader arrives");
         assertEquals(perRing,
             RingAnimator.deployFrame(floor, RingStyle.SEQUENTIAL, whenLeaderArrives).size(),
             "sequentially the leader is still alone");
-        assertTrue(RingAnimator.deployFrames(RingStyle.CONCURRENT)
-            < RingAnimator.deployFrames(RingStyle.SEQUENTIAL));
+        assertTrue(RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.CONCURRENT)
+            < RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.SEQUENTIAL));
     }
 
     @Test
     public void concurrentIsShorterThanSequentialButBuildsTheSameStack()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
-        assertTrue(RingAnimator.deployFrames(RingStyle.CONCURRENT)
-            < RingAnimator.deployFrames(RingStyle.SEQUENTIAL));
+        assertTrue(RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.CONCURRENT)
+            < RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.SEQUENTIAL));
 
         assertEquals(
             levels(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT,
-                RingAnimator.deployFrames(RingStyle.CONCURRENT) - 1)),
+                RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.CONCURRENT) - 1)),
             levels(RingAnimator.deployFrame(floor, RingStyle.SEQUENTIAL,
-                RingAnimator.deployFrames(RingStyle.SEQUENTIAL) - 1)),
+                RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.SEQUENTIAL) - 1)),
             "where they end up does not depend on how they got there");
     }
 
@@ -377,7 +458,7 @@ public class RingAnimatorTest
             // Only sequential holds the rest still while the nearest goes — concurrent
             // brings the whole stack down together — so what both share is just the order.
             final List<RingAnimator.Placement> early = RingAnimator.retractFrame(floor, style,
-                RingAnimator.journeyFrames(RingAnimator.RING_COUNT - 1));
+                RingAnimator.journeyFrames(ANY_FLOOR_RING, RingAnimator.RING_COUNT - 1));
             assertEquals(RingAnimator.RING_COUNT - 1, levels(early).size(),
                 style + " should have lost exactly the nearest ring by now");
         }
@@ -409,7 +490,7 @@ public class RingAnimatorTest
         // animator rather than written down, because how long that window lasts depends on
         // how many rings there are.
         final List<Integer> climbing = heightsOf(RingAnimator.deployFrame(floor,
-            RingStyle.CONCURRENT, RingAnimator.restingHalfStep(0) - 1));
+            RingStyle.CONCURRENT, RingAnimator.restingHalfStep(ANY_FLOOR_RING, 0) - 1));
         assertTrue(climbing.size() > 1, "more than one ring should be up by then");
         for (int i = 0; i < (climbing.size() - 1); i++)
         {
@@ -419,7 +500,7 @@ public class RingAnimatorTest
         }
 
         final List<Integer> settled = heightsOf(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT,
-            RingAnimator.deployFrames(RingStyle.CONCURRENT) - 1));
+            RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.CONCURRENT) - 1));
         assertEquals(RingAnimator.RING_COUNT, settled.size());
         for (int i = 0; i < (settled.size() - 1); i++)
         {
@@ -436,7 +517,7 @@ public class RingAnimatorTest
         // narrow, and the stack tightens downward from there rather than all at once.
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<Integer> midway = heightsOf(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT,
-            RingAnimator.restingHalfStep(0) + 1));
+            RingAnimator.restingHalfStep(ANY_FLOOR_RING, 0) + 1));
 
         assertEquals(RingAnimator.SPACING, midway.get(0).intValue() - midway.get(1).intValue(),
             "the top pair has already closed up");
@@ -453,7 +534,7 @@ public class RingAnimatorTest
         final int settledTop = 64 + (RingAnimator.TOP_HALF_STEP / 2);
         for (final RingStyle style : RingStyle.values())
         {
-            for (int frame = 0; frame < RingAnimator.deployFrames(style); frame++)
+            for (int frame = 0; frame < RingAnimator.deployFrames(ANY_FLOOR_RING, style); frame++)
             {
                 for (final RingAnimator.Placement placement : RingAnimator.deployFrame(floor, style, frame))
                 {
@@ -513,8 +594,8 @@ public class RingAnimatorTest
     {
         // Style is per end, so a base and its outpost need not match. They still have to
         // finish together, which is arranged by waiting for the slower of the two.
-        assertTrue(RingAnimator.deployFrames(RingStyle.SEQUENTIAL)
-            > RingAnimator.deployFrames(RingStyle.CONCURRENT));
+        assertTrue(RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.SEQUENTIAL)
+            > RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.CONCURRENT));
     }
 
     @Test
@@ -544,8 +625,8 @@ public class RingAnimatorTest
     public void theFriendlyNamesMatchWhichStyleIsActuallyQuicker()
     {
         // If "fast" ever stopped being the shorter of the two, the alias would be a lie.
-        assertTrue(RingAnimator.deployFrames(RingStyle.parse("fast"))
-            < RingAnimator.deployFrames(RingStyle.parse("slow")));
+        assertTrue(RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.parse("fast"))
+            < RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.parse("slow")));
     }
 
     @Test

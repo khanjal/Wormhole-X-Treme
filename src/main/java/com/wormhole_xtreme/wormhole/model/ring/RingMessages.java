@@ -189,10 +189,39 @@ public final class RingMessages
     {
         final String which = ((destination == null) || destination.isEmpty())
             ? "The other end of these rings" : ("The " + destination + " end");
-        player.sendMessage(ERROR + which + (why == RingBlockage.NO_GROUND
-            ? " has a hole in its floor." : " has something built inside it."));
+        player.sendMessage(ERROR + which + reason(why));
+        if ((why == RingBlockage.CEILING_TOO_HIGH) || (why == RingBlockage.CEILING_TOO_LOW))
+        {
+            player.sendMessage(ERROR + "A ceiling ring drops its rings to the floor and they "
+                + "stack up from there, so it needs one near enough to reach.");
+            return;
+        }
         player.sendMessage(ERROR + "Clear the inside of that ring and try again. What is "
             + "built around it does not matter.");
+    }
+
+    /**
+     * What to say about one kind of blockage.
+     *
+     * @param why
+     *            what is wrong
+     * @return the end of the sentence
+     */
+    private static String reason(final RingBlockage why)
+    {
+        if (why == RingBlockage.NO_GROUND)
+        {
+            return " has a hole in its floor.";
+        }
+        if (why == RingBlockage.CEILING_TOO_HIGH)
+        {
+            return " is too far above its floor.";
+        }
+        if (why == RingBlockage.CEILING_TOO_LOW)
+        {
+            return " has no room between it and the floor.";
+        }
+        return " has something built inside it.";
     }
 
     /**

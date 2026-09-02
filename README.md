@@ -567,7 +567,10 @@ Rules for the template:
 - **All facing the same way.** Bottom slabs resting on a floor make a floor ring; top slabs
   hung under a ceiling make a ceiling ring. Double slabs are not accepted, because a full
   block cannot say which surface it was laid against.
-- **Four blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
+- **Four blocks of headroom** above a floor ring for its stack.
+- A **ceiling ring needs a room five to ten blocks tall** — its rings fall to the floor and
+  stack up from there, so it needs a floor near enough to reach and far enough for the stack
+  to form.
 - The footprint may not overlap another ring or any gate.
 - **Within reach of its partner** — 256 blocks on the ground, 384 in height.
 
@@ -583,7 +586,9 @@ Walk in. The pattern lights up in the floor and counts down; step clear before i
 it stands down. Once the rings start rising the trip is committed.
 
 Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
-settling at 0.5, 1.5, 2.5 and 3.5 blocks up. The stack stands a second, the light runs down
+settling at 0.5, 1.5, 2.5 and 3.5 blocks up. A **ceiling ring** works the other way round: its
+rings fall from the ceiling all the way to the floor and stack up from there, so you end up
+standing inside them rather than under them. The stack stands a second, the light runs down
 through it as you are taken and back up as you arrive, and the rings return nearest-first.
 The pad stays lit until a second after the last one is home.
 
@@ -645,6 +650,7 @@ All under `rings:` in `config.yml`.
 | `min-separation` | 8 | Required distance between ring anchors. Overlap is refused regardless. |
 | `max-link-distance` | 256 | Furthest two ends may be **on the ground**. 16 chunks. `0` is unlimited. |
 | `max-link-height` | 384 | Furthest two ends may be **in height**. The full world. `0` is unlimited. |
+| `max-ceiling-drop` | 10 | How far below its plane a ceiling ring looks for the floor. |
 | `max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
 | `default-access` | `PRIVATE` | What a newly built pair starts as. |
 | `default-style` | `CONCURRENT` | How the stack deploys. |

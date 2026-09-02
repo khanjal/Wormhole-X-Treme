@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
  * Everything the ring subsystem does to a real world, in one place.
@@ -416,11 +417,26 @@ public class BukkitRingWorld implements RingCycle.Surroundings
      * @return where to put a traveller
      */
     /* (non-Javadoc)
-     * @see RingCycle.Surroundings#blockage(Ring)
+     * @see RingCycle.Surroundings#survey(Ring)
      */
     @Override
-    public RingBlockage blockage(final Ring ring)
+    public RingBlockage survey(final Ring ring)
     {
+        if (ring.getOrientation() == RingOrientation.CEILING)
+        {
+            final int found = floorBelow(ring);
+            if (found < 0)
+            {
+                return RingBlockage.CEILING_TOO_HIGH;
+            }
+            if (found < Ring.MIN_CEILING_DROP)
+            {
+                return RingBlockage.CEILING_TOO_LOW;
+            }
+            // Recorded on the ring so the stack forms on this floor rather than under the
+            // ceiling. Everything downstream measures from it.
+            ring.setDrop(found);
+        }
         final int y = arrivalHeight(ring);
         // Every column, not just the middle. Somewhere to stand is not the same as somewhere
         // fit to arrive: one block dropped into a ring would still leave twenty free columns,
@@ -451,7 +467,41 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     }
 
     /**
+     * How far below a ceiling ring's plane the floor is.
+     *
+     * <p>Searched down the middle of the ring, out to the configured limit. Beyond that a
+     * ceiling ring is over a shaft rather than a room, and rings that fall out of sight are
+     * not a transport.
+     *
+     * @param ring
+     *            the ceiling ring
+     * @return the drop in blocks, or -1 if there is no floor within reach
+     */
+    private int floorBelow(final Ring ring)
+    {
+        final int limit = ConfigManager.getRingMaxCeilingDrop();
+        for (int down = 1; down <= (limit + 1); down++)
+        {
+            final int y = ring.getAnchorY() - down;
+            if (y < world.getMinHeight())
+            {
+                return -1;
+            }
+            if (!world.getBlockAt(ring.getAnchorX(), y, ring.getAnchorZ()).isPassable())
+            {
+                // Feet go on top of it, so the drop is to the layer above the solid block.
+                return down - 1;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * The layer travellers arrive in.
+     *
+     * <p>The stack base for both orientations: the plane for a floor ring, and the floor a
+     * ceiling ring's rings have dropped to. People arrive standing inside the stack rather
+     * than under it.
      *
      * @param ring
      *            the ring
@@ -459,9 +509,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings
      */
     private int arrivalHeight(final Ring ring)
     {
-        return (ring.getOrientation() == RingOrientation.FLOOR)
-            ? ring.getAnchorY()
-            : (ring.getAnchorY() - (reach - 1));
+        return ring.stackBase();
     }
 
     /**

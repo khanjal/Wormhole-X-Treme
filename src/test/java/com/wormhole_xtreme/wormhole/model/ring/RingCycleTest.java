@@ -173,9 +173,9 @@ public class RingCycleTest
         final Map<String, RingBlockage> blocked = new HashMap<String, RingBlockage>();
 
         @Override
-        public RingBlockage blockage(final Ring destination)
+        public RingBlockage survey(final Ring ring)
         {
-            return blocked.get(key(destination));
+            return blocked.get(key(ring));
         }
 
         @Override
@@ -630,7 +630,8 @@ public class RingCycleTest
             {
                 frames++;
             }
-            assertEquals(RingAnimator.deployFrames(style), frames, style + " ran the wrong length");
+            assertEquals(RingAnimator.deployFrames(pair.getEndA(), style), frames,
+                style + " ran the wrong length");
 
             cycle.flash();
             cycle.beginRetract();

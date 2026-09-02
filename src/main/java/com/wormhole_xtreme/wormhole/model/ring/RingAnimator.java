@@ -47,11 +47,16 @@ import java.util.List;
  * last to come home. That is the order these move in, and it falls out of the reversal
  * rather than needing a second sequence that could disagree with the first.
  *
- * <p><b>Direction.</b> A floor ring rises and a ceiling ring descends, and the two also
- * start from opposite halves of their own block — a floor ring's first slab is a bottom slab
- * resting where the template was, a ceiling ring's is a top slab hanging there. Both fall out
- * of {@link RingOrientation#getTravel()} and the orientation itself, so neither direction is
- * a special case.
+ * <p><b>Direction.</b> Everything here is measured in half-steps above the <em>stack
+ * base</em> — the plane for a floor ring, the floor itself for a ceiling one. That is what
+ * makes both orientations produce the same finished stack: rings a foot apart standing around
+ * whoever is on the ground, whichever direction they arrived from.
+ *
+ * <p>So a floor ring starts at half-step zero and rises, and a ceiling ring starts at its own
+ * plane — high above the base in a tall room — and descends the whole way down to the floor.
+ * Only the starting point differs; where they end up, and how far apart they finish, do not.
+ * A ceiling stack that hung from the ceiling instead would leave the traveller standing
+ * underneath the rings rather than inside them.
  */
 public final class RingAnimator
 {
@@ -91,23 +96,48 @@ public final class RingAnimator
     /** Half-steps the leading ring settles at: the top of the finished stack. */
     public static final int TOP_HALF_STEP = BASE_HALF_STEP + ((RING_COUNT - 1) * SPACING);
 
+    /**
+     * The shallowest a ceiling ring can be and still look like anything.
+     *
+     * <p>Derived rather than chosen: its plane has to sit above the finished stack, or the
+     * top ring is already where it belongs and never moves — and the ring behind it then
+     * emerges on top of it, two rings in one place. One block above the top of the stack is
+     * the least that gives every ring somewhere to fall from.
+     */
+    public static final int MIN_CEILING_DROP = (TOP_HALF_STEP / 2) + 1;
+
 
     private RingAnimator() {}
 
     /**
      * Where a given ring comes to rest.
      *
-     * <p>The first one out goes furthest and each one after it stops a gap lower. Even the
-     * last one lifts {@link #BASE_HALF_STEP}, so the finished stack floats half a block clear
-     * of the floor rather than resting on it.
+     * <p>The first one out goes furthest from its plane and each one after it stops a gap
+     * short of it. Even the ring nearest the floor lifts {@link #BASE_HALF_STEP}, so the
+     * finished stack floats half a block clear of the ground rather than resting on it.
      *
+     * <p>Both orientations end up with the same stack — the same four heights above the same
+     * floor. Which ring is which within it differs, and has to.
+     *
+     * @param ring
+     *            the ring, which decides which end of the stack is furthest
      * @param index
      *            which ring, counting from the first one out
      * @return its resting half-step
      */
-    static int restingHalfStep(final int index)
+    static int restingHalfStep(final Ring ring, final int index)
     {
-        return BASE_HALF_STEP + ((RING_COUNT - 1 - index) * SPACING);
+        // The first ring out always travels furthest from the plane it came from. For a floor
+        // ring that is the top of the stack; for a ceiling ring, which starts above and falls,
+        // it is the bottom.
+        //
+        // This is not symmetry for its own sake. If a ceiling ring's first one stopped highest
+        // instead, every ring after it would have to descend straight through where it had
+        // already settled — two rings in one place, every time. Sending the first to the floor
+        // means each one stops above the last and none of them ever crosses another.
+        return (ring.getOrientation() == RingOrientation.CEILING)
+            ? (BASE_HALF_STEP + (index * SPACING))
+            : (BASE_HALF_STEP + ((RING_COUNT - 1 - index) * SPACING));
     }
 
     /**
@@ -118,24 +148,26 @@ public final class RingAnimator
      * which makes the whole run as long as the sum of the journeys rather than the longest
      * of them.
      *
+     * @param ring
+     *            the ring
      * @param style
      *            how the stack comes out
      * @param index
      *            which ring, counting from the first one out
      * @return the frame it first appears on
      */
-    static int emergesOnFrame(final RingStyle style, final int index)
+    static int emergesOnFrame(final Ring ring, final RingStyle style, final int index)
     {
         if (style == RingStyle.CONCURRENT)
         {
-            // A ring leaves once the one in front is a clear block above it, so the column
-            // rising out of the floor is evenly spaced the whole way up.
+            // A ring leaves once the one in front is a clear block along, so the column
+            // travelling between plane and floor is evenly spaced the whole way.
             return index * TRAVEL_GAP;
         }
         int frame = 0;
         for (int earlier = 0; earlier < index; earlier++)
         {
-            frame += journeyFrames(earlier);
+            frame += journeyFrames(ring, earlier);
         }
         return frame;
     }
@@ -218,16 +250,19 @@ public final class RingAnimator
      * on the style: concurrently they overlap and the answer is the longest single journey,
      * sequentially they queue and it is the sum of all of them.
      *
+     * @param ring
+     *            the ring deploying, which knows how far it has to travel
      * @param style
      *            how the stack comes out
      * @return the number of deploy frames
      */
-    public static int deployFrames(final RingStyle style)
+    public static int deployFrames(final Ring ring, final RingStyle style)
     {
         int frames = 0;
         for (int index = 0; index < RING_COUNT; index++)
         {
-            frames = Math.max(frames, emergesOnFrame(style, index) + journeyFrames(index));
+            frames = Math.max(frames,
+                emergesOnFrame(ring, style, index) + journeyFrames(ring, index));
         }
         return frames;
     }
@@ -252,13 +287,13 @@ public final class RingAnimator
         final List<Placement> out = new ArrayList<Placement>();
         for (int index = 0; index < RING_COUNT; index++)
         {
-            final int travelled = frame - emergesOnFrame(style, index);
+            final int travelled = frame - emergesOnFrame(ring, style, index);
             if (travelled < 0)
             {
-                // Still below the floor: the ring before it has not finished yet.
+                // Not out yet: the ring before it has not finished.
                 continue;
             }
-            addRing(out, ring, halfStepAt(index, travelled));
+            addRing(out, ring, halfStepAt(ring, index, travelled));
         }
         return out;
     }
@@ -282,7 +317,7 @@ public final class RingAnimator
      */
     public static List<Placement> retractFrame(final Ring ring, final RingStyle style, final int frame)
     {
-        return deployFrame(ring, style, (deployFrames(style) - 1) - frame);
+        return deployFrame(ring, style, (deployFrames(ring, style) - 1) - frame);
     }
 
     /**
@@ -297,21 +332,47 @@ public final class RingAnimator
      *            frames since it emerged
      * @return its half-step this frame
      */
-    static int halfStepAt(final int index, final int travelled)
+    static int halfStepAt(final Ring ring, final int index, final int travelled)
     {
-        return Math.min(travelled, restingHalfStep(index));
+        final int from = startHalfStep(ring);
+        final int to = restingHalfStep(ring, index);
+        final int moved = Math.min(travelled, Math.abs(from - to));
+        return (from <= to) ? (from + moved) : (from - moved);
+    }
+
+    /**
+     * The half-step a ring is at when it first appears.
+     *
+     * <p>Measured from the stack base, which is the plane for a floor ring and the floor
+     * itself for a ceiling one. A floor ring's first slab is the bottom half of the plane
+     * block, exactly where the template rested; a ceiling ring's is the top half of its plane
+     * block, exactly where the template hung. Either way a ring emerges from where the player
+     * laid it and travels to where it belongs.
+     *
+     * @param ring
+     *            the ring
+     * @return its half-step at the moment it emerges
+     */
+    static int startHalfStep(final Ring ring)
+    {
+        // A floor ring starts at the base. A ceiling ring starts at its plane, which is drop
+        // blocks above the base, and the odd half puts it in the top of that block.
+        return (ring.getOrientation() == RingOrientation.CEILING)
+            ? ((2 * ring.getDrop()) + 1) : 0;
     }
 
     /**
      * How many frames one ring's whole journey takes.
      *
+     * @param ring
+     *            the ring
      * @param index
      *            which ring
      * @return frames from emerging to settled
      */
-    static int journeyFrames(final int index)
+    static int journeyFrames(final Ring ring, final int index)
     {
-        return restingHalfStep(index) + 1;
+        return Math.abs(startHalfStep(ring) - restingHalfStep(ring, index)) + 1;
     }
 
     /**
@@ -326,8 +387,8 @@ public final class RingAnimator
      */
     private static void addRing(final List<Placement> out, final Ring ring, final int halfStep)
     {
-        final int y = ring.getAnchorY() + (ring.getOrientation().getTravel() * (halfStep / 2));
-        final boolean top = fillsUpperHalf(ring.getOrientation(), halfStep);
+        final int y = ring.stackBase() + (halfStep / 2);
+        final boolean top = fillsUpperHalf(halfStep);
         for (final RingPattern.Offset offset : ring.getPattern().getPerimeter())
         {
             out.add(new Placement(ring.getAnchorX() + offset.getDx(), y,
@@ -344,18 +405,17 @@ public final class RingAnimator
      * ceiling hangs. Odd half-steps are the other half of the same block, which is what puts
      * the ring half a block further on without moving it.
      *
-     * @param orientation
-     *            which way the ring travels
      * @param halfStep
-     *            how far along it is, in half blocks
+     *            how far above the stack base it is, in half blocks
      * @return true if the slab fills the upper half of its block
      */
-    static boolean fillsUpperHalf(final RingOrientation orientation, final int halfStep)
+    static boolean fillsUpperHalf(final int halfStep)
     {
-        final boolean even = (halfStep % 2) == 0;
-        return even
-            ? (orientation == RingOrientation.CEILING)
-            : (orientation == RingOrientation.FLOOR);
+        // Half-steps count upward from the stack base for both orientations now, so which
+        // half of a block a ring fills no longer depends on which way it travelled to get
+        // there — a slab a foot above the floor is the same slab whichever direction it
+        // arrived from.
+        return (halfStep % 2) != 0;
     }
 
     /**
@@ -397,7 +457,7 @@ public final class RingAnimator
     public static List<Placement> ringAtRest(final Ring ring, final int index)
     {
         final List<Placement> out = new ArrayList<Placement>();
-        addRing(out, ring, restingHalfStep(index));
+        addRing(out, ring, restingHalfStep(ring, index));
         return out;
     }
 
@@ -412,7 +472,7 @@ public final class RingAnimator
      */
     public static List<Placement> settledStack(final Ring ring, final RingStyle style)
     {
-        return deployFrame(ring, style, deployFrames(style) - 1);
+        return deployFrame(ring, style, deployFrames(ring, style) - 1);
     }
 
     /**

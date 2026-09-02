@@ -20,6 +20,10 @@ package com.wormhole_xtreme.wormhole.model.ring;
  *
  * <p>Only the interior counts. What anybody has built around a ring is their business, and
  * arriving next to it is no trouble — you can walk away, or step back in and go home.
+ *
+ * <p>The last two are a ceiling ring's own problem. Its rings fall all the way to the floor
+ * and stack up from there, so it needs a floor to fall to: near enough that they reach it,
+ * and far enough that the stack has somewhere to form.
  */
 public enum RingBlockage
 {
@@ -27,5 +31,11 @@ public enum RingBlockage
     OBSTRUCTED,
 
     /** The floor under the ring has gone, so there is nothing to arrive on. */
-    NO_GROUND
+    NO_GROUND,
+
+    /** A ceiling ring with no floor near enough below it for the rings to reach. */
+    CEILING_TOO_HIGH,
+
+    /** A ceiling ring so close to the floor that its stack has nowhere to form. */
+    CEILING_TOO_LOW
 }

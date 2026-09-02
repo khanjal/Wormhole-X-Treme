@@ -128,9 +128,9 @@ it is not yet a pair, and it records its own world so the second `create` can re
 endpoint in a different one — with a message saying so, rather than a silent failure after
 the player has already laid twenty slabs.
 
-Orientation, once read, flips two things rather than one: the direction the slabs travel,
-and where the trigger volume sits — below a ceiling ring rather than above it. Arrival at a
-ceiling ring is the floor beneath it, not the ring plane.
+Orientation, once read, decides where the rings come *from*. Both kinds build the same stack
+in the same place — on the ground, around whoever is standing there. A floor ring's rings rise
+out of the plane to get there; a ceiling ring's fall from it.
 
 ## Storage
 
@@ -523,6 +523,43 @@ once people have started using it.
 Revoking the owner does nothing, because their access comes from ownership rather than from
 the list. There is no sequence of commands that leaves a pair nobody can use or change.
 
+## Ceiling rings drop to the floor
+
+A ceiling ring's rings fall all the way down and stack up from the ground, exactly as a floor
+ring's rise from it. The finished stack is identical: the same four heights above the same
+floor, with the traveller standing inside it.
+
+Hanging the stack from the plane instead would leave somebody in a tall room standing
+*underneath* the rings rather than in them, which is what an earlier version of this did — and
+because the arrival was pinned a fixed distance below the plane, a ceiling ring in anything
+taller than a four-block room delivered people into mid-air and then, once the ground check
+arrived, refused to fire at all.
+
+So everything is measured in half-steps above the **stack base**: the plane for a floor ring,
+the floor itself for a ceiling one. That single change makes both orientations produce the
+same result and differ only in where the journey starts.
+
+**The first ring out always travels furthest from its plane** — the top of the stack for a
+floor ring, the bottom for a ceiling one. That is not symmetry for its own sake. If a ceiling
+ring's first one stopped highest, every ring after it would have to descend straight through
+where it had already settled, putting two rings in one place every time. Sending the first to
+the floor means each one stops above the last and none ever crosses another.
+
+The drop is measured when a cycle engages, not when the ring is built, because floors change.
+Two limits come with it:
+
+- **At least five blocks** from ceiling to floor. Derived, not chosen: the plane has to sit
+  above the finished stack or the top ring is already where it belongs, never moves, and the
+  ring behind it emerges on top of it.
+- **At most `rings.max-ceiling-drop`**, ten by default. Past that the ring is over a shaft
+  rather than a room, and rings that fall out of sight are not a transport.
+
+Both refuse with a message saying which it is, the same way a built-in or dug-out ring does.
+
+A ceiling ring's trigger volume runs the whole way down too — its passengers stand on the
+floor, which may be most of a room below the plane, so indexing only a few layers under the
+plane would mean somebody standing in exactly the right place never setting it off.
+
 ## The pad stays lit
 
 The lights come on with the countdown and stay on through everything — the rings rising, the
@@ -765,6 +802,7 @@ rings:
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 256     # on the ground; 16 chunks. 0 = unlimited
   max-link-height: 384       # in height; the full world. 0 = unlimited
+  max-ceiling-drop: 10       # how far a ceiling ring will look for its floor
   default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
   default-flash-material: GLOWSTONE   # set it apart to make the transport its own moment
