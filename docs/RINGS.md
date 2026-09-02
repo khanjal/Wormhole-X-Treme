@@ -517,11 +517,18 @@ gets — so five blocks of headroom is the whole requirement.
 There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.
 
-- **Concurrent** — several climbing at once. A ring leaves the plane as soon as the one in
-  front is a clear block above it, so what rises out of the floor is an evenly spaced column.
-  They arrive in order, top first. Quicker, and the commoner look.
-- **Sequential** — never more than one in flight. The first out flies all the way to the
-  furthest position and stops; only then does the next emerge.
+- **Concurrent** (type `fast`) — several climbing at once. A ring leaves the plane as soon
+  as the one in front is a clear block above it, so what rises out of the floor is an evenly
+  spaced column. They arrive in order, top first. Quicker, and the commoner look.
+- **Sequential** (type `slow`) — never more than one in flight. The first out flies all the
+  way to the furthest position and stops; only then does the next emerge.
+
+Players type `fast` or `slow`; `concurrent`, `sequential`, `quick`, `flowing`, `stepped` and
+`staged` all work too. The **stored** value stays `CONCURRENT` or `SEQUENTIAL` deliberately,
+because those name what the setting actually does — how many rings are in the air at once —
+and that stays true whatever the tick rate is. Naming the setting by speed would have it
+claim the same ground as `rings.deploy-ticks`, which really is the speed knob, and the two
+could then contradict each other: `slow` with `deploy-ticks: 1` is not slow.
 
 They differ *only* in when a ring leaves the plane. Where each ends up, how far it travels
 and how they come home are identical, so this is one number rather than two animations.
@@ -641,7 +648,7 @@ one declaration.
            light <material>   the countdown lights                   per end
            label <text>       display only                           per pair
            access public|private                                     per pair
-           style concurrent|sequential                                per end
+           style fast|slow                                            per end
 ```
 
 Everything adjustable lives under one `edit` verb rather than a subcommand per field. Gates

@@ -32,7 +32,7 @@ public enum RingStyle
      * arrive in order, top first, each stopping as it reaches its place. Quicker, and the
      * more common look.
      */
-    CONCURRENT,
+    CONCURRENT("fast", "quick", "flowing"),
 
     /**
      * One ring at a time, each waiting for the one before it to stop.
@@ -40,5 +40,55 @@ public enum RingStyle
      * <p>The first out flies all the way to the furthest position and halts; only then does
      * the next emerge. Slower and more deliberate.
      */
-    SEQUENTIAL
+    SEQUENTIAL("slow", "stepped", "staged");
+
+    /** Friendlier words a player may type instead of the enum name. */
+    private final java.util.List<String> aliases;
+
+    /**
+     * Instantiates a style.
+     *
+     * @param aliases
+     *            other words that mean this style
+     */
+    RingStyle(final String... aliases)
+    {
+        this.aliases = java.util.Collections.unmodifiableList(java.util.Arrays.asList(aliases));
+    }
+
+    /** @return other words that mean this style */
+    public java.util.List<String> getAliases()
+    {
+        return aliases;
+    }
+
+    /**
+     * Reads a style from whatever the player typed.
+     *
+     * <p>Accepts the canonical names and a few friendlier words for each. The stored value
+     * stays {@code CONCURRENT} or {@code SEQUENTIAL} because those describe what the setting
+     * actually does — how many rings are in the air at once — which stays true whatever
+     * {@code rings.deploy-ticks} is set to. Naming it by speed would have it claim the same
+     * ground as that setting and be contradicted by it.
+     *
+     * @param text
+     *            what the player typed
+     * @return the style, or null if it is not one
+     */
+    public static RingStyle parse(final String text)
+    {
+        if (text == null)
+        {
+            return null;
+        }
+        final String wanted = text.trim().toLowerCase();
+        for (final RingStyle style : values())
+        {
+            if (style.name().toLowerCase().equals(wanted) || style.aliases.contains(wanted))
+            {
+                return style;
+            }
+        }
+        return null;
+    }
 }

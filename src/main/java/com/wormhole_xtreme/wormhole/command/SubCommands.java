@@ -200,7 +200,7 @@ public final class SubCommands
                     }
                     if ("style".equalsIgnoreCase(args[2]))
                     {
-                        return prefixed(args[3], "concurrent", "sequential");
+                        return prefixed(args[3], "fast", "slow", "concurrent", "sequential");
                     }
                 }
                 return none();

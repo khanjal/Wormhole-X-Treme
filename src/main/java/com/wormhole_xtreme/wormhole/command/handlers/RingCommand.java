@@ -515,14 +515,11 @@ public class RingCommand implements SubCommand
         }
         if ("style".equals(field))
         {
-            final RingStyle chosen;
-            try
+            final RingStyle chosen = RingStyle.parse(value);
+            if (chosen == null)
             {
-                chosen = RingStyle.valueOf(value.toUpperCase());
-            }
-            catch (final IllegalArgumentException e)
-            {
-                player.sendMessage("Style is concurrent or sequential.");
+                player.sendMessage("Style is fast (rings climb together) or slow "
+                    + "(one at a time). 'concurrent' and 'sequential' work too.");
                 return true;
             }
             if (only != null)

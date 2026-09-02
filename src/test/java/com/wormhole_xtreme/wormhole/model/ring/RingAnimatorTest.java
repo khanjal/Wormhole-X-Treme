@@ -511,4 +511,35 @@ public class RingAnimatorTest
         assertTrue(RingAnimator.deployFrames(RingStyle.SEQUENTIAL)
             > RingAnimator.deployFrames(RingStyle.CONCURRENT));
     }
+
+    @Test
+    public void aPlayerMayTypeEitherTheRealNameOrAFriendlierOne()
+    {
+        // The stored value stays CONCURRENT or SEQUENTIAL, because those describe what the
+        // setting does — how many rings are in the air at once — which stays true whatever
+        // the tick rate is. Naming it by speed would claim the same ground as deploy-ticks
+        // and be contradicted by it. Players still get to type the obvious word.
+        assertEquals(RingStyle.CONCURRENT, RingStyle.parse("fast"));
+        assertEquals(RingStyle.CONCURRENT, RingStyle.parse("CONCURRENT"));
+        assertEquals(RingStyle.CONCURRENT, RingStyle.parse(" Quick "));
+        assertEquals(RingStyle.SEQUENTIAL, RingStyle.parse("slow"));
+        assertEquals(RingStyle.SEQUENTIAL, RingStyle.parse("sequential"));
+        assertEquals(RingStyle.SEQUENTIAL, RingStyle.parse("STEPPED"));
+    }
+
+    @Test
+    public void anythingElseIsRefusedRatherThanGuessedAt()
+    {
+        assertNull(RingStyle.parse("sideways"));
+        assertNull(RingStyle.parse(""));
+        assertNull(RingStyle.parse(null));
+    }
+
+    @Test
+    public void theFriendlyNamesMatchWhichStyleIsActuallyQuicker()
+    {
+        // If "fast" ever stopped being the shorter of the two, the alias would be a lie.
+        assertTrue(RingAnimator.deployFrames(RingStyle.parse("fast"))
+            < RingAnimator.deployFrames(RingStyle.parse("slow")));
+    }
 }
