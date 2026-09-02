@@ -1030,18 +1030,52 @@ class WormholeXTremePlayerListener implements Listener
             return;
         }
         final com.wormhole_xtreme.wormhole.model.ring.RingPair pair = end.getPair();
-        if (!pair.canFire(System.currentTimeMillis()))
-        {
-            return;
-        }
+        final Player player = event.getPlayer();
+
+        // Whether this step took them into the ring or merely around inside it. Messages are
+        // for arriving somewhere, and this path runs on every block boundary crossed, so a
+        // player wandering about on a pad that is recharging would otherwise be told about it
+        // several times a second. Arming still happens on any move inside, which is what lets
+        // somebody who stays put after a trip be carried back once the cooldown passes.
+        final Location from = event.getFrom();
+        final boolean justEntered = (from.getWorld() == null)
+            || (com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
+                from.getWorld().getName(), from.getBlockX(), from.getBlockY(), from.getBlockZ()) != end);
+
         // Arming is a use of the ring, so the same permission governs it as governs being
         // carried. Somebody who cannot travel by a pair should not be able to set it off
         // for everybody else either.
-        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(event.getPlayer(), pair))
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
         {
+            if (justEntered)
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
+            }
             return;
         }
-        com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair);
+        final long now = System.currentTimeMillis();
+        if (!pair.canFire(now))
+        {
+            if (justEntered)
+            {
+                // Two different reasons to refuse, and a player standing on a silent pad
+                // deserves to know which: one of them ends by itself and the other does not.
+                if (pair.getCooldownUntil() > now)
+                {
+                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(
+                        player, pair.getCooldownUntil() - now);
+                }
+                else
+                {
+                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
+                }
+            }
+            return;
+        }
+        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair))
+        {
+            com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(player);
+        }
     }
 
     /**

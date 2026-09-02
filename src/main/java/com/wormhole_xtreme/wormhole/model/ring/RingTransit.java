@@ -64,16 +64,51 @@ public final class RingTransit
         // put back and lands travellers in terrain that has not been generated.
         hold(world, pair);
         cycle.beginCountdown();
+        countDown(cycle, world, ConfigManager.getRingCountdownTicks());
+        return true;
+    }
+
+    /**
+     * Counts the cycle down, saying so once a second.
+     *
+     * <p>Stepped a second at a time rather than waited out in one go, so the people standing
+     * in the rings can be told how long they have. A countdown that is not a whole number of
+     * seconds spends its remainder on the last step, which keeps the total exact however it
+     * is configured.
+     *
+     * @param cycle
+     *            the cycle running
+     * @param world
+     *            the world it is in
+     * @param remaining
+     *            ticks left before the rings commit
+     */
+    private static void countDown(final RingCycle cycle, final World world, final int remaining)
+    {
+        if (remaining <= 0)
+        {
+            commitOrAbort(cycle, world);
+            return;
+        }
+        final int seconds = (remaining + 19) / 20;
+        RingMessages.counting(cycle.everyoneInside(), seconds);
+        final int step = Math.min(20, remaining);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new Runnable()
             {
                 @Override
                 public void run()
                 {
-                    commitOrAbort(cycle, world);
+                    try
+                    {
+                        countDown(cycle, world, remaining - step);
+                    }
+                    catch (final RuntimeException e)
+                    {
+                        recover(cycle, world, e);
+                    }
                 }
-            }, ConfigManager.getRingCountdownTicks());
-        return true;
+            }, step);
     }
 
     /**
@@ -94,6 +129,9 @@ public final class RingTransit
                 finished(cycle, world);
                 return;
             }
+            // Said before the rings move, because this is the last moment anybody could have
+            // walked away and the first at which it no longer matters that they did.
+            RingMessages.committed(cycle.everyoneInside());
             cycle.beginDeploy();
             step(cycle, world);
         }

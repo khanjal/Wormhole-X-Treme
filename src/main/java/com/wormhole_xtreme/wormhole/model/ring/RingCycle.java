@@ -167,6 +167,22 @@ public class RingCycle
     }
 
     /**
+     * Everyone standing in either end right now.
+     *
+     * <p>Both ends together, because the countdown is one event and the people at each end
+     * are equally in it.
+     *
+     * @return the passengers at both ends
+     */
+    public List<RingPassenger> everyoneInside()
+    {
+        final List<RingPassenger> out = new ArrayList<RingPassenger>();
+        out.addAll(occupants(pair.getEndA()));
+        out.addAll(occupants(pair.getEndB()));
+        return out;
+    }
+
+    /**
      * Whether the countdown should be called off.
      *
      * <p>Only while counting down. Once the rings start rising the cycle is committed and

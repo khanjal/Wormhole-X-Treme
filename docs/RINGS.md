@@ -223,7 +223,7 @@ binary baggage; there is no reason to inherit that.
 
 ```
 IDLE        a move event inside either interior arms the pair
-COUNTDOWN   the ring's pattern lights up in the floor — ABORTS if both interiors go empty
+COUNTDOWN   the pattern lights up, counting down out loud — ABORTS if both interiors empty
 DEPLOY      rings rise — COMMITTED, no abort, runs to completion
 HOLD        the finished stack stands still for a second
 FLASH       light runs through the stack a ring at a time, then the swap
@@ -368,6 +368,39 @@ to say they would be. A gate's palette is identified by the material its frame i
 built from, which works because a gate's frame is permanent. A ring is invisible when idle
 and has no frame to read, so there is nothing to identify a group by. Two plain config
 defaults plus per-ring overrides is the whole of it.
+
+## What a ring tells you
+
+A trip says six things, and where each is said matters as much as what it says.
+
+| When | Message |
+|---|---|
+| You walk in | *Transport rings engaging. Step clear to cancel.* |
+| Each second | *Transport in 3 seconds…* |
+| Everyone leaves | *Transport rings powering down.* |
+| The rings commit | *Rings deploying. Hold still.* |
+| You arrive | *Transport complete.* |
+| Too soon after a trip | *Rings recharging. Ready in 42 seconds.* |
+
+All of those go to the **action bar**, not chat. A ring speaks once a second while counting
+down and again when it fires, which in chat would be six lines per trip scrolling away
+whatever the player was reading. Above the hotbar it is a status that replaces itself and
+then goes — which is what all of it is.
+
+Chat is kept for the one message a player has to act on and might otherwise miss: being
+turned away from a pair that is not theirs.
+
+**Messages are sent on entering a ring, never on every step taken inside one.** The move path
+runs on each block boundary crossed, so a player wandering about on a pad that is recharging
+would otherwise be told so several times a second. Whether a step was an entry is decided by
+looking up where they came *from* as well as where they are — no timers and no remembered
+state. Arming is deliberately not filtered this way: it still happens on any move inside,
+which is what lets somebody who stays put after a trip be carried back once the cooldown
+passes.
+
+Refusals say which of the two reasons applies, because a player standing on a silent pad
+deserves to know whether it will fix itself. *Recharging* ends by itself; *already in use*
+and *private* do not.
 
 ## Access
 

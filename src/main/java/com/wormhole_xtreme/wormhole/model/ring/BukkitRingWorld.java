@@ -285,6 +285,11 @@ public class BukkitRingWorld implements RingCycle.Surroundings
             ((Player) entity).setNoDamageTicks(5);
         }
         entity.teleport(arrival);
+        // After the teleport, so it lands on a client that is already looking at the far end.
+        if (entity instanceof Player)
+        {
+            RingMessages.arrived((Player) entity);
+        }
     }
 
     /**
