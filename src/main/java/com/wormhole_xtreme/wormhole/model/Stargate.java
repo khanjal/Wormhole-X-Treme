@@ -264,6 +264,32 @@ public class Stargate
     }
 
     /**
+     * Whether this gate's portal lies flat, every block of it at one height.
+     *
+     * <p>Distinguishes a gate standing upright from one lying flat in the ground without
+     * having to know which shape built it, which matters because the two are left in
+     * different directions.
+     *
+     * @return true if the gate has portal blocks and they all share one height
+     */
+    private boolean isPortalFlat()
+    {
+        if (gatePortalBlocks.isEmpty())
+        {
+            return false;
+        }
+        final int y = gatePortalBlocks.get(0).getBlockY();
+        for (final Location block : gatePortalBlocks)
+        {
+            if (block.getBlockY() != y)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Moves this gate's arrival point out of its own portal if that is where it sits.
      *
      * <p>Travellers should step out of a wormhole, not stand in it. Arriving inside means
@@ -293,15 +319,28 @@ public class Stargate
         {
             return false;
         }
-        // Step along the gate's facing until clear of the ring. One block does it for a
-        // flat gate; the loop covers a portal more than one block deep and stops rather
-        // than walking away for ever if the facing cannot get out.
+        // Which way is out depends on how the portal lies, and the portal blocks say that
+        // without needing to know which shape built the gate. A gate standing upright is
+        // left through its face, along the gate's facing. A gate lying flat is left
+        // upward — stepping along a horizontal facing there would slide the traveller
+        // across the portal and out through the frame ring instead of clear of it.
+        final boolean portalIsFlat = isPortalFlat();
+        final int stepX = portalIsFlat ? 0 : gateFacing.getModX();
+        final int stepY = portalIsFlat ? 1 : gateFacing.getModY();
+        final int stepZ = portalIsFlat ? 0 : gateFacing.getModZ();
+        if ((stepX == 0) && (stepY == 0) && (stepZ == 0))
+        {
+            return false;
+        }
+
+        // One step does it for a portal one block thick; the loop covers a deeper one and
+        // stops rather than walking away for ever if that direction cannot get out.
         final int maxSteps = 4;
         for (int step = 1; step <= maxSteps; step++)
         {
-            final double x = gatePlayerTeleportLocation.getX() + (gateFacing.getModX() * step);
-            final double y = gatePlayerTeleportLocation.getY() + (gateFacing.getModY() * step);
-            final double z = gatePlayerTeleportLocation.getZ() + (gateFacing.getModZ() * step);
+            final double x = gatePlayerTeleportLocation.getX() + (stepX * step);
+            final double y = gatePlayerTeleportLocation.getY() + (stepY * step);
+            final double z = gatePlayerTeleportLocation.getZ() + (stepZ * step);
             final Location candidate = new Location(gateWorld, x, y, z,
                 gatePlayerTeleportLocation.getYaw(), gatePlayerTeleportLocation.getPitch());
             if (!isGatePortalBlockAt(candidate.getBlockX(), candidate.getBlockY(), candidate.getBlockZ()))

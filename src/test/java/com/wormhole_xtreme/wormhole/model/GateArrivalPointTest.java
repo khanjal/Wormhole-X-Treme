@@ -114,7 +114,9 @@ public class GateArrivalPointTest
             final Stargate gate = new Stargate();
             gate.setGateWorld(world);
             gate.setGateFacing(facing);
+            // Two blocks tall, so the portal is upright rather than a floor.
             gate.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
+            gate.getGatePortalBlocks().add(new Location(world, BX, BY + 1, BZ));
             gate.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
 
             assertTrue(gate.normalizeGatePlayerTeleportLocation(), facing + " should have moved");
@@ -123,6 +125,34 @@ public class GateArrivalPointTest
             assertEquals(BX + 0.5 + facing.getModX(), moved.getX(), 1e-9, facing + " x");
             assertEquals(BZ + 0.5 + facing.getModZ(), moved.getZ(), 1e-9, facing + " z");
         }
+    }
+
+    @Test
+    public void aGateLyingFlatIsLeftUpwardNotSideways()
+    {
+        // A horizontal gate's portal is a floor, and its shape marks the exit as a portal
+        // block on purpose. Stepping along a horizontal facing would slide the traveller
+        // across the portal and out through the frame ring rather than clear of it, which
+        // is worse than where they started. Up is the only direction that leaves a floor.
+        final World world = mock(World.class);
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateFacing(BlockFace.SOUTH);
+        for (int dx = 0; dx < 3; dx++)
+        {
+            for (int dz = 0; dz < 3; dz++)
+            {
+                gate.getGatePortalBlocks().add(new Location(world, BX + dx, BY, BZ + dz));
+            }
+        }
+        gate.setGatePlayerTeleportLocation(new Location(world, BX + 1.5, BY, BZ + 1.5));
+
+        assertTrue(gate.normalizeGatePlayerTeleportLocation());
+
+        final Location moved = gate.getGatePlayerTeleportLocation();
+        assertEquals(BY + 1, moved.getY(), 1e-9, "should step up out of the floor");
+        assertEquals(BX + 1.5, moved.getX(), 1e-9, "and not slide across it");
+        assertEquals(BZ + 1.5, moved.getZ(), 1e-9, "and not slide across it");
     }
 
     @Test
@@ -149,9 +179,11 @@ public class GateArrivalPointTest
         final Stargate gate = new Stargate();
         gate.setGateWorld(world);
         gate.setGateFacing(BlockFace.SOUTH);
+        // Upright, and unreasonably deep, so stepping along the facing never gets out.
         for (int z = 0; z < 20; z++)
         {
             gate.getGatePortalBlocks().add(new Location(world, BX, BY, BZ + z));
+            gate.getGatePortalBlocks().add(new Location(world, BX, BY + 1, BZ + z));
         }
         final Location inside = new Location(world, BX + 0.5, BY, BZ + 0.5);
         gate.setGatePlayerTeleportLocation(inside);
