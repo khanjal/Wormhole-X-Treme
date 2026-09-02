@@ -1061,6 +1061,41 @@ class WormholeXTremePlayerListener implements Listener
      *            the player to hold back
      * @return true, so the caller cancels the move event
      */
+    /**
+     * Holds back a player whose trip a listener cancelled, without trapping them.
+     *
+     * <p>Cancelling a move event returns the player to where the move started, so what it
+     * does depends entirely on where that was. Someone walking into the gate is returned to
+     * the block outside it, which is the intended effect. Someone already standing in the
+     * portal is returned into the portal — and since they are still in it on their next
+     * move, that move is cancelled too, and every one after it. They cannot walk out, and
+     * the only way the server ends it is by dropping them.
+     *
+     * <p>That is not hypothetical: the same shape of mistake, in the check that keeps
+     * players out of the exit end of a wormhole, did exactly that.
+     *
+     * <p>So a cancelled trip stops the travel and nothing else. Only a player arriving from
+     * outside is physically held; one already inside is left free to walk away, having
+     * simply not been sent anywhere.
+     *
+     * @param event
+     *            the move being considered
+     * @param stargate
+     *            the gate the player is entering
+     * @return true if the move should be cancelled
+     */
+    private static boolean holdBackCancelledTraveller(final PlayerMoveEvent event, final Stargate stargate)
+    {
+        final Location from = event.getFrom();
+        if (stargate.isGatePortalBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ()))
+        {
+            // Already in the portal: refusing this move, and every following one, is what
+            // would trap them. They simply do not travel.
+            return false;
+        }
+        return true;
+    }
+
     private static boolean refuseGateEntry(final Player player)
     {
         player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
@@ -1259,6 +1294,14 @@ class WormholeXTremePlayerListener implements Listener
             }
 
             final Location safeTarget = findSafePlayerLocation(target);
+
+            // Every check this plugin makes has passed and nothing has moved yet, which is
+            // the only honest point to let another plugin object.
+            if (!com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
+                    stargate, player, stargate.getGateTarget(), safeTarget))
+            {
+                return holdBackCancelledTraveller(event, stargate);
+            }
             // Diagnostic logging for teleport issues
             if (WormholeXTreme.getThisPlugin() != null)
             {
