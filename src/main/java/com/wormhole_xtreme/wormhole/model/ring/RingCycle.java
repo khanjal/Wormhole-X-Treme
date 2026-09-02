@@ -101,6 +101,23 @@ public class RingCycle
         List<RingPassenger> passengersIn(List<int[]> blocks);
 
         /**
+         * Whether anything outside this plugin objects to carrying this passenger.
+         *
+         * <p>Asked through the seam rather than fired from here, so the cycle stays free of
+         * Bukkit and the rule that a refused passenger is dropped from the trip — rather than
+         * cancelling it — can still be tested.
+         *
+         * @param passenger
+         *            who is about to travel
+         * @param from
+         *            the end they are standing in
+         * @param to
+         *            the end they would arrive at
+         * @return false to leave them behind
+         */
+        boolean mayTravel(RingPassenger passenger, Ring from, Ring to);
+
+        /**
          * Moves a passenger to a ring.
          *
          * @param passenger
@@ -269,6 +286,11 @@ public class RingCycle
      * two snapshots are taken together and only then acted on. This is the single most
      * important ordering in the subsystem.
      *
+     * <p>Outside plugins are asked here too, in the same gap: after both ends have been
+     * read and before either has been written, so a listener always sees the whole trip as it
+     * was rather than a half-finished one. A refusal drops that passenger and leaves the rest
+     * of the trip alone.
+     *
      * <p>Players who may not use this pair are dropped between the snapshot and the move.
      * A private ring is not a free ride for whoever happens to be standing in it: they stay
      * where they are while the rings close and open around them. Anything that is not a
@@ -284,8 +306,10 @@ public class RingCycle
         final List<RingPassenger> fromA = occupants(pair.getEndA());
         final List<RingPassenger> fromB = occupants(pair.getEndB());
 
-        final List<RingPassenger> travellingFromA = permitted(fromA);
-        final List<RingPassenger> travellingFromB = permitted(fromB);
+        final List<RingPassenger> travellingFromA =
+            permitted(fromA, pair.getEndA(), pair.getEndB());
+        final List<RingPassenger> travellingFromB =
+            permitted(fromB, pair.getEndB(), pair.getEndA());
 
         for (final RingPassenger passenger : travellingFromA)
         {
@@ -389,17 +413,27 @@ public class RingCycle
      *
      * @param passengers
      *            everything found in a volume
+     * @param from
+     *            the end they are standing in
+     * @param to
+     *            the end they would arrive at
      * @return only what may travel
      */
-    private List<RingPassenger> permitted(final List<RingPassenger> passengers)
+    private List<RingPassenger> permitted(final List<RingPassenger> passengers, final Ring from,
+        final Ring to)
     {
         final List<RingPassenger> out = new ArrayList<RingPassenger>(passengers.size());
         for (final RingPassenger passenger : passengers)
         {
-            if (!passenger.isPlayer() || pair.mayUse(passenger.getUniqueId()))
+            if (passenger.isPlayer() && !pair.mayUse(passenger.getUniqueId()))
             {
-                out.add(passenger);
+                continue;
             }
+            if (!world.mayTravel(passenger, from, to))
+            {
+                continue;
+            }
+            out.add(passenger);
         }
         return out;
     }

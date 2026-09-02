@@ -402,6 +402,22 @@ Refusals say which of the two reasons applies, because a player standing on a si
 deserves to know whether it will fix itself. *Recharging* ends by itself; *already in use*
 and *private* do not.
 
+### A refused ring shows itself
+
+An idle ring is invisible, which is the point of it — the pad reads as ordinary floor until
+it fires. That works against a player the moment a ring turns them away: they are told it is
+recharging while standing on ground that looks like every other patch of ground, with no way
+to tell where the thing is or how much of it they are in.
+
+So a refusal briefly lights the pattern for that one player. It is the same drawing the
+countdown uses, sent only to them and taken back after `rings.outline-ticks`, so nobody else
+sees a ring flicker and nothing is written to the world. `rings.outline-on-refusal` turns it
+off.
+
+Shown for recharging and already-in-use. **Not** for a private pair: somebody being turned
+away from a ring that is not theirs has no business being shown its extent, and being told
+plainly that it is private is enough.
+
 ## Access
 
 A pair is `PRIVATE` or `PUBLIC`, plus a list of players named by the owner. Private means
@@ -573,6 +589,8 @@ rings:
   hold-ticks: 40             # and this long after it, before retracting
   flash-ticks: 3             # how long each ring stays lit as the light passes
   flash-direction: TOP_DOWN  # or BOTTOM_UP
+  outline-on-refusal: true   # light the pattern for somebody a ring turns away
+  outline-ticks: 40          # and for how long
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited; distance itself costs nothing
@@ -655,6 +673,27 @@ into a ring that no longer works for them.
 The allow list itself belongs to the pair rather than to its owner, so people who were
 already using a ring do not lose access because it changed hands.
 
+## Events for other plugins
+
+`RingTravelEvent` fires once per travelling player and is cancellable. Cancelling takes that
+player out of the trip and leaves everyone else in it: the rings still fire, and they stay
+put while the others go. There is no way to cancel a whole cycle from it, because by that
+point the rings are up and coming down again regardless.
+
+**The timing is the part that matters.** It fires after both ends have been read and before
+either has been written, so a listener always sees the trip as it was before any of it
+happened — never a half-finished one with the people from one end already standing in the
+other. That is the same ordering the swap itself depends on, and the event is asked inside
+it rather than around it.
+
+It fires only for players. Mobs, items and vehicles travel as cargo and raise nothing, so
+cancelling stops a person and not the world around them.
+
+The event is reached through the same `Surroundings` seam as everything else, rather than
+being fired from the cycle directly. That keeps the cycle free of Bukkit and lets the rule
+that a refusal *drops a passenger* rather than *cancelling the trip* be tested without a
+server.
+
 ## Layout
 
 ```
@@ -672,6 +711,9 @@ model/ring/RingAnimator.java       where every travelling ring is on every frame
 model/ring/RingCycle.java          one run: phases, the swap, block restore
 model/ring/RingPassenger.java      what the swap needs to know about a traveller
 model/ring/RingPermissions.java    the four nodes
+model/ring/RingMessages.java       what a ring tells the people standing in it
+model/ring/RingOutline.java        showing a refused player where the ring is
+events/RingTravelEvent.java        cancellable, once per travelling player
 model/ring/RingTransit.java        driving a cycle on the server clock
 model/ring/RingYamlManager.java    load and save world files
 model/ring/BukkitRingWorld.java    the one point of contact with a real world
@@ -719,17 +761,19 @@ In rough order of how much they would hurt to get wrong:
 7. A full cycle changes no real block, and leaves nothing drawn behind.
 8. The flash touches every ring exactly once, starting from the top or the floor as
    configured.
-9. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
-10. Overlapping footprints are refused at create, including against gate blocks.
-11. Pattern matching picks the right one of the two, and rejects a near-miss circle.
-12. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
+9. A cancelled `RingTravelEvent` drops that passenger and carries everyone else, and is
+   asked only after both ends have been read.
+10. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
+11. Overlapping footprints are refused at create, including against gate blocks.
+12. Pattern matching picks the right one of the two, and rejects a near-miss circle.
+13. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
-13. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-14. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+14. A damaged entry in a world file is skipped with a log line, and the rest still loads.
+15. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
-15. Pairing refuses a second endpoint placed in a different world, and says why.
-16. `edit` without an id changes only the end the player is standing in; with an id it
+16. Pairing refuses a second endpoint placed in a different world, and says why.
+17. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.
-17. A private pair refuses a stranger, carries the owner and the people they named, and
+18. A private pair refuses a stranger, carries the owner and the people they named, and
     leaves an unpermitted player standing while everyone else goes.
-18. A stored pair with a missing or unreadable access field loads private, never public.
+19. A stored pair with a missing or unreadable access field loads private, never public.

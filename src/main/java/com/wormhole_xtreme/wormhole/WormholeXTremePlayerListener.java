@@ -1069,6 +1069,9 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
                 }
+                // An idle ring is invisible, so being told it is not ready leaves somebody
+                // standing on ground that looks like any other. Show them where it is.
+                com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, end.getRing());
             }
             return;
         }

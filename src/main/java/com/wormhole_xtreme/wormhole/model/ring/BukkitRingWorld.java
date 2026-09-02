@@ -265,6 +265,38 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     }
 
     /* (non-Javadoc)
+     * @see RingCycle.Surroundings#mayTravel(RingPassenger, Ring, Ring)
+     */
+    @Override
+    public boolean mayTravel(final RingPassenger passenger, final Ring from, final Ring to)
+    {
+        if (!(passenger instanceof BukkitRingPassenger))
+        {
+            return true;
+        }
+        final org.bukkit.entity.Entity entity = ((BukkitRingPassenger) passenger).getEntity();
+        if (!(entity instanceof Player))
+        {
+            // Cargo raises nothing, so cancelling stops a person and not the world around
+            // them. An item drifting onto a pad is not a decision anybody wants to make.
+            return true;
+        }
+        final com.wormhole_xtreme.wormhole.events.RingTravelEvent event =
+            new com.wormhole_xtreme.wormhole.events.RingTravelEvent(pair, (Player) entity, from, to);
+        try
+        {
+            org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        }
+        // No server to dispatch through, which happens in tests and during shutdown. A trip
+        // nobody could object to is better than a trip that throws.
+        catch (final RuntimeException ignored)
+        {
+            return true;
+        }
+        return !event.isCancelled();
+    }
+
+    /* (non-Javadoc)
      * @see RingCycle.Surroundings#deliver(RingPassenger, Ring)
      */
     @Override

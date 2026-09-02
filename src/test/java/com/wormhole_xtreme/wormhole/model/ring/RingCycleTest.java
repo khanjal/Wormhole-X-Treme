@@ -152,6 +152,15 @@ public class RingCycleTest
             return new ArrayList<RingPassenger>();
         }
 
+        /** Names of passengers an outside plugin refuses to carry. */
+        final List<String> refuse = new ArrayList<String>();
+
+        @Override
+        public boolean mayTravel(final RingPassenger passenger, final Ring from, final Ring to)
+        {
+            return !refuse.contains(passenger.getName());
+        }
+
         @Override
         public void deliver(final RingPassenger passenger, final Ring destination)
         {
@@ -198,6 +207,39 @@ public class RingCycleTest
 
         assertEquals(2, world.deliveries.size(), "each traveller moved exactly once");
         assertFalse(world.deliveries.contains("alice -> 0:64:0"), "alice was bounced back");
+    }
+
+    @Test
+    public void anOutsidePluginCanTakeOnePassengerOutOfATrip()
+    {
+        // What RingTravelEvent is for. A refusal drops that traveller and leaves the rest of
+        // the trip alone: the rings still fire and everyone else still goes.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.put(pair.getEndA(), new Traveller("alice", "a", true), new Traveller("bob", "b", true));
+        world.refuse.add("alice");
+
+        assertEquals(1, new RingCycle(pair, world, REACH).flash());
+        assertTrue(world.deliveries.contains("bob -> 500:64:500"));
+        assertFalse(world.deliveries.contains("alice -> 500:64:500"));
+    }
+
+    @Test
+    public void anOutsidePluginIsAskedOnlyAfterBothEndsHaveBeenRead()
+    {
+        // The ordering the event's contract rests on. A listener must always see the trip as
+        // it was before any of it happened, never a half-finished one with the people from
+        // one end already standing in the other.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        world.put(pair.getEndA(), new Traveller("alice", "a", true));
+        world.put(pair.getEndB(), new Traveller("bob", "b", true));
+        world.refuse.add("bob");
+
+        assertEquals(1, new RingCycle(pair, world, REACH).flash());
+        assertTrue(world.deliveries.contains("alice -> 500:64:500"),
+            "alice still travels though bob was refused");
+        assertEquals(1, world.deliveries.size());
     }
 
     @Test

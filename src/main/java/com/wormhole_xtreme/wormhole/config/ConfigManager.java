@@ -85,6 +85,10 @@ public class ConfigManager
         RING_FLASH_TICKS,
         /** Which way the transport flash runs: TOP_DOWN or BOTTOM_UP. */
         RING_FLASH_DIRECTION,
+        /** Whether a ring briefly shows its outline to somebody it has turned away. */
+        RING_OUTLINE_ON_REFUSAL,
+        /** How long that outline stays up, in ticks. */
+        RING_OUTLINE_TICKS,
         /** Ticks the ring stack stands still after the swap, before retracting. */
         RING_HOLD_TICKS,
         /** Block layers of passenger volume, measured from the ring plane into the room. */
@@ -509,6 +513,31 @@ public class ConfigManager
         {
             return RingFlashDirection.TOP_DOWN;
         }
+    }
+
+    /**
+     * Whether a ring shows its outline to somebody it has turned away.
+     *
+     * <p>An idle ring is invisible, so a player told it is recharging is standing on ground
+     * that looks like any other. Lighting the pattern for a moment says where it is and how
+     * much of it they are in.
+     *
+     * @return true if refusals should light the pattern
+     */
+    public static boolean isRingOutlineOnRefusal()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_OUTLINE_ON_REFUSAL);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * How long a refused player is shown the ring's outline.
+     *
+     * @return outline time in ticks
+     */
+    public static int getRingOutlineTicks()
+    {
+        return Math.max(1, intSetting(ConfigKeys.RING_OUTLINE_TICKS, 40));
     }
 
     /**
