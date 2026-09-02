@@ -594,6 +594,46 @@ public class RingCycleTest
     }
 
     @Test
+    public void aRunningPairSaysSoSoNothingElseDrawsOverIt()
+    {
+        // Regression: stepping out of a ring and back in while it counted down took the
+        // refusal path, which lit an outline for that player and scheduled it to put "the
+        // real blocks" back two seconds later — landing as the rings deployed and wiping the
+        // cycle's own lights. Anything that draws over a ring has to be able to tell that a
+        // cycle owns those blocks.
+        final RingPair pair = pair();
+        final RingCycle cycle = new RingCycle(pair, new FakeWorld(), REACH);
+        assertFalse(pair.isMidCycle(), "idle to begin with");
+
+        cycle.beginCountdown();
+        assertTrue(pair.isMidCycle(), "counting down counts as running");
+
+        cycle.beginDeploy();
+        assertTrue(pair.isMidCycle());
+        cycle.flash();
+        assertTrue(pair.isMidCycle());
+        cycle.beginHold();
+        assertTrue(pair.isMidCycle());
+        cycle.beginRetract();
+        assertTrue(pair.isMidCycle());
+
+        cycle.finish(0L);
+        assertFalse(pair.isMidCycle(), "and idle again once it is over");
+    }
+
+    @Test
+    public void anAbortedCycleIsIdleAgainStraightAway()
+    {
+        // The other way a cycle ends. It has to release the pad too, or a ring that stood
+        // down would stay marked as busy and nothing could draw on it again.
+        final RingPair pair = pair();
+        final RingCycle cycle = new RingCycle(pair, new FakeWorld(), REACH);
+        cycle.beginCountdown();
+        cycle.abort();
+        assertFalse(pair.isMidCycle());
+    }
+
+    @Test
     public void finishingStartsTheCooldownThatKeepsArrivalsFromBouncing()
     {
         final RingPair pair = pair();

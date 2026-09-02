@@ -26,9 +26,12 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * countdown uses, sent only to them and taken back a couple of seconds later, so nobody else
  * sees a ring flicker and nothing is written to the world.
  *
- * <p>Shown for the refusals that pass — recharging, and already in use. Not for a private
- * pair: somebody being turned away from a ring that is not theirs has no business being
- * shown its extent, and telling them plainly that it is private is enough.
+ * <p>Shown only for a ring that is <b>recharging</b>. Not for one that is mid-cycle, because
+ * that pad is already lit and there is nothing to point out — and drawing over it would mean
+ * putting the cycle's own lights out when this expired, which is exactly what used to happen
+ * to anybody who stepped out of a ring and back in while it was counting down. Not for a
+ * private pair either: somebody turned away from a ring that is not theirs has no business
+ * being shown its extent, and being told plainly that it is private is enough.
  */
 public final class RingOutline
 {
@@ -43,13 +46,21 @@ public final class RingOutline
      *
      * @param player
      *            who to show it to
+     * @param pair
+     *            the pair it belongs to, so a running cycle is left alone
      * @param ring
      *            the ring to outline
      */
-    public static void flash(final Player player, final Ring ring)
+    public static void flash(final Player player, final RingPair pair, final Ring ring)
     {
         if (!ConfigManager.isRingOutlineOnRefusal())
         {
+            return;
+        }
+        if (pair.isMidCycle())
+        {
+            // The pad is already lit by the cycle, so there is nothing to point out — and
+            // drawing over it would mean clearing the cycle's own lights when this expires.
             return;
         }
         final World world = player.getWorld();
@@ -68,7 +79,7 @@ public final class RingOutline
         {
             return;
         }
-        clearLater(player, world, blocks);
+        clearLater(player, pair, world, blocks);
     }
 
     /**
@@ -76,12 +87,15 @@ public final class RingOutline
      *
      * @param player
      *            who was shown the outline
+     * @param pair
+     *            the pair, so a cycle that has since started is left alone
      * @param world
      *            the world it was drawn in
      * @param blocks
      *            what was drawn
      */
-    private static void clearLater(final Player player, final World world, final List<int[]> blocks)
+    private static void clearLater(final Player player, final RingPair pair, final World world,
+        final List<int[]> blocks)
     {
         if ((WormholeXTreme.getScheduler() == null) || (WormholeXTreme.getThisPlugin() == null))
         {
@@ -95,6 +109,13 @@ public final class RingOutline
                 {
                     if (!player.isOnline())
                     {
+                        return;
+                    }
+                    if (pair.isMidCycle())
+                    {
+                        // A cycle started while this was showing and is drawing these blocks
+                        // itself now. Sending the real ones back would put its lights out;
+                        // it will clear up after itself when it finishes.
                         return;
                     }
                     try

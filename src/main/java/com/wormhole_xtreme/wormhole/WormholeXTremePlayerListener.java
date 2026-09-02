@@ -1064,14 +1064,18 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(
                         player, pair.getCooldownUntil() - now);
+                    // A recharging ring is invisible, so being told it is not ready leaves
+                    // somebody standing on ground that looks like any other. Show them where
+                    // it is. Not done for a ring that is mid-cycle: that pad is already lit,
+                    // so there is nothing to point out and the outline would put those lights
+                    // out when it expired.
+                    com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(
+                        player, pair, end.getRing());
                 }
                 else
                 {
                     com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
                 }
-                // An idle ring is invisible, so being told it is not ready leaves somebody
-                // standing on ground that looks like any other. Show them where it is.
-                com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, end.getRing());
             }
             return;
         }

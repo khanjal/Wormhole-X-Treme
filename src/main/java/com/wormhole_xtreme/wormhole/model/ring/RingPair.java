@@ -252,6 +252,20 @@ public class RingPair
     }
 
     /**
+     * Whether a cycle is running, and this pair is therefore drawing its own blocks.
+     *
+     * <p>Anything else that draws over a ring — the outline shown to somebody it turned
+     * away — has to leave those blocks alone, because putting "the real block" back while a
+     * cycle is lighting them wipes the cycle's own drawing.
+     *
+     * @return true if a cycle is running
+     */
+    public boolean isMidCycle()
+    {
+        return phase != RingPhase.IDLE;
+    }
+
+    /**
      * Whether the given player owns this pair.
      *
      * @param uuid

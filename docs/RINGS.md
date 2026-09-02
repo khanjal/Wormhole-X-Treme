@@ -448,9 +448,19 @@ countdown uses, sent only to them and taken back after `rings.outline-ticks`, so
 sees a ring flicker and nothing is written to the world. `rings.outline-on-refusal` turns it
 off.
 
-Shown for recharging and already-in-use. **Not** for a private pair: somebody being turned
-away from a ring that is not theirs has no business being shown its extent, and being told
-plainly that it is private is enough.
+Shown **only for a recharging ring**. Not for one that is mid-cycle: that pad is already lit,
+so there is nothing to point out, and drawing over it would put the cycle's own lights out
+when the outline expired. That is not hypothetical — it is what happened to anybody who
+stepped out of a ring and back in while it was counting down. The second entry took the
+refusal path, lit an outline, and its clean-up landed two seconds later exactly as the rings
+deployed.
+
+The clean-up also checks again before it runs, in case a cycle started while the outline was
+showing. Anything that draws over a ring has to be able to tell that a cycle owns those
+blocks, which is what `RingPair.isMidCycle()` is for.
+
+Not shown for a private pair either: somebody turned away from a ring that is not theirs has
+no business being shown its extent, and being told plainly that it is private is enough.
 
 ## Names
 

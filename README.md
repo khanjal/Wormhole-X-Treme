@@ -595,7 +595,8 @@ would drop you on the floor beside it.
 
 A pair will not fire again for a minute afterwards. Walking onto a pad that is recharging
 tells you how long is left and briefly lights the pattern so you can see where the ring is,
-since an idle one is invisible.
+since an idle one is invisible. Walking onto one that is already running just says so — its
+pad is lit already, so there is nothing to point out.
 
 Naming an end makes the messages useful: `/wormhole ring edit name Tower`, standing in the
 ring you mean, and its partner then tells travellers they are heading for Tower.
