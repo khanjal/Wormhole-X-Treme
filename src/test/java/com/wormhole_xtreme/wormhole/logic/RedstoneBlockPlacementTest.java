@@ -52,12 +52,16 @@ public class RedstoneBlockPlacementTest
     private static List<String> shippedShapeNames() throws Exception
     {
         final List<String> names = new ArrayList<String>();
-        for (final Path p : Files.list(SHAPE_DIR).toList())
+        // try-with-resources: Files.list holds an open directory handle until closed.
+        try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
         {
-            final String file = p.getFileName().toString();
-            if (file.endsWith(".shape"))
+            for (final Path p : listing.toList())
             {
-                names.add(file.substring(0, file.length() - ".shape".length()));
+                final String file = p.getFileName().toString();
+                if (file.endsWith(".shape"))
+                {
+                    names.add(file.substring(0, file.length() - ".shape".length()));
+                }
             }
         }
         java.util.Collections.sort(names);
