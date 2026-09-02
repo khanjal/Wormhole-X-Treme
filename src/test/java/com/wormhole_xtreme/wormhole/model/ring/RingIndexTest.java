@@ -25,8 +25,8 @@ public class RingIndexTest
     /** A pair whose two ends are far enough apart not to overlap. */
     private static RingPair pair(final RingOrientation orientation)
     {
-        final Ring a = new Ring(100, 64, 100, RingPattern.ODD, orientation, Material.STONE_SLAB);
-        final Ring b = new Ring(200, 64, 200, RingPattern.ODD, orientation, Material.STONE_SLAB);
+        final Ring a = new Ring(100, 64, 100, RingPattern.ODD, orientation, Material.STONE_SLAB, Material.GLOWSTONE);
+        final Ring b = new Ring(200, 64, 200, RingPattern.ODD, orientation, Material.STONE_SLAB, Material.GLOWSTONE);
         return new RingPair("testpair", WORLD, a, b);
     }
 

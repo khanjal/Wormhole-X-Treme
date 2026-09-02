@@ -43,8 +43,11 @@ public class Ring
     /** Whether the ring is set into a floor or a ceiling. */
     private final RingOrientation orientation;
 
-    /** What the perimeter becomes while the ring is deployed. */
-    private Material material;
+    /** The travelling slabs. Must be a slab: the rise animation is built out of slab halves. */
+    private Material ringMaterial;
+
+    /** What the perimeter shows during the countdown, before anything moves. */
+    private Material lightMaterial;
 
     /**
      * Instantiates a new ring.
@@ -59,18 +62,21 @@ public class Ring
      *            which of the two footprints this ring is
      * @param orientation
      *            whether the ring is set into a floor or a ceiling
-     * @param material
-     *            what the perimeter becomes while deployed
+     * @param ringMaterial
+     *            the travelling slabs; must be a slab
+     * @param lightMaterial
+     *            what the perimeter shows during the countdown
      */
     public Ring(final int anchorX, final int anchorY, final int anchorZ, final RingPattern pattern,
-        final RingOrientation orientation, final Material material)
+        final RingOrientation orientation, final Material ringMaterial, final Material lightMaterial)
     {
         this.anchorX = anchorX;
         this.anchorY = anchorY;
         this.anchorZ = anchorZ;
         this.pattern = pattern;
         this.orientation = orientation;
-        this.material = material;
+        this.ringMaterial = ringMaterial;
+        this.lightMaterial = lightMaterial;
     }
 
     /** @return anchor x */
@@ -103,21 +109,59 @@ public class Ring
         return orientation;
     }
 
-    /** @return what the perimeter becomes while the ring is deployed */
-    public Material getMaterial()
+    /** @return the travelling slabs */
+    public Material getRingMaterial()
     {
-        return material;
+        return ringMaterial;
     }
 
     /**
-     * Sets what the perimeter becomes while the ring is deployed.
+     * Sets the travelling slab material.
+     *
+     * @param ringMaterial
+     *            the new material; should satisfy {@link #isUsableAsRing(Material)}
+     */
+    public void setRingMaterial(final Material ringMaterial)
+    {
+        this.ringMaterial = ringMaterial;
+    }
+
+    /** @return what the perimeter shows during the countdown */
+    public Material getLightMaterial()
+    {
+        return lightMaterial;
+    }
+
+    /**
+     * Sets the countdown light material.
+     *
+     * @param lightMaterial
+     *            the new material; anything placeable will do
+     */
+    public void setLightMaterial(final Material lightMaterial)
+    {
+        this.lightMaterial = lightMaterial;
+    }
+
+    /**
+     * Whether a material can be used for the travelling ring.
+     *
+     * <p>It has to be a slab, and not for decoration. The rise is built out of slab halves —
+     * a bottom slab fills the lower half of its block and a top slab the upper half — which
+     * is the only way to get half-block resolution out of block placement. Anything else
+     * would step a full block at a time and stop reading as rings rising.
+     *
+     * <p>Tested by name rather than through {@code Tag.SLABS} or {@code createBlockData()},
+     * both of which need a live server registry. This is called from command validation,
+     * which should be unit-testable, and every slab in the game ends this way.
      *
      * @param material
-     *            the new material
+     *            the candidate material
+     * @return true if it can be the travelling ring
      */
-    public void setMaterial(final Material material)
+    public static boolean isUsableAsRing(final Material material)
     {
-        this.material = material;
+        return (material != null) && material.name().endsWith("_SLAB");
     }
 
     /**

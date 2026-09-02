@@ -125,8 +125,8 @@ Pairs:
     OwnerName: Justin
     Label: ""
     Created: 1756771200000
-    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Material: STONE_SLAB}
-    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: ODD, Material: STONE_SLAB}
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
+    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
 ```
 
 The `World` field inside the file is authoritative, not the filename. World names can
@@ -276,6 +276,38 @@ Arming stays interior-only: stepping on the ring's edge does not start a countdo
 the perimeter is a threshold you cross rather than a place you stand. The nudge only
 applies to a cycle already underway.
 
+## Materials
+
+A ring has two, and they do different jobs:
+
+| | Default | Constraint | Shown |
+|---|---|---|---|
+| Ring | `STONE_SLAB` | **Must be a slab** | The travelling rings, during deploy and retract |
+| Light | `GLOWSTONE` | Any placeable block | The perimeter during the countdown |
+
+The ring material is constrained and the light one is not. The rise is built out of slab
+halves — a bottom slab fills the lower half of its block, a top slab the upper half — and
+that is the only way to move half a block per frame. A full block would silently cost the
+animation its resolution, which is the entire visual effect, so a non-slab is refused at the
+command rather than accepted and quietly disappointing.
+
+The light is just a block that appears in the ring's own pattern and goes away again, so it
+has no such requirement.
+
+**Both are stored per end, and the two ends are meant to differ.** A ring in a stone base
+and its partner in a deepslate mine should each look like where they are, so the material
+belongs to the end rather than to the link. Nothing about a pair requires its two halves to
+match.
+
+That is what shapes the `edit` command below: standing in a ring edits that ring, and
+naming a pair by id edits both. Proximity means precision.
+
+**These are not `MaterialGroup` palettes**, and an earlier draft of this document was wrong
+to say they would be. A gate's palette is identified by the material its frame is actually
+built from, which works because a gate's frame is permanent. A ring is invisible when idle
+and has no frame to read, so there is nothing to identify a group by. Two plain config
+defaults plus per-ring overrides is the whole of it.
+
 ## Animation
 
 Half-block resolution comes from slab type rather than position. A `BOTTOM` slab fills the
@@ -327,7 +359,9 @@ rings:
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited
-  default-material: STONE_SLAB
+  default-ring-material: STONE_SLAB
+  default-light-material: GLOWSTONE
+  reach: 4                   # block layers of passenger volume, from the ring plane
 ```
 
 ## Commands and permissions
@@ -336,13 +370,32 @@ Registered in the `SubCommands` table, which drives dispatch, tab completion and
 one declaration.
 
 ```
-/wormhole ring create              build the pad you are standing in; twice to pair
-/wormhole ring cancel              discard a pending first endpoint
-/wormhole ring list                your pairs, by label where set
-/wormhole ring remove <id>         remove both ends
-/wormhole ring label <id> <text>   optional, display only
-/wormhole ring material <id> <m>   what the ring becomes when it rises
+/wormhole ring create                     build the pad you are standing in; twice to pair
+/wormhole ring cancel                     discard a pending first endpoint
+/wormhole ring list                       your pairs, by label where set
+/wormhole ring remove [id]                remove both ends
+/wormhole ring edit <field> <value>       edit the ring you are standing in
+/wormhole ring edit <id> <field> <value>  edit both ends of that pair
+
+  fields:  ring <material>    the travelling slabs; must be a slab   per end
+           light <material>   the countdown lights                   per end
+           label <text>       display only                           per pair
 ```
+
+Everything adjustable lives under one `edit` verb rather than a subcommand per field. Gates
+grew a separate top-level command for each — `portalmaterial`, `irismaterial`,
+`lightmaterial`, `wooshdepth` — which is four registry entries, four usage strings and four
+completers saying the same thing four ways. `edit` takes the field as an argument and stays
+one entry however many fields rings end up with.
+
+**Whether an id is given is what selects the scope**, and it reads the way people work.
+You are usually standing in the ring you want to change, having just walked to it to look
+at it, so the id is omitted and only that end changes. Naming a pair by id means you are
+somewhere else and thinking about the pair as a whole, so both ends change. `label` is a
+property of the pair and ignores the distinction; standing in either end sets it.
+
+Working out which ring you are standing in costs nothing — it is the same `RingIndex`
+lookup the move path makes.
 
 ```
 wormhole.ring.build       create and pair rings          default: op
@@ -374,7 +427,6 @@ Reused:
 - The chunk-bucketing approach of `GateSpatialIndex` — ring detection is on the move path
   and must be a hash lookup, not a scan.
 - `StargateAnimator`'s save-original/restore discipline for animated blocks.
-- `MaterialGroup` and the `gate-material-groups` config, rather than a parallel palette.
 - The `SubCommands` registry, `WXPermissions`, the `GateEvents` fire pattern,
   `findSafePlayerLocation`, and `StargateYamlManager` as a persistence template.
 
@@ -402,3 +454,5 @@ In rough order of how much they would hurt to get wrong:
 9. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
 10. Pairing refuses a second endpoint placed in a different world, and says why.
+11. `edit` without an id changes only the end the player is standing in; with an id it
+    changes both, and a non-slab ring material is refused either way.
