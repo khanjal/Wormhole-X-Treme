@@ -183,6 +183,22 @@ public class WormholeXTreme extends JavaPlugin
                     StargateDBManager.saveStargate(gate);
                 }
 
+                // Any cycle still mid-animation is put back before its blocks are saved as
+                // part of the world, otherwise a server stopped at the wrong moment keeps
+                // the rings standing in the floor for good.
+                try
+                {
+                    com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
+                    for (final String world : ringWorlds())
+                    {
+                        com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
+                    }
+                }
+                catch (final Exception e)
+                {
+                    prettyLog(Level.WARNING, false, "Failed to save transport rings: " + e.getMessage());
+                }
+
                 StargateDBManager.shutdown();
                 try
                 {
@@ -200,6 +216,25 @@ public class WormholeXTreme extends JavaPlugin
             {
                     prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
             }
+    }
+
+    /**
+     * Every world that currently holds a ring pair.
+     *
+     * <p>Saving is per world, so the set of worlds to write is whichever ones have rings in
+     * them rather than every world the server has loaded.
+     *
+     * @return the world names to save
+     */
+    private static java.util.Set<String> ringWorlds()
+    {
+        final java.util.Set<String> worlds = new java.util.HashSet<String>();
+        for (final com.wormhole_xtreme.wormhole.model.ring.RingPair pair
+            : com.wormhole_xtreme.wormhole.model.ring.RingManager.getAllPairs())
+        {
+            worlds.add(pair.getWorldName());
+        }
+        return worlds;
     }
 
     /* (non-Javadoc)
@@ -238,6 +273,19 @@ public class WormholeXTreme extends JavaPlugin
         {
             prettyLog(Level.WARNING, false, "Failed to load stored gates: " + e.getMessage());
             StargateDBManager.loadStargates(getThisPlugin().getServer());
+        }
+        // Rings load after gates so that a ring overlapping gate blocks is refused against
+        // an index that is already populated.
+        try
+        {
+            final int rings = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadAll(
+                ConfigManager.getRingReach());
+            prettyLog(Level.INFO, true, "Loaded " + rings + " transport ring pairs.");
+        }
+        // A ring subsystem that cannot load must not stop the gates from working.
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, false, "Failed to load transport rings: " + e.getMessage());
         }
         registerEvents(false);
         registerCommands();

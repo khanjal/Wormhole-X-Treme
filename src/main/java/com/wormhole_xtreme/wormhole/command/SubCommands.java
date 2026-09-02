@@ -179,6 +179,33 @@ public final class SubCommands
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
             new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
 
+        // --- Transport rings --------------------------------------------------
+        register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
+            new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false, args ->
+            {
+                if (args.length == 2)
+                {
+                    return prefixed(args[1], "create", "cancel", "list", "remove", "edit",
+                        "allow", "deny", "owner");
+                }
+                if ((args.length == 3) && "edit".equalsIgnoreCase(args[1]))
+                {
+                    return prefixed(args[2], "ring", "light", "label", "access", "style");
+                }
+                if (args.length == 4)
+                {
+                    if ("access".equalsIgnoreCase(args[2]))
+                    {
+                        return prefixed(args[3], "public", "private");
+                    }
+                    if ("style".equalsIgnoreCase(args[2]))
+                    {
+                        return prefixed(args[3], "concurrent", "sequential");
+                    }
+                }
+                return none();
+            });
+
         // --- Server settings -------------------------------------------------
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);

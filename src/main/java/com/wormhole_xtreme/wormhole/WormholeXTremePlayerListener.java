@@ -981,6 +981,10 @@ class WormholeXTremePlayerListener implements Listener
             event.setCancelled(true);
             return;
         }
+        // Rings are asked only once no gate has claimed this move, so gates keep priority
+        // and the two can never both act on one step. Ring creation refuses any footprint
+        // touching gate blocks, so in practice they never contend for the same block at all.
+        handleRingMoveEvent(event);
         if (hasChangedChunk(event.getFrom(), event.getTo()))
         {
             // Crossing into a chunk the client has not held before means the client is
@@ -989,6 +993,55 @@ class WormholeXTremePlayerListener implements Listener
             // range, and covers coming back to one after being away.
             refreshPortalVisualsFor(event.getPlayer());
         }
+    }
+
+    /**
+     * Arms a transport ring if this move took the player into one.
+     *
+     * <p>The whole of ring detection on the move path, and it is deliberately three lines of
+     * work: a hash lookup for the block, a question to the pair about whether it will fire,
+     * and a permission check. Every player crossing every block boundary runs this, so it
+     * cannot afford to be anything more.
+     *
+     * <p>Only the interior arms a ring. Standing on the edge is crossing a threshold rather
+     * than standing in the thing, and firing on it would take people who were walking past.
+     *
+     * <p>There is no arrival guard here and none is needed. The cooldown is shared by both
+     * ends of a pair, so somebody who has just landed cannot re-fire the ring they landed in
+     * — the settle-move after a teleport arrives long inside the cooldown that same cycle
+     * started. Somebody still standing there and still moving a full cooldown later does
+     * fire it again, and travels back, which is the intended behaviour rather than a bug.
+     *
+     * @param event
+     *            the move being considered
+     */
+    private static void handleRingMoveEvent(final PlayerMoveEvent event)
+    {
+        final Location to = event.getTo();
+        if ((to == null) || (to.getWorld() == null))
+        {
+            return;
+        }
+        final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end =
+            com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
+                to.getWorld().getName(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
+        if (end == null)
+        {
+            return;
+        }
+        final com.wormhole_xtreme.wormhole.model.ring.RingPair pair = end.getPair();
+        if (!pair.canFire(System.currentTimeMillis()))
+        {
+            return;
+        }
+        // Arming is a use of the ring, so the same permission governs it as governs being
+        // carried. Somebody who cannot travel by a pair should not be able to set it off
+        // for everybody else either.
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(event.getPlayer(), pair))
+        {
+            return;
+        }
+        com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair);
     }
 
     /**

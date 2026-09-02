@@ -1,7 +1,9 @@
 # Transport Rings — Design
 
-Status: design, not implemented. This document records the decisions behind the ring
-subsystem so they can be reviewed before any code exists.
+Status: in progress on `feature/rings`. Geometry, storage, access, the cycle and the
+Bukkit wiring are built and tested; template detection is not yet joined up to
+`/wormhole ring create`. This document records the decisions, and stays the place they are
+argued about.
 
 Rings are a second way to travel, alongside stargates. They are deliberately *not* a
 variant of a gate: a gate is a named, addressable, dialable structure with a DHD, an iris,
@@ -477,6 +479,7 @@ one declaration.
 /wormhole ring edit <id> <field> <value>  edit both ends of that pair
 /wormhole ring allow <player> [id]        let somebody use it
 /wormhole ring deny <player> [id]         stop them
+/wormhole ring owner <player> [id]        hand the pair to somebody else
 
   fields:  ring <material>    the travelling slabs; must be a slab   per end
            light <material>   the countdown lights                   per end
@@ -501,28 +504,68 @@ Working out which ring you are standing in costs nothing — it is the same `Rin
 lookup the move path makes.
 
 ```
-wormhole.ring.build       create and pair rings          default: op
-wormhole.ring.use         travel by ring                 default: true
-wormhole.ring.use.all     use any pair, private or not   default: op
-wormhole.ring.remove      remove your own pairs          default: true
-wormhole.ring.remove.all  remove anyone's pairs          default: op
-wormhole.ring.unlimited   bypass the per-player quota    default: op
+wormhole.ring.build       create and pair rings                  default: op
+wormhole.ring.use         travel by a ring you are allowed on    default: true
+wormhole.ring.admin       use and manage any pair                default: op
+wormhole.ring.unlimited   bypass the per-player quota            default: op
 ```
 
-## Proposed layout
+Ring permissions are checked by `RingPermissions`, not by `WXPermissions`. The gate class is
+built around gates — its checks take a `Stargate`, consult its network, and fall through
+owner and network rules that mean nothing here. Rings have no networks, dialers or signs, so
+running them through it would mean adding cases that ignore most of their own arguments.
+Four nodes and an operator bypass is the whole requirement.
+
+Being named on a private pair's allow list lets somebody **travel** by it. It does not let
+them recolour, rename, give away or delete it — managing a pair stays with its owner and
+with staff.
+
+### Handing a pair to somebody else
+
+`/wormhole ring owner <player> [id]` transfers ownership, written for staff building rings
+for a player but equally a gift between players.
+
+The quota is checked **against the recipient**, because a transfer that skipped it would let
+anyone past their limit by having a friend build the ring and hand it over.
+
+The previous owner is not quietly kept on the allow list. Staff who built a ring for
+somebody should not be left with standing access to it, and a player who gave one away and
+wants to keep using it can be added back by its new owner — whose call that is, not ours. On
+a private pair the command says so plainly rather than letting them discover it by walking
+into a ring that no longer works for them.
+
+The allow list itself belongs to the pair rather than to its owner, so people who were
+already using a ring do not lose access because it changed hands.
+
+## Layout
 
 ```
-model/ring/Ring.java             one endpoint: world, anchor, orientation, pattern, material
-model/ring/RingPair.java         the persisted unit: id, owner, label, two endpoints, state
-model/ring/RingPattern.java      the two offset tables, perimeter and interior
-model/ring/RingManager.java      registries by id and by block, pending endpoints
-model/ring/RingIndex.java        chunk-bucketed interior lookup for the move path
-model/ring/RingAnimator.java     glowstone phase, slab travel, restore
-model/ring/RingTransit.java      per-pair state machine, cooldown, the atomic swap
-model/ring/RingYamlManager.java  load and save pair files
+model/ring/RingPattern.java        the two offset tables, generated from row widths
+model/ring/Ring.java               one endpoint: anchor, orientation, pattern, materials
+model/ring/RingOrientation.java    floor or ceiling, and what that flips
+model/ring/RingPair.java           the persisted unit: id, owner, access, style, two ends
+model/ring/RingAccess.java         public or private
+model/ring/RingStyle.java          concurrent or sequential deploy
+model/ring/RingPhase.java          where a pair is in its cycle
+model/ring/RingTemplate.java       reading a ring out of laid slabs
+model/ring/RingManager.java        registry, pending endpoints, placement rules
+model/ring/RingIndex.java          block lookup for the move path
+model/ring/RingAnimator.java       where every travelling ring is on every frame
+model/ring/RingCycle.java          one run: phases, the swap, block restore
+model/ring/RingPassenger.java      what the swap needs to know about a traveller
+model/ring/RingPermissions.java    the four nodes
+model/ring/RingTransit.java        driving a cycle on the server clock
+model/ring/RingYamlManager.java    load and save world files
+model/ring/BukkitRingWorld.java    the one point of contact with a real world
+model/ring/BukkitRingPassenger.java
 command/handlers/RingCommand.java
-events/RingTravelEvent.java
 ```
+
+The split that matters is the last few. Everything above `RingTransit` is pure or reaches
+the world through a two-method interface, so the ordering of the swap, the frame arithmetic,
+the restore bookkeeping and the placement rules are all testable with no server running.
+`RingTransit` and `BukkitRingWorld` are what is left once that is taken out, and they are
+deliberately dull — scheduling and block placement with no decisions in them.
 
 ## What is reused, and what is not
 
@@ -538,6 +581,7 @@ Not reused:
 
 - `Stargate` itself. 2,127 lines of DHD, sign, iris, redstone, network and woosh state,
   approximately none of which a ring has.
+- `WXPermissions`, for the reason given under Access.
 - `GateSerializer`, for the legacy-versions reason above.
 - The `.shape` format, for the two-fixed-patterns reason above.
 - `GateEntityScanner`'s per-tick sweep, replaced by one call at the flash.

@@ -25,6 +25,7 @@ commands:
       Gates:    list, build, complete, remove, regenerate, refresh
       Travel:   go, compass, force
       Per gate: owner, idc, redstone, custom, portalmaterial, irismaterial, lightmaterial, wooshdepth
+      Rings:    ring create|cancel|list|remove|edit|allow|deny|owner
       Server:   shutdown_timeout, activate_timeout, cooldown, restrict
       Run /<command> with no arguments for the full list.
 
@@ -51,6 +52,18 @@ permissions:
     default: op
   wormhole.config:
     description: Allow changing plugin configuration via command.
+    default: op
+  wormhole.ring.build:
+    description: Allow building and pairing transport rings.
+    default: op
+  wormhole.ring.use:
+    description: Allow travelling by a transport ring you are permitted on.
+    default: true
+  wormhole.ring.admin:
+    description: Allow using and managing any ring pair, whoever owns it.
+    default: op
+  wormhole.ring.unlimited:
+    description: Allow owning more ring pairs than the configured quota.
     default: op
   wormhole.list:
     description: Allow listing gates via command.

@@ -2,6 +2,9 @@ package com.wormhole_xtreme.wormhole.config;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
+import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
+import org.bukkit.Material;
 
 
 /**
@@ -68,6 +71,29 @@ public class ConfigManager
         LOG_LEVEL,
         /** Tick interval for periodic non-player entity gate scan. */
         ENTITY_SCAN_INTERVAL_TICKS,
+
+        /** Ticks a ring pair counts down before it commits and the rings start rising. */
+        RING_COUNTDOWN_TICKS,
+        /** Ticks a ring pair refuses to fire again after a cycle. */
+        RING_COOLDOWN_TICKS,
+        /** Ticks between frames of the ring deploy and retract animations. */
+        RING_DEPLOY_TICKS,
+        /** Ticks the ring stack stands still after the swap, before retracting. */
+        RING_HOLD_TICKS,
+        /** Block layers of passenger volume, measured from the ring plane into the room. */
+        RING_REACH,
+        /** Required distance between ring anchors, in blocks. */
+        RING_MIN_SEPARATION,
+        /** How many ring pairs one player may own. Zero means no limit. */
+        RING_MAX_PAIRS_PER_PLAYER,
+        /** What a newly built ring pair starts as: PUBLIC or PRIVATE. */
+        RING_DEFAULT_ACCESS,
+        /** How a ring stack deploys: CONCURRENT or SEQUENTIAL. */
+        RING_DEFAULT_STYLE,
+        /** Fallback ring material, used only when the template cannot say. */
+        RING_DEFAULT_MATERIAL,
+        /** What the countdown lights are made of. */
+        RING_DEFAULT_LIGHT,
         /** Whether to append newly-seen shape palettes to config.yml automatically. */
         GATE_MATERIAL_GROUPS_AUTODISCOVER,
         /** Whether economy (Vault) integration is enabled. */
@@ -392,6 +418,183 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS);
         final int configured = (s != null) ? s.getIntValue() : 20;
         return Math.max(5, configured);
+    }
+
+    /**
+     * How long a ring pair counts down before committing.
+     *
+     * <p>Floored rather than taken as written. The abort window only means anything because
+     * the countdown outlasts the second or so it takes to walk clear of a ring; set much
+     * below that and rings start taking people who were only passing through.
+     *
+     * @return countdown in ticks, at least 20
+     */
+    public static int getRingCountdownTicks()
+    {
+        return Math.max(20, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 60));
+    }
+
+    /**
+     * How long a pair refuses to fire after a cycle.
+     *
+     * @return cooldown in ticks
+     */
+    public static int getRingCooldownTicks()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_COOLDOWN_TICKS, 1200));
+    }
+
+    /**
+     * Ticks between animation frames.
+     *
+     * @return frame interval in ticks, at least 1
+     */
+    public static int getRingDeployTicks()
+    {
+        return Math.max(1, intSetting(ConfigKeys.RING_DEPLOY_TICKS, 2));
+    }
+
+    /**
+     * How long the stack stands still after the swap.
+     *
+     * @return hold in ticks
+     */
+    public static int getRingHoldTicks()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_HOLD_TICKS, 40));
+    }
+
+    /**
+     * How deep a ring's passenger volume runs.
+     *
+     * <p>Matters most for ceiling rings, where the floor people stand on may be several
+     * blocks below the ring itself. At least two, so a player's feet and head both count.
+     *
+     * @return reach in block layers, at least 2
+     */
+    public static int getRingReach()
+    {
+        return Math.max(2, intSetting(ConfigKeys.RING_REACH, 4));
+    }
+
+    /**
+     * Required distance between ring anchors.
+     *
+     * @return separation in blocks
+     */
+    public static int getRingMinSeparation()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_MIN_SEPARATION, 8));
+    }
+
+    /**
+     * How many pairs one player may own.
+     *
+     * @return the quota, or zero for no limit
+     */
+    public static int getRingMaxPairsPerPlayer()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_MAX_PAIRS_PER_PLAYER, 10));
+    }
+
+    /**
+     * What a newly built pair starts as.
+     *
+     * <p>Private unless a server says otherwise, and private again if the value is not one
+     * this understands. Rings are personal links rather than public infrastructure, and a
+     * typo here should not publish every ring somebody builds afterwards.
+     *
+     * @return the starting access mode
+     */
+    public static RingAccess getRingDefaultAccess()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_DEFAULT_ACCESS);
+        try
+        {
+            return RingAccess.valueOf(
+                String.valueOf(s == null ? "PRIVATE" : s.getStringValue()).toUpperCase());
+        }
+        catch (final RuntimeException e)
+        {
+            return RingAccess.PRIVATE;
+        }
+    }
+
+    /**
+     * How a ring stack deploys.
+     *
+     * @return the starting animation style
+     */
+    public static RingStyle getRingDefaultStyle()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_DEFAULT_STYLE);
+        try
+        {
+            return RingStyle.valueOf(
+                String.valueOf(s == null ? "CONCURRENT" : s.getStringValue()).toUpperCase());
+        }
+        catch (final RuntimeException e)
+        {
+            return RingStyle.CONCURRENT;
+        }
+    }
+
+    /**
+     * Fallback material for the travelling rings.
+     *
+     * <p>Normally unused: a ring keeps whatever slab it was laid in. This only answers when
+     * the template could not say.
+     *
+     * @return the fallback slab material
+     */
+    public static Material getRingDefaultMaterial()
+    {
+        return materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.STONE_SLAB);
+    }
+
+    /**
+     * What the countdown lights are made of.
+     *
+     * @return the light material
+     */
+    public static Material getRingDefaultLight()
+    {
+        return materialSetting(ConfigKeys.RING_DEFAULT_LIGHT, Material.GLOWSTONE);
+    }
+
+    /**
+     * Reads an int setting, falling back when it is missing.
+     *
+     * @param key
+     *            which setting
+     * @param fallback
+     *            what to use when it is absent
+     * @return the value
+     */
+    private static int intSetting(final ConfigKeys key, final int fallback)
+    {
+        final Setting s = ConfigManager.getConfigurations().get(key);
+        return (s != null) ? s.getIntValue() : fallback;
+    }
+
+    /**
+     * Reads a material setting by name, falling back when it is missing or unknown.
+     *
+     * @param key
+     *            which setting
+     * @param fallback
+     *            what to use when it cannot be read
+     * @return the material
+     */
+    private static Material materialSetting(final ConfigKeys key, final Material fallback)
+    {
+        final Setting s = ConfigManager.getConfigurations().get(key);
+        if (s == null)
+        {
+            return fallback;
+        }
+        final Material found = Material.matchMaterial(String.valueOf(s.getStringValue()));
+        return found == null ? fallback : found;
     }
 
     /**
