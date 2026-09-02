@@ -1,6 +1,51 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented in this file.
+
+## 1.2.0 (2026-09-02)
+
+### Minecraft 1.20 through 1.21.10
+
+The range is measured, not assumed: every published `spigot-api` version was built against to
+find both ends. The floor is 1.20, where `Material.CALIBRATED_SCULK_SENSOR` arrives and gate
+detection switches on it; the ceiling is simply the newest API published.
+
+Spanning that range meant handling an API move no single import covers. `EntityDismountEvent`
+was `org.spigotmc.event.entity` up to 1.20.4 and `org.bukkit.event.entity` from 1.20.4 on, and
+1.20.4 is the only version with both — which is why the plugin compiles against it. There is a
+small listener per package and only the one the running server can load is registered, so a
+server at either end keeps the behaviour and one with neither loses only that and says so. CI builds and tests the floor, the ceiling, and
+the versions between them where the API actually changed.
+
+Two things had to give to reach that range, and both were single symbols. A boat that failed
+to teleport was respawned as `EntityType.BOAT`, which stopped existing in 1.21.3 when boats
+split per wood type; it now respawns as whatever the original boat was, which also stops a
+birch boat coming back oak. A test named the same constant and now looks it up by name.
+
+The jar is compiled against the **oldest** supported server rather than the newest. A plugin
+built against an old API runs on newer servers; one built against a new API can call
+something an older server has never heard of, and nothing catches that until a player reports
+a crash. Compiling against the floor makes the compiler enforce it. CI covers the other
+direction — a newer server having removed something — by building against each supported
+version in turn.
+
+`spigot.api.version` in `pom.xml` selects the API, so CI can point one build at a different
+server version without editing anything.
+
+- Materials named in `config.yml` and the shape files are text resolved at runtime, so the
+  compiler never sees them and a renamed or removed material would only surface on a live
+  server. A test checks every shipped name against whatever API the build targets, which
+  means changing that target is what runs the check.
+- Arrow knockback and the shot-from-crossbow flag are deprecated from 1.21, because both are
+  now derived from the weapon an arrow was fired from. A projectile crossing a gate is
+  consumed and re-fired, so it has no weapon to derive them from, and the deprecated setters
+  are the only way to carry them across. They are kept deliberately: dropping them would
+  quietly weaken every arrow that made the trip.
+- **Minecraft 1.20.5 and later require the server to run Java 21.** That is the server's
+  requirement, not this plugin's; the jar remains Java 17 bytecode.
+
+Nothing here has been runtime-verified on a live server of any version. CI proves the plugin
+compiles and its tests pass against each API, not that a gate behaves correctly in game.
 
 ## 1.1.0 (2026-09-01)
 

@@ -3,7 +3,7 @@
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
 There are also **transport rings**: small paired pads set into a floor or ceiling that fire when you walk into them.
-This branch targets Java 17 and the Bukkit 1.20 API.
+Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 ## Contents
 
@@ -21,31 +21,93 @@ This branch targets Java 17 and the Bukkit 1.20 API.
 
 ## Server Compatibility
 
-### Compatibility Matrix
+### Which Minecraft versions this runs on
 
-| Runtime Server | Base/API lineage | Support tier | Notes |
-|---|---|---|---|
-| CraftBukkit 1.20.4 | Bukkit | Supported | Baseline Bukkit/Spigot API behavior |
-| Spigot 1.20.4 | Spigot (Bukkit+) | Primary target | **Compile target** (`spigot-api`) |
-| Paper 1.20.4 | Paper (Spigot+) | Supported | Verified runtime target |
-| Purpur / Pufferfish | Paper fork | Best effort | Usually compatible with Paper behavior |
-| Folia | Paper fork (region scheduler) | Not supported | Different scheduler/threading model |
+**Minecraft 1.20 through 1.21.10.** Both ends are measured rather than assumed — every
+published `spigot-api` version was built against to find them.
 
-The plugin is compiled against the Spigot API (`spigot-api 1.20.4`) as a `provided` dependency.
+| | Version | Why it is the boundary |
+|---|---|---|
+| **Floor** | 1.20 | `Material.CALIBRATED_SCULK_SENSOR` arrives here, and gate detection switches on it. 1.19.4 fails on that alone. |
+| **Ceiling** | 1.21.10 | Newest published API. Nothing in the plugin stops it going further. |
 
-Why Spigot over Bukkit for build target:
-- Bukkit is the conceptual base and broadest API lineage.
-- Spigot is the practical widest deployment target while remaining close to Bukkit API.
-- Building against Spigot gives broad compatibility across Spigot and most Paper-based servers without tying the plugin to Paper-only APIs.
+The range spans a Spigot API move that no single import covers.
+`EntityDismountEvent` lived in `org.spigotmc.event.entity` up to 1.20.4 and in
+`org.bukkit.event.entity` from 1.20.4 on — **1.20.4 is the only version carrying both**, which
+is why the plugin compiles against it. There is a small listener for each package, and only
+the one the running server can actually load is registered. A server with neither loses the
+ability to stop a rider dismounting mid-transit and says so in the log; everything else works.
+
+| Minecraft | In CI | Note |
+|---|---|---|
+| 1.20 | yes | Floor; has only the `org.spigotmc` dismount event |
+| 1.20.1 | yes | A commonly pinned version |
+| 1.20.4 | yes | **Compile target** — the only version with both dismount events |
+| 1.20.6 | yes | `org.spigotmc` dismount event removed here |
+| 1.21.1 | yes | |
+| 1.21.4 | yes | Boats split into one entity type per wood here |
+| 1.21.10 | yes | Newest published API |
+
+Each CI job leaves out whichever dismount listener cannot compile on that version — the
+`legacy-api` and `modern-api` Maven profiles. **Neither profile is used for the shipped jar**,
+which is built against 1.20.4 and therefore carries both listeners and chooses at runtime. The
+profiles exist so CI can check the rest of the plugin against a server holding one class or
+the other.
+
+Versions between those points are expected to work and are not separately built; the matrix
+covers the boundaries where the API actually moved.
+
+**None of this has been runtime-verified on a live server.** CI proves the plugin compiles and
+its tests pass against each API — not that a gate behaves correctly in game.
+
+| Runtime Server | Base/API lineage | Support tier |
+|---|---|---|
+| CraftBukkit | Bukkit | Supported |
+| Spigot | Spigot (Bukkit+) | Primary target — the API compiled against |
+| Paper | Paper (Spigot+) | Supported |
+| Purpur / Pufferfish | Paper fork | Best effort |
+| Folia | Paper fork (region scheduler) | Not supported — different scheduler model |
+
+Those server projects version their jars by the Minecraft version they implement, so "Paper
+1.21.1" is Paper for Minecraft 1.21.1. There is no separate server versioning scheme to
+match up.
+
+### Three version numbers that are easy to confuse
+
+| Where | Example | What it means |
+|---|---|---|
+| `pom.xml` `spigot.api.version` | `1.20.4-R0.1-SNAPSHOT` | The API this jar is **compiled** against. `R0.1` is Bukkit's API revision within that Minecraft version. |
+| `plugin.yml` `api-version` | `1.20` | The **oldest** server that will load this plugin. Major-minor only; a patch version is not valid here. |
+| The table above | `1.20` – `1.21.10` | The Minecraft versions actually built and tested against. |
+
+The plugin is compiled against the **oldest** server it supports, not the newest. That is
+deliberate and it is the wrong way round from most instincts: a plugin built against an old
+API runs on newer servers, while one built against a new API can call something an older
+server has never heard of — and nothing catches that until a player reports a crash.
+Compiling against the floor makes the compiler enforce the floor.
+
+That only guards one direction. It says nothing about a newer server having *removed*
+something, so CI also builds and tests against every newer supported version. Both directions
+have to hold and neither is checked by the other.
+
+**Minecraft 1.20.5 and later require the server to run on Java 21.** That is the server's
+requirement, not this plugin's — the jar is Java 17 bytecode and runs on either.
+
+### Adding support for a new Minecraft version
+
+1. Build against it locally: `mvn verify -Dspigot.api.version=<version>-R0.1-SNAPSHOT`.
+2. If it passes, add it to the `server-api` matrix in `.github/workflows/ci.yml` and update
+   the table above.
+3. Leave `spigot.api.version` and `api-version` alone unless you are dropping old versions,
+   which is the only thing that should raise the floor.
+
+If a new version fails, the compiler names what was removed. That is worth reading before
+assuming the version is unsupportable — both boundaries found so far were a single symbol,
+and one of them was fixable in a line.
 
 Java support policy:
-- Java 17 and 21: officially supported
-- Java 25: best-effort (CI coverage)
-
-Build policy recommendation:
-- Compile against Spigot only.
-- Run CI tests on Java 17/21/25.
-- Optionally add runtime smoke tests on Spigot and Paper server jars if you want explicit per-server verification.
+- The plugin is built as Java 17 bytecode; CI compiles and tests it on Java 17, 21 and 25.
+- The **server** needs Java 21 for Minecraft 1.20.5 and later.
 
 ## Build
 

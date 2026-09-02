@@ -32,6 +32,7 @@ jobs:
       - name: Build and run tests
         run: mvn --batch-mode verify
 
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -48,6 +49,57 @@ jobs:
           path: target/WormholeXTreme-*.jar
           retention-days: 14
 
+  # The shipped jar is built against the oldest supported server, which stops us calling
+  # anything newer by accident. That says nothing about whether a newer server has since
+  # removed something we rely on, so every supported version is built and tested here.
+  # A Minecraft version is only claimed as supported in the README if it is in this list.
+  server-api:
+    name: Minecraft ${{ matrix.minecraft }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The floor. EntityDismountEvent only lives in org.spigotmc here, so the listener
+          # for the newer package is excluded; the legacy one is what such a server loads.
+          - minecraft: "1.20"
+            api: "1.20-R0.1-SNAPSHOT"
+            profile: "-Plegacy-api"
+          - minecraft: "1.20.1"
+            api: "1.20.1-R0.1-SNAPSHOT"
+            profile: "-Plegacy-api"
+          # The only version carrying both EntityDismountEvent packages, and so the one this
+          # plugin compiles against.
+          - minecraft: "1.20.4"
+            api: "1.20.4-R0.1-SNAPSHOT"
+            profile: ""
+          - minecraft: "1.20.6"
+            api: "1.20.6-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+          - minecraft: "1.21.1"
+            api: "1.21.1-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+          # Boats split into one entity type per wood here, which removed EntityType.BOAT.
+          - minecraft: "1.21.4"
+            api: "1.21.4-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+          # The newest published spigot-api.
+          - minecraft: "1.21.10"
+            api: "1.21.10-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Build and test against Minecraft ${{ matrix.minecraft }}
+        run: mvn --batch-mode verify ${{ matrix.profile }} -Dspigot.api.version=${{ matrix.api }}
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest

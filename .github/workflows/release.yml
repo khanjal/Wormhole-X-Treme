@@ -42,11 +42,32 @@ jobs:
           echo "JAR=$JAR" >> "$GITHUB_OUTPUT"
           echo "JAR_NAME=$(basename $JAR)" >> "$GITHUB_OUTPUT"
 
-      - name: Read Minecraft version from plugin.yml
+      - name: Read the supported Minecraft range from the CI matrix
         id: mc
         run: |
-          MC=$(grep -m1 '^api-version:' src/main/resources/plugin.yml | tr -d '"' | awk '{print $2}')
-          echo "MC=$MC" >> "$GITHUB_OUTPUT"
+          # The range comes from the versions CI actually builds against, not from
+          # api-version. api-version is only the floor - a server older than that refuses to
+          # load the plugin at all - so titling a release with it undersold every version
+          # above the floor that is equally supported.
+          #
+          # Reading the matrix means the title follows whatever CI proves, and adding a
+          # version there is enough to keep it right. The matrix is kept in ascending order
+          # for exactly this reason.
+          # [^"]* rather than .*, and a trailing .* to consume the rest of the line: the
+          # greedy form left anything after the closing quote in place, so an inline comment
+          # on a matrix entry would end up inside the version.
+          VERSIONS=$(sed -n 's/^ *- minecraft: "\([^"]*\)".*/\1/p' .github/workflows/ci.yml)
+          MIN=$(echo "$VERSIONS" | head -1)
+          MAX=$(echo "$VERSIONS" | tail -1)
+          if [ -z "$MIN" ] || [ -z "$MAX" ]; then
+            echo "Could not read the Minecraft matrix from ci.yml" >&2
+            exit 1
+          fi
+          if [ "$MIN" = "$MAX" ]; then
+            echo "MC=$MIN" >> "$GITHUB_OUTPUT"
+          else
+            echo "MC=$MIN-$MAX" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
