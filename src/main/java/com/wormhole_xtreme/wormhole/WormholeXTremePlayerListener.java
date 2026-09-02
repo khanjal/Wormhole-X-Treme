@@ -232,8 +232,10 @@ class WormholeXTremePlayerListener implements Listener
                 return true;
             }
 
-            // Remove the stale registration (no block destruction).
-            CommandUtilities.gateRemove(existing, false);
+            // Remove the stale registration (no block destruction). Not announced: the
+            // gate is registered again immediately below, so telling listeners it was
+            // removed would have them discard their records on every refresh.
+            CommandUtilities.gateRemove(existing, false, false);
 
             // Restore metadata and register with fresh geometry.
             fresh.setGateName(oldName);
