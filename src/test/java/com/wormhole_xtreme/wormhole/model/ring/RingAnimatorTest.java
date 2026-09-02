@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.ring;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -317,18 +318,22 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void concurrentRingsAreAllOnTheirWayAtOnceAndArriveTogether()
+    public void concurrentKeepsSeveralRingsInFlightAtOnce()
     {
-        // The other look. Rings leave one gap apart rather than waiting for each other, so
-        // the stack rises as a group and the whole thing is over in one ring's journey.
+        // The difference between the two styles, stated as the thing that actually differs:
+        // concurrently there are several rings climbing at the same time, sequentially there
+        // is never more than one. They still arrive in order, top first.
         final Ring floor = ring(RingOrientation.FLOOR);
         final int perRing = RingPattern.ODD.getPerimeter().size();
+        final int whenLeaderArrives = RingAnimator.restingHalfStep(0);
 
-        assertEquals(perRing * RingAnimator.RING_COUNT,
-            RingAnimator.deployFrame(floor, RingStyle.CONCURRENT, RingAnimator.TOP_HALF_STEP).size(),
-            "every ring is out by the time the leader tops out");
-        assertEquals(RingAnimator.journeyFrames(0), RingAnimator.deployFrames(RingStyle.CONCURRENT),
-            "concurrently the whole thing lasts one ring's journey");
+        assertTrue(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT, whenLeaderArrives).size()
+            > perRing, "several rings should be up by the time the leader arrives");
+        assertEquals(perRing,
+            RingAnimator.deployFrame(floor, RingStyle.SEQUENTIAL, whenLeaderArrives).size(),
+            "sequentially the leader is still alone");
+        assertTrue(RingAnimator.deployFrames(RingStyle.CONCURRENT)
+            < RingAnimator.deployFrames(RingStyle.SEQUENTIAL));
     }
 
     @Test
@@ -361,37 +366,79 @@ public class RingAnimatorTest
         }
     }
 
-    @Test
-    public void aRingOvershootsItsPlaceByHalfABlockAndDropsBackOntoIt()
+    /** The distinct half-step heights present on a frame, highest first. */
+    private static List<Integer> heightsOf(final List<RingAnimator.Placement> placements)
     {
-        // The settle. A ring rises past where it belongs, hangs there a frame, and comes
-        // back down onto it — which is what stops the stack arriving like a lift stopping.
-        final int resting = RingAnimator.restingHalfStep(0);
-        assertEquals(resting, RingAnimator.halfStepAt(0, resting), "reaches its place");
-        assertEquals(resting + RingAnimator.OVERSHOOT, RingAnimator.halfStepAt(0, resting + 1),
-            "and goes half a block past it");
-        assertEquals(resting, RingAnimator.halfStepAt(0, resting + 2), "then drops back");
-        assertEquals(resting, RingAnimator.halfStepAt(0, resting + 50), "and stays there");
+        final Set<Integer> seen = new HashSet<Integer>();
+        for (final RingAnimator.Placement placement : placements)
+        {
+            // Two half-steps to a block, and a top slab is the upper half of its own block.
+            seen.add(Integer.valueOf((placement.getY() * 2) + (placement.isTop() ? 1 : 0)));
+        }
+        final List<Integer> out = new ArrayList<Integer>(seen);
+        java.util.Collections.sort(out, java.util.Collections.reverseOrder());
+        return out;
     }
 
     @Test
-    public void theOvershootIsTheOnlyThingHigherThanTheFinishedStack()
+    public void ringsClimbAWholeBlockApartAndFinishHalfABlockApart()
     {
-        // What the extra headroom is for. Nothing but the peak of the settle ever goes
-        // above where the top ring ends up.
+        // The shape of the whole animation. On the way up there is a clear block between
+        // rings; in the finished stack there is half a block. Nothing compresses them — the
+        // leader stops while the others are still climbing, so the gaps close on their own.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final List<Integer> climbing = heightsOf(
+            RingAnimator.deployFrame(floor, RingStyle.CONCURRENT, RingAnimator.TRAVEL_GAP * 2));
+        for (int i = 0; i < (climbing.size() - 1); i++)
+        {
+            assertEquals(RingAnimator.TRAVEL_GAP,
+                climbing.get(i).intValue() - climbing.get(i + 1).intValue(),
+                "rings should climb a clear block apart");
+        }
+
+        final List<Integer> settled = heightsOf(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT,
+            RingAnimator.deployFrames(RingStyle.CONCURRENT) - 1));
+        assertEquals(RingAnimator.RING_COUNT, settled.size());
+        for (int i = 0; i < (settled.size() - 1); i++)
+        {
+            assertEquals(RingAnimator.SPACING,
+                settled.get(i).intValue() - settled.get(i + 1).intValue(),
+                "the finished stack should be half a block apart");
+        }
+    }
+
+    @Test
+    public void theGapsCloseFromTheTopDownAsEachRingArrives()
+    {
+        // Because the leader arrives first and stops, the topmost gap is the first to
+        // narrow, and the stack tightens downward from there rather than all at once.
+        final Ring floor = ring(RingOrientation.FLOOR);
+        final List<Integer> midway = heightsOf(RingAnimator.deployFrame(floor, RingStyle.CONCURRENT,
+            RingAnimator.restingHalfStep(0) + 1));
+
+        assertEquals(RingAnimator.SPACING, midway.get(0).intValue() - midway.get(1).intValue(),
+            "the top pair has already closed up");
+        assertEquals(RingAnimator.TRAVEL_GAP, midway.get(1).intValue() - midway.get(2).intValue(),
+            "the ones below are still a block apart");
+    }
+
+    @Test
+    public void nothingEverRisesAboveWhereTheTopRingSettles()
+    {
+        // What the headroom requirement rests on. Rings stop when they arrive, so the
+        // finished stack is also the highest anything ever gets.
         final Ring floor = ring(RingOrientation.FLOOR);
         final int settledTop = 64 + (RingAnimator.TOP_HALF_STEP / 2);
-        int highest = settledTop;
         for (final RingStyle style : RingStyle.values())
         {
             for (int frame = 0; frame < RingAnimator.deployFrames(style); frame++)
             {
                 for (final RingAnimator.Placement placement : RingAnimator.deployFrame(floor, style, frame))
                 {
-                    highest = Math.max(highest, placement.getY());
+                    assertTrue(placement.getY() <= settledTop,
+                        style + " went above the finished stack at frame " + frame);
                 }
             }
         }
-        assertEquals(settledTop + 1, highest, "half a block of overshoot, and no more");
     }
 }

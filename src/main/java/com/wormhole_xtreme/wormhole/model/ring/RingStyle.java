@@ -9,8 +9,9 @@ package com.wormhole_xtreme.wormhole.model.ring;
  * How a ring stack comes out.
  *
  * <p>Both build the same stack and both come home nearest-first. The only thing that differs
- * is when each ring leaves the plane, which is why one enum and one changed number covers
- * both rather than two animations existing side by side.
+ * is when each ring leaves the plane — concurrently, as soon as there is room behind the one
+ * in front; sequentially, not until it has stopped — which is why one enum and one changed
+ * number covers both rather than two animations existing side by side.
  *
  * <p>Style belongs to the <em>pair</em>, not to an end, for the same reason access does:
  * both ends run as one cycle and the swap happens when both stacks are up. Ends with
@@ -21,10 +22,12 @@ package com.wormhole_xtreme.wormhole.model.ring;
 public enum RingStyle
 {
     /**
-     * All four rings on their way at once, each a little behind the last.
+     * Several rings climbing at the same time, one behind another.
      *
-     * <p>Rings leave the plane one gap apart and travel together, so the stack rises as a
-     * group and arrives all at once. Quicker, and the more common look.
+     * <p>A ring leaves the plane once the one in front of it is a clear block above, so what
+     * rises out of the floor is an evenly spaced column rather than a single ring. They
+     * arrive in order, top first, each stopping as it reaches its place. Quicker, and the
+     * more common look.
      */
     CONCURRENT,
 

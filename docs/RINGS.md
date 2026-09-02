@@ -385,19 +385,24 @@ Five rings end up **half a block of clear air apart** — one block centre to ce
 slab is half a block thick — with the lowest hanging half a block clear of the floor rather
 than resting on it. Top to bottom that is five blocks of headroom.
 
-Each ring **overshoots its place by half a block, hangs there a frame, and drops back onto
-it**: the small settle a heavy thing makes when it arrives. That is the only thing in the
-whole animation that ever goes above the finished stack, so it costs half a block of
-headroom and nothing else — five and a half in total.
+They **travel further apart than they land**. On the way up there is a full block of clear
+air between rings; the finished stack has half a block. Nothing compresses them — the leader
+reaches its place and stops while the ones behind are still climbing, so the gaps close from
+the top down, one at a time, as each ring arrives. Writing that as a compression step would
+have been a second motion to keep in step with the first, for an effect that falls out of
+rings simply stopping when they get there.
+
+Because rings stop where they land, the finished stack is also the highest anything ever
+gets — so five blocks of headroom is the whole requirement.
 
 There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.
 
-- **Concurrent** — all five on their way at once, the next leaving the plane once the one
-  in front has risen a block, so the stack rises as a group and settles together. Quicker,
-  and the commoner look.
-- **Sequential** — strictly one at a time. The first out flies all the way to the furthest
-  position and settles; only then does the next emerge.
+- **Concurrent** — several climbing at once. A ring leaves the plane as soon as the one in
+  front is a clear block above it, so what rises out of the floor is an evenly spaced column.
+  They arrive in order, top first. Quicker, and the commoner look.
+- **Sequential** — never more than one in flight. The first out flies all the way to the
+  furthest position and stops; only then does the next emerge.
 
 They differ *only* in when a ring leaves the plane. Where each ends up, how far it travels
 and how they come home are identical, so this is one number rather than two animations.
@@ -410,9 +415,8 @@ They then **stand still** for a couple of seconds with the travellers already go
 pause is most of what makes the effect read as a transport rather than as blocks moving, and
 it is why `HOLD` is a phase rather than the swap being followed straight by the retract.
 
-Retract, being the reversal, lifts the stack that same half block before bringing it down —
-the settle read backwards, which looks like the rings unlatching before they go. The
-**nearest ring goes home first** and the one that flew highest is the last to leave. This needs no code of its own: retract is deploy played backwards, and a sequence
+Retract is the reversal, so the stack loosens back out to a block apart as it comes down.
+The **nearest ring goes home first** and the one that flew highest is the last to leave. This needs no code of its own: retract is deploy played backwards, and a sequence
 that went out furthest-first returns nearest-first on its own. Writing it as a reversal
 rather than a second sequence also means the two can never disagree and strand a slab.
 
@@ -604,8 +608,8 @@ In rough order of how much they would hurt to get wrong:
 4. Both styles build the same stack, run to their own length, and return nearest-first.
 5. A packed block position survives the round trip at every height in the world, including
    the negative ones — the restore path unpacks these to decide which block to put back.
-6. A ring overshoots its place by exactly half a block and drops back, and nothing else in
-   the animation ever goes higher than the settled stack.
+6. Rings climb a clear block apart and finish half a block apart, the gaps closing from the
+   top down, and nothing ever rises above where the top ring settles.
 7. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
 8. Overlapping footprints are refused at create, including against gate blocks.
 9. Pattern matching picks the right one of the two, and rejects a near-miss circle.

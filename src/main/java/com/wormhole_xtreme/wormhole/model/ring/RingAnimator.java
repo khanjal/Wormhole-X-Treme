@@ -30,11 +30,13 @@ import java.util.List;
  * stack hangs. Top to bottom that is five blocks of headroom, the same as the wider
  * four-ring stack it replaces.
  *
- * <p><b>The settle.</b> A ring rises half a block past its place, hangs there a frame and
- * drops back onto it, which is the small overshoot a heavy thing makes when it arrives. It
- * costs half a block of headroom and nothing else. Retract, being the reversal, lifts the
- * stack that same half block before it comes down — the same motion read backwards, which
- * looks like the rings unlatching before they go. {@link RingStyle} decides how they get there: all at once,
+ * <p><b>They travel further apart than they land.</b> While rising, rings are
+ * {@link #TRAVEL_GAP} half-steps apart — a whole block of clear air — and they finish
+ * {@link #SPACING} apart, which is half a block. Nothing compresses them: the leader reaches
+ * its place and stops while the ones behind are still climbing, so the gaps close from the
+ * top down, one at a time, as each ring arrives. Writing it as a compression step would have
+ * been a second motion to keep in step with the first, for an effect that falls out of
+ * rings simply stopping when they get there. {@link RingStyle} decides how they get there: all at once,
  * each a gap behind the last, or strictly one at a time with each waiting for the one before
  * it to stop. The two differ only in when a ring leaves the plane — where they end up, how
  * far each travels and how they come home are the same, which is why one number tells them
@@ -57,6 +59,9 @@ public final class RingAnimator
     /** Half-steps between adjacent rings once stacked: half a block of clear air between. */
     public static final int SPACING = 2;
 
+    /** Half-steps between rings while still travelling: a whole block of clear air between. */
+    public static final int TRAVEL_GAP = 3;
+
     /** How many rings travel. */
     public static final int RING_COUNT = 5;
 
@@ -66,8 +71,6 @@ public final class RingAnimator
     /** Half-steps the leading ring settles at: the top of the finished stack. */
     public static final int TOP_HALF_STEP = BASE_HALF_STEP + ((RING_COUNT - 1) * SPACING);
 
-    /** How far a ring overshoots its resting place before dropping back onto it. */
-    public static final int OVERSHOOT = 1;
 
     private RingAnimator() {}
 
@@ -105,9 +108,9 @@ public final class RingAnimator
     {
         if (style == RingStyle.CONCURRENT)
         {
-            // Everyone is already on their way; each ring simply leaves one gap behind the
-            // one in front, so the whole stack arrives together.
-            return index * SPACING;
+            // A ring leaves once the one in front is a clear block above it, so the column
+            // rising out of the floor is evenly spaced the whole way up.
+            return index * TRAVEL_GAP;
         }
         int frame = 0;
         for (int earlier = 0; earlier < index; earlier++)
@@ -265,10 +268,8 @@ public final class RingAnimator
     /**
      * How far along a ring is, given how long it has been travelling.
      *
-     * <p>A ring does not simply stop where it belongs. It rises half a block past its place,
-     * hangs there for a frame and drops back onto it — the small settle a heavy thing makes
-     * when it arrives. Costs half a block of extra headroom and nothing else, because only
-     * the overshoot is ever higher than the finished stack.
+     * <p>It rises a half-step a frame and stops dead when it reaches its place, holding
+     * there while the rest come up behind it.
      *
      * @param index
      *            which ring, counting from the first one out
@@ -278,19 +279,11 @@ public final class RingAnimator
      */
     static int halfStepAt(final int index, final int travelled)
     {
-        final int resting = restingHalfStep(index);
-        final int peak = resting + OVERSHOOT;
-        if (travelled > peak)
-        {
-            return resting;
-        }
-        return Math.min(travelled, peak);
+        return Math.min(travelled, restingHalfStep(index));
     }
 
     /**
      * How many frames one ring's whole journey takes.
-     *
-     * <p>Up to the overshoot, one frame held there, then the drop onto its place.
      *
      * @param index
      *            which ring
@@ -298,7 +291,7 @@ public final class RingAnimator
      */
     static int journeyFrames(final int index)
     {
-        return restingHalfStep(index) + OVERSHOOT + 2;
+        return restingHalfStep(index) + 1;
     }
 
     /**
