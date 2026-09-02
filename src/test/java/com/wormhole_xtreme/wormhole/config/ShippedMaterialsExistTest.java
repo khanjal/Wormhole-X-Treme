@@ -110,6 +110,41 @@ public class ShippedMaterialsExistTest
     }
 
     @Test
+    public void theRingDefaultsNameMaterialsThatExist()
+    {
+        // Ring defaults live in DefaultSettings rather than in the shipped config.yml, so the
+        // scan above never sees them. They are plain text resolved at runtime exactly like a
+        // shape's materials, and a name that stopped existing would ship unnoticed and only
+        // fail when somebody built a ring.
+        final java.util.Map<ConfigManager.ConfigKeys, String> named =
+            new java.util.LinkedHashMap<ConfigManager.ConfigKeys, String>();
+        for (final Setting setting : DefaultSettings.config)
+        {
+            if ((setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL)
+                || (setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_LIGHT)
+                || (setting.getName() == ConfigManager.ConfigKeys.RING_DEFAULT_FLASH))
+            {
+                named.put(setting.getName(), String.valueOf(setting.getValue()));
+            }
+        }
+
+        assertEquals(3, named.size(), "a ring material default was added or renamed");
+        for (final java.util.Map.Entry<ConfigManager.ConfigKeys, String> entry : named.entrySet())
+        {
+            assertNotNull(Material.matchMaterial(entry.getValue()),
+                entry.getKey() + " defaults to " + entry.getValue()
+                    + ", which does not exist in the targeted Minecraft version");
+        }
+
+        // The ring material is what a pair falls back to when its own slab cannot be read, so
+        // it has to be something a ring could actually have been laid in.
+        final Material fallback = Material.matchMaterial(
+            named.get(ConfigManager.ConfigKeys.RING_DEFAULT_MATERIAL));
+        assertTrue(com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(fallback),
+            fallback + " is the ring fallback and must be something a ring could be laid in");
+    }
+
+    @Test
     public void theMaterialsTheCodeFallsBackOnStillExist()
     {
         // The built-in defaults, used when a shape and a palette both say nothing. These are
