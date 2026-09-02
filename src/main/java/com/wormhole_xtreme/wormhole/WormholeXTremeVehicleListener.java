@@ -589,230 +589,294 @@ class WormholeXTremeVehicleListener implements Listener
         // portal material is drawn to clients only, so travellers are not subject to its
         // physics — which means the material comparison never matched and no vehicle ever
         // made it through. The player and entity paths already ask the gate.
-        if ((st != null) && st.isGateActive() && (st.getGateTarget() != null) && StargateManager.isPortalBlock(ch))
+        // Not a vehicle entering an open gate that leads somewhere: nothing to do here.
+        if ((st == null) || !st.isGateActive() || (st.getGateTarget() == null)
+        || !StargateManager.isPortalBlock(ch))
         {
-            String gatenetwork;
-            if (st.getGateNetwork() != null)
+            return false;
+        }
+        String gatenetwork;
+        if (st.getGateNetwork() != null)
+        {
+            gatenetwork = st.getGateNetwork().getNetworkName();
+        }
+        else
+        {
+            gatenetwork = "Public";
+        }
+        Location target = st.getGateTarget().getGateMinecartTeleportLocation() != null
+        ? st.getGateTarget().getGateMinecartTeleportLocation()
+        : st.getGateTarget().getGatePlayerTeleportLocation();
+        final Vehicle veh = (Vehicle) event.getVehicle();
+        if (veh == null)
+        {
+            return false;
+        }
+        final Vector v = veh.getVelocity();
+        veh.setVelocity(nospeed);
+        final List<Entity> passengers = new ArrayList<Entity>(veh.getPassengers());
+        // Riders whose cooldown and arrival mark are owed once the trip actually happens.
+        final List<Player> pendingRestrictions = new ArrayList<Player>();
+        if (!admitVehiclePassengers(st, veh, passengers, pendingRestrictions, gatenetwork))
+        {
+            return false;
+        }
+        // A player riding through a gate is travelling as much as one on foot, and
+        // a listener that saw only walkers would miss every boat and minecart. The
+        // vehicle is not announced, only the people in it: cancelling stops the
+        // player travelling, and the cart is not a passenger's to veto.
+        for (final Entity psg : passengers)
+        {
+            if ((psg instanceof Player)
+            && !com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
+            st, (Player) psg, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
             {
-                gatenetwork = st.getGateNetwork().getNetworkName();
-            }
-            else
-            {
-                gatenetwork = "Public";
-            }
-            Location target = st.getGateTarget().getGateMinecartTeleportLocation() != null
-                ? st.getGateTarget().getGateMinecartTeleportLocation()
-                : st.getGateTarget().getGatePlayerTeleportLocation();
-            final Vehicle veh = (Vehicle) event.getVehicle();
-            if (veh == null)
-            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Vehicle travel cancelled by a listener for player " + ((Player) psg).getName());
                 return false;
             }
-            final Vector v = veh.getVelocity();
-            veh.setVelocity(nospeed);
-            final List<Entity> passengers = new ArrayList<Entity>(veh.getPassengers());
-            // Riders whose cooldown and arrival mark are owed once the trip actually happens.
-            final List<Player> pendingRestrictions = new ArrayList<Player>();
-            if (!passengers.isEmpty() && (passengers.get(0) instanceof Player))
+        }
+
+        // Travel is settled, so what follows from having travelled can be applied.
+        for (final Player rider : pendingRestrictions)
+        {
+            // Per rider, so one failing does not silently deny the rest of the boat
+            // their cooldown and arrival mark. RuntimeException rather than
+            // Throwable is deliberate and matches the rest of the plugin: an Error
+            // is not something to swallow on the way past.
+            try
             {
-                final Player p = (Player) passengers.get(0);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
-                if (ConfigManager.getWormholeUseIsTeleport() && ((st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.SIGN)) || ( !st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.DIALER))))
-                {
-                    p.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    return false;
-                }
-                if (st.getGateTarget().isGateIrisActive())
-                {
-                    p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
-                    final Location irisTarget = st.getGateMinecartTeleportLocation() != null
-                        ? st.getGateMinecartTeleportLocation()
-                        : st.getGatePlayerTeleportLocation();
-                    // If player is in a minecart, just move them one block up from the TP location
-                            final Location safeIrisTarget = (irisTarget != null)
-                                ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
-                                : irisTarget;
-                            if (veh != null)
-                            {
-                                final UUID vid = veh.getUniqueId();
-                                markVehicleRecentlyTeleported(vid);
-                            }
-                            veh.teleport(safeIrisTarget);
-                    if (ConfigManager.getTimeoutShutdown() == 0)
-                    {
-                        st.shutdownStargate(true);
-                    }
-                    return false;
-                }
-                if (ConfigManager.isUseCooldownEnabled())
-                {
-                    if (StargateRestrictions.isPlayerUseCooldown(p))
-                    {
-                        p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
-                        p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
-                        return false;
-                    }
-                    // Neither is applied here. Both are consequences of having travelled,
-                    // and a listener further down may still stop this trip - which would
-                    // leave the rider having spent a cooldown and been marked as arriving
-                    // somewhere they never went.
-                    else
-                    {
-                        pendingRestrictions.add(p);
-                    }
-                }
+                StargateRestrictions.addPlayerUseCooldown(rider);
+                StargateRestrictions.addPlayerRecentArrival(rider, st.getGateTarget());
             }
-            else
-            {
-                if (st.getGateTarget().isGateIrisActive())
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Minecart in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
-                    final Location irisTarget = st.getGateMinecartTeleportLocation() != null
-                        ? st.getGateMinecartTeleportLocation()
-                        : st.getGatePlayerTeleportLocation();
-                    // For non-player carts, use a simple one-block-up offset from configured TP
-                    final Location safeIrisTarget = (irisTarget != null) ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0) : irisTarget;
-                    if (veh != null)
-                    {
-                        final UUID vid = veh.getUniqueId();
-                        markVehicleRecentlyTeleported(vid);
-                    }
-                    veh.teleport(safeIrisTarget);
-                    if (ConfigManager.getTimeoutShutdown() == 0)
-                    {
-                        st.shutdownStargate(true);
-                    }
-                    return false;
-                }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            "Failed to apply travel restrictions for " + rider.getName() + ": " + e.getMessage());
+        }
+        }
 
+
+        return dispatchVehicleTeleport(st, veh, v, target, passengers);
+    }
+
+    /**
+     * Decides whether the people aboard may ride through, and defers what they owe.
+     *
+     * <p>Covers permission, a locked iris at the far end, and the use cooldown. A rider who
+     * may travel is added to {@code pendingRestrictions} rather than charged here: a listener
+     * further on may still stop the trip, and a cooldown spent on a journey that never
+     * happened is not something the rider can argue with.
+     *
+     * <p>A locked iris bounces the vehicle rather than simply refusing, which is why this
+     * needs the vehicle and not just its passengers.
+     *
+     * @param st
+     *            the gate being entered
+     * @param veh
+     *            the vehicle
+     * @param passengers
+     *            who is aboard, possibly nobody
+     * @param pendingRestrictions
+     *            collects riders whose cooldown and arrival mark are owed
+     * @param gatenetwork
+     *            the gate's network name, for the diagnostic
+     * @return true if the trip may go on being considered
+     */
+    private static boolean admitVehiclePassengers(final Stargate st, final Vehicle veh,
+                                                  final List<Entity> passengers,
+                                                  final List<Player> pendingRestrictions,
+                                                  final String gatenetwork)
+    {
+
+        if (!passengers.isEmpty() && (passengers.get(0) instanceof Player))
+        {
+            final Player p = (Player) passengers.get(0);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
+            if (ConfigManager.getWormholeUseIsTeleport() && ((st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.SIGN)) || ( !st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.DIALER))))
+            {
+                p.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                return false;
             }
-
-                // A player riding through a gate is travelling as much as one on foot, and
-                // a listener that saw only walkers would miss every boat and minecart. The
-                // vehicle is not announced, only the people in it: cancelling stops the
-                // player travelling, and the cart is not a passenger's to veto.
-                for (final Entity psg : passengers)
-                {
-                    if ((psg instanceof Player)
-                        && !com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
-                                st, (Player) psg, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                            "Vehicle travel cancelled by a listener for player " + ((Player) psg).getName());
-                        return false;
-                    }
-                }
-
-                // Travel is settled, so what follows from having travelled can be applied.
-                for (final Player rider : pendingRestrictions)
-                {
-                    // Per rider, so one failing does not silently deny the rest of the boat
-                    // their cooldown and arrival mark. RuntimeException rather than
-                    // Throwable is deliberate and matches the rest of the plugin: an Error
-                    // is not something to swallow on the way past.
-                    try
-                    {
-                        StargateRestrictions.addPlayerUseCooldown(rider);
-                        StargateRestrictions.addPlayerRecentArrival(rider, st.getGateTarget());
-                    }
-                    catch (final RuntimeException e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
-                            "Failed to apply travel restrictions for " + rider.getName() + ": " + e.getMessage());
-                    }
-                }
-
-                final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
-                if (st.getGateTarget().isGateIrisActive())
-                {
-                    target = st.getGateMinecartTeleportLocation() != null
-                        ? st.getGateMinecartTeleportLocation()
-                        : st.getGatePlayerTeleportLocation();
-                    final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
-                    // set yaw from exit velocity so clients face travel direction
-                    try
-                    {
-                        if (safeTarget != null && new_speed != null)
-                        {
-                            final double dx = new_speed.getX();
-                            final double dz = new_speed.getZ();
-                            final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
-                                ? (float) Math.toDegrees(Math.atan2(-dx, dz))
-                                : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
-                            safeTarget.setYaw(yaw);
-                            safeTarget.setPitch(0f);
-                        }
-                    }
-                    catch (final Throwable ignore) {}
-                    if (veh != null)
-                    {
-                        final UUID vid = veh.getUniqueId();
-                        markVehicleRecentlyTeleported(vid);
-                    }
-                    veh.teleport(safeTarget);
-                    veh.setVelocity(new_speed);
-                }
-            else
+        if (st.getGateTarget().isGateIrisActive())
+        {
+            p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+            final Location irisTarget = st.getGateMinecartTeleportLocation() != null
+            ? st.getGateMinecartTeleportLocation()
+            : st.getGatePlayerTeleportLocation();
+            // If player is in a minecart, just move them one block up from the TP location
+            final Location safeIrisTarget = (irisTarget != null)
+            ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
+            : irisTarget;
+            if (veh != null)
             {
-                final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
-                // set yaw from exit velocity so clients face travel direction
-                try
-                {
-                    if (safeTarget != null && new_speed != null)
-                    {
-                        final double dx = new_speed.getX();
-                        final double dz = new_speed.getZ();
-                        final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
-                            ? (float) Math.toDegrees(Math.atan2(-dx, dz))
-                            : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
-                        safeTarget.setYaw(yaw);
-                        safeTarget.setPitch(0f);
-                    }
-                }
-                catch (final Throwable ignore) {}
+                final UUID vid = veh.getUniqueId();
+                markVehicleRecentlyTeleported(vid);
+            }
+        veh.teleport(safeIrisTarget);
+        if (ConfigManager.getTimeoutShutdown() == 0)
+        {
+            st.shutdownStargate(true);
+        }
+        return false;
+        }
+        if (ConfigManager.isUseCooldownEnabled())
+        {
+            if (StargateRestrictions.isPlayerUseCooldown(p))
+            {
+                p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
+                p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
+                return false;
+            }
+        // Neither is applied here. Both are consequences of having travelled,
+        // and a listener further down may still stop this trip - which would
+        // leave the rider having spent a cooldown and been marked as arriving
+        // somewhere they never went.
+        else
+        {
+            pendingRestrictions.add(p);
+        }
+        }
+        }
+        else
+        {
+            if (st.getGateTarget().isGateIrisActive())
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Minecart in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
+                final Location irisTarget = st.getGateMinecartTeleportLocation() != null
+                ? st.getGateMinecartTeleportLocation()
+                : st.getGatePlayerTeleportLocation();
+                // For non-player carts, use a simple one-block-up offset from configured TP
+                final Location safeIrisTarget = (irisTarget != null) ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0) : irisTarget;
                 if (veh != null)
                 {
                     final UUID vid = veh.getUniqueId();
                     markVehicleRecentlyTeleported(vid);
-                    if (!passengers.isEmpty())
-                    {
-                        // Mark all player passengers so PlayerListener does not solo-teleport them
-                        // when they are ejected by veh.teleport() on the source side.
-                        for (final Entity psg : passengers)
-                        {
-                            if (psg instanceof Player)
-                            {
-                                markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
-                            }
-                        }
-                        // Occupied vehicle: dispatch to type-specific handler.
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
-                        if (veh instanceof Boat)
-                        {
-                            teleportOccupiedBoat(veh, passengers, safeTarget, new_speed);
-                        }
-                        else
-                        {
-                            teleportOccupiedMinecart(veh, passengers, safeTarget, new_speed);
-                        }
-                    }
-                    else
-                    {
-                        // Unoccupied vehicle: teleport directly and apply exit velocity.
-                        veh.teleport(safeTarget);
-                        veh.setVelocity(new_speed);
-                    }
                 }
-            }
-
+            veh.teleport(safeIrisTarget);
             if (ConfigManager.getTimeoutShutdown() == 0)
             {
                 st.shutdownStargate(true);
             }
-            return true;
+        return false;
         }
 
-        return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Sends a vehicle and whoever is aboard it to the far gate.
+     *
+     * <p>Reached once travel is settled: the riders may use the gate, the far end is open,
+     * and no listener objected. What is left is placing the vehicle, pointing it the way it
+     * is travelling, and putting the passengers back aboard in an order the client accepts.
+     *
+     * @param st
+     *            the gate being entered
+     * @param veh
+     *            the vehicle travelling
+     * @param v
+     *            its velocity on the way in, which sets the speed on the way out
+     * @param target
+     *            the far gate's arrival point
+     * @param passengers
+     *            who is aboard, empty for a vehicle travelling alone
+     * @return true if the vehicle was sent
+     */
+    private static boolean dispatchVehicleTeleport(final Stargate st, final Vehicle veh,
+                                                   final Vector v, Location target,
+                                                   final List<Entity> passengers)
+    {
+        final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
+        if (st.getGateTarget().isGateIrisActive())
+        {
+            target = st.getGateMinecartTeleportLocation() != null
+            ? st.getGateMinecartTeleportLocation()
+            : st.getGatePlayerTeleportLocation();
+            final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+            // set yaw from exit velocity so clients face travel direction
+            try
+            {
+                if (safeTarget != null && new_speed != null)
+                {
+                    final double dx = new_speed.getX();
+                    final double dz = new_speed.getZ();
+                    final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                    ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                    : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
+                    safeTarget.setYaw(yaw);
+                    safeTarget.setPitch(0f);
+                }
+        }
+        catch (final Throwable ignore) {}
+        if (veh != null)
+        {
+            final UUID vid = veh.getUniqueId();
+            markVehicleRecentlyTeleported(vid);
+        }
+        veh.teleport(safeTarget);
+        veh.setVelocity(new_speed);
+        }
+        else
+        {
+            final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+            // set yaw from exit velocity so clients face travel direction
+            try
+            {
+                if (safeTarget != null && new_speed != null)
+                {
+                    final double dx = new_speed.getX();
+                    final double dz = new_speed.getZ();
+                    final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                    ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                    : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
+                    safeTarget.setYaw(yaw);
+                    safeTarget.setPitch(0f);
+                }
+        }
+        catch (final Throwable ignore) {}
+        if (veh != null)
+        {
+            final UUID vid = veh.getUniqueId();
+            markVehicleRecentlyTeleported(vid);
+            if (!passengers.isEmpty())
+            {
+                // Mark all player passengers so PlayerListener does not solo-teleport them
+                // when they are ejected by veh.teleport() on the source side.
+                for (final Entity psg : passengers)
+                {
+                    if (psg instanceof Player)
+                    {
+                        markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
+                    }
+            }
+        // Occupied vehicle: dispatch to type-specific handler.
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
+        if (veh instanceof Boat)
+        {
+            teleportOccupiedBoat(veh, passengers, safeTarget, new_speed);
+        }
+        else
+        {
+            teleportOccupiedMinecart(veh, passengers, safeTarget, new_speed);
+        }
+        }
+        else
+        {
+            // Unoccupied vehicle: teleport directly and apply exit velocity.
+            veh.teleport(safeTarget);
+            veh.setVelocity(new_speed);
+        }
+        }
+        }
+
+        if (ConfigManager.getTimeoutShutdown() == 0)
+        {
+            st.shutdownStargate(true);
+        }
+        return true;
     }
 
     /* (non-Javadoc)
