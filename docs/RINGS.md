@@ -80,13 +80,41 @@ These are data. Changing the sizes later, or adding a third pattern, is a table 
 ## Construction
 
 1. Player lays the perimeter in slabs on top of the floor (or under the ceiling).
-2. Player stands in the ring and runs `/wormhole ring create`.
-3. The plugin tests both patterns at the player's position and takes the one that matches.
+2. Player stands anywhere inside it and runs `/wormhole ring create`.
+3. The plugin reads the template.
 4. The slabs are consumed and the surface returns to exactly what it was. The ring is
    invisible from this point on.
 
 The slabs are a template, not structure. Nothing is left behind and nothing is placed — the
 footprint reads as ordinary floor.
+
+### The template says more than its shape
+
+Detection reads four things out of it, and only the first is obvious:
+
+- **Which pattern**, by matching one of the two.
+- **Where the anchor is.** Nobody stands exactly on the centre block, so the player's
+  position is not the anchor — every interior square is tried as a candidate place for them
+  to be standing, and the anchor is worked back from that.
+- **What the ring is made of.** The slab they chose becomes the ring's material, so a ring
+  laid in deepslate rises in deepslate with no command run. This is the same idea as a gate
+  taking its palette from the material its frame is actually built from, and it is what
+  makes per-end materials the default rather than something you have to go and set.
+- **Which surface it is set into.** A slab resting on a floor is a bottom slab; one hung
+  under a ceiling is a top slab. So orientation is a fact stated by the template rather than
+  a guess from what happens to be above or below it.
+
+A floor ring's slabs sit in the player's own block layer, but a ceiling ring's hang some way
+above their head, so the search runs upward from the player's feet as far as `rings.reach`.
+
+Four things are refused, each with its own message, because "no ring found" sent to someone
+looking at a ring they can plainly see would send them hunting the wrong problem: no circle
+at all, a circle of mixed slab types, a circle whose slabs do not all face the same way, and
+a circle that has been filled in. Only the ring's own slab counts as filling it — a carpet
+or a rail inside the circle is nobody's business.
+
+Detection is pure and reaches the world through a two-method probe, so all of it is
+testable without a running server.
 
 Creation is two-step, because a ring is meaningless without its partner. The first `create`
 stashes a pending endpoint keyed by the player; the second, at the far site, completes the
@@ -97,10 +125,9 @@ it is not yet a pair, and it records its own world so the second `create` can re
 endpoint in a different one — with a message saying so, rather than a silent failure after
 the player has already laid sixteen slabs.
 
-Orientation is inferred, not asked for: slabs resting on a floor make a `FLOOR` ring, slabs
-hung under a ceiling make a `CEILING` ring. A ceiling ring flips two things — the direction
-the slabs travel, and where the trigger volume sits (below the ring rather than above it).
-Arrival at a ceiling ring is the floor beneath it, not the ring plane.
+Orientation, once read, flips two things rather than one: the direction the slabs travel,
+and where the trigger volume sits — below a ceiling ring rather than above it. Arrival at a
+ceiling ring is the floor beneath it, not the ring plane.
 
 ## Storage
 
@@ -282,8 +309,12 @@ A ring has two, and they do different jobs:
 
 | | Default | Constraint | Shown |
 |---|---|---|---|
-| Ring | `STONE_SLAB` | **Must be a slab** | The travelling rings, during deploy and retract |
-| Light | `GLOWSTONE` | Any placeable block | The perimeter during the countdown |
+| Ring | the slab it was laid in | **Must be a slab** | The travelling rings, during deploy and retract |
+| Light | `rings.default-light-material` | Any placeable block | The perimeter during the countdown |
+
+The ring material is not really a default at all: it is read off the template, so the config
+value only applies if detection ever cannot say. The light has nothing to read, so it takes
+the configured default and is changed with `edit` if wanted.
 
 The ring material is constrained and the light one is not. The rise is built out of slab
 halves — a bottom slab fills the lower half of its block, a top slab the upper half — and
@@ -359,7 +390,7 @@ rings:
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited
-  default-ring-material: STONE_SLAB
+  default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
   reach: 4                   # block layers of passenger volume, from the ring plane
 ```
