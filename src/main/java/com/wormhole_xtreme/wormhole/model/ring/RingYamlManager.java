@@ -220,6 +220,7 @@ public final class RingYamlManager
         // Absent means private. A file written before access existed, or one somebody hand
         // edited badly, must not quietly open a ring to the whole server.
         pair.setAccess(readAccess(map.get("Access")));
+        pair.setStyle(readStyle(map.get("Style")));
         final Object allowed = map.get("Allowed");
         if (allowed instanceof java.util.List)
         {
@@ -255,6 +256,32 @@ public final class RingYamlManager
         catch (final IllegalArgumentException e)
         {
             return RingAccess.PRIVATE;
+        }
+    }
+
+    /**
+     * Reads the animation style, defaulting to the commoner one.
+     *
+     * <p>Unlike access there is nothing at stake in getting this wrong, so an unreadable
+     * value simply falls back rather than being treated as damage worth skipping a pair for.
+     *
+     * @param stored
+     *            the stored value, possibly null or nonsense
+     * @return the style
+     */
+    private static RingStyle readStyle(final Object stored)
+    {
+        if (stored == null)
+        {
+            return RingStyle.CONCURRENT;
+        }
+        try
+        {
+            return RingStyle.valueOf(String.valueOf(stored));
+        }
+        catch (final IllegalArgumentException e)
+        {
+            return RingStyle.CONCURRENT;
         }
     }
 
@@ -367,6 +394,7 @@ public final class RingYamlManager
         out.put("Label", pair.getLabel());
         out.put("Created", Long.valueOf(pair.getCreated()));
         out.put("Access", pair.getAccess().name());
+        out.put("Style", pair.getStyle().name());
         out.put("Allowed", new java.util.ArrayList<String>(pair.getAllowed()));
         out.put("A", writeRing(pair.getEndA()));
         out.put("B", writeRing(pair.getEndB()));

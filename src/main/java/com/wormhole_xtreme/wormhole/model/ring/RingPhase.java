@@ -32,6 +32,15 @@ public enum RingPhase
     /** Fully deployed. Both interiors are snapshotted in this one tick and swapped. */
     FLASH,
 
+    /**
+     * Stacked and still, for a beat after the swap.
+     *
+     * <p>The rings do not travel up and immediately back down. They stand for a couple of
+     * seconds with the travellers already gone, and that pause is most of what makes the
+     * effect read as a transport rather than as blocks moving.
+     */
+    HOLD,
+
     /** Slabs travelling back, every block being restored. */
     RETRACT,
 

@@ -147,6 +147,37 @@ public class RingIndexTest
     }
 
     @Test
+    public void aPackedPositionReadsBackAsTheBlockItCameFrom()
+    {
+        // The restore path unpacks these to work out which block to put back, so a position
+        // that does not survive the round trip puts a block back in the wrong place —
+        // silently, and thousands of blocks away.
+        final int[][] cases = {
+            { 10, 64, -20 }, { 0, 0, 0 }, { -1, -1, -1 },
+            { -2000000, 319, 2000000 }, { 2000000, -64, -2000000 },
+        };
+        for (final int[] c : cases)
+        {
+            final long packed = RingIndex.pack(c[0], c[1], c[2]);
+            assertEquals(c[0], RingIndex.unpackX(packed), "x of " + c[0] + "," + c[1] + "," + c[2]);
+            assertEquals(c[1], RingIndex.unpackY(packed), "y of " + c[0] + "," + c[1] + "," + c[2]);
+            assertEquals(c[2], RingIndex.unpackZ(packed), "z of " + c[0] + "," + c[1] + "," + c[2]);
+        }
+    }
+
+    @Test
+    public void everyHeightInTheWorldSurvivesTheRoundTrip()
+    {
+        // The world starts at -64, so rings in deepslate, caves and on the nether floor all
+        // sit below zero. Y is the coordinate a naive mask gets wrong, because twelve bits
+        // masked off a negative number come back as a large positive one.
+        for (int y = -64; y <= 319; y++)
+        {
+            assertEquals(y, RingIndex.unpackY(RingIndex.pack(7, y, -7)), "height " + y);
+        }
+    }
+
+    @Test
     public void negativeAndFarOutCoordinatesStillPackDistinctly()
     {
         // Negative coordinates are the case a hand-rolled packing usually gets wrong, and

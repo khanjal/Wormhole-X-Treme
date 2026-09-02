@@ -101,6 +101,54 @@ public final class RingIndex
     }
 
     /**
+     * Reads the x back out of a packed position.
+     *
+     * <p>Shifting a signed long right brings the sign with it, which is what makes a
+     * negative coordinate survive the round trip.
+     *
+     * @param packed
+     *            a position from {@link #pack}
+     * @return block x
+     */
+    static int unpackX(final long packed)
+    {
+        return (int) (packed >> 38);
+    }
+
+    /**
+     * Reads the y back out of a packed position.
+     *
+     * <p>Y sits in the low twelve bits, which is not enough for a plain mask to preserve its
+     * sign — masking a negative y gives a large positive number instead. Shifting it up to
+     * the top of the long and arithmetically back down sign-extends it properly.
+     *
+     * <p>This matters more than it looks. The world runs from y=-64, so ordinary rings in
+     * deepslate, caves and the nether floor all sit below zero, and getting this wrong would
+     * restore their blocks thousands of blocks away — leaving slabs standing in the floor
+     * forever and writing stray air into the sky.
+     *
+     * @param packed
+     *            a position from {@link #pack}
+     * @return block y
+     */
+    static int unpackY(final long packed)
+    {
+        return (int) ((packed << 52) >> 52);
+    }
+
+    /**
+     * Reads the z back out of a packed position.
+     *
+     * @param packed
+     *            a position from {@link #pack}
+     * @return block z
+     */
+    static int unpackZ(final long packed)
+    {
+        return (int) ((packed << 26) >> 38);
+    }
+
+    /**
      * Adds both ends of a pair to the index.
      *
      * @param pair

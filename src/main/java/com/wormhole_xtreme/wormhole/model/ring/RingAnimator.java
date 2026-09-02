@@ -24,11 +24,18 @@ import java.util.List;
  * the far half on even steps and the near half on odd ones. This is the whole reason the
  * ring material is required to be a slab.
  *
- * <p><b>The stack.</b> Rings come out of the plane one after another and rise until they
- * have formed a stack with a block of clear space between each, which is
- * {@link #SPACING} half-steps. The first one out travels furthest, so it tops out at
- * {@link #TOP_HALF_STEP} and each one after it stops one gap lower. Deploy is over when the
- * first ring reaches the top, and retract is the same frames played backwards.
+ * <p><b>The stack.</b> Four rings end up one block of clear space apart, which is
+ * {@link #SPACING} half-steps. {@link RingStyle} decides how they get there: all at once,
+ * each a gap behind the last, or strictly one at a time with each waiting for the one before
+ * it to stop. The two differ only in when a ring leaves the plane — where they end up, how
+ * far each travels and how they come home are the same, which is why one number tells them
+ * apart rather than there being two animations.
+ *
+ * <p><b>Retract is the same frames played backwards</b>, and that is not just an economy.
+ * Reversing a sequence that went furthest-first automatically returns them nearest-first:
+ * the last ring to emerge is the first to sink away, and the one that flew highest is the
+ * last to come home. That is the order these move in, and it falls out of the reversal
+ * rather than needing a second sequence that could disagree with the first.
  *
  * <p><b>Direction.</b> A floor ring rises and a ceiling ring descends, and the two also
  * start from opposite halves of their own block — a floor ring's first slab is a bottom slab
@@ -44,10 +51,56 @@ public final class RingAnimator
     /** How many rings travel. */
     public static final int RING_COUNT = 4;
 
-    /** Half-steps the leading ring travels before the stack is complete. */
+    /** Half-steps the leading ring travels: the top of the finished stack. */
     public static final int TOP_HALF_STEP = (RING_COUNT - 1) * SPACING;
 
     private RingAnimator() {}
+
+    /**
+     * Where a given ring comes to rest.
+     *
+     * <p>The first one out goes furthest, and each one after it stops a gap lower, so the
+     * last one never leaves the plane at all — it is already where it belongs.
+     *
+     * @param index
+     *            which ring, counting from the first one out
+     * @return its resting half-step
+     */
+    static int restingHalfStep(final int index)
+    {
+        return (RING_COUNT - 1 - index) * SPACING;
+    }
+
+    /**
+     * The frame a given ring emerges on.
+     *
+     * <p>Concurrently, a ring leaves one gap behind the one in front and they all arrive
+     * together. Sequentially, it waits for the one before it to finish travelling and stop,
+     * which makes the whole run as long as the sum of the journeys rather than the longest
+     * of them.
+     *
+     * @param style
+     *            how the stack comes out
+     * @param index
+     *            which ring, counting from the first one out
+     * @return the frame it first appears on
+     */
+    static int emergesOnFrame(final RingStyle style, final int index)
+    {
+        if (style == RingStyle.CONCURRENT)
+        {
+            // Everyone is already on their way; each ring simply leaves one gap behind the
+            // one in front, so the whole stack arrives together.
+            return index * SPACING;
+        }
+        int frame = 0;
+        for (int earlier = 0; earlier < index; earlier++)
+        {
+            // Its whole journey, plus the frame it spent sitting at the plane before moving.
+            frame += restingHalfStep(earlier) + 1;
+        }
+        return frame;
+    }
 
     /**
      * One slab of one travelling ring on one frame.
@@ -123,13 +176,22 @@ public final class RingAnimator
     /**
      * How many frames a deploy takes.
      *
-     * <p>One per half-step of the leading ring, plus the frame it starts on.
+     * <p>However many it takes for the last ring to reach its place, which depends entirely
+     * on the style: concurrently they overlap and the answer is the longest single journey,
+     * sequentially they queue and it is the sum of all of them.
      *
+     * @param style
+     *            how the stack comes out
      * @return the number of deploy frames
      */
-    public static int deployFrames()
+    public static int deployFrames(final RingStyle style)
     {
-        return TOP_HALF_STEP + 1;
+        int frames = 0;
+        for (int index = 0; index < RING_COUNT; index++)
+        {
+            frames = Math.max(frames, emergesOnFrame(style, index) + restingHalfStep(index) + 1);
+        }
+        return frames;
     }
 
     /**
@@ -141,25 +203,25 @@ public final class RingAnimator
      *
      * @param ring
      *            the ring deploying
+     * @param style
+     *            how the stack comes out
      * @param frame
      *            which frame, from zero
      * @return where every travelling slab is on that frame
      */
-    public static List<Placement> deployFrame(final Ring ring, final int frame)
+    public static List<Placement> deployFrame(final Ring ring, final RingStyle style, final int frame)
     {
         final List<Placement> out = new ArrayList<Placement>();
         for (int index = 0; index < RING_COUNT; index++)
         {
-            final int started = frame - (index * SPACING);
-            if (started < 0)
+            final int travelled = frame - emergesOnFrame(style, index);
+            if (travelled < 0)
             {
-                // This one is still below the floor: it has not come out yet.
+                // Still below the floor: the ring before it has not finished yet.
                 continue;
             }
-            // Each ring stops one gap lower than the one that came out before it, which is
-            // what turns a column of risers into a stack with clear space between.
-            final int ceiling = TOP_HALF_STEP - (index * SPACING);
-            addRing(out, ring, Math.min(started, ceiling));
+            // Once it reaches its place it holds there while the rest come out behind it.
+            addRing(out, ring, Math.min(travelled, restingHalfStep(index)));
         }
         return out;
     }
@@ -167,18 +229,23 @@ public final class RingAnimator
     /**
      * Every slab that should exist on a given retract frame.
      *
-     * <p>Retract is deploy played backwards, and saying so here rather than writing a second
-     * sequence means the two can never drift apart or leave a slab behind on the way down.
+     * <p>Deploy played backwards, which gives the right order for free: because the rings
+     * went out furthest-first, reversing brings them home nearest-first — the last one to
+     * emerge sinks away immediately and the one that flew highest is the last to leave.
+     * Saying it this way rather than writing a second sequence also means the two can never
+     * disagree and strand a slab on the way down.
      *
      * @param ring
      *            the ring retracting
+     * @param style
+     *            how the stack came out
      * @param frame
      *            which frame, from zero
      * @return where every travelling slab is on that frame
      */
-    public static List<Placement> retractFrame(final Ring ring, final int frame)
+    public static List<Placement> retractFrame(final Ring ring, final RingStyle style, final int frame)
     {
-        return deployFrame(ring, (deployFrames() - 1) - frame);
+        return deployFrame(ring, style, (deployFrames(style) - 1) - frame);
     }
 
     /**

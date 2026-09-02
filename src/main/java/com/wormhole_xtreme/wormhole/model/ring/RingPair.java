@@ -59,6 +59,9 @@ public class RingPair
     /** UUID strings of players allowed to use it besides the owner. */
     private final Set<String> allowed = ConcurrentHashMap.newKeySet();
 
+    /** How the stack comes out. Shared, because both ends deploy as one event. */
+    private RingStyle style = RingStyle.CONCURRENT;
+
     /** Where the pair is in its cycle. */
     private RingPhase phase = RingPhase.IDLE;
 
@@ -261,6 +264,27 @@ public class RingPair
     public boolean isOwnedBy(final String uuid)
     {
         return (owner != null) && owner.equals(uuid);
+    }
+
+    /** @return how the stack comes out */
+    public RingStyle getStyle()
+    {
+        return style;
+    }
+
+    /**
+     * Sets how the stack comes out.
+     *
+     * <p>Shared by both ends rather than set per end: the swap happens when both stacks are
+     * up, so ends that deployed at different speeds would leave one standing and waiting on
+     * the other.
+     *
+     * @param style
+     *            the new style
+     */
+    public void setStyle(final RingStyle style)
+    {
+        this.style = style == null ? RingStyle.CONCURRENT : style;
     }
 
     /** @return whether anyone may use it, or only those named */

@@ -154,6 +154,7 @@ Pairs:
     Created: 1756771200000
     Access: PRIVATE
     Allowed: [11111111-2222-3333-4444-555555555555]
+    Style: CONCURRENT
     A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
     B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE}
 ```
@@ -219,10 +220,11 @@ binary baggage; there is no reason to inherit that.
 
 ```
 IDLE        a move event inside either interior arms the pair
-COUNTDOWN   glowstone phase — ABORTS if both interiors go empty
-DEPLOY      slabs travel — COMMITTED, no abort, runs to completion
+COUNTDOWN   lights show in the ring's pattern — ABORTS if both interiors go empty
+DEPLOY      rings rise one at a time — COMMITTED, no abort, runs to completion
 FLASH       snapshot both interiors in one tick, swap
-RETRACT     slabs travel back, every block restored
+HOLD        rings stand stacked for a beat, travellers already gone
+RETRACT     rings return nearest-first, every block restored
 COOLDOWN    pair refuses all triggers
 ```
 
@@ -379,6 +381,31 @@ the list. There is no sequence of commands that leaves a pair nobody can use or 
 
 ## Animation
 
+Four rings end up a block of clear space apart, and there are **two ways they get there**,
+both of which the show uses. `rings.default-style` picks the default and
+`/wormhole ring edit style` changes one pair.
+
+- **Concurrent** — all four on their way at once, each leaving the plane a gap behind the
+  last, so the stack rises as a group and arrives together. Quicker, and the commoner look.
+- **Sequential** — strictly one at a time. The first out flies all the way to the furthest
+  position and stops; only then does the next emerge.
+
+They differ *only* in when a ring leaves the plane. Where each ends up, how far it travels
+and how they come home are identical, so this is one number rather than two animations.
+
+Style belongs to the pair, not to an end — the same reasoning as access. Both stacks have to
+be up for the swap, so ends with different timings would leave one standing and waiting on
+the other.
+
+They then **stand still** for a couple of seconds with the travellers already gone. That
+pause is most of what makes the effect read as a transport rather than as blocks moving, and
+it is why `HOLD` is a phase rather than the swap being followed straight by the retract.
+
+Coming back, the **nearest ring goes home first** and the one that flew highest is the last
+to leave. This needs no code of its own: retract is deploy played backwards, and a sequence
+that went out furthest-first returns nearest-first on its own. Writing it as a reversal
+rather than a second sequence also means the two can never disagree and strand a slab.
+
 Half-block resolution comes from slab type rather than position. A `BOTTOM` slab fills the
 lower half of its block and a `TOP` slab the upper half, so a travelling ring steps
 `(y,BOTTOM)` then `(y,TOP)` then `(y+1,BOTTOM)`. "A block of space between them" means
@@ -425,12 +452,14 @@ rings:
   countdown: 60              # ticks; see the floor documented above
   cycle-cooldown: 1200       # ticks, per pair
   deploy-ticks: 2            # ticks between animation frames
+  hold-ticks: 40             # how long the stack stands before retracting
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
   max-link-distance: 0       # 0 = unlimited
   default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
   default-access: PRIVATE    # what a newly built pair starts as
+  default-style: CONCURRENT  # or SEQUENTIAL; how the stack comes out
   reach: 4                   # block layers of passenger volume, from the ring plane
 ```
 
@@ -453,6 +482,7 @@ one declaration.
            light <material>   the countdown lights                   per end
            label <text>       display only                           per pair
            access public|private                                     per pair
+           style concurrent|sequential                                per pair
 ```
 
 Everything adjustable lives under one `edit` verb rather than a subcommand per field. Gates
@@ -519,17 +549,20 @@ In rough order of how much they would hurt to get wrong:
 1. The swap is atomic — entities from A never appear in B's snapshot.
 2. Abort during countdown restores every block at both ends.
 3. Deploy cannot be aborted, and an empty committed cycle completes cleanly.
-4. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
-5. Overlapping footprints are refused at create, including against gate blocks.
-6. Pattern matching picks the right one of the two, and rejects a near-miss circle.
-7. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
+4. Both styles build the same stack, run to their own length, and return nearest-first.
+5. A packed block position survives the round trip at every height in the world, including
+   the negative ones — the restore path unpacks these to decide which block to put back.
+6. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
+7. Overlapping footprints are refused at create, including against gate blocks.
+8. Pattern matching picks the right one of the two, and rejects a near-miss circle.
+9. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
-8. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-9. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+10. A damaged entry in a world file is skipped with a log line, and the rest still loads.
+11. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
-10. Pairing refuses a second endpoint placed in a different world, and says why.
-11. `edit` without an id changes only the end the player is standing in; with an id it
+12. Pairing refuses a second endpoint placed in a different world, and says why.
+13. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.
-12. A private pair refuses a stranger, carries the owner and the people they named, and
+14. A private pair refuses a stranger, carries the owner and the people they named, and
     leaves an unpermitted player standing while everyone else goes.
-13. A stored pair with a missing or unreadable access field loads private, never public.
+15. A stored pair with a missing or unreadable access field loads private, never public.
