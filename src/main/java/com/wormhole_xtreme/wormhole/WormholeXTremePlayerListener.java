@@ -413,6 +413,12 @@ class WormholeXTremePlayerListener implements Listener
      *            the player to hold back
      * @return true, so the caller cancels the move event
      */
+    private static boolean refuseGateEntry(final Player player)
+    {
+        player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+        return true;
+    }
+
     /**
      * Holds back a player whose trip a listener cancelled, without trapping them.
      *
@@ -448,11 +454,6 @@ class WormholeXTremePlayerListener implements Listener
         return true;
     }
 
-    private static boolean refuseGateEntry(final Player player)
-    {
-        player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
-        return true;
-    }
 
     /**
      * Handle player move event.
@@ -600,12 +601,16 @@ class WormholeXTremePlayerListener implements Listener
                     player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
                     return false;
                 }
-                else
-                {
-                    StargateRestrictions.addPlayerUseCooldown(player);
-                }
+                // Not applied here: the cooldown is set once the traveller has actually
+                // gone, further down. Setting it at the check as well spent the player's
+                // cooldown on a trip that had not happened yet and might still not.
             }
 
+            // Affordability is checked here so the player is turned away for the right
+            // reason and in the right order, but the money does not move until the trip is
+            // certain: a listener may still stop it, and charging for a journey that never
+            // happened is the one outcome nobody can argue is correct.
+            double pendingUseCost = 0.0;
             if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
             {
                 final double useCost = ConfigManager.getEconomyUseCost();
@@ -616,9 +621,7 @@ class WormholeXTremePlayerListener implements Listener
                         player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
                         return false;
                     }
-                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, useCost);
-                    player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
-                        + useCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(useCost));
+                    pendingUseCost = useCost;
                 }
             }
 
@@ -653,6 +656,14 @@ class WormholeXTremePlayerListener implements Listener
                     stargate, player, stargate.getGateTarget(), safeTarget))
             {
                 return holdBackCancelledTraveller(event, stargate);
+            }
+
+            // Travel is settled, so the fare can be taken.
+            if (pendingUseCost > 0)
+            {
+                com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, pendingUseCost);
+                player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
+                    + pendingUseCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(pendingUseCost));
             }
             // Diagnostic logging for teleport issues
             if (WormholeXTreme.getThisPlugin() != null)

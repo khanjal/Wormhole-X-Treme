@@ -611,6 +611,8 @@ class WormholeXTremeVehicleListener implements Listener
             final Vector v = veh.getVelocity();
             veh.setVelocity(nospeed);
             final List<Entity> passengers = new ArrayList<Entity>(veh.getPassengers());
+            // Riders whose cooldown and arrival mark are owed once the trip actually happens.
+            final List<Player> pendingRestrictions = new ArrayList<Player>();
             if (!passengers.isEmpty() && (passengers.get(0) instanceof Player))
             {
                 final Player p = (Player) passengers.get(0);
@@ -650,10 +652,13 @@ class WormholeXTremeVehicleListener implements Listener
                         p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
                         return false;
                     }
+                    // Neither is applied here. Both are consequences of having travelled,
+                    // and a listener further down may still stop this trip - which would
+                    // leave the rider having spent a cooldown and been marked as arriving
+                    // somewhere they never went.
                     else
                     {
-                        StargateRestrictions.addPlayerUseCooldown(p);
-                        try { StargateRestrictions.addPlayerRecentArrival(p, st.getGateTarget()); } catch (final Throwable ignore) {}
+                        pendingRestrictions.add(p);
                     }
                 }
             }
@@ -696,6 +701,14 @@ class WormholeXTremeVehicleListener implements Listener
                             "Vehicle travel cancelled by a listener for player " + ((Player) psg).getName());
                         return false;
                     }
+                }
+
+                // Travel is settled, so what follows from having travelled can be applied.
+                for (final Player rider : pendingRestrictions)
+                {
+                    StargateRestrictions.addPlayerUseCooldown(rider);
+                    try { StargateRestrictions.addPlayerRecentArrival(rider, st.getGateTarget()); }
+                    catch (final RuntimeException ignore) {}
                 }
 
                 final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
