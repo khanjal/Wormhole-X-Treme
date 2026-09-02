@@ -17,44 +17,43 @@ it.
 | Direction | One way per dial | Both ends fire together |
 | Appearance | Permanent structure | Invisible until it fires |
 | Identity | Player-chosen name | Generated id, optional label |
+| Range | Cross-world, config permitting | Same world, always |
 
 ## Patterns
 
 There are exactly two, and they are hardcoded. No `.shape` file format — a file format for
 two fixed arrays is dead weight.
 
-Both are taken from the Standard gate's ring outline, which cuts its corners at two levels
-rather than one. The odd pattern is that outline exactly (`Standard.shape`, Layer#1); the
-even pattern is the same construction one block wider in each axis.
+Both are rasterised the same way the Standard gate's ring is (`Standard.shape`, Layer#1) —
+cells whose centre falls inside the circle — just at a smaller diameter. Standard is 7
+across and has room to cut its corners at two levels, profile `3,5,7,7,7,5,3`. At 5 and 6
+there is only room for one cut, which is not a simplification of the construction but the
+same construction with fewer rows.
 
-Odd — 7 across, disc profile `3,5,7,7,7,5,3`:
-
-```
-. . # # # . .
-. # · · · # .
-# · · · · · #
-# · · · · · #
-# · · · · · #
-. # · · · # .
-. . # # # . .
-```
-
-16 perimeter blocks, 21 interior. Has a true centre block.
-
-Even — 8 across, disc profile `4,6,8,8,8,8,6,4`:
+Odd — 5 across, disc profile `3,5,5,5,3`:
 
 ```
-. . # # # # . .
-. # · · · · # .
-# · · · · · · #
-# · · · · · · #
-# · · · · · · #
-# · · · · · · #
-. # · · · · # .
-. . # # # # . .
+. # # # .
+# · · · #
+# · · · #
+# · · · #
+. # # # .
 ```
 
-20 perimeter blocks, 32 interior. Centre is a 2x2.
+12 perimeter blocks, 9 interior (3x3). Has a true centre block.
+
+Even — 6 across, disc profile `4,6,6,6,6,4`:
+
+```
+. # # # # .
+# · · · · #
+# · · · · #
+# · · · · #
+# · · · · #
+. # # # # .
+```
+
+16 perimeter blocks, 16 interior (4x4). Centre is a 2x2.
 
 `#` is the perimeter: what the player lays in slabs, and what animates. `·` is the
 interior: the trigger volume and the region that travels. The two never overlap, which
@@ -64,8 +63,17 @@ The player lays **only the perimeter**. The interior is left entirely alone — 
 of slabs, not a disc, and whatever is already inside it (floor, carpet, a rail) stays.
 
 Offsets are stored as integer `(dx, dz)` pairs from an anchor block. For the odd pattern
-the anchor is the centre. For the even pattern there is no centre, so the anchor is the
-low-x/low-z block of the central 2x2, giving offsets in `-3..+4` rather than `-3..+3`.
+the anchor is the centre, giving offsets in `-2..+2`. For the even pattern there is no
+centre, so the anchor is the low-x/low-z block of the central 2x2, giving the asymmetric
+range `-2..+3`.
+
+```
+ODD   perimeter  dz=-2: dx -1,0,1   dz=-1..1: dx -2,2      dz=+2: dx -1,0,1
+      interior   dz=-1..1, dx=-1..1
+
+EVEN  perimeter  dz=-2: dx -1..2    dz=-1..2: dx -2,3      dz=+3: dx -1..2
+      interior   dz=-1..2, dx=-1..2
+```
 
 These are data. Changing the sizes later, or adding a third pattern, is a table edit.
 
@@ -83,8 +91,11 @@ footprint reads as ordinary floor.
 Creation is two-step, because a ring is meaningless without its partner. The first `create`
 stashes a pending endpoint keyed by the player; the second, at the far site, completes the
 pair. This mirrors `incompleteStargates` / `completeStargate` in `StargateManager`. The
-pending endpoint is persisted as `pending-<uuid>.yml` so a restart mid-build does not
-silently eat the player's slabs.
+pending endpoint is persisted as `rings/pending/<player-uuid>.yml` so a restart mid-build
+does not silently eat the player's slabs. It sits outside the per-world folders because it
+is not yet a pair, and it records its world so the second `create` can refuse an endpoint
+in a different one — with a message saying so, rather than a silent failure after the
+player has already laid sixteen slabs.
 
 Orientation is inferred, not asked for: slabs resting on a floor make a `FLOOR` ring, slabs
 hung under a ceiling make a `CEILING` ring. A ceiling ring flips two things — the direction
@@ -93,21 +104,26 @@ Arrival at a ceiling ring is the floor beneath it, not the ring plane.
 
 ## Storage
 
-**The pair is the stored object, not the ring.** One file per pair, both endpoints inside
-it:
+**Rings do not cross worlds.** Both ends of a pair are always in the same world, by design
+rather than by config. Gates remain the long-haul option; rings are local transport. That
+matches the fiction, and it removes a whole class of problem — no pair can be half-loaded,
+no endpoint can reference a world that no longer exists, and `World` is a property of the
+pair rather than of each end.
+
+**The pair is the stored object, not the ring**, and pairs live in per-world folders:
 
 ```
-plugins/WormholeXTreme/WormholeXTremeDB/rings/7f3a1c2e.yml
+plugins/WormholeXTreme/WormholeXTremeDB/rings/<world>/7f3a1c2e.yml
 ```
 
 ```yaml
 Id: 7f3a1c2e
+World: world
 Owner: 069a79f4-44e9-4726-a5be-fca90e38aaf5
 OwnerName: Justin
 Label: ""
 Created: 1756771200000
 A:
-  World: world
   X: 128
   Y: 64
   Z: -310
@@ -115,7 +131,6 @@ A:
   Pattern: ODD
   Material: STONE_SLAB
 B:
-  World: world
   X: 512
   Y: 31
   Z: 88
@@ -128,9 +143,32 @@ Storing the pair rather than two rings removes three problems at once: there are
 dangling partner references, no second resolution pass on load (unlike gate networks), and
 no orphan ring that exists but goes nowhere. Deleting the file removes both ends.
 
-Only the anchor, pattern and orientation are stored. The footprint is derived — storing 16
-or 20 block coordinates that are a pure function of three fields would just be something
+Per-world folders then make world lifecycle trivial. A world that is not loaded has its
+folder skipped, and its rings simply do not exist this session rather than loading into an
+index that can never be reached. A world that is deleted takes its rings with it by
+deleting one directory. On a multiverse server the folders also make it obvious at a glance
+where the rings actually are.
+
+Only the anchor, pattern and orientation are stored. The footprint is derived — storing 12
+or 16 block coordinates that are a pure function of three fields would just be something
 else to keep in sync.
+
+### Why the filename is an id and not coordinates
+
+Encoding coordinates in the filename would buy nothing, because **nothing looks a ring up
+by file at runtime.** Every pair file is read once at startup into `RingIndex`, and from
+then on the move path is a hash against an in-memory chunk bucket. There is no disk access
+on the hot path to make faster, and an admin standing in a ring is answered from the same
+index.
+
+It would also cost something. A pair has two endpoints, so a coordinate filename either
+encodes both and becomes unreadable, or encodes one and quietly implies a ring is the unit
+of storage after we decided it is not. Negative coordinates and world names make the naming
+rules fiddly, and identity in commands and log lines stops being stable.
+
+If the real want is being able to see what is in the folder, per-world directories plus
+`/wormhole ring list` cover it without putting data in filenames. And if a location index
+ever genuinely becomes necessary, the answer is an index file, not a naming convention.
 
 **Rings are not named.** The id is short random hex, used for the filename, for
 `/wormhole ring remove <id>`, and in log lines. Nothing addresses a ring by name at
@@ -165,9 +203,9 @@ late to abort, so the rings deploy, flash, send nothing, and retract.
 
 ### Countdown length is a constraint, not a preference
 
-The interior is 3x3 or 4x4, so clearing it from the centre is roughly 1.5–2.5 blocks — well
-under a second at walking speed. The abort window is only real because the countdown
-comfortably exceeds that.
+The interior is 3x3 or 4x4, so getting clear of it — across the interior and over the
+perimeter — is roughly 2 to 3 blocks, well under a second at walking speed. The abort
+window is only real because the countdown comfortably exceeds that.
 
 `rings.countdown` defaults to 60 ticks. Below roughly 20 the abort window stops being
 meaningful and rings begin taking people who were only walking past. Treat that as a
@@ -261,14 +299,16 @@ originals. So overlap of footprint *or* interior is refused outright at create, 
 20-block one. The actual failure is the far end sitting in an unloaded chunk when the cycle
 fires — the animation writes blocks into an unloaded chunk and the arrival lands in
 ungenerated terrain. So the partner's chunks are force-loaded for the duration of the
-transit (`Chunk.addPluginChunkTicket`, released on retract) and the swap is refused
-outright if the partner's world is not loaded. With that handled,
-`rings.max-link-distance` can default to `0` (unlimited).
+transit (`Chunk.addPluginChunkTicket`, released on retract). Same-world pairing keeps this
+to one case: there is no such thing as a pair whose far end is in a world that is not
+loaded, because if the world is unloaded neither end exists and nobody is standing in one
+to trigger it. With that handled, `rings.max-link-distance` can default to `0`
+(unlimited within the world).
 
 **Quota** is `rings.max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
 
-Cross-world pairing honours the existing `ConfigManager.isSameWorldOnly()`, so rings and
-gates behave the same way.
+`ConfigManager.isSameWorldOnly()` does not apply to rings — they are same-world
+unconditionally, whatever that setting says about gates.
 
 ## Config
 
@@ -349,6 +389,8 @@ In rough order of how much they would hurt to get wrong:
 4. Cooldown is shared per pair, and the landing settle-move does not re-fire it.
 5. Overlapping footprints are refused at create, including against gate blocks.
 6. Pattern matching picks the right one of the two, and rejects a near-miss circle.
-7. A pair round-trips through YAML with its footprint correctly re-derived.
+7. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
+   the folder for its world.
 8. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
+9. Pairing refuses a second endpoint placed in a different world, and says why.
