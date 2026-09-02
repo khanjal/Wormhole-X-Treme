@@ -60,6 +60,9 @@ Even — 8 across, disc profile `4,6,8,8,8,8,6,4`:
 interior: the trigger volume and the region that travels. The two never overlap, which
 matters — a block cannot be both a thing that animates and a thing that holds a passenger.
 
+The player lays **only the perimeter**. The interior is left entirely alone — it is a ring
+of slabs, not a disc, and whatever is already inside it (floor, carpet, a rail) stays.
+
 Offsets are stored as integer `(dx, dz)` pairs from an anchor block. For the odd pattern
 the anchor is the centre. For the even pattern there is no centre, so the anchor is the
 low-x/low-z block of the central 2x2, giving offsets in `-3..+4` rather than `-3..+3`.
@@ -211,6 +214,23 @@ Everything in the interior travels — players, mobs, dropped items, vehicles. O
 `GateEntityScanner`'s per-tick sweep, because there is exactly one instant at which
 occupancy matters.
 
+### Standing on the ring rather than in it
+
+You have to be *within* the ring to travel, and the perimeter is not within it. But someone
+standing on a perimeter block is in the worst possible spot: that column is about to fill
+with rising slabs, so leaving them there means they are shoved, suffocated, or simply left
+behind for a reason invisible to them.
+
+So at deploy-start — the moment the perimeter starts being written, not at the flash —
+every entity standing on a perimeter block is nudged one block inward, toward the anchor,
+to the nearest free interior block. They clear the animation and they travel with everyone
+else. If no interior block is free they are left where they are and the animation skips
+their column, on the same not-a-block-we-own principle that governs every other write.
+
+Arming stays interior-only: stepping on the ring's edge does not start a countdown, because
+the perimeter is a threshold you cross rather than a place you stand. The nudge only
+applies to a cycle already underway.
+
 ## Animation
 
 Half-block resolution comes from slab type rather than position. A `BOTTOM` slab fills the
@@ -330,3 +350,5 @@ In rough order of how much they would hurt to get wrong:
 5. Overlapping footprints are refused at create, including against gate blocks.
 6. Pattern matching picks the right one of the two, and rejects a near-miss circle.
 7. A pair round-trips through YAML with its footprint correctly re-derived.
+8. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+   left alone when the interior has no room for it.
