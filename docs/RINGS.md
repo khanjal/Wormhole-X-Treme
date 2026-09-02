@@ -533,9 +533,19 @@ less hazard to design around.
 
 ## Animation
 
-Five rings end up **half a block of clear air apart** — one block centre to centre, since a
+Four rings end up **half a block of clear air apart** — one block centre to centre, since a
 slab is half a block thick — with the lowest hanging half a block clear of the floor rather
-than resting on it. Top to bottom that is five blocks of headroom.
+than resting on it. They settle at 0.5, 1.5, 2.5 and 3.5 blocks up, so the whole thing needs
+four blocks of headroom, which an ordinary room already has.
+
+**Four rather than the show's five**, because Minecraft's proportions are not the show's. The
+count is also the height: a slab is half a block thick, so rings cannot sit closer than a
+block apart centre to centre without touching, and there is no way to fit five rings into a
+short stack. A ring here has to be seven blocks across to read as round on a block grid,
+which is already enormous beside a player less than a block wide — five of them put a
+five-block tower around somebody 1.8 blocks tall. Four is closer to what a person standing in
+it should see. Measured against the ring's own width it is squatter than the show's, and the
+two proportions cannot both be had.
 
 They **travel further apart than they land**. On the way up there is a full block of clear
 air between rings; the finished stack has half a block. Nothing compresses them — the leader
@@ -545,7 +555,7 @@ have been a second motion to keep in step with the first, for an effect that fal
 rings simply stopping when they get there.
 
 Because rings stop where they land, the finished stack is also the highest anything ever
-gets — so five blocks of headroom is the whole requirement.
+gets — so four blocks of headroom is the whole requirement.
 
 There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.

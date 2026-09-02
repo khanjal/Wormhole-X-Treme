@@ -24,11 +24,11 @@ import java.util.List;
  * the far half on even steps and the near half on odd ones. This is the whole reason the
  * ring material is required to be a slab.
  *
- * <p><b>The stack.</b> Five rings end up half a block of clear air apart, which is
+ * <p><b>The stack.</b> Four rings end up half a block of clear air apart, which is
  * {@link #SPACING} half-steps — one block centre to centre, with each ring being half a
  * block thick. The lowest lifts clear of the floor rather than sitting on it, so the whole
- * stack hangs. Top to bottom that is five blocks of headroom, the same as the wider
- * four-ring stack it replaces.
+ * stack hangs. Top to bottom that is four blocks of headroom, which an ordinary room
+ * already has.
  *
  * <p><b>They travel further apart than they land.</b> While rising, rings are
  * {@link #TRAVEL_GAP} half-steps apart — a whole block of clear air — and they finish
@@ -62,8 +62,21 @@ public final class RingAnimator
     /** Half-steps between rings while still travelling: a whole block of clear air between. */
     public static final int TRAVEL_GAP = 3;
 
-    /** How many rings travel. */
-    public static final int RING_COUNT = 5;
+    /**
+     * How many rings travel.
+     *
+     * <p>Also, unavoidably, how many blocks tall the finished stack is. A slab is half a
+     * block thick, so rings cannot sit closer than a block apart centre to centre without
+     * touching, and the count and the height are therefore the same number.
+     *
+     * <p>Four rather than the show's five, because Minecraft's proportions are not the
+     * show's. A ring here has to be seven blocks across to read as round on a block grid,
+     * which is already enormous beside a player less than a block wide, and stacking five of
+     * them put a five-block tower around somebody 1.8 blocks tall. Four is closer to what a
+     * person standing in it should see, and needs only the four blocks of headroom an
+     * ordinary room already has.
+     */
+    public static final int RING_COUNT = 4;
 
     /** Half-steps the lowest ring lifts, so the stack floats clear rather than sitting on the floor. */
     public static final int BASE_HALF_STEP = 1;
