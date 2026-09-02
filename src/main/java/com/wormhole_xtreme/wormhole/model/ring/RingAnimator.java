@@ -24,11 +24,10 @@ import java.util.List;
  * the far half on even steps and the near half on odd ones. This is the whole reason the
  * ring material is required to be a slab.
  *
- * <p><b>The stack.</b> Three rings end up half a block of clear air apart, which is
+ * <p><b>The stack.</b> Four rings end up half a block of clear air apart, which is
  * {@link #SPACING} half-steps — one block centre to centre, with each ring being half a
  * block thick. The lowest lifts clear of the floor rather than sitting on it, so the whole
- * stack hangs. Top to bottom that is three blocks of headroom, which is the height of an
- * ordinary room.
+ * stack hangs. Top to bottom that is four blocks of headroom.
  *
  * <p><b>They travel further apart than they land.</b> While rising, rings are
  * {@link #TRAVEL_GAP} half-steps apart — a whole block of clear air — and they finish
@@ -69,18 +68,22 @@ public final class RingAnimator
      * block thick, so rings cannot sit closer than a block apart centre to centre without
      * touching, and the count and the height are therefore the same number.
      *
-     * <p>Three rather than the show's five, because Minecraft's proportions are not the
+     * <p>Four rather than the show's five, because Minecraft's proportions are not the
      * show's. A ring here has to be seven blocks across to read as round on a block grid,
      * which is already enormous beside a player less than a block wide, so five of them put a
-     * five-block tower around somebody 1.8 blocks tall. Three settles at three blocks — under
-     * twice a player's height, and low enough to fit the three-block rooms people actually
-     * build in.
+     * five-block tower around somebody 1.8 blocks tall.
      *
-     * <p>The trade is that it is squat measured against the ring's own width. The two
-     * proportions pull opposite ways and cannot both be had on this grid, and the one a
-     * player sees while standing in it is the one worth having.
+     * <p>Three was tried and is the better fit for a cramped room, but with only three there
+     * is barely a sequence to watch: the first has arrived before the last has left, and the
+     * deploy stops reading as rings coming up one after another. Four keeps that and still
+     * fits a four-block room.
+     *
+     * <p>This being one number for every ring is the compromise. A ring in a basement wants
+     * three and one in a hall wants five, which is an argument for making it a property of
+     * each end rather than of the plugin — worth doing if rings in tight spaces become
+     * common.
      */
-    public static final int RING_COUNT = 3;
+    public static final int RING_COUNT = 4;
 
     /** Half-steps the lowest ring lifts, so the stack floats clear rather than sitting on the floor. */
     public static final int BASE_HALF_STEP = 1;

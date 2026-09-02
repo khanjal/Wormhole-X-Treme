@@ -560,22 +560,26 @@ less hazard to design around.
 
 ## Animation
 
-Three rings end up **half a block of clear air apart** — one block centre to centre, since a
+Four rings end up **half a block of clear air apart** — one block centre to centre, since a
 slab is half a block thick — with the lowest hanging half a block clear of the floor rather
-than resting on it. They settle at 0.5, 1.5 and 2.5 blocks up, so the whole thing needs three
-blocks of headroom: the height of an ordinary room.
+than resting on it. They settle at 0.5, 1.5, 2.5 and 3.5 blocks up, so the whole thing needs
+four blocks of headroom.
 
-**Three rather than the show's five**, because Minecraft's proportions are not the show's.
-The count is unavoidably the height — rings cannot sit closer than a block apart centre to
-centre without touching, so there is no way to fit five into a short stack. Meanwhile a ring
-here has to be seven blocks across to read as round on a block grid, which is already
-enormous beside a player less than a block wide. Five put a five-block tower around somebody
-1.8 blocks tall; three comes out at 1.7 times a player's height, against roughly 1.4 in the
-show.
+**Four rather than the show's five**, because Minecraft's proportions are not the show's. The
+count is unavoidably the height — rings cannot sit closer than a block apart centre to centre
+without touching, so there is no way to fit five into a short stack. Meanwhile a ring here has
+to be seven blocks across to read as round on a block grid, which is already enormous beside a
+player less than a block wide. Five put a five-block tower around somebody 1.8 blocks tall.
 
-The trade is that it is squat measured against the ring's own width, where the show's stack
-is slightly taller than wide. The two proportions pull opposite ways and cannot both be had
-on this grid, and the one a player sees while standing in it is the one worth having.
+Three was tried and is the better fit for a cramped room, but with only three there is barely
+a sequence to watch — the first has arrived before the last has left, and the deploy stops
+reading as rings coming up one after another. Four keeps that and still fits a four-block
+room.
+
+One number for every ring is the compromise. A ring in a basement wants three and one in a
+hall wants five, which is an argument for making the count a property of each end rather than
+of the plugin. Worth doing if rings in tight spaces become common; not worth it for a setting
+nobody varies.
 
 They **travel further apart than they land**. On the way up there is a full block of clear
 air between rings; the finished stack has half a block. Nothing compresses them — the leader
@@ -585,7 +589,7 @@ have been a second motion to keep in step with the first, for an effect that fal
 rings simply stopping when they get there.
 
 Because rings stop where they land, the finished stack is also the highest anything ever
-gets — so three blocks of headroom is the whole requirement.
+gets — so four blocks of headroom is the whole requirement.
 
 There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.

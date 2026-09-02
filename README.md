@@ -562,7 +562,7 @@ Rules for the template:
 - **All facing the same way.** Bottom slabs resting on a floor make a floor ring; top slabs
   hung under a ceiling make a ceiling ring. Double slabs are not accepted, because a full
   block cannot say which surface it was laid against.
-- **Three blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
+- **Four blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
 - The footprint may not overlap another ring or any gate.
 
 Each refusal says what is actually wrong — mixed slabs, mixed halves, a filled-in circle,
@@ -576,15 +576,15 @@ Creation is two-step, so the first ring is remembered until you build its partne
 Walk in. The pattern lights up in the floor and counts down; step clear before it commits and
 it stands down. Once the rings start rising the trip is committed.
 
-Three rings then rise out of the pad a block apart, closing to half a block as each one
-stops, settling at 0.5, 1.5 and 2.5 blocks up. The stack stands a second, the light runs down
+Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
+settling at 0.5, 1.5, 2.5 and 3.5 blocks up. The stack stands a second, the light runs down
 through it as you are taken and back up as you arrive, and the rings return nearest-first.
 The pad stays lit until a second after the last one is home.
 
-Three rather than the show's five: a slab is half a block thick, so rings cannot sit closer
+Four rather than the show's five: a slab is half a block thick, so rings cannot sit closer
 than a block apart without touching, which makes the ring count and the stack's height the
-same number. Five put a five-block tower around a player less than two blocks tall, where
-three comes out at about 1.7 times their height.
+same number. Five put a five-block tower around a player less than two blocks tall, and three
+left barely a sequence to watch.
 
 Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
 subject to access rules; everything else rides along.
