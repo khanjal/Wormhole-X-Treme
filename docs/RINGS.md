@@ -91,11 +91,11 @@ footprint reads as ordinary floor.
 Creation is two-step, because a ring is meaningless without its partner. The first `create`
 stashes a pending endpoint keyed by the player; the second, at the far site, completes the
 pair. This mirrors `incompleteStargates` / `completeStargate` in `StargateManager`. The
-pending endpoint is persisted as `rings/pending/<player-uuid>.yml` so a restart mid-build
-does not silently eat the player's slabs. It sits outside the per-world folders because it
-is not yet a pair, and it records its world so the second `create` can refuse an endpoint
-in a different one — with a message saying so, rather than a silent failure after the
-player has already laid sixteen slabs.
+pending endpoint is persisted in `rings/pending.yml`, keyed by player, so a restart
+mid-build does not silently eat the player's slabs. It sits outside the world files because
+it is not yet a pair, and it records its own world so the second `create` can refuse an
+endpoint in a different one — with a message saying so, rather than a silent failure after
+the player has already laid sixteen slabs.
 
 Orientation is inferred, not asked for: slabs resting on a floor make a `FLOOR` ring, slabs
 hung under a ceiling make a `CEILING` ring. A ceiling ring flips two things — the direction
@@ -110,65 +110,72 @@ matches the fiction, and it removes a whole class of problem — no pair can be 
 no endpoint can reference a world that no longer exists, and `World` is a property of the
 pair rather than of each end.
 
-**The pair is the stored object, not the ring**, and pairs live in per-world folders:
+**The pair is the stored object, not the ring**, and every pair in a world lives in that
+world's single file:
 
 ```
-plugins/WormholeXTreme/WormholeXTremeDB/rings/<world>/7f3a1c2e.yml
+plugins/WormholeXTreme/WormholeXTremeDB/rings/<world>.yml
 ```
 
 ```yaml
-Id: 7f3a1c2e
 World: world
-Owner: 069a79f4-44e9-4726-a5be-fca90e38aaf5
-OwnerName: Justin
-Label: ""
-Created: 1756771200000
-A:
-  X: 128
-  Y: 64
-  Z: -310
-  Orientation: FLOOR
-  Pattern: ODD
-  Material: STONE_SLAB
-B:
-  X: 512
-  Y: 31
-  Z: 88
-  Orientation: CEILING
-  Pattern: ODD
-  Material: STONE_SLAB
+Pairs:
+  7f3a1c2e:
+    Owner: 069a79f4-44e9-4726-a5be-fca90e38aaf5
+    OwnerName: Justin
+    Label: ""
+    Created: 1756771200000
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Material: STONE_SLAB}
+    B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: ODD, Material: STONE_SLAB}
 ```
+
+The `World` field inside the file is authoritative, not the filename. World names can
+contain characters a filesystem will not take, so the name is sanitised on the way out and
+never parsed back on the way in.
 
 Storing the pair rather than two rings removes three problems at once: there are no
 dangling partner references, no second resolution pass on load (unlike gate networks), and
 no orphan ring that exists but goes nowhere. Deleting the file removes both ends.
 
-Per-world folders then make world lifecycle trivial. A world that is not loaded has its
-folder skipped, and its rings simply do not exist this session rather than loading into an
-index that can never be reached. A world that is deleted takes its rings with it by
-deleting one directory. On a multiverse server the folders also make it obvious at a glance
-where the rings actually are.
+One file per world, rather than one per pair, for three reasons that point the same way.
+
+It makes the storage layout enforce the design rule: a pair cannot span worlds because
+there is nowhere to write one that does.
+
+It answers the only real cost in loading. Startup reads go from one per pair to one per
+world, and reading files is what dominates — the indexing itself is tens of thousands of
+map insertions, which is microseconds. A thousand pairs across three worlds is three reads.
+
+And it makes world lifecycle trivial. A world that is not loaded has its file skipped, so
+its rings do not exist this session rather than sitting in an index nothing can reach. A
+world that is deleted takes its rings with one file.
+
+The cost of a shared file is that a bad write loses a world's rings rather than one pair's,
+and that is handled the way gates already handle it: dump to a temp file and `ATOMIC_MOVE`
+it into place, so a partial write is never visible. Loading tolerates damage per entry — a
+pair that will not parse is logged and skipped, and the rest of the world still loads.
+Rewriting the whole file on every change is not a concern because ring writes are rare and
+player-initiated: create, remove, relabel, recolour. Nothing writes on the travel path.
 
 Only the anchor, pattern and orientation are stored. The footprint is derived — storing 12
 or 16 block coordinates that are a pure function of three fields would just be something
 else to keep in sync.
 
-### Why the filename is an id and not coordinates
+### Why pairs are keyed by id and not by coordinates
 
-Encoding coordinates in the filename would buy nothing, because **nothing looks a ring up
-by file at runtime.** Every pair file is read once at startup into `RingIndex`, and from
-then on the move path is a hash against an in-memory chunk bucket. There is no disk access
-on the hot path to make faster, and an admin standing in a ring is answered from the same
-index.
+Keying pairs on their coordinates would buy nothing, because **nothing looks a ring up by
+key at runtime.** Every world file is read once at startup into `RingIndex`, and from then
+on the move path is a hash against an in-memory chunk bucket. There is no disk access on the
+hot path to make faster, and an admin standing in a ring is answered from that same index.
 
-It would also cost something. A pair has two endpoints, so a coordinate filename either
-encodes both and becomes unreadable, or encodes one and quietly implies a ring is the unit
-of storage after we decided it is not. Negative coordinates and world names make the naming
-rules fiddly, and identity in commands and log lines stops being stable.
+It would also cost something. A pair has two endpoints, so a coordinate key either encodes
+both and becomes unreadable, or encodes one and quietly implies a ring is the unit of
+storage after we decided it is not. Identity in commands and log lines stops being stable
+the moment anything about the ring's position changes.
 
-If the real want is being able to see what is in the folder, per-world directories plus
-`/wormhole ring list` cover it without putting data in filenames. And if a location index
-ever genuinely becomes necessary, the answer is an index file, not a naming convention.
+If the real want is seeing what is there, a world file already lists every pair in one
+place, and `/wormhole ring list` reads it back with labels. If a location index ever
+genuinely becomes necessary it belongs in memory, where one already is.
 
 **Rings are not named.** The id is short random hex, used for the filename, for
 `/wormhole ring remove <id>`, and in log lines. Nothing addresses a ring by name at
@@ -390,7 +397,8 @@ In rough order of how much they would hurt to get wrong:
 5. Overlapping footprints are refused at create, including against gate blocks.
 6. Pattern matching picks the right one of the two, and rejects a near-miss circle.
 7. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
-   the folder for its world.
-8. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
+   the file for its world.
+8. A damaged entry in a world file is skipped with a log line, and the rest still loads.
+9. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
    left alone when the interior has no room for it.
-9. Pairing refuses a second endpoint placed in a different world, and says why.
+10. Pairing refuses a second endpoint placed in a different world, and says why.
