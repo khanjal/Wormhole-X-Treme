@@ -292,7 +292,17 @@ on whatever is inside it when it closes: walking out genuinely saves you, walkin
 genuinely catches you.
 
 Everything in the interior travels — players, mobs, dropped items, vehicles. One
-`getNearbyEntities` call per side at the moment of the flash. Rings need no equivalent of
+`getNearbyEntities` call per side at the moment of the flash.
+
+**A rider goes with its mount, not beside it.** The two are separate things standing in the
+same ring, and moving them one at a time leaves whichever went first without the other for an
+instant — the game breaks the seat rather than stretching it, and the player lands on the
+floor next to their camel. So anybody riding something that is *also* travelling is dropped
+from the delivery list and carried by it, and the stack is put back together a tick after
+landing, once the positions have settled enough for a seat to be accepted.
+
+Somebody riding a thing that is *not* travelling still goes on their own and dismounts, which
+is the right answer: their ride is staying here. Rings need no equivalent of
 `GateEntityScanner`'s per-tick sweep, because there is exactly one instant at which
 occupancy matters.
 

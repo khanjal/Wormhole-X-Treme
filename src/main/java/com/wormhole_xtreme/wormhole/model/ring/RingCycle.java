@@ -436,7 +436,7 @@ public class RingCycle
     private List<RingPassenger> permitted(final List<RingPassenger> passengers, final Ring from,
         final Ring to)
     {
-        final List<RingPassenger> out = new ArrayList<RingPassenger>(passengers.size());
+        final List<RingPassenger> allowed = new ArrayList<RingPassenger>(passengers.size());
         for (final RingPassenger passenger : passengers)
         {
             if (passenger.isPlayer() && !pair.mayUse(passenger.getUniqueId()))
@@ -447,7 +447,49 @@ public class RingCycle
             {
                 continue;
             }
-            out.add(passenger);
+            allowed.add(passenger);
+        }
+        return riddenBySomethingElse(allowed);
+    }
+
+    /**
+     * Drops anyone whose ride is going too, so they arrive on it rather than beside it.
+     *
+     * <p>A rider and its mount are two separate things standing in the same ring, and moving
+     * them one at a time is what tips somebody off their camel: whichever goes first leaves
+     * the other behind for an instant, and the game breaks the seat rather than stretching
+     * it. Sending only the mount, and re-seating whoever was aboard once it lands, keeps them
+     * together.
+     *
+     * <p>Somebody riding a thing that is <em>not</em> travelling still travels on their own
+     * and dismounts, which is the right answer: their ride is staying here.
+     *
+     * @param travelling
+     *            everyone who has passed every other check
+     * @return the ones to move directly
+     */
+    private static List<RingPassenger> riddenBySomethingElse(final List<RingPassenger> travelling)
+    {
+        final java.util.Set<String> going = new java.util.HashSet<String>();
+        for (final RingPassenger passenger : travelling)
+        {
+            // Nulls are left out deliberately. Two things that cannot say what they are would
+            // otherwise match each other — "riding nothing" would look like "riding the other
+            // one that is also riding nothing" — and both would be dropped as somebody's
+            // passenger with nothing to carry them.
+            if (passenger.getUniqueId() != null)
+            {
+                going.add(passenger.getUniqueId());
+            }
+        }
+        final List<RingPassenger> out = new ArrayList<RingPassenger>(travelling.size());
+        for (final RingPassenger passenger : travelling)
+        {
+            final String ride = passenger.getVehicleId();
+            if ((ride == null) || !going.contains(ride))
+            {
+                out.add(passenger);
+            }
         }
         return out;
     }

@@ -138,23 +138,9 @@ class WormholeXTremeVehicleListener implements Listener
      */
     public static void collectPassengerPairs(final Entity root, final List<Entity> parents, final List<Entity> children)
     {
-        if (root == null || parents == null || children == null)
-        {
-            return;
-        }
-        try
-        {
-            for (final Entity child : root.getPassengers())
-            {
-                parents.add(root);
-                children.add(child);
-                collectPassengerPairs(child, parents, children);
-            }
-        }
-        catch (final Throwable ignore)
-        {
-            // Concurrent modification or other runtime issue — best-effort only.
-        }
+        // Moved to EntityUtils once rings needed it too. Kept here as a delegate so the
+        // callers in this package read the same as they always did.
+        com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(root, parents, children);
     }
 
 

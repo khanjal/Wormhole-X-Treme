@@ -17,6 +17,10 @@ package com.wormhole_xtreme.wormhole.model.ring;
  * to players; mobs, items and vehicles travel as cargo. That costs nothing to allow, because
  * only a player move can arm a ring in the first place, so a private pair never fires except
  * because somebody permitted made it fire.
+ *
+ * <p>Riding is the other thing worth knowing. A rider and its mount are two separate things
+ * standing in the same ring, and sending them separately is what leaves somebody sitting on
+ * the floor where their camel used to be.
  */
 public interface RingPassenger
 {
@@ -28,9 +32,21 @@ public interface RingPassenger
     boolean isPlayer();
 
     /**
-     * @return the player's UUID string, or null for anything that is not a player
+     * @return this thing's own UUID string, whatever it is
      */
     String getUniqueId();
+
+    /**
+     * What this is riding, if anything.
+     *
+     * <p>Needed because a rider and its mount are two separate things standing in the same
+     * ring, and moving them separately is what tips somebody off their camel. Whoever is
+     * riding something that is also travelling is carried by it instead of being sent on its
+     * own.
+     *
+     * @return the UUID string of the vehicle it is riding, or null if it is not riding one
+     */
+    String getVehicleId();
 
     /**
      * @return a name for messages and log lines

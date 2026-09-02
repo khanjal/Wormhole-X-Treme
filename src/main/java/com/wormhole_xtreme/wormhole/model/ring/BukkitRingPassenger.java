@@ -53,7 +53,17 @@ public class BukkitRingPassenger implements RingPassenger
     @Override
     public String getUniqueId()
     {
-        return isPlayer() ? entity.getUniqueId().toString() : null;
+        return entity.getUniqueId().toString();
+    }
+
+    /* (non-Javadoc)
+     * @see RingPassenger#getVehicleId()
+     */
+    @Override
+    public String getVehicleId()
+    {
+        final org.bukkit.entity.Entity vehicle = entity.getVehicle();
+        return (vehicle == null) ? null : vehicle.getUniqueId().toString();
     }
 
     /* (non-Javadoc)

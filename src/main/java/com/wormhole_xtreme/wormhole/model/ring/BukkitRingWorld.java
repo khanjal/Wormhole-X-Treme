@@ -17,6 +17,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
+
 /**
  * Everything the ring subsystem does to a real world, in one place.
  *
@@ -316,12 +318,82 @@ public class BukkitRingWorld implements RingCycle.Surroundings
         {
             ((Player) entity).setNoDamageTicks(5);
         }
+        // Teleporting an entity throws off whatever is riding it, so the stack is noted
+        // first and put back once everything has landed.
+        final List<Entity> parents = new ArrayList<Entity>();
+        final List<Entity> children = new ArrayList<Entity>();
+        com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(entity, parents, children);
+
         entity.teleport(arrival);
+        for (final Entity child : children)
+        {
+            child.teleport(arrival);
+        }
+        reseat(parents, children);
+
         // After the teleport, so it lands on a client that is already looking at the far end.
         if (entity instanceof Player)
         {
             RingMessages.arrived((Player) entity, destination.getName());
         }
+        for (final Entity child : children)
+        {
+            if (child instanceof Player)
+            {
+                RingMessages.arrived((Player) child, destination.getName());
+            }
+        }
+    }
+
+    /**
+     * Puts a passenger stack back together, a tick after it landed.
+     *
+     * <p>Not on the same tick. A seat is refused while the two are still apart in the
+     * server's eyes, and they have only just been moved, so this waits for the positions to
+     * settle before asking.
+     *
+     * @param parents
+     *            what each passenger was riding
+     * @param children
+     *            the passengers, in the same order
+     */
+    private static void reseat(final List<Entity> parents, final List<Entity> children)
+    {
+        if (children.isEmpty() || (WormholeXTreme.getScheduler() == null))
+        {
+            return;
+        }
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    for (int i = 0; i < children.size(); i++)
+                    {
+                        final Entity parent = parents.get(i);
+                        final Entity child = children.get(i);
+                        try
+                        {
+                            if (parent.isValid() && child.isValid()
+                                && !parent.getPassengers().contains(child))
+                            {
+                                // Close any gap first: a seat is refused when the two are
+                                // far enough apart, which they may still be after a teleport.
+                                child.teleport(parent.getLocation());
+                                parent.addPassenger(child);
+                            }
+                        }
+                        // Cosmetic settling. Somebody standing beside their camel is a worse
+                        // outcome than a stack trace, but not a reason to abandon the rest.
+                        catch (final RuntimeException e)
+                        {
+                            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
+                                false, "Could not re-seat a ring passenger: " + e.getMessage());
+                        }
+                    }
+                }
+            }, 1L);
     }
 
     /**

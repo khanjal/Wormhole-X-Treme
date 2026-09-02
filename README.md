@@ -589,6 +589,10 @@ three comes out at about 1.7 times their height.
 Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
 subject to access rules; everything else rides along.
 
+Ride in on a horse or a camel and you arrive still on it. The mount is what travels and you
+are re-seated on it once you land, rather than the two of you being sent separately, which
+would drop you on the floor beside it.
+
 A pair will not fire again for a minute afterwards. Walking onto a pad that is recharging
 tells you how long is left and briefly lights the pattern so you can see where the ring is,
 since an idle one is invisible.

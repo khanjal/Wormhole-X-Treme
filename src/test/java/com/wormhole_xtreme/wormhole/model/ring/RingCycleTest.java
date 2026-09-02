@@ -30,18 +30,32 @@ public class RingCycleTest
     private static final String FRIEND = "friend-uuid";
     private static final String STRANGER = "stranger-uuid";
 
-    /** A passenger that just says what it is. */
+    /** A passenger that just says what it is, and what it is riding. */
     private static final class Traveller implements RingPassenger
     {
         private final String name;
         private final String uuid;
         private final boolean player;
+        private String riding;
 
         Traveller(final String name, final String uuid, final boolean player)
         {
             this.name = name;
             this.uuid = uuid;
             this.player = player;
+        }
+
+        /** Seats this traveller on another, and returns it for chaining. */
+        Traveller riding(final Traveller mount)
+        {
+            this.riding = mount.uuid;
+            return this;
+        }
+
+        @Override
+        public String getVehicleId()
+        {
+            return riding;
         }
 
         @Override
@@ -240,6 +254,55 @@ public class RingCycleTest
         assertTrue(world.deliveries.contains("alice -> 500:64:500"),
             "alice still travels though bob was refused");
         assertEquals(1, world.deliveries.size());
+    }
+
+    @Test
+    public void aRiderIsCarriedByItsMountRatherThanSentSeparately()
+    {
+        // The camel bug. A rider and its mount are two things standing in the same ring, and
+        // moving them one at a time leaves whichever went first without the other for an
+        // instant — the game breaks the seat rather than stretching it, and the player lands
+        // beside their camel. Only the mount is delivered; the rider goes with it.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        final Traveller camel = new Traveller("camel", "c", false);
+        final Traveller rider = new Traveller("alice", "a", true).riding(camel);
+        world.put(pair.getEndA(), camel, rider);
+
+        assertEquals(1, new RingCycle(pair, world, REACH).flash(), "one delivery, not two");
+        assertTrue(world.deliveries.contains("camel -> 500:64:500"));
+        assertFalse(world.deliveries.contains("alice -> 500:64:500"),
+            "the rider must not be moved out from under itself");
+    }
+
+    @Test
+    public void aRiderWhoseMountIsStayingBehindTravelsAlone()
+    {
+        // Their ride is not going, so dismounting is the right answer rather than a bug.
+        final RingPair pair = pair();
+        final FakeWorld world = new FakeWorld();
+        final Traveller horseOutside = new Traveller("horse", "h", false);
+        final Traveller rider = new Traveller("alice", "a", true).riding(horseOutside);
+        world.put(pair.getEndA(), rider);
+
+        assertEquals(1, new RingCycle(pair, world, REACH).flash());
+        assertTrue(world.deliveries.contains("alice -> 500:64:500"));
+    }
+
+    @Test
+    public void aRiderRefusedByAccessDoesNotStopTheMountGoing()
+    {
+        // Cargo is not subject to access, so the camel travels and the stranger stays. They
+        // are dropped for the access rule, not by being counted as a passenger of it.
+        final RingPair pair = pair();
+        pair.setAccess(RingAccess.PRIVATE);
+        final FakeWorld world = new FakeWorld();
+        final Traveller camel = new Traveller("camel", "c", false);
+        final Traveller stranger = new Traveller("stranger", STRANGER, true).riding(camel);
+        world.put(pair.getEndA(), camel, stranger);
+
+        assertEquals(1, new RingCycle(pair, world, REACH).flash());
+        assertTrue(world.deliveries.contains("camel -> 500:64:500"));
     }
 
     @Test
