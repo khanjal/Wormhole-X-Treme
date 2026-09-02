@@ -628,7 +628,7 @@ edits that end; naming a pair by id edits both.
 
 | Field | Scope | Values |
 |---|---|---|
-| `ring` | per end | Any slab. Tab completion offers only slabs. |
+| `ring` | per end | Any slab, read from the game's own `minecraft:slabs` tag. |
 | `light` | per end | Tab completion offers solid blocks that look lit. |
 | `name` | per end | Free text. Refused with an id — stand in the ring you mean. |
 | `access` | per pair | `public` or `private` |
@@ -636,6 +636,12 @@ edits that end; naming a pair by id edits both.
 
 `style` decides how many rings are climbing at once, not how fast they move — `deploy-ticks`
 is the speed knob. `fast` sends several up together; `slow` sends one at a time.
+
+The ring material is checked against `minecraft:slabs`, so a data pack that adds a slab gets
+a ring material without anything here being updated. Lights have no equivalent: Minecraft has
+no light-emitting tag and Bukkit cannot read a light level from a material at all, so that
+list is written out by hand. It only has to look right, since a drawn ring emits nothing
+whatever it is made of.
 
 Access is per pair rather than per end because both ends fire together, so there is no way to
 authorise half of a swap. Materials, names and style are per end, because nobody watches both

@@ -197,6 +197,35 @@ public class Ring
     }
 
     /**
+     * The game's own list of slabs, if this server can hand it over.
+     *
+     * <p>Resolved once and remembered, rather than asked for per material. Reading it needs a
+     * live registry, so it comes back null in a unit test and on any server that has not
+     * finished starting — and asking again for every material in the game would then throw
+     * and be caught a thousand times per tab press.
+     */
+    private static final org.bukkit.Tag<Material> SLAB_TAG = resolveSlabTag();
+
+    /**
+     * Asks the server for its slab tag.
+     *
+     * @return the tag, or null if there is no registry to ask
+     */
+    private static org.bukkit.Tag<Material> resolveSlabTag()
+    {
+        try
+        {
+            return org.bukkit.Tag.SLABS;
+        }
+        // Catching Throwable because a registry that is not ready fails in class
+        // initialisation, which surfaces as an Error rather than an exception.
+        catch (final Throwable ignored)
+        {
+            return null;
+        }
+    }
+
+    /**
      * Whether a material can be used for the travelling ring.
      *
      * <p>It has to be a slab, and not for decoration. The rise is built out of slab halves —
@@ -204,9 +233,13 @@ public class Ring
      * is the only way to get half-block resolution out of block placement. Anything else
      * would step a full block at a time and stop reading as rings rising.
      *
-     * <p>Tested by name rather than through {@code Tag.SLABS} or {@code createBlockData()},
-     * both of which need a live server registry. This is called from command validation,
-     * which should be unit-testable, and every slab in the game ends this way.
+     * <p>Answered from the game's own {@code minecraft:slabs} tag where there is a server to
+     * ask, so a data pack that adds a slab gets one for free and nothing has to be kept in
+     * step by hand.
+     *
+     * <p>Falls back to the name when there is no registry — in a unit test, or before the
+     * server has finished starting. That is exact for every slab the game ships, so the
+     * fallback is a worse source rather than a wrong answer.
      *
      * @param material
      *            the candidate material
@@ -214,7 +247,22 @@ public class Ring
      */
     public static boolean isUsableAsRing(final Material material)
     {
-        return (material != null) && material.name().endsWith("_SLAB");
+        if (material == null)
+        {
+            return false;
+        }
+        if (SLAB_TAG != null)
+        {
+            try
+            {
+                return SLAB_TAG.isTagged(material);
+            }
+            catch (final RuntimeException ignored)
+            {
+                // Fall through to the name.
+            }
+        }
+        return material.name().endsWith("_SLAB");
     }
 
     /**

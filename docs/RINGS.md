@@ -342,12 +342,22 @@ A ring has two, and they do different jobs:
 
 | | Default | Constraint | Shown |
 |---|---|---|---|
-| Ring | the slab it was laid in | **Must be a slab** | The travelling rings, during deploy and retract |
+| Ring | the slab it was laid in | **Must be a slab** (`minecraft:slabs`) | The travelling rings, during deploy and retract |
 | Light | `rings.default-light-material` | Any placeable block | The perimeter during the countdown |
 
 The ring material is not really a default at all: it is read off the template, so the config
 value only applies if detection ever cannot say. The light has nothing to read, so it takes
 the configured default and is changed with `edit` if wanted.
+
+Whether something is a slab is asked of the game's own `minecraft:slabs` tag, so a data pack
+that adds one gets a ring material for free. Where there is no registry to ask — in a unit
+test, or before the server has finished starting — it falls back to the name, which is exact
+for every slab the game ships, so the fallback is a worse *source* rather than a wrong
+answer.
+
+Lights have no equivalent tag. Minecraft has no light-emitting group and Bukkit cannot read a
+light level from a `Material` at all, so the suggestions are written out by hand. That list
+only has to look right: a drawn ring emits nothing whatever it is made of.
 
 The ring material is constrained and the light one is not. The rise is built out of slab
 halves — a bottom slab fills the lower half of its block, a top slab the upper half — and

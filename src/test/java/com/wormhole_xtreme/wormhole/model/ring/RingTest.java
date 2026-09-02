@@ -44,6 +44,34 @@ public class RingTest
     }
 
     @Test
+    public void theSlabTestFallsBackToTheNameWithNoServerToAsk()
+    {
+        // On a server this reads minecraft:slabs, so a data pack that adds one gets a ring
+        // material for free. There is no registry here, so this is the fallback answering —
+        // and it has to be exact for everything the game ships, or the fallback would be a
+        // wrong answer rather than merely a worse source.
+        assertTrue(Ring.isUsableAsRing(Material.CUT_COPPER_SLAB));
+        assertTrue(Ring.isUsableAsRing(Material.PETRIFIED_OAK_SLAB));
+        assertTrue(Ring.isUsableAsRing(Material.MUD_BRICK_SLAB));
+        assertFalse(Ring.isUsableAsRing(Material.SMOOTH_STONE));
+    }
+
+    @Test
+    public void thereIsNoSuchTagForLightsSoTheyAreListedByHand()
+    {
+        // Minecraft has no light-emitting group and Bukkit cannot read a light level from a
+        // Material at all, so this list is written out. It only has to look right, since a
+        // drawn ring emits nothing whatever it is made of.
+        assertTrue(Ring.glowingMaterials().contains(Material.GLOWSTONE));
+        assertTrue(Ring.glowingMaterials().contains(Material.SEA_LANTERN));
+        assertFalse(Ring.glowingMaterials().contains(Material.TORCH),
+            "a torch cannot be drawn inside a floor");
+        assertFalse(Ring.glowingMaterials().contains(Material.DIRT));
+        assertThrows(UnsupportedOperationException.class,
+            () -> Ring.glowingMaterials().add(Material.DIRT));
+    }
+
+    @Test
     public void bothMaterialsAreEditableIndependently()
     {
         final Ring ring = ring();
