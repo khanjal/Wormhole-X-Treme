@@ -112,7 +112,54 @@ public class WormholeXTreme extends JavaPlugin
             pm.registerEvents(vehicleListener, tp);
             pm.registerEvents(entityListener, tp);
             pm.registerEvents(projectileTracker, tp);
+            registerDismountListener(pm, tp);
         }
+    }
+
+    /**
+     * Registers whichever dismount listener this server can actually load.
+     *
+     * <p>Spigot moved {@code EntityDismountEvent} from {@code org.spigotmc.event.entity} to
+     * {@code org.bukkit.event.entity} in 1.20.4, and dropped the old package in 1.20.6. No
+     * single import covers the versions this plugin supports, so there is a listener for
+     * each and only one of them will resolve on any given server.
+     *
+     * <p>The failure being caught is {@link NoClassDefFoundError}, raised when the listener
+     * class is loaded and its event type is not there. That is an Error rather than an
+     * Exception, and this is the one place where catching one is right: it is the documented
+     * way to ask a server which API it has, and the answer decides nothing else.
+     *
+     * @param pm
+     *            the plugin manager to register with
+     * @param plugin
+     *            this plugin
+     */
+    private static void registerDismountListener(final org.bukkit.plugin.PluginManager pm,
+                                                 final WormholeXTreme plugin)
+    {
+        for (final String candidate : new String[] {
+            "com.wormhole_xtreme.wormhole.GateDismountListener",
+            "com.wormhole_xtreme.wormhole.LegacyGateDismountListener" })
+        {
+            try
+            {
+                final Class<?> type = Class.forName(candidate);
+                pm.registerEvents((org.bukkit.event.Listener) type.getDeclaredConstructor().newInstance(), plugin);
+                plugin.prettyLog(Level.FINE, false, "Dismount handling registered via " + candidate);
+                return;
+            }
+            catch (final NoClassDefFoundError notOnThisServer)
+            {
+                continue;
+            }
+            catch (final ReflectiveOperationException | RuntimeException e)
+            {
+                plugin.prettyLog(Level.FINE, false,
+                    "Could not register " + candidate + ": " + e.getMessage());
+            }
+        }
+        plugin.prettyLog(Level.WARNING, false,
+            "No dismount event found on this server; riders will be able to dismount inside an open gate.");
     }
 
     // Help integration removed; no setHelp

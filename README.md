@@ -2,7 +2,7 @@
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
-Runs on Minecraft 1.20.4 through 1.21.10. Built as Java 17 bytecode.
+Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 ## Contents
 
@@ -20,21 +20,27 @@ Runs on Minecraft 1.20.4 through 1.21.10. Built as Java 17 bytecode.
 
 ### Which Minecraft versions this runs on
 
-**Minecraft 1.20.4 through 1.21.10.** Both ends are measured rather than assumed — every
-published `spigot-api` version was built and tested against to find them.
+**Minecraft 1.20 through 1.21.10.** Both ends are measured rather than assumed — every
+published `spigot-api` version was built against to find them.
 
 | | Version | Why it is the boundary |
 |---|---|---|
-| **Floor** | 1.20.4 | `EntityDismountEvent` moved from `org.spigotmc.event.entity` to `org.bukkit.event.entity` here. 1.20.3 and older fail on that import alone. |
-| **Ceiling** | 1.21.10 | The newest published `spigot-api`. Nothing in the plugin stops it going further. |
+| **Floor** | 1.20 | `Material.CALIBRATED_SCULK_SENSOR` arrives here, and gate detection switches on it. 1.19.4 fails on that alone. |
+| **Ceiling** | 1.21.10 | Newest published API. Nothing in the plugin stops it going further. |
 
-CI builds and tests against the floor, the ceiling, and the versions in between where
-something actually changed:
+The range spans a Spigot API move that no single import covers.
+`EntityDismountEvent` lived in `org.spigotmc.event.entity` up to 1.20.4 and in
+`org.bukkit.event.entity` from 1.20.4 on — **1.20.4 is the only version carrying both**, which
+is why the plugin compiles against it. There is a small listener for each package, and only
+the one the running server can actually load is registered. A server with neither loses the
+ability to stop a rider dismounting mid-transit and says so in the log; everything else works.
 
 | Minecraft | In CI | Note |
 |---|---|---|
-| 1.20.4 | yes | **Compile target** — the oldest supported |
-| 1.20.6 | yes | |
+| 1.20 | yes | Floor; legacy dismount package |
+| 1.20.1 | yes | A commonly pinned version |
+| 1.20.4 | yes | **Compile target** — the only version with both dismount packages |
+| 1.20.6 | yes | Legacy dismount package dropped here |
 | 1.21.1 | yes | |
 | 1.21.4 | yes | Boats split into one entity type per wood here |
 | 1.21.10 | yes | Newest published API |

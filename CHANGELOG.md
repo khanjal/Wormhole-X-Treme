@@ -4,11 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## 1.2.0 (unreleased)
 
-### Minecraft 1.20.4 through 1.21.10
+### Minecraft 1.20 through 1.21.10
 
-The range is measured, not assumed: every published `spigot-api` version was built and tested
-against to find both ends. The floor is 1.20.4, where `EntityDismountEvent` moved package; the
-ceiling is simply the newest API published. CI builds and tests the floor, the ceiling, and
+The range is measured, not assumed: every published `spigot-api` version was built against to
+find both ends. The floor is 1.20, where `Material.CALIBRATED_SCULK_SENSOR` arrives and gate
+detection switches on it; the ceiling is simply the newest API published.
+
+Spanning that range meant handling an API move no single import covers. `EntityDismountEvent`
+was `org.spigotmc.event.entity` up to 1.20.4 and `org.bukkit.event.entity` from 1.20.4 on, and
+1.20.4 is the only version with both — which is why the plugin compiles against it. There is a
+small listener per package and only the one the running server can load is registered, so a
+server at either end keeps the behaviour and one with neither loses only that and says so. CI builds and tests the floor, the ceiling, and
 the versions between them where the API actually changed.
 
 Two things had to give to reach that range, and both were single symbols. A boat that failed
