@@ -197,12 +197,25 @@ public class RingCommand implements SubCommand
             player.sendMessage("Run /wormhole ring cancel to give up on that one.");
             return true;
         }
+        // Ground distance and height are asked separately, because they are different
+        // questions. Straight down is what rings are for; sprawling sideways is what gates
+        // are for.
         final int maxDistance = ConfigManager.getRingMaxLinkDistance();
         if ((maxDistance > 0)
             && (waiting.getRing().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
         {
-            player.sendMessage("Those two rings are further apart than this server allows ("
-                + maxDistance + " blocks).");
+            player.sendMessage("Those two rings are " + apart(waiting.getRing(), ring)
+                + " blocks apart on the ground, and rings reach " + maxDistance + ".");
+            player.sendMessage("Build a stargate for a trip that long — rings are for getting "
+                + "around one place.");
+            return true;
+        }
+        final int maxHeight = ConfigManager.getRingMaxLinkHeight();
+        final int climb = Math.abs(waiting.getRing().getAnchorY() - ring.getAnchorY());
+        if ((maxHeight > 0) && (climb > maxHeight))
+        {
+            player.sendMessage("Those two rings are " + climb + " blocks apart in height, and "
+                + "rings reach " + maxHeight + ".");
             return true;
         }
 
@@ -228,6 +241,20 @@ public class RingCommand implements SubCommand
             + (pair.getAccess() == RingAccess.PRIVATE
                 ? " — use /wormhole ring allow <player> to let others in." : "."));
         return true;
+    }
+
+    /**
+     * How far apart two ends are on the ground, for a message.
+     *
+     * @param one
+     *            one end
+     * @param other
+     *            the other
+     * @return the distance in whole blocks
+     */
+    private static long apart(final Ring one, final Ring other)
+    {
+        return Math.round(Math.sqrt((double) one.anchorDistanceSquared(other)));
     }
 
     /**

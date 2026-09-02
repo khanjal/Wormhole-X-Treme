@@ -97,8 +97,10 @@ public class ConfigManager
         RING_REACH,
         /** Required distance between ring anchors, in blocks. */
         RING_MIN_SEPARATION,
-        /** Furthest two ends of a pair may be, in blocks. Zero means no limit. */
+        /** Furthest two ends of a pair may be apart on the ground. Zero means no limit. */
         RING_MAX_LINK_DISTANCE,
+        /** Furthest two ends of a pair may be apart in height. Zero means no limit. */
+        RING_MAX_LINK_HEIGHT,
         /** How many ring pairs one player may own. Zero means no limit. */
         RING_MAX_PAIRS_PER_PLAYER,
         /** What a newly built ring pair starts as: PUBLIC or PRIVATE. */
@@ -599,18 +601,38 @@ public class ConfigManager
     }
 
     /**
-     * Furthest apart the two ends of a pair may be.
+     * Furthest apart the two ends of a pair may be on the ground.
      *
-     * <p>Zero by default, because distance is not actually a cost — a teleport across twenty
-     * thousand blocks is the same work as one across twenty. What used to break was the far
-     * end sitting in an unloaded chunk when the cycle fired, and that is handled by pinning
-     * both ends for the length of a transit rather than by a limit here.
+     * <p>Not there for any technical reason: distance costs nothing, and a teleport across
+     * twenty thousand blocks is the same work as one across twenty. It is there to keep rings
+     * from becoming the answer to everything. A gate is the plugin's long-haul option — it
+     * takes a real structure to build, it can be dialled anywhere, and it is meant to be the
+     * thing that connects distant places. Rings are the short hop at either end of that.
+     *
+     * <p>256 blocks is sixteen chunks: comfortably the whole of one base or settlement, and
+     * nowhere near town-to-town. Set it to zero to lift the limit entirely.
      *
      * @return the limit in blocks, or zero for none
      */
     public static int getRingMaxLinkDistance()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_DISTANCE, 0));
+        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_DISTANCE, 256));
+    }
+
+    /**
+     * Furthest apart the two ends of a pair may be in height.
+     *
+     * <p>Measured separately from the ground distance, because the two are different
+     * questions. Going straight down is exactly what rings are for — bedrock to the surface,
+     * a mine to the hall above it — so the default is the full height of the world, and any
+     * vertical link at all is allowed. Sprawling sideways is the thing being discouraged, and
+     * that is the other setting.
+     *
+     * @return the limit in blocks, or zero for none
+     */
+    public static int getRingMaxLinkHeight()
+    {
+        return Math.max(0, intSetting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384));
     }
 
     /**

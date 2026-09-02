@@ -529,6 +529,11 @@ instant.
 
 Because both ends fire at once, two people standing at opposite ends swap places in one trip.
 
+Rings are deliberately short-range: 256 blocks apart on the ground, but the full height of
+the world vertically. Going straight down is what they are for — a mine to the hall above it,
+a cellar to a tower — while anything that spans a map is a stargate's job. Both limits are
+configurable, and either can be lifted.
+
 The full design and the reasoning behind each decision is in [docs/RINGS.md](docs/RINGS.md).
 
 ### Building a ring pair
@@ -564,6 +569,7 @@ Rules for the template:
   block cannot say which surface it was laid against.
 - **Four blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
 - The footprint may not overlap another ring or any gate.
+- **Within reach of its partner** — 256 blocks on the ground, 384 in height.
 
 Each refusal says what is actually wrong — mixed slabs, mixed halves, a filled-in circle,
 overlapping something — rather than a generic failure.
@@ -637,7 +643,8 @@ All under `rings:` in `config.yml`.
 | `lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
 | `reach` | 4 | Block layers of passenger volume, from the pad into the room. |
 | `min-separation` | 8 | Required distance between ring anchors. Overlap is refused regardless. |
-| `max-link-distance` | 0 | Furthest two ends may be. `0` is unlimited; distance costs nothing. |
+| `max-link-distance` | 256 | Furthest two ends may be **on the ground**. 16 chunks. `0` is unlimited. |
+| `max-link-height` | 384 | Furthest two ends may be **in height**. The full world. `0` is unlimited. |
 | `max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
 | `default-access` | `PRIVATE` | What a newly built pair starts as. |
 | `default-style` | `CONCURRENT` | How the stack deploys. |

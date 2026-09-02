@@ -719,15 +719,28 @@ trigger volumes, and two animations write the same blocks and restore each other
 originals. So overlap of footprint *or* interior is refused outright at create, with
 `rings.min-separation` (default 8, centre to centre) on top for breathing room.
 
-**Distance is not a cost; unloaded chunks are.** A 20,000-block teleport costs the same as a
-20-block one. The actual failure is the far end sitting in an unloaded chunk when the cycle
-fires — the animation writes blocks into an unloaded chunk and the arrival lands in
-ungenerated terrain. So the partner's chunks are force-loaded for the duration of the
-transit (`Chunk.addPluginChunkTicket`, released on retract). Same-world pairing keeps this
-to one case: there is no such thing as a pair whose far end is in a world that is not
-loaded, because if the world is unloaded neither end exists and nobody is standing in one
-to trigger it. With that handled, `rings.max-link-distance` can default to `0`
-(unlimited within the world).
+**Distance is not a technical cost; unloaded chunks are.** A 20,000-block teleport costs the
+same as a 20-block one. The actual failure is the far end sitting in an unloaded chunk when
+the cycle fires — the animation writes blocks nobody will see put back and the arrival lands
+in ungenerated terrain. So the partner's chunks are force-loaded for the duration of the
+transit (`Chunk.addPluginChunkTicket`, released on retract). Same-world pairing keeps this to
+one case: there is no such thing as a pair whose far end is in a world that is not loaded.
+
+**The reach limit is a design choice, not a technical one**, and it is two numbers because
+the two axes are different questions.
+
+`rings.max-link-distance` is 256 blocks on the ground — sixteen chunks, comfortably the whole
+of one base and nowhere near town to town. It exists to stop rings becoming the answer to
+everything. A gate is the long-haul option: it takes a real structure to build, it can be
+dialled anywhere, and it is meant to be what connects distant places. Rings are the short hop
+at either end of that.
+
+`rings.max-link-height` is 384 — the full height of the world, so bedrock to build limit is
+always allowed. Going straight down is exactly what rings are *for*: a mine to the hall above
+it, a cellar to a tower. Sprawling sideways is the thing being discouraged, and measuring the
+two separately is what lets one be generous while the other is not.
+
+Either set to `0` lifts that limit.
 
 **Quota** is `rings.max-pairs-per-player`, bypassed by `wormhole.ring.unlimited`.
 
@@ -750,7 +763,8 @@ rings:
   lights-linger-ticks: 20    # pad stays lit this long after the last ring is home
   max-pairs-per-player: 10
   min-separation: 8          # blocks, centre to centre
-  max-link-distance: 0       # 0 = unlimited; distance itself costs nothing
+  max-link-distance: 256     # on the ground; 16 chunks. 0 = unlimited
+  max-link-height: 384       # in height; the full world. 0 = unlimited
   default-ring-material: STONE_SLAB   # fallback only; normally read from the template
   default-light-material: GLOWSTONE
   default-flash-material: GLOWSTONE   # set it apart to make the transport its own moment
