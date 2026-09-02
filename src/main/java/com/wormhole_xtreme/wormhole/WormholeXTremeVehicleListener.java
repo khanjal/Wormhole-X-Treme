@@ -682,6 +682,22 @@ class WormholeXTremeVehicleListener implements Listener
 
             }
 
+                // A player riding through a gate is travelling as much as one on foot, and
+                // a listener that saw only walkers would miss every boat and minecart. The
+                // vehicle is not announced, only the people in it: cancelling stops the
+                // player travelling, and the cart is not a passenger's to veto.
+                for (final Entity psg : passengers)
+                {
+                    if ((psg instanceof Player)
+                        && !com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
+                                st, (Player) psg, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                            "Vehicle travel cancelled by a listener for player " + ((Player) psg).getName());
+                        return false;
+                    }
+                }
+
                 final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
                 if (st.getGateTarget().isGateIrisActive())
                 {

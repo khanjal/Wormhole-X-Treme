@@ -477,6 +477,7 @@ knowing it exists. Both live in `com.wormhole_xtreme.wormhole.events`.
 | --- | --- |
 | `StargateCreatedEvent` | after a gate is built, named, registered and saved |
 | `StargateRemovedEvent` | while a gate is being removed, before it is torn down |
+| `StargatePlayerTravelEvent` | before a player travels, and **cancellable** |
 
 ```java
 @EventHandler
@@ -495,9 +496,38 @@ The removal event fires *before* teardown, so the gate can still be read: name, 
 network, blocks and teleport location are all still populated, which is what a listener
 cleaning up its own records needs.
 
-Neither event is cancellable. Both are sent after the decision has been made and, in the
-case of creation, after the gate is already on disk. To prevent a gate being built, deny
+The lifecycle events are not cancellable. Both are sent after the decision has been made
+and, for creation, after the gate is already on disk. To prevent a gate being built, deny
 `wormhole.build` rather than listening for it.
+
+### Watching and stopping travel
+
+`StargatePlayerTravelEvent` fires once every check this plugin makes has passed — permission,
+iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is
+the gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact
+spot the player would land.
+
+```java
+@EventHandler
+public void onTravel(final StargatePlayerTravelEvent event)
+{
+    if (inCombat(event.getPlayer()))
+    {
+        event.setCancelled(true);
+    }
+}
+```
+
+It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It
+does not fire for the vehicle itself, nor for anything travelling on its own, so cancelling
+stops the player rather than the world around them.
+
+A cancelled traveller is held, not moved. If they were walking in they are kept out; if they
+were already standing in the portal they stay free to walk away. Refusing every move of
+someone already inside would leave them unable to leave the ring at all.
+
+A listener that throws does not stop travel. Another plugin failing is not a decision to
+strand somebody halfway into a wormhole.
 
 Refreshing a gate does **not** raise a removal. A refresh deregisters the gate and registers
 it again with freshly detected geometry, which is not the gate going away, so a listener is

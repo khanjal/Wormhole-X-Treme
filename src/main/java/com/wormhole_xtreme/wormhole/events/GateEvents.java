@@ -39,10 +39,14 @@ public final class GateEvents
     /**
      * Redirects delivery, for tests.
      *
+     * <p>Public only because the wiring worth testing lives in the listener package rather
+     * than this one. Not part of the plugin's API: production never calls it, and the name
+     * is meant to make that obvious at every call site.
+     *
      * @param replacement
      *            where to send events, or null to deliver through Bukkit as normal
      */
-    static void setDispatcherForTest(final java.util.function.Consumer<Event> replacement)
+    public static void setDispatcherForTest(final java.util.function.Consumer<Event> replacement)
     {
         dispatcher = replacement;
     }
@@ -71,6 +75,34 @@ public final class GateEvents
     public static void fireRemoved(final Stargate stargate, final Player remover)
     {
         fire(new StargateRemovedEvent(stargate, remover));
+    }
+
+    /**
+     * Asks whether a player may travel, and reports what listeners decided.
+     *
+     * <p>Returns false only if a listener actually cancelled. A delivery that fails, or one
+     * with no server behind it, leaves travel allowed: a plugin that is not there has not
+     * objected, and an exception inside somebody else's listener is not consent to strand a
+     * player halfway into a wormhole.
+     *
+     * @param stargate
+     *            the gate being entered
+     * @param player
+     *            the player about to travel
+     * @param destination
+     *            the gate at the far end
+     * @param arrival
+     *            where the player would land
+     * @return true if the trip should go ahead
+     */
+    public static boolean firePlayerTravel(final Stargate stargate, final Player player,
+                                           final Stargate destination,
+                                           final org.bukkit.Location arrival)
+    {
+        final StargatePlayerTravelEvent event =
+            new StargatePlayerTravelEvent(stargate, player, destination, arrival);
+        fire(event);
+        return !event.isCancelled();
     }
 
     /**
