@@ -61,6 +61,31 @@ public class WormholeXTremeVehicleListenerEventTest
         GateSpatialIndex.clear();
     }
 
+    /**
+     * Whatever this server version calls a boat.
+     *
+     * <p>{@code EntityType.BOAT} was removed in 1.21.3, when boats were split into one type
+     * per wood. Looking the name up keeps this test compiling across that change, which is
+     * the whole reason the production code stopped naming a constant too.
+     *
+     * @return a boat entity type that exists on the API being built against
+     */
+    private static EntityType anyBoatType()
+    {
+        for (final String name : new String[] { "BOAT", "OAK_BOAT" })
+        {
+            try
+            {
+                return EntityType.valueOf(name);
+            }
+            catch (final IllegalArgumentException notThisVersion)
+            {
+                continue;
+            }
+        }
+        throw new IllegalStateException("no boat entity type found on this API");
+    }
+
     @Test
     public void unoccupiedMinecartTeleportsAndReceivesVelocity() throws Exception
     {
@@ -156,7 +181,10 @@ public class WormholeXTremeVehicleListenerEventTest
         when(rider.isValid()).thenReturn(true);
 
         when(boat.getVelocity()).thenReturn(new Vector(0.5, 0.0, 0.0));
-        when(boat.getType()).thenReturn(EntityType.BOAT);
+        // Named rather than referenced as a constant. EntityType.BOAT was removed in
+        // 1.21.3 when boats split per wood type, and this test has no interest in which
+        // kind of boat it is — only that the code asks the boat rather than assuming.
+        when(boat.getType()).thenReturn(anyBoatType());
 
         // Simulate immediate successful attach when addPassenger is attempted in the reattach task
         when(boat.addPassenger(rider)).thenReturn(true);
