@@ -37,13 +37,19 @@ ability to stop a rider dismounting mid-transit and says so in the log; everythi
 
 | Minecraft | In CI | Note |
 |---|---|---|
-| 1.20 | yes | Floor; legacy dismount package |
+| 1.20 | yes | Floor; has only the `org.spigotmc` dismount event |
 | 1.20.1 | yes | A commonly pinned version |
-| 1.20.4 | yes | **Compile target** — the only version with both dismount packages |
-| 1.20.6 | yes | Legacy dismount package dropped here |
+| 1.20.4 | yes | **Compile target** — the only version with both dismount events |
+| 1.20.6 | yes | `org.spigotmc` dismount event removed here |
 | 1.21.1 | yes | |
 | 1.21.4 | yes | Boats split into one entity type per wood here |
 | 1.21.10 | yes | Newest published API |
+
+Each CI job leaves out whichever dismount listener cannot compile on that version — the
+`legacy-api` and `modern-api` Maven profiles. **Neither profile is used for the shipped jar**,
+which is built against 1.20.4 and therefore carries both listeners and chooses at runtime. The
+profiles exist so CI can check the rest of the plugin against a server holding one class or
+the other.
 
 Versions between those points are expected to work and are not separately built; the matrix
 covers the boundaries where the API actually moved.
