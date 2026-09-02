@@ -180,7 +180,7 @@ Pairs:
     Created: 1756771200000
     Access: PRIVATE
     Allowed: [11111111-2222-3333-4444-555555555555]
-    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT, Name: Base}
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Built: STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT, Name: Base}
     B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Style: SEQUENTIAL, Name: Tower}
 ```
 
@@ -535,6 +535,22 @@ Done in the pair's own world rather than the player's, since a pair can be remov
 anywhere. A world that is not loaded is left alone and said so, rather than loading a world as
 a side effect of a command about something else.
 
+## Reset goes back to the slab, not to a default
+
+Each end remembers the slab it was laid in, in a `Built` field kept apart from the material it
+is currently wearing. `reset` restores that.
+
+A configured default would be the wrong answer here. Somebody who built a ring out of quartz
+and then tried a colour they did not like wants their quartz back, not the server's idea of a
+normal slab — and since the ring material normally comes off the template rather than from
+config, a default is a value that ring never had.
+
+The lights and the deploy style are the opposite case: nobody builds those, they are chosen
+from the start, so there is no history for them to go back to and they do take the defaults.
+
+Rings stored before `Built` existed fall back to their current material on load, which is the
+best answer available and the right one for every ring nobody recoloured.
+
 ## Access
 
 A pair is `PRIVATE` or `PUBLIC`, plus a list of players named by the owner. Private means
@@ -862,7 +878,7 @@ rings:
   max-link-distance: 256     # on the ground; 16 chunks. 0 = unlimited
   max-link-height: 384       # in height; the full world. 0 = unlimited
   max-ceiling-drop: 10       # how far a ceiling ring will look for its floor
-  default-ring-material: STONE_SLAB   # fallback only; normally read from the template
+  default-ring-material: STONE_SLAB   # fallback only; not what reset goes back to
   default-light-material: GLOWSTONE
   default-flash-material: GLOWSTONE   # set it apart to make the transport its own moment
   default-access: PRIVATE    # what a newly built pair starts as

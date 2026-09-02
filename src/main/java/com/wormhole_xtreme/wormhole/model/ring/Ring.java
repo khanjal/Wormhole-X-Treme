@@ -54,6 +54,19 @@ public class Ring
     /** The travelling slabs. Must be a slab: the rise animation is built out of slab halves. */
     private Material ringMaterial;
 
+    /**
+     * The slab this ring was actually laid in.
+     *
+     * <p>Kept apart from {@link #ringMaterial} so that resetting an end has something true to
+     * go back to. A global default would be the wrong answer: somebody who built a ring out
+     * of quartz and then tried a colour they did not like wants their quartz back, not the
+     * server's idea of a normal slab.
+     *
+     * <p>Only ever set when the ring is built, and read back from storage. Nothing else
+     * changes it, which is what makes it worth trusting.
+     */
+    private Material builtMaterial;
+
     /** What the pad shows from the countdown until the rings are home. */
     private Material lightMaterial;
 
@@ -102,6 +115,9 @@ public class Ring
         this.pattern = pattern;
         this.orientation = orientation;
         this.ringMaterial = ringMaterial;
+        // What it was laid in, until storage says otherwise. A ring is always built before it
+        // is edited, so the material it arrives with is the template's.
+        this.builtMaterial = ringMaterial;
         this.lightMaterial = lightMaterial;
         // Starts matched, so a ring that nobody has fiddled with looks like one thing rather
         // than two. Setting them apart is what makes the transport read as its own moment.
@@ -153,6 +169,26 @@ public class Ring
     public void setRingMaterial(final Material ringMaterial)
     {
         this.ringMaterial = ringMaterial;
+    }
+
+    /** @return the slab this ring was laid in */
+    public Material getBuiltMaterial()
+    {
+        return builtMaterial;
+    }
+
+    /**
+     * Records the slab this ring was laid in.
+     *
+     * <p>For storage to restore what was written down. Building sets it through the
+     * constructor, and nothing else should call this.
+     *
+     * @param builtMaterial
+     *            the material the template was made of
+     */
+    public void setBuiltMaterial(final Material builtMaterial)
+    {
+        this.builtMaterial = builtMaterial;
     }
 
     /** @return what the perimeter shows during the countdown */

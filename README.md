@@ -724,7 +724,7 @@ All under `rings:` in `config.yml`.
 | `default-style` | `CONCURRENT` | How the stack deploys. |
 | `default-light-material` | `GLOWSTONE` | What the pad lights up as. |
 | `default-flash-material` | `GLOWSTONE` | What a ring turns to as the transport light passes. |
-| `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template. |
+| `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template, and not what `reset` uses. |
 | `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `outline-ticks` | 40 | How long that outline stays up. |
 
@@ -739,12 +739,16 @@ edits that end; naming a pair by id edits both.
 | `name` | per end | Free text. Refused with an id — stand in the ring you mean. |
 | `access` | per pair | `public` or `private` |
 | `style` | per end | `fast` or `slow` (`concurrent` and `sequential` also work) |
-| `reset` | per end | Takes no value. Puts appearance back to the server's defaults. |
+| `reset` | per end | Takes no value. Rings go back to the slab that end was laid in; lights and style to the server's defaults. |
 
 `reset` restores how a ring looks and moves — slabs, both lights, deploy style — and leaves
 ownership, access, the allow list and names alone, since those are the things you would be
-annoyed to lose by undoing an experiment with colours. It does cost the material read off the
-template, because that is what "back to the default" means, and it says so when it runs.
+annoyed to lose by undoing an experiment with colours.
+
+The rings go back to **the slab that end was actually laid in**, not to a configured default.
+Build in quartz, try a colour you do not like, reset, and you get your quartz back. The
+lights and the deploy style have no such history — nobody builds those, they are chosen — so
+those do take the server defaults.
 
 `style` decides how many rings are climbing at once, not how fast they move — `deploy-ticks`
 is the speed knob. `fast` sends several up together; `slow` sends one at a time.

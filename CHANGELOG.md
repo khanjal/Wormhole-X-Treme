@@ -89,6 +89,11 @@ Reach is limited in two directions, because ground distance and height are diffe
 questions. A ceiling ring needs a room between four and ten blocks tall -- near enough for
 its rings to reach the floor, far enough for the stack to form.
 
+`ring edit reset` puts an end's appearance back to the slab it was laid in, not to a
+configured default. Build in quartz, try a colour you do not like, reset, and the quartz comes
+back. The lights and the deploy style have no such history -- nobody builds those -- so those
+do take the server defaults.
+
 ### Access, permissions and events
 
 Access belongs to the pair; materials and style belong to each end. Both ends fire together,

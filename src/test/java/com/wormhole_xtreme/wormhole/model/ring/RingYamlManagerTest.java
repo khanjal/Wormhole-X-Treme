@@ -107,6 +107,49 @@ public class RingYamlManagerTest
     }
 
     @Test
+    public void theSlabAnEndWasLaidInSurvivesBeingRecoloured() throws IOException
+    {
+        // What reset goes back to, so it has to outlive the material it is meant to restore.
+        final RingPair pair = pair("beef0001", 0, 0);
+        pair.getEndA().setRingMaterial(Material.QUARTZ_SLAB);
+        RingManager.addPair(pair, REACH);
+        RingYamlManager.saveWorld(directory, WORLD);
+        RingManager.clear();
+        RingYamlManager.loadAll(directory, REACH);
+
+        final Ring loaded = RingManager.getPair("beef0001").getEndA();
+        assertEquals(Material.QUARTZ_SLAB, loaded.getRingMaterial(), "the colour it was given");
+        assertEquals(Material.STONE_SLAB, loaded.getBuiltMaterial(), "the slab it was laid in");
+    }
+
+    @Test
+    public void aRingStoredBeforeTheBuiltSlabWasRecordedFallsBackToItsCurrentOne()
+        throws IOException
+    {
+        // Rings written by an older version have no Built field. Their current material is
+        // the only answer available, and it is the right one for every ring nobody recoloured
+        // -- which is most of them.
+        RingManager.addPair(pair("beef0002", 0, 0), REACH);
+        RingYamlManager.saveWorld(directory, WORLD);
+        RingManager.clear();
+
+        final java.io.File file = new java.io.File(directory, WORLD + ".yml");
+        final StringBuilder stripped = new StringBuilder();
+        for (final String line : java.nio.file.Files.readAllLines(file.toPath()))
+        {
+            if (!line.contains("Built:"))
+            {
+                stripped.append(line).append(System.lineSeparator());
+            }
+        }
+        java.nio.file.Files.writeString(file.toPath(), stripped.toString());
+
+        assertEquals(1, RingYamlManager.loadAll(directory, REACH));
+        final Ring loaded = RingManager.getPair("beef0002").getEndA();
+        assertEquals(loaded.getRingMaterial(), loaded.getBuiltMaterial());
+    }
+
+    @Test
     public void aLoadedPairIsIndexedSoItWorksWithoutBeingRebuilt() throws IOException
     {
         // Loading has to put rings back in the index, not just in the registry. A pair that

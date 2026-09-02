@@ -645,8 +645,11 @@ public class RingCommand implements SubCommand
      * private, and what it is called. Undoing an experiment with colours should not quietly
      * publish somebody's private link or forget that an end was called Tower.
      *
-     * <p>It does cost the material read off the template, since that is what "back to the
-     * default" means for the ring. The message says so rather than leaving it to be noticed.
+     * <p>The rings themselves go back to the slab that end was laid in, not to a configured
+     * default. A default would be the wrong answer: somebody who built in quartz and then
+     * tried a colour they did not like wants their quartz back, not the server's idea of a
+     * normal slab. The lights and the deploy style have no history to go back to -- nobody
+     * builds those -- so those do take the defaults.
      *
      * @param player
      *            the player
@@ -661,13 +664,19 @@ public class RingCommand implements SubCommand
         for (final Ring ring : (only != null)
             ? new Ring[] { only } : new Ring[] { pair.getEndA(), pair.getEndB() })
         {
-            ring.setRingMaterial(ConfigManager.getRingDefaultMaterial());
+            // The rings go back to the slab that end was laid in rather than to a configured
+            // default, because that is the only answer that is true of this ring. The lights
+            // and the deploy style have no such history -- nobody builds those, they are
+            // chosen -- so those do go back to the defaults.
+            ring.setRingMaterial(ring.getBuiltMaterial());
             ring.setLightMaterial(ConfigManager.getRingDefaultLight());
             ring.setFlashMaterial(ConfigManager.getRingDefaultFlash());
             ring.setStyle(ConfigManager.getRingDefaultStyle());
         }
-        player.sendMessage("Appearance reset to " + ConfigManager.getRingDefaultMaterial()
-            + " rings, " + ConfigManager.getRingDefaultLight() + " pad, "
+        player.sendMessage("Reset to "
+            + ((only != null) ? (only.getBuiltMaterial() + " rings")
+                : "the slab each end was laid in")
+            + ", " + ConfigManager.getRingDefaultLight() + " pad, "
             + ConfigManager.getRingDefaultFlash() + " flash, "
             + ConfigManager.getRingDefaultStyle() + " deploy"
             + ((only != null) ? " for this end." : " for both ends."));

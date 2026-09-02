@@ -314,6 +314,11 @@ public final class RingYamlManager
         // back to the light keeps those looking exactly as they did.
         final Material flash = Material.matchMaterial(String.valueOf(map.getOrDefault("Flash", "")));
         built.setFlashMaterial(flash == null ? light : flash);
+        // A ring written before the built material was recorded has only its current one to
+        // offer. That is the best answer available and usually the right one, since most
+        // rings are never recoloured at all.
+        final Material laid = Material.matchMaterial(String.valueOf(map.getOrDefault("Built", "")));
+        built.setBuiltMaterial(laid == null ? ring : laid);
         return built;
     }
 
@@ -444,6 +449,7 @@ public final class RingYamlManager
         out.put("Pattern", ring.getPattern().name());
         out.put("Orientation", ring.getOrientation().name());
         out.put("Ring", ring.getRingMaterial().name());
+        out.put("Built", ring.getBuiltMaterial().name());
         out.put("Light", ring.getLightMaterial().name());
         out.put("Flash", ring.getFlashMaterial().name());
         out.put("Style", ring.getStyle().name());
