@@ -110,15 +110,28 @@ public final class StargateShapeRegistry
     {
         final File directory = new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes" + File.separator);
 
-        if ( !directory.exists())
+        if (!directory.isDirectory())
         {
+            // mkdirs rather than mkdir: this is two levels below plugins/ and on a first
+            // run neither level need exist yet. And the result is checked, because failing
+            // to create a directory returns false rather than throwing - so the old catch
+            // could never fire, and the failure carried on to listFiles() returning null
+            // and shapes silently not loading.
+            boolean created = false;
             try
             {
-                directory.mkdir();
+                created = directory.mkdirs();
             }
-            catch (final Exception e)
+            catch (final SecurityException e)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to make directory: " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false,
+                    "Not allowed to create " + directory.getPath() + ": " + e.getMessage());
+            }
+            if (!created && !directory.isDirectory())
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false,
+                    "Could not create " + directory.getPath() + "; no gate shapes will be loaded.");
+                return;
             }
         }
 
