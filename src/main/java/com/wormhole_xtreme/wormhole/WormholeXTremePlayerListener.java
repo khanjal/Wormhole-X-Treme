@@ -1079,7 +1079,7 @@ class WormholeXTremePlayerListener implements Listener
             }
             return;
         }
-        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair))
+        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair, player))
         {
             final com.wormhole_xtreme.wormhole.model.ring.Ring far = pair.opposite(end.getRing());
             com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(

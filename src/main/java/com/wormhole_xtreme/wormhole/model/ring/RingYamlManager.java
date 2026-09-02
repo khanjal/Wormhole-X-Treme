@@ -15,6 +15,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
@@ -119,7 +120,9 @@ public final class RingYamlManager
             return 0;
         }
         final File[] files = directory.listFiles((d, name) ->
-            name.toLowerCase().endsWith(".yml") || name.toLowerCase().endsWith(".yaml"));
+            // pending.yml sits in here too and is not a world.
+            !name.equalsIgnoreCase("pending.yml")
+                && (name.toLowerCase().endsWith(".yml") || name.toLowerCase().endsWith(".yaml")));
         if (files == null)
         {
             return 0;
@@ -366,13 +369,26 @@ public final class RingYamlManager
         root.put("World", worldName);
         root.put("Pairs", pairsOut);
 
+        write(target, root);
+    }
+
+    /**
+     * Writes one file, atomically.
+     *
+     * <p>Temp file then atomic move, so a partial write is never a readable file. With a
+     * world's rings in one place this matters more than it does for a single gate.
+     *
+     * @param target
+     *            the file to write
+     * @param root
+     *            what to write into it
+     */
+    private static void write(final File target, final Map<String, Object> root)
+    {
         final DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setIndent(2);
         final Yaml yaml = new Yaml(options);
-
-        // Temp file then atomic move, so a partial write is never a readable file. With a
-        // world's rings in one place this matters more than it does for a single gate.
         try
         {
             final File temp = new File(target.getAbsolutePath() + ".tmp");
@@ -433,6 +449,135 @@ public final class RingYamlManager
         out.put("Style", ring.getStyle().name());
         out.put("Name", ring.getName());
         return out;
+    }
+
+    /**
+     * Where half-built pairs are kept.
+     *
+     * <p>Outside the world files because a pending end is not a pair yet, and a file whose
+     * shape is "pairs in this world" has nowhere to put one.
+     *
+     * @param directory
+     *            the rings directory
+     * @return the pending file
+     */
+    static File pendingFile(final File directory)
+    {
+        return new File(directory, "pending.yml");
+    }
+
+    /**
+     * Writes every half-built pair.
+     *
+     * <p>The first end of a pair costs the player their slabs the moment it is registered, so
+     * losing it to a restart would take the slabs with it and leave nothing to show for them.
+     * Written on every change rather than at shutdown, because a server that stops badly is
+     * exactly the case this exists for.
+     */
+    public static void savePending()
+    {
+        savePending(getRingsDir());
+    }
+
+    /**
+     * Writes every half-built pair into a given directory.
+     *
+     * @param directory
+     *            the directory to write into
+     */
+    public static void savePending(final File directory)
+    {
+        if (!directory.exists())
+        {
+            directory.mkdirs();
+        }
+        final File target = pendingFile(directory);
+        final Map<UUID, RingManager.PendingRing> waiting = RingManager.getAllPending();
+        if (waiting.isEmpty())
+        {
+            if (target.exists() && !target.delete())
+            {
+                log(Level.WARNING, "Could not delete the now-empty pending ring file.");
+            }
+            return;
+        }
+
+        final Map<String, Object> out = new LinkedHashMap<String, Object>();
+        for (final Map.Entry<UUID, RingManager.PendingRing> entry : waiting.entrySet())
+        {
+            final Map<String, Object> one = writeRing(entry.getValue().getRing());
+            one.put("World", entry.getValue().getWorldName());
+            out.put(entry.getKey().toString(), one);
+        }
+        final Map<String, Object> root = new LinkedHashMap<String, Object>();
+        root.put("Pending", out);
+        write(target, root);
+    }
+
+    /**
+     * Reads back every half-built pair.
+     *
+     * @return how many were restored
+     */
+    public static int loadPending()
+    {
+        return loadPending(getRingsDir());
+    }
+
+    /**
+     * Reads back every half-built pair from a given directory.
+     *
+     * @param directory
+     *            the directory to read
+     * @return how many were restored
+     */
+    @SuppressWarnings("unchecked")
+    public static int loadPending(final File directory)
+    {
+        final File source = pendingFile(directory);
+        if (!source.exists())
+        {
+            return 0;
+        }
+        final Map<String, Object> root;
+        try (FileInputStream in = new FileInputStream(source))
+        {
+            final Object parsed = new Yaml().load(in);
+            if (!(parsed instanceof Map))
+            {
+                return 0;
+            }
+            root = (Map<String, Object>) parsed;
+        }
+        catch (final Exception e)
+        {
+            log(Level.WARNING, "Could not read pending ring file: " + e.getMessage());
+            return 0;
+        }
+        final Object node = root.get("Pending");
+        if (!(node instanceof Map))
+        {
+            return 0;
+        }
+        int loaded = 0;
+        for (final Map.Entry<String, Object> entry : ((Map<String, Object>) node).entrySet())
+        {
+            try
+            {
+                final Map<String, Object> map = (Map<String, Object>) entry.getValue();
+                final Ring ring = readRing(map, RingStyle.CONCURRENT);
+                RingManager.setPending(UUID.fromString(entry.getKey()), ring,
+                    String.valueOf(map.get("World")));
+                loaded++;
+            }
+            // One unreadable entry costs one player their half-built pair, not everybody's.
+            catch (final Exception e)
+            {
+                log(Level.WARNING, "Skipping unreadable pending ring for " + entry.getKey()
+                    + ": " + e.getMessage());
+            }
+        }
+        return loaded;
     }
 
     /**

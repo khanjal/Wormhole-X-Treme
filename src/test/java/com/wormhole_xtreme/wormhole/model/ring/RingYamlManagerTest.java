@@ -300,6 +300,62 @@ public class RingYamlManagerTest
     }
 
     @Test
+    public void aHalfBuiltPairSurvivesARestart() throws IOException
+    {
+        // The first end costs the player their slabs the moment it registers, so losing it to
+        // a restart would take the slabs with it and leave nothing to show for them.
+        final java.util.UUID builder = java.util.UUID.randomUUID();
+        final Ring first = new Ring(40, 64, 40, RingPattern.EVEN, RingOrientation.CEILING,
+            Material.DEEPSLATE_TILE_SLAB, Material.SEA_LANTERN);
+        first.setName("Cellar");
+        RingManager.setPending(builder, first, WORLD);
+
+        RingYamlManager.savePending(directory);
+        RingManager.clear();
+        assertNull(RingManager.getPending(builder), "gone from memory");
+
+        assertEquals(1, RingYamlManager.loadPending(directory));
+        final RingManager.PendingRing back = RingManager.getPending(builder);
+        assertNotNull(back);
+        assertEquals(WORLD, back.getWorldName());
+        assertEquals(40, back.getRing().getAnchorX());
+        assertEquals(RingPattern.EVEN, back.getRing().getPattern());
+        assertEquals(RingOrientation.CEILING, back.getRing().getOrientation());
+        assertEquals(Material.DEEPSLATE_TILE_SLAB, back.getRing().getRingMaterial());
+        assertEquals("Cellar", back.getRing().getName());
+    }
+
+    @Test
+    public void finishingOrCancellingLeavesNoPendingFile() throws IOException
+    {
+        final java.util.UUID builder = java.util.UUID.randomUUID();
+        RingManager.setPending(builder, new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
+            Material.STONE_SLAB, Material.GLOWSTONE), WORLD);
+        RingYamlManager.savePending(directory);
+        assertTrue(RingYamlManager.pendingFile(directory).exists());
+
+        RingManager.clearPending(builder);
+        RingYamlManager.savePending(directory);
+        assertFalse(RingYamlManager.pendingFile(directory).exists(),
+            "an empty file is one to read and skip every startup");
+    }
+
+    @Test
+    public void thePendingFileIsNotMistakenForAWorld() throws IOException
+    {
+        // It lives in the same folder and ends in .yml, so the world scan has to know better
+        // than to try loading it as a world's worth of pairs.
+        RingManager.setPending(java.util.UUID.randomUUID(),
+            new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
+                Material.STONE_SLAB, Material.GLOWSTONE), WORLD);
+        RingYamlManager.savePending(directory);
+        RingManager.clear();
+
+        assertEquals(0, RingYamlManager.loadAll(directory, REACH));
+        assertTrue(RingManager.getAllPairs().isEmpty());
+    }
+
+    @Test
     public void anEmptyDirectoryLoadsNothingAndDoesNotComplain()
     {
         assertEquals(0, RingYamlManager.loadAll(directory, REACH));

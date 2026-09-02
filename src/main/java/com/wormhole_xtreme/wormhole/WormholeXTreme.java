@@ -280,7 +280,9 @@ public class WormholeXTreme extends JavaPlugin
         {
             final int rings = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadAll(
                 ConfigManager.getRingReach());
-            prettyLog(Level.INFO, true, "Loaded " + rings + " transport ring pairs.");
+            final int waiting = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadPending();
+            prettyLog(Level.INFO, true, "Loaded " + rings + " transport ring pairs"
+                + ((waiting > 0) ? (" and " + waiting + " half-built ones.") : "."));
         }
         // A ring subsystem that cannot load must not stop the gates from working.
         catch (final Exception e)

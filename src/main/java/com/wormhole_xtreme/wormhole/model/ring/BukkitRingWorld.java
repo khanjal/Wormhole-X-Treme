@@ -50,6 +50,9 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     /** How long a computed audience is reused before being worked out again. */
     private static final long AUDIENCE_TTL_MILLIS = 50L;
 
+    /** How far up or down to look for somewhere to stand at a blocked arrival. */
+    private static final int SEARCH = 3;
+
     /** The world this operates in. Both ends of a pair are always in it. */
     private final World world;
 
@@ -413,9 +416,108 @@ public class BukkitRingWorld implements RingCycle.Surroundings
         final int y = (ring.getOrientation() == RingOrientation.FLOOR)
             ? ring.getAnchorY()
             : (ring.getAnchorY() - (reach - 1));
-        // Half a block along x and z so they stand in the middle of a block rather than on
-        // its corner. An even ring has no centre block, so this lands in one of the middle
-        // four, which is as central as a ring with no centre gets.
-        return new Location(world, ring.getAnchorX() + 0.5D, y, ring.getAnchorZ() + 0.5D);
+
+        // The middle first, then the rest of the interior. A ring is invisible and its floor
+        // is ordinary ground, so nothing stops somebody paving over the far end long after it
+        // was built — and arriving inside their new blocks would suffocate whoever came
+        // through. The interior is a known open area of twenty-odd columns, so if the middle
+        // has been filled in there is very likely somewhere else in the ring to put them.
+        final Location middle = standableAt(ring.getAnchorX(), y, ring.getAnchorZ());
+        if (middle != null)
+        {
+            return middle;
+        }
+        for (final int[] block : ring.interiorBlocks())
+        {
+            final Location elsewhere = standableAt(block[0], y, block[2]);
+            if (elsewhere != null)
+            {
+                return elsewhere;
+            }
+        }
+        // Nowhere in the whole ring is clear, which means it has been buried. Send them to
+        // the middle anyway: standing in a wall is bad, and being silently left behind at the
+        // far end of a transport they watched fire is worse.
+        return centreOf(ring.getAnchorX(), y, ring.getAnchorZ());
+    }
+
+    /**
+     * A place to stand in one column, at or near a given height.
+     *
+     * <p>Searches upward first and then down. Up is what escapes a floor somebody has paved
+     * over since the ring was built; down is what finds the ground again when they have dug
+     * it out instead. A ring left hanging in mid-air has no ground within reach, and that is
+     * a real answer rather than a failure — the traveller arrives and falls, which is what
+     * standing where the floor used to be should do.
+     *
+     * @param x
+     *            block x
+     * @param y
+     *            the height to start from
+     * @param z
+     *            block z
+     * @return somewhere to stand in that column, or null if there is nowhere
+     */
+    private Location standableAt(final int x, final int y, final int z)
+    {
+        for (int dy = 0; dy <= SEARCH; dy++)
+        {
+            if (roomToStand(x, y + dy, z))
+            {
+                return centreOf(x, y + dy, z);
+            }
+        }
+        for (int dy = 1; dy <= SEARCH; dy++)
+        {
+            if (roomToStand(x, y - dy, z))
+            {
+                return centreOf(x, y - dy, z);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Whether a player fits here.
+     *
+     * <p>Feet and head only. Solid ground underneath is deliberately not required: a ring
+     * whose floor has been dug away still works, and refusing to deliver anybody to it would
+     * be a worse answer than letting them arrive and fall.
+     *
+     * @param x
+     *            block x
+     * @param y
+     *            block y of the feet
+     * @param z
+     *            block z
+     * @return true if there is room
+     */
+    private boolean roomToStand(final int x, final int y, final int z)
+    {
+        if ((y < world.getMinHeight()) || ((y + 1) >= world.getMaxHeight()))
+        {
+            return false;
+        }
+        return world.getBlockAt(x, y, z).isPassable()
+            && world.getBlockAt(x, y + 1, z).isPassable();
+    }
+
+    /**
+     * The middle of a block, facing however the traveller already was.
+     *
+     * @param x
+     *            block x
+     * @param y
+     *            block y
+     * @param z
+     *            block z
+     * @return a location in the centre of that block
+     */
+    private Location centreOf(final int x, final int y, final int z)
+    {
+        // Half a block along x and z so they stand in the middle rather than on a corner. An
+        // even ring has no centre block, so this lands in one of the middle four, which is as
+        // central as a ring with no centre gets.
+        return new Location(world, x + 0.5D, y, z + 0.5D);
     }
 }

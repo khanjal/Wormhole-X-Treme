@@ -120,8 +120,10 @@ testable without a running server.
 Creation is two-step, because a ring is meaningless without its partner. The first `create`
 stashes a pending endpoint keyed by the player; the second, at the far site, completes the
 pair. This mirrors `incompleteStargates` / `completeStargate` in `StargateManager`. The
-pending endpoint is persisted in `rings/pending.yml`, keyed by player, so a restart
-mid-build does not silently eat the player's slabs. It sits outside the world files because
+pending endpoint is written to `rings/pending.yml`, keyed by player, so a restart mid-build
+does not silently eat the player's slabs — they are taken the moment the first end registers,
+so losing that record would leave nothing to show for them. Written on every change rather
+than at shutdown, because a server that stops badly is exactly the case it exists for. It sits outside the world files because
 it is not yet a pair, and it records its own world so the second `create` can refuse an
 endpoint in a different one — with a message saying so, rather than a silent failure after
 the player has already laid twenty slabs.
@@ -308,20 +310,24 @@ occupancy matters.
 
 ### Standing on the ring rather than in it
 
-You have to be *within* the ring to travel, and the perimeter is not within it. But someone
-standing on a perimeter block is in the worst possible spot: that column is about to fill
-with rising slabs, so leaving them there means they are shoved, suffocated, or simply left
-behind for a reason invisible to them.
+You have to be *within* the ring to travel, and the perimeter is not within it. Arming is
+interior-only too: stepping on the ring's edge does not start a countdown, because the
+perimeter is a threshold you cross rather than a place you stand.
 
-So at deploy-start — the moment the perimeter starts being written, not at the flash —
-every entity standing on a perimeter block is nudged one block inward, toward the anchor,
-to the nearest free interior block. They clear the animation and they travel with everyone
-else. If no interior block is free they are left where they are and the animation skips
-their column, on the same not-a-block-we-own principle that governs every other write.
+**An earlier version of this design had the rings nudge you off the edge**, and that is worth
+recording as removed rather than quietly dropped. When rings were real blocks, standing on a
+perimeter column was the worst place to be — it was about to fill with rising slabs, so
+whoever stood there would be shoved or suffocated. The plan was to shunt them inward at
+deploy-start.
 
-Arming stays interior-only: stepping on the ring's edge does not start a countdown, because
-the perimeter is a threshold you cross rather than a place you stand. The nudge only
-applies to a cycle already underway.
+Drawing the rings instead of building them deleted the problem rather than solving it. An
+illusion cannot push anybody, so somebody standing on the edge simply watches the rings pass
+through them and stays where they are. There is nothing to nudge them away from, and the
+tidiest version of that feature turned out to be not writing it.
+
+This is the second thing the client-side decision made unnecessary, after the whole
+save-and-restore-originals apparatus. Both are worth remembering when weighing a change that
+looks like it only trades one cost for another.
 
 ## Where each layer sits
 
@@ -659,6 +665,26 @@ far stack has been standing there lit the whole time waiting for them.
 The lit ring is drawn **over** the stack rather than instead of it, so the rings that are not
 lit stay exactly where they are and nothing appears to move while the light passes.
 
+## Arriving somewhere that has changed
+
+A ring is invisible and its floor is ordinary ground, so nothing stops somebody paving over
+the far end long after it was built — or digging it out and leaving the ring hanging in
+mid-air. Neither breaks the ring, and both change where a traveller ought to land.
+
+The arrival is therefore searched for rather than assumed. The middle of the ring first, then
+up to three blocks up and three down; failing that, every other interior column in turn. The
+interior is a known open area of twenty-odd columns, so if the centre has been filled in there
+is very likely somewhere else inside the ring to put them.
+
+Only headroom is required, not solid ground. A ring whose floor has been dug away still works
+and the traveller arrives and falls, which is the right answer — that is what standing where
+the floor used to be should do. Requiring ground would mean refusing to deliver anybody to a
+ring that still functions.
+
+If the whole footprint has been buried, they are sent to the middle regardless. Standing in a
+wall is bad; being silently left behind at the far end of a transport you watched fire is
+worse.
+
 ## Limits
 
 Three knobs solving three different problems. The count is the least important of them.
@@ -897,8 +923,8 @@ In rough order of how much they would hurt to get wrong:
 14. A pair round-trips through YAML with its footprint correctly re-derived, and lands in
    the file for its world.
 15. A damaged entry in a world file is skipped with a log line, and the rest still loads.
-16. An entity on a perimeter block is nudged inward at deploy-start and travels, and is
-   left alone when the interior has no room for it.
+16. An arrival lands somewhere a player fits, even when the far end has been paved over or
+    dug out since it was built.
 17. Pairing refuses a second endpoint placed in a different world, and says why.
 18. `edit` without an id changes only the end the player is standing in; with an id it
     changes both, and a non-slab ring material is refused either way.

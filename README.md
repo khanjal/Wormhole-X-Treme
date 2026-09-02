@@ -589,6 +589,12 @@ left barely a sequence to watch.
 Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
 subject to access rules; everything else rides along.
 
+If somebody paves over the far end, or digs it out so the ring hangs in mid-air, the ring
+keeps working and the arrival is searched for: the middle of the ring first, then a few
+blocks up or down, then the rest of the interior. Only headroom is required, not ground — a
+ring whose floor has been dug away still works, and you arrive and fall, which is what
+standing where the floor used to be should do.
+
 Ride in on a horse or a camel and you arrive still on it. The mount is what travels and you
 are re-seated on it once you land, rather than the two of you being sent separately, which
 would drop you on the floor beside it.

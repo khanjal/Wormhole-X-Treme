@@ -39,9 +39,11 @@ public final class RingTransit
      *
      * @param pair
      *            the pair to fire
+     * @param armedBy
+     *            who walked into it, so they can be told if it stands down again
      * @return true if a cycle started
      */
-    public static boolean start(final RingPair pair)
+    public static boolean start(final RingPair pair, final org.bukkit.entity.Player armedBy)
     {
         if ((pair == null) || !pair.canFire(System.currentTimeMillis()))
         {
@@ -64,7 +66,7 @@ public final class RingTransit
         // put back and lands travellers in terrain that has not been generated.
         hold(world, pair);
         cycle.beginCountdown();
-        countDown(cycle, world, ConfigManager.getRingCountdownTicks());
+        countDown(cycle, world, armedBy, ConfigManager.getRingCountdownTicks());
         return true;
     }
 
@@ -80,14 +82,17 @@ public final class RingTransit
      *            the cycle running
      * @param world
      *            the world it is in
+     * @param armedBy
+     *            who set it going, for the message if it stands down
      * @param remaining
      *            ticks left before the rings commit
      */
-    private static void countDown(final RingCycle cycle, final World world, final int remaining)
+    private static void countDown(final RingCycle cycle, final World world,
+        final org.bukkit.entity.Player armedBy, final int remaining)
     {
         if (remaining <= 0)
         {
-            commitOrAbort(cycle, world);
+            commitOrAbort(cycle, world, armedBy);
             return;
         }
         final int seconds = (remaining + 19) / 20;
@@ -101,7 +106,7 @@ public final class RingTransit
                 {
                     try
                     {
-                        countDown(cycle, world, remaining - step);
+                        countDown(cycle, world, armedBy, remaining - step);
                     }
                     catch (final RuntimeException e)
                     {
@@ -119,13 +124,21 @@ public final class RingTransit
      * @param world
      *            the world it is in
      */
-    private static void commitOrAbort(final RingCycle cycle, final World world)
+    private static void commitOrAbort(final RingCycle cycle, final World world,
+        final org.bukkit.entity.Player armedBy)
     {
         try
         {
             if (cycle.shouldAbort())
             {
                 cycle.abort();
+                // Told to whoever set it going, because by definition nobody is standing in
+                // it any more — they walked out, which is exactly why it stood down, and they
+                // are the one person who is owed the news.
+                if ((armedBy != null) && armedBy.isOnline())
+                {
+                    RingMessages.stoodDown(armedBy);
+                }
                 finished(cycle, world);
                 return;
             }

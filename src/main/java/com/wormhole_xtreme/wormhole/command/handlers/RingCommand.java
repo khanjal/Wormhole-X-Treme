@@ -162,6 +162,9 @@ public class RingCommand implements SubCommand
             return true;
         }
         RingManager.setPending(player.getUniqueId(), ring, world);
+        // Written now rather than at shutdown: the slabs are gone as of this moment, and a
+        // server that stops badly is exactly what this is protecting against.
+        RingYamlManager.savePending();
         consumeTemplate(player, ring);
         player.sendMessage("First ring registered in " + ring.getRingMaterial()
             + ". Lay the other one and run this again to pair them.");
@@ -215,6 +218,7 @@ public class RingCommand implements SubCommand
         }
 
         RingManager.clearPending(player.getUniqueId());
+        RingYamlManager.savePending();
         consumeTemplate(player, ring);
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world);
@@ -384,6 +388,7 @@ public class RingCommand implements SubCommand
         // The slabs were taken when that end was registered, so giving up has to give them
         // back. Losing a circle of slabs for changing your mind would be a mean way to
         // learn how this works.
+        RingYamlManager.savePending();
         if (player.getWorld().getName().equals(waiting.getWorldName()))
         {
             restoreTemplate(player, waiting.getRing());
