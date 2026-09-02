@@ -706,9 +706,20 @@ class WormholeXTremeVehicleListener implements Listener
                 // Travel is settled, so what follows from having travelled can be applied.
                 for (final Player rider : pendingRestrictions)
                 {
-                    StargateRestrictions.addPlayerUseCooldown(rider);
-                    try { StargateRestrictions.addPlayerRecentArrival(rider, st.getGateTarget()); }
-                    catch (final RuntimeException ignore) {}
+                    // Per rider, so one failing does not silently deny the rest of the boat
+                    // their cooldown and arrival mark. RuntimeException rather than
+                    // Throwable is deliberate and matches the rest of the plugin: an Error
+                    // is not something to swallow on the way past.
+                    try
+                    {
+                        StargateRestrictions.addPlayerUseCooldown(rider);
+                        StargateRestrictions.addPlayerRecentArrival(rider, st.getGateTarget());
+                    }
+                    catch (final RuntimeException e)
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                            "Failed to apply travel restrictions for " + rider.getName() + ": " + e.getMessage());
+                    }
                 }
 
                 final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
