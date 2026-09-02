@@ -60,13 +60,28 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theLightFieldOffersBlocksThatAreNotSlabs()
+    public void theLightFieldOffersOnlyBlocksThatLookLit()
     {
-        final List<String> blocks = complete("ring", "edit", "light", "");
-        assertTrue(blocks.contains("glowstone"));
-        assertTrue(blocks.contains("sea_lantern"));
-        assertTrue(blocks.size() > complete("ring", "edit", "ring", "").size(),
-            "a light may be any block, so there are more of them");
+        // Narrowed twice over. None of these actually light anything — a ring is drawn to
+        // clients and the server's light data is untouched — so the choice is purely how it
+        // looks. And the pattern is drawn into a floor, where a torch or a lantern would be
+        // a block rendered somewhere it cannot hang.
+        final List<String> lights = complete("ring", "edit", "light", "");
+        assertTrue(lights.contains("glowstone"));
+        assertTrue(lights.contains("sea_lantern"));
+        assertTrue(lights.contains("shroomlight"));
+
+        assertFalse(lights.contains("torch"), "a torch cannot hang inside a floor");
+        assertFalse(lights.contains("lantern"));
+        assertFalse(lights.contains("dirt"), "and a plain block is not a light");
+        assertTrue(lights.size() < 40, "a list somebody can actually read");
+    }
+
+    @Test
+    public void lightsAreFilteredByWhatHasBeenTyped()
+    {
+        final List<String> typed = complete("ring", "edit", "light", "sea");
+        assertEquals(java.util.Collections.singletonList("sea_lantern"), typed);
     }
 
     @Test

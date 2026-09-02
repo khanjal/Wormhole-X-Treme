@@ -218,6 +218,63 @@ public class Ring
     }
 
     /**
+     * Solid blocks that read as glowing, for the countdown pattern.
+     *
+     * <p>Named rather than referenced, so a version that has never heard of copper bulbs
+     * simply skips them instead of failing to load.
+     */
+    private static final String[] GLOWING = {
+        "GLOWSTONE", "SEA_LANTERN", "SHROOMLIGHT", "JACK_O_LANTERN", "REDSTONE_LAMP",
+        "MAGMA_BLOCK", "CRYING_OBSIDIAN", "BEACON", "SCULK_CATALYST", "AMETHYST_BLOCK",
+        "OCHRE_FROGLIGHT", "VERDANT_FROGLIGHT", "PEARLESCENT_FROGLIGHT",
+        "COPPER_BULB", "EXPOSED_COPPER_BULB", "WEATHERED_COPPER_BULB", "OXIDIZED_COPPER_BULB",
+        "WAXED_COPPER_BULB", "WAXED_EXPOSED_COPPER_BULB", "WAXED_WEATHERED_COPPER_BULB",
+        "WAXED_OXIDIZED_COPPER_BULB",
+    };
+
+    /** The above, resolved once against whatever this server actually has. */
+    private static final List<Material> GLOWING_MATERIALS = resolveGlowing();
+
+    /**
+     * Works out which of the glowing blocks exist here.
+     *
+     * @return the ones this server has
+     */
+    private static List<Material> resolveGlowing()
+    {
+        final List<Material> found = new ArrayList<Material>();
+        for (final String name : GLOWING)
+        {
+            final Material material = Material.matchMaterial(name);
+            if ((material != null) && material.isBlock())
+            {
+                found.add(material);
+            }
+        }
+        return java.util.Collections.unmodifiableList(found);
+    }
+
+    /**
+     * The blocks worth offering for a ring's countdown pattern.
+     *
+     * <p>Solid blocks that look lit. Two things narrow this beyond "blocks that emit light".
+     *
+     * <p>The first is that <em>none</em> of them will actually light anything: a ring is
+     * drawn to clients and the server's light data is never touched, so the pattern looks lit
+     * and casts nothing. That makes the choice entirely about appearance.
+     *
+     * <p>The second is that the pattern is drawn <em>into</em> a floor or ceiling, so a torch
+     * or a lantern would be a block that normally needs something to hang on, rendered where
+     * it cannot hang. Full solid blocks are the only ones that read correctly there.
+     *
+     * @return the suggested light materials
+     */
+    public static List<Material> glowingMaterials()
+    {
+        return GLOWING_MATERIALS;
+    }
+
+    /**
      * The blocks the player laid in slabs, and the blocks that animate.
      *
      * <p>All in the anchor's own layer: a ring is flat, and only the travelling copies of it

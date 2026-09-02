@@ -2,6 +2,7 @@
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
+There are also **transport rings**: small paired pads set into a floor or ceiling that fire when you walk into them.
 This branch targets Java 17 and the Bukkit 1.20 API.
 
 ## Contents
@@ -11,6 +12,8 @@ This branch targets Java 17 and the Bukkit 1.20 API.
 **Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device-button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
 
 **Using gates** — [Redstone activation](#redstone-activation) · [What travels through a gate](#what-travels-through-a-gate) · [Nether and End dimension support](#nether-and-end-dimension-support)
+
+**Transport rings** — [Overview](#transport-rings) · [Building a ring pair](#building-a-ring-pair) · [Using rings](#using-rings) · [Ring settings](#ring-settings) · [Ring permissions](#ring-permissions)
 
 **Data and integration** — [Storage](#storage) · [Events for other plugins](#events-for-other-plugins) · [Economy](#economy)
 
@@ -134,6 +137,10 @@ booleans depending on where you are in the line.
 **Per gate** — `owner <gate> [player]`, `idc <gate> [code]`, `redstone <gate> [true|false]`,
 `custom <gate> [true|false]`, `portalmaterial`, `irismaterial`, `lightmaterial`,
 `wooshdepth`
+
+**Rings** — `ring create`, `ring cancel`, `ring list`, `ring remove [id]`,
+`ring edit [id] <ring|light|name|access|style> <value>`,
+`ring allow|deny <player> [id]`, `ring owner <player> [id]`
 
 **Server** — `shutdown_timeout <seconds>` (alias `timeout`),
 `activate_timeout <seconds>`, `cooldown <one|two|three|true|false> [time]`,
@@ -504,11 +511,164 @@ nothing arrives from the other side on its own.
 
 Gates work correctly in the Nether and End. In those dimensions Minecraft uses `CAVE_AIR` (Nether) and `VOID_AIR` (End) for empty space instead of the normal `AIR` used in the Overworld. All portal-detection and teleport-exit-position searches use `Material.isAir()`, which covers all three air types, so gates build and activate correctly regardless of which dimension they are placed in.
 
+## Transport rings
+
+Rings are the short-range counterpart to a gate. Where a gate is a named, dialable structure
+you build once and address by name, a ring is an invisible pad set into a floor or ceiling
+that fires when you walk into it, counts down, and swaps everything at both ends in the same
+instant.
+
+| | Stargate | Ring |
+|---|---|---|
+| Addressing | Dial any gate by name | Fixed pair, no addressing |
+| Orientation | Vertical | Horizontal — floor or ceiling |
+| Activation | Button, sign, redstone, `/dial` | Walk into it |
+| Direction | One way per dial | Both ends fire together |
+| Appearance | Permanent structure | Invisible until it fires |
+| Range | Cross-world, config permitting | Same world, always |
+
+Because both ends fire at once, two people standing at opposite ends swap places in one trip.
+
+The full design and the reasoning behind each decision is in [docs/RINGS.md](docs/RINGS.md).
+
+### Building a ring pair
+
+Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do the same
+somewhere else in the same world and the two are paired. The slabs are consumed and the
+ground goes back to how it looked.
+
+There are two shapes. The odd one is the Standard gate's own ring lying flat; the even one is
+a size down for tighter rooms.
+
+```
+ODD — 7 across, 16 slabs          EVEN — 6 across, 12 slabs
+
+    . . # # # . .                     . . # # . .
+    . # : : : # .                     . # : : # .
+    # : : : : : #                     # : + : : #
+    # : : + : : #                     # : : : : #
+    # : : : : : #                     . # : : # .
+    . # : : : # .                     . . # # . .
+    . . # # # . .
+
+  # = lay a slab    : = stand anywhere in here    + = anchor
+```
+
+Rules for the template:
+
+- **Lay only the ring**, not a filled disc. The middle is where people stand.
+- **One kind of slab.** Whichever you pick becomes the ring's material, so a circle of
+  deepslate slabs rises in deepslate. No command needed.
+- **All facing the same way.** Bottom slabs resting on a floor make a floor ring; top slabs
+  hung under a ceiling make a ceiling ring. Double slabs are not accepted, because a full
+  block cannot say which surface it was laid against.
+- **Five blocks of headroom** above a floor ring, or below a ceiling one, for the stack.
+- The footprint may not overlap another ring or any gate.
+
+Each refusal says what is actually wrong — mixed slabs, mixed halves, a filled-in circle,
+overlapping something — rather than a generic failure.
+
+Creation is two-step, so the first ring is remembered until you build its partner.
+`/wormhole ring cancel` gives up on a half-built pair and puts its slabs back.
+
+### Using rings
+
+Walk in. The pattern lights up in the floor and counts down; step clear before it commits and
+it stands down. Once the rings start rising the trip is committed.
+
+Rings then rise out of the pad a block apart, closing to half a block as each one stops. The
+stack stands a second, the light runs down through it as you are taken and back up as you
+arrive, and the rings return nearest-first. The pad stays lit until a second after the last
+one is home.
+
+Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
+subject to access rules; everything else rides along.
+
+A pair will not fire again for a minute afterwards. Walking onto a pad that is recharging
+tells you how long is left and briefly lights the pattern so you can see where the ring is,
+since an idle one is invisible.
+
+Naming an end makes the messages useful: `/wormhole ring edit name Tower`, standing in the
+ring you mean, and its partner then tells travellers they are heading for Tower.
+
+**Rings are drawn, not built.** The lights and rings are sent to nearby clients and the
+server's blocks are never touched, exactly as a gate draws its portal. Nothing is left behind
+if the server stops mid-cycle, nothing appears in block logs, and nobody can mine the
+glowstone out of their own floor while it is lit. The trade is the same one gates make: the
+effect only exists for players in range, and relogging or walking far away and back clears
+it. A "light" material therefore looks lit but does not actually illuminate anything.
+
+### Ring settings
+
+All under `rings:` in `config.yml`.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `countdown` | 60 | Ticks before the rings commit. Floored at 30 so stepping clear stays possible. |
+| `cycle-cooldown` | 1200 | Ticks before a pair will fire again. Shared by both ends. |
+| `deploy-ticks` | 2 | Ticks between animation frames. |
+| `settle-ticks` | 20 | How long the finished stack stands before the transport. |
+| `flash-ticks` | 3 | How long each ring stays lit as the light passes. |
+| `flash-direction` | `TOP_DOWN` | Which way the departure sweep runs. The arrival always runs the other way. |
+| `hold-ticks` | 20 | How long the stack stands after the light finishes. |
+| `lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
+| `reach` | 4 | Block layers of passenger volume, from the pad into the room. |
+| `min-separation` | 8 | Required distance between ring anchors. Overlap is refused regardless. |
+| `max-link-distance` | 0 | Furthest two ends may be. `0` is unlimited; distance costs nothing. |
+| `max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
+| `default-access` | `PRIVATE` | What a newly built pair starts as. |
+| `default-style` | `CONCURRENT` | How the stack deploys. |
+| `default-light-material` | `GLOWSTONE` | What the pad lights up as. |
+| `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template. |
+| `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
+| `outline-ticks` | 40 | How long that outline stays up. |
+
+Per-pair and per-end settings are changed with `/wormhole ring edit`. Standing in a ring
+edits that end; naming a pair by id edits both.
+
+| Field | Scope | Values |
+|---|---|---|
+| `ring` | per end | Any slab. Tab completion offers only slabs. |
+| `light` | per end | Tab completion offers solid blocks that look lit. |
+| `name` | per end | Free text. Refused with an id — stand in the ring you mean. |
+| `access` | per pair | `public` or `private` |
+| `style` | per end | `fast` or `slow` (`concurrent` and `sequential` also work) |
+
+`style` decides how many rings are climbing at once, not how fast they move — `deploy-ticks`
+is the speed knob. `fast` sends several up together; `slow` sends one at a time.
+
+Access is per pair rather than per end because both ends fire together, so there is no way to
+authorise half of a swap. Materials, names and style are per end, because nobody watches both
+ends at once.
+
+A private pair is usable by its owner and whoever they have named with
+`/wormhole ring allow <player>`. That governs being carried as well as setting a ring off, so
+standing in somebody's private ring when they use it is not a free ride.
+
+### Ring permissions
+
+```
+wormhole.ring.build       create and pair rings                  default: op
+wormhole.ring.use         travel by a ring you are allowed on    default: true
+wormhole.ring.admin       use and manage any pair                default: op
+wormhole.ring.unlimited   bypass the per-player quota            default: op
+```
+
+Being named on a private pair's allow list lets somebody travel by it. It does not let them
+recolour, rename, give away or delete it — managing a pair stays with its owner and with
+staff.
+
 ## Storage
 
 Gates are stored as one YAML file each, under
 `plugins/WormholeXTreme/WormholeXTremeDB/gates/`. Back them up by copying the folder; edit
 them by hand if you need to.
+
+Rings are stored one file per *world*, under
+`plugins/WormholeXTreme/WormholeXTremeDB/rings/`, with every pair in that world inside it.
+Per world rather than per pair because a pair can never span two — so the layout enforces
+the rule — and because it cuts startup to one read per world instead of one per pair. A pair
+that will not parse is logged and skipped, and the rest of the world still loads.
 
 There is no database backend and nothing to configure. Earlier versions offered HSQLDB and
 SQLite; both are gone. A few thousand small records read once at startup and written one at
@@ -526,6 +686,7 @@ knowing it exists. Both live in `com.wormhole_xtreme.wormhole.events`.
 | `StargateCreatedEvent` | after a gate is built, named, registered and saved |
 | `StargateRemovedEvent` | while a gate is being removed, before it is torn down |
 | `StargatePlayerTravelEvent` | before a player travels, and **cancellable** |
+| `RingTravelEvent` | before a player is carried by transport rings, and **cancellable** |
 
 ```java
 @EventHandler
@@ -547,6 +708,32 @@ cleaning up its own records needs.
 The lifecycle events are not cancellable. Both are sent after the decision has been made
 and, for creation, after the gate is already on disk. To prevent a gate being built, deny
 `wormhole.build` rather than listening for it.
+
+### Rings
+
+`RingTravelEvent` fires once per travelling player, after both ends of the pair have been
+read and before either has been written — so a listener always sees the whole trip as it was
+before any of it happened, never a half-finished one with the people from one end already
+standing in the other.
+
+Cancelling takes that player out of the trip and leaves everybody else in it: the rings still
+fire, and they stay put while the others go. There is no way to cancel a whole cycle, because
+by that point the rings are up and coming down again regardless.
+
+It fires only for players. Mobs, items and vehicles ride along as cargo and raise nothing, so
+cancelling stops a person and not the world around them.
+
+```java
+@EventHandler
+public void onRingTravel(final RingTravelEvent event)
+{
+    if (combatTag.isTagged(event.getPlayer()))
+    {
+        event.setCancelled(true);
+        event.getPlayer().sendMessage("Not while you are in combat.");
+    }
+}
+```
 
 ### Watching and stopping travel
 

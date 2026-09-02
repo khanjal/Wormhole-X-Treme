@@ -394,10 +394,36 @@ public final class SubCommands
         }
         if ("light".equalsIgnoreCase(field))
         {
-            return materialNames(typed, false);
+            // Solid blocks that read as glowing. Offering all several hundred blocks was a
+            // list nobody could use, and most of them look wrong set into a floor.
+            return glowingNames(typed);
         }
         // A name is whatever the player wants it to be.
         return none();
+    }
+
+    /**
+     * Glowing block names matching what has been typed.
+     *
+     * @param typed
+     *            what has been typed so far
+     * @return the matching names, lower case
+     */
+    private static List<String> glowingNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.Material material
+            : com.wormhole_xtreme.wormhole.model.ring.Ring.glowingMaterials())
+        {
+            final String name = material.name().toLowerCase();
+            if (name.startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out);
+        return out;
     }
 
     /**
