@@ -4,6 +4,18 @@ Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style te
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
 This branch targets Java 17 and the Bukkit 1.20 API.
 
+## Contents
+
+**Setting up** — [Server Compatibility](#server-compatibility) · [Build](#build) · [Configuration](#configuration) · [Permissions](#permissions) · [Commands](#commands)
+
+**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device-button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
+
+**Using gates** — [Redstone activation](#redstone-activation) · [What travels through a gate](#what-travels-through-a-gate) · [Nether and End dimension support](#nether-and-end-dimension-support)
+
+**Data and integration** — [Storage](#storage) · [Events for other plugins](#events-for-other-plugins) · [Economy](#economy)
+
+**Reference** — [Troubleshooting](#troubleshooting) · [Developer notes](#developer-notes) · [Contributing](#contributing)
+
 ## Server Compatibility
 
 ### Compatibility Matrix
@@ -44,7 +56,7 @@ Build (skips tests):
 mvn -DskipTests package
 ```
 
-Output jar: `target/WormholeXTreme-1.0.0.jar` (~300KB).
+Output jar: `target/WormholeXTreme-<version>.jar` (~300KB), versioned from `pom.xml`.
 
 Nothing is bundled into the jar and the plugin has no runtime dependencies. SnakeYAML
 comes from the server — Spigot declares it and Bukkit's own config system uses it.
@@ -76,6 +88,37 @@ which is optional and detected at runtime).
 **An operator may do anything with a gate**, with or without a permissions plugin. This
 deliberately outranks a negated node: on a server where someone has been given op, that is
 taken as the final word.
+
+## Permissions
+
+The plugin uses permission nodes for feature access. Permissions are intended to be managed by a permissions plugin (Vault/LuckPerms recommended).
+
+- `wormhole.use.sign` — allow using sign-based dialers and sign interactions.
+- `wormhole.use.dialer` — allow using the dialer to initiate a gate dial.
+- `wormhole.use.compass` — allow using the compass command to point to gates.
+- `wormhole.remove.own` — allow removing gates you own.
+- `wormhole.remove.all` — allow removing any gate (admin-level).
+- `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
+- `wormhole.config` — allow changing plugin configuration via commands.
+- `wormhole.list` — allow listing gates via `/wormhole list`.
+- `wormhole.go` — allow teleporting to gates via command (`/wormhole go`).
+- `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
+- `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
+
+Notes:
+- Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
+- The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
+
+### Permission backend & auto-fallback
+
+The plugin prefers a Vault-compatible permissions provider (Vault + LuckPerms recommended). On first run the plugin will use the server's configured permission backend via the standard Bukkit `player.hasPermission(...)` API.
+
+- `permissions-support-disable` (boolean): If `true`, the plugin will not attempt to attach to any external permission provider even if one is available. Default: `false`.
+- `permissions-auto-fallback` (boolean): If `true` (default), and no Vault-compatible provider is detected at startup, the plugin will automatically enable a simple permission fallback mode so basic use actions continue to work; advanced actions remain restricted to operators or gate owners. Set this to `false` if you prefer to leave permission handling to server admins and not enable the fallback.
+
+Behavior note:
+- The `/wormhole go` command (teleport-to-gate) no longer grants access to all players by default. Use the `wormhole.go` permission node to grant command access to non-ops, or rely on operator/owner status. This ensures servers do not inadvertently expose teleport commands to all users when no permissions provider is present.
+
 
 ## Commands
 
@@ -110,24 +153,17 @@ a snapshot — someone who deliberately set an iris to stone meant stone, and a 
 match on one material is not evidence of anything. Gates you genuinely customised are left
 alone.
 
-## Storage
-
-Gates are stored as one YAML file each, under
-`plugins/WormholeXTreme/WormholeXTremeDB/gates/`. Back them up by copying the folder; edit
-them by hand if you need to.
-
-There is no database backend and nothing to configure. Earlier versions offered HSQLDB and
-SQLite; both are gone. A few thousand small records read once at startup and written one at
-a time gains nothing from a database engine, and the drivers were over 95% of the plugin's
-download size. If you are coming from an install that used one of them, migrate with a
-build from before their removal, or rebuild the gates.
-
 ## Shapes
 
 Gate shapes live under:
 
-- `plugins/WormholeXTreme/GateShapes/3d/` (3D shapes)
-- `plugins/WormholeXTreme/GateShapes/2d/` (2D shapes)
+```
+plugins/WormholeXTreme/GateShapes/
+```
+
+One flat folder. Earlier versions split shapes into `3d/` and `2d/` subfolders; those are no
+longer read, and anything found in them is moved up on startup so an upgrade does not
+silently lose a custom shape.
 
 Default shapes are extracted from the jar on first run only — they will **not** overwrite user-customized files.
 
@@ -163,42 +199,8 @@ SIGN_MATERIAL=CRIMSON_WALL_SIGN
 
 1. Copy an existing `.shape` file as a starting point.
 2. Edit the block grid and material keys. Keep the filename unique with the `.shape` extension.
-3. Place it in `plugins/WormholeXTreme/GateShapes/3d/` (or `2d/`) and restart the server (or trigger `StargateHelper.loadShapes()`).
+3. Place it in `plugins/WormholeXTreme/GateShapes/` and restart the server.
 4. Use `/wormhole custom <gate> true` to assign the shape to a gate if needed.
-
-## Nether and End dimension support
-
-Gates work correctly in the Nether and End. In those dimensions Minecraft uses `CAVE_AIR` (Nether) and `VOID_AIR` (End) for empty space instead of the normal `AIR` used in the Overworld. All portal-detection and teleport-exit-position searches use `Material.isAir()`, which covers all three air types, so gates build and activate correctly regardless of which dimension they are placed in.
-
-## DHD (dial-home device) — button and lever support
-
-The DHD block that a player clicks to activate a gate can be any button type or a lever. All of the following are recognised:
-
-- All wood buttons: `OAK_BUTTON`, `SPRUCE_BUTTON`, `BIRCH_BUTTON`, `JUNGLE_BUTTON`, `ACACIA_BUTTON`, `DARK_OAK_BUTTON`, `MANGROVE_BUTTON`, `CHERRY_BUTTON`, `BAMBOO_BUTTON`
-- Nether buttons: `CRIMSON_BUTTON`, `WARPED_BUTTON`
-- Stone buttons: `STONE_BUTTON`, `POLISHED_BLACKSTONE_BUTTON`
-- `LEVER`
-
-When a gate is activated via a button, the button is automatically replaced with a lever so the gate can be held open. Shutting down the gate restores a lever in its place.
-
-## Iris (gate shield) setup and troubleshooting
-
-An iris closes over the portal to block travel. When a remote gate's iris is active, players who walk into the portal are bounced back with the message "Remote Iris is locked!".
-
-### Setup
-
-- Build a gate from a shape that includes an `:IA` marker (most 3D shapes do; see `GateShapes/3d/Standard.shape`).
-- Set an IDC (iris deactivation code) to allow callers to unlock the iris remotely:
-  - `/wormhole complete <GateName> idc=<code>` — set IDC while completing.
-  - `/wormhole idc <GateName> <code>` — set or change the IDC later.
-  - `/wormhole idc <GateName> -clear` — remove the IDC.
-- The plugin places an iris activation lever at the `:IA` block position when the gate is built.
-
-### Common issue: clicking the iris lever activates the gate instead
-
-- Cause: older logic treated any adjacent block as the same control; an iris lever next to the dial lever could be misclassified.
-- Fix applied in this branch: the click handler now matches the exact lever block against the gate's stored `IrisLever` and `DialLever` positions, eliminating the misclassification.
-- If you still see unexpected behavior, check the server log for the gate's lever positions or use `/wormhole list` to inspect gate state.
 
 ## Material groups
 
@@ -298,68 +300,35 @@ were `Standard.shape` with different materials, which is exactly what a palette 
 Build `Standard.shape` in lapis for an Atlantis gate or polished blackstone for a Universe
 one.
 
-## What travels through a gate
+## DHD (dial-home device) — button and lever support
 
-| | How it travels |
-|---|---|
-| Players | Their own move event |
-| Minecarts, boats | `VehicleMoveEvent`, with passengers re-seated on arrival |
-| Ridden animals (horse, camel, pig, donkey, llama, strider) | The rider's move event; the animal goes first and the rider is re-seated |
-| Arrows, tridents, snowballs, ender pearls, potions, fireballs | Followed from launch, crossing the tick they reach a portal |
-| Mobs, animals, dropped items, XP orbs, armour stands | A periodic sweep of open gates |
-| Item frames, paintings | Never — they hang on a block and stay put |
+The DHD block that a player clicks to activate a gate can be any button type or a lever. All of the following are recognised:
 
-So yes — a zombie or skeleton that wanders into an open wormhole comes out the other
-side, as does a dropped item or a wandering cow. The sweep runs every
-`entity-scan-interval-ticks` (default 20, i.e. once a second) and only looks at gates that
-are currently open.
+- All wood buttons: `OAK_BUTTON`, `SPRUCE_BUTTON`, `BIRCH_BUTTON`, `JUNGLE_BUTTON`, `ACACIA_BUTTON`, `DARK_OAK_BUTTON`, `MANGROVE_BUTTON`, `CHERRY_BUTTON`, `BAMBOO_BUTTON`
+- Nether buttons: `CRIMSON_BUTTON`, `WARPED_BUTTON`
+- Stone buttons: `STONE_BUTTON`, `POLISHED_BLACKSTONE_BUTTON`
+- `LEVER`
 
-Because it polls rather than reacting to an event, a fast-moving entity can cross the
-portal between two sweeps and carry on through without travelling. Dropped items usually
-come to rest in the ring and get picked up on the next pass, but arrows and similar are
-hit-and-miss by nature. Lower the interval if you want it caught more reliably, at the cost
-of more frequent scanning.
+When a gate is activated via a button, the button is automatically replaced with a lever so the gate can be held open. Shutting down the gate restores a lever in its place.
 
-Projectiles are handled differently from everything else. An arrow cannot be moved through
-a gate: teleporting one leaves it flagged as having landed, so it arrives at the far end
-already stuck and drops out of the air. Instead the original is consumed at the source and
-an identical one is fired out of the destination gate — same speed, same shooter, and for
-arrows the same damage, crit, knockback, pierce and pickup rules, so a kill through a gate
-is still credited correctly. Splash potions keep their effect.
+## Iris (gate shield) setup and troubleshooting
 
-This covers every projectile: arrows, tridents, snowballs, eggs, ender pearls, potions and
-fireballs.
+An iris closes over the portal to block travel. When a remote gate's iris is active, players who walk into the portal are bounced back with the message "Remote Iris is locked!".
 
-Projectiles are not found by the periodic sweep at all. Portal blocks are air, so an arrow
-passes through the ring and keeps going. Each one is instead followed individually from the
-moment it is launched, and every tick the plugin checks the *path* it travelled since the
-last tick rather than where it currently is — a drawn bow moves an arrow about three blocks
-per tick and a portal is one block thick, so checking its position alone steps straight over
-the gate. Cost scales with how many projectiles are in flight, not with how many gates
-exist.
+### Setup
 
-If one does arrive already stopped, it is relaunched at a bow's speed rather than trickling
-out of the destination.
+- Build a gate from a shape that includes an `:IA` marker (most do; see `GateShapes/Standard.shape`).
+- Set an IDC (iris deactivation code) to allow callers to unlock the iris remotely:
+  - `/wormhole complete <GateName> idc=<code>` — set IDC while completing.
+  - `/wormhole idc <GateName> <code>` — set or change the IDC later.
+  - `/wormhole idc <GateName> -clear` — remove the IDC.
+- The plugin places an iris activation lever at the `:IA` block position when the gate is built.
 
-One consequence is worth knowing: an ender pearl thrown through a gate teleports its owner
-to wherever it lands — across the wormhole — which sidesteps the permission and cooldown
-checks a player walking through would face.
+### Common issue: clicking the iris lever activates the gate instead
 
-Anything riding something else travels with its carrier rather than separately, and
-anything that just came through is ignored for a moment so it is not bounced straight back.
-
-### A wormhole runs one way
-
-Dialling leaves the origin gate holding a target and the destination gate holding none,
-and every path that moves something through a gate keys off having a target. The
-destination end is therefore an exit, not an entrance: nothing travels back up an open
-wormhole, and a player who walks into the destination ring is pushed back out rather than
-sent anywhere.
-
-That means a gate dialled out of your base is not a door mobs can wander in through. Things
-standing in *your* gate are sent to the far end, never the reverse. Gates do not filter by
-mob type, so a creeper in your own gate room will happily be sent along with you — but
-nothing arrives from the other side on its own.
+- Cause: older logic treated any adjacent block as the same control; an iris lever next to the dial lever could be misclassified.
+- Fix applied in this branch: the click handler now matches the exact lever block against the gate's stored `IrisLever` and `DialLever` positions, eliminating the misclassification.
+- If you still see unexpected behavior, check the server log for the gate's lever positions or use `/wormhole list` to inspect gate state.
 
 ## Redstone activation
 
@@ -468,6 +437,85 @@ however often it is triggered.
 A trigger on a gate that is lit but never dialled still deactivates it, which is the only
 way to clear a gate somebody activated and walked away from.
 
+## What travels through a gate
+
+| | How it travels |
+|---|---|
+| Players | Their own move event |
+| Minecarts, boats | `VehicleMoveEvent`, with passengers re-seated on arrival |
+| Ridden animals (horse, camel, pig, donkey, llama, strider) | The rider's move event; the animal goes first and the rider is re-seated |
+| Arrows, tridents, snowballs, ender pearls, potions, fireballs | Followed from launch, crossing the tick they reach a portal |
+| Mobs, animals, dropped items, XP orbs, armour stands | A periodic sweep of open gates |
+| Item frames, paintings | Never — they hang on a block and stay put |
+
+So yes — a zombie or skeleton that wanders into an open wormhole comes out the other
+side, as does a dropped item or a wandering cow. The sweep runs every
+`entity-scan-interval-ticks` (default 20, i.e. once a second) and only looks at gates that
+are currently open.
+
+Because it polls rather than reacting to an event, a fast-moving entity can cross the
+portal between two sweeps and carry on through without travelling. Dropped items usually
+come to rest in the ring and get picked up on the next pass, but arrows and similar are
+hit-and-miss by nature. Lower the interval if you want it caught more reliably, at the cost
+of more frequent scanning.
+
+Projectiles are handled differently from everything else. An arrow cannot be moved through
+a gate: teleporting one leaves it flagged as having landed, so it arrives at the far end
+already stuck and drops out of the air. Instead the original is consumed at the source and
+an identical one is fired out of the destination gate — same speed, same shooter, and for
+arrows the same damage, crit, knockback, pierce and pickup rules, so a kill through a gate
+is still credited correctly. Splash potions keep their effect.
+
+This covers every projectile: arrows, tridents, snowballs, eggs, ender pearls, potions and
+fireballs.
+
+Projectiles are not found by the periodic sweep at all. Portal blocks are air, so an arrow
+passes through the ring and keeps going. Each one is instead followed individually from the
+moment it is launched, and every tick the plugin checks the *path* it travelled since the
+last tick rather than where it currently is — a drawn bow moves an arrow about three blocks
+per tick and a portal is one block thick, so checking its position alone steps straight over
+the gate. Cost scales with how many projectiles are in flight, not with how many gates
+exist.
+
+If one does arrive already stopped, it is relaunched at a bow's speed rather than trickling
+out of the destination.
+
+One consequence is worth knowing: an ender pearl thrown through a gate teleports its owner
+to wherever it lands — across the wormhole — which sidesteps the permission and cooldown
+checks a player walking through would face.
+
+Anything riding something else travels with its carrier rather than separately, and
+anything that just came through is ignored for a moment so it is not bounced straight back.
+
+### A wormhole runs one way
+
+Dialling leaves the origin gate holding a target and the destination gate holding none,
+and every path that moves something through a gate keys off having a target. The
+destination end is therefore an exit, not an entrance: nothing travels back up an open
+wormhole, and a player who walks into the destination ring is pushed back out rather than
+sent anywhere.
+
+That means a gate dialled out of your base is not a door mobs can wander in through. Things
+standing in *your* gate are sent to the far end, never the reverse. Gates do not filter by
+mob type, so a creeper in your own gate room will happily be sent along with you — but
+nothing arrives from the other side on its own.
+
+## Nether and End dimension support
+
+Gates work correctly in the Nether and End. In those dimensions Minecraft uses `CAVE_AIR` (Nether) and `VOID_AIR` (End) for empty space instead of the normal `AIR` used in the Overworld. All portal-detection and teleport-exit-position searches use `Material.isAir()`, which covers all three air types, so gates build and activate correctly regardless of which dimension they are placed in.
+
+## Storage
+
+Gates are stored as one YAML file each, under
+`plugins/WormholeXTreme/WormholeXTremeDB/gates/`. Back them up by copying the folder; edit
+them by hand if you need to.
+
+There is no database backend and nothing to configure. Earlier versions offered HSQLDB and
+SQLite; both are gone. A few thousand small records read once at startup and written one at
+a time gains nothing from a database engine, and the drivers were over 95% of the plugin's
+download size. If you are coming from an install that used one of them, migrate with a
+build from before their removal, or rebuild the gates.
+
 ## Events for other plugins
 
 Gate lifecycle is published as Bukkit events, so another plugin can react without this one
@@ -533,19 +581,6 @@ Refreshing a gate does **not** raise a removal. A refresh deregisters the gate a
 it again with freshly detected geometry, which is not the gate going away, so a listener is
 not told to discard what it knows about it.
 
-## Developer notes
-
-- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
-- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
-- Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
-- `StargateYamlManager` handles per-gate YAML read/write.
-- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
-
-## Troubleshooting
-
-- If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
-- Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
-
 ## Economy
 
 Economy integration is optional and requires **[Vault](https://www.spigotmc.org/resources/vault.34315/)** and an economy provider plugin (e.g. [EssentialsX](https://essentialsx.net/), CMI, iConomy, etc.) to be installed.
@@ -562,37 +597,19 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 - If the player cannot afford the build cost, the gate is still built but they are notified — no charge is taken.
 - Currency names are taken from the active economy plugin (singular/plural).
 
+## Troubleshooting
+
+- If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
+- Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
+
+## Developer notes
+
+- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
+- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
+- Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
+- `StargateYamlManager` handles per-gate YAML read/write.
+- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
+
 ## Contributing
 
 Submit PRs against the `main` branch. Keep changes modular and add unit/integration tests where possible.
-
-## Permissions
-
-The plugin uses permission nodes for feature access. Permissions are intended to be managed by a permissions plugin (Vault/LuckPerms recommended).
-
-- `wormhole.use.sign` — allow using sign-based dialers and sign interactions.
-- `wormhole.use.dialer` — allow using the dialer to initiate a gate dial.
-- `wormhole.use.compass` — allow using the compass command to point to gates.
-- `wormhole.remove.own` — allow removing gates you own.
-- `wormhole.remove.all` — allow removing any gate (admin-level).
-- `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
-- `wormhole.config` — allow changing plugin configuration via commands.
-- `wormhole.list` — allow listing gates via `/wormhole list`.
-- `wormhole.go` — allow teleporting to gates via command (`/wormhole go`).
-- `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
-- `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
-
-Notes:
-- Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
-- The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
-
-### Permission backend & auto-fallback
-
-The plugin prefers a Vault-compatible permissions provider (Vault + LuckPerms recommended). On first run the plugin will use the server's configured permission backend via the standard Bukkit `player.hasPermission(...)` API.
-
-- `permissions-support-disable` (boolean): If `true`, the plugin will not attempt to attach to any external permission provider even if one is available. Default: `false`.
-- `permissions-auto-fallback` (boolean): If `true` (default), and no Vault-compatible provider is detected at startup, the plugin will automatically enable a simple permission fallback mode so basic use actions continue to work; advanced actions remain restricted to operators or gate owners. Set this to `false` if you prefer to leave permission handling to server admins and not enable the fallback.
-
-Behavior note:
-- The `/wormhole go` command (teleport-to-gate) no longer grants access to all players by default. Use the `wormhole.go` permission node to grant command access to non-ops, or rely on operator/owner status. This ensures servers do not inadvertently expose teleport commands to all users when no permissions provider is present.
-

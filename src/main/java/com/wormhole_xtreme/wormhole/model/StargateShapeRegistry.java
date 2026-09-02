@@ -46,6 +46,66 @@ public final class StargateShapeRegistry
         return getStargateShapes().containsKey(name);
     }
 
+    /**
+     * Moves shapes up out of the old {@code 3d} and {@code 2d} subdirectories.
+     *
+     * <p>Shapes were once split into those two folders. They are read from one flat
+     * directory now, so anything still sitting in a subfolder is simply not seen — a server
+     * upgrading with custom shapes in {@code GateShapes/3d/} would find them silently gone,
+     * with no error to explain it and their gates undetectable.
+     *
+     * <p>Files are moved rather than copied, and a shape already present at the top level
+     * wins: that one is what has been loading, and overwriting it with an older copy from a
+     * subfolder would undo whatever the owner had changed. The emptied folders are left
+     * where they are, since removing directories is not this method's business.
+     *
+     * @param directory
+     *            the flat GateShapes directory
+     */
+    private static void liftShapesOutOfLegacySubdirectories(final File directory)
+    {
+        for (final String legacy : new String[] { "3d", "2d" })
+        {
+            final File subdirectory = new File(directory, legacy);
+            if (!subdirectory.isDirectory())
+            {
+                continue;
+            }
+            final File[] shapes = subdirectory.listFiles();
+            if (shapes == null)
+            {
+                continue;
+            }
+            for (final File shape : shapes)
+            {
+                if (!shape.isFile() || !shape.getName().endsWith(".shape"))
+                {
+                    continue;
+                }
+                final File moved = new File(directory, shape.getName());
+                if (moved.exists())
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                        "Ignoring " + legacy + File.separator + shape.getName()
+                        + ": a shape of that name is already in use.");
+                    continue;
+                }
+                if (shape.renameTo(moved))
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                        "Moved gate shape " + shape.getName() + " out of " + legacy
+                        + File.separator + "; shapes are read from one folder now.");
+                }
+                else
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                        "Could not move gate shape " + shape.getName() + " out of " + legacy
+                        + File.separator + "; it will not be loaded until it is moved by hand.");
+                }
+            }
+        }
+    }
+
     public static void loadShapes()
     {
         final File directory = new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes" + File.separator);
@@ -61,6 +121,8 @@ public final class StargateShapeRegistry
                 WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to make directory: " + e.getMessage());
             }
         }
+
+        liftShapesOutOfLegacySubdirectories(directory);
 
         final FilenameFilter filenameFilter = new FilenameFilter()
         {
@@ -83,7 +145,7 @@ public final class StargateShapeRegistry
             final File defaultShapeFile = new File(directory, shape);
             if (!defaultShapeFile.exists())
             {
-                try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/3d/" + shape))
+                try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/" + shape))
                 {
                     if (is == null)
                     {

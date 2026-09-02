@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  */
 public class RedstoneBlockPlacementTest
 {
-    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes/3d");
+    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
     @BeforeEach
     public void setUp() throws Exception
