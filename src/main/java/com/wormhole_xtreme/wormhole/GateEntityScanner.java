@@ -219,9 +219,15 @@ public final class GateEntityScanner implements Runnable
             final AbstractArrow b = (AbstractArrow) to;
             b.setDamage(a.getDamage());
             b.setCritical(a.isCritical());
-            b.setKnockbackStrength(a.getKnockbackStrength());
             b.setPierceLevel(a.getPierceLevel());
             b.setPickupStatus(a.getPickupStatus());
+            // Knockback and the crossbow flag are deprecated on 1.21: both are now derived
+            // from the weapon an arrow was fired from, which a respawned arrow does not
+            // have. They still work, and they are the only way to carry a Punch bow's
+            // knockback and a crossbow shot's identity across a gate. Dropping them would
+            // quietly weaken every arrow that made the trip, so they stay until there is a
+            // replacement that survives being re-fired.
+            b.setKnockbackStrength(a.getKnockbackStrength());
             b.setShotFromCrossbow(a.isShotFromCrossbow());
         }
     }

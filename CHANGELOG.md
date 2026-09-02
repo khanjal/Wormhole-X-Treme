@@ -1,6 +1,28 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented in this file.
+
+## Unreleased
+
+### Minecraft 1.21.1
+
+Compiled against `spigot-api 1.21.1` with `api-version: 1.21`. No source change was needed
+for the API itself; everything that follows is about the consequences.
+
+- **The server must run Java 21.** That is Minecraft's requirement from 1.20.5 onward, not
+  this plugin's — the jar is still Java 17 bytecode. A server on Java 17 cannot run 1.21 at
+  all.
+- **A 1.20 server will now refuse to load this build** rather than loading it and misbehaving.
+  Stay on `v1.1.0` for 1.20.4.
+- Arrow knockback and the shot-from-crossbow flag are deprecated on 1.21, because both are
+  now derived from the weapon an arrow was fired from. A projectile that crosses a gate is
+  consumed and re-fired, so it has no weapon to derive them from, and the deprecated setters
+  are the only way to carry them across. They are kept deliberately: dropping them would
+  quietly weaken every arrow that made the trip.
+- Materials named in `config.yml` and the shape files are text resolved at runtime, so the
+  compiler never sees them and a renamed or removed material would only surface on a live
+  server. A test now checks every shipped name against whatever API version the build targets,
+  which means raising that version is what runs the check.
 
 ## 1.1.0 (2026-09-01)
 

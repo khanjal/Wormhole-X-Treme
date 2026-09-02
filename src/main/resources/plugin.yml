@@ -1,7 +1,7 @@
 name: WormholeXTreme
 main: com.wormhole_xtreme.wormhole.WormholeXTreme
 version: ${project.version}
-api-version: "1.20"
+api-version: "1.21"
 authors: ["Lologarithm", "alron", "Khan Jal"]
 softdepend: [Permissions, Vault, LuckPerms, WormholeXTremeWorlds]
 
