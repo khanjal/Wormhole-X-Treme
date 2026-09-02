@@ -13,6 +13,27 @@
 	 </properties>
 	<url>http://www.wormhole-xtreme.com</url>
 	<build>
+		<resources>
+			<!-- plugin.yml carries the version Bukkit reports, and it used to hardcode it,
+			     so the pom said 1.1.0 while the server said 1.0.0. Filtering makes the pom
+			     the only place a version is written. Only plugin.yml is filtered: shape
+			     files and config.yml are copied untouched so nothing there can be mistaken
+			     for a property to substitute. -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>plugin.yml</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>plugin.yml</exclude>
+				</excludes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
