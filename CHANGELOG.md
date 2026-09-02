@@ -2,6 +2,124 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.0 (2026-09-02)
+
+### Transport rings
+
+An invisible, permanently paired pad set into a floor or ceiling. Walk into one and it counts
+down, deploys a stack of rings around you, and swaps everything at both ends in the same
+instant. Gates stay the long-haul option; rings are local transport, and both ends fire
+together, so two people standing on the two pads trade places.
+
+Point to point rather than dialable. A ring with no partner can do nothing, so the pair is
+the stored object and there are no dangling references, no second resolution pass on load and
+no orphans. That also settles naming: nothing addresses a single ring at runtime, so pairs
+get a generated id and an optional label rather than a player-chosen name.
+
+Rings never cross worlds, by design rather than by config, and pairs are stored one file per
+world -- the layout enforces the rule, because there is nowhere to write a pair that spans
+two.
+
+### Building a pair
+
+Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do it again
+somewhere else and the two are paired. Only then are both circles consumed and both surfaces
+returned to what they were: an unpaired ring does nothing, so leaving its slabs costs
+nothing, and a crash or restart between the two halves no longer costs somebody a circle of
+slabs for a ring that never existed.
+
+The template says more than its shape. The slab you build with becomes the ring's material,
+and the slab halves say which surface it is set into -- a bottom slab rests on a floor, a top
+slab hangs from a ceiling. Both are facts the template states rather than guesses about its
+surroundings.
+
+Two shapes. The odd one **is the Standard gate's ring** -- the same `3,5,7,7,7,5,3` profile,
+lying flat instead of standing up -- and the even one is a size down for tighter rooms. Both
+turn each corner through two diagonal steps, which is what reads as round rather than as a
+square with its corners clipped.
+
+`/wormhole ring remove` lays both circles back out in the slab each was built from, so a pair
+can be picked up and moved without re-mining anything.
+
+### Nothing is written to the world
+
+Rings and their lights are drawn to nearby clients, the way a gate draws its portal. Building
+them for real had three faults: a server stopped mid-cycle kept them for good, block loggers
+recorded a floor being replaced on every trip, and for the seconds a ring stood there its
+glowstone was an ordinary breakable block -- mine one and the restore skipped it, leaving a
+hole in the floor. Drawing also made the code simpler rather than harder: with the real
+blocks untouched, undoing a drawing is just showing the client what was always there.
+
+The pad opens rather than lights. The surface the pattern is cut into is drawn as air and the
+light shows from a block below it, so a waking ring reads as a lit recess the rings climb out
+of instead of a pattern painted on the ground.
+
+### Firing
+
+The swap reads both ends before writing either. Reading A, moving them, then reading B would
+find A's arrivals standing in B and send them straight back. This is the ordering everything
+else depends on, and a test fails if it is ever inverted.
+
+Abort is confined to the countdown. Once the rings start rising the cycle runs to the end,
+which keeps the reversible phase trivially reversible and the phase with all the moving parts
+uninterruptible.
+
+Everything inside the ring travels; only players are subject to access rules. A rider and
+their mount arrive together -- the mount is delivered and its passengers re-seated a tick
+later, rather than teleporting both and letting the server separate them.
+
+Deployment comes in two styles, concurrent and sequential, set per end. A ceiling ring drops
+its rings to the floor and stacks up from there, because a stack hanging from the ceiling of
+a tall room would leave the traveller standing under it rather than in it.
+
+### Refusing to fire
+
+A ring will not engage if the far end is unsafe: anything at all placed inside the teleport
+area, or a single block missing from the ground under it. Both are refusals rather than
+best-effort trips, since the alternative is depositing somebody inside a wall or over a void.
+
+Because the ring itself is invisible, a refusal also flashes the pattern. Being told an end
+is blocked while standing on ground that looks like any other is no help when the thing to
+fix is inside a footprint you cannot see.
+
+Reach is limited in two directions, because ground distance and height are different
+questions. A ceiling ring needs a room between four and ten blocks tall -- near enough for
+its rings to reach the floor, far enough for the stack to form.
+
+### Access, permissions and events
+
+Access belongs to the pair; materials and style belong to each end. Both ends fire together,
+so there is no authorising half of a swap -- a pair whose ends disagreed would be one you
+could leave by and not return to. Materials and timing are the opposite case: nobody watches
+both ends at once, so a base can look and deploy differently from its outpost.
+
+Access fails closed everywhere. A stored pair with a missing or unreadable access field loads
+private. Publishing somebody's private link on upgrade is the one mistake here that cannot be
+taken back once people have used it.
+
+Four permission nodes of their own rather than more cases in `WXPermissions`, which is built
+around gates and would have needed cases ignoring most of their own arguments. Building
+defaults to operators; using a ring somebody built defaults to everyone.
+
+`RingTravelEvent` fires once per travelling player, cancellable, after both ends are read and
+before either is written -- so a listener always sees the whole trip as it was rather than a
+half-finished one. Cancelling drops that passenger and leaves the rest of the trip alone.
+
+### Fixes found on the way
+
+Block positions are packed into a `long`, and `y` lived in the low twelve bits where a plain
+mask loses its sign: `y = -64` came back as `4032`. The world starts at -64, so rings in
+deepslate, caves or on the nether floor would have restored their blocks thousands of blocks
+away -- leaving slabs standing in the floor for good and writing stray air into the sky, with
+nothing thrown. Unpacking now sign-extends, and is tested at every height the world has.
+
+`Ring` asked whether a material was a block while building its list of glowing materials, in
+a static initialiser. From 1.20.6 on that question goes through the server's registry, which
+is not there while the plugin is loading -- and a class whose initialisation fails stays
+failed, so a single early call would have left rings dead for the rest of that server's run.
+The check was redundant anyway. Tab completion asks the same thing for real, and now probes
+once and offers everything rather than nothing when there is no registry to ask.
+
 ## 1.2.0 (2026-09-02)
 
 ### Minecraft 1.20 through 1.21.10
