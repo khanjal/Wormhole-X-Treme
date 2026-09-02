@@ -53,7 +53,10 @@ jobs:
           # Reading the matrix means the title follows whatever CI proves, and adding a
           # version there is enough to keep it right. The matrix is kept in ascending order
           # for exactly this reason.
-          VERSIONS=$(sed -n 's/^ *- minecraft: "\(.*\)"/\1/p' .github/workflows/ci.yml)
+          # [^"]* rather than .*, and a trailing .* to consume the rest of the line: the
+          # greedy form left anything after the closing quote in place, so an inline comment
+          # on a matrix entry would end up inside the version.
+          VERSIONS=$(sed -n 's/^ *- minecraft: "\([^"]*\)".*/\1/p' .github/workflows/ci.yml)
           MIN=$(echo "$VERSIONS" | head -1)
           MAX=$(echo "$VERSIONS" | tail -1)
           if [ -z "$MIN" ] || [ -z "$MAX" ]; then
