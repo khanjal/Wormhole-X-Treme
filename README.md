@@ -75,7 +75,7 @@ match up.
 |---|---|---|
 | `pom.xml` `spigot.api.version` | `1.20.4-R0.1-SNAPSHOT` | The API this jar is **compiled** against. `R0.1` is Bukkit's API revision within that Minecraft version. |
 | `plugin.yml` `api-version` | `1.20` | The **oldest** server that will load this plugin. Major-minor only; a patch version is not valid here. |
-| The table above | `1.20.4` – `1.21.1` | The Minecraft versions actually built and tested against. |
+| The table above | `1.20` – `1.21.10` | The Minecraft versions actually built and tested against. |
 
 The plugin is compiled against the **oldest** server it supports, not the newest. That is
 deliberate and it is the wrong way round from most instincts: a plugin built against an old

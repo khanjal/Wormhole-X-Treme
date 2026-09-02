@@ -169,15 +169,6 @@
 	</dependencies>
 	<profiles>
 		<!--
-			Builds without GateDismountListener, which is the one class that deliberately
-			cannot compile below 1.20.4: it names the EntityDismountEvent package that only
-			exists from 1.20.4 on. Everything else has to compile against an older server, and
-			this profile is how that is checked rather than assumed.
-
-			On such a server the listener simply never loads and the legacy one is registered
-			instead, which is why leaving it out here proves the thing that matters.
-		-->
-		<!--
 			The mirror of legacy-api, for servers at the other end. org.spigotmc's
 			EntityDismountEvent was removed in 1.20.6, so LegacyGateDismountListener cannot
 			compile there and is left out.
@@ -204,6 +195,15 @@
 			</build>
 		</profile>
 
+		<!--
+			Builds without GateDismountListener, which is the one class that deliberately
+			cannot compile below 1.20.4: it names the EntityDismountEvent package that only
+			exists from 1.20.4 on. Everything else has to compile against an older server, and
+			this profile is how that is checked rather than assumed.
+
+			On such a server the listener simply never loads and the legacy one is registered
+			instead, which is why leaving it out here proves the thing that matters.
+		-->
 		<profile>
 			<id>legacy-api</id>
 			<build>
