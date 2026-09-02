@@ -2,7 +2,7 @@
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
-Runs on Minecraft 1.20.4 through 1.21.1. Built as Java 17 bytecode.
+Runs on Minecraft 1.20.4 through 1.21.10. Built as Java 17 bytecode.
 
 ## Contents
 
@@ -20,17 +20,30 @@ Runs on Minecraft 1.20.4 through 1.21.1. Built as Java 17 bytecode.
 
 ### Which Minecraft versions this runs on
 
-| Minecraft | Built and tested against | Notes |
+**Minecraft 1.20.4 through 1.21.10.** Both ends are measured rather than assumed — every
+published `spigot-api` version was built and tested against to find them.
+
+| | Version | Why it is the boundary |
+|---|---|---|
+| **Floor** | 1.20.4 | `EntityDismountEvent` moved from `org.spigotmc.event.entity` to `org.bukkit.event.entity` here. 1.20.3 and older fail on that import alone. |
+| **Ceiling** | 1.21.10 | The newest published `spigot-api`. Nothing in the plugin stops it going further. |
+
+CI builds and tests against the floor, the ceiling, and the versions in between where
+something actually changed:
+
+| Minecraft | In CI | Note |
 |---|---|---|
 | 1.20.4 | yes | **Compile target** — the oldest supported |
 | 1.20.6 | yes | |
-| 1.21 | yes | Server needs Java 21 from 1.20.5 onward |
-| 1.21.1 | yes | Newest supported |
+| 1.21.1 | yes | |
+| 1.21.4 | yes | Boats split into one entity type per wood here |
+| 1.21.10 | yes | Newest published API |
 
-Every version in that table is compiled and tested against in CI, on every pull request. A
-version is not listed until it is in that matrix, so the table is a report rather than a
-claim. **None of them has been runtime-verified on a live server** — CI proves the plugin
-compiles and its tests pass against each API, not that a gate behaves correctly in game.
+Versions between those points are expected to work and are not separately built; the matrix
+covers the boundaries where the API actually moved.
+
+**None of this has been runtime-verified on a live server.** CI proves the plugin compiles and
+its tests pass against each API — not that a gate behaves correctly in game.
 
 | Runtime Server | Base/API lineage | Support tier |
 |---|---|---|
@@ -67,10 +80,15 @@ requirement, not this plugin's — the jar is Java 17 bytecode and runs on eithe
 
 ### Adding support for a new Minecraft version
 
-1. Add it to the `server-api` matrix in `.github/workflows/ci.yml`.
-2. If it builds and tests clean, add the row to the table above.
+1. Build against it locally: `mvn verify -Dspigot.api.version=<version>-R0.1-SNAPSHOT`.
+2. If it passes, add it to the `server-api` matrix in `.github/workflows/ci.yml` and update
+   the table above.
 3. Leave `spigot.api.version` and `api-version` alone unless you are dropping old versions,
    which is the only thing that should raise the floor.
+
+If a new version fails, the compiler names what was removed. That is worth reading before
+assuming the version is unsupportable — both boundaries found so far were a single symbol,
+and one of them was fixable in a line.
 
 Java support policy:
 - The plugin is built as Java 17 bytecode; CI compiles and tests it on Java 17, 21 and 25.

@@ -4,10 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## 1.2.0 (unreleased)
 
-### Minecraft 1.20.4 through 1.21.1
+### Minecraft 1.20.4 through 1.21.10
 
-Runs on 1.20.4, 1.20.6, 1.21 and 1.21.1. Every one of those is compiled and tested against
-in CI on each pull request, and a version is not claimed until it is in that matrix.
+The range is measured, not assumed: every published `spigot-api` version was built and tested
+against to find both ends. The floor is 1.20.4, where `EntityDismountEvent` moved package; the
+ceiling is simply the newest API published. CI builds and tests the floor, the ceiling, and
+the versions between them where the API actually changed.
+
+Two things had to give to reach that range, and both were single symbols. A boat that failed
+to teleport was respawned as `EntityType.BOAT`, which stopped existing in 1.21.3 when boats
+split per wood type; it now respawns as whatever the original boat was, which also stops a
+birch boat coming back oak. A test named the same constant and now looks it up by name.
 
 The jar is compiled against the **oldest** supported server rather than the newest. A plugin
 built against an old API runs on newer servers; one built against a new API can call

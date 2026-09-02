@@ -19,7 +19,6 @@ import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
-import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -528,7 +527,11 @@ class WormholeXTremeVehicleListener implements Listener
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to teleport occupied boat, falling back to respawn: " + t.getMessage());
             try
             {
-                final org.bukkit.entity.Entity ent = safeTarget.getWorld().spawnEntity(safeTarget, EntityType.BOAT);
+                // The boat's own type, not a hardcoded EntityType.BOAT. Two reasons: a
+                // birch boat should come back a birch boat rather than an oak one, and
+                // EntityType.BOAT stopped existing in 1.21.3 when boats were split per wood
+                // type. Asking the boat what it is works on either side of that change.
+                final org.bukkit.entity.Entity ent = safeTarget.getWorld().spawnEntity(safeTarget, veh.getType());
                 final Vehicle newveh = (Vehicle) ent;
                 final UUID nid = newveh.getUniqueId();
                 markVehicleRecentlyTeleported(nid);
