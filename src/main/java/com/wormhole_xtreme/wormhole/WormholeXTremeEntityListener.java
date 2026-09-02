@@ -8,7 +8,6 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.Listener;
@@ -107,33 +106,4 @@ class WormholeXTremeEntityListener implements Listener
         }
     }
 
-    @EventHandler
-    public void onEntityDismount(final EntityDismountEvent event)
-    {
-        if (event == null || event.isCancelled())
-        {
-            return;
-        }
-        try
-        {
-            final org.bukkit.entity.Entity who = event.getEntity();
-            final org.bukkit.entity.Entity dismounted = event.getDismounted();
-            if (who instanceof Player)
-            {
-                final Player p = (Player) who;
-                final Location loc = p.getLocation();
-                final Block b = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-                final Stargate s = StargateManager.getGateFromBlock(b);
-                if (s != null && s.isGateActive() && StargateManager.isPortalBlock(b))
-                {
-                    try
-                    {
-                        event.setCancelled(true);
-                    }
-                    catch (final Throwable ignore) {}
-                }
-            }
-        }
-        catch (final Throwable ignore) {}
-    }
 }
