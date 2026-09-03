@@ -2,7 +2,9 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.logging.Level;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -477,6 +479,16 @@ class StargateBlockSetup
     private static final double VISUAL_RADIUS = 64.0;
 
     /**
+     * Which gates each player is currently being shown a portal for.
+     *
+     * <p>A portal is a drawing in the client's copy of the chunk, and the server has no way
+     * to ask what a client is currently showing. Remembering what was sent is the only way to
+     * know what needs taking back.
+     */
+    private static final java.util.Map<java.util.UUID, Set<String>> DRAWN =
+        new java.util.concurrent.ConcurrentHashMap<java.util.UUID, Set<String>>();
+
+    /**
      * Sends a client-side-only appearance for every portal block of {@code gate}.
      * <p>
      * The recipient list is resolved once per call rather than once per block: a
@@ -520,6 +532,19 @@ class StargateBlockSetup
                 p.sendBlockChange(at, blockData);
             }
         }
+        // Note who is now showing this, so it can be taken back from them later even if they
+        // have wandered out of range by then. AIR is the close, which is the taking back.
+        for (final Player p : recipients)
+        {
+            if (material == Material.AIR)
+            {
+                drawnFor(p).remove(gate.getGateName());
+            }
+            else
+            {
+                drawnFor(p).add(gate.getGateName());
+            }
+        }
     }
 
     /**
@@ -549,6 +574,8 @@ class StargateBlockSetup
             return;
         }
         final Location playerAt = player.getLocation();
+        final Set<String> stillOpen = new HashSet<String>();
+
         for (final Stargate gate : StargateManager.getOpenGates())
         {
             if (!shouldRedrawFor(gate, playerAt))
@@ -562,7 +589,95 @@ class StargateBlockSetup
                     new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
                     blockData);
             }
+            stillOpen.add(gate.getGateName());
         }
+
+        // Anything this player was shown that is not open to them any more has to be taken
+        // back. The close-time send only reaches whoever was within range at that moment, and
+        // a client keeps a drawing until something hands it a fresh copy of the chunk --
+        // which walking one chunk away and back does not do, because the chunk never left.
+        // Without this the portal stays on their screen with nothing behind it: water in a
+        // gate that is off.
+        final Set<String> showing = drawnFor(player);
+        for (final String name : showing)
+        {
+            if (!stillOpen.contains(name))
+            {
+                undrawFor(player, StargateManager.getStargate(name));
+            }
+        }
+        showing.clear();
+        showing.addAll(stillOpen);
+    }
+
+    /**
+     * Shows one player the real blocks behind a portal they are still being shown.
+     *
+     * <p>Read from the world rather than assumed to be air: a gate that closed onto a default
+     * iris has real blocks in those positions, and calling them air would swap one wrong
+     * picture for another.
+     *
+     * @param player
+     *            the player to correct
+     * @param gate
+     *            the gate to take back, or null if it has been removed since
+     */
+    private static void undrawFor(final Player player, final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateWorld() == null)
+            || !gate.getGateWorld().equals(player.getWorld()))
+        {
+            return;
+        }
+        for (final Location bc : gate.getGatePortalBlocks())
+        {
+            final Block real = gate.getGateWorld()
+                .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            player.sendBlockChange(real.getLocation(), real.getBlockData());
+        }
+    }
+
+    /**
+     * Which gates a player is currently being shown a portal for.
+     *
+     * <p>Remembered rather than worked out, so correcting a stale drawing costs only what was
+     * actually drawn for them. The alternative is walking every gate in the world on each
+     * chunk boundary somebody crosses, and most gates are nowhere near anybody.
+     *
+     * @param player
+     *            the player
+     * @return their live set of gate names, created empty if this is the first time
+     */
+    private static Set<String> drawnFor(final Player player)
+    {
+        final java.util.UUID uuid = player.getUniqueId();
+        if (uuid == null)
+        {
+            // No identity to file it under, so there is nothing to remember between calls.
+            // A throwaway set keeps every caller free of null checks.
+            return new HashSet<String>();
+        }
+        Set<String> showing = DRAWN.get(uuid);
+        if (showing == null)
+        {
+            showing = new HashSet<String>();
+            DRAWN.put(uuid, showing);
+        }
+        return showing;
+    }
+
+    /**
+     * Forgets what a player was being shown.
+     *
+     * <p>Called when they leave, because the map is keyed by uuid and would otherwise hold an
+     * entry for everyone who has ever walked past a gate.
+     *
+     * @param uuid
+     *            the player who has gone
+     */
+    public static void forgetDrawn(final java.util.UUID uuid)
+    {
+        DRAWN.remove(uuid);
     }
 
     /**

@@ -497,14 +497,28 @@ public class StargateManager
     }
 
     /**
-     * Redraws every open gate's portal for one player.
+     * Forgets which portals a player was being shown.
+     *
+     * @param uuid
+     *            the player who has gone
+     */
+    public static void forgetPortalVisuals(final java.util.UUID uuid)
+    {
+        StargateBlockSetup.forgetDrawn(uuid);
+    }
+
+    /**
+     * Redraws every open gate's portal for one player, and takes back any they are still
+     * being shown for a gate that has since closed.
      *
      * <p>The portal exists only in each nearby client's copy of the chunk, so it has to be
      * redrawn for anyone who arrives after the gate opened or whose client has reloaded the
-     * chunk since. See {@link StargateBlockSetup#refreshPortalVisuals(Player)}.
+     * chunk since — and un-drawn for anyone who kept a copy through a close they were not
+     * near enough to be told about. See
+     * {@link StargateBlockSetup#refreshPortalVisuals(Player)}.
      *
      * @param player
-     *            the player to redraw for
+     *            the player to correct
      */
     public static void refreshPortalVisuals(final Player player)
     {

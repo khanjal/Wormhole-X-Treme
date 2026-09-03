@@ -1311,6 +1311,10 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerQuit(final PlayerQuitEvent event)
     {
         portalFlightGranted.remove(event.getPlayer().getUniqueId());
+        // A client that has gone takes its drawings with it, and the next one to log in on
+        // that account gets fresh chunks anyway.
+        com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(
+            event.getPlayer().getUniqueId());
     }
 
     /**

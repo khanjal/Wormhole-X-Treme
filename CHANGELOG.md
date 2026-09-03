@@ -246,6 +246,20 @@ that drives the lights, so the sound cannot drift out of step with what it is de
 
 Configured the same way as ring sounds, by name, with `gate-sounds-enabled` over all of it.
 
+### Fixes
+
+A closed gate could keep showing its portal. The portal is a drawing in each nearby client's
+copy of the chunk, and closing one only tells whoever is within range at that moment. A player
+who was elsewhere kept the picture -- and a client only discards a drawing when something
+hands it a fresh copy of the chunk, which walking a short distance away and back does not do,
+because the chunk never left. The result was water standing in a gate that was off.
+
+The refresh that runs on chunk boundaries now takes portals back as well as drawing them. What
+each player has been shown is remembered, so correcting a stale drawing costs only what was
+actually drawn for them rather than a walk over every gate in the world. The real block is
+read from the world rather than assumed to be air, so a gate that closed onto its default iris
+is not swapped for one wrong picture instead of another.
+
 ### Material groups
 
 Shapes describe geometry; `config.yml` describes palettes, selected by the material a gate
