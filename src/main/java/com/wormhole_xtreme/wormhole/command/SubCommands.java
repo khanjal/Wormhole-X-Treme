@@ -194,6 +194,11 @@ public final class SubCommands
             new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false,
             SubCommands::completeRing);
 
+        // --- Beaming ------------------------------------------------------------
+        register("beam", aliases(), "/wormhole beam <name>|list|admin <set|remove>|place <name>|list|set|remove>",
+            new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
+            SubCommands::completeBeam);
+
         // --- Server settings -------------------------------------------------
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
@@ -451,6 +456,54 @@ public final class SubCommands
         final String previous = args[args.length - 2];
         final String typed = args[args.length - 1];
         return isRingField(previous) ? ringFieldValues(previous, typed) : prefixed(typed, RING_FIELDS);
+    }
+
+    /**
+     * Completions for {@code /wormhole beam}.
+     *
+     * @param args
+     *            the full argument array, {@code beam} at index 0
+     * @return the candidates
+     */
+    private static List<String> completeBeam(final String[] args)
+    {
+        if (args.length == 2)
+        {
+            final List<String> out = new ArrayList<String>(prefixed(args[1], "list", "admin", "place"));
+            out.addAll(publicBeamNames(args[1]));
+            return out;
+        }
+        final String noun = args[1].toLowerCase();
+        if ("admin".equals(noun))
+        {
+            if (args.length == 3) return prefixed(args[2], "set", "remove");
+            if (args.length == 4 && "remove".equals(args[2].toLowerCase())) return publicBeamNames(args[3]);
+            return none();
+        }
+        if ("place".equals(noun))
+        {
+            // A place name is not completed even for "remove": a tab completer is not handed
+            // the CommandSender, only the argument array, so there is no "the player asking"
+            // to look place names up for.
+            if (args.length == 3) return prefixed(args[2], "list", "set", "remove");
+            return none();
+        }
+        return none();
+    }
+
+    private static List<String> publicBeamNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination destination
+            : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getAllPublicDestinations())
+        {
+            if (destination.getName().toLowerCase().startsWith(p))
+            {
+                out.add(destination.getName());
+            }
+        }
+        return out;
     }
 
     /**

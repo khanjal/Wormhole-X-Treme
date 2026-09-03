@@ -256,6 +256,15 @@ public class WormholeXTreme extends JavaPlugin
                     prettyLog(Level.WARNING, false, "Failed to save transport rings: " + e.getMessage());
                 }
 
+                try
+                {
+                    com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
+                }
+                catch (final Exception e)
+                {
+                    prettyLog(Level.WARNING, false, "Failed to save beam destinations: " + e.getMessage());
+                }
+
                 StargateDBManager.shutdown();
                 try
                 {
@@ -345,6 +354,17 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, false, "Failed to load transport rings: " + e.getMessage());
+        }
+        // A beam subsystem that cannot load must not stop gates or rings from working.
+        try
+        {
+            final int destinations = com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.loadAll();
+            prettyLog(Level.INFO, true, "Loaded " + destinations + " beam destination"
+                + (destinations == 1 ? "" : "s") + ".");
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, false, "Failed to load beam destinations: " + e.getMessage());
         }
         registerEvents(false);
         registerCommands();

@@ -65,6 +65,15 @@ permissions:
   wormhole.ring.unlimited:
     description: Allow owning more ring pairs than the configured quota.
     default: op
+  wormhole.beam.use:
+    description: Allow beaming to a public destination or one of your own places.
+    default: true
+  wormhole.beam.place:
+    description: Allow creating and managing your own private beam places.
+    default: true
+  wormhole.beam.admin:
+    description: Allow managing public beam destinations, and anyone's places.
+    default: op
   wormhole.list:
     description: Allow listing gates via command.
     default: false
