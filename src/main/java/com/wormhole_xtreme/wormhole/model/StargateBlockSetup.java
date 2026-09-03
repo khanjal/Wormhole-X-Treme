@@ -18,6 +18,7 @@ import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -526,7 +527,7 @@ class StargateBlockSetup
         }
         // Built only once nobody-is-watching has been ruled out: createBlockData()
         // needs a live server, and the woosh animation calls this every frame.
-        final BlockData blockData = material.createBlockData();
+        final BlockData blockData = MaterialUtils.drawnAs(material);
         for (final Location bc : portalBlocks)
         {
             final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
@@ -722,7 +723,7 @@ class StargateBlockSetup
         }
         // Built only once nobody-is-watching has been ruled out: createBlockData() needs a
         // live server, and the woosh calls this every frame.
-        final BlockData blockData = material.createBlockData();
+        final BlockData blockData = MaterialUtils.drawnAs(material);
         for (final Location bc : blocks)
         {
             final Location at = new Location(gate.getGateWorld(),
@@ -803,7 +804,7 @@ class StargateBlockSetup
             {
                 continue;
             }
-            final BlockData blockData = gate.getEffectivePortalMaterial().createBlockData();
+            final BlockData blockData = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
             for (final Location bc : gate.getGatePortalBlocks())
             {
                 player.sendBlockChange(
@@ -814,7 +815,7 @@ class StargateBlockSetup
             // dialled would otherwise find a lit wormhole in an unlit frame.
             if (gate.isGateLightsActive())
             {
-                sendLights(player, gate, gate.getEffectiveLightMaterial().createBlockData());
+                sendLights(player, gate, MaterialUtils.drawnAs(gate.getEffectiveLightMaterial()));
             }
             stillOpen.add(gate.getGateName());
         }

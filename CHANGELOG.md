@@ -193,6 +193,16 @@ opposite: both were wrong against the show, and both were arithmetic that could 
 backwards. What is left is the ring's own number, and needs no orientation, direction or sweep
 to be asked about.
 
+The light suggestions are lights rather than things that glow. Tab completion offered jack
+o'lanterns, magma, crying obsidian, beacons and sculk catalysts -- blocks that emit light but
+that nobody picks when they are trying to build a lamp -- and amethyst, which emits none at
+all as a block. What is left is glowstone, sea lanterns, shroomlight, redstone lamps,
+froglights and copper bulbs. Suggestions only: any block can still be set.
+
+Redstone lamps and copper bulbs are now drawn switched on. Both default to off, so choosing
+one used to light a ring with dark lamps. Anything the game calls lightable is switched on
+wherever this plugin draws a block, so gate chevrons get it too.
+
 ### Access, permissions and events
 
 Access belongs to the pair; materials and style belong to each end. Both ends fire together,

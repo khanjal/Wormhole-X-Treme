@@ -137,7 +137,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     @Override
     public void showBlock(final int x, final int y, final int z, final Material material)
     {
-        send(x, y, z, material.createBlockData());
+        send(x, y, z, com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(material));
     }
 
     /* (non-Javadoc)
@@ -147,7 +147,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     public void showSlab(final int x, final int y, final int z, final Material material,
         final boolean top)
     {
-        final BlockData data = material.createBlockData();
+        final BlockData data = com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(material);
         if (data instanceof Slab)
         {
             ((Slab) data).setType(top ? Slab.Type.TOP : Slab.Type.BOTTOM);

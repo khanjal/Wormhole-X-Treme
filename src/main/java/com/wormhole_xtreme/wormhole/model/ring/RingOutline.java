@@ -69,7 +69,8 @@ public final class RingOutline
         blocks.addAll(RingAnimator.lightBlocks(ring));
         try
         {
-            final org.bukkit.block.data.BlockData lit = ring.getLightMaterial().createBlockData();
+            final org.bukkit.block.data.BlockData lit =
+                com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(ring.getLightMaterial());
             final org.bukkit.block.data.BlockData open =
                 RingAnimator.OPENED_MATERIAL.createBlockData();
             final int opened = RingAnimator.openedBlocks(ring).size();

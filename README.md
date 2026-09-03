@@ -868,7 +868,7 @@ edits that end; naming a pair by id edits both.
 | Field | Scope | Values |
 |---|---|---|
 | `ring` | per end | Any slab, read from the game's own `minecraft:slabs` tag. |
-| `light` | per end | The pad, lit while the ring works. Completion offers blocks that look lit. |
+| `light` | per end | The pad, lit while the ring works. Completion suggests blocks that read as lights. |
 | `flash` | per end | The transport light running through the stack. Same list. |
 | `name` | per end | Free text. Refused with an id — stand in the ring you mean. |
 | `access` | per pair | `public` or `private` |
@@ -883,6 +883,17 @@ The rings go back to **the slab that end was actually laid in**, not to a config
 Build in quartz, try a colour you do not like, reset, and you get your quartz back. The
 lights and the deploy style have no such history — nobody builds those, they are chosen — so
 those do take the server defaults.
+
+Tab completion on `light` and `flash` suggests glowstone, sea lanterns, shroomlight, redstone
+lamps, froglights and copper bulbs — things that read as a *light fixture*. That is a
+different bar from "emits light", which would let in jack o'lanterns, magma, crying obsidian
+and beacons: blocks that glow but that nobody picks when they are trying to build a lamp.
+Suggestions only, though — set any block you like, and the completion list is just there to
+save typing.
+
+Redstone lamps and copper bulbs are drawn **switched on**. Both are lights that default to
+off, so drawing one straight would have shown a dark lamp in a ring that was supposed to be
+lit.
 
 `style` decides how many rings are climbing at once, not how fast they move — `deploy-ticks`
 is the speed knob. `fast` sends several up together; `slow` sends one at a time.

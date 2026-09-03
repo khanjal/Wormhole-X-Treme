@@ -409,14 +409,24 @@ public class Ring
     }
 
     /**
-     * Solid blocks that read as glowing, for the countdown pattern.
+     * Blocks that read as a light, for the countdown pattern.
+     *
+     * <p>Suggestions, not a rule: any block can be set with {@code ring edit light}, and this
+     * list is only what tab completion offers. It is short on purpose, because a list of
+     * everything is no help when you are trying to pick something that will look like a lit
+     * ring.
+     *
+     * <p>The bar is "reads as a light fixture", not "emits light". Those are different
+     * questions, and the second one lets in blocks nobody would choose here: a jack o'lantern
+     * is a decoration, magma and crying obsidian are terrain, a beacon is a machine. Amethyst
+     * was on this list without emitting any light at all -- the cluster does, the block does
+     * not.
      *
      * <p>Named rather than referenced, so a version that has never heard of copper bulbs
      * simply skips them instead of failing to load.
      */
     private static final String[] GLOWING = {
-        "GLOWSTONE", "SEA_LANTERN", "SHROOMLIGHT", "JACK_O_LANTERN", "REDSTONE_LAMP",
-        "MAGMA_BLOCK", "CRYING_OBSIDIAN", "BEACON", "SCULK_CATALYST", "AMETHYST_BLOCK",
+        "GLOWSTONE", "SEA_LANTERN", "SHROOMLIGHT", "REDSTONE_LAMP",
         "OCHRE_FROGLIGHT", "VERDANT_FROGLIGHT", "PEARLESCENT_FROGLIGHT",
         "COPPER_BULB", "EXPOSED_COPPER_BULB", "WEATHERED_COPPER_BULB", "OXIDIZED_COPPER_BULB",
         "WAXED_COPPER_BULB", "WAXED_EXPOSED_COPPER_BULB", "WAXED_WEATHERED_COPPER_BULB",

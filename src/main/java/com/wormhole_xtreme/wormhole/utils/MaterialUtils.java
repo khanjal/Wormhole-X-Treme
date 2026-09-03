@@ -21,6 +21,31 @@ public final class MaterialUtils {
      * already follows. LEGACY_* constants are pre-1.13 compatibility entries and are not
      * real placeable blocks, so they are excluded.
      */
+    /**
+     * Block data for showing a material to a client, switched on if it can be.
+     *
+     * <p>A redstone lamp and a copper bulb are lights that are <em>off</em> by default. Drawing
+     * one straight from {@code createBlockData()} shows a dark lamp, which is a strange thing
+     * for a ring pad or a chevron to light up as. Anything the game calls
+     * {@link org.bukkit.block.data.Lightable} is switched on here, which covers those two and
+     * whatever else arrives with the same idea.
+     *
+     * <p>Everything else passes through untouched -- a slab, a portal material and a barrier
+     * have no state to set, so this is safe to use at every drawing site rather than only the
+     * ones known to need it.
+     *
+     * @param material
+     *            the material being drawn
+     * @return its block data, lit where that means something
+     */
+    public static org.bukkit.block.data.BlockData drawnAs(final Material material) {
+        final org.bukkit.block.data.BlockData data = material.createBlockData();
+        if (data instanceof org.bukkit.block.data.Lightable) {
+            ((org.bukkit.block.data.Lightable) data).setLit(true);
+        }
+        return data;
+    }
+
     public static boolean isButton(final Material m) {
         if (m == null) return false;
         final String name = m.name();
