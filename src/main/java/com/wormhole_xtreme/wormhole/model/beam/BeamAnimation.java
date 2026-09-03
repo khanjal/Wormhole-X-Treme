@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.beam;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -56,6 +57,40 @@ public final class BeamAnimation
 
     private static final int COLUMN_HEIGHT = 3;
 
+    /** How far the charging orb grows before it collapses -- most of the charge, so the
+     * collapse into beam-up reads as quick by comparison. */
+    private static final int ORB_GROW_TICKS = (CHARGE_TICKS * 7) / 10;
+
+    private static final double ORB_MAX_RADIUS = 0.5;
+
+    /** Roughly chest height above where a player is standing. */
+    private static final double ORB_HEIGHT = 1.2;
+
+    /**
+     * The dust particle, resolved by name rather than referenced as a compile-time constant.
+     *
+     * <p>Confirmed against the actual API jars rather than assumed: it is {@code REDSTONE} at
+     * this project's 1.20.4 floor and {@code DUST} from 1.20.6 onward through 1.21.10, the top
+     * of the supported range -- there is no single name that both compiles at the floor and
+     * resolves at the ceiling. {@link Particle} is a plain enum, not a registry-backed type
+     * that fails to initialise before the server has started (unlike {@code Sound}, or
+     * {@code Attribute} in the locator-bar investigation), so a string lookup here is safe at
+     * class-load time rather than something that has to be deferred.
+     */
+    private static final Particle DUST_PARTICLE = resolveDustParticle();
+
+    private static Particle resolveDustParticle()
+    {
+        try
+        {
+            return Particle.valueOf("DUST");
+        }
+        catch (final IllegalArgumentException newNameNotHere)
+        {
+            return Particle.valueOf("REDSTONE");
+        }
+    }
+
     private BeamAnimation() {}
 
     /**
@@ -84,6 +119,49 @@ public final class BeamAnimation
         final double y = (rising ? progress : (1.0 - progress)) * COLUMN_HEIGHT;
         final Location point = base.clone().add(0.0, y, 0.0);
         world.spawnParticle(Particle.END_ROD, point, 6, 0.3, 0.05, 0.3, 0.01);
+    }
+
+    /**
+     * The charging orb: grows for most of the charge phase, then collapses quickly, timed to
+     * finish right as beam-up takes over.
+     *
+     * @param center where the player is standing
+     * @param step how far into the charge phase this tick is
+     */
+    private static void spawnOrbParticle(final Location center, final int step)
+    {
+        final World world = center.getWorld();
+        if (world == null)
+        {
+            return;
+        }
+        final double radius = step < ORB_GROW_TICKS
+            ? ORB_MAX_RADIUS * ((double) step / (double) ORB_GROW_TICKS)
+            : ORB_MAX_RADIUS * (1.0 - ((double) (step - ORB_GROW_TICKS) / (double) (CHARGE_TICKS - ORB_GROW_TICKS)));
+        final Location point = center.clone().add(0.0, ORB_HEIGHT, 0.0);
+        world.spawnParticle(DUST_PARTICLE, point, 10, radius, radius, radius, 0.0,
+            new Particle.DustOptions(orbColor(), 1.2f));
+    }
+
+    /**
+     * Reads {@code beam.orb-color} as a hex triplet. White on anything that will not parse --
+     * decoration, not worth failing a beam over, the same tolerance {@link BeamSounds} gives
+     * an unknown sound name.
+     *
+     * @return the configured colour, or white
+     */
+    private static Color orbColor()
+    {
+        final String hex = ConfigManager.getBeamOrbColor();
+        try
+        {
+            final String cleaned = hex.startsWith("#") ? hex.substring(1) : hex;
+            return cleaned.length() == 6 ? Color.fromRGB(Integer.parseInt(cleaned, 16)) : Color.WHITE;
+        }
+        catch (final RuntimeException e)
+        {
+            return Color.WHITE;
+        }
     }
 
     /** One running sequence. A fresh instance per beam; nothing about it is shared or reused. */
@@ -123,6 +201,11 @@ public final class BeamAnimation
                 BeamSounds.playCharge(origin);
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                     + "Beaming to " + destinationName + "...");
+            }
+
+            if (tick < CHARGE_TICKS)
+            {
+                spawnOrbParticle(origin, tick);
             }
 
             if (tick == CHARGE_TICKS)

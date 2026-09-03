@@ -63,7 +63,8 @@ class DefaultSettings
         new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Only unambiguous palettes are added: if two shapes share a frame material but disagree on their other materials, neither is added. Set false to curate the list by hand.", "WormholeXTreme"),
         new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin (e.g. EssentialsX). When false all economy features are disabled regardless of cost settings.", "WormholeXTreme"),
         new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. Set to 0.0 to disable use cost.", "WormholeXTreme"),
-        new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme")
+        new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_ORB_COLOR, "FFFFFF", "The colour of the orb that gathers as a beam charges up, as a hex triplet (e.g. FFFFFF for white, the show's colour). An unparseable value falls back to white.", "WormholeXTreme")
     };
 
 }
