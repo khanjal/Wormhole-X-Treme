@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 ## 1.3.0 (2026-09-02)
 
+### Importing from other Wormhole X-Tremes
+
+`/wormhole gate import` reads the SQLite database every build descended from the 2011 original
+uses, and converts the gates into this fork's own storage. It covers the original itself,
+lycano's line, and forks built on either -- anything writing
+`WormholeXTremeDB/WormholeXTreme.sqlite`.
+
+It needed almost no new code. Those databases hold each gate as a binary blob rather than as
+columns, and this fork inherited the reader for that format -- `GateSerializer` still
+understands binary versions 3 through 9, the whole history of it. The import gets the rows out
+and hands each blob to a parser that was already there and already tested.
+
+Nothing is written back to the old database and nothing is deleted, names that already exist
+are skipped rather than replaced, and a gate whose world is not loaded is reported rather than
+guessed at. Servers that have such a database and no gates of their own are told once, on
+startup, that the option exists.
+
+The SQLite driver is deliberately not shipped: thirteen megabytes of native libraries for a
+one-time import most servers will never run. It costs nothing to leave out, because any server
+that wrote one of these databases necessarily has the driver already -- the plugin that wrote
+it needed the same one.
+
 ### Commands restructured
 
 Twenty-two subcommands became four. Gates had fifteen top-level names while the rings had one

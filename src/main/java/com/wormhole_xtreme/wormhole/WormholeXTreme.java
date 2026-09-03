@@ -360,6 +360,8 @@ public class WormholeXTreme extends JavaPlugin
                     com.wormhole_xtreme.wormhole.model.GateSounds.tickAmbient();
                 }
             }, 20L, ConfigManager.getGateSoundAmbientTicks());
+        // Said after gates have loaded, so it can tell an empty server from a full one.
+        com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");
     }
 

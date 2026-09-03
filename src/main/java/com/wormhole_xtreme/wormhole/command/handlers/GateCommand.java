@@ -31,7 +31,8 @@ public class GateCommand implements SubCommand
 {
     /** The verbs, in the order they are offered. */
     private static final List<String> VERBS = Arrays.asList(
-        "build", "complete", "list", "remove", "edit", "regenerate", "refresh", "go", "force");
+        "build", "complete", "list", "remove", "edit", "regenerate", "refresh", "go", "force",
+        "import");
 
     /**
      * The verbs, for tab completion and help.
@@ -69,6 +70,10 @@ public class GateCommand implements SubCommand
             System.arraycopy(rest, 0, forHandler, 1, rest.length);
             return new RegenerateCommand().execute(sender, forHandler);
         }
+        if ("import".equals(verb))
+        {
+            return importLegacy(sender);
+        }
         if ("build".equals(verb))
         {
             return new Build().onCommand(sender, null, verb, rest);
@@ -100,6 +105,35 @@ public class GateCommand implements SubCommand
 
         sender.sendMessage("No such gate command: " + args[1] + ". Try one of: "
             + String.join(", ", VERBS) + ".");
+        return true;
+    }
+
+    /**
+     * Brings gates in from an older Wormhole X-Treme's database.
+     *
+     * <p>Reports what came across and what did not, per gate. A gate can be skipped for
+     * reasons that are nobody's fault -- a world that is not loaded, a name already taken --
+     * and saying which is more use than a count on its own.
+     *
+     * @param sender
+     *            who asked
+     * @return true, the command was handled
+     */
+    private static boolean importLegacy(final CommandSender sender)
+    {
+        final com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.Result result =
+            com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.importGates();
+        if (result.getProblem() != null)
+        {
+            sender.sendMessage(result.getProblem());
+            return true;
+        }
+        sender.sendMessage("Imported " + result.getImported() + " gate"
+            + (result.getImported() == 1 ? "" : "s") + ". The old database is untouched.");
+        for (final String skipped : result.getSkipped())
+        {
+            sender.sendMessage("  skipped " + skipped);
+        }
         return true;
     }
 }

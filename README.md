@@ -204,7 +204,7 @@ thing that is neither.
 
 **Gates** — `gate build <shape>`, `gate complete <name> [idc=IDC] [net=NET]`,
 `gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate>`,
-`gate refresh`, `gate go <gate>`, `gate force <gate>`
+`gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`
 
 `gate edit <gate> <field> [value]` covers everything you set on a gate:
 
@@ -240,6 +240,25 @@ a lodestone-bound compass points at its lodestone, a recovery compass at where y
 `gate edit group` changes what the gate *draws* — its portal, lights and iris. It leaves the
 frame blocks alone, because those are real blocks somebody built and rewriting them is not
 what changing a gate's group should quietly mean.
+
+### Coming from another Wormhole X-Treme
+
+Every build descended from the 2011 original kept its gates in `WormholeXTremeDB/
+WormholeXTreme.sqlite`, one binary blob per gate. This fork uses a file per gate instead, so
+swapping the jar leaves you looking at a server full of gates the plugin cannot see.
+
+**`/wormhole gate import`** brings them across. It reads that database, converts every gate,
+and reports what came and what did not — a gate is skipped rather than guessed at if its world
+is not loaded or its name is already taken.
+
+Nothing is written back to the old database and nothing is deleted, so a failed import costs
+nothing and running it twice does not duplicate anything. If gates are found on startup and
+you have none of your own, the log says so once.
+
+One requirement: your server needs a SQLite driver. It is not shipped here — thirteen
+megabytes of native libraries for a one-time import would be a poor trade for every server
+that never runs it — but any server that *wrote* one of these databases already has one,
+because the plugin that wrote it needed the same driver.
 
 `gate regenerate` also recomputes the arrival point. The exit is worked out once when a gate
 is built and then stored, so a gate that landed travellers at its side kept doing it; this is
