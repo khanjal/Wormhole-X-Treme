@@ -229,12 +229,13 @@ thing that is neither.
 setting, not just the four that used to have commands of their own, and takes effect
 immediately — there is nothing to reload and no restart.
 
-**Other** — `compass` points your compass at the nearest gate.
+**Other** — `compass` points your compass at the nearest gate, and `compass reset` puts it
+back to world spawn, which is what an ordinary compass does on its own.
 
-You do not need to be holding a compass for `compass` to work — the heading is stored against
-you either way, and will be there when you pick one up. It says so if you have none, and it
-says so if the compass you are holding is bound to a lodestone, since those point at their
-lodestone and ignore the heading entirely.
+You do not need to be holding a compass for either to work — the heading is stored against you
+and will be there when you pick one up. It tells you when nothing you are carrying will show
+it, which covers having no compass at all and having only the kinds that ignore the heading:
+a lodestone-bound compass points at its lodestone, a recovery compass at where you died.
 
 `gate edit group` changes what the gate *draws* — its portal, lights and iris. It leaves the
 frame blocks alone, because those are real blocks somebody built and rewriting them is not

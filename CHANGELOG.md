@@ -43,11 +43,19 @@ is built and then stored, so a gate that landed travellers at its side went on d
 nothing to reach for. It cannot fix a gate whose facing is wrong, since the facing is what it
 trusts.
 
+`compass reset` puts the compass back to pointing at world spawn -- what an ordinary one does
+when nothing has changed it. The heading is stored against the player and stays until
+something moves it, so there was previously no way back.
+
 `compass` explains itself when nothing will show the result. Setting a compass heading does
 not need a compass and does not fail without one, so the command used to report success and
 then appear to do nothing -- either because the player had no compass at all, or because the
 one in their hand was bound to a lodestone and points there regardless. Neither is an error,
 so it explains rather than refuses: the heading is set and waiting for a plain compass.
+
+Asked the way round that stays true, too. Rather than listing the compasses that ignore the
+heading, it asks whether the player has an ordinary one -- so recovery compasses, and whatever
+Minecraft adds later, are covered without anybody having to remember to add them.
 
 ### Documentation split by audience
 

@@ -158,7 +158,8 @@ public final class SubCommands
 
         // --- Travel ---------------------------------------------------------
         register("go", aliases(), "/wormhole go <gate>", new Go(), true, GATE_NAMES);
-        register("compass", aliases(), "/wormhole compass", new Compass(), true, null);
+        register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
+            args -> args.length == 2 ? prefixed(args[1], "reset") : none());
         register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
 
         // --- Per-gate settings ----------------------------------------------
