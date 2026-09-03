@@ -1,0 +1,101 @@
+name: Bug report
+description: Something is not working the way it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The three version numbers below are the ones that matter most. This plugin runs on
+        eleven Minecraft versions, and bugs have turned out to affect exactly one of them
+        more than once — so knowing which server you are on is usually the fastest route to
+        the cause.
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: From `/version WormholeXTreme`, or the jar's filename.
+      placeholder: "1.3.0"
+    validations:
+      required: true
+
+  - type: input
+    id: server
+    attributes:
+      label: Server software and version
+      description: >
+        Flavour and Minecraft version together. Paper, Spigot, CraftBukkit and Purpur all
+        behave slightly differently, and the exact Minecraft version matters — 1.20.4 and
+        1.20.6 are not interchangeable here.
+      placeholder: "Paper 1.21.4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: What is affected
+      options:
+        - Gates
+        - Transport rings
+        - Both
+        - Commands or config
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      description: >
+        Step by step, from a fresh gate or ring if you can. If it only happens sometimes, say
+        so and describe when — an intermittent bug is still worth reporting, and "only after
+        I have been away from the gate" is often the clue.
+      placeholder: |
+        1. Build a Standard gate
+        2. Dial it
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Server log
+      description: >
+        Any errors around the time it happened. Paste the stack trace if there is one — and
+        the lines just before it, which usually say what was being attempted.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: other-plugins
+    attributes:
+      label: Other plugins
+      description: >
+        Anything that touches blocks, movement, teleports, protection or logging is worth
+        naming. Gate portals and ring animations are drawn to clients rather than built, so
+        plugins that inspect or intercept block changes can interact with them in surprising
+        ways.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am on the latest release, or I have said above which version I am on and why
+          required: true
+        - label: I searched the existing issues
+          required: true
