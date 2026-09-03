@@ -404,18 +404,6 @@ public class BukkitRingWorld implements RingCycle.Surroundings
             }, 1L);
     }
 
-    /**
-     * Where travellers land at a ring.
-     *
-     * <p>The centre of the ring, standing on its floor. For a floor ring that is the ring
-     * plane itself, which is where somebody standing in it already is. For a ceiling ring
-     * the plane is above their heads, so the arrival is the bottom of the volume — the floor
-     * the rings hang over — rather than the ring itself.
-     *
-     * @param ring
-     *            the ring being arrived at
-     * @return where to put a traveller
-     */
     /* (non-Javadoc)
      * @see RingCycle.Surroundings#survey(Ring)
      */

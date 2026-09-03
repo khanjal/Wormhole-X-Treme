@@ -163,7 +163,7 @@ public enum RingPattern
      * <p>Offsets come out relative to the anchor at {@code (size - 1) / 2} on both axes.
      * For the odd pattern that is the true centre and the offsets are symmetric,
      * {@code -3..+3}. The even pattern has no centre block, so the anchor is the low-x,
-     * low-z block of the central 2x2 and the offsets run {@code -3..+4}. That asymmetry is
+     * low-z block of the central 2x2 and the offsets run {@code -2..+3}. That asymmetry is
      * deliberate: an even ring has to be anchored to a real block somewhere, and picking a
      * corner of the middle four is the only choice that stays an integer.
      *

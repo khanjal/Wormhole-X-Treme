@@ -876,7 +876,8 @@ originals. So overlap of footprint *or* interior is refused outright at create, 
 same as a 20-block one. The actual failure is the far end sitting in an unloaded chunk when
 the cycle fires — the animation writes blocks nobody will see put back and the arrival lands
 in ungenerated terrain. So the partner's chunks are force-loaded for the duration of the
-transit (`Chunk.addPluginChunkTicket`, released on retract). Same-world pairing keeps this to
+transit (`Chunk#addPluginChunkTicket(plugin)`, matched by `Chunk#removePluginChunkTicket(plugin)`
+on retract, so nothing outlives the cycle that requested it). Same-world pairing keeps this to
 one case: there is no such thing as a pair whose far end is in a world that is not loaded.
 
 **The reach limit is a design choice, not a technical one**, and it is two numbers because

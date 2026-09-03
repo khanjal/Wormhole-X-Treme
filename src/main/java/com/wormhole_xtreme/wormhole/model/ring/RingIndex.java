@@ -257,7 +257,7 @@ public final class RingIndex
      * How deep to index one ring's trigger volume.
      *
      * <p>A floor ring holds its passengers just above itself. A ceiling ring's stand on the
-     * floor, which can bemost of a room below the plane, so it has to be indexed all the
+     * floor, which can be most of a room below the plane, so it has to be indexed all the
      * way down to the furthest floor it could ever reach — otherwise somebody standing in
      * exactly the right place would never set it off.
      *
