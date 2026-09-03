@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   One run of a ring pair, from arming to cooldown.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;

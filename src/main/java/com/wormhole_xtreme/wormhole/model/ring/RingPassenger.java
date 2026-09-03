@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Something standing in a ring when it fires.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 /**

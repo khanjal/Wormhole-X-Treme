@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   The two shapes a transport ring can be.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;

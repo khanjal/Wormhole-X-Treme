@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Fired before a player is carried by a pair of transport rings.
- */
 package com.wormhole_xtreme.wormhole.events;
 
 import org.bukkit.entity.Player;

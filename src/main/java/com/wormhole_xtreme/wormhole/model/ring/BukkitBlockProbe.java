@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Reading a real world for the template detector.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import org.bukkit.Material;

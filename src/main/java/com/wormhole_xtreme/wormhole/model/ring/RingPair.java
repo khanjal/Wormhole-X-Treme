@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Two rings and the link between them: the unit that is stored and fired.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.Collections;

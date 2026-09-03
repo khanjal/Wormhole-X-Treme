@@ -1,10 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Small material helper facade to centralize "isX" predicates and
- *   provide a single place to handle modern-material checks and legacy
- *   fallbacks.
- */
 package com.wormhole_xtreme.wormhole.utils;
 
 import org.bukkit.Material;

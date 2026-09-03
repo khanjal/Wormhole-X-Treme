@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   The registry of ring pairs, and the rules about where one may be built.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;

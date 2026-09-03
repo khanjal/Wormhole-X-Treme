@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Why a ring cannot take anybody.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 /**

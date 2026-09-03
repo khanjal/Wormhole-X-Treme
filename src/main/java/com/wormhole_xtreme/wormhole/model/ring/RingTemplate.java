@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Recognising a ring that a player has laid out in slabs.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import org.bukkit.Material;

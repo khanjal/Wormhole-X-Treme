@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   A real entity, seen as a ring passenger.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import org.bukkit.entity.Entity;

@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Reading and writing ring pairs, one file per world.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.io.BufferedWriter;

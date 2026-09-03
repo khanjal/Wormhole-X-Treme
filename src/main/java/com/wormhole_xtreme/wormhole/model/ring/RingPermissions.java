@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Permission nodes for transport rings.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import org.bukkit.entity.Player;

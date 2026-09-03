@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Where every travelling ring is on every frame.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;

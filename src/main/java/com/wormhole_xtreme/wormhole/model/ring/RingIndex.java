@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Block-to-ring lookup for the player move path.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.Map;

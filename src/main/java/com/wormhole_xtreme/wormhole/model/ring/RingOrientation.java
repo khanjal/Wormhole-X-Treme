@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Whether a ring is set into a floor or a ceiling.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 /**

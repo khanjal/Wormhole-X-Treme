@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Where a ring pair is in its cycle.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 /**

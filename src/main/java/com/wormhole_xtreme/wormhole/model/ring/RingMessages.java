@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   What a transport ring tells the people standing in it.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.List;

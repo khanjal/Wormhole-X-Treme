@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   The two ways a ring stack can deploy.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 /**

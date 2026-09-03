@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Who may use a ring pair.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 /**

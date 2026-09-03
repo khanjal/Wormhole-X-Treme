@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Showing one player where a ring actually is.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.List;

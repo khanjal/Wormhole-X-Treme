@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Everything a player does to a transport ring that is not walking into one.
- */
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.UUID;

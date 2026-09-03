@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Driving a ring cycle through its phases on the server clock.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.Set;

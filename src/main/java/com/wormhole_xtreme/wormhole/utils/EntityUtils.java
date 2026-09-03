@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Entity helpers shared by gates and rings.
- */
 package com.wormhole_xtreme.wormhole.utils;
 
 import java.util.List;

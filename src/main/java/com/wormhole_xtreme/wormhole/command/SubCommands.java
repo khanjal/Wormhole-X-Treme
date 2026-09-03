@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   The single registry of /wormhole subcommands.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;

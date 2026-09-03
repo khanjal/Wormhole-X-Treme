@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   One end of a transport ring pair.
- */
 package com.wormhole_xtreme.wormhole.model.ring;
 
 import java.util.ArrayList;
