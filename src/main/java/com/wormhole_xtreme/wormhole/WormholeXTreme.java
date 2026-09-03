@@ -38,6 +38,9 @@ public class WormholeXTreme extends JavaPlugin
     /** The server listener. */
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
 
+    private static final com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener beamFreezeListener =
+        new com.wormhole_xtreme.wormhole.model.beam.BeamFreezeListener();
+
     /** Follows projectiles in flight so they cross a gate at the moment they reach it. */
     private static final ProjectileGateTracker projectileTracker = new ProjectileGateTracker();
 
@@ -112,6 +115,7 @@ public class WormholeXTreme extends JavaPlugin
             pm.registerEvents(vehicleListener, tp);
             pm.registerEvents(entityListener, tp);
             pm.registerEvents(projectileTracker, tp);
+            pm.registerEvents(beamFreezeListener, tp);
             registerDismountListener(pm, tp);
         }
     }

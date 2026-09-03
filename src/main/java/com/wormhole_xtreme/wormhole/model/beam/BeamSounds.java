@@ -5,7 +5,8 @@ import org.bukkit.Location;
 import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
- * The two sounds beaming makes: one where a traveller leaves, one where they arrive.
+ * The three sounds beaming makes: a power-up as the sequence begins, a departure where the
+ * traveller leaves, and an arrival where they land.
  *
  * <p>Hardcoded for now rather than run through {@code ConfigManager}'s settings machinery --
  * that is real plumbing of its own (a config key, a default, an entry in
@@ -23,6 +24,23 @@ public final class BeamSounds
     private static final float PITCH = 1.0f;
 
     private BeamSounds() {}
+
+    /**
+     * Played where the traveller is standing, at the moment the sequence begins -- a
+     * power-up rather than a whoosh, since this now runs ahead of a charge-and-glow phase
+     * rather than firing instantly. {@code block.respawn_anchor.charge} is vanilla's own
+     * "something is building up" sound, so nothing had to be invented for it.
+     *
+     * @param origin where the sequence started
+     */
+    public static void playCharge(final Location origin)
+    {
+        if (origin == null)
+        {
+            return;
+        }
+        Sounds.play(origin.getWorld(), origin, "block.respawn_anchor.charge", VOLUME, PITCH);
+    }
 
     /**
      * Played where the traveller was standing, before they leave -- audible to them and to

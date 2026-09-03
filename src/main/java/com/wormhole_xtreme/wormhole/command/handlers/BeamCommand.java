@@ -6,18 +6,19 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
+import com.wormhole_xtreme.wormhole.model.beam.BeamFreeze;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
-import com.wormhole_xtreme.wormhole.model.beam.BeamSounds;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 
 /**
  * Handler for {@code /wormhole beam}.
  *
- * <p>Groundwork only: a plain {@link Player#teleport(Location)} with no animation, no
- * cooldown and no claim-awareness. Those are follow-up work once the core mechanic — public,
- * admin-curated destinations and private, per-player places — is proven out.
+ * <p>Travel runs the charge/beam-up/teleport/beam-down sequence in {@link BeamAnimation}
+ * rather than a plain {@link Player#teleport(Location)} — still no cooldown and no
+ * claim-awareness, which remain follow-up work once the core mechanic is proven out.
  *
  * <p>Travel goes through one verb, {@code to}, regardless of whether the name resolves to a
  * public destination or one of the player's own places. Earlier this took a bare name
@@ -255,6 +256,12 @@ public class BeamCommand implements SubCommand
 
     private boolean teleport(final Player player, final BeamDestination destination)
     {
+        if (BeamFreeze.isFrozen(player))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                + "You're already beaming somewhere.");
+            return true;
+        }
         final Location location = destination.toLocation();
         if (location == null)
         {
@@ -262,13 +269,7 @@ public class BeamCommand implements SubCommand
                 + "That destination's world is not currently loaded.");
             return true;
         }
-        // Depart before the teleport call so the traveller is still standing at the origin to
-        // hear it, same as anyone nearby watching them go. Arrive after, for the same reason
-        // at the other end.
-        BeamSounds.playDepart(player.getLocation());
-        player.teleport(location);
-        BeamSounds.playArrive(location);
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Beamed to " + destination.getName() + ".");
+        BeamAnimation.start(player, location, destination.getName());
         return true;
     }
 }
