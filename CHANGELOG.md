@@ -18,6 +18,11 @@ rather than inventing a second admin-only node that would mean the same thing. T
 this release's other work; `gate import`, written fresh this session, inherited the same gap
 and is fixed alongside the rest.
 
+`gate edit group` had the same gap for a different reason: unlike every other `gate edit`
+field, it does not delegate to one of the legacy handlers above, so it inherited no check by
+riding along with one. The guard is now on `GateEditCommand` itself rather than repeated in
+every field, which also covers whatever field is added to it next.
+
 ### Importing from other Wormhole X-Tremes
 
 `/wormhole gate import` reads the SQLite database every build descended from the 2011 original

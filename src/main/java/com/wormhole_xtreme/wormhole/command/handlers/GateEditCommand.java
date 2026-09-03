@@ -7,9 +7,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXIDC;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
+import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * One command for every per-gate setting.
@@ -166,6 +170,17 @@ public class GateEditCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
+        // Checked here rather than only in the legacy handlers each field delegates to.
+        // Most fields inherit a check that way already, but "group" does not delegate to
+        // anything -- it is its own logic below -- so it had none at all until this. One
+        // guard on the front door covers every field today and covers whatever field is
+        // added next without relying on its author to remember this.
+        if ((sender instanceof Player)
+            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return true;
+        }
         // args: gate edit <gate> <field> [value]
         if (args.length < 4)
         {
