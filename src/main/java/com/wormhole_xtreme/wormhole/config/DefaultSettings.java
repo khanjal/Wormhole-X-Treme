@@ -47,6 +47,8 @@ class DefaultSettings
         new Setting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close", "Played once per chevron as it locks, pitch climbing through the sequence so the gate sounds like it is working towards something.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "block.end_portal.spawn", "Played once as the wormhole establishes and the woosh rolls out.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", "WormholeXTreme"),
+        new Setting(ConfigKeys.GATE_SOUND_AMBIENT, "block.conduit.ambient", "The hum an open wormhole makes while it stands there. Set to none for silence.", "WormholeXTreme"),
+        new Setting(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 80, "How often the ambient hum repeats, in ticks. Four seconds by default, which is about the length of the default sound: much shorter and it layers on itself.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_SOUNDS_ENABLED, true, "Whether rings make any noise. Everything below is ignored when this is false.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_SOUND_VOLUME, 1.0, "How loud ring sounds are. Bukkit scales audible range with volume, so this is a distance knob too: 1.0 is heard about sixteen blocks away.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_SOUND_OPEN, "block.beacon.activate", "Played at both ends as the pad opens and the countdown starts. Set to none for silence. Any sound name the client knows works, including one from a resource pack.", "WormholeXTreme"),

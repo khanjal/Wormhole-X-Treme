@@ -119,6 +119,8 @@ public class ConfigManager
         GATE_SOUND_CHEVRON,
         GATE_SOUND_KAWOOSH,
         GATE_SOUND_CLOSE,
+        GATE_SOUND_AMBIENT,
+        GATE_SOUND_AMBIENT_TICKS,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -814,6 +816,30 @@ public class ConfigManager
     public static String getGateSoundClose()
     {
         return soundSetting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate");
+    }
+
+    /**
+     * The sound an open wormhole makes while it stands there.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundAmbient()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "block.conduit.ambient");
+    }
+
+    /**
+     * How often the ambient sound repeats.
+     *
+     * <p>Floored at one tick rather than trusted, because a zero or negative period is not a
+     * faster hum -- it is a repeating task with no delay in it.
+     *
+     * @return the period in ticks
+     */
+    public static long getGateSoundAmbientTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_AMBIENT_TICKS);
+        return (s == null) ? 80L : Math.max(1L, s.getIntValue());
     }
 
     /**

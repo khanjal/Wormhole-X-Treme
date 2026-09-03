@@ -15,6 +15,8 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Transport rings** — [Overview](#transport-rings) · [Building a ring pair](#building-a-ring-pair) · [Using rings](#using-rings) · [Ring settings](#ring-settings) · [Ring permissions](#ring-permissions)
 
+**Sound** — [Gate and ring sounds](#sounds)
+
 **Data and integration** — [Storage](#storage) · [Events for other plugins](#events-for-other-plugins) · [Economy](#economy)
 
 **Reference** — [Troubleshooting](#troubleshooting) · [Developer notes](#developer-notes) · [Contributing](#contributing)
@@ -700,29 +702,68 @@ glowstone out of their own floor while it is lit. The trade is the same one gate
 effect only exists for players in range, and relogging or walking far away and back clears
 it. A "light" material therefore looks lit but does not actually illuminate anything.
 
-### Gate sounds
+### Sounds
 
-Gates were silent until 1.3.0. Everything a gate does is already staged over time — chevrons
-light one at a time on `light-ticks`, the woosh rolls out over `woosh-ticks` — so the
-animation was there and only the noise was missing.
+Both gates and rings make noise, and both are configured the same way. Everything below is
+optional: `gate-sounds-enabled: false` or `ring-sounds-enabled: false` turns off a whole
+subsystem, and any single sound set to `none` goes quiet on its own.
 
-| Setting | Default | What it does |
+**Sounds are named, not chosen from a list.** Anything the client already knows works, which
+means a resource pack's own sounds can be named here with no code involved. A name the client
+does not recognise is simply silent — the same thing the client does with one — so a typo
+costs you that sound and nothing else.
+
+Volume doubles as range: Bukkit ties the two together, so `1.0` carries about sixteen blocks
+and `1.5` about twenty-four. Turning a volume down makes a sound more local, not just quieter.
+
+#### Gates
+
+| Setting | Default | When it plays |
 |---|---|---|
-| `gate-sounds-enabled` | `true` | Whether gates make any noise. Everything below is ignored when off. |
-| `gate-sound-volume` | 1.5 | Also the audible range — 1.5 carries about twenty-four blocks, which suits something people walk towards. |
-| `gate-sound-activate` | `block.conduit.activate` | As a gate begins to dial. |
+| `gate-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `gate-sound-volume` | 1.5 | Louder than rings on purpose — a gate is a landmark you walk towards. |
+| `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
 | `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
 | `gate-sound-kawoosh` | `block.end_portal.spawn` | Once, as the wormhole establishes. |
+| `gate-sound-ambient` | `block.conduit.ambient` | On repeat, while the wormhole stands open. |
+| `gate-sound-ambient-ticks` | 80 | How often the hum repeats. Four seconds, about the length of the default sound. |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
 
-The chevron pitch is spread across however many lighting steps the *shape* has, not across an
-assumed seven — so a three-chevron gate starts and ends on the same notes as a seven-chevron
-one, just in bigger steps.
+The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
+seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in
+bigger steps.
 
-As with rings, sounds are named rather than picked from a list: anything the client knows
-works, including a sound from your own resource pack, and `none` silences one.
+The hum plays at 40% of `gate-sound-volume`, because an open wormhole is a background rather
+than an event, and that keeps it something you hear near the gate rather than across a base.
+If you shorten `gate-sound-ambient-ticks` below the length of the sound you have chosen, it
+will layer on itself — which is a way to make a gate sound busier, if that is what you want.
 
-### Ring settings
+#### Rings
+
+| Setting | Default | When it plays |
+|---|---|---|
+| `ring-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `ring-sound-volume` | 1.0 | About sixteen blocks. |
+| `ring-sound-open` | `block.beacon.activate` | At both ends, as the pad opens. |
+| `ring-sound-ring` | `block.piston.extend` | Once per ring, pitch climbing as the stack builds. |
+| `ring-sound-flash` | `block.beacon.power_select` | At both ends, at the moment of transport. |
+| `ring-sound-close` | `block.beacon.deactivate` | At both ends, as the pad closes. |
+| `ring-sound-refused` | `block.note_block.bass` | To a turned-away player alone, not to the room. |
+
+The pitch on `ring-sound-ring` is what makes a deploy sound like a machine rather than four
+identical clicks: each ring leaves a step higher than the one before, and the retract replays
+the same notes in reverse, so it falls on the way home without being told to.
+
+#### Sounds worth trying
+
+| Instead of | Try | For |
+|---|---|---|
+| `gate-sound-kawoosh` | `entity.generic.explode` | A blunter, heavier open. |
+| `gate-sound-chevron` | `block.piston.contract` | A heavier clunk, if the trapdoor reads as a trapdoor. |
+| `gate-sound-ambient` | `block.beacon.ambient` | A drier hum, less watery. |
+| `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |
+
+### Ring settings### Ring settings
 
 All under `rings:` in `config.yml`.
 
@@ -748,21 +789,8 @@ All under `rings:` in `config.yml`.
 | `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template, and not what `reset` uses. |
 | `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `outline-ticks` | 40 | How long that outline stays up. |
-| `sounds-enabled` | `true` | Whether rings make any noise. Everything below is ignored when off. |
-| `sound-volume` | 1.0 | Bukkit scales audible range with volume, so this is a distance knob too — 1.0 carries about sixteen blocks. |
-| `sound-open` | `block.beacon.activate` | Played at both ends as the pad opens. |
-| `sound-ring` | `block.piston.extend` | Once per ring, pitch climbing as the stack builds and falling as it comes home. |
-| `sound-flash` | `block.beacon.power_select` | The moment of transport. |
-| `sound-close` | `block.beacon.deactivate` | Played as the pad closes. |
-| `sound-refused` | `block.note_block.bass` | Played to a turned-away player alone, not to the room. |
 
-Sounds are named, not chosen from a list, so anything the client knows works — including a
-sound from your own resource pack. Set one to `none` for silence. A name the client does not
-recognise is silent rather than an error, which is also what the client does with one.
-
-The pitch on `sound-ring` is what makes a deploy sound like a machine rather than four
-identical clicks: each ring leaves a step higher than the one before, and the retract replays
-the same notes in reverse, so it falls on the way home without being told to.
+See [Sounds](#sounds) for the ring sound settings and how to change them.
 
 Per-pair and per-end settings are changed with `/wormhole ring edit`. Standing in a ring
 edits that end; naming a pair by id edits both.

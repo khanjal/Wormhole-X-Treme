@@ -108,6 +108,36 @@ public final class GateSounds
     }
 
     /**
+     * How much quieter the hum is than the things that happen once.
+     *
+     * <p>An open wormhole is a background, not an event. At the volume of a kawoosh, repeating
+     * every few seconds, it would be the loudest thing on the server -- and because Bukkit ties
+     * range to volume, this also keeps the hum a thing you hear near the gate rather than
+     * across a base.
+     */
+    private static final float AMBIENT_SCALE = 0.4f;
+
+    /**
+     * Plays the hum of every wormhole currently standing open.
+     *
+     * <p>One sweep over the open gates rather than a repeating task per gate: the work is the
+     * same, and there is no per-gate task to start, cancel, or leak when a gate is removed
+     * while its wormhole is up. A gate that closes simply stops being in the list.
+     */
+    public static void tickAmbient()
+    {
+        final String sound = ConfigManager.getGateSoundAmbient();
+        if (!ConfigManager.isGateSoundsEnabled() || sound.isEmpty())
+        {
+            return;
+        }
+        for (final Stargate gate : StargateManager.getOpenGates())
+        {
+            playAt(gate, sound, 1.0f, ConfigManager.getGateSoundVolume() * AMBIENT_SCALE);
+        }
+    }
+
+    /**
      * Plays one sound at a gate, if gate sounds are on.
      *
      * <p>Heard from the middle of the portal rather than from a corner of the frame, so a gate
@@ -123,7 +153,29 @@ public final class GateSounds
      */
     private static void play(final Stargate gate, final String sound, final float pitch)
     {
-        if ((gate == null) || !ConfigManager.isGateSoundsEnabled())
+        if (!ConfigManager.isGateSoundsEnabled())
+        {
+            return;
+        }
+        playAt(gate, sound, pitch, ConfigManager.getGateSoundVolume());
+    }
+
+    /**
+     * Plays one sound at a gate, at a given volume.
+     *
+     * @param gate
+     *            the gate
+     * @param sound
+     *            the sound name
+     * @param pitch
+     *            the pitch
+     * @param volume
+     *            the volume, which is also the audible range
+     */
+    private static void playAt(final Stargate gate, final String sound, final float pitch,
+        final float volume)
+    {
+        if (gate == null)
         {
             return;
         }
@@ -132,7 +184,6 @@ public final class GateSounds
         {
             where = gate.getGateNameBlockHolder().getLocation();
         }
-        Sounds.play(gate.getGateWorld(), where, sound,
-            ConfigManager.getGateSoundVolume(), pitch);
+        Sounds.play(gate.getGateWorld(), where, sound, volume, pitch);
     }
 }

@@ -349,6 +349,17 @@ public class WormholeXTreme extends JavaPlugin
         // see, so they are followed individually and checked every tick while in flight.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ProjectileGateTracker.createTicker(), 20L, 1L);
+        // An open wormhole hums. One sweep over the open gates rather than a task per gate:
+        // the work is the same and there is nothing per-gate to cancel or leak.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    com.wormhole_xtreme.wormhole.model.GateSounds.tickAmbient();
+                }
+            }, 20L, ConfigManager.getGateSoundAmbientTicks());
         prettyLog(Level.INFO, true, "Enable Completed.");
     }
 

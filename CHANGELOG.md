@@ -244,7 +244,15 @@ shape actually has rather than across an assumed seven. A three-chevron gate sta
 on the same notes as a seven-chevron one, in bigger steps. It is driven off the same counter
 that drives the lights, so the sound cannot drift out of step with what it is describing.
 
+An open wormhole also hums, on repeat, until it closes. One sweep over the open gates drives
+it rather than a task per gate -- the work is the same, and there is nothing per-gate to
+cancel or leak when a gate is removed with its wormhole up. It plays at 40% of the gate volume
+because a standing wormhole is a background rather than an event, and because Bukkit ties
+range to volume that also keeps it near the gate rather than across a base.
+
 Configured the same way as ring sounds, by name, with `gate-sounds-enabled` over all of it.
+The README has both sets in one place, with the settings, what each one is for, and some
+alternatives worth trying.
 
 ### Fixes
 
