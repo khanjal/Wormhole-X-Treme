@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Watches projectiles in flight so they can cross a gate at the moment they reach it.
- */
 package com.wormhole_xtreme.wormhole;
 
 import java.util.Iterator;

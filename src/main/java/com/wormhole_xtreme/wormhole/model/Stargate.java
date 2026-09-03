@@ -353,6 +353,90 @@ public class Stargate
     }
 
     /**
+     * Works the arrival point out again from the gate itself.
+     *
+     * <p>For a gate whose stored exit is simply wrong -- travellers arriving at the side of
+     * it, or facing into the frame. The exit is computed once when a gate is built, from the
+     * shape's exit marker and the detected facing, and then stored; nothing recomputed it
+     * afterwards, so a bad value stayed bad for the life of the gate.
+     *
+     * <p>Derived from the portal blocks rather than from the shape, which means it does not
+     * matter whether the shape file is still around or has changed since. The bottom row of
+     * the portal is where feet belong, its middle is where the traveller should stand, and
+     * one step along the facing puts them clear of it. A gate lying flat is left upward
+     * instead, for the same reason the normaliser does it: stepping along a horizontal facing
+     * there would slide them across the portal and out through the frame.
+     *
+     * <p>What this cannot fix is a gate whose <em>facing</em> is wrong, because the facing is
+     * the thing it trusts. If a gate behaves as though it faces the wrong way in every other
+     * respect too -- the woosh, the sign -- then it needs rebuilding rather than this.
+     *
+     * @return true if an arrival point was worked out and set
+     */
+    public boolean recomputeGatePlayerTeleportLocation()
+    {
+        if ((gateWorld == null) || (gateFacing == null))
+        {
+            return false;
+        }
+        final java.util.List<Location> portal = getGatePortalBlocks();
+        if ((portal == null) || portal.isEmpty())
+        {
+            return false;
+        }
+
+        int lowest = Integer.MAX_VALUE;
+        for (final Location l : portal)
+        {
+            lowest = Math.min(lowest, l.getBlockY());
+        }
+        long sumX = 0;
+        long sumZ = 0;
+        int counted = 0;
+        for (final Location l : portal)
+        {
+            if (l.getBlockY() == lowest)
+            {
+                sumX += l.getBlockX();
+                sumZ += l.getBlockZ();
+                counted++;
+            }
+        }
+        if (counted == 0)
+        {
+            return false;
+        }
+
+        final boolean flat = isPortalFlat();
+        final int stepX = flat ? 0 : gateFacing.getModX();
+        final int stepY = flat ? 1 : 0;
+        final int stepZ = flat ? 0 : gateFacing.getModZ();
+        if ((stepX == 0) && (stepY == 0) && (stepZ == 0))
+        {
+            return false;
+        }
+
+        // Block centres, so a traveller lands in the middle of the block rather than on its
+        // corner, and at its floor rather than inside it.
+        final double x = Math.round((double) sumX / counted) + 0.5 + stepX;
+        final double y = lowest + stepY;
+        final double z = Math.round((double) sumZ / counted) + 0.5 + stepZ;
+        final Location fixed = new Location(gateWorld, x, y, z);
+        try
+        {
+            fixed.setYaw(com.wormhole_xtreme.wormhole.utils.WorldUtils
+                .getDegreesFromBlockFace(gateFacing));
+            fixed.setPitch(0f);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // A yaw that cannot be worked out is not worth losing the position over.
+        }
+        gatePlayerTeleportLocation = fixed;
+        return true;
+    }
+
+    /**
      * Gets a box enclosing every portal block of this gate.
      *
      * <p>Lets the periodic entity scan ask the world for entities near the whole gate in

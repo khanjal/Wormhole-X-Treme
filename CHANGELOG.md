@@ -2,6 +2,327 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.0 (2026-09-02)
+
+### Holding forward against a locked gate no longer spams chat
+
+Cancelling a move event returns the player to `event.getFrom()` -- the exact spot they tried
+to leave -- so someone holding a movement key against a gate they cannot enter generates a
+fresh event every tick with an identical from/to pair. `refuseGateEntry` sent its message
+unconditionally on every one of those: holding forward against a locked exit, or against a
+gate you just came out of, for a couple of seconds meant a wall of identical chat lines. This
+is the same shape of bug fixed for rings earlier in this release, just not caught here at the
+same time.
+
+Two call sites shared the one method and both had it: walking into the exit end of a
+one-way wormhole, and trying to walk straight back through the gate you just arrived at. Both
+now remember the last gate a player was refused and when, and say nothing again for the same
+gate within two seconds -- the move is still cancelled every time either way, only the
+repeated chat line is suppressed.
+
+### Gate management was never actually permission-gated
+
+`/wormhole portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth`, `redstone`,
+`custom`, `owner`, `regenerate` (including the new `-all`), `restrict`, `cooldown`,
+`activate_timeout`/`shutdown_timeout`, and the new `gate import` checked no permission at
+all. Any player who could run `/wormhole` could reconfigure or reassign *any* gate on the
+server -- not just their own -- and change server-wide settings that are not even per-gate.
+`OwnerCommand`'s own class comment says "admin command"; nothing in the code enforced that.
+
+All of them now require `wormhole.config` -- the node `/wormhole config` already used --
+rather than inventing a second admin-only node that would mean the same thing. This predates
+this release's other work; `gate import`, written fresh this session, inherited the same gap
+and is fixed alongside the rest.
+
+`gate edit group` had the same gap for a different reason: unlike every other `gate edit`
+field, it does not delegate to one of the legacy handlers above, so it inherited no check by
+riding along with one. The guard is now on `GateEditCommand` itself rather than repeated in
+every field, which also covers whatever field is added to it next.
+
+### Importing from other Wormhole X-Tremes
+
+`/wormhole gate import` reads the SQLite database every build descended from the 2011 original
+uses, and converts the gates into this fork's own storage. It covers the original itself,
+lycano's line, and forks built on either -- anything writing
+`WormholeXTremeDB/WormholeXTreme.sqlite`.
+
+It needed almost no new code. Those databases hold each gate as a binary blob rather than as
+columns, and this fork inherited the reader for that format -- `GateSerializer` still
+understands binary versions 3 through 9, the whole history of it. The import gets the rows out
+and hands each blob to a parser that was already there and already tested.
+
+Nothing is written back to the old database and nothing is deleted, names that already exist
+are skipped rather than replaced, and a gate whose world is not loaded is reported rather than
+guessed at. Servers that have such a database and no gates of their own are told once, on
+startup, that the option exists.
+
+An imported gate gets the same arrival-point safety check every other gate does. Some of
+these databases hold gates old enough that their stored exit sits inside the portal itself --
+the same legacy case `StargateYamlManager.loadStargates()` already corrects for gates read
+from disk -- and without the same check here, an imported gate would land travellers in the
+water forever, even though every other gate in the plugin is guaranteed clear of it. The
+import summary reports how many needed it, the same way loading a YAML file does.
+
+`/wormhole gate regenerate -all` runs the fuller arrival-point recompute -- the one that
+derives an exit from a gate's actual geometry rather than only nudging one that is provably
+stuck inside a portal -- across every gate in one pass, and reports how many genuinely needed
+it. Recomputing is deterministic, so a gate that was already correct comes back unchanged and
+is not counted or rewritten to disk. Deliberately narrower than running `regenerate` on one
+gate by hand: it only touches the arrival point, not the dial lever, iris lever, redstone or
+sign that a single-gate regenerate also refreshes, since rewriting those for every gate on the
+server without anyone looking is a different and much larger thing to do than fixing exits.
+
+The SQLite driver is deliberately not shipped: thirteen megabytes of native libraries for a
+one-time import most servers will never run. It costs nothing to leave out, because any server
+that wrote one of these databases necessarily has the driver already -- the plugin that wrote
+it needed the same one.
+
+### Commands restructured
+
+Twenty-two subcommands became four. Gates had fifteen top-level names while the rings had one
+with verbs under it, and eight of the fifteen were per-gate settings -- which is how a plugin
+gets to twenty-two: every new gate setting needed a new name at the top level, where a new
+ring setting was one more case in `ring edit`.
+
+    /wormhole gate <build|complete|list|remove|edit|regenerate|refresh|go|force>
+    /wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>
+    /wormhole config <setting> [value]
+    /wormhole compass
+
+`gate edit <gate> <field> [value]` replaces `portalmaterial`, `irismaterial`,
+`lightmaterial`, `wooshdepth`, `redstone`, `idc`, `owner` and `custom`, and adds a `group`
+field that sets a whole material group at once rather than three materials one at a time. It
+leaves the frame blocks alone: those are real blocks somebody built.
+
+`config <setting> [value]` replaces `shutdown_timeout`, `activate_timeout`, `cooldown` and
+`restrict` -- and reaches every other setting too. Sounds, ring timings and material defaults
+could previously only be changed by editing config.yml and restarting; now they take effect
+as they are typed, because settings are read where they are used rather than cached at
+startup. Typing part of a name searches.
+
+Nothing was re-implemented. Every verb and field hands off to the handler that already owned
+it, so the validation, the permission checks and the messages are the originals.
+
+**Every old name still works.** They are registered as hidden entries: they dispatch exactly
+as before but are left out of help and tab completion, since a restructure that made the list
+longer would have missed the point. Nothing in a command block or a script breaks.
+
+Tab completion gained two things it never had: gate shape names for `gate build`, and every
+setting name for `config`.
+
+`gate regenerate` now also recomputes a gate's arrival point, worked out from the portal
+blocks and the facing rather than from the shape file. The exit is computed once when a gate
+is built and then stored, so a gate that landed travellers at its side went on doing it with
+nothing to reach for. It cannot fix a gate whose facing is wrong, since the facing is what it
+trusts.
+
+`compass reset` puts the compass back to pointing at world spawn -- what an ordinary one does
+when nothing has changed it. The heading is stored against the player and stays until
+something moves it, so there was previously no way back.
+
+`compass` explains itself when nothing will show the result. Setting a compass heading does
+not need a compass and does not fail without one, so the command used to report success and
+then appear to do nothing -- either because the player had no compass at all, or because the
+one in their hand was bound to a lodestone and points there regardless. Neither is an error,
+so it explains rather than refuses: the heading is set and waiting for a plain compass.
+
+Asked the way round that stays true, too. Rather than listing the compasses that ignore the
+heading, it asks whether the player has an ordinary one -- so recovery compasses, and whatever
+Minecraft adds later, are covered without anybody having to remember to add them.
+
+### Documentation split by audience
+
+The README had grown to a thousand lines serving two readers at once. It is now for **server
+owners** -- installing, configuring, building gates and rings, running them -- and the
+plugin-developer material moved to **docs/API.md**: the events, what each one carries, when it
+fires relative to the move, and worked examples.
+
+The minecart event is documented properly for the first time as well -- a minecart does not
+survive a gate, it is removed and respawned, which is why the event carries both carts.
+
+**One breaking change.** `StargateMinecartTeleportEvent` moved from
+`com.wormhole_xtreme.wormhole.event` to `...events`, joining every other event. It had been
+alone in the singular package with nothing to justify it, and the compiler error that caused
+did not explain itself. Anyone who wrote against it needs the plural import now; that is a
+cheap fix today and a permanent wart otherwise.
+
+### Transport rings
+
+An invisible, permanently paired pad set into a floor or ceiling. Walk into one and it counts
+down, deploys a stack of rings around you, and swaps everything at both ends in the same
+instant. Gates stay the long-haul option; rings are local transport, and both ends fire
+together, so two people standing on the two pads trade places.
+
+Point to point rather than dialable. A ring with no partner can do nothing, so the pair is
+the stored object and there are no dangling references, no second resolution pass on load and
+no orphans. That also settles naming: nothing addresses a single ring at runtime, so pairs
+get a generated id and an optional label rather than a player-chosen name.
+
+Rings never cross worlds, by design rather than by config, and pairs are stored one file per
+world -- the layout enforces the rule, because there is nowhere to write a pair that spans
+two.
+
+### Building a pair
+
+Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do it again
+somewhere else and the two are paired. Only then are both circles consumed and both surfaces
+returned to what they were: an unpaired ring does nothing, so leaving its slabs costs
+nothing, and a crash or restart between the two halves no longer costs somebody a circle of
+slabs for a ring that never existed.
+
+The template says more than its shape. The slab you build with becomes the ring's material,
+and the slab halves say which surface it is set into -- a bottom slab rests on a floor, a top
+slab hangs from a ceiling. Both are facts the template states rather than guesses about its
+surroundings.
+
+Two shapes. The odd one **is the Standard gate's ring** -- the same `3,5,7,7,7,5,3` profile,
+lying flat instead of standing up -- and the even one is a size down for tighter rooms. Both
+turn each corner through two diagonal steps, which is what reads as round rather than as a
+square with its corners clipped.
+
+`/wormhole ring remove` lays both circles back out in the slab each was built from, so a pair
+can be picked up and moved without re-mining anything.
+
+### Nothing is written to the world
+
+Rings and their lights are drawn to nearby clients, the way a gate draws its portal. Building
+them for real had three faults: a server stopped mid-cycle kept them for good, block loggers
+recorded a floor being replaced on every trip, and for the seconds a ring stood there its
+glowstone was an ordinary breakable block -- mine one and the restore skipped it, leaving a
+hole in the floor. Drawing also made the code simpler rather than harder: with the real
+blocks untouched, undoing a drawing is just showing the client what was always there.
+
+The pad opens rather than lights. The surface the pattern is cut into is drawn as an
+invisible barrier and the light shows from a block below it, so a waking ring reads as a lit
+recess the rings climb out of instead of a pattern painted on the ground. A barrier rather
+than air because the floor only opens on the client: told the ground had gone, a client
+predicts a fall the server refuses, and walking across a waking ring feels like being stuck.
+A drawing may make collision stronger than the block it covers, never weaker.
+
+### Firing
+
+The swap reads both ends before writing either. Reading A, moving them, then reading B would
+find A's arrivals standing in B and send them straight back. This is the ordering everything
+else depends on, and a test fails if it is ever inverted.
+
+Abort is confined to the countdown. Once the rings start rising the cycle runs to the end,
+which keeps the reversible phase trivially reversible and the phase with all the moving parts
+uninterruptible.
+
+Everything inside the ring travels; only players are subject to access rules. A rider and
+their mount arrive together -- the mount is delivered and its passengers re-seated a tick
+later, rather than teleporting both and letting the server separate them.
+
+Deployment comes in two styles, concurrent and sequential, set per end. A ceiling ring drops
+its rings to the floor and stacks up from there, because a stack hanging from the ceiling of
+a tall room would leave the traveller standing under it rather than in it.
+
+### Refusing to fire
+
+A ring will not engage if the far end is unsafe: anything at all placed inside the teleport
+area, or a single block missing from the ground under it. Both are refusals rather than
+best-effort trips, since the alternative is depositing somebody inside a wall or over a void.
+
+Because the ring itself is invisible, a refusal also flashes the pattern. Being told an end
+is blocked while standing on ground that looks like any other is no help when the thing to
+fix is inside a footprint you cannot see.
+
+Reach is limited in two directions, because ground distance and height are different
+questions. A ceiling ring needs a room between four and ten blocks tall -- near enough for
+its rings to reach the floor, far enough for the stack to form.
+
+The fallback ring material is `SMOOTH_STONE_SLAB` -- the plain stone slab people picture, not
+`STONE_SLAB`, which is the rougher raw-stone one added later and reads as halved stone. It is
+normally unused, since a ring keeps whatever slab it was built from, but it is what shows if
+that cannot be read.
+
+`ring edit reset` puts an end's appearance back to the slab it was laid in, not to a
+configured default. Build in quartz, try a colour you do not like, reset, and the quartz comes
+back. The lights and the deploy style have no such history -- nobody builds those -- so those
+do take the server defaults.
+
+`ring edit built` sets what that slab *is*, for the one case `reset` cannot recover on its
+own: a ring imported or corrected after the fact, with no recorded history to restore. Hand
+editing the stored `Built:` value in the YAML does not work for this -- the plugin resaves
+every ring from memory on shutdown, so an on-disk edit is silently overwritten with the old
+in-memory value before it is ever read back. This command changes the in-memory value
+directly and saves immediately, so there is nothing left to clobber it.
+
+### Sound
+
+A ring drawn to clients and never built is otherwise a silent animation in somebody's floor,
+so cycles now make noise: the pad opening, one sound per ring as the stack builds, the
+transport itself, the pad closing, and a refusal heard by the player it concerns and nobody
+else.
+
+The transport sound plays at both beats, not just the first. The departure flash sounded at
+both ends the instant a swap began, before anyone had actually moved -- it said a swap was
+happening, not that anyone had arrived. The arrival sweep now sounds too, at the moment
+travellers are already standing at their destination, settled back to the pitch the open and
+close sounds use.
+
+The pitch is what carries it. Each ring leaves a step higher than the one before, which makes
+four repeats of one sound read as a machine rather than four clicks -- and because the pitch
+follows the order rings leave rather than where they end up, the retract falls on its own and
+a floor ring and a ceiling ring climb through the same notes.
+
+Sounds are configured by name rather than chosen from a list, so anything the client knows
+works, including a sound from a resource pack. Set one to `none` for silence, or
+`sounds-enabled: false` for all of it. Names are never resolved to a `Sound` constant, which
+keeps this working whichever way that type is defined in a given API version.
+
+The transport light always runs **towards the pad** -- down a floor ring's stack, up a ceiling
+ring's -- on the way out and on the way in alike, which is how the show does it. The pad is
+where travellers are taken from and put back, so it is what the light moves to whichever job
+it is doing. That replaced a configured departure direction and an arrival that ran its
+opposite: both were wrong against the show, and both were arithmetic that could be got
+backwards. What is left is the ring's own number, and needs no orientation, direction or sweep
+to be asked about.
+
+The light suggestions are lights rather than things that glow. Tab completion offered jack
+o'lanterns, magma, crying obsidian, beacons and sculk catalysts -- blocks that emit light but
+that nobody picks when they are trying to build a lamp -- and amethyst, which emits none at
+all as a block. What is left is glowstone, sea lanterns, shroomlight, redstone lamps,
+froglights and copper bulbs. Suggestions only: any block can still be set.
+
+Redstone lamps and copper bulbs are now drawn switched on. Both default to off, so choosing
+one used to light a ring with dark lamps. Anything the game calls lightable is switched on
+wherever this plugin draws a block, so gate chevrons get it too.
+
+### Access, permissions and events
+
+Access belongs to the pair; materials and style belong to each end. Both ends fire together,
+so there is no authorising half of a swap -- a pair whose ends disagreed would be one you
+could leave by and not return to. Materials and timing are the opposite case: nobody watches
+both ends at once, so a base can look and deploy differently from its outpost.
+
+Access fails closed everywhere. A stored pair with a missing or unreadable access field loads
+private. Publishing somebody's private link on upgrade is the one mistake here that cannot be
+taken back once people have used it.
+
+Four permission nodes of their own rather than more cases in `WXPermissions`, which is built
+around gates and would have needed cases ignoring most of their own arguments. Building
+defaults to operators; using a ring somebody built defaults to everyone.
+
+`RingTravelEvent` fires once per travelling player, cancellable, after both ends are read and
+before either is written -- so a listener always sees the whole trip as it was rather than a
+half-finished one. Cancelling drops that passenger and leaves the rest of the trip alone.
+
+### Fixes found on the way
+
+Block positions are packed into a `long`, and `y` lived in the low twelve bits where a plain
+mask loses its sign: `y = -64` came back as `4032`. The world starts at -64, so rings in
+deepslate, caves or on the nether floor would have restored their blocks thousands of blocks
+away -- leaving slabs standing in the floor for good and writing stray air into the sky, with
+nothing thrown. Unpacking now sign-extends, and is tested at every height the world has.
+
+`Ring` asked whether a material was a block while building its list of glowing materials, in
+a static initialiser. From 1.20.6 on that question goes through the server's registry, which
+is not there while the plugin is loading -- and a class whose initialisation fails stays
+failed, so a single early call would have left rings dead for the rest of that server's run.
+The check was redundant anyway. Tab completion asks the same thing for real, and now probes
+once and offers everything rather than nothing when there is no registry to ask.
+
 ## 1.2.0 (2026-09-02)
 
 ### Minecraft 1.20 through 1.21.10
@@ -80,6 +401,97 @@ Purpur and Pufferfish from a single jar. Folia is not supported.
   Standard gate takes redstone without being rebuilt.
 - Triggering an already-open gate does nothing rather than closing it, so a second minecart
   no longer shuts the wormhole the first one opened.
+
+### Gates make noise
+
+Gates were silent. Everything a gate does was already staged over time -- chevrons light one
+at a time on `light-ticks`, the woosh rolls out over `woosh-ticks` -- so the animation was
+there and only the sound was missing. There is now one as a gate begins to dial, one per
+chevron as it locks, one as the wormhole establishes, and one as it closes.
+
+The chevron pitch climbs through the sequence, spread across however many lighting steps the
+shape actually has rather than across an assumed seven. A three-chevron gate starts and ends
+on the same notes as a seven-chevron one, in bigger steps. It is driven off the same counter
+that drives the lights, so the sound cannot drift out of step with what it is describing.
+
+The iris has its own pair, closing pitched below opening because a shield coming down should
+be the heavier of the two. Only played when the iris actually moves, so asking for a state it
+is already in stays silent.
+
+An open wormhole also runs, on repeat, until it closes -- `ambient.underwater.loop`, because an
+event horizon looks like water and behaves like it, so that is the one ambience needing no
+explanation. One sweep over the open gates drives
+it rather than a task per gate -- the work is the same, and there is nothing per-gate to
+cancel or leak when a gate is removed with its wormhole up. It plays at 40% of the gate volume
+because a standing wormhole is a background rather than an event, and because Bukkit ties
+range to volume that also keeps it near the gate rather than across a base.
+
+Configured the same way as ring sounds, by name, with `gate-sounds-enabled` over all of it.
+The README has both sets in one place, with the settings, what each one is for, and some
+alternatives worth trying.
+
+### Nothing a gate does is written to the world any more
+
+The portal was already a drawing sent to nearby clients. The chevrons and the woosh were not:
+both called `setType`, so dialling a gate really did place glowstone in the frame and really
+did push portal material out into the air around it.
+
+That carried the problems the portal had already been moved away from. A server that stopped
+mid-dial left lit chevrons welded into the frame and a half-expanded woosh hanging in the air,
+with the original materials it would have restored from having died with the process. Block
+loggers recorded every chevron and every woosh frame. And for the seconds a chevron stood lit
+it was an ordinary breakable glowstone block -- the same free-glowstone trade that decided
+this question for the transport rings.
+
+Both are drawings now. The bookkeeping they needed goes with them: there is no original
+material to remember, because nothing is changed, and putting a drawing away is just showing
+the client what was always there. A drawing also cannot outlive the process that drew it,
+which is the whole point.
+
+The one thing given up is real light. A drawn glowstone looks lit and illuminates nothing, so
+a dialled gate no longer brightens the room around it. It still reads as lit, which is what
+the chevrons are for.
+
+Arriving near a gate that is already dialled now draws its chevrons as well as its portal, so
+a wormhole is never found burning in an unlit frame.
+
+Travellers now surface. Coming out of a gate shows that player a moment of water at eye
+height -- the client draws its underwater overlay from whichever block it thinks its camera is
+in, so one block is the whole effect. Nobody else sees anything and nothing is written.
+
+It is redrawn every couple of ticks across its window rather than sent once. Arriving hands
+the client a fresh copy of the chunk and a fresh copy erases anything drawn into the old one,
+so a single block change lands before the chunk does on any trip long enough to need loading,
+and is wiped by it -- the same thing that once made the portal redraw work for a nearby gate
+and do nothing at all for a distant one.
+
+One second by default, and short on purpose: water is physics to the client rather than
+decoration, so for as long as it believes it is submerged it predicts swimming while the
+server disagrees. It is the only drawing in the plugin that makes the client's world less
+solid than the real one, which is the direction that caused the stuck-walking bug in the ring
+pads, so it is kept to a moment and `gate-arrival-splash-ticks: 0` turns it off.
+
+### Fixes
+
+Shutdown logged one "Saved gate to YAML" line per gate, at INFO, every time the server
+stopped -- whether or not that gate had changed. On a server with a few dozen gates that is
+a few dozen identical lines on every restart, forever. The per-gate confirmation is now
+FINE-level diagnostic noise instead of an INFO-level event, and shutdown prints one summary
+line ("Saved N gates to disk") rather than one per gate. Every gate is still rewritten
+unconditionally on a clean shutdown -- that safety net is unchanged, only its logging is
+quieter.
+
+A closed gate could keep showing its portal. The portal is a drawing in each nearby client's
+copy of the chunk, and closing one only tells whoever is within range at that moment. A player
+who was elsewhere kept the picture -- and a client only discards a drawing when something
+hands it a fresh copy of the chunk, which walking a short distance away and back does not do,
+because the chunk never left. The result was water standing in a gate that was off.
+
+The refresh that runs on chunk boundaries now takes portals back as well as drawing them. What
+each player has been shown is remembered, so correcting a stale drawing costs only what was
+actually drawn for them rather than a walk over every gate in the world. The real block is
+read from the world rather than assumed to be air, so a gate that closed onto its default iris
+is not swapped for one wrong picture instead of another.
 
 ### Material groups
 

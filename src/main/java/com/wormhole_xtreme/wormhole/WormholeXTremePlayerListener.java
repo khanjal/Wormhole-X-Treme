@@ -411,11 +411,24 @@ class WormholeXTremePlayerListener implements Listener
      *
      * @param player
      *            the player to hold back
+     * @param stargate
+     *            the gate they may not enter
      * @return true, so the caller cancels the move event
      */
-    private static boolean refuseGateEntry(final Player player)
+    private static boolean refuseGateEntry(final Player player, final Stargate stargate)
     {
-        player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+        final java.util.UUID id = player.getUniqueId();
+        final String gateName = stargate.getGateName();
+        final long now = System.currentTimeMillis();
+        final RecentGateRefusal last = recentGateRefusals.get(id);
+        // The move is cancelled either way -- only the chat line is what gets skipped, and
+        // only when it would just be saying the same thing again a moment later.
+        if ((last == null) || !last.gateName.equals(gateName)
+            || ((now - last.atMillis) > GATE_REFUSAL_REMINDER_MILLIS))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+        }
+        recentGateRefusals.put(id, new RecentGateRefusal(gateName, now));
         return true;
     }
 
@@ -583,7 +596,7 @@ class WormholeXTremePlayerListener implements Listener
             final Location fromLoc = event.getFrom();
             if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
             {
-                return refuseGateEntry(player);
+                return refuseGateEntry(player, stargate);
             }
             return false;
         }
@@ -645,7 +658,7 @@ class WormholeXTremePlayerListener implements Listener
         // Prevent immediate re-entry to the gate the player just exited from.
         if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
         {
-            return refuseGateEntry(player);
+            return refuseGateEntry(player, stargate);
         }
 
         if (ConfigManager.isUseCooldownEnabled())
@@ -898,6 +911,10 @@ class WormholeXTremePlayerListener implements Listener
                     {
                         try { player.teleport(finalTarget); } catch (final RuntimeException ignore) {}
                     }
+                    // A moment of water, as though they had just surfaced out of the event
+                    // horizon. Sent here rather than at teleport time so it lands after the
+                    // client has been put where it is going.
+                    com.wormhole_xtreme.wormhole.model.StargateManager.splashArrival(player);
                 }
             }, 1L);
         }
@@ -981,6 +998,10 @@ class WormholeXTremePlayerListener implements Listener
             event.setCancelled(true);
             return;
         }
+        // Rings are asked only once no gate has claimed this move, so gates keep priority
+        // and the two can never both act on one step. Ring creation refuses any footprint
+        // touching gate blocks, so in practice they never contend for the same block at all.
+        handleRingMoveEvent(event);
         if (hasChangedChunk(event.getFrom(), event.getTo()))
         {
             // Crossing into a chunk the client has not held before means the client is
@@ -988,6 +1009,110 @@ class WormholeXTremePlayerListener implements Listener
             // over it. Redrawing on the crossing covers walking up to a gate from out of
             // range, and covers coming back to one after being away.
             refreshPortalVisualsFor(event.getPlayer());
+        }
+    }
+
+    /**
+     * Arms a transport ring if this move took the player into one.
+     *
+     * <p>The whole of ring detection on the move path, and it is deliberately three lines of
+     * work: a hash lookup for the block, a question to the pair about whether it will fire,
+     * and a permission check. Every player crossing every block boundary runs this, so it
+     * cannot afford to be anything more.
+     *
+     * <p>Only the interior arms a ring. Standing on the edge is crossing a threshold rather
+     * than standing in the thing, and firing on it would take people who were walking past.
+     *
+     * <p>There is no arrival guard here and none is needed. The cooldown is shared by both
+     * ends of a pair, so somebody who has just landed cannot re-fire the ring they landed in
+     * — the settle-move after a teleport arrives long inside the cooldown that same cycle
+     * started. Somebody still standing there and still moving a full cooldown later does
+     * fire it again, and travels back, which is the intended behaviour rather than a bug.
+     *
+     * @param event
+     *            the move being considered
+     */
+    private static void handleRingMoveEvent(final PlayerMoveEvent event)
+    {
+        final Location to = event.getTo();
+        if ((to == null) || (to.getWorld() == null))
+        {
+            return;
+        }
+        final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end =
+            com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
+                to.getWorld().getName(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
+        if (end == null)
+        {
+            return;
+        }
+        final com.wormhole_xtreme.wormhole.model.ring.RingPair pair = end.getPair();
+        final Player player = event.getPlayer();
+
+        // Whether this step took them into the ring or merely around inside it. Messages are
+        // for arriving somewhere, and this path runs on every block boundary crossed, so a
+        // player wandering about on a pad that is recharging would otherwise be told about it
+        // several times a second. Arming still happens on any move inside, which is what lets
+        // somebody who stays put after a trip be carried back once the cooldown passes.
+        final Location from = event.getFrom();
+        final boolean justEntered = (from.getWorld() == null)
+            || (com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
+                from.getWorld().getName(), from.getBlockX(), from.getBlockY(), from.getBlockZ()) != end);
+
+        // Arming is a use of the ring, so the same permission governs it as governs being
+        // carried. Somebody who cannot travel by a pair should not be able to set it off
+        // for everybody else either.
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
+        {
+            if (justEntered)
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
+            }
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        if (!pair.canFire(now))
+        {
+            if (justEntered)
+            {
+                // Two different reasons to refuse, and a player standing on a silent pad
+                // deserves to know which: one of them ends by itself and the other does not.
+                if (pair.getCooldownUntil() > now)
+                {
+                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(
+                        player, pair.getCooldownUntil() - now);
+                    // A recharging ring is invisible, so being told it is not ready leaves
+                    // somebody standing on ground that looks like any other. Show them where
+                    // it is. Not done for a ring that is mid-cycle: that pad is already lit,
+                    // so there is nothing to point out and the outline would put those lights
+                    // out when it expired.
+                    com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(
+                        player, pair, end.getRing());
+                }
+                else
+                {
+                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
+                }
+            }
+            return;
+        }
+        // justEntered is passed on rather than gating the call: arming still has to happen on
+        // any move inside, which is what carries somebody back who stayed put after a trip.
+        // Only what the ring says about refusing is limited to walking in.
+        if (com.wormhole_xtreme.wormhole.model.ring.RingTransit.start(pair, player, justEntered))
+        {
+            final com.wormhole_xtreme.wormhole.model.ring.Ring far = pair.opposite(end.getRing());
+            com.wormhole_xtreme.wormhole.model.ring.RingMessages.engaged(
+                player, far == null ? "" : far.getName());
+        }
+        else if (justEntered)
+        {
+            // It refused. Whatever the reason, the ring itself is invisible, and being told
+            // something is wrong while standing on ground that looks like any other is no
+            // help at all — least of all when the thing to fix is inside the ring and they
+            // cannot see where it is.
+            com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
+            com.wormhole_xtreme.wormhole.model.ring.RingSounds.refused(player);
         }
     }
 
@@ -1037,6 +1162,35 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static final java.util.Set<java.util.UUID> portalFlightGranted =
         java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * The one-way-gate refusal a player was most recently told about, and when.
+     *
+     * <p>Holding forward against a gate that cannot be entered from outside cancels the
+     * move every tick, and each cancelled move returns the player to the exact spot they
+     * tried to leave -- so the next tick looks identical to this one, and without this a
+     * player who simply keeps walking gets the same chat line every tick until they let go.
+     * Remembered per player rather than gated on movement, since a cancelled move by
+     * definition never goes anywhere different to notice.
+     */
+    private static final java.util.Map<java.util.UUID, RecentGateRefusal> recentGateRefusals =
+        new java.util.concurrent.ConcurrentHashMap<java.util.UUID, RecentGateRefusal>();
+
+    /** How long a refusal stays remembered before the same gate is worth mentioning again. */
+    private static final long GATE_REFUSAL_REMINDER_MILLIS = 2000L;
+
+    /** Which gate a player was told they could not enter, and when. */
+    private static final class RecentGateRefusal
+    {
+        private final String gateName;
+        private final long atMillis;
+
+        RecentGateRefusal(final String gateName, final long atMillis)
+        {
+            this.gateName = gateName;
+            this.atMillis = atMillis;
+        }
+    }
 
     /**
      * Grants or withdraws the flight exemption a player needs to stand in a portal.
@@ -1203,6 +1357,11 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerQuit(final PlayerQuitEvent event)
     {
         portalFlightGranted.remove(event.getPlayer().getUniqueId());
+        recentGateRefusals.remove(event.getPlayer().getUniqueId());
+        // A client that has gone takes its drawings with it, and the next one to log in on
+        // that account gets fresh chunks anyway.
+        com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(
+            event.getPlayer().getUniqueId());
     }
 
     /**

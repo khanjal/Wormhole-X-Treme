@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *   Trimmed helper: delegates serialization and shape loading,
- *   and exposes a small set of utility methods used across the codebase.
- */
 package com.wormhole_xtreme.wormhole.logic;
 
 import org.bukkit.Location;

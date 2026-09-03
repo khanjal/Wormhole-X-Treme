@@ -80,6 +80,7 @@ public class GateEntryRefusalTest
         player = mock(Player.class);
         when(player.getName()).thenReturn("walker");
         when(player.isOp()).thenReturn(true);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
     }
 
     @AfterEach
@@ -203,5 +204,21 @@ public class GateEntryRefusalTest
         assertTrue(walkIntoDestination().isCancelled(),
             "stepping in from outside is still refused");
         verify(player).sendMessage(contains("incoming wormhole"));
+    }
+
+    @Test
+    public void holdingForwardAgainstTheExitIsRefusedOnceNotEveryTick()
+    {
+        // Cancelling a move returns the player to event.getFrom() — the exact spot they
+        // tried to leave — so someone holding a movement key generates a fresh event every
+        // tick with an identical from/to pair. Before this was fixed, every one of those
+        // sent its own chat line: holding forward against a locked exit for a couple of
+        // seconds meant a wall of identical messages.
+        for (int attempt = 0; attempt < 6; attempt++)
+        {
+            assertTrue(walkIntoDestination().isCancelled(),
+                "attempt " + attempt + " should still be refused");
+        }
+        verify(player, times(1)).sendMessage(contains("incoming wormhole"));
     }
 }
