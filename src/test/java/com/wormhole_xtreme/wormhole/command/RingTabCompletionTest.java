@@ -60,6 +60,14 @@ public class RingTabCompletionTest
     }
 
     @Test
+    public void theBuiltFieldOffersTheSameSlabsAsRing()
+    {
+        // built names the same kind of slab as ring -- what reset restores to rather than
+        // what is currently worn -- so it shares the constraint and the list.
+        assertEquals(complete("ring", "edit", "ring", ""), complete("ring", "edit", "built", ""));
+    }
+
+    @Test
     public void theLightFieldOffersOnlyBlocksThatLookLit()
     {
         // Narrowed twice over. None of these actually light anything — a ring is drawn to

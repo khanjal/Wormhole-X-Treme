@@ -501,11 +501,12 @@ public final class SubCommands
         {
             return prefixed(typed, "fast", "slow", "concurrent", "sequential");
         }
-        if ("ring".equalsIgnoreCase(field))
+        if ("ring".equalsIgnoreCase(field) || "built".equalsIgnoreCase(field))
         {
             // Only slabs, because only a slab can move half a block at a time, which is the
             // whole of the rise animation. Offering anything else would be offering something
-            // the command is about to refuse.
+            // the command is about to refuse. built shares the constraint: it names the same
+            // kind of slab, just recorded rather than currently worn.
             return materialNames(typed, true);
         }
         if ("light".equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
