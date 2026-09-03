@@ -1,24 +1,22 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
-import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
-import com.wormhole_xtreme.wormhole.model.beam.BeamFreeze;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
+import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 
 /**
  * Handler for {@code /wormhole beam}.
  *
- * <p>Travel runs the charge/beam-up/teleport/beam-down sequence in {@link BeamAnimation}
- * rather than a plain {@link Player#teleport(Location)} — still no cooldown and no
- * claim-awareness, which remain follow-up work once the core mechanic is proven out.
+ * <p>Actual travel is delegated to {@link BeamTravel}, shared with {@code /wormhole go} so the
+ * two commands resolve a name the same way — still no cooldown and no claim-awareness, which
+ * remain follow-up work once the core mechanic is proven out.
  *
  * <p>Travel goes through one verb, {@code to}, regardless of whether the name resolves to a
  * public destination or one of the player's own places. Earlier this took a bare name
@@ -86,9 +84,9 @@ public class BeamCommand implements SubCommand
     }
 
     /**
-     * Travels to a destination by name, checking the player's own places before the public
-     * list. A private place is a deliberate, personal choice, so it is the one that wins if a
-     * player happens to have named one the same as something public.
+     * Travels to a destination by name. The actual resolution and travel is shared with
+     * {@code /wormhole go}, via {@link BeamTravel}, so the two commands can never disagree
+     * about what a name means.
      *
      * @param player the traveller
      * @param name the destination name
@@ -96,23 +94,12 @@ public class BeamCommand implements SubCommand
      */
     private boolean travelTo(final Player player, final String name)
     {
-        if (!BeamPermissions.has(player, BeamPermissions.USE))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            return true;
-        }
-        BeamDestination destination = BeamManager.getPlace(player.getUniqueId(), name);
-        if (destination == null)
-        {
-            destination = BeamManager.getPublicDestination(name);
-        }
-        if (destination == null)
+        if (!BeamTravel.travelTo(player, name))
         {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
                 + "No destination named \"" + name + "\" among your places or the public list.");
-            return true;
         }
-        return teleport(player, destination);
+        return true;
     }
 
     private boolean listPublic(final Player player)
@@ -251,25 +238,6 @@ public class BeamCommand implements SubCommand
         }
         player.sendMessage((removed ? ConfigManager.MessageStrings.normalHeader : ConfigManager.MessageStrings.errorHeader).toString()
             + (removed ? "Removed place \"" + name + "\"." : "You have no place named \"" + name + "\"."));
-        return true;
-    }
-
-    private boolean teleport(final Player player, final BeamDestination destination)
-    {
-        if (BeamFreeze.isFrozen(player))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                + "You're already beaming somewhere.");
-            return true;
-        }
-        final Location location = destination.toLocation();
-        if (location == null)
-        {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                + "That destination's world is not currently loaded.");
-            return true;
-        }
-        BeamAnimation.start(player, location, destination.getName());
         return true;
     }
 }

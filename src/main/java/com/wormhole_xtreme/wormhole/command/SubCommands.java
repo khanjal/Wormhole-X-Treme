@@ -152,7 +152,13 @@ public final class SubCommands
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
         // --- Travel ---------------------------------------------------------
-        register("go", aliases(), "/wormhole go <gate>", new Go(), true, GATE_NAMES);
+        // Tries a gate first, then a beam destination or place -- see Go's own class comment.
+        // Completion offers both for the same reason: gate names and public beam destinations
+        // are nobody's secret, so both are safe to suggest regardless of who is asking. A
+        // player's own private places are not offered here, same limitation as everywhere else
+        // a completer cannot see who is asking -- see completeBeam's "to" case.
+        register("go", aliases(), "/wormhole go <gate|destination>", new Go(), true, args ->
+            args.length == 2 ? combine(gateNames(args[1]), publicBeamNames(args[1])) : none());
         register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
             args -> args.length == 2 ? prefixed(args[1], "reset") : none());
         register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
@@ -402,6 +408,13 @@ public final class SubCommands
     private static List<String> none()
     {
         return Collections.emptyList();
+    }
+
+    private static List<String> combine(final List<String> first, final List<String> second)
+    {
+        final List<String> out = new ArrayList<String>(first);
+        out.addAll(second);
+        return out;
     }
 
     private static List<String> prefixed(final String typed, final String... candidates)

@@ -8,12 +8,22 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * The Class Go.
- * 
+ *
+ * <p>A shortcut for two different things, tried in order: a gate, under gate permissions, for
+ * whoever holds {@code wormhole.go} -- an admin/debug node, same as it always was; then a beam
+ * destination or one of the player's own places, under beaming's own permission, for everyone
+ * else. That split is deliberate rather than one blanket check up front: a player with no
+ * gate-admin access should still be able to use this as a shortcut for
+ * {@code /wormhole beam to}, and a name that exists only as a gate should read as "no gate or
+ * beam destination named that" rather than leak whether a gate by that name exists to someone
+ * who cannot use it anyway.
+ *
  * @author alron
  */
 public class Go implements CommandExecutor
@@ -21,7 +31,7 @@ public class Go implements CommandExecutor
 
     /**
      * Do go.
-     * 
+     *
      * @param player
      *            the player
      * @param args
@@ -30,30 +40,29 @@ public class Go implements CommandExecutor
      */
     private static boolean doGo(final Player player, final String[] args)
     {
+        if (args.length != 1)
+        {
+            return false;
+        }
+        final String name = args[0].trim().replace("\n", "").replace("\r", "");
+
         if (WXPermissions.checkWXPermissions(player, PermissionType.GO))
         {
-            if (args.length == 1)
+            final Stargate s = StargateManager.getStargate(name);
+            if (s != null)
             {
-                final String goGate = args[0].trim().replace("\n", "").replace("\r", "");
-                final Stargate s = StargateManager.getStargate(goGate);
-                if (s != null)
-                {
-                    player.teleport(s.getGatePlayerTeleportLocation());
-                }
-                else
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate does not exist: " + args[0]);
-                }
-            }
-            else
-            {
-                return false;
+                player.teleport(s.getGatePlayerTeleportLocation());
+                return true;
             }
         }
-        else
+
+        if (BeamTravel.travelTo(player, name))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return true;
         }
+
+        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            + "No gate or beam destination named: " + args[0]);
         return true;
     }
 
