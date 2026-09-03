@@ -138,7 +138,20 @@ public class ConfigManager
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
         ECONOMY_USE_COST,
         /** Cost in currency units charged to build a gate. 0 = free. */
-        ECONOMY_BUILD_COST
+        ECONOMY_BUILD_COST,
+        BEAM_SOUNDS_ENABLED,
+        BEAM_SOUND_VOLUME,
+        BEAM_SOUND_CHARGE,
+        BEAM_SOUND_DEPART,
+        BEAM_SOUND_ARRIVE,
+        /** How long the beam-up column rises and brightens before descending resumes. */
+        BEAM_RISE_TICKS,
+        /** How far into the rise the traveller vanishes -- clamped below the teleport step. */
+        BEAM_VANISH_AT_STEP,
+        /** How far into the rise the real teleport fires -- clamped inside the rise. */
+        BEAM_TELEPORT_AT_STEP,
+        /** How long the column takes to descend into place at the destination. */
+        BEAM_DESCEND_TICKS
     }
 
     /**
@@ -961,6 +974,104 @@ public class ConfigManager
     public static String getRingSoundRefused()
     {
         return soundSetting(ConfigKeys.RING_SOUND_REFUSED, "block.note_block.bass");
+    }
+
+    /**
+     * Whether beaming makes any noise at all.
+     *
+     * @return true if beam sounds should play
+     */
+    public static boolean isBeamSoundsEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_SOUNDS_ENABLED);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * How loud beam sounds are.
+     *
+     * @return the volume
+     */
+    public static float getBeamSoundVolume()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_SOUND_VOLUME);
+        return (s == null) ? 1.0f : (float) s.getDoubleValue();
+    }
+
+    /**
+     * The sound played the instant a beam sequence starts.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getBeamSoundCharge()
+    {
+        return soundSetting(ConfigKeys.BEAM_SOUND_CHARGE, "block.respawn_anchor.charge");
+    }
+
+    /**
+     * The sound played the instant the real teleport fires, mid-rise.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getBeamSoundDepart()
+    {
+        return soundSetting(ConfigKeys.BEAM_SOUND_DEPART, "entity.enderman.teleport");
+    }
+
+    /**
+     * The sound played once the column finishes descending at the destination.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getBeamSoundArrive()
+    {
+        return soundSetting(ConfigKeys.BEAM_SOUND_ARRIVE, "entity.shulker.teleport");
+    }
+
+    /**
+     * How long the beam-up column rises and brightens before the descent takes over.
+     *
+     * @return the configured tick count, unclamped -- {@code BeamAnimation} is where the
+     *         relationships between this and the other beam timings are enforced, since
+     *         clamping one setting correctly here would still need to know the others
+     */
+    public static int getBeamRiseTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_RISE_TICKS);
+        return (s == null) ? 25 : s.getIntValue();
+    }
+
+    /**
+     * How far into the rise the traveller vanishes.
+     *
+     * @return the configured tick count, unclamped -- see {@link #getBeamRiseTicks()}
+     */
+    public static int getBeamVanishAtStep()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_VANISH_AT_STEP);
+        return (s == null) ? 8 : s.getIntValue();
+    }
+
+    /**
+     * How far into the rise the real teleport fires.
+     *
+     * @return the configured tick count, unclamped -- see {@link #getBeamRiseTicks()}
+     */
+    public static int getBeamTeleportAtStep()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_TELEPORT_AT_STEP);
+        return (s == null) ? 18 : s.getIntValue();
+    }
+
+    /**
+     * How long the column takes to descend into place at the destination.
+     *
+     * @return the configured tick count, unclamped -- see {@link #getBeamRiseTicks()}
+     */
+    public static int getBeamDescendTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_DESCEND_TICKS);
+        return (s == null) ? 20 : s.getIntValue();
     }
 
     /**
