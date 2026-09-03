@@ -248,6 +248,12 @@ so cycles now make noise: the pad opening, one sound per ring as the stack build
 transport itself, the pad closing, and a refusal heard by the player it concerns and nobody
 else.
 
+The transport sound plays at both beats, not just the first. The departure flash sounded at
+both ends the instant a swap began, before anyone had actually moved -- it said a swap was
+happening, not that anyone had arrived. The arrival sweep now sounds too, at the moment
+travellers are already standing at their destination, settled back to the pitch the open and
+close sounds use.
+
 The pitch is what carries it. Each ring leaves a step higher than the one before, which makes
 four repeats of one sound read as a machine rather than four clicks -- and because the pitch
 follows the order rings leave rather than where they end up, the retract falls on its own and

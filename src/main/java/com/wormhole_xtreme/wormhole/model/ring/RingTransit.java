@@ -365,7 +365,9 @@ public final class RingTransit
      * <p>The same sweep reversed, which is what makes the pair of them read as a departure
      * and a landing rather than as one effect played twice. Whoever has just arrived sees it
      * from the beginning at their end, because the far stack has been standing there lit the
-     * whole time waiting for them.
+     * whole time waiting for them. The landing gets its own sound for the same reason the
+     * sweep does: the departure flash played once, at both ends, said "a swap is happening"
+     * -- it did not yet say "you're here."
      *
      * @param cycle
      *            the cycle running
@@ -376,6 +378,10 @@ public final class RingTransit
      */
     private static void runArrival(final RingCycle cycle, final World world, final int step)
     {
+        if (step == 0)
+        {
+            RingSounds.arrived(world, cycle.getPair());
+        }
         if (step >= RingAnimator.flashFrames())
         {
             settleThenRetract(cycle, world);

@@ -579,6 +579,13 @@ where they end up:
 The frames are not shared between ends, and do not need to be: a ceiling ring's rings have
 further to fall, so its stack takes longer to build. Each end climbs at its own pace.
 
+**The transport sound plays twice, not once.** The departure flash sounds at both ends the
+instant the swap begins, at a raised pitch -- but that only says a swap is happening,
+before anyone has actually moved. The arrival sweep that follows plays the same sound again,
+settled to the pitch `opened`/`closed` use, at the moment travellers are already standing at
+their destination. Without it, the visual departure-then-landing pair (see [The transport
+flash](#the-transport-flash)) had only one beat of sound to go with two beats of light.
+
 A refusal is heard by the player it concerns and nobody else. A ring that turns somebody away
 has done nothing the neighbours need to know about, and a busy pad would otherwise be a noise
 complaint.
@@ -786,7 +793,9 @@ Ceiling rings run the same sequence with the travel direction inverted.
 
 With the stack up and still, the light runs through it one ring at a time — **twice, once
 each side of the transport.** Then the rings stand a beat and come home. `rings.flash-ticks`
-is how long each ring stays lit.
+is how long each ring stays lit. Each sweep opens with its own sound (see
+[Sound](#sound)) — a rise for the departure, a settle for the landing — so the two beats of
+light get two beats of noise rather than one shared between them.
 
 **The light always runs towards the pad**, and both sweeps run the same way: down through a
 floor ring's stack, up through a ceiling ring's. That is what the show does, and it is the

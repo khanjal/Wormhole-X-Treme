@@ -61,6 +61,23 @@ public final class RingSounds
     }
 
     /**
+     * Plays the arrival, at both ends.
+     *
+     * <p>The same sound as the departure flash, settled back to the pitch {@link #opened} and
+     * {@link #closed} use. The sweep down and the sweep back are one event told in two beats,
+     * not two different noises -- a rise for the departure, a settle for the landing.
+     *
+     * @param world
+     *            the world the pair is in
+     * @param pair
+     *            the pair delivering
+     */
+    public static void arrived(final World world, final RingPair pair)
+    {
+        atBothEnds(world, pair, ConfigManager.getRingSoundFlash(), 1.0f);
+    }
+
+    /**
      * Plays the closing, at both ends.
      *
      * @param world
