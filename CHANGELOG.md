@@ -281,6 +281,16 @@ the chevrons are for.
 Arriving near a gate that is already dialled now draws its chevrons as well as its portal, so
 a wormhole is never found burning in an unlit frame.
 
+Travellers now surface. Coming out of a gate shows that player a moment of water at eye
+height -- the client draws its underwater overlay from whichever block it thinks its camera is
+in, so one block is the whole effect. Nobody else sees anything and nothing is written.
+
+Half a second by default, and short on purpose: water is physics to the client rather than
+decoration, so for as long as it believes it is submerged it predicts swimming while the
+server disagrees. It is the only drawing in the plugin that makes the client's world less
+solid than the real one, which is the direction that caused the stuck-walking bug in the ring
+pads, so it is kept to a moment and `gate-arrival-splash-ticks: 0` turns it off.
+
 ### Fixes
 
 A closed gate could keep showing its portal. The portal is a drawing in each nearby client's

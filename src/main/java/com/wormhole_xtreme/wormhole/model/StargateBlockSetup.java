@@ -548,6 +548,75 @@ class StargateBlockSetup
     }
 
     /**
+     * Shows a traveller a moment of water as they come out of a gate.
+     *
+     * <p>The client draws its underwater overlay from whichever block it believes its camera
+     * is in, so one block sent at eye height is the whole effect: they surface out of the
+     * event horizon and it clears. Nobody else sees anything, and nothing is written.
+     *
+     * <p>Deliberately brief, and that is not just taste. Water is physics to the client, not
+     * decoration -- for as long as it believes it is submerged it predicts swimming, and the
+     * server does not agree. A short flash is over before that argument can be felt. It is
+     * the one drawing here that makes the client's world <em>less</em> solid than the real
+     * one, which is the direction that caused trouble before, so it is kept to a moment and
+     * can be turned off outright.
+     *
+     * <p>Only sent where the eye is in open air. Water drawn over somebody's ceiling would be
+     * a strange thing to see, and the arrival point is out in the open in any case.
+     *
+     * @param player
+     *            the traveller who has just arrived
+     */
+    public static void splashArrival(final Player player)
+    {
+        final long ticks = com.wormhole_xtreme.wormhole.config.ConfigManager
+            .getGateArrivalSplashTicks();
+        if ((player == null) || (ticks <= 0L) || !player.isOnline())
+        {
+            return;
+        }
+        try
+        {
+            final Block eye = player.getEyeLocation().getBlock();
+            if (!eye.getType().isAir())
+            {
+                return;
+            }
+            final Location at = eye.getLocation();
+            player.sendBlockChange(at, Material.WATER.createBlockData());
+            WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(),
+                new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        if (!player.isOnline())
+                        {
+                            return;
+                        }
+                        try
+                        {
+                            // Read again rather than remember: somebody may have put
+                            // something there in the meantime, and the real block is always
+                            // the right answer.
+                            final Block now = at.getWorld().getBlockAt(at.getBlockX(),
+                                at.getBlockY(), at.getBlockZ());
+                            player.sendBlockChange(at, now.getBlockData());
+                        }
+                        catch (final RuntimeException ignore)
+                        {
+                            // Decoration. Not worth a log line on the travel path.
+                        }
+                    }
+                }, ticks);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // As above.
+        }
+    }
+
+    /**
      * Everyone near enough to a gate to be shown its drawings.
      *
      * <p>Resolved once per call rather than once per block: a gate has tens of blocks and the

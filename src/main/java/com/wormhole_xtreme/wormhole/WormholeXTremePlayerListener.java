@@ -898,6 +898,10 @@ class WormholeXTremePlayerListener implements Listener
                     {
                         try { player.teleport(finalTarget); } catch (final RuntimeException ignore) {}
                     }
+                    // A moment of water, as though they had just surfaced out of the event
+                    // horizon. Sent here rather than at teleport time so it lands after the
+                    // client has been put where it is going.
+                    com.wormhole_xtreme.wormhole.model.StargateManager.splashArrival(player);
                 }
             }, 1L);
         }

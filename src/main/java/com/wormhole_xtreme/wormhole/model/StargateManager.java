@@ -497,6 +497,17 @@ public class StargateManager
     }
 
     /**
+     * Shows a traveller a moment of water as they come out of a gate.
+     *
+     * @param player
+     *            the traveller who has just arrived
+     */
+    public static void splashArrival(final Player player)
+    {
+        StargateBlockSetup.splashArrival(player);
+    }
+
+    /**
      * Forgets which portals a player was being shown.
      *
      * @param uuid

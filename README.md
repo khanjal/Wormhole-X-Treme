@@ -739,6 +739,17 @@ base. `gate-sound-ambient-ticks` is set a little *under* the length of the sound
 so it runs continuously instead of in gasps; shorten it further and it layers on itself, which
 is one way to make a gate sound busier.
 
+#### Coming out of a gate
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-arrival-splash-ticks` | 10 | How long a traveller sees water on arrival, as though surfacing from the event horizon. `0` turns it off. |
+
+Drawn to that one player at eye height — nobody else sees anything and nothing is written to
+the world. Keep it short. Water is physics to the client, not decoration: for as long as it
+believes it is submerged it predicts swimming, the server disagrees, and past about half a
+second that argument starts to be felt as a stumble on landing.
+
 #### Rings
 
 | Setting | Default | When it plays |

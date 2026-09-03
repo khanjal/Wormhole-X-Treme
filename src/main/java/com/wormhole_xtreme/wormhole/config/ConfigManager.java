@@ -121,6 +121,7 @@ public class ConfigManager
         GATE_SOUND_CLOSE,
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
+        GATE_ARRIVAL_SPLASH_TICKS,
         RING_SOUNDS_ENABLED,
         RING_SOUND_VOLUME,
         RING_SOUND_OPEN,
@@ -843,6 +844,21 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_AMBIENT_TICKS);
         return (s == null) ? 70L : Math.max(1L, s.getIntValue());
+    }
+
+    /**
+     * How long a traveller sees water as they come out of a gate.
+     *
+     * <p>Zero turns it off. Kept short by default because the client treats water as physics
+     * rather than decoration and will predict swimming for as long as it believes it is
+     * submerged.
+     *
+     * @return the time in ticks, or zero for no splash
+     */
+    public static long getGateArrivalSplashTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
+        return (s == null) ? 10L : Math.max(0L, s.getIntValue());
     }
 
     /**
