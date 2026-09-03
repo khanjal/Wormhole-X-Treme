@@ -279,6 +279,14 @@ public final class SubCommands
         {
             return args.length == 3 ? shapeNames(args[2]) : none();
         }
+        if (("regenerate".equals(verb) || "regen".equals(verb)) && (args.length == 3))
+        {
+            // -all fixes every gate's arrival point in one pass; alongside gate names so
+            // either is offered without knowing in advance which the admin wants.
+            final java.util.List<String> out = new ArrayList<String>(gateNames(args[2]));
+            out.addAll(prefixed(args[2], "-all"));
+            return out;
+        }
         // Every other verb takes a gate name first, and nothing after it worth guessing at.
         return args.length == 3 ? gateNames(args[2]) : none();
     }

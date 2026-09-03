@@ -203,7 +203,7 @@ Four names cover everything: two nouns that behave the same way, the settings, a
 thing that is neither.
 
 **Gates** — `gate build <shape>`, `gate complete <name> [idc=IDC] [net=NET]`,
-`gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate>`,
+`gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate|-all>`,
 `gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`
 
 `gate edit <gate> <field> [value]` covers everything you set on a gate:
@@ -264,6 +264,13 @@ because the plugin that wrote it needed the same driver.
 is built and then stored, so a gate that landed travellers at its side kept doing it; this is
 the command to reach for. It cannot fix a gate whose *facing* is wrong — if the woosh and the
 sign are on the wrong face too, that one needs rebuilding.
+
+**`gate regenerate -all`** does the same recompute across every gate in one pass, and reports
+how many actually needed it — recomputing is deterministic, so a gate that was already correct
+comes back unchanged and is not counted. It is narrower than running `regenerate` on a single
+gate: it only touches the arrival point, not the dial lever, iris lever, redstone hookup or
+sign that a single-gate regenerate also refreshes, since rewriting those for every gate on the
+server at once is not something an unattended sweep should do on its own.
 
 <details>
 <summary>The old flat commands still work</summary>

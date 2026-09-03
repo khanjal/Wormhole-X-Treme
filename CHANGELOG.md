@@ -28,6 +28,15 @@ from disk -- and without the same check here, an imported gate would land travel
 water forever, even though every other gate in the plugin is guaranteed clear of it. The
 import summary reports how many needed it, the same way loading a YAML file does.
 
+`/wormhole gate regenerate -all` runs the fuller arrival-point recompute -- the one that
+derives an exit from a gate's actual geometry rather than only nudging one that is provably
+stuck inside a portal -- across every gate in one pass, and reports how many genuinely needed
+it. Recomputing is deterministic, so a gate that was already correct comes back unchanged and
+is not counted or rewritten to disk. Deliberately narrower than running `regenerate` on one
+gate by hand: it only touches the arrival point, not the dial lever, iris lever, redstone or
+sign that a single-gate regenerate also refreshes, since rewriting those for every gate on the
+server without anyone looking is a different and much larger thing to do than fixing exits.
+
 The SQLite driver is deliberately not shipped: thirteen megabytes of native libraries for a
 one-time import most servers will never run. It costs nothing to leave out, because any server
 that wrote one of these databases necessarily has the driver already -- the plugin that wrote
