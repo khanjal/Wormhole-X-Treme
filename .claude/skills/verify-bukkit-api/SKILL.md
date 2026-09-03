@@ -5,16 +5,18 @@ description: Verify a Bukkit/Spigot/Paper API's existence, behavior, or version 
 
 # Verifying a Bukkit/Spigot/Paper API claim
 
-This project's supported range is wide (eleven Minecraft versions, three server flavours, one
-jar) and its history has concrete, expensive examples of an API that looked safe from memory
-but genuinely differed by version:
+This project's supported range is wide (1.20 through 1.21.10 — seven versions proven in CI,
+three server flavours, one jar) and its history has concrete, expensive examples of an API
+that looked safe from memory but genuinely differed by version:
 
 - `Material.isBlock()` goes through a live registry from Minecraft **1.20.6** onward, and
   throws rather than answering if called before the server has finished starting. A class
   whose static initialiser called it stayed broken for the life of the JVM on 1.20.6+ while
   working fine on 1.20 through 1.20.4 — invisible until the version matrix actually ran it.
-- `EntityDismountEvent` moved from `org.spigotmc.event.entity` to `org.bukkit.event.entity`
-  exactly at **1.20.4**, which is why that specific version is this plugin's compile target.
+- `EntityDismountEvent` lives in `org.spigotmc.event.entity` through **1.20.4** and in
+  `org.bukkit.event.entity` from **1.20.4** on — 1.20.4 is the only version carrying both, which
+  is exactly why it's this plugin's compile target: the jar compiles against both listeners and
+  chooses one at runtime. The old package is gone from 1.20.6 on, not from 1.20.4.
 - `Attribute.WAYPOINT_TRANSMIT_RANGE` (the locator-bar mechanism) does not exist before
   **1.21.6** — absent through 1.21.4, present from 1.21.6 on, confirmed by disassembling the
   actual enum in each version's jar rather than trusting a javadoc page's version number.
@@ -87,8 +89,8 @@ answer, not something to paper over.
 ## Why this matters more here than in a typical plugin
 
 Most Bukkit plugins target one Minecraft version and get away with assumptions that happen to
-be true for that version. This one deliberately spans eleven versions in a single jar and
-proves the range in CI on every push — which means an assumption that's wrong for even one of
-those versions is a real, immediate, checkable bug, not a hypothetical edge case. The version
-matrix exists to catch exactly this; using this skill *before* writing code catches it earlier
-and cheaper than waiting for CI to catch it after.
+be true for that version. This one deliberately spans 1.20 through 1.21.10 in a single jar and
+proves seven versions across that range in CI on every push — which means an assumption that's
+wrong for even one of those versions is a real, immediate, checkable bug, not a hypothetical
+edge case. The version matrix exists to catch exactly this; using this skill *before* writing
+code catches it earlier and cheaper than waiting for CI to catch it after.
