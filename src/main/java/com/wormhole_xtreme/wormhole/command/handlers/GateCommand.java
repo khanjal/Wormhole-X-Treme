@@ -130,6 +130,11 @@ public class GateCommand implements SubCommand
         }
         sender.sendMessage("Imported " + result.getImported() + " gate"
             + (result.getImported() == 1 ? "" : "s") + ". The old database is untouched.");
+        if (result.getMovedExits() > 0)
+        {
+            sender.sendMessage(result.getMovedExits() + " of those had an arrival point old "
+                + "enough to sit inside the portal, and were moved clear of it.");
+        }
         for (final String skipped : result.getSkipped())
         {
             sender.sendMessage("  skipped " + skipped);

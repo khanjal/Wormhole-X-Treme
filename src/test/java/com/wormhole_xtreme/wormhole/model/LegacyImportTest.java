@@ -56,5 +56,23 @@ public class LegacyImportTest
         final LegacyDatabaseImporter.Result result = LegacyDatabaseImporter.importGates();
         assertNotNull(result.getProblem(), "it should explain, not pretend it worked");
         assertTrue(result.getImported() == 0);
+        assertTrue(result.getMovedExits() == 0,
+            "nothing was imported, so nothing should have had its exit point moved either");
+    }
+
+    @Test
+    public void anImportedGateGetsTheSamePortalSafetyCheckAsAnyOtherGate()
+    {
+        // StargateYamlManager.loadStargates() calls Stargate.normalizeGatePlayerTeleportLocation()
+        // on every gate it reads from disk, specifically because an old enough gate can have
+        // an exit point that sits inside its own portal -- the exact shape of data a legacy
+        // SQLite database holds. The importer has to make the same call, or a gate that
+        // predates that fix keeps landing travellers in the water forever, even though every
+        // other gate in the plugin is now guaranteed clear of it.
+        final java.lang.reflect.Method normalize = java.util.Arrays
+            .stream(Stargate.class.getMethods())
+            .filter(m -> "normalizeGatePlayerTeleportLocation".equals(m.getName()))
+            .findFirst().orElse(null);
+        assertNotNull(normalize, "the safety check the importer depends on must still exist");
     }
 }

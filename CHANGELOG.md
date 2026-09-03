@@ -21,6 +21,13 @@ are skipped rather than replaced, and a gate whose world is not loaded is report
 guessed at. Servers that have such a database and no gates of their own are told once, on
 startup, that the option exists.
 
+An imported gate gets the same arrival-point safety check every other gate does. Some of
+these databases hold gates old enough that their stored exit sits inside the portal itself --
+the same legacy case `StargateYamlManager.loadStargates()` already corrects for gates read
+from disk -- and without the same check here, an imported gate would land travellers in the
+water forever, even though every other gate in the plugin is guaranteed clear of it. The
+import summary reports how many needed it, the same way loading a YAML file does.
+
 The SQLite driver is deliberately not shipped: thirteen megabytes of native libraries for a
 one-time import most servers will never run. It costs nothing to leave out, because any server
 that wrote one of these databases necessarily has the driver already -- the plugin that wrote

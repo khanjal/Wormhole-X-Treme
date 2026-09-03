@@ -46,6 +46,7 @@ public final class LegacyDatabaseImporter
         private final int imported;
         private final List<String> skipped = new ArrayList<String>();
         private final String problem;
+        private int movedExits;
 
         Result(final int imported, final String problem)
         {
@@ -61,6 +62,13 @@ public final class LegacyDatabaseImporter
 
         /** @return what stopped the import entirely, or null if it ran */
         public String getProblem() { return problem; }
+
+        /**
+         * @return how many imported gates had an exit point old enough to sit inside the
+         *         portal, and were moved clear of it -- the same count
+         *         StargateYamlManager.loadStargates reports for the same reason
+         */
+        public int getMovedExits() { return movedExits; }
     }
 
     /** Static helpers only. */
@@ -146,6 +154,9 @@ public final class LegacyDatabaseImporter
 
         int imported = 0;
         final List<String> skipped = new ArrayList<String>();
+        // A one-element holder rather than a second return value: importOne already
+        // returns the skip reason (or null for success), and this rides along with it.
+        final int[] movedExits = { 0 };
         try (Connection connection = DriverManager.getConnection(
                 "jdbc:sqlite:" + db.getAbsolutePath()))
         {
@@ -161,7 +172,7 @@ public final class LegacyDatabaseImporter
                     final String name = column(rows, "Name");
                     try
                     {
-                        final String outcome = importOne(rows, name);
+                        final String outcome = importOne(rows, name, movedExits);
                         if (outcome == null)
                         {
                             imported++;
@@ -186,6 +197,7 @@ public final class LegacyDatabaseImporter
 
         final Result done = new Result(imported, null);
         done.getSkipped().addAll(skipped);
+        done.movedExits = movedExits[0];
         return done;
     }
 
@@ -196,11 +208,15 @@ public final class LegacyDatabaseImporter
      *            the result set, positioned on the gate
      * @param name
      *            the gate's name
+     * @param movedExits
+     *            a one-element counter, incremented when this gate's exit point had to be
+     *            moved clear of the portal
      * @return null if it was imported, or why it was not
      * @throws java.sql.SQLException
      *             if the row cannot be read
      */
-    private static String importOne(final ResultSet rows, final String name)
+    private static String importOne(final ResultSet rows, final String name,
+        final int[] movedExits)
         throws java.sql.SQLException
     {
         if ((name == null) || name.isEmpty())
@@ -247,6 +263,16 @@ public final class LegacyDatabaseImporter
         if (networkName != null && !networkName.isEmpty())
         {
             StargateManager.addGateToNetwork(gate, networkName);
+        }
+        // The same fix StargateYamlManager.loadStargates() applies to every gate it reads:
+        // an exit point old enough to predate this check can sit inside the portal itself,
+        // which is exactly the shape of gate these databases hold. Without this, an
+        // imported gate that never had it applied would still land travellers in the water
+        // they have to swim out of, even though every gate loaded the normal way is
+        // guaranteed clear of it.
+        if (gate.normalizeGatePlayerTeleportLocation())
+        {
+            movedExits[0]++;
         }
         StargateManager.addStargate(gate);
         StargateDBManager.saveStargate(gate);
