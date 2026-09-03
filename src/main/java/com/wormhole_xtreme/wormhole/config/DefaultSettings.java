@@ -39,7 +39,7 @@ class DefaultSettings
         new Setting(ConfigKeys.RING_MAX_PAIRS_PER_PLAYER, 10, "How many ring pairs one player may own. Zero means no limit.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_DEFAULT_ACCESS, "PRIVATE", "What a newly built ring pair starts as: PUBLIC or PRIVATE.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_DEFAULT_STYLE, "CONCURRENT", "How a ring stack deploys: CONCURRENT (all at once) or SEQUENTIAL (one at a time).", "WormholeXTreme"),
-        new Setting(ConfigKeys.RING_DEFAULT_MATERIAL, "STONE_SLAB", "Fallback ring material. Normally unused: a ring keeps whatever slab it was laid in.", "WormholeXTreme"),
+        new Setting(ConfigKeys.RING_DEFAULT_MATERIAL, "SMOOTH_STONE_SLAB", "Fallback ring material, and what a ring is drawn in if the slab it was laid in cannot be read. Normally unused: a ring keeps whatever slab it was built from. SMOOTH_STONE_SLAB is the plain stone slab people picture, not STONE_SLAB, which is the rougher raw-stone one.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_DEFAULT_LIGHT, "GLOWSTONE", "What the ring pad lights up as while it is working.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUNDS_ENABLED, true, "Whether stargates make any noise. Everything below is ignored when this is false.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_VOLUME, 1.5, "How loud gate sounds are. Bukkit scales audible range with volume, so this is a distance knob too: 1.5 carries about twenty-four blocks, which suits something people walk towards.", "WormholeXTreme"),

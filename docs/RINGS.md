@@ -180,7 +180,7 @@ Pairs:
     Created: 1756771200000
     Access: PRIVATE
     Allowed: [11111111-2222-3333-4444-555555555555]
-    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: STONE_SLAB, Built: STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT, Name: Base}
+    A: {X: 128, Y: 64, Z: -310, Orientation: FLOOR, Pattern: ODD, Ring: SMOOTH_STONE_SLAB, Built: SMOOTH_STONE_SLAB, Light: GLOWSTONE, Style: CONCURRENT, Name: Base}
     B: {X: 512, Y: 31, Z: 88, Orientation: CEILING, Pattern: EVEN, Ring: DEEPSLATE_TILE_SLAB, Light: SEA_LANTERN, Style: SEQUENTIAL, Name: Tower}
 ```
 
@@ -926,7 +926,7 @@ rings:
   max-link-distance: 256     # on the ground; 16 chunks. 0 = unlimited
   max-link-height: 384       # in height; the full world. 0 = unlimited
   max-ceiling-drop: 10       # how far a ceiling ring will look for its floor
-  default-ring-material: STONE_SLAB   # fallback only; not what reset goes back to
+  default-ring-material: SMOOTH_STONE_SLAB   # fallback only; not what reset goes back to
   default-light-material: GLOWSTONE
   default-flash-material: GLOWSTONE   # set it apart to make the transport its own moment
   default-access: PRIVATE    # what a newly built pair starts as

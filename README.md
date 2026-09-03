@@ -800,7 +800,7 @@ All under `rings:` in `config.yml`.
 | `default-style` | `CONCURRENT` | How the stack deploys. |
 | `default-light-material` | `GLOWSTONE` | What the pad lights up as. |
 | `default-flash-material` | `GLOWSTONE` | What a ring turns to as the transport light passes. |
-| `default-ring-material` | `STONE_SLAB` | Fallback only; normally read from the template, and not what `reset` uses. |
+| `default-ring-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the template, and not what `reset` uses. This is the plain stone slab, not `STONE_SLAB`, which is the rougher raw-stone one. |
 | `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
 | `outline-ticks` | 40 | How long that outline stays up. |
 

@@ -706,7 +706,7 @@ public class ConfigManager
      */
     public static Material getRingDefaultMaterial()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.STONE_SLAB);
+        return materialSetting(ConfigKeys.RING_DEFAULT_MATERIAL, Material.SMOOTH_STONE_SLAB);
     }
 
     /**

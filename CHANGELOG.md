@@ -89,6 +89,11 @@ Reach is limited in two directions, because ground distance and height are diffe
 questions. A ceiling ring needs a room between four and ten blocks tall -- near enough for
 its rings to reach the floor, far enough for the stack to form.
 
+The fallback ring material is `SMOOTH_STONE_SLAB` -- the plain stone slab people picture, not
+`STONE_SLAB`, which is the rougher raw-stone one added later and reads as halved stone. It is
+normally unused, since a ring keeps whatever slab it was built from, but it is what shows if
+that cannot be read.
+
 `ring edit reset` puts an end's appearance back to the slab it was laid in, not to a
 configured default. Build in quartz, try a colour you do not like, reset, and the quartz comes
 back. The lights and the deploy style have no such history -- nobody builds those -- so those
