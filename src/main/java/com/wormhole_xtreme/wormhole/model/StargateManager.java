@@ -508,6 +508,26 @@ public class StargateManager
     }
 
     /**
+     * Redraws a gate's teleport sign.
+     *
+     * <p>Exists so {@code /wormhole gate regenerate} can ask for it directly. It used to
+     * reach {@link StargateDialManager} through {@code Class.forName} and a reflective
+     * lookup of a package-private method -- reflection into this plugin's own code, which
+     * buys nothing and costs everything: a rename compiles clean, the lookup throws at
+     * runtime, and the catch swallows it. The sign would simply stop being regenerated and
+     * nobody would find out.
+     *
+     * @param gate
+     *            the gate whose sign should be redrawn
+     * @param forward
+     *            true to step the sign's target forward
+     */
+    public static void refreshTeleportSign(final Stargate gate, final boolean forward)
+    {
+        StargateDialManager.teleportSignClicked(gate, forward);
+    }
+
+    /**
      * Forgets which portals a player was being shown.
      *
      * @param uuid

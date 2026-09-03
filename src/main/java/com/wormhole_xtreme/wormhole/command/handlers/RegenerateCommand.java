@@ -47,14 +47,7 @@ public class RegenerateCommand implements SubCommand
                 s.setupGateSign(true);
                 if (s.isGateSignPowered() && s.getGateDialSignBlock() != null)
                 {
-                    try
-                    {
-                        final Class<?> dialManagerClass = Class.forName("com.wormhole_xtreme.wormhole.model.StargateDialManager");
-                        final java.lang.reflect.Method teleportSignClicked = dialManagerClass.getDeclaredMethod("teleportSignClicked", Stargate.class, boolean.class);
-                        teleportSignClicked.setAccessible(true);
-                        teleportSignClicked.invoke(null, s, true);
-                    }
-                    catch (final Throwable ignore) {}
+                    StargateManager.refreshTeleportSign(s, true);
                 }
                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Regenerating Gate: " + s.getGateName());
             }

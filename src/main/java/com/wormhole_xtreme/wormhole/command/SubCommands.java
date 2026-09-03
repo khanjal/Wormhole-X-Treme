@@ -552,7 +552,7 @@ public final class SubCommands
      * within a run and a failed registry lookup is expensive to repeat for every material in
      * the game on every tab press.
      */
-    private static final boolean BLOCK_CHECK_WORKS = probeBlockCheck();
+    private static boolean blockCheckWorks = false;
 
     /**
      * Asks whether the block check is usable.
@@ -588,7 +588,16 @@ public final class SubCommands
      */
     private static boolean isBlock(final org.bukkit.Material material)
     {
-        return !BLOCK_CHECK_WORKS || material.isBlock();
+        // Only a yes is remembered. A no means the registry was not ready when we asked,
+        // and that changes: this class is loaded while the plugin is still enabling, so a
+        // single probe cached at class-init would have recorded "no registry" for the life of
+        // the server and gone on offering every material in the game for ever. Asking again
+        // costs one call until the first time it works.
+        if (!blockCheckWorks)
+        {
+            blockCheckWorks = probeBlockCheck();
+        }
+        return !blockCheckWorks || material.isBlock();
     }
 
     private static List<String> materialNames(final String typed, final boolean slabsOnly)
