@@ -1,6 +1,10 @@
 # Wormhole X-Treme
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
+
+This README is for **server owners** — installing it, configuring it, building gates and
+rings, and running them. If you are writing a plugin that hooks into gate or ring travel, see
+**[docs/API.md](docs/API.md)** instead.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
 There are also **transport rings**: small paired pads set into a floor or ceiling that fire when you walk into them.
 Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
@@ -9,7 +13,7 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Setting up** — [Server Compatibility](#server-compatibility) · [Build](#build) · [Configuration](#configuration) · [Permissions](#permissions) · [Commands](#commands)
 
-**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device-button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
+**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device--button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
 
 **Using gates** — [Redstone activation](#redstone-activation) · [What travels through a gate](#what-travels-through-a-gate) · [Nether and End dimension support](#nether-and-end-dimension-support)
 
@@ -17,9 +21,11 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Sound** — [Gate and ring sounds](#sounds)
 
-**Data and integration** — [Storage](#storage) · [Events for other plugins](#events-for-other-plugins) · [Economy](#economy)
+**Running a server** — [Storage](#storage) · [Economy](#economy) · [Troubleshooting](#troubleshooting)
 
-**Reference** — [Troubleshooting](#troubleshooting) · [Developer notes](#developer-notes) · [Contributing](#contributing)
+**Writing a plugin against this one** — [docs/API.md](docs/API.md)
+
+**Also** — [Contributing](#contributing)
 
 ## Server Compatibility
 
@@ -821,7 +827,7 @@ the same notes in reverse, so it falls on the way home without being told to.
 | `gate-sound-ambient` | `block.conduit.ambient` | A resonant hum instead of open water. |
 | `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |
 
-### Ring settings### Ring settings
+### Ring settings
 
 All under `rings:` in `config.yml`.
 
@@ -920,97 +926,11 @@ a time gains nothing from a database engine, and the drivers were over 95% of th
 download size. If you are coming from an install that used one of them, migrate with a
 build from before their removal, or rebuild the gates.
 
-## Events for other plugins
+## For developers
 
-Gate lifecycle is published as Bukkit events, so another plugin can react without this one
-knowing it exists. Both live in `com.wormhole_xtreme.wormhole.events`.
-
-| Event | Fired |
-| --- | --- |
-| `StargateCreatedEvent` | after a gate is built, named, registered and saved |
-| `StargateRemovedEvent` | while a gate is being removed, before it is torn down |
-| `StargatePlayerTravelEvent` | before a player travels, and **cancellable** |
-| `RingTravelEvent` | before a player is carried by transport rings, and **cancellable** |
-
-```java
-@EventHandler
-public void onGateCreated(final StargateCreatedEvent event)
-{
-    getLogger().info(event.getStargateName() + " built by "
-        + (event.getBuilder() != null ? event.getBuilder().getName() : "no player"));
-}
-```
-
-`getStargate()` gives the gate itself. `getBuilder()` and `getRemover()` give the player
-responsible, and are **null** when the gate was not created or removed by one — check before
-using them.
-
-The removal event fires *before* teardown, so the gate can still be read: name, owner,
-network, blocks and teleport location are all still populated, which is what a listener
-cleaning up its own records needs.
-
-The lifecycle events are not cancellable. Both are sent after the decision has been made
-and, for creation, after the gate is already on disk. To prevent a gate being built, deny
-`wormhole.build` rather than listening for it.
-
-### Rings
-
-`RingTravelEvent` fires once per travelling player, after both ends of the pair have been
-read and before either has been written — so a listener always sees the whole trip as it was
-before any of it happened, never a half-finished one with the people from one end already
-standing in the other.
-
-Cancelling takes that player out of the trip and leaves everybody else in it: the rings still
-fire, and they stay put while the others go. There is no way to cancel a whole cycle, because
-by that point the rings are up and coming down again regardless.
-
-It fires only for players. Mobs, items and vehicles ride along as cargo and raise nothing, so
-cancelling stops a person and not the world around them.
-
-```java
-@EventHandler
-public void onRingTravel(final RingTravelEvent event)
-{
-    if (combatTag.isTagged(event.getPlayer()))
-    {
-        event.setCancelled(true);
-        event.getPlayer().sendMessage("Not while you are in combat.");
-    }
-}
-```
-
-### Watching and stopping travel
-
-`StargatePlayerTravelEvent` fires once every check this plugin makes has passed — permission,
-iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is
-the gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact
-spot the player would land.
-
-```java
-@EventHandler
-public void onTravel(final StargatePlayerTravelEvent event)
-{
-    if (inCombat(event.getPlayer()))
-    {
-        event.setCancelled(true);
-    }
-}
-```
-
-It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It
-does not fire for the vehicle itself, nor for anything travelling on its own, so cancelling
-stops the player rather than the world around them.
-
-A cancelled traveller is held, not moved. If they were walking in they are kept out; if they
-were already standing in the portal they stay free to walk away. Refusing every move of
-someone already inside would leave them unable to leave the ring at all.
-
-A listener that throws does not stop travel. Another plugin failing is not a decision to
-strand somebody halfway into a wormhole.
-
-Refreshing a gate does **not** raise a removal. A refresh deregisters the gate and registers
-it again with freshly detected geometry, which is not the gate going away, so a listener is
-not told to discard what it knows about it.
+Other plugins can listen to gate and ring travel, cancel it, and read where somebody is going.
+That is its own document: **[docs/API.md](docs/API.md)** — the events, what each one carries,
+when it fires relative to the move, and worked examples.
 
 ## Economy
 
@@ -1032,14 +952,6 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 
 - If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
 - Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
-
-## Developer notes
-
-- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
-- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
-- Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
-- `StargateYamlManager` handles per-gate YAML read/write.
-- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
 
 ## Contributing
 

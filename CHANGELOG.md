@@ -43,6 +43,20 @@ is built and then stored, so a gate that landed travellers at its side went on d
 nothing to reach for. It cannot fix a gate whose facing is wrong, since the facing is what it
 trusts.
 
+### Documentation split by audience
+
+The README had grown to a thousand lines serving two readers at once. It is now for **server
+owners** -- installing, configuring, building gates and rings, running them -- and the
+plugin-developer material moved to **docs/API.md**: the events, what each one carries, when it
+fires relative to the move, and worked examples.
+
+That document also writes down something the compiler is unhelpful about: nearly every event
+is in `com.wormhole_xtreme.wormhole.events`, but `StargateMinecartTeleportEvent` is alone in
+`...wormhole.event`, singular. History rather than design, but worth knowing before writing
+the imports. The minecart event is documented properly for the first time as well -- a
+minecart does not survive a gate, it is removed and respawned, which is why the event carries
+both carts.
+
 ### Transport rings
 
 An invisible, permanently paired pad set into a floor or ceiling. Walk into one and it counts
