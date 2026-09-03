@@ -195,7 +195,7 @@ public final class SubCommands
             SubCommands::completeRing);
 
         // --- Beaming ------------------------------------------------------------
-        register("beam", aliases(), "/wormhole beam <name>|list|admin <set|remove>|place <name>|list|set|remove>",
+        register("beam", aliases(), "/wormhole beam <to <name>|list|admin <set|remove>|place <list|set|remove>>",
             new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
             SubCommands::completeBeam);
 
@@ -469,11 +469,17 @@ public final class SubCommands
     {
         if (args.length == 2)
         {
-            final List<String> out = new ArrayList<String>(prefixed(args[1], "list", "admin", "place"));
-            out.addAll(publicBeamNames(args[1]));
-            return out;
+            return prefixed(args[1], "to", "list", "admin", "place");
         }
         final String noun = args[1].toLowerCase();
+        if ("to".equals(noun))
+        {
+            // Only public names are offered here, for the same reason "place remove" cannot
+            // offer place names: a tab completer is not handed the CommandSender, only the
+            // argument array, so there is no "the player asking" to look their own places up
+            // for. Public destinations have no such problem, since they belong to nobody.
+            return args.length == 3 ? publicBeamNames(args[2]) : none();
+        }
         if ("admin".equals(noun))
         {
             if (args.length == 3) return prefixed(args[2], "set", "remove");
@@ -482,9 +488,6 @@ public final class SubCommands
         }
         if ("place".equals(noun))
         {
-            // A place name is not completed even for "remove": a tab completer is not handed
-            // the CommandSender, only the argument array, so there is no "the player asking"
-            // to look place names up for.
             if (args.length == 3) return prefixed(args[2], "list", "set", "remove");
             return none();
         }

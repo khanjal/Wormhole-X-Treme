@@ -9,6 +9,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
+import com.wormhole_xtreme.wormhole.model.beam.BeamSounds;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
 
 /**
@@ -18,12 +19,19 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
  * cooldown and no claim-awareness. Those are follow-up work once the core mechanic — public,
  * admin-curated destinations and private, per-player places — is proven out.
  *
+ * <p>Travel goes through one verb, {@code to}, regardless of whether the name resolves to a
+ * public destination or one of the player's own places. Earlier this took a bare name
+ * (`/wormhole beam &lt;name&gt;`), which sat in the same argument slot as `list`, `admin` and
+ * `place` and read as one more subcommand rather than as "the thing you are travelling to" —
+ * confusing in a way `to` fixes outright, since a name that happens to collide with a verb is
+ * no longer ambiguous once there is a word in front of it saying "what follows is a
+ * destination."
+ *
  * <pre>
- * /wormhole beam &lt;name&gt;              travel to a public destination
+ * /wormhole beam to &lt;name&gt;           travel — checks your own places first, then public
  * /wormhole beam list                 list public destinations
  * /wormhole beam admin set &lt;name&gt;    register a public destination at your location
  * /wormhole beam admin remove &lt;name&gt; remove a public destination
- * /wormhole beam place &lt;name&gt;        travel to one of your own places
  * /wormhole beam place list           list your own places
  * /wormhole beam place set &lt;name&gt;    save your current location as a place
  * /wormhole beam place remove &lt;name&gt; remove one of your own places
@@ -44,12 +52,21 @@ public class BeamCommand implements SubCommand
         if (args.length < 2)
         {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                + "/wormhole beam <name>, beam list, beam admin set|remove <name>, "
-                + "beam place [<name>|list|set <name>|remove <name>]");
+                + "/wormhole beam to <name>, beam list, beam admin set|remove <name>, "
+                + "beam place [list|set <name>|remove <name>]");
             return true;
         }
 
         final String verb = args[1].toLowerCase();
+        if ("to".equals(verb))
+        {
+            if (args.length < 3)
+            {
+                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "/wormhole beam to <name>");
+                return true;
+            }
+            return travelTo(player, args[2]);
+        }
         if ("list".equals(verb))
         {
             return listPublic(player);
@@ -62,21 +79,36 @@ public class BeamCommand implements SubCommand
         {
             return place(player, args);
         }
-        return travelPublic(player, args[1]);
+        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            + "Unknown beam command. Try /wormhole beam to <name>.");
+        return true;
     }
 
-    private boolean travelPublic(final Player player, final String name)
+    /**
+     * Travels to a destination by name, checking the player's own places before the public
+     * list. A private place is a deliberate, personal choice, so it is the one that wins if a
+     * player happens to have named one the same as something public.
+     *
+     * @param player the traveller
+     * @param name the destination name
+     * @return true, always — command handled
+     */
+    private boolean travelTo(final Player player, final String name)
     {
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;
         }
-        final BeamDestination destination = BeamManager.getPublicDestination(name);
+        BeamDestination destination = BeamManager.getPlace(player.getUniqueId(), name);
+        if (destination == null)
+        {
+            destination = BeamManager.getPublicDestination(name);
+        }
         if (destination == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                + "No public beam destination named \"" + name + "\".");
+                + "No destination named \"" + name + "\" among your places or the public list.");
             return true;
         }
         return teleport(player, destination);
@@ -142,7 +174,7 @@ public class BeamCommand implements SubCommand
         if (args.length < 3)
         {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                + "/wormhole beam place <name>|list|set <name>|remove <name>");
+                + "/wormhole beam place list|set <name>|remove <name>");
             return true;
         }
         final String sub = args[2].toLowerCase();
@@ -158,24 +190,13 @@ public class BeamCommand implements SubCommand
         {
             return removePlace(player, args);
         }
-        return travelPlace(player, args[2]);
-    }
-
-    private boolean travelPlace(final Player player, final String name)
-    {
-        if (!BeamPermissions.has(player, BeamPermissions.USE))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            return true;
-        }
-        final BeamDestination place = BeamManager.getPlace(player.getUniqueId(), name);
-        if (place == null)
-        {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                + "You have no place named \"" + name + "\".");
-            return true;
-        }
-        return teleport(player, place);
+        // Travel used to be reachable here too ("beam place <name>"), but that meant the same
+        // destination could be reached two different ways depending on whether it was public
+        // or private. "to" is the one place travel happens now, whatever the destination is.
+        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            + "Unknown. Try /wormhole beam place list|set <name>|remove <name>, "
+            + "or /wormhole beam to <name> to travel.");
+        return true;
     }
 
     private boolean listPlaces(final Player player)
@@ -241,7 +262,12 @@ public class BeamCommand implements SubCommand
                 + "That destination's world is not currently loaded.");
             return true;
         }
+        // Depart before the teleport call so the traveller is still standing at the origin to
+        // hear it, same as anyone nearby watching them go. Arrive after, for the same reason
+        // at the other end.
+        BeamSounds.playDepart(player.getLocation());
         player.teleport(location);
+        BeamSounds.playArrive(location);
         player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Beamed to " + destination.getName() + ".");
         return true;
     }
