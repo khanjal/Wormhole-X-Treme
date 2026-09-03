@@ -64,12 +64,14 @@ owners** -- installing, configuring, building gates and rings, running them -- a
 plugin-developer material moved to **docs/API.md**: the events, what each one carries, when it
 fires relative to the move, and worked examples.
 
-That document also writes down something the compiler is unhelpful about: nearly every event
-is in `com.wormhole_xtreme.wormhole.events`, but `StargateMinecartTeleportEvent` is alone in
-`...wormhole.event`, singular. History rather than design, but worth knowing before writing
-the imports. The minecart event is documented properly for the first time as well -- a
-minecart does not survive a gate, it is removed and respawned, which is why the event carries
-both carts.
+The minecart event is documented properly for the first time as well -- a minecart does not
+survive a gate, it is removed and respawned, which is why the event carries both carts.
+
+**One breaking change.** `StargateMinecartTeleportEvent` moved from
+`com.wormhole_xtreme.wormhole.event` to `...events`, joining every other event. It had been
+alone in the singular package with nothing to justify it, and the compiler error that caused
+did not explain itself. Anyone who wrote against it needs the plural import now; that is a
+cheap fix today and a permanent wart otherwise.
 
 ### Transport rings
 

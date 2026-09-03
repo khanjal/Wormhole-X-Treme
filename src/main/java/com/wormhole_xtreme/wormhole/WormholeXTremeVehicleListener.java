@@ -23,7 +23,7 @@ import org.bukkit.util.Vector;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
-import com.wormhole_xtreme.wormhole.event.StargateMinecartTeleportEvent;
+import com.wormhole_xtreme.wormhole.events.StargateMinecartTeleportEvent;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;

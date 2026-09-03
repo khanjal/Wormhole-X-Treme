@@ -29,10 +29,12 @@ then guard your listener registration on the plugin being present.
 They are ordinary Bukkit events: register a `Listener`, annotate with `@EventHandler`, and
 set `ignoreCancelled = true` if you only care about trips nobody else has already stopped.
 
-One wrinkle worth knowing before you write the imports. Almost everything lives in
-`com.wormhole_xtreme.wormhole.events` — plural — but `StargateMinecartTeleportEvent` sits on
-its own in `com.wormhole_xtreme.wormhole.event`, singular. That is history rather than
-design, and it is written down here because the compiler error it produces is not obvious.
+Every event lives in `com.wormhole_xtreme.wormhole.events`.
+
+Before 1.3.0 that was not quite true: `StargateMinecartTeleportEvent` sat alone in
+`...wormhole.event`, singular. It has moved to join the others. If you wrote against it
+before, that import needs the plural now — the only breaking change in this release, and one
+worth taking while the number of people affected is countable.
 
 ## Events
 
