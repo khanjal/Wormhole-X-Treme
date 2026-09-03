@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
 import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
@@ -23,6 +24,13 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * {@code /wormhole beam to}, and a name that exists only as a gate should read as "no gate or
  * beam destination named that" rather than leak whether a gate by that name exists to someone
  * who cannot use it anyway.
+ *
+ * <p>Both branches run the same {@link BeamAnimation} sequence rather than the gate branch
+ * teleporting instantly. Before this, a gate reached via {@code go} was a blink -- an admin
+ * skipping the walk to a gate got nothing a beamed player did not, and {@code go} felt like
+ * two different commands depending on what it resolved to. It still is not the gate's own
+ * event-horizon woosh, and does not touch it: that effect belongs to actually walking through
+ * a gate, a different moment this command has never played any part in.
  *
  * @author alron
  */
@@ -51,7 +59,7 @@ public class Go implements CommandExecutor
             final Stargate s = StargateManager.getStargate(name);
             if (s != null)
             {
-                player.teleport(s.getGatePlayerTeleportLocation());
+                BeamAnimation.start(player, s.getGatePlayerTeleportLocation(), s.getGateName());
                 return true;
             }
         }

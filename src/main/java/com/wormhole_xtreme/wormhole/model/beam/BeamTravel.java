@@ -49,12 +49,6 @@ public final class BeamTravel
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;
         }
-        if (BeamFreeze.isFrozen(player))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                + "You're already beaming somewhere.");
-            return true;
-        }
         final Location location = destination.toLocation();
         if (location == null)
         {
@@ -62,6 +56,9 @@ public final class BeamTravel
                 + "That destination's world is not currently loaded.");
             return true;
         }
+        // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
+        // there is nothing left to do with its result either way -- this call has handled
+        // the attempt fully regardless of which way it went.
         BeamAnimation.start(player, location, destination.getName());
         return true;
     }

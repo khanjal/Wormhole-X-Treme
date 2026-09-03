@@ -61,10 +61,17 @@ public final class BeamAnimation
      * collapse into beam-up reads as quick by comparison. */
     private static final int ORB_GROW_TICKS = (CHARGE_TICKS * 7) / 10;
 
-    private static final double ORB_MAX_RADIUS = 0.5;
+    private static final double ORB_MAX_RADIUS = 0.4;
 
     /** Roughly chest height above where a player is standing. */
     private static final double ORB_HEIGHT = 1.2;
+
+    /** How many points make up the orb's surface each tick. */
+    private static final int ORB_POINTS = 24;
+
+    /** The angle that spaces points evenly around a sphere when each one turns by it in
+     * turn -- the standard "golden angle" spiral construction, not a magic number. */
+    private static final double GOLDEN_ANGLE = Math.PI * (3.0 - Math.sqrt(5.0));
 
     /**
      * The dust particle, resolved by name rather than referenced as a compile-time constant.
@@ -94,17 +101,28 @@ public final class BeamAnimation
     private BeamAnimation() {}
 
     /**
-     * Starts the sequence. Does nothing but log if the player is already mid-sequence --
-     * {@link BeamFreeze} is the guard against a second beam stacking effects onto the first.
+     * Starts the sequence, unless the player is already mid-beam -- checked and messaged
+     * here, once, rather than by every caller. {@code /wormhole beam to}, {@code /wormhole
+     * go} resolving to a place, and {@code /wormhole go} resolving to a gate all end up here,
+     * so this is the one place that guard needs to live.
      *
      * @param player the traveller
      * @param destination where they are going
      * @param destinationName what to call it once they arrive
+     * @return true if the sequence started; false if they were already beaming somewhere
+     *         (a message has already been sent in that case)
      */
-    public static void start(final Player player, final Location destination, final String destinationName)
+    public static boolean start(final Player player, final Location destination, final String destinationName)
     {
+        if (BeamFreeze.isFrozen(player))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                + "You're already beaming somewhere.");
+            return false;
+        }
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
             new Sequence(player, destination, destinationName), 1L);
+        return true;
     }
 
     private static void spawnColumnParticle(final Location base, final int step, final int totalSteps,
@@ -125,6 +143,12 @@ public final class BeamAnimation
      * The charging orb: grows for most of the charge phase, then collapses quickly, timed to
      * finish right as beam-up takes over.
      *
+     * <p>Points are placed exactly on a sphere's surface (a golden-angle spiral -- the usual
+     * way to space points evenly over one without them clumping at the poles the way a naive
+     * latitude/longitude grid would), rather than scattered through a random offset box the
+     * way {@link #spawnColumnParticle} is. A random box reads as a loose cloud; an evenly
+     * covered shell at this radius reads as one solid ball, which is the point of it.
+     *
      * @param center where the player is standing
      * @param step how far into the charge phase this tick is
      */
@@ -138,9 +162,21 @@ public final class BeamAnimation
         final double radius = step < ORB_GROW_TICKS
             ? ORB_MAX_RADIUS * ((double) step / (double) ORB_GROW_TICKS)
             : ORB_MAX_RADIUS * (1.0 - ((double) (step - ORB_GROW_TICKS) / (double) (CHARGE_TICKS - ORB_GROW_TICKS)));
-        final Location point = center.clone().add(0.0, ORB_HEIGHT, 0.0);
-        world.spawnParticle(DUST_PARTICLE, point, 10, radius, radius, radius, 0.0,
-            new Particle.DustOptions(orbColor(), 1.2f));
+        final Location origin = center.clone().add(0.0, ORB_HEIGHT, 0.0);
+        final Particle.DustOptions options = new Particle.DustOptions(orbColor(), 1.5f);
+        for (int i = 0; i < ORB_POINTS; i++)
+        {
+            // Standard Fibonacci-sphere construction: step latitude evenly from pole to pole,
+            // and turn longitude by the golden angle each time, which is what keeps points
+            // from bunching up along any one line of latitude or longitude.
+            final double y = 1.0 - ((2.0 * i + 1.0) / ORB_POINTS);
+            final double ringRadius = Math.sqrt(Math.max(0.0, 1.0 - (y * y)));
+            final double theta = GOLDEN_ANGLE * i;
+            final double x = Math.cos(theta) * ringRadius;
+            final double z = Math.sin(theta) * ringRadius;
+            final Location point = origin.clone().add(x * radius, y * radius, z * radius);
+            world.spawnParticle(DUST_PARTICLE, point, 1, 0.0, 0.0, 0.0, 0.0, options);
+        }
     }
 
     /**
