@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## 1.3.0 (2026-09-02)
 
+### Holding forward against a locked gate no longer spams chat
+
+Cancelling a move event returns the player to `event.getFrom()` -- the exact spot they tried
+to leave -- so someone holding a movement key against a gate they cannot enter generates a
+fresh event every tick with an identical from/to pair. `refuseGateEntry` sent its message
+unconditionally on every one of those: holding forward against a locked exit, or against a
+gate you just came out of, for a couple of seconds meant a wall of identical chat lines. This
+is the same shape of bug fixed for rings earlier in this release, just not caught here at the
+same time.
+
+Two call sites shared the one method and both had it: walking into the exit end of a
+one-way wormhole, and trying to walk straight back through the gate you just arrived at. Both
+now remember the last gate a player was refused and when, and say nothing again for the same
+gate within two seconds -- the move is still cancelled every time either way, only the
+repeated chat line is suppressed.
+
 ### Gate management was never actually permission-gated
 
 `/wormhole portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth`, `redstone`,

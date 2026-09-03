@@ -411,11 +411,24 @@ class WormholeXTremePlayerListener implements Listener
      *
      * @param player
      *            the player to hold back
+     * @param stargate
+     *            the gate they may not enter
      * @return true, so the caller cancels the move event
      */
-    private static boolean refuseGateEntry(final Player player)
+    private static boolean refuseGateEntry(final Player player, final Stargate stargate)
     {
-        player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+        final java.util.UUID id = player.getUniqueId();
+        final String gateName = stargate.getGateName();
+        final long now = System.currentTimeMillis();
+        final RecentGateRefusal last = recentGateRefusals.get(id);
+        // The move is cancelled either way -- only the chat line is what gets skipped, and
+        // only when it would just be saying the same thing again a moment later.
+        if ((last == null) || !last.gateName.equals(gateName)
+            || ((now - last.atMillis) > GATE_REFUSAL_REMINDER_MILLIS))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+        }
+        recentGateRefusals.put(id, new RecentGateRefusal(gateName, now));
         return true;
     }
 
@@ -583,7 +596,7 @@ class WormholeXTremePlayerListener implements Listener
             final Location fromLoc = event.getFrom();
             if (!stargate.isGatePortalBlockAt(fromLoc.getBlockX(), fromLoc.getBlockY(), fromLoc.getBlockZ()))
             {
-                return refuseGateEntry(player);
+                return refuseGateEntry(player, stargate);
             }
             return false;
         }
@@ -645,7 +658,7 @@ class WormholeXTremePlayerListener implements Listener
         // Prevent immediate re-entry to the gate the player just exited from.
         if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
         {
-            return refuseGateEntry(player);
+            return refuseGateEntry(player, stargate);
         }
 
         if (ConfigManager.isUseCooldownEnabled())
@@ -1151,6 +1164,35 @@ class WormholeXTremePlayerListener implements Listener
         java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /**
+     * The one-way-gate refusal a player was most recently told about, and when.
+     *
+     * <p>Holding forward against a gate that cannot be entered from outside cancels the
+     * move every tick, and each cancelled move returns the player to the exact spot they
+     * tried to leave -- so the next tick looks identical to this one, and without this a
+     * player who simply keeps walking gets the same chat line every tick until they let go.
+     * Remembered per player rather than gated on movement, since a cancelled move by
+     * definition never goes anywhere different to notice.
+     */
+    private static final java.util.Map<java.util.UUID, RecentGateRefusal> recentGateRefusals =
+        new java.util.concurrent.ConcurrentHashMap<java.util.UUID, RecentGateRefusal>();
+
+    /** How long a refusal stays remembered before the same gate is worth mentioning again. */
+    private static final long GATE_REFUSAL_REMINDER_MILLIS = 2000L;
+
+    /** Which gate a player was told they could not enter, and when. */
+    private static final class RecentGateRefusal
+    {
+        private final String gateName;
+        private final long atMillis;
+
+        RecentGateRefusal(final String gateName, final long atMillis)
+        {
+            this.gateName = gateName;
+            this.atMillis = atMillis;
+        }
+    }
+
+    /**
      * Grants or withdraws the flight exemption a player needs to stand in a portal.
      *
      * <p>A portal is AIR on the server with the portal material drawn over it on the
@@ -1315,6 +1357,7 @@ class WormholeXTremePlayerListener implements Listener
     public void onPlayerQuit(final PlayerQuitEvent event)
     {
         portalFlightGranted.remove(event.getPlayer().getUniqueId());
+        recentGateRefusals.remove(event.getPlayer().getUniqueId());
         // A client that has gone takes its drawings with it, and the next one to log in on
         // that account gets fresh chunks anyway.
         com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(
