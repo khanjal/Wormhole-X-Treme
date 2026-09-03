@@ -20,6 +20,54 @@ public class Compass implements CommandExecutor
 {
 
     /**
+     * Says so when the heading has been set but nothing will show it.
+     *
+     * <p>Setting a compass target does not need a compass and does not fail without one --
+     * the heading is stored against the player either way. Which means the command reports
+     * success and then appears to do nothing at all, which is the least helpful outcome
+     * available.
+     *
+     * <p>Two ways that happens. Having no compass is the obvious one. The other is holding a
+     * compass bound to a lodestone: those point at their lodestone and ignore the target
+     * entirely, so the one item the player is looking at is the one that will not move.
+     *
+     * <p>Neither is an error. The heading is set and will be there when they pick up a plain
+     * compass, so this explains rather than refuses.
+     *
+     * @param player
+     *            the player who asked
+     */
+    private static void warnIfNothingWillShowIt(final Player player)
+    {
+        try
+        {
+            if (!player.getInventory().contains(org.bukkit.Material.COMPASS))
+            {
+                player.sendMessage("You have no compass. The heading is set and waiting -- "
+                    + "it will point there as soon as you are holding one.");
+                return;
+            }
+            for (final org.bukkit.inventory.ItemStack held : new org.bukkit.inventory.ItemStack[] {
+                player.getInventory().getItemInMainHand(),
+                player.getInventory().getItemInOffHand() })
+            {
+                if ((held != null) && (held.getType() == org.bukkit.Material.COMPASS)
+                    && (held.getItemMeta() instanceof org.bukkit.inventory.meta.CompassMeta)
+                    && ((org.bukkit.inventory.meta.CompassMeta) held.getItemMeta()).hasLodestone())
+                {
+                    player.sendMessage("The compass you are holding is bound to a lodestone, "
+                        + "so it will keep pointing there. A plain compass will show the gate.");
+                    return;
+                }
+            }
+        }
+        catch (final RuntimeException ignored)
+        {
+            // Advice about an inventory is not worth failing the command over.
+        }
+    }
+
+    /**
      * Do compass.
      * 
      * @param player
@@ -35,6 +83,7 @@ public class Compass implements CommandExecutor
             {
                 player.setCompassTarget(closest.getGatePlayerTeleportLocation());
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Compass set to wormhole: " + closest.getGateName());
+                warnIfNothingWillShowIt(player);
             }
             else
             {

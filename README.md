@@ -231,6 +231,11 @@ immediately — there is nothing to reload and no restart.
 
 **Other** — `compass` points your compass at the nearest gate.
 
+You do not need to be holding a compass for `compass` to work — the heading is stored against
+you either way, and will be there when you pick one up. It says so if you have none, and it
+says so if the compass you are holding is bound to a lodestone, since those point at their
+lodestone and ignore the heading entirely.
+
 `gate edit group` changes what the gate *draws* — its portal, lights and iris. It leaves the
 frame blocks alone, because those are real blocks somebody built and rewriting them is not
 what changing a gate's group should quietly mean.

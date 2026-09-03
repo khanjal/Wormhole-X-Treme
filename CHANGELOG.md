@@ -43,6 +43,12 @@ is built and then stored, so a gate that landed travellers at its side went on d
 nothing to reach for. It cannot fix a gate whose facing is wrong, since the facing is what it
 trusts.
 
+`compass` explains itself when nothing will show the result. Setting a compass heading does
+not need a compass and does not fail without one, so the command used to report success and
+then appear to do nothing -- either because the player had no compass at all, or because the
+one in their hand was bound to a lodestone and points there regardless. Neither is an error,
+so it explains rather than refuses: the heading is set and waiting for a plain compass.
+
 ### Documentation split by audience
 
 The README had grown to a thousand lines serving two readers at once. It is now for **server
