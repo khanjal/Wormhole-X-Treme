@@ -12,7 +12,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Runs the beam sequence: charge, beam up, teleport mid-beam-up, beam down, reveal.
+ * Runs the beam sequence: charge (an orb grows then collapses), beam up, teleport mid-beam-up,
+ * beam down, an orb re-forms at the destination, reveal.
  *
  * <p>Reference sequence this follows, worked out in design discussion before any of it was
  * code: the traveller glows, vanishes, and a beam rises from where they stood; at the
@@ -52,14 +53,16 @@ public final class BeamAnimation
     /** A column of particles descends at the destination before the reveal. */
     private static final int BEAM_DOWN_TICKS = 20;
 
+    /** An orb re-forms at the destination once beam-down finishes, mirroring the one that
+     * collapsed into beam-up at the origin -- the traveller is still invisible to everyone
+     * else through this, same as the rest of the trip, and it is what the reveal resolves out
+     * of rather than the player just popping into view once the column stops. */
+    private static final int LAND_ORB_TICKS = 20;
+
     /** How long the traveller stays glowing (and everyone can see it) once revealed. */
     private static final int REVEAL_TICKS = 15;
 
     private static final int COLUMN_HEIGHT = 3;
-
-    /** How far the charging orb grows before it collapses -- most of the charge, so the
-     * collapse into beam-up reads as quick by comparison. */
-    private static final int ORB_GROW_TICKS = (CHARGE_TICKS * 7) / 10;
 
     private static final double ORB_MAX_RADIUS = 0.4;
 
@@ -140,8 +143,10 @@ public final class BeamAnimation
     }
 
     /**
-     * The charging orb: grows for most of the charge phase, then collapses quickly, timed to
-     * finish right as beam-up takes over.
+     * The orb: grows for most of a phase, then collapses quickly. Used twice -- charging at
+     * the origin, where it collapses into beam-up, and re-forming at the destination once
+     * beam-down finishes, where it collapses into the reveal -- so the trip opens and closes
+     * on the same shape rather than the arrival just stopping.
      *
      * <p>Points are placed exactly on a sphere's surface (a golden-angle spiral -- the usual
      * way to space points evenly over one without them clumping at the poles the way a naive
@@ -150,18 +155,20 @@ public final class BeamAnimation
      * covered shell at this radius reads as one solid ball, which is the point of it.
      *
      * @param center where the player is standing
-     * @param step how far into the charge phase this tick is
+     * @param step how far into this orb's phase this tick is
+     * @param totalTicks how long this phase lasts
      */
-    private static void spawnOrbParticle(final Location center, final int step)
+    private static void spawnOrbParticle(final Location center, final int step, final int totalTicks)
     {
         final World world = center.getWorld();
         if (world == null)
         {
             return;
         }
-        final double radius = step < ORB_GROW_TICKS
-            ? ORB_MAX_RADIUS * ((double) step / (double) ORB_GROW_TICKS)
-            : ORB_MAX_RADIUS * (1.0 - ((double) (step - ORB_GROW_TICKS) / (double) (CHARGE_TICKS - ORB_GROW_TICKS)));
+        final int growTicks = (totalTicks * 7) / 10;
+        final double radius = step < growTicks
+            ? ORB_MAX_RADIUS * ((double) step / (double) growTicks)
+            : ORB_MAX_RADIUS * (1.0 - ((double) (step - growTicks) / (double) (totalTicks - growTicks)));
         final Location origin = center.clone().add(0.0, ORB_HEIGHT, 0.0);
         final Particle.DustOptions options = new Particle.DustOptions(orbColor(), 1.5f);
         for (int i = 0; i < ORB_POINTS; i++)
@@ -241,13 +248,14 @@ public final class BeamAnimation
 
             if (tick < CHARGE_TICKS)
             {
-                spawnOrbParticle(origin, tick);
+                spawnOrbParticle(origin, tick, CHARGE_TICKS);
             }
 
             if (tick == CHARGE_TICKS)
             {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    (BEAM_UP_TICKS - TELEPORT_AT_STEP) + BEAM_DOWN_TICKS + REVEAL_TICKS, 0, false, false));
+                    (BEAM_UP_TICKS - TELEPORT_AT_STEP) + BEAM_DOWN_TICKS + LAND_ORB_TICKS + REVEAL_TICKS,
+                    0, false, false));
             }
 
             if ((tick >= CHARGE_TICKS) && (tick < CHARGE_TICKS + BEAM_UP_TICKS))
@@ -265,17 +273,29 @@ public final class BeamAnimation
             if (teleported)
             {
                 final int sinceTeleport = tick - (CHARGE_TICKS + TELEPORT_AT_STEP);
+
                 if (sinceTeleport < BEAM_DOWN_TICKS)
                 {
                     spawnColumnParticle(destination, sinceTeleport, BEAM_DOWN_TICKS, false);
                 }
-                else if (sinceTeleport == BEAM_DOWN_TICKS)
+
+                if (sinceTeleport == BEAM_DOWN_TICKS)
                 {
                     BeamSounds.playArrive(destination);
+                }
+
+                if ((sinceTeleport >= BEAM_DOWN_TICKS) && (sinceTeleport < BEAM_DOWN_TICKS + LAND_ORB_TICKS))
+                {
+                    spawnOrbParticle(destination, sinceTeleport - BEAM_DOWN_TICKS, LAND_ORB_TICKS);
+                }
+
+                if (sinceTeleport == BEAM_DOWN_TICKS + LAND_ORB_TICKS)
+                {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, REVEAL_TICKS, 0, false, false));
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
                 }
-                else if (sinceTeleport >= BEAM_DOWN_TICKS + REVEAL_TICKS)
+
+                if (sinceTeleport >= BEAM_DOWN_TICKS + LAND_ORB_TICKS + REVEAL_TICKS)
                 {
                     BeamFreeze.unfreeze(player);
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
