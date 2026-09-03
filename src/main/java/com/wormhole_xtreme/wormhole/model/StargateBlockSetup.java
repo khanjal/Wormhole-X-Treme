@@ -548,6 +548,115 @@ class StargateBlockSetup
     }
 
     /**
+     * Everyone near enough to a gate to be shown its drawings.
+     *
+     * <p>Resolved once per call rather than once per block: a gate has tens of blocks and the
+     * woosh redraws them every frame, so a per-block player scan multiplies quickly.
+     *
+     * @param gate
+     *            the gate being drawn
+     * @return the players to send to, empty if nobody is close
+     */
+    private static List<Player> nearby(final Stargate gate)
+    {
+        final List<Player> recipients = new ArrayList<Player>();
+        if ((gate == null) || (gate.getGateWorld() == null))
+        {
+            return recipients;
+        }
+        final Location reference = gate.getGateNameBlockHolder() != null
+            ? gate.getGateNameBlockHolder().getLocation()
+            : gate.getGatePlayerTeleportLocation();
+        if (reference == null)
+        {
+            return recipients;
+        }
+        for (final Player p : gate.getGateWorld().getPlayers())
+        {
+            if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
+            {
+                recipients.add(p);
+            }
+        }
+        return recipients;
+    }
+
+    /**
+     * Shows nearby clients a set of blocks as something they are not.
+     *
+     * <p>Nothing is written to the world. The chevrons and the woosh used to be real blocks,
+     * which meant a server that stopped mid-dial left lit chevrons welded into the frame and
+     * a half-expanded woosh hanging in the air, with the originals it would have restored
+     * from having died with the process. A drawing cannot outlive the thing that drew it.
+     *
+     * @param gate
+     *            the gate the blocks belong to
+     * @param blocks
+     *            the positions to draw
+     * @param material
+     *            what to show there
+     */
+    public static void drawBlocks(final Stargate gate, final List<Location> blocks,
+        final Material material)
+    {
+        if ((blocks == null) || blocks.isEmpty())
+        {
+            return;
+        }
+        final List<Player> recipients = nearby(gate);
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        // Built only once nobody-is-watching has been ruled out: createBlockData() needs a
+        // live server, and the woosh calls this every frame.
+        final BlockData blockData = material.createBlockData();
+        for (final Location bc : blocks)
+        {
+            final Location at = new Location(gate.getGateWorld(),
+                bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(at, blockData);
+            }
+        }
+    }
+
+    /**
+     * Puts a set of drawn blocks back to whatever is really there.
+     *
+     * <p>Read from the world rather than remembered, which is the whole advantage of drawing:
+     * there is no original to keep, because nothing was ever changed.
+     *
+     * @param gate
+     *            the gate the blocks belong to
+     * @param blocks
+     *            the positions to put back
+     */
+    public static void undrawBlocks(final Stargate gate, final List<Location> blocks)
+    {
+        if ((blocks == null) || blocks.isEmpty())
+        {
+            return;
+        }
+        final List<Player> recipients = nearby(gate);
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        for (final Location bc : blocks)
+        {
+            final Block real = gate.getGateWorld()
+                .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            final BlockData realData = real.getBlockData();
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(real.getLocation(), realData);
+            }
+        }
+    }
+
+    /**
      * Redraws every open gate's portal for one player.
      *
      * <p>The portal is not a block in the world — the server keeps AIR there so travellers
@@ -588,6 +697,12 @@ class StargateBlockSetup
                 player.sendBlockChange(
                     new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
                     blockData);
+            }
+            // The chevrons are a drawing too now, so somebody who arrives after the gate
+            // dialled would otherwise find a lit wormhole in an unlit frame.
+            if (gate.isGateLightsActive())
+            {
+                sendLights(player, gate, gate.getEffectiveLightMaterial().createBlockData());
             }
             stillOpen.add(gate.getGateName());
         }
@@ -634,6 +749,40 @@ class StargateBlockSetup
             final Block real = gate.getGateWorld()
                 .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             player.sendBlockChange(real.getLocation(), real.getBlockData());
+        }
+        sendLights(player, gate, null);
+    }
+
+    /**
+     * Sends one player every light block of a gate.
+     *
+     * @param player
+     *            the player to send to
+     * @param gate
+     *            the gate whose chevrons these are
+     * @param lit
+     *            what to show, or null to show whatever is really there
+     */
+    private static void sendLights(final Player player, final Stargate gate, final BlockData lit)
+    {
+        final List<java.util.ArrayList<Location>> groups = gate.getGateLightBlocks();
+        if (groups == null)
+        {
+            return;
+        }
+        for (final java.util.ArrayList<Location> group : groups)
+        {
+            if (group == null)
+            {
+                continue;
+            }
+            for (final Location bc : group)
+            {
+                final Block real = gate.getGateWorld()
+                    .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+                player.sendBlockChange(real.getLocation(),
+                    (lit != null) ? lit : real.getBlockData());
+            }
         }
     }
 

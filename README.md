@@ -725,18 +725,19 @@ and `1.5` about twenty-four. Turning a volume down makes a sound more local, not
 | `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
 | `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
 | `gate-sound-kawoosh` | `block.end_portal.spawn` | Once, as the wormhole establishes. |
-| `gate-sound-ambient` | `block.conduit.ambient` | On repeat, while the wormhole stands open. |
-| `gate-sound-ambient-ticks` | 80 | How often the hum repeats. Four seconds, about the length of the default sound. |
+| `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
+| `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
 
 The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
 seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in
 bigger steps.
 
-The hum plays at 40% of `gate-sound-volume`, because an open wormhole is a background rather
-than an event, and that keeps it something you hear near the gate rather than across a base.
-If you shorten `gate-sound-ambient-ticks` below the length of the sound you have chosen, it
-will layer on itself — which is a way to make a gate sound busier, if that is what you want.
+The water plays at 40% of `gate-sound-volume`, because an open wormhole is a background
+rather than an event, and that keeps it something you hear near the gate rather than across a
+base. `gate-sound-ambient-ticks` is set a little *under* the length of the sound on purpose,
+so it runs continuously instead of in gasps; shorten it further and it layers on itself, which
+is one way to make a gate sound busier.
 
 #### Rings
 
@@ -760,7 +761,7 @@ the same notes in reverse, so it falls on the way home without being told to.
 |---|---|---|
 | `gate-sound-kawoosh` | `entity.generic.explode` | A blunter, heavier open. |
 | `gate-sound-chevron` | `block.piston.contract` | A heavier clunk, if the trapdoor reads as a trapdoor. |
-| `gate-sound-ambient` | `block.beacon.ambient` | A drier hum, less watery. |
+| `gate-sound-ambient` | `block.conduit.ambient` | A resonant hum instead of open water. |
 | `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |
 
 ### Ring settings### Ring settings

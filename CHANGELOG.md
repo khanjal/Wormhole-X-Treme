@@ -244,7 +244,9 @@ shape actually has rather than across an assumed seven. A three-chevron gate sta
 on the same notes as a seven-chevron one, in bigger steps. It is driven off the same counter
 that drives the lights, so the sound cannot drift out of step with what it is describing.
 
-An open wormhole also hums, on repeat, until it closes. One sweep over the open gates drives
+An open wormhole also runs, on repeat, until it closes -- `ambient.underwater.loop`, because an
+event horizon looks like water and behaves like it, so that is the one ambience needing no
+explanation. One sweep over the open gates drives
 it rather than a task per gate -- the work is the same, and there is nothing per-gate to
 cancel or leak when a gate is removed with its wormhole up. It plays at 40% of the gate volume
 because a standing wormhole is a background rather than an event, and because Bukkit ties
@@ -253,6 +255,31 @@ range to volume that also keeps it near the gate rather than across a base.
 Configured the same way as ring sounds, by name, with `gate-sounds-enabled` over all of it.
 The README has both sets in one place, with the settings, what each one is for, and some
 alternatives worth trying.
+
+### Nothing a gate does is written to the world any more
+
+The portal was already a drawing sent to nearby clients. The chevrons and the woosh were not:
+both called `setType`, so dialling a gate really did place glowstone in the frame and really
+did push portal material out into the air around it.
+
+That carried the problems the portal had already been moved away from. A server that stopped
+mid-dial left lit chevrons welded into the frame and a half-expanded woosh hanging in the air,
+with the original materials it would have restored from having died with the process. Block
+loggers recorded every chevron and every woosh frame. And for the seconds a chevron stood lit
+it was an ordinary breakable glowstone block -- the same free-glowstone trade that decided
+this question for the transport rings.
+
+Both are drawings now. The bookkeeping they needed goes with them: there is no original
+material to remember, because nothing is changed, and putting a drawing away is just showing
+the client what was always there. A drawing also cannot outlive the process that drew it,
+which is the whole point.
+
+The one thing given up is real light. A drawn glowstone looks lit and illuminates nothing, so
+a dialled gate no longer brightens the room around it. It still reads as lit, which is what
+the chevrons are for.
+
+Arriving near a gate that is already dialled now draws its chevrons as well as its portal, so
+a wormhole is never found burning in an unlit frame.
 
 ### Fixes
 

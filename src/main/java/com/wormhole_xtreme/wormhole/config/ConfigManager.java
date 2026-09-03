@@ -821,11 +821,14 @@ public class ConfigManager
     /**
      * The sound an open wormhole makes while it stands there.
      *
+     * <p>Running water, as in the show. An event horizon looks like water and behaves like
+     * it, so it is the one ambience that needs no explaining.
+     *
      * @return the sound name, or empty for silence
      */
     public static String getGateSoundAmbient()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "block.conduit.ambient");
+        return soundSetting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop");
     }
 
     /**
@@ -839,7 +842,7 @@ public class ConfigManager
     public static long getGateSoundAmbientTicks()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_SOUND_AMBIENT_TICKS);
-        return (s == null) ? 80L : Math.max(1L, s.getIntValue());
+        return (s == null) ? 70L : Math.max(1L, s.getIntValue());
     }
 
     /**
