@@ -51,10 +51,11 @@ public final class BeamAnimation
      * {@link #SHRINK_TICKS} on arrival. */
     private static final int GROW_TICKS = 15;
 
-    /** How far into the grow the traveller actually vanishes -- roughly the midpoint, so the
-     * column is visibly building around them for a beat first rather than them disappearing
-     * the instant the command runs. */
-    private static final int VANISH_AT_STEP = GROW_TICKS / 2;
+    /** How far into the grow the traveller actually vanishes -- the full grow, so they stay
+     * visible through the whole column building around them and only disappear right as it
+     * departs, rather than mid-build with the column still finishing around someone no longer
+     * there to be seen next to it. */
+    private static final int VANISH_AT_STEP = GROW_TICKS;
 
     /** The now-full-height column climbs and departs upward at the origin. */
     private static final int RISE_TICKS = 20;
