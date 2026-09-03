@@ -11,10 +11,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Runs the beam sequence: the moment the command runs, a column grows out of where the
- * traveller is standing and departs upward -- teleport fires mid-rise -- then at the
- * destination a column descends into place and shrinks back into the traveller, which is what
- * reveals them.
+ * Runs the beam sequence: the moment the command runs, a column starts growing out of where
+ * the traveller is standing -- they vanish partway through that growth, not instantly -- then
+ * departs upward once fully grown, teleport firing mid-rise, then at the destination a column
+ * descends into place and shrinks back into the traveller, which is what reveals them.
  *
  * <p>Reference sequence this follows, worked out in design discussion before any of it was
  * code: the traveller vanishes and a beam rises from where they stood; at the destination a
@@ -50,6 +50,11 @@ public final class BeamAnimation
     /** The column grows from nothing, rooted at the traveller, up to full height. Mirrored by
      * {@link #SHRINK_TICKS} on arrival. */
     private static final int GROW_TICKS = 15;
+
+    /** How far into the grow the traveller actually vanishes -- roughly the midpoint, so the
+     * column is visibly building around them for a beat first rather than them disappearing
+     * the instant the command runs. */
+    private static final int VANISH_AT_STEP = GROW_TICKS / 2;
 
     /** The now-full-height column climbs and departs upward at the origin. */
     private static final int RISE_TICKS = 20;
@@ -162,17 +167,21 @@ public final class BeamAnimation
             if (tick == 0)
             {
                 BeamFreeze.freeze(player);
-                // Invisibility has to outlast everything from here to the flow-in at the end.
-                // GROW_TICKS plus the full RISE_TICKS is an over-estimate of when teleport
-                // actually fires (it fires TELEPORT_AT_STEP into the rise, not at the end of
-                // it), which is fine -- explicit removal once the column shrinks fully is what
-                // the timing actually depends on, and this is only a ceiling against that
-                // removal being late.
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    GROW_TICKS + RISE_TICKS + DESCEND_TICKS + SHRINK_TICKS, 0, false, false));
                 BeamSounds.playCharge(origin);
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                     + "Beaming to " + destinationName + "...");
+            }
+
+            if (tick == VANISH_AT_STEP)
+            {
+                // Invisibility has to outlast everything from here to the flow-in at the end.
+                // The remainder of GROW_TICKS plus the full RISE_TICKS is an over-estimate of
+                // when teleport actually fires (it fires TELEPORT_AT_STEP into the rise, not
+                // at the end of it), which is fine -- explicit removal once the column shrinks
+                // fully is what the timing actually depends on, and this is only a ceiling
+                // against that removal being late.
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
+                    (GROW_TICKS - VANISH_AT_STEP) + RISE_TICKS + DESCEND_TICKS + SHRINK_TICKS, 0, false, false));
             }
 
             if (tick < GROW_TICKS)
