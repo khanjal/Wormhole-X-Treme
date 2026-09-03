@@ -478,6 +478,9 @@ class StargateBlockSetup
     /** Radius, in blocks, within which clients are sent portal visual updates. */
     private static final double VISUAL_RADIUS = 64.0;
 
+    /** How often the arrival splash is redrawn while it is showing, in ticks. */
+    private static final long SPLASH_REDRAW_INTERVAL = 2L;
+
     /**
      * Which gates each player is currently being shown a portal for.
      *
@@ -583,37 +586,77 @@ class StargateBlockSetup
                 return;
             }
             final Location at = eye.getLocation();
-            player.sendBlockChange(at, Material.WATER.createBlockData());
-            WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(),
-                new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        if (!player.isOnline())
-                        {
-                            return;
-                        }
-                        try
-                        {
-                            // Read again rather than remember: somebody may have put
-                            // something there in the meantime, and the real block is always
-                            // the right answer.
-                            final Block now = at.getWorld().getBlockAt(at.getBlockX(),
-                                at.getBlockY(), at.getBlockZ());
-                            player.sendBlockChange(at, now.getBlockData());
-                        }
-                        catch (final RuntimeException ignore)
-                        {
-                            // Decoration. Not worth a log line on the travel path.
-                        }
-                    }
-                }, ticks);
+            // Drawn again every couple of ticks rather than once. An arrival hands the
+            // client a fresh copy of the chunk, and a fresh copy erases anything drawn into
+            // the old one -- so a single block change lands before the chunk does and is
+            // wiped by it. How long that takes is not observable from here and is not fixed:
+            // a hop to a nearby gate reuses chunks the client already has, while a trip
+            // across the world makes it fetch everything from scratch. The portal redraw
+            // above hit exactly this and answered it the same way.
+            for (long t = 0L; t < ticks; t += SPLASH_REDRAW_INTERVAL)
+            {
+                drawSplash(player, at, true, t);
+            }
+            drawSplash(player, at, false, ticks);
         }
         catch (final RuntimeException ignore)
         {
-            // As above.
+            // Decoration. Not worth a log line on the travel path.
         }
+    }
+
+    /**
+     * Draws or clears the arrival splash after a delay.
+     *
+     * @param player
+     *            the traveller
+     * @param at
+     *            the block their eye was in when they landed
+     * @param water
+     *            true to show water, false to put the real block back
+     * @param delay
+     *            how many ticks to wait
+     */
+    private static void drawSplash(final Player player, final Location at, final boolean water,
+        final long delay)
+    {
+        WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (!player.isOnline())
+                    {
+                        return;
+                    }
+                    try
+                    {
+                        if (water)
+                        {
+                            // Only while they are still in it. Somebody who has walked on is
+                            // no longer surfacing, and redrawing would put water behind them.
+                            if (player.getEyeLocation().getBlock().getLocation().equals(at))
+                            {
+                                player.sendBlockChange(at, Material.WATER.createBlockData());
+                            }
+                            return;
+                        }
+                        // Read again rather than remember: somebody may have put something
+                        // there in the meantime, and the real block is always the right
+                        // answer. A chunk arriving later than this shows the truth anyway,
+                        // so the failure that is left over is a splash nobody saw rather
+                        // than water nobody can clear.
+                        final Block now = at.getWorld().getBlockAt(at.getBlockX(),
+                            at.getBlockY(), at.getBlockZ());
+                        player.sendBlockChange(at, now.getBlockData());
+                    }
+                    catch (final RuntimeException ignore)
+                    {
+                        // As above.
+                    }
+                }
+            }, Math.max(1L, delay));
     }
 
     /**

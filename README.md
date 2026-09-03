@@ -745,12 +745,20 @@ is one way to make a gate sound busier.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `gate-arrival-splash-ticks` | 10 | How long a traveller sees water on arrival, as though surfacing from the event horizon. `0` turns it off. |
+| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival, as though surfacing from the event horizon. `0` turns it off. |
 
 Drawn to that one player at eye height — nobody else sees anything and nothing is written to
-the world. Keep it short. Water is physics to the client, not decoration: for as long as it
-believes it is submerged it predicts swimming, the server disagrees, and past about half a
-second that argument starts to be felt as a stumble on landing.
+the world.
+
+The setting is both how long the water shows and how long it keeps being redrawn. Arriving
+hands the client a fresh copy of the chunk, and a fresh copy erases anything drawn into the
+old one — so a single block change lands *before* the chunk does on any trip long enough to
+need loading, and is wiped by it. If you travel far and see nothing, raise this: the window
+has to outlast the load.
+
+Do not raise it far, though. Water is physics to the client, not decoration: for as long as it
+believes it is submerged it predicts swimming, the server disagrees, and eventually that
+argument is felt as a stumble on landing.
 
 #### Rings
 

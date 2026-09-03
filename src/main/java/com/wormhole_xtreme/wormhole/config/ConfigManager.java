@@ -871,16 +871,21 @@ public class ConfigManager
     /**
      * How long a traveller sees water as they come out of a gate.
      *
-     * <p>Zero turns it off. Kept short by default because the client treats water as physics
-     * rather than decoration and will predict swimming for as long as it believes it is
-     * submerged.
+     * <p>Zero turns it off. This is both how long the water shows and how long the plugin
+     * keeps redrawing it, because an arrival hands the client a fresh copy of the chunk and
+     * that erases anything drawn into the old one. A trip far enough that the client is still
+     * fetching chunks when the window ends will not see it at all; widening this widens the
+     * window with it.
+     *
+     * <p>Still kept short, because the client treats water as physics rather than decoration
+     * and will predict swimming for as long as it believes it is submerged.
      *
      * @return the time in ticks, or zero for no splash
      */
     public static long getGateArrivalSplashTicks()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS);
-        return (s == null) ? 10L : Math.max(0L, s.getIntValue());
+        return (s == null) ? 20L : Math.max(0L, s.getIntValue());
     }
 
     /**

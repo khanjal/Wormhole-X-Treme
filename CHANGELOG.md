@@ -294,7 +294,13 @@ Travellers now surface. Coming out of a gate shows that player a moment of water
 height -- the client draws its underwater overlay from whichever block it thinks its camera is
 in, so one block is the whole effect. Nobody else sees anything and nothing is written.
 
-Half a second by default, and short on purpose: water is physics to the client rather than
+It is redrawn every couple of ticks across its window rather than sent once. Arriving hands
+the client a fresh copy of the chunk and a fresh copy erases anything drawn into the old one,
+so a single block change lands before the chunk does on any trip long enough to need loading,
+and is wiped by it -- the same thing that once made the portal redraw work for a nearby gate
+and do nothing at all for a distant one.
+
+One second by default, and short on purpose: water is physics to the client rather than
 decoration, so for as long as it believes it is submerged it predicts swimming while the
 server disagrees. It is the only drawing in the plugin that makes the client's world less
 solid than the real one, which is the direction that caused the stuck-walking bug in the ring
