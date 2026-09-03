@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## 1.3.0 (2026-09-02)
 
+### Gate management was never actually permission-gated
+
+`/wormhole portalmaterial`, `irismaterial`, `lightmaterial`, `wooshdepth`, `redstone`,
+`custom`, `owner`, `regenerate` (including the new `-all`), `restrict`, `cooldown`,
+`activate_timeout`/`shutdown_timeout`, and the new `gate import` checked no permission at
+all. Any player who could run `/wormhole` could reconfigure or reassign *any* gate on the
+server -- not just their own -- and change server-wide settings that are not even per-gate.
+`OwnerCommand`'s own class comment says "admin command"; nothing in the code enforced that.
+
+All of them now require `wormhole.config` -- the node `/wormhole config` already used --
+rather than inventing a second admin-only node that would mean the same thing. This predates
+this release's other work; `gate import`, written fresh this session, inherited the same gap
+and is fixed alongside the rest.
+
 ### Importing from other Wormhole X-Tremes
 
 `/wormhole gate import` reads the SQLite database every build descended from the 2011 original

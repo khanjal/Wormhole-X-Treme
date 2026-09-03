@@ -172,13 +172,21 @@ The plugin uses permission nodes for feature access. Permissions are intended to
 - `wormhole.remove.own` — allow removing gates you own.
 - `wormhole.remove.all` — allow removing any gate (admin-level).
 - `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
-- `wormhole.config` — allow changing plugin configuration via commands.
+- `wormhole.config` — allow changing plugin configuration via commands, and everything
+  under `gate edit`, `gate regenerate`, `gate import`, and gate ownership. These were never
+  actually gated before this release — any player able to run `/wormhole` at all could
+  reconfigure or reassign any gate on the server. They now share this one node rather than
+  each getting a separate admin-only node that would mean the same thing.
 - `wormhole.list` — allow listing gates via `/wormhole list`.
 - `wormhole.go` — allow teleporting to gates via command (`/wormhole go`).
 - `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
 - `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
 
 Notes:
+- `wormhole.config` covers the settings command *and* gate management. If you have granted it
+  narrowly (e.g. only to yourself), check that trusted builders who used to run
+  `/wormhole portalmaterial`, `/wormhole custom`, or `/wormhole owner` freely still have it,
+  since those commands now require it too.
 - Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
 - The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
 
