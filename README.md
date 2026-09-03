@@ -193,22 +193,58 @@ Everything is a subcommand of `/wormhole` (aliased `/wx`). Run it with no argume
 list; tab completion offers subcommand names, then gate names, networks, backends or
 booleans depending on where you are in the line.
 
-**Gates** — `list [network]`, `build <shape>`, `complete <name> [idc=IDC] [net=NET]`,
-`remove <gate>`, `regenerate <gate>` (alias `regen`), `refresh`
+Four names cover everything: two nouns that behave the same way, the settings, and the one
+thing that is neither.
 
-**Travel** — `go <gate>`, `compass`, `force <gate>`
+**Gates** — `gate build <shape>`, `gate complete <name> [idc=IDC] [net=NET]`,
+`gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate>`,
+`gate refresh`, `gate go <gate>`, `gate force <gate>`
 
-**Per gate** — `owner <gate> [player]`, `idc <gate> [code]`, `redstone <gate> [true|false]`,
-`custom <gate> [true|false]`, `portalmaterial`, `irismaterial`, `lightmaterial`,
-`wooshdepth`
+`gate edit <gate> <field> [value]` covers everything you set on a gate:
+
+| Field | Value |
+|---|---|
+| `portal` | Material the wormhole is drawn as. |
+| `iris` | Material the iris is built from. |
+| `light` | Material the chevrons light as. |
+| `group` | A whole material group at once, instead of the three above. |
+| `woosh` | How far the woosh pushes out. |
+| `redstone` | `true` or `false`. |
+| `idc` | The iris deactivation code, or `-clear`. |
+| `owner` | Hand the gate to somebody else. |
+| `custom` | `true` or `false`. |
 
 **Rings** — `ring create`, `ring cancel`, `ring list`, `ring remove [id]`,
 `ring edit [id] <ring|light|flash|name|access|style|reset> [value]`,
 `ring allow|deny <player> [id]`, `ring owner <player> [id]`
 
-**Server** — `shutdown_timeout <seconds>` (alias `timeout`),
-`activate_timeout <seconds>`, `cooldown <one|two|three|true|false> [time]`,
-`restrict <true|false>`
+**Settings** — `config <setting>` shows one with its description,
+`config <setting> <value>` changes it. Type part of a name to search. This reaches *every*
+setting, not just the four that used to have commands of their own, and takes effect
+immediately — there is nothing to reload and no restart.
+
+**Other** — `compass` points your compass at the nearest gate.
+
+`gate edit group` changes what the gate *draws* — its portal, lights and iris. It leaves the
+frame blocks alone, because those are real blocks somebody built and rewriting them is not
+what changing a gate's group should quietly mean.
+
+`gate regenerate` also recomputes the arrival point. The exit is worked out once when a gate
+is built and then stored, so a gate that landed travellers at its side kept doing it; this is
+the command to reach for. It cannot fix a gate whose *facing* is wrong — if the woosh and the
+sign are on the wrong face too, that one needs rebuilding.
+
+<details>
+<summary>The old flat commands still work</summary>
+
+`list`, `build`, `complete`, `remove`, `regenerate`, `refresh`, `go`, `force`, `owner`,
+`idc`, `redstone`, `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`,
+`wooshdepth`, `shutdown_timeout`, `activate_timeout`, `cooldown` and `restrict` all still
+dispatch exactly as they did. They are no longer suggested or listed, because the point of
+the restructure was a shorter list — but nothing in a command block, a script, or your
+fingers has broken.
+
+</details>
 
 ### Clearing snapshotted material overrides
 

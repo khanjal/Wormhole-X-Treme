@@ -52,6 +52,7 @@ public final class SubCommands
         private final SubCommand handler;
         private final boolean dropSubcommandArg;
         private final ArgCompleter completer;
+        private boolean hidden;
 
         Entry(final String name, final List<String> aliases, final String usage,
             final SubCommand handler, final boolean dropSubcommandArg, final ArgCompleter completer)
@@ -65,6 +66,19 @@ public final class SubCommands
         }
 
         public String getName() { return name; }
+
+        /**
+         * Whether this name is kept working but no longer advertised.
+         *
+         * <p>The flat gate commands moved under {@code /wormhole gate}, and the four
+         * settings commands under {@code /wormhole config}. The old names still dispatch, so
+         * nothing in a command block or a script broke, but they are left out of help and
+         * tab completion -- otherwise the restructure would have made the list longer rather
+         * than shorter.
+         *
+         * @return true if it is a legacy name
+         */
+        public boolean isHidden() { return hidden; }
 
         public List<String> getAliases() { return aliases; }
 
@@ -195,6 +209,95 @@ public final class SubCommands
         register("restrict", aliases(), "/wormhole restrict <true|false>",
             new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, args ->
                 args.length == 2 ? prefixed(args[1], "true", "false") : none());
+
+        // --- The shape people actually type --------------------------------
+        // Everything above stays registered and keeps working; it is just no longer what is
+        // advertised. Four names now cover it: two nouns that behave alike, the settings, and
+        // the one thing that is neither.
+        register("gate", aliases("gates"),
+            "/wormhole gate <" + String.join("|",
+                com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()) + ">",
+            new com.wormhole_xtreme.wormhole.command.handlers.GateCommand(), false,
+            SubCommands::completeGate);
+        register("config", aliases("set"), "/wormhole config <setting> [value]",
+            new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, args ->
+                args.length == 2 ? prefixed(args[1],
+                    com.wormhole_xtreme.wormhole.config.ConfigManager.settingNames()
+                        .toArray(new String[0])) : none());
+
+        hide("list", "build", "complete", "remove", "regenerate", "refresh", "go", "force",
+            "owner", "idc", "redstone", "custom", "portalmaterial", "irismaterial",
+            "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
+            "cooldown", "restrict");
+    }
+
+    /**
+     * Completes the arguments of {@code /wormhole gate}.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates for the argument being typed
+     */
+    private static List<String> completeGate(final String[] args)
+    {
+        if (args.length == 2)
+        {
+            return prefixed(args[1],
+                com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()
+                    .toArray(new String[0]));
+        }
+        final String verb = args[1].toLowerCase();
+        if ("edit".equals(verb))
+        {
+            // gate edit <gate> <field> [value]
+            if (args.length == 3) return gateNames(args[2]);
+            if (args.length == 4)
+            {
+                return prefixed(args[3],
+                    com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.fieldNames()
+                        .toArray(new String[0]));
+            }
+            if (args.length == 5)
+            {
+                final String field = args[3].toLowerCase();
+                if ("group".equals(field))
+                {
+                    return prefixed(args[4],
+                        com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames()
+                            .toArray(new String[0]));
+                }
+                if ("redstone".equals(field)) return prefixed(args[4], "true", "false");
+                if ("portal".equals(field) || "iris".equals(field) || "light".equals(field))
+                {
+                    return materialNames(args[4], false);
+                }
+            }
+            return none();
+        }
+        if ("build".equals(verb))
+        {
+            return args.length == 3 ? shapeNames(args[2]) : none();
+        }
+        // Every other verb takes a gate name first, and nothing after it worth guessing at.
+        return args.length == 3 ? gateNames(args[2]) : none();
+    }
+
+    /**
+     * Marks the named subcommands as kept-working but unadvertised.
+     *
+     * @param names
+     *            the legacy names
+     */
+    private static void hide(final String... names)
+    {
+        for (final String name : names)
+        {
+            final Entry e = BY_NAME.get(name);
+            if (e != null)
+            {
+                e.hidden = true;
+            }
+        }
     }
 
     private static void register(final String name, final List<String> aliases, final String usage,
@@ -256,7 +359,7 @@ public final class SubCommands
         final List<String> out = new ArrayList<String>();
         for (final Entry e : ORDERED)
         {
-            if (e.getName().startsWith(p))
+            if (!e.isHidden() && e.getName().startsWith(p))
             {
                 out.add(e.getName());
             }
@@ -270,6 +373,10 @@ public final class SubCommands
         final StringBuilder sb = new StringBuilder();
         for (final Entry e : ORDERED)
         {
+            if (e.isHidden())
+            {
+                continue;
+            }
             if (sb.length() > 0)
             {
                 sb.append(", ");
@@ -501,6 +608,32 @@ public final class SubCommands
             }
             final String name = material.name().toLowerCase();
             if (name.startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out);
+        return out;
+    }
+
+    /**
+     * Completes the name of a gate shape.
+     *
+     * <p>{@code build} never offered these, which meant the one argument it takes had to be
+     * remembered or read out of the shapes directory.
+     *
+     * @param typed
+     *            what has been typed so far
+     * @return the matching shape names
+     */
+    private static List<String> shapeNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final String name
+            : com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes().keySet())
+        {
+            if (name.toLowerCase().startsWith(p))
             {
                 out.add(name);
             }

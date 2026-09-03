@@ -26,6 +26,15 @@ public class RegenerateCommand implements SubCommand
                 {
                     // Shape format (2D/3D) is determined at load time; no runtime upgrade needed.
                 }
+                // The exit is worked out once when a gate is built and then stored, so a
+                // gate that landed travellers at its side kept doing it for ever. This is
+                // the command people already reach for when a gate is misbehaving, so it is
+                // where the fix belongs.
+                if (s.recomputeGatePlayerTeleportLocation())
+                {
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                        + "Arrival point recomputed for " + s.getGateName() + ".");
+                }
                 s.toggleDialLeverState(true);
                 if ((s.getGateIrisDeactivationCode() != null) && (s.getGateIrisDeactivationCode().length() > 0))
                 {

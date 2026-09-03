@@ -4,6 +4,45 @@ All notable changes to this project are documented in this file.
 
 ## 1.3.0 (2026-09-02)
 
+### Commands restructured
+
+Twenty-two subcommands became four. Gates had fifteen top-level names while the rings had one
+with verbs under it, and eight of the fifteen were per-gate settings -- which is how a plugin
+gets to twenty-two: every new gate setting needed a new name at the top level, where a new
+ring setting was one more case in `ring edit`.
+
+    /wormhole gate <build|complete|list|remove|edit|regenerate|refresh|go|force>
+    /wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>
+    /wormhole config <setting> [value]
+    /wormhole compass
+
+`gate edit <gate> <field> [value]` replaces `portalmaterial`, `irismaterial`,
+`lightmaterial`, `wooshdepth`, `redstone`, `idc`, `owner` and `custom`, and adds a `group`
+field that sets a whole material group at once rather than three materials one at a time. It
+leaves the frame blocks alone: those are real blocks somebody built.
+
+`config <setting> [value]` replaces `shutdown_timeout`, `activate_timeout`, `cooldown` and
+`restrict` -- and reaches every other setting too. Sounds, ring timings and material defaults
+could previously only be changed by editing config.yml and restarting; now they take effect
+as they are typed, because settings are read where they are used rather than cached at
+startup. Typing part of a name searches.
+
+Nothing was re-implemented. Every verb and field hands off to the handler that already owned
+it, so the validation, the permission checks and the messages are the originals.
+
+**Every old name still works.** They are registered as hidden entries: they dispatch exactly
+as before but are left out of help and tab completion, since a restructure that made the list
+longer would have missed the point. Nothing in a command block or a script breaks.
+
+Tab completion gained two things it never had: gate shape names for `gate build`, and every
+setting name for `config`.
+
+`gate regenerate` now also recomputes a gate's arrival point, worked out from the portal
+blocks and the facing rather than from the shape file. The exit is computed once when a gate
+is built and then stored, so a gate that landed travellers at its side went on doing it with
+nothing to reach for. It cannot fix a gate whose facing is wrong, since the facing is what it
+trusts.
+
 ### Transport rings
 
 An invisible, permanently paired pad set into a floor or ceiling. Walk into one and it counts

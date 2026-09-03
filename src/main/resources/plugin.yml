@@ -22,12 +22,12 @@ commands:
     aliases: [wx]
     usage: |
       /<command> <subcommand> [args]
-      Gates:    list, build, complete, remove, regenerate, refresh
-      Travel:   go, compass, force
-      Per gate: owner, idc, redstone, custom, portalmaterial, irismaterial, lightmaterial, wooshdepth
-      Rings:    ring create|cancel|list|remove|edit|allow|deny|owner
-      Server:   shutdown_timeout, activate_timeout, cooldown, restrict
-      Run /<command> with no arguments for the full list.
+      Gates:  gate build|complete|list|remove|edit|regenerate|refresh|go|force
+      Rings:  ring create|cancel|list|remove|edit|allow|deny|owner
+      Config: config <setting> [value]
+      Other:  compass
+      The old flat names (portalmaterial, cooldown, and the rest) still work.
+      Run /<command> with no arguments for the list.
 
   # legacy wx* command entries removed; now provided as aliases under `wormhole`.
 

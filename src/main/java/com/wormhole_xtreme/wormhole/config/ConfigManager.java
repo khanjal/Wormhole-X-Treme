@@ -1187,6 +1187,127 @@ public class ConfigManager
     }
 
     /**
+     * Every setting there is, by name.
+     *
+     * <p>The names are the keys as they appear in {@code config.yml}, which are the enum
+     * constants themselves -- the file writes {@code Setting: RING_SOUND_OPEN} rather than a
+     * prettified form, so there is nothing to translate between what a player types and what
+     * is stored.
+     *
+     * @return the setting names, sorted
+     */
+    public static java.util.List<String> settingNames()
+    {
+        final java.util.List<String> names = new java.util.ArrayList<String>();
+        for (final ConfigKeys key : getConfigurations().keySet())
+        {
+            names.add(key.name());
+        }
+        java.util.Collections.sort(names);
+        return names;
+    }
+
+    /**
+     * What one setting is currently, and what it is for.
+     *
+     * @param name
+     *            the setting name, in any case
+     * @return a line describing it, or null if there is no such setting
+     */
+    public static String describeSetting(final String name)
+    {
+        final Setting setting = settingNamed(name);
+        if (setting == null)
+        {
+            return null;
+        }
+        return setting.getName().name() + " = " + setting.getValue()
+            + System.lineSeparator() + "  " + setting.getDescription();
+    }
+
+    /**
+     * Changes one setting and writes it back to config.yml.
+     *
+     * <p>Typed from what is already there rather than from a declaration: every setting
+     * arrives with a default, and that default's type is what the setting is. A boolean
+     * stays a boolean, a number stays a number, and anything else is text.
+     *
+     * <p>Takes effect immediately, because everything reads its setting when it needs it
+     * rather than caching it at startup. That is the point of having this at all -- before
+     * it, changing a sound or a ring timing meant editing the file and restarting the
+     * server.
+     *
+     * @param name
+     *            the setting name, in any case
+     * @param raw
+     *            the new value as typed
+     * @return a message saying what happened
+     */
+    public static String applySetting(final String name, final String raw)
+    {
+        final Setting setting = settingNamed(name);
+        if (setting == null)
+        {
+            return null;
+        }
+        final Object current = setting.getValue();
+        final Object parsed;
+        try
+        {
+            if (current instanceof Boolean)
+            {
+                if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw))
+                {
+                    return setting.getName().name() + " is true or false, not \"" + raw + "\".";
+                }
+                parsed = Boolean.valueOf(raw);
+            }
+            else if (current instanceof Integer)
+            {
+                parsed = Integer.valueOf(raw.trim());
+            }
+            else if (current instanceof Double)
+            {
+                parsed = Double.valueOf(raw.trim());
+            }
+            else
+            {
+                parsed = raw;
+            }
+        }
+        catch (final NumberFormatException e)
+        {
+            return setting.getName().name() + " is a number, not \"" + raw + "\".";
+        }
+        setting.setValue(parsed);
+        Configuration.persistCurrentConfiguration("WormholeXTreme");
+        return setting.getName().name() + " is now " + parsed + ".";
+    }
+
+    /**
+     * Finds a setting by name, however it was typed.
+     *
+     * @param name
+     *            the setting name
+     * @return the setting, or null if there is no such one
+     */
+    private static Setting settingNamed(final String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        try
+        {
+            return getConfigurations().get(ConfigKeys.valueOf(name.trim().toUpperCase()));
+        }
+        catch (final IllegalArgumentException notASetting)
+        {
+            return null;
+        }
+    }
+
+    /**
      * Sets the config value.
      * 
      * @param key
