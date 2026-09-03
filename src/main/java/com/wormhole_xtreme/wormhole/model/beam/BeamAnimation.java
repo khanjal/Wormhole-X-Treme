@@ -11,25 +11,29 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Runs the beam sequence: charge, vanish, a column grows out of where the traveller stood and
- * departs upward -- teleport fires mid-rise -- then at the destination a column descends into
- * place and shrinks back down to nothing, which is what the reveal resolves out of.
+ * Runs the beam sequence: the moment the command runs, a column grows out of where the
+ * traveller is standing and departs upward -- teleport fires mid-rise -- then at the
+ * destination a column descends into place and shrinks back into the traveller, which is what
+ * reveals them.
  *
  * <p>Reference sequence this follows, worked out in design discussion before any of it was
- * code: the traveller glows, vanishes, and a beam rises from where they stood; at the
- * destination a beam comes down before they are revealed there. Reproducing that means the
- * real {@link Player#teleport(Location)} call cannot sit at either end of the animation -- it
- * fires in the middle, once the traveller has had the rise in view, so they get to watch both
- * halves rather than just trigger them. That relies on a real API property: invisibility is
+ * code: the traveller vanishes and a beam rises from where they stood; at the destination a
+ * beam comes down before they are revealed there. Reproducing that means the real
+ * {@link Player#teleport(Location)} call cannot sit at either end of the animation -- it fires
+ * in the middle, once the traveller has had the rise in view, so they get to watch both halves
+ * rather than just trigger them. That relies on a real API property: invisibility is
  * observer-relative. An invisible player still sees their own surroundings and any particles
  * normally; it only hides them from <em>other</em> players' clients. So the traveller stays
  * physically present (invisible to everyone else, frozen by {@link BeamFreeze}) through the
  * tail of the rise, then arrives partway through the descent and watches the rest of it.
  *
- * <p>Growing the column out of the traveller rather than having it simply appear, and
- * shrinking it back into them on arrival rather than having it simply stop, is what keeps this
- * reading as a beam doing the transport rather than the transport interrupting a beam --
- * departure and arrival are the same motion run in opposite directions.
+ * <p>There is no wind-up before any of this starts, and nothing marks the moment beyond the
+ * particles themselves -- an earlier version paused on a glow effect first, which put a beat of
+ * nothing happening between running the command and anything visible. Growing the column out of
+ * the traveller rather than having it simply appear, and shrinking it back into them on arrival
+ * rather than having it simply stop, is what keeps this reading as a beam doing the transport
+ * rather than the transport interrupting a beam -- departure and arrival are the same motion run
+ * in opposite directions.
  *
  * <p>One asymmetry doesn't mirror, though: the destination track could in principle be staged
  * fully independent of the player, but the origin track cannot -- the teleport has to wait on
@@ -43,9 +47,6 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  */
 public final class BeamAnimation
 {
-    /** Glow warms up, charge sound plays once. */
-    private static final int CHARGE_TICKS = 20;
-
     /** The column grows from nothing, rooted at the traveller, up to full height. Mirrored by
      * {@link #SHRINK_TICKS} on arrival. */
     private static final int GROW_TICKS = 15;
@@ -62,11 +63,8 @@ public final class BeamAnimation
     private static final int DESCEND_TICKS = 20;
 
     /** The column shrinks back down to nothing, rooted at the traveller -- growth in reverse,
-     * and what the reveal resolves out of. */
+     * and what flows into them at the end of the trip. */
     private static final int SHRINK_TICKS = 15;
-
-    /** How long the traveller stays glowing (and everyone can see it) once revealed. */
-    private static final int REVEAL_TICKS = 15;
 
     /** How tall the column stands once fully grown. */
     private static final double COLUMN_HEIGHT = 3.0;
@@ -164,30 +162,25 @@ public final class BeamAnimation
             if (tick == 0)
             {
                 BeamFreeze.freeze(player);
-                player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, CHARGE_TICKS, 0, false, false));
+                // Invisibility has to outlast everything from here to the flow-in at the end.
+                // GROW_TICKS plus the full RISE_TICKS is an over-estimate of when teleport
+                // actually fires (it fires TELEPORT_AT_STEP into the rise, not at the end of
+                // it), which is fine -- explicit removal once the column shrinks fully is what
+                // the timing actually depends on, and this is only a ceiling against that
+                // removal being late.
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
+                    GROW_TICKS + RISE_TICKS + DESCEND_TICKS + SHRINK_TICKS, 0, false, false));
                 BeamSounds.playCharge(origin);
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                     + "Beaming to " + destinationName + "...");
             }
 
-            if (tick == CHARGE_TICKS)
+            if (tick < GROW_TICKS)
             {
-                // Invisibility has to outlast everything from here to the reveal. GROW_TICKS
-                // plus the full RISE_TICKS is an over-estimate of when teleport actually fires
-                // (it fires TELEPORT_AT_STEP into the rise, not at the end of it), which is
-                // fine -- explicit removal at the reveal is what the timing actually depends
-                // on, and this is only a ceiling against that removal being late.
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    GROW_TICKS + RISE_TICKS + DESCEND_TICKS + SHRINK_TICKS + REVEAL_TICKS, 0, false, false));
+                spawnColumn(origin, COLUMN_HEIGHT * ((double) tick / (double) GROW_TICKS), 0.0);
             }
 
-            final int sinceGrow = tick - CHARGE_TICKS;
-            if ((sinceGrow >= 0) && (sinceGrow < GROW_TICKS))
-            {
-                spawnColumn(origin, COLUMN_HEIGHT * ((double) sinceGrow / (double) GROW_TICKS), 0.0);
-            }
-
-            final int sinceRise = sinceGrow - GROW_TICKS;
+            final int sinceRise = tick - GROW_TICKS;
             if ((sinceRise >= 0) && (sinceRise < RISE_TICKS))
             {
                 spawnColumn(origin, COLUMN_HEIGHT, TRAVEL_HEIGHT * ((double) sinceRise / (double) RISE_TICKS));
@@ -202,7 +195,7 @@ public final class BeamAnimation
 
             if (teleported)
             {
-                final int sinceTeleport = tick - (CHARGE_TICKS + GROW_TICKS + TELEPORT_AT_STEP);
+                final int sinceTeleport = tick - (GROW_TICKS + TELEPORT_AT_STEP);
 
                 if (sinceTeleport < DESCEND_TICKS)
                 {
@@ -222,14 +215,9 @@ public final class BeamAnimation
                         COLUMN_HEIGHT * (1.0 - ((double) sinceShrink / (double) SHRINK_TICKS)), 0.0);
                 }
 
-                if (sinceShrink == SHRINK_TICKS)
+                if (sinceShrink >= SHRINK_TICKS)
                 {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, REVEAL_TICKS, 0, false, false));
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
-                }
-
-                if (sinceShrink >= SHRINK_TICKS + REVEAL_TICKS)
-                {
                     BeamFreeze.unfreeze(player);
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                         + "Beamed to " + destinationName + ".");
