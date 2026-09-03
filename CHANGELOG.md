@@ -409,6 +409,14 @@ pads, so it is kept to a moment and `gate-arrival-splash-ticks: 0` turns it off.
 
 ### Fixes
 
+Shutdown logged one "Saved gate to YAML" line per gate, at INFO, every time the server
+stopped -- whether or not that gate had changed. On a server with a few dozen gates that is
+a few dozen identical lines on every restart, forever. The per-gate confirmation is now
+FINE-level diagnostic noise instead of an INFO-level event, and shutdown prints one summary
+line ("Saved N gates to disk") rather than one per gate. Every gate is still rewritten
+unconditionally on a clean shutdown -- that safety net is unchanged, only its logging is
+quieter.
+
 A closed gate could keep showing its portal. The portal is a drawing in each nearby client's
 copy of the chunk, and closing one only tells whoever is within range at that moment. A player
 who was elsewhere kept the picture -- and a client only discards a drawing when something

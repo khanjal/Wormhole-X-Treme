@@ -220,7 +220,12 @@ public class WormholeXTreme extends JavaPlugin
                 // Persist current runtime configuration to YAML on shutdown
                 com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
                 final ArrayList<Stargate> gates = StargateManager.getAllGates();
-                // Store all our gates
+                // Every gate is rewritten unconditionally, changed or not -- a clean
+                // shutdown is the one moment it costs nothing to guarantee disk matches
+                // memory, in case an earlier write failed partway through. The per-gate
+                // confirmation is FINE-level (see StargateYamlManager.saveStargate), so
+                // this logs one summary line instead of one per gate -- a server with a
+                // hundred gates does not need a hundred identical lines on every restart.
                 for (final Stargate gate : gates)
                 {
                     if (gate.isGateActive() || gate.isGateLightsActive())
@@ -228,6 +233,11 @@ public class WormholeXTreme extends JavaPlugin
                         gate.shutdownStargate(false);
                     }
                     StargateDBManager.saveStargate(gate);
+                }
+                if (!gates.isEmpty())
+                {
+                    prettyLog(Level.INFO, false, "Saved " + gates.size() + " gate"
+                        + (gates.size() == 1 ? "" : "s") + " to disk.");
                 }
 
                 // Any cycle still mid-animation is put back before its blocks are saved as
