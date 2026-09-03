@@ -96,9 +96,9 @@ public class RingPatternTest
     public void theEvenInteriorIsAnchoredToACornerOfTheMiddleFour()
     {
         // An even ring has no centre block, so it is anchored to the low-x, low-z block of
-        // its central 2x2. That is what makes the offsets asymmetric — they run -3..+4
-        // rather than -3..+3 — and getting it wrong shifts the whole ring one block without
-        // changing its shape at all.
+        // its central 2x2. That is what makes the offsets asymmetric — they run -2..+3
+        // rather than the odd pattern's symmetric -3..+3 — and getting it wrong shifts the
+        // whole ring one block without changing its shape at all.
         final Set<String> interior = cells(RingPattern.EVEN.getInterior());
         for (int dx = -1; dx <= 2; dx++)
         {
