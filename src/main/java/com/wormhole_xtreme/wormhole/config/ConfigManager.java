@@ -138,9 +138,7 @@ public class ConfigManager
         /** Cost in currency units charged to use (walk through) a gate. 0 = free. */
         ECONOMY_USE_COST,
         /** Cost in currency units charged to build a gate. 0 = free. */
-        ECONOMY_BUILD_COST,
-        /** The colour of the charging orb, as a hex triplet. */
-        BEAM_ORB_COLOR
+        ECONOMY_BUILD_COST
     }
 
     /**
@@ -963,22 +961,6 @@ public class ConfigManager
     public static String getRingSoundRefused()
     {
         return soundSetting(ConfigKeys.RING_SOUND_REFUSED, "block.note_block.bass");
-    }
-
-    /**
-     * The colour of the orb that gathers as a beam charges up.
-     *
-     * <p>A hex triplet rather than a named colour, so any colour is reachable rather than
-     * only the dozen or so {@code org.bukkit.Color} carries constants for. White by default,
-     * matching the show. An unparseable value falls back to white the same way an unknown
-     * sound name falls back to silence -- decoration, not worth failing a beam over.
-     *
-     * @return the colour as a hex triplet, e.g. {@code "FFFFFF"}
-     */
-    public static String getBeamOrbColor()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ORB_COLOR);
-        return (s == null) ? "FFFFFF" : s.getStringValue().trim();
     }
 
     /**

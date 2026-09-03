@@ -1,6 +1,5 @@
 package com.wormhole_xtreme.wormhole.model.beam;
 
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -12,22 +11,27 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Runs the beam sequence: charge (an orb grows then collapses), beam up, teleport mid-beam-up,
- * beam down, an orb re-forms at the destination, reveal.
+ * Runs the beam sequence: charge, vanish, a column grows out of where the traveller stood and
+ * departs upward -- teleport fires mid-rise -- then at the destination a column descends into
+ * place and shrinks back down to nothing, which is what the reveal resolves out of.
  *
  * <p>Reference sequence this follows, worked out in design discussion before any of it was
  * code: the traveller glows, vanishes, and a beam rises from where they stood; at the
  * destination a beam comes down before they are revealed there. Reproducing that means the
  * real {@link Player#teleport(Location)} call cannot sit at either end of the animation -- it
- * fires in the middle, once the traveller has had the beam-up in view, so they get to watch
- * both halves rather than just trigger them. That relies on a real API property: invisibility
- * is observer-relative. An invisible player still sees their own surroundings and any
- * particles normally; it only hides them from <em>other</em> players' clients. So the
- * traveller stays physically present (invisible to everyone else, frozen by
- * {@link BeamFreeze}) through the tail of beam-up, then arrives partway through beam-down and
- * watches the rest of it.
+ * fires in the middle, once the traveller has had the rise in view, so they get to watch both
+ * halves rather than just trigger them. That relies on a real API property: invisibility is
+ * observer-relative. An invisible player still sees their own surroundings and any particles
+ * normally; it only hides them from <em>other</em> players' clients. So the traveller stays
+ * physically present (invisible to everyone else, frozen by {@link BeamFreeze}) through the
+ * tail of the rise, then arrives partway through the descent and watches the rest of it.
  *
- * <p>One asymmetry falls out of that: the destination track could in principle be staged
+ * <p>Growing the column out of the traveller rather than having it simply appear, and
+ * shrinking it back into them on arrival rather than having it simply stop, is what keeps this
+ * reading as a beam doing the transport rather than the transport interrupting a beam --
+ * departure and arrival are the same motion run in opposite directions.
+ *
+ * <p>One asymmetry doesn't mirror, though: the destination track could in principle be staged
  * fully independent of the player, but the origin track cannot -- the teleport has to wait on
  * it, at least partially, rather than firing the moment they vanish.
  *
@@ -40,66 +44,41 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 public final class BeamAnimation
 {
     /** Glow warms up, charge sound plays once. */
-    private static final int CHARGE_TICKS = 30;
+    private static final int CHARGE_TICKS = 20;
 
-    /** Invisible; a column of particles climbs at the origin. */
-    private static final int BEAM_UP_TICKS = 20;
+    /** The column grows from nothing, rooted at the traveller, up to full height. Mirrored by
+     * {@link #SHRINK_TICKS} on arrival. */
+    private static final int GROW_TICKS = 15;
 
-    /** How far into beam-up the real teleport fires -- before it finishes, so the remainder
+    /** The now-full-height column climbs and departs upward at the origin. */
+    private static final int RISE_TICKS = 20;
+
+    /** How far into the rise the real teleport fires -- before it finishes, so the remainder
      * plays out at the origin with nobody there, same as the destination track does before
      * the traveller arrives into it. */
     private static final int TELEPORT_AT_STEP = 14;
 
-    /** A column of particles descends at the destination before the reveal. */
-    private static final int BEAM_DOWN_TICKS = 20;
+    /** The column descends into place at the destination, already full height. */
+    private static final int DESCEND_TICKS = 20;
 
-    /** An orb re-forms at the destination once beam-down finishes, mirroring the one that
-     * collapsed into beam-up at the origin -- the traveller is still invisible to everyone
-     * else through this, same as the rest of the trip, and it is what the reveal resolves out
-     * of rather than the player just popping into view once the column stops. */
-    private static final int LAND_ORB_TICKS = 20;
+    /** The column shrinks back down to nothing, rooted at the traveller -- growth in reverse,
+     * and what the reveal resolves out of. */
+    private static final int SHRINK_TICKS = 15;
 
     /** How long the traveller stays glowing (and everyone can see it) once revealed. */
     private static final int REVEAL_TICKS = 15;
 
-    private static final int COLUMN_HEIGHT = 3;
+    /** How tall the column stands once fully grown. */
+    private static final double COLUMN_HEIGHT = 3.0;
 
-    private static final double ORB_MAX_RADIUS = 0.4;
+    /** The vertical spacing between particle bursts within the column -- small enough that it
+     * reads as one continuous beam rather than a stack of discrete points. */
+    private static final double COLUMN_STEP = 0.4;
 
-    /** Roughly chest height above where a player is standing. */
-    private static final double ORB_HEIGHT = 1.2;
-
-    /** How many points make up the orb's surface each tick. */
-    private static final int ORB_POINTS = 24;
-
-    /** The angle that spaces points evenly around a sphere when each one turns by it in
-     * turn -- the standard "golden angle" spiral construction, not a magic number. */
-    private static final double GOLDEN_ANGLE = Math.PI * (3.0 - Math.sqrt(5.0));
-
-    /**
-     * The dust particle, resolved by name rather than referenced as a compile-time constant.
-     *
-     * <p>Confirmed against the actual API jars rather than assumed: it is {@code REDSTONE} at
-     * this project's 1.20.4 floor and {@code DUST} from 1.20.6 onward through 1.21.10, the top
-     * of the supported range -- there is no single name that both compiles at the floor and
-     * resolves at the ceiling. {@link Particle} is a plain enum, not a registry-backed type
-     * that fails to initialise before the server has started (unlike {@code Sound}, or
-     * {@code Attribute} in the locator-bar investigation), so a string lookup here is safe at
-     * class-load time rather than something that has to be deferred.
-     */
-    private static final Particle DUST_PARTICLE = resolveDustParticle();
-
-    private static Particle resolveDustParticle()
-    {
-        try
-        {
-            return Particle.valueOf("DUST");
-        }
-        catch (final IllegalArgumentException newNameNotHere)
-        {
-            return Particle.valueOf("REDSTONE");
-        }
-    }
+    /** How far the column travels while rising or descending, measured from its own full
+     * height -- past {@link #COLUMN_HEIGHT} so the departing column visibly clears where it
+     * started rather than just thickening in place. */
+    private static final double TRAVEL_HEIGHT = 4.0;
 
     private BeamAnimation() {}
 
@@ -128,82 +107,27 @@ public final class BeamAnimation
         return true;
     }
 
-    private static void spawnColumnParticle(final Location base, final int step, final int totalSteps,
-        final boolean rising)
+    /**
+     * Draws a column from the ground up to {@code height}, shifted vertically by
+     * {@code yOffset} -- {@code (height, yOffset)} of {@code (0, 0)} is nothing at all,
+     * {@code (COLUMN_HEIGHT, 0)} is the full standing column, and ramping either argument is
+     * what growing, shrinking, rising and descending all turn out to be.
+     *
+     * @param base where the column is rooted
+     * @param height how tall the column currently is
+     * @param yOffset how far the whole column is currently shifted from where it is rooted
+     */
+    private static void spawnColumn(final Location base, final double height, final double yOffset)
     {
         final World world = base.getWorld();
         if (world == null)
         {
             return;
         }
-        final double progress = (double) step / (double) totalSteps;
-        final double y = (rising ? progress : (1.0 - progress)) * COLUMN_HEIGHT;
-        final Location point = base.clone().add(0.0, y, 0.0);
-        world.spawnParticle(Particle.END_ROD, point, 6, 0.3, 0.05, 0.3, 0.01);
-    }
-
-    /**
-     * The orb: grows for most of a phase, then collapses quickly. Used twice -- charging at
-     * the origin, where it collapses into beam-up, and re-forming at the destination once
-     * beam-down finishes, where it collapses into the reveal -- so the trip opens and closes
-     * on the same shape rather than the arrival just stopping.
-     *
-     * <p>Points are placed exactly on a sphere's surface (a golden-angle spiral -- the usual
-     * way to space points evenly over one without them clumping at the poles the way a naive
-     * latitude/longitude grid would), rather than scattered through a random offset box the
-     * way {@link #spawnColumnParticle} is. A random box reads as a loose cloud; an evenly
-     * covered shell at this radius reads as one solid ball, which is the point of it.
-     *
-     * @param center where the player is standing
-     * @param step how far into this orb's phase this tick is
-     * @param totalTicks how long this phase lasts
-     */
-    private static void spawnOrbParticle(final Location center, final int step, final int totalTicks)
-    {
-        final World world = center.getWorld();
-        if (world == null)
+        for (double y = 0.0; y <= height; y += COLUMN_STEP)
         {
-            return;
-        }
-        final int growTicks = (totalTicks * 7) / 10;
-        final double radius = step < growTicks
-            ? ORB_MAX_RADIUS * ((double) step / (double) growTicks)
-            : ORB_MAX_RADIUS * (1.0 - ((double) (step - growTicks) / (double) (totalTicks - growTicks)));
-        final Location origin = center.clone().add(0.0, ORB_HEIGHT, 0.0);
-        final Particle.DustOptions options = new Particle.DustOptions(orbColor(), 1.5f);
-        for (int i = 0; i < ORB_POINTS; i++)
-        {
-            // Standard Fibonacci-sphere construction: step latitude evenly from pole to pole,
-            // and turn longitude by the golden angle each time, which is what keeps points
-            // from bunching up along any one line of latitude or longitude.
-            final double y = 1.0 - ((2.0 * i + 1.0) / ORB_POINTS);
-            final double ringRadius = Math.sqrt(Math.max(0.0, 1.0 - (y * y)));
-            final double theta = GOLDEN_ANGLE * i;
-            final double x = Math.cos(theta) * ringRadius;
-            final double z = Math.sin(theta) * ringRadius;
-            final Location point = origin.clone().add(x * radius, y * radius, z * radius);
-            world.spawnParticle(DUST_PARTICLE, point, 1, 0.0, 0.0, 0.0, 0.0, options);
-        }
-    }
-
-    /**
-     * Reads {@code beam.orb-color} as a hex triplet. White on anything that will not parse --
-     * decoration, not worth failing a beam over, the same tolerance {@link BeamSounds} gives
-     * an unknown sound name.
-     *
-     * @return the configured colour, or white
-     */
-    private static Color orbColor()
-    {
-        final String hex = ConfigManager.getBeamOrbColor();
-        try
-        {
-            final String cleaned = hex.startsWith("#") ? hex.substring(1) : hex;
-            return cleaned.length() == 6 ? Color.fromRGB(Integer.parseInt(cleaned, 16)) : Color.WHITE;
-        }
-        catch (final RuntimeException e)
-        {
-            return Color.WHITE;
+            final Location point = base.clone().add(0.0, y + yOffset, 0.0);
+            world.spawnParticle(Particle.END_ROD, point, 2, 0.15, 0.05, 0.15, 0.01);
         }
     }
 
@@ -246,24 +170,30 @@ public final class BeamAnimation
                     + "Beaming to " + destinationName + "...");
             }
 
-            if (tick < CHARGE_TICKS)
-            {
-                spawnOrbParticle(origin, tick, CHARGE_TICKS);
-            }
-
             if (tick == CHARGE_TICKS)
             {
+                // Invisibility has to outlast everything from here to the reveal. GROW_TICKS
+                // plus the full RISE_TICKS is an over-estimate of when teleport actually fires
+                // (it fires TELEPORT_AT_STEP into the rise, not at the end of it), which is
+                // fine -- explicit removal at the reveal is what the timing actually depends
+                // on, and this is only a ceiling against that removal being late.
                 player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    (BEAM_UP_TICKS - TELEPORT_AT_STEP) + BEAM_DOWN_TICKS + LAND_ORB_TICKS + REVEAL_TICKS,
-                    0, false, false));
+                    GROW_TICKS + RISE_TICKS + DESCEND_TICKS + SHRINK_TICKS + REVEAL_TICKS, 0, false, false));
             }
 
-            if ((tick >= CHARGE_TICKS) && (tick < CHARGE_TICKS + BEAM_UP_TICKS))
+            final int sinceGrow = tick - CHARGE_TICKS;
+            if ((sinceGrow >= 0) && (sinceGrow < GROW_TICKS))
             {
-                spawnColumnParticle(origin, tick - CHARGE_TICKS, BEAM_UP_TICKS, true);
+                spawnColumn(origin, COLUMN_HEIGHT * ((double) sinceGrow / (double) GROW_TICKS), 0.0);
             }
 
-            if (!teleported && (tick == CHARGE_TICKS + TELEPORT_AT_STEP))
+            final int sinceRise = sinceGrow - GROW_TICKS;
+            if ((sinceRise >= 0) && (sinceRise < RISE_TICKS))
+            {
+                spawnColumn(origin, COLUMN_HEIGHT, TRAVEL_HEIGHT * ((double) sinceRise / (double) RISE_TICKS));
+            }
+
+            if (!teleported && (sinceRise == TELEPORT_AT_STEP))
             {
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
@@ -272,30 +202,33 @@ public final class BeamAnimation
 
             if (teleported)
             {
-                final int sinceTeleport = tick - (CHARGE_TICKS + TELEPORT_AT_STEP);
+                final int sinceTeleport = tick - (CHARGE_TICKS + GROW_TICKS + TELEPORT_AT_STEP);
 
-                if (sinceTeleport < BEAM_DOWN_TICKS)
+                if (sinceTeleport < DESCEND_TICKS)
                 {
-                    spawnColumnParticle(destination, sinceTeleport, BEAM_DOWN_TICKS, false);
+                    spawnColumn(destination, COLUMN_HEIGHT,
+                        TRAVEL_HEIGHT * (1.0 - ((double) sinceTeleport / (double) DESCEND_TICKS)));
                 }
 
-                if (sinceTeleport == BEAM_DOWN_TICKS)
+                if (sinceTeleport == DESCEND_TICKS)
                 {
                     BeamSounds.playArrive(destination);
                 }
 
-                if ((sinceTeleport >= BEAM_DOWN_TICKS) && (sinceTeleport < BEAM_DOWN_TICKS + LAND_ORB_TICKS))
+                final int sinceShrink = sinceTeleport - DESCEND_TICKS;
+                if ((sinceShrink >= 0) && (sinceShrink < SHRINK_TICKS))
                 {
-                    spawnOrbParticle(destination, sinceTeleport - BEAM_DOWN_TICKS, LAND_ORB_TICKS);
+                    spawnColumn(destination,
+                        COLUMN_HEIGHT * (1.0 - ((double) sinceShrink / (double) SHRINK_TICKS)), 0.0);
                 }
 
-                if (sinceTeleport == BEAM_DOWN_TICKS + LAND_ORB_TICKS)
+                if (sinceShrink == SHRINK_TICKS)
                 {
                     player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, REVEAL_TICKS, 0, false, false));
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
                 }
 
-                if (sinceTeleport >= BEAM_DOWN_TICKS + LAND_ORB_TICKS + REVEAL_TICKS)
+                if (sinceShrink >= SHRINK_TICKS + REVEAL_TICKS)
                 {
                     BeamFreeze.unfreeze(player);
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
