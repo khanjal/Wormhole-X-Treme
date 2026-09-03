@@ -47,6 +47,8 @@ class DefaultSettings
         new Setting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close", "Played once per chevron as it locks, pitch climbing through the sequence so the gate sounds like it is working towards something.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "block.end_portal.spawn", "Played once as the wormhole establishes and the woosh rolls out.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", "WormholeXTreme"),
+        new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate. Pitched down a little, since it is a shield rather than a door. Set to none for silence.", "WormholeXTreme"),
+        new Setting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open", "The iris opening. Set to none for silence.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_AMBIENT, "ambient.underwater.loop", "The soft running water an open wormhole makes while it stands there, as in the show. Set to none for silence.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_AMBIENT_TICKS, 70, "How often the ambient water repeats, in ticks. A little under the length of the default sound, so it runs continuously rather than in gasps.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 10, "Ticks a traveller sees water as they come out of a gate, as though surfacing from the event horizon. Half a second by default. Drawn to that player alone at eye height and nothing is written to the world. Raise it too far and the client starts predicting that it is swimming; 0 turns it off.", "WormholeXTreme"),

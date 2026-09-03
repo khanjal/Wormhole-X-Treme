@@ -108,6 +108,31 @@ public final class GateSounds
     }
 
     /**
+     * Plays the iris closing over a gate.
+     *
+     * <p>Pitched below the opening, because the iris is a shield coming down rather than a
+     * door swinging: the heavier of the pair should be the one that shuts.
+     *
+     * @param gate
+     *            the gate being sealed
+     */
+    public static void irisClosed(final Stargate gate)
+    {
+        play(gate, ConfigManager.getGateSoundIrisClose(), 0.8f);
+    }
+
+    /**
+     * Plays the iris opening.
+     *
+     * @param gate
+     *            the gate being unsealed
+     */
+    public static void irisOpened(final Stargate gate)
+    {
+        play(gate, ConfigManager.getGateSoundIrisOpen(), 1.0f);
+    }
+
+    /**
      * How much quieter the hum is than the things that happen once.
      *
      * <p>An open wormhole is a background, not an event. At the volume of a kawoosh, repeating

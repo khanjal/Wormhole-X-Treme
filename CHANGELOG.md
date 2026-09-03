@@ -244,6 +244,10 @@ shape actually has rather than across an assumed seven. A three-chevron gate sta
 on the same notes as a seven-chevron one, in bigger steps. It is driven off the same counter
 that drives the lights, so the sound cannot drift out of step with what it is describing.
 
+The iris has its own pair, closing pitched below opening because a shield coming down should
+be the heavier of the two. Only played when the iris actually moves, so asking for a state it
+is already in stays silent.
+
 An open wormhole also runs, on repeat, until it closes -- `ambient.underwater.loop`, because an
 event horizon looks like water and behaves like it, so that is the one ambience needing no
 explanation. One sweep over the open gates drives

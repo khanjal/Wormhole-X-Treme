@@ -728,6 +728,8 @@ and `1.5` about twenty-four. Turning a volume down makes a sound more local, not
 | `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
 | `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
+| `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals the gate. Pitched down — it is a shield, not a door. |
+| `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens. |
 
 The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
 seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in

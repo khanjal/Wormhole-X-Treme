@@ -119,6 +119,8 @@ public class ConfigManager
         GATE_SOUND_CHEVRON,
         GATE_SOUND_KAWOOSH,
         GATE_SOUND_CLOSE,
+        GATE_SOUND_IRIS_CLOSE,
+        GATE_SOUND_IRIS_OPEN,
         GATE_SOUND_AMBIENT,
         GATE_SOUND_AMBIENT_TICKS,
         GATE_ARRIVAL_SPLASH_TICKS,
@@ -817,6 +819,26 @@ public class ConfigManager
     public static String getGateSoundClose()
     {
         return soundSetting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate");
+    }
+
+    /**
+     * The sound the iris makes as it closes over a gate.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundIrisClose()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close");
+    }
+
+    /**
+     * The sound the iris makes as it opens.
+     *
+     * @return the sound name, or empty for silence
+     */
+    public static String getGateSoundIrisOpen()
+    {
+        return soundSetting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open");
     }
 
     /**
