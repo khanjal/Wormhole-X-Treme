@@ -543,17 +543,21 @@ public class RingCycleTest
         final int top = 64 + (RingAnimator.TOP_HALF_STEP / 2);
 
         cycle.markDeparture();
-        cycle.drawFlash(RingFlashDirection.TOP_DOWN, 0, false);
+        cycle.drawFlash(0, false);
         assertEquals(Material.GLOWSTONE, world.seenAt(-3, top, 0),
             "the end alice is standing in lights as she is taken");
         assertEquals(Material.STONE_SLAB, world.seenAt(497, top, 500),
             "the end she has not reached yet does not");
 
         cycle.flash();
-        cycle.drawFlash(RingFlashDirection.BOTTOM_UP, 0, true);
-        assertEquals(Material.GLOWSTONE, world.seenAt(497, 64, 500),
+        cycle.drawFlash(0, true);
+        // Both sweeps start at the same end of the stack now: the far one from the pad, so
+        // the light runs towards the pad taking her in and towards it again putting her out.
+        // The arrival used to start at the bottom, which made the landing read as a second
+        // departure played backwards rather than as the answer to one.
+        assertEquals(Material.GLOWSTONE, world.seenAt(497, top, 500),
             "the end she lands at lights as she arrives");
-        assertEquals(Material.STONE_SLAB, world.seenAt(-3, 64, 0),
+        assertEquals(Material.STONE_SLAB, world.seenAt(-3, top, 0),
             "and the end she left is done");
     }
 
@@ -567,7 +571,7 @@ public class RingCycleTest
         final RingCycle cycle = new RingCycle(pair, world, REACH);
 
         cycle.markDeparture();
-        cycle.drawFlash(RingFlashDirection.TOP_DOWN, 0, false);
+        cycle.drawFlash(0, false);
 
         final int top = 64 + (RingAnimator.TOP_HALF_STEP / 2);
         assertEquals(Material.STONE_SLAB, world.seenAt(-3, top, 0), "no light at either end");

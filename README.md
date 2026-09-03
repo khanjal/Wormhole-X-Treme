@@ -733,7 +733,6 @@ All under `rings:` in `config.yml`.
 | `deploy-ticks` | 2 | Ticks between animation frames. |
 | `settle-ticks` | 20 | How long the finished stack stands before the transport. |
 | `flash-ticks` | 3 | How long each ring stays lit as the light passes. |
-| `flash-direction` | `TOP_DOWN` | Which way the departure sweep runs. The arrival always runs the other way. |
 | `hold-ticks` | 20 | How long the stack stands after the light finishes. |
 | `lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
 | `reach` | 4 | Block layers of passenger volume, from the pad into the room. |

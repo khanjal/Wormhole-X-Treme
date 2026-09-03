@@ -27,7 +27,6 @@ class DefaultSettings
         new Setting(ConfigKeys.RING_DEPLOY_TICKS, 2, "Ticks between frames of the ring deploy and retract animations.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_SETTLE_TICKS, 20, "Ticks the fully deployed ring stack stands still before the teleport fires. One second by default.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_FLASH_TICKS, 3, "Ticks each ring stays lit as the transport flash runs through the stack.", "WormholeXTreme"),
-        new Setting(ConfigKeys.RING_FLASH_DIRECTION, "TOP_DOWN", "Which way the departure flash runs through the ring stack: TOP_DOWN or BOTTOM_UP. The arrival sweep always runs the other way.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_LIGHTS_LINGER_TICKS, 20, "Ticks the ring pad stays lit after the last ring has sunk back into it. One second by default.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_OUTLINE_ON_REFUSAL, true, "Briefly light a ring's pattern for a player it turns away, so they can see where it is. Idle rings are invisible.", "WormholeXTreme"),
         new Setting(ConfigKeys.RING_OUTLINE_TICKS, 40, "How long that outline stays visible, in ticks.", "WormholeXTreme"),

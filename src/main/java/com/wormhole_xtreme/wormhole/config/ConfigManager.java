@@ -4,7 +4,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
-import com.wormhole_xtreme.wormhole.model.ring.RingFlashDirection;
 import org.bukkit.Material;
 
 
@@ -84,7 +83,6 @@ public class ConfigManager
         /** Ticks each ring stays lit as the transport flash runs through the stack. */
         RING_FLASH_TICKS,
         /** Which way the transport flash runs: TOP_DOWN or BOTTOM_UP. */
-        RING_FLASH_DIRECTION,
         /** Whether a ring briefly shows its outline to somebody it has turned away. */
         RING_OUTLINE_ON_REFUSAL,
         /** How long that outline stays up, in ticks. */
@@ -514,31 +512,6 @@ public class ConfigManager
         return Math.max(1, intSetting(ConfigKeys.RING_FLASH_TICKS, 3));
     }
 
-    /**
-     * Which way the transport flash runs through the stack.
-     *
-     * <p>This is the <em>departure</em> sweep. The arrival that follows the swap always runs
-     * the other way, so the two mirror each other rather than being set separately — two
-     * settings could be pointed the same way, and then the landing would look like a second
-     * departure.
-     *
-     * <p>Top down by default, which is how the show does it.
-     *
-     * @return the flash direction
-     */
-    public static RingFlashDirection getRingFlashDirection()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.RING_FLASH_DIRECTION);
-        try
-        {
-            return RingFlashDirection.valueOf(
-                String.valueOf(s == null ? "TOP_DOWN" : s.getStringValue()).toUpperCase());
-        }
-        catch (final RuntimeException e)
-        {
-            return RingFlashDirection.TOP_DOWN;
-        }
-    }
 
     /**
      * How long the pad stays lit after the last ring has gone home.

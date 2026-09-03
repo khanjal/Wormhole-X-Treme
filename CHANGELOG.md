@@ -111,6 +111,14 @@ works, including a sound from a resource pack. Set one to `none` for silence, or
 `sounds-enabled: false` for all of it. Names are never resolved to a `Sound` constant, which
 keeps this working whichever way that type is defined in a given API version.
 
+The transport light always runs **towards the pad** -- down a floor ring's stack, up a ceiling
+ring's -- on the way out and on the way in alike, which is how the show does it. The pad is
+where travellers are taken from and put back, so it is what the light moves to whichever job
+it is doing. That replaced a configured departure direction and an arrival that ran its
+opposite: both were wrong against the show, and both were arithmetic that could be got
+backwards. What is left is the ring's own number, and needs no orientation, direction or sweep
+to be asked about.
+
 ### Access, permissions and events
 
 Access belongs to the pair; materials and style belong to each end. Both ends fire together,

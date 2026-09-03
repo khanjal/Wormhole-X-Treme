@@ -409,44 +409,40 @@ public class RingCycle
      * landed. With people at both ends both sweeps play at both, which is right — every end
      * is doing both jobs at once.
      *
-     * @param direction
-     *            which way the light runs
+     * <p>Both sweeps run the same way: towards the pad, which is down a floor ring and up a
+     * ceiling one. The pad is where travellers are taken from and put back, so it is what the
+     * light moves to whichever job it is doing.
+     *
      * @param step
      *            which frame, from zero
      * @param arriving
      *            true for the sweep after the swap, which plays where people landed
      */
-    public void drawFlash(final RingFlashDirection direction, final int step,
-        final boolean arriving)
+    public void drawFlash(final int step, final boolean arriving)
     {
         drawSettled();
-        final int fromTop = RingAnimator.litRing(direction, step);
+        final int lit = RingAnimator.litRing(step);
         if (arriving ? arrivingA : departingA)
         {
-            lightOneRing(pair.getEndA(), fromTop);
+            lightOneRing(pair.getEndA(), lit);
         }
         if (arriving ? arrivingB : departingB)
         {
-            lightOneRing(pair.getEndB(), fromTop);
+            lightOneRing(pair.getEndB(), lit);
         }
     }
 
     /**
-     * Lights the ring at one height of one stack.
-     *
-     * <p>By height rather than by ring number, because the two orientations number their
-     * rings from opposite ends — lighting number n at both would run the light down one stack
-     * and up the other.
+     * Lights one ring of one stack.
      *
      * @param ring
      *            the end to light
-     * @param fromTop
-     *            how far down its stack, counting the top as zero
+     * @param index
+     *            the ring to light
      */
-    private void lightOneRing(final Ring ring, final int fromTop)
+    private void lightOneRing(final Ring ring, final int index)
     {
-        drawPlacements(RingAnimator.ringAtRest(ring, RingAnimator.ringFromTop(ring, fromTop)),
-            ring.getFlashMaterial());
+        drawPlacements(RingAnimator.ringAtRest(ring, index), ring.getFlashMaterial());
     }
 
     /**

@@ -336,7 +336,7 @@ public final class RingTransit
             swapAndArrive(cycle, world);
             return;
         }
-        cycle.drawFlash(ConfigManager.getRingFlashDirection(), step, false);
+        cycle.drawFlash(step, false);
         sweepAgain(cycle, world, step, false);
     }
 
@@ -381,7 +381,7 @@ public final class RingTransit
             settleThenRetract(cycle, world);
             return;
         }
-        cycle.drawFlash(ConfigManager.getRingFlashDirection().opposite(), step, true);
+        cycle.drawFlash(step, true);
         sweepAgain(cycle, world, step, true);
     }
 

@@ -785,14 +785,23 @@ Ceiling rings run the same sequence with the travel direction inverted.
 ## The transport flash
 
 With the stack up and still, the light runs through it one ring at a time — **twice, once
-each side of the transport.** It goes down as the travellers are taken and back up as they
-arrive, so the two sweeps read as a departure and a landing rather than as one effect played
-twice. Then the rings stand a beat and come home.
+each side of the transport.** Then the rings stand a beat and come home. `rings.flash-ticks`
+is how long each ring stays lit.
 
-Only the departure is configured. `rings.flash-direction` is `TOP_DOWN` by default, as the
-show does it, and the arrival is always its opposite. Two separate settings could be pointed
-the same way, and the landing would then look like a second departure rather than the answer
-to one. `rings.flash-ticks` is how long each ring stays lit.
+**The light always runs towards the pad**, and both sweeps run the same way: down through a
+floor ring's stack, up through a ceiling ring's. That is what the show does, and it is the
+reading that makes sense of the machine — the pad is where travellers are taken from and put
+back, so it is what the light moves to whichever job it is doing.
+
+This was briefly two things: a configured departure direction, and an arrival that ran its
+opposite. Both are gone. Against the show they were wrong, and they were arithmetic that could
+be got backwards — as the flash once was, running down one end of a pair and up the other.
+
+What is left needs no orientation, no direction and no sense of which sweep is running: the
+lit ring is just the ring's own number. Ring zero is the first one out and travels furthest
+from its pad, so it is the far end of the stack whichever way that stack was built — the top
+of a floor ring's, the bottom of a ceiling one's. Counting up from it runs towards the pad at
+both.
 
 **Each sweep plays only at the ends it belongs to.** The first takes travellers in, so it runs
 where somebody is standing; the second puts them out, so it runs where somebody has landed. An
@@ -901,7 +910,7 @@ rings:
   settle-ticks: 20           # stack stands still this long before the teleport
   hold-ticks: 20             # and this long after the light finishes, before retracting
   flash-ticks: 3             # how long each ring stays lit as the light passes
-  flash-direction: TOP_DOWN  # departure; the arrival always runs the other way
+
   outline-on-refusal: true   # light the pattern for somebody a ring turns away
   sounds-enabled: true       # whether rings make any noise at all
   sound-volume: 1.0          # also the audible range: 1.0 carries about sixteen blocks
@@ -1100,8 +1109,8 @@ In rough order of how much they would hurt to get wrong:
 6. Rings climb a clear block apart and finish half a block apart, the gaps closing from the
    top down, and nothing ever rises above where the top ring settles.
 7. A full cycle changes no real block, and leaves nothing drawn behind.
-8. The flash touches every ring exactly once, and the arrival sweep runs back the way the
-   departure came.
+8. The flash touches every ring exactly once, and always runs towards the pad — down a
+   floor ring's stack, up a ceiling ring's, on both sweeps.
 9. A cancelled `RingTravelEvent` drops that passenger and carries everyone else, and is
    asked only after both ends have been read.
 10. The pad stays lit from the countdown until after the rings are home, and the rings can
