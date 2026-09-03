@@ -241,6 +241,13 @@ configured default. Build in quartz, try a colour you do not like, reset, and th
 back. The lights and the deploy style have no such history -- nobody builds those -- so those
 do take the server defaults.
 
+`ring edit built` sets what that slab *is*, for the one case `reset` cannot recover on its
+own: a ring imported or corrected after the fact, with no recorded history to restore. Hand
+editing the stored `Built:` value in the YAML does not work for this -- the plugin resaves
+every ring from memory on shutdown, so an on-disk edit is silently overwritten with the old
+in-memory value before it is ever read back. This command changes the in-memory value
+directly and saves immediately, so there is nothing left to clobber it.
+
 ### Sound
 
 A ring drawn to clients and never built is otherwise a silent animation in somebody's floor,

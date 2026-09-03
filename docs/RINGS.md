@@ -962,10 +962,18 @@ one declaration.
 
   fields:  ring <material>    the travelling slabs; must be a slab   per end
            light <material>   the countdown lights                   per end
+           built <material>   the slab `reset` restores to; must be a slab   per end
            name <text>        what this end is called                per end
            access public|private                                     per pair
            style fast|slow                                            per end
 ```
+
+**`built` exists for the one case `reset` cannot fix on its own.** Everything else `reset`
+restores comes from config and has a default; the laid-in slab does not, so a ring imported
+or corrected after the fact needs it set directly rather than restored to anything. Editing
+the stored YAML's `Built:` value does not work for this — the plugin resaves every ring from
+memory on shutdown, so an on-disk edit is overwritten with the old in-memory value before it
+is ever read back. `ring edit built` changes the in-memory value and saves immediately.
 
 Everything adjustable lives under one `edit` verb rather than a subcommand per field. Gates
 grew a separate top-level command for each — `portalmaterial`, `irismaterial`,

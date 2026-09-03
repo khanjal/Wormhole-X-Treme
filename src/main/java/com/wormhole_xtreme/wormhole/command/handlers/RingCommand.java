@@ -554,7 +554,7 @@ public class RingCommand implements SubCommand
         if (noValue && !"reset".equalsIgnoreCase(args[fieldAt]))
         {
             player.sendMessage("Usage: /wormhole ring edit [id] "
-                + "<ring|light|flash|name|access|style|reset> [value]");
+                + "<ring|light|flash|built|name|access|style|reset> [value]");
             return true;
         }
         if (!RingPermissions.mayManage(player, pair))
@@ -580,6 +580,10 @@ public class RingCommand implements SubCommand
         if ("flash".equals(field))
         {
             return setLightMaterial(player, pair, only, value, true);
+        }
+        if ("built".equals(field))
+        {
+            return setBuiltMaterial(player, pair, only, value);
         }
         if ("name".equals(field))
         {
@@ -632,7 +636,7 @@ public class RingCommand implements SubCommand
             }
             return saved(player, pair, "Style set to " + chosen + ".");
         }
-        player.sendMessage("Fields are: ring, light, flash, name, access, style, reset.");
+        player.sendMessage("Fields are: ring, light, flash, built, name, access, style, reset.");
         return true;
     }
 
@@ -721,6 +725,51 @@ public class RingCommand implements SubCommand
             pair.getEndB().setRingMaterial(material);
         }
         return saved(player, pair, "Ring material set to " + material + ".");
+    }
+
+    /**
+     * Sets the slab an end is recorded as laid in -- what {@code reset} restores it to.
+     *
+     * <p>Everything else {@code reset} restores comes from config and has a default to fall
+     * back on; this is the one field that does not, since the whole point of restoring "the
+     * slab this end was laid in" is that it has no other source of truth than what was
+     * recorded when the pair was built. Editing the stored YAML directly does not work for
+     * this: the plugin resaves every ring from memory on shutdown, so an on-disk edit made
+     * while the server is running -- or between stopping and starting it back up -- is
+     * overwritten with the old in-memory value before it is ever read back. This command
+     * changes the in-memory value itself and saves immediately, so there is nothing left to
+     * clobber it.
+     *
+     * @param player
+     *            the player
+     * @param pair
+     *            the pair
+     * @param only
+     *            the single end to change, or null for both
+     * @param value
+     *            the material name
+     * @return true, the command was handled
+     */
+    private static boolean setBuiltMaterial(final Player player, final RingPair pair,
+        final Ring only, final String value)
+    {
+        final Material material = Material.matchMaterial(value);
+        if (!Ring.isUsableAsRing(material))
+        {
+            player.sendMessage("The laid-in slab has to be a slab — that is what reset would "
+                + "put back.");
+            return true;
+        }
+        if (only != null)
+        {
+            only.setBuiltMaterial(material);
+        }
+        else
+        {
+            pair.getEndA().setBuiltMaterial(material);
+            pair.getEndB().setBuiltMaterial(material);
+        }
+        return saved(player, pair, "Built material set to " + material + ".");
     }
 
     /**

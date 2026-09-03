@@ -419,7 +419,7 @@ public final class SubCommands
     }
 
     /** The fields {@code /wormhole ring edit} understands. */
-    private static final String[] RING_FIELDS = { "ring", "light", "flash", "name", "access", "style", "reset" };
+    private static final String[] RING_FIELDS = { "ring", "light", "flash", "built", "name", "access", "style", "reset" };
 
     /**
      * Completions for {@code /wormhole ring}.
