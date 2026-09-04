@@ -18,12 +18,17 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  *
  * <ol>
  * <li><b>Envelop</b> -- a dense burst of {@code Particle.END_ROD} at body height (not the
- * tall column yet), brightening fast. The traveller is visible at first and vanishes
- * partway through -- the "absorption."</li>
- * <li><b>Rise</b> -- the envelope opens straight into the full-height column, constant
- * brightness, climbing and departing. The real {@link Player#teleport(Location)} call
- * fires mid-rise, not at the end, so the traveller has had most of it in view before
- * leaving; the remainder plays out at the origin with nobody there.</li>
+ * tall column yet), brightening fast, tracking wherever the traveller currently is rather
+ * than a fixed spot -- they are not frozen yet and can still walk, turn, react, the way
+ * someone in the reference footage still could before being taken. The traveller is
+ * visible at first and vanishes partway through -- the "absorption," and the moment they
+ * stop being free to move: {@link BeamFreeze} and the departure column's fixed root both
+ * take hold on this same tick.</li>
+ * <li><b>Rise</b> -- the envelope opens straight into the full-height column, rooted at
+ * wherever the traveller was standing the instant they vanished, constant brightness,
+ * climbing and departing. The real {@link Player#teleport(Location)} call fires mid-rise,
+ * not at the end, so the traveller has had most of it in view before leaving; the
+ * remainder plays out at the origin with nobody there.</li>
  * <li><b>Descend</b> -- the same column arrives from above at full height and brightness
  * and settles into place at the destination.</li>
  * <li><b>Deposit and fade</b> -- the instant the column settles, the traveller is revealed
@@ -36,8 +41,8 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * API property: invisibility is observer-relative. An invisible player still sees their own
  * surroundings and any particles normally; it only hides them from <em>other</em> players'
  * clients. So the traveller stays physically present (invisible to everyone else, frozen by
- * {@link BeamFreeze}) through the tail of the rise, then arrives partway through the descent
- * and watches the rest of it.
+ * {@link BeamFreeze} from the vanish tick on) through the tail of the rise, then arrives
+ * partway through the descent and watches the rest of it.
  *
  * <p>One asymmetry doesn't come from mirroring departure and arrival, though: the
  * destination track could in principle be staged fully independent of the player, but the
@@ -121,8 +126,11 @@ public final class BeamAnimation
     public static boolean start(final Player player, final Location destination, final String destinationName,
         final Runnable onDepart)
     {
-        if (BeamFreeze.isFrozen(player))
+        if (BeamFreeze.isActive(player))
         {
+            // isActive, not isFrozen: the envelope runs before the traveller is frozen at
+            // all, and a second beam must not be allowed to start on top of it during that
+            // window either.
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
                 + "You're already beaming somewhere.");
             return false;
@@ -167,7 +175,7 @@ public final class BeamAnimation
     private static final class Sequence implements Runnable
     {
         private final Player player;
-        private final Location origin;
+        private Location origin;
         private final Location destination;
         private final String destinationName;
         private final Runnable onDepart;
@@ -179,6 +187,10 @@ public final class BeamAnimation
             final Runnable onDepart)
         {
             this.player = player;
+            // Where the departure column roots itself, once there is one -- not settled
+            // until the vanish tick, since the traveller is free to move around during the
+            // envelope and the column should not root anywhere until they stop being able
+            // to. This value only matters for the tick-0 charge sound until then.
             this.origin = player.getLocation();
             this.destination = destination;
             this.destinationName = destinationName;
@@ -203,14 +215,14 @@ public final class BeamAnimation
         {
             if (!player.isOnline())
             {
-                // They are gone; nothing left to animate, and nothing left to unfreeze --
+                // They are gone; nothing left to animate, and nothing left to clear --
                 // BeamFreezeListener already cleared it on the way out.
                 return;
             }
 
             if (tick == 0)
             {
-                BeamFreeze.freeze(player);
+                BeamFreeze.markActive(player);
                 BeamSounds.playCharge(origin);
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                     + "Beaming to " + destinationName + "...");
@@ -219,13 +231,25 @@ public final class BeamAnimation
             final int envelopTicks = timing.envelopTicks();
             if (tick < envelopTicks)
             {
+                // Not yet frozen -- tracks wherever the traveller actually is this tick,
+                // rather than the fixed origin, since they are still free to walk, turn or
+                // react right up until they vanish. A fixed column here would just miss
+                // them the moment they stepped away from where the sequence began.
                 final double progress = (double) tick / (double) (envelopTicks - 1);
                 final int density = MIN_DENSITY + (int) Math.round((MAX_DENSITY - MIN_DENSITY) * progress);
-                spawnColumn(origin, PLAYER_HEIGHT, 0.0, density);
+                spawnColumn(player.getLocation(), PLAYER_HEIGHT, 0.0, density);
             }
 
             if (tick == timing.vanishAtStep())
             {
+                // This is the moment free movement ends: note where they are right now --
+                // the departure column roots here for the rest of the rise -- then lock
+                // them in place. Capturing the location before freezing, not after, is
+                // what keeps the last envelope frame and the first rise frame coincident
+                // rather than one tick apart.
+                origin = player.getLocation();
+                BeamFreeze.freeze(player);
+
                 // Invisibility has to outlast everything from here to the deposit. The
                 // remainder of the envelope plus the full rise and descent is an
                 // over-estimate of when it's actually needed until, which is fine --
@@ -284,7 +308,7 @@ public final class BeamAnimation
 
                 if (sinceDeposit >= fadeTicks)
                 {
-                    BeamFreeze.unfreeze(player);
+                    BeamFreeze.clear(player);
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                         + "Beamed to " + destinationName + ".");
                     return;

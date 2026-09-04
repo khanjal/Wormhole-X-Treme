@@ -36,7 +36,10 @@ public final class BeamFreezeListener implements Listener
     @EventHandler
     public void onQuit(final PlayerQuitEvent event)
     {
-        // A frozen state must never survive the player it was tracking.
-        BeamFreeze.unfreeze(event.getPlayer());
+        // Neither state must survive the player it was tracking -- including active alone,
+        // with frozen not yet set, if they disconnect during the envelope. Otherwise the
+        // already-beaming guard would refuse them a beam for good after they reconnect,
+        // with nothing left running that could ever clear it.
+        BeamFreeze.clear(event.getPlayer());
     }
 }

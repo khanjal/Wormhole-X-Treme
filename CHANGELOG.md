@@ -53,6 +53,27 @@ other so no combination of config values can leave a player stuck: a
 otherwise mean the teleport condition is never reached and the traveller is frozen and
 invisible with no way out short of a restart.
 
+### The traveller can move during the envelope, matching the reference
+
+The envelope used to freeze the traveller in place from the moment the command ran, before
+they had even vanished -- but the reference shows someone still walking, turning, reacting
+while the glow gathers on them. `BeamFreeze` now only takes hold at the vanish tick, once
+they have actually been "absorbed"; the envelope's particles track wherever the traveller
+currently is rather than a fixed spot, since a fixed column would just miss them the moment
+they stepped away from where the sequence began. The departure column that opens out of the
+envelope roots itself wherever they happened to be standing at that exact tick, not
+wherever they started.
+
+This split the already-beaming guard from the position lock, which had been the same flag.
+`BeamAnimation.start` used to refuse a second beam by checking whether the player was
+frozen -- but nobody is frozen during the envelope anymore, so that check would have let a
+second sequence start on top of a first one still gathering. `BeamFreeze` now tracks two
+states: active (the whole sequence, envelope included, checked by the guard) and frozen
+(only from vanish onward, checked by the movement listener). A player disconnecting during
+the envelope clears both on the way out, the same as a frozen player always did -- an
+active-but-never-frozen flag left standing would have refused that player every beam for
+good, with nothing left running that could ever clear it.
+
 ### `/wormhole go` now respects private network permission, like dial already does
 
 `wormhole.go` was a single blanket node with no way to know which network a target gate
