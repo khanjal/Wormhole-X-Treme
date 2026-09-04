@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -12,6 +13,7 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
 import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * The Class Go.
@@ -65,7 +67,12 @@ public class Go implements CommandExecutor
         final Stargate gate = StargateManager.getStargate(name);
         if ((gate != null) && WXPermissions.checkWXPermissions(player, gate, PermissionType.GO))
         {
-            BeamAnimation.start(player, gate.getGatePlayerTeleportLocation(), gate.getGateName());
+            // The walk-through path (WormholeXTremePlayerListener) already snaps to safe
+            // ground before a gate teleport; this shortcut skipped that and would deliver
+            // someone into whatever terrain had drifted around the gate's stored arrival
+            // point since it was built.
+            final Location target = WorldUtils.findSafePlayerLocation(gate.getGatePlayerTeleportLocation());
+            BeamAnimation.start(player, target, gate.getGateName());
             return true;
         }
 

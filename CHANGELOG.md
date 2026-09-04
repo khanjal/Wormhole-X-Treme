@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Beam and gate arrivals correct for terrain that has drifted since they were set
+
+A beam destination, a place, or a gate's arrival point is only ever as good as the ground
+was the moment it was recorded -- building up or digging out afterward doesn't move the
+stored coordinates, so an exact teleport there could land somebody buried in a block that
+had since risen to meet them, or hanging in the air over ground that had since dropped
+away. `WormholeXTremePlayerListener` already searched outward for standable ground before
+a gate's own walk-through arrival, so that search (`WorldUtils.findSafePlayerLocation`) is
+now shared: `BeamTravel.travelTo` runs it once on the resolved destination before starting
+the beam sequence, so the real teleport and the arrival column -- both already reading from
+the same `Location` -- land in the same corrected spot with nothing further to keep in
+sync. `/wormhole go`'s gate shortcut gets the same correction, closing the one path into a
+gate that had been skipping it.
+
 ### Beam sequence decisions are now testable without a running server
 
 `BeamAnimation.Sequence` computed every phase boundary and quantity inline, mixed in with
