@@ -168,7 +168,7 @@ public class ShapeFileValidatorTest
         };
         final ShapeFileValidator.Result result = validate(lines);
         assertFalse(result.isValid());
-        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains(":L order jumps from #1 to #3")),
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains(":L #2 is never used, between #1 and #3")),
             "expected the light-order gap to be reported, got: " + result.getProblems());
     }
 
@@ -185,13 +185,39 @@ public class ShapeFileValidatorTest
             "[S:A][P][S]",
             "[S][S:EP][S]",
             "",
-            "PORTAL_MATERIAL=STATIONARY_WATER",
+            "PORTAL_MATERIAL=NOT_A_REAL_MATERIAL",
             "REDSTONE_ACTIVATED=FALSE",
         };
         final ShapeFileValidator.Result result = validate(lines);
         assertFalse(result.isValid());
-        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("STATIONARY_WATER")),
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("NOT_A_REAL_MATERIAL")),
             "expected the unresolved material to be reported, got: " + result.getProblems());
+    }
+
+    @Test
+    public void theLegacyStationaryWaterAliasIsAcceptedTheSameWayTheRealParserAcceptsIt() throws Exception
+    {
+        // Not a made-up edge case: this is the exact false positive a real review caught.
+        // Stargate3DShape resolves material names through parseMaterialName, which maps the
+        // pre-1.13 STATIONARY_WATER/STATIONARY_LAVA names to WATER/LAVA before falling back to
+        // Material.valueOf -- a shape using that legacy name loads and runs fine. Checking
+        // against Material.matchMaterial directly instead would reject a shape the game
+        // accepts, which is exactly backwards for something meant to double-check the parser.
+        final String[] lines = {
+            "Name=Test",
+            "Version=2",
+            "GateShape=",
+            "",
+            "Layer#1=",
+            "[S][S][S]",
+            "[S:A][P][S]",
+            "[S][S:EP][S]",
+            "",
+            "PORTAL_MATERIAL=STATIONARY_WATER",
+            "REDSTONE_ACTIVATED=FALSE",
+        };
+        final ShapeFileValidator.Result result = validate(lines);
+        assertTrue(result.isValid(), "unexpected problems: " + result.getProblems());
     }
 
     @Test
@@ -232,5 +258,54 @@ public class ShapeFileValidatorTest
         assertFalse(result.isValid());
         assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("no :EP block")),
             "expected the missing :EP to be reported, got: " + result.getProblems());
+    }
+
+    @Test
+    public void aRedstoneMarkerResolvingOntoTheFrameIsCaught() throws Exception
+    {
+        // [S:RA] is the frame-attached form: the marker is the frame block itself, so the
+        // redstone belongs one above it (StargateHelper.redstoneComponentY). Stacking a plain
+        // [S] directly above it means that resolved cell is frame too -- redstone placed there
+        // can never actually be placed, since the frame already occupies it.
+        final String[] lines = {
+            "Name=Test",
+            "Version=2",
+            "GateShape=",
+            "",
+            "Layer#1=",
+            "[S][S:A][S]",
+            "[S:RA][P][S]",
+            "[S][S:EP][S]",
+            "",
+            "REDSTONE_ACTIVATED=TRUE",
+        };
+        final ShapeFileValidator.Result result = validate(lines);
+        assertFalse(result.isValid());
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("[RA]") && p.contains("frame")),
+            "expected the frame-collision to be reported, got: " + result.getProblems());
+    }
+
+    @Test
+    public void aRedstoneDialTriggerWithNoDialSignToReadIsCaught() throws Exception
+    {
+        // [RD] dials whatever the :D sign currently shows -- a shape offering redstone
+        // dialling with no :D block for it to read is offering a control that can never do
+        // anything.
+        final String[] lines = {
+            "Name=Test",
+            "Version=2",
+            "GateShape=",
+            "",
+            "Layer#1=",
+            "[S][S][S]",
+            "[RD][S:A][P]",
+            "[S][S:EP][S]",
+            "",
+            "REDSTONE_ACTIVATED=TRUE",
+        };
+        final ShapeFileValidator.Result result = validate(lines);
+        assertFalse(result.isValid());
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("[RD]") && p.contains(":D")),
+            "expected the missing dial sign to be reported, got: " + result.getProblems());
     }
 }

@@ -7,8 +7,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.bukkit.Material;
-
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
@@ -26,9 +24,10 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * woosh recession. Both mistakes shipped in this project's own gate shapes before being caught
  * by hand -- this exists so the next one is caught by running a command instead.
  *
- * <p>Pure with respect to Bukkit except for {@link Material#matchMaterial}, which needs no
- * live server to call -- everything else here operates on plain file lines and the already-
- * parsed shape object, the same split this project's other shape-parsing tests already rely on.
+ * <p>Pure with respect to Bukkit except for the material lookups in
+ * {@link Stargate3DShape#parseMaterialName}, which need no live server to call -- everything
+ * else here operates on plain file lines and the already-parsed shape object, the same split
+ * this project's other shape-parsing tests already rely on.
  */
 public final class ShapeFileValidator
 {
@@ -291,6 +290,13 @@ public final class ShapeFileValidator
         }
     }
 
+    /**
+     * A gap here is not fatal -- both {@code StargateAnimator.lightStargate} and
+     * {@code animateOpening}'s woosh loop step through orders by plain index and just draw
+     * nothing for one that has no blocks, then carry on to the next -- but it is still worth
+     * flagging: a skipped order is a wasted, visibly empty tick in what should be a smooth
+     * sequence, not a real second phase of anything.
+     */
     private static void checkNoGap(final List<String> problems, final String label, final Set<Integer> orders)
     {
         if (orders.isEmpty())
@@ -302,9 +308,12 @@ public final class ShapeFileValidator
         {
             if (order != expected)
             {
-                problems.add(label + " order jumps from #" + (expected - 1) + " to #" + order
-                    + " -- #" + expected + " through #" + (order - 1)
-                    + " were never used, and #" + (order - 1) + " never fires");
+                final String missing = (order - 1 == expected)
+                    ? ("#" + expected)
+                    : ("#" + expected + " through #" + (order - 1));
+                problems.add(label + " " + missing + " " + ((order - 1 == expected) ? "is" : "are")
+                    + " never used, between #" + (expected - 1) + " and #" + order
+                    + " -- that tick draws nothing rather than the sequence skipping cleanly to #" + order);
                 expected = order;
             }
             expected++;
@@ -376,8 +385,12 @@ public final class ShapeFileValidator
      * {@code PORTAL_MATERIAL}, {@code IRIS_MATERIAL}, {@code STARGATE_MATERIAL} and
      * {@code ACTIVE_MATERIAL} are plain text resolved at runtime -- a name that does not exist
      * in this server's Minecraft version compiles fine and then either falls back silently or
-     * fails when the gate is actually built. Mirrors {@code ShippedMaterialsExistTest}'s check,
-     * available here for a shape that will never run that test.
+     * fails when the gate is actually built.
+     *
+     * <p>Resolved through {@link Stargate3DShape#parseMaterialName}, the same method the real
+     * parser uses, rather than {@link Material#matchMaterial} directly: the parser accepts the
+     * legacy {@code STATIONARY_WATER}/{@code STATIONARY_LAVA} aliases pre-1.13 shape files
+     * still use, and a stricter check here would reject a shape that loads and runs fine.
      */
     private static List<String> checkMaterialsResolve(final String[] fileLines)
     {
@@ -396,7 +409,7 @@ public final class ShapeFileValidator
             }
             final String key = m.group(1);
             final String value = m.group(2).trim();
-            if (Material.matchMaterial(value) == null)
+            if (Stargate3DShape.parseMaterialName(value) == null)
             {
                 problems.add(key + "=" + value + " does not name a material that exists "
                     + "in this server's Minecraft version");
