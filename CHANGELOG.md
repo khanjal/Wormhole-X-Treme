@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 (2026-09-04)
+
+### Validating and reloading a gate shape without restarting the server
+
+`Stargate3DShape` derives one width and height from `Layer#1` and trusts every later row and
+layer number to match it -- a row one cell short of that width does not throw, it just shifts
+every column after the gap; a skipped `Layer#N=` does not throw either, it leaves a `null` in
+the middle of the layer array, a silent dead gap in the woosh recession. Both mistakes actually
+shipped in this project's own gate shapes before being caught by hand. `ShapeFileValidator` is
+those checks (plus duplicate singleton markers, gaps in `:L#`/`:W#` ordering, materials that do
+not resolve, and redstone markers landing on the frame) formalized into one pass over a shape
+file, so the next one is caught by running a command instead.
+
+`/wormhole gate shapes validate <name>` runs that pass without touching anything loaded.
+`/wormhole gate shapes reload [name]` runs it and, if the file is valid, replaces its entry in
+`StargateShapeRegistry` -- or reloads every shape in the directory if no name is given. This
+needed an actual behavior change in the registry: `loadShapes()`'s own "name already exists"
+rule *keeps* the earlier entry, which is exactly backwards for reloading a shape someone is
+actively editing -- every reload after the first would have silently done nothing.
+`StargateShapeRegistry.replaceIfValid` is the decision an edit-and-recheck loop actually needs,
+and a failed reload leaves the last good version in place rather than tearing it down.
+
+Both `/wormhole gate shapes` verbs require `wormhole.config`, the same node the rest of gate
+management already does -- this reaches into the GateShapes directory and changes what every
+future gate on the server can be built from.
+
 ## 1.3.0 (2026-09-03)
 
 ### Holding forward against a locked gate no longer spams chat

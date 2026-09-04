@@ -212,7 +212,8 @@ thing that is neither.
 
 **Gates** — `gate build <shape>`, `gate complete <name> [idc=IDC] [net=NET]`,
 `gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate|-all>`,
-`gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`
+`gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`,
+`gate shapes <reload [name]|validate <name>>`
 
 `gate edit <gate> <field> [value]` covers everything you set on a gate:
 
@@ -279,6 +280,18 @@ comes back unchanged and is not counted. It is narrower than running `regenerate
 gate: it only touches the arrival point, not the dial lever, iris lever, redstone hookup or
 sign that a single-gate regenerate also refreshes, since rewriting those for every gate on the
 server at once is not something an unattended sweep should do on its own.
+
+**`gate shapes validate <name>`** checks a `.shape` file in the GateShapes directory for
+problems that will not throw on their own: a row one cell short of the width its first layer
+declared (every column after the gap silently lands one off), a skipped `Layer#N=` (a dead gap
+in the woosh recession), a duplicate `:EP`/`:A`/`:N`/etc. (the second one silently wins), a gap
+in `:L#`/`:W#` ordering, a material name that does not exist in this server's Minecraft
+version, or redstone landing on the frame. Nothing loaded is changed either way.
+
+**`gate shapes reload [name]`** runs the same checks and, if they pass, replaces that shape in
+the running server — or reloads every shape in the directory if no name is given. This is the
+way to try out an edit to a shape file without restarting: a failed reload reports what is
+wrong and leaves whichever version already loaded in place.
 
 <details>
 <summary>The old flat commands still work</summary>
