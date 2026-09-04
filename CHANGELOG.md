@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 (2026-09-04)
+
+### The first even-width gate shape
+
+Every shipped ring -- Standard, Minimal, Horizontal -- is an odd number of blocks wide, which
+gives it one true center column for the markers that only ever appear once: the top light,
+`:N`, `:EP`. `Even.shape` and `EvenSignDial.shape` are the first shapes that are not: an 8x8
+ring with no single center column at all, the middle falling between columns 3 and 4 instead
+of landing on one.
+
+Rather than split those markers across both middle columns, every one of them -- the top
+light, the name sign, the entry point -- is pinned to column 3 throughout the shape, so they
+still read as one straight vertical line even though it is not the geometric center. Standard's
+ring has one row at its widest, giving it one pair of lit corners; an 8-wide ring needs four
+full-width rows to stay symmetric, so only the one nearest that same column-3 line is lit and
+the rest stay plain -- the same way Standard's own off-center full-width rows already do.
+
+`EvenSignDial.shape` pairs with it the way `StandardSignDial.shape` pairs with `Standard.shape`:
+same ring, `:D` and two redstone points (`[RD]`, `[RA]`) in place of the iris switch, and no
+`[RS]` for the same reason `StandardSignDial` ships without one -- the only free cell left is
+adjacent to `[RD]`, and adjacent redstone dust connects, so a pulse would cycle the destination
+and dial it in the same signal.
+
+`EvenGateShapeTest` pins the design decisions that would otherwise only be noticed by eye in
+game: both shapes parse without throwing, the light count and woosh depth match Standard's
+scaled up (7 lights, 3 receding layers), and the redstone/dial-only split lands on the right
+layer. The existing shape-sweeping tests (`RedstoneBlockPlacementTest`,
+`ArrivalIsOutsideThePortalTest`) already cover any newly shipped shape automatically and both
+pass against these two unmodified.
+
 ## 1.3.0 (2026-09-03)
 
 ### Holding forward against a locked gate no longer spams chat
