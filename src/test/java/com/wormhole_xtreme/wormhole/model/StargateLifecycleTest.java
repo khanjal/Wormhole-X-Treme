@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -202,5 +204,48 @@ public class StargateLifecycleTest
 
         assertTrue(gate.isGateIrisActive(),
             "timeoutStargate must re-engage the iris when its default is active");
+    }
+
+    // -----------------------------------------------------------------------
+    // timeoutStargate — the same player activated a second gate before the
+    // first one's timer fired, so activatedStargates no longer maps that
+    // player to the gate that actually timed out.
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void timeoutStargateDeactivatesTheGateThatActuallyTimedOutNotWhicheverIsCurrentlyMappedToThePlayer()
+    {
+        // Reproduces a real bug: chevrons staying lit forever on a gate that timed
+        // out, because the same player had since activated a second gate. The old
+        // code resolved "which gate to turn off" through activatedStargates keyed
+        // on the player -- by the time gate1's timer fired, that map entry pointed
+        // at gate2, so gate1's own lights were never told to turn off, and gate2
+        // was wrongly turned off (and its own map entry silently consumed) instead.
+        final Player player = mock(Player.class);
+        final Stargate gate1 = new Stargate();
+        gate1.setGateName("Gate1");
+        gate1.setGateActivateTaskId(-1);
+        gate1.setGateLightsActive(true);
+
+        final Stargate gate2 = new Stargate();
+        gate2.setGateName("Gate2");
+        gate2.setGateActivateTaskId(-1);
+        gate2.setGateLightsActive(true);
+
+        StargateManager.addActivatedStargate(player, gate1);
+        // The player walks away and activates a second gate before gate1's own
+        // activation timer expires -- overwriting the player's map entry.
+        StargateManager.addActivatedStargate(player, gate2);
+
+        // gate1's timer is the one that actually fires first.
+        StargateLifecycle.timeoutStargate(gate1, player);
+
+        assertFalse(gate1.isGateLightsActive(),
+            "the gate whose timer actually fired must have its own lights turned off");
+        assertTrue(gate2.isGateLightsActive(),
+            "a different, still-pending gate activation must not be turned off by " +
+                "an unrelated gate's timeout");
+        assertSame(gate2, StargateManager.removeActivatedStargate(player),
+            "gate2's own pending activation must still be in the map for its own timeout to find later");
     }
 }

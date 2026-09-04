@@ -96,6 +96,39 @@ public final class Sounds
     }
 
     /**
+     * Stops a named, looping sound for everyone currently in a world.
+     *
+     * <p>{@code World} has no {@code stopSound} of its own -- only {@code Player} does, so
+     * unlike {@link #play}, which Bukkit broadcasts to whoever is in range on its own, stopping
+     * one has to be told to each player individually. There is no range to narrow that to
+     * either: a stop is a client-side "you are no longer playing this," not a positional event,
+     * so a player who never actually heard the original sound just receives a harmless no-op.
+     *
+     * @param world
+     *            the world to stop it in; nothing happens if null
+     * @param sound
+     *            the sound name; empty does nothing
+     */
+    public static void stopForEveryoneIn(final World world, final String sound)
+    {
+        if ((world == null) || (sound == null) || sound.isEmpty())
+        {
+            return;
+        }
+        for (final Player player : world.getPlayers())
+        {
+            try
+            {
+                player.stopSound(sound, SoundCategory.BLOCKS);
+            }
+            catch (final RuntimeException ignored)
+            {
+                // As above -- decoration, not worth interrupting a shutdown over.
+            }
+        }
+    }
+
+    /**
      * Holds a pitch to what Minecraft will play.
      *
      * <p>Out of range, the client plays the nearest end rather than refusing -- so a sequence

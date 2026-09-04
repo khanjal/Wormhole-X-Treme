@@ -2,6 +2,41 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 (2026-09-04)
+
+### A gate's ambient hum no longer outlives the gate
+
+`tickAmbient()` re-triggers the ambient sound every `getGateSoundAmbientTicks()` (70 ticks by
+default) -- deliberately a little under the sample's own length, so retriggers overlap and the
+hum sounds continuous rather than gasping. That means at almost any instant a gate is open,
+there is already an in-flight instance of a multi-second sample playing. Shutting the gate down
+removed it from `getOpenGates()`, which stopped *new* triggers, but nothing ever stopped the
+one already dispatched -- so the hum kept playing to its own natural end, up to a sample's
+length after the gate had actually closed.
+
+`World` turns out to have no `stopSound` of its own; only `Player` does, so unlike playing --
+which Bukkit broadcasts to whoever is in range on its own -- stopping has to be told to each
+player in the gate's world individually. `Sounds.stopForEveryoneIn` does that, and
+`GateSounds.stopAmbient` (called from `StargateLifecycle.shutdownStargate`, right alongside the
+close sound) is the actual fix.
+
+### A timed-out gate's chevrons could stay lit forever
+
+`StargateLifecycle.timeoutStargate` decided which gate to turn the lights off on by reading
+`activatedStargates`, a map keyed on the *player*, not the gate. If the same player activated a
+second gate before the first one's 30-second activation timer expired, that second activation
+silently overwrote the first gate's entry in the map. When gate one's timer then fired, the
+code resolved "the gate to deactivate" through that map -- landing on gate two instead of the
+one that actually timed out. Gate one's chevrons were never told to turn off and stayed lit
+until someone manually toggled its lever; gate two was switched off early and lost its own
+pending-activation entry, so when *its* timer later fired there was nothing left in the map and
+its own cleanup (iris restore, lights, message) was silently skipped too.
+
+The fix operates on the gate that actually timed out throughout, and clears that gate's own map
+entry by identity (`StargateManager.removeActivatorForStargate`, the same method
+`GateInteractionHandler`'s manual-deactivation path already uses for this exact reason) rather
+than removing whatever the player happens to be mapped to right now.
+
 ## 1.3.0 (2026-09-03)
 
 ### Holding forward against a locked gate no longer spams chat

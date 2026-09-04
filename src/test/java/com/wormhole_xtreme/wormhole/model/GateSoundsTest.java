@@ -1,8 +1,15 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import org.bukkit.SoundCategory;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -78,5 +85,33 @@ public class GateSoundsTest
         // other before now. Running past the end should sound like the last chevron rather
         // than like something screaming.
         assertEquals(GateSounds.chevronPitch(7, 7), GateSounds.chevronPitch(9, 7), 0.0001f);
+    }
+
+    // -----------------------------------------------------------------------
+    // stopAmbient
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void stopAmbientTellsEveryPlayerInTheGatesWorldToStopTheConfiguredSound()
+    {
+        // The bug this exists for: tickAmbient() re-triggers the hum faster than the sample's
+        // own length so it sounds continuous, which means there is almost always an in-flight
+        // instance playing. Removing a gate from getOpenGates() only stops *new* triggers --
+        // this is what actually silences the one already dispatched.
+        final Player player = mock(Player.class);
+        final World world = mock(World.class);
+        when(world.getPlayers()).thenReturn(java.util.Collections.singletonList(player));
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+
+        GateSounds.stopAmbient(gate);
+
+        verify(player).stopSound(ConfigManager.getGateSoundAmbient(), SoundCategory.BLOCKS);
+    }
+
+    @Test
+    public void stopAmbientOnANullGateDoesNothingRatherThanThrowing()
+    {
+        assertDoesNotThrow(() -> GateSounds.stopAmbient(null));
     }
 }

@@ -163,6 +163,30 @@ public final class GateSounds
     }
 
     /**
+     * Silences the ambient hum the instant a gate shuts down, rather than letting the last
+     * triggered instance play out on its own.
+     *
+     * <p>{@link #tickAmbient} re-triggers every {@code getGateSoundAmbientTicks()} (a little
+     * under the sample's own length, deliberately, so retriggers overlap and the hum sounds
+     * continuous rather than gasping) -- so at almost any instant a gate is open, there is
+     * already an in-flight instance of a multi-second sample playing. Removing the gate from
+     * {@link StargateManager#getOpenGates()} only stops *new* triggers; nothing was ever
+     * stopping the one already dispatched, which is what let the hum outlive the gate by up to
+     * a sample's length.
+     *
+     * @param gate
+     *            the gate shutting down
+     */
+    public static void stopAmbient(final Stargate gate)
+    {
+        if (gate == null)
+        {
+            return;
+        }
+        Sounds.stopForEveryoneIn(gate.getGateWorld(), ConfigManager.getGateSoundAmbient());
+    }
+
+    /**
      * Plays one sound at a gate, if gate sounds are on.
      *
      * <p>Heard from the middle of the portal rather than from a corner of the frame, so a gate
