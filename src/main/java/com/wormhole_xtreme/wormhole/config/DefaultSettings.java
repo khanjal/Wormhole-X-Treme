@@ -72,7 +72,10 @@ class DefaultSettings
         new Setting(ConfigKeys.BEAM_RISE_TICKS, 25, "How long, in ticks, the beam-up column rises and brightens before the descent takes over.", "WormholeXTreme"),
         new Setting(ConfigKeys.BEAM_VANISH_AT_STEP, 8, "How far into the rise, in ticks, the traveller vanishes. Clamped below the teleport step at run time, whatever this is set to.", "WormholeXTreme"),
         new Setting(ConfigKeys.BEAM_TELEPORT_AT_STEP, 18, "How far into the rise, in ticks, the real teleport fires. Clamped inside the rise at run time, whatever this is set to.", "WormholeXTreme"),
-        new Setting(ConfigKeys.BEAM_DESCEND_TICKS, 20, "How long, in ticks, the column takes to descend into place at the destination.", "WormholeXTreme")
+        new Setting(ConfigKeys.BEAM_DESCEND_TICKS, 20, "How long, in ticks, the column takes to descend into place at the destination.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED, false, "Whether beam travel has a per-player cooldown at all.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between beams, when the cooldown above is enabled.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. Set to 0.0 to disable. Uses the same Vault connection as gate costs -- ECONOMY_ENABLED must also be true.", "WormholeXTreme")
     };
 
 }

@@ -151,7 +151,13 @@ public class ConfigManager
         /** How far into the rise the real teleport fires -- clamped inside the rise. */
         BEAM_TELEPORT_AT_STEP,
         /** How long the column takes to descend into place at the destination. */
-        BEAM_DESCEND_TICKS
+        BEAM_DESCEND_TICKS,
+        /** Whether beam travel has a per-player cooldown at all. */
+        BEAM_USE_COOLDOWN_ENABLED,
+        /** Seconds a player must wait between beams, when the above is true. */
+        BEAM_USE_COOLDOWN_SECONDS,
+        /** Cost in currency units charged to beam. 0 = free. */
+        BEAM_ECONOMY_USE_COST
     }
 
     /**
@@ -1072,6 +1078,39 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_DESCEND_TICKS);
         return (s == null) ? 20 : s.getIntValue();
+    }
+
+    /**
+     * Whether beam travel has a per-player cooldown at all.
+     *
+     * @return true if a cooldown should be enforced
+     */
+    public static boolean isBeamUseCooldownEnabled()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED);
+        return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * How many seconds a player must wait between beams, when the cooldown is enabled.
+     *
+     * @return the cooldown in seconds
+     */
+    public static long getBeamUseCooldownSeconds()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS);
+        return (s == null) ? 120 : s.getIntValue();
+    }
+
+    /**
+     * How much a beam costs, in whatever currency Vault is connected to.
+     *
+     * @return the cost; 0 or below means free
+     */
+    public static double getBeamEconomyUseCost()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ECONOMY_USE_COST);
+        return (s == null) ? 0.0 : s.getDoubleValue();
     }
 
     /**

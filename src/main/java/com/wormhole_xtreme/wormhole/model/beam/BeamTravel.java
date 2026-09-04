@@ -4,11 +4,19 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 
 /**
  * Resolves a name to a beam destination and sends the player there -- shared by
  * {@code /wormhole beam to} and {@code /wormhole go}, so a player can reach the same place
  * either way rather than the two commands quietly disagreeing about what a name means.
+ *
+ * <p>Cooldown and cost are checked here, before {@link BeamAnimation#start} is even called,
+ * but only actually applied from inside its {@code onDepart} hook -- once the real teleport
+ * has fired, not at the point of merely starting the sequence. The same split gate travel
+ * already makes, and for the same reason: applying either at the check would spend it on a
+ * trip that had not happened yet and, if the player disconnected mid-sequence, might never
+ * happen at all.
  */
 public final class BeamTravel
 {
@@ -56,10 +64,42 @@ public final class BeamTravel
                 + "That destination's world is not currently loaded.");
             return true;
         }
+        if (ConfigManager.isBeamUseCooldownEnabled() && BeamCooldown.isActive(player))
+        {
+            // Not ConfigManager.MessageStrings.playerUseCooldownRestricted -- its wording
+            // names a stargate specifically, which would be wrong here.
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                + "You must wait longer before beaming again.");
+            player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString()
+                + BeamCooldown.remainingSeconds(player));
+            return true;
+        }
+        final double useCost = ConfigManager.getBeamEconomyUseCost();
+        if ((useCost > 0) && !EconomySupport.canAfford(player, useCost))
+        {
+            // Not ConfigManager.MessageStrings.economyInsufficientFunds -- same reason: its
+            // wording says "this gate."
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                + "Insufficient funds to beam.");
+            return true;
+        }
+
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
         // there is nothing left to do with its result either way -- this call has handled
         // the attempt fully regardless of which way it went.
-        BeamAnimation.start(player, location, destination.getName());
+        BeamAnimation.start(player, location, destination.getName(), () ->
+        {
+            if (useCost > 0)
+            {
+                EconomySupport.charge(player, useCost);
+                player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
+                    + useCost + " " + EconomySupport.currencyName(useCost));
+            }
+            if (ConfigManager.isBeamUseCooldownEnabled())
+            {
+                BeamCooldown.start(player);
+            }
+        });
         return true;
     }
 }

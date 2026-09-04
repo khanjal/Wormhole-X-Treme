@@ -80,6 +80,33 @@ public final class BeamAnimation
      */
     public static boolean start(final Player player, final Location destination, final String destinationName)
     {
+        return start(player, destination, destinationName, null);
+    }
+
+    /**
+     * Starts the sequence, running {@code onDepart} at the exact tick the real teleport
+     * fires -- not before starting, and not after the sequence finishes.
+     *
+     * <p>That timing is deliberate, not incidental: a cost or cooldown applied at the point
+     * of starting rather than of actually leaving would be spent on a trip that had not
+     * happened yet and, if the player went offline mid-sequence, might never happen at all --
+     * the same reasoning gate travel already applies to when it sets its own cooldown.
+     * {@code BeamAnimation} stays unaware of what it's running for; {@link BeamTravel} is
+     * what supplies a hook that charges and cools down, and {@code /wormhole go}'s gate
+     * branch supplies none at all, since a gate reached that way already has its own,
+     * separate cooldown and economy system this was never meant to duplicate.
+     *
+     * @param player the traveller
+     * @param destination where they are going
+     * @param destinationName what to call it once they arrive
+     * @param onDepart run once, the instant {@link Player#teleport(Location)} fires; may be
+     *            null
+     * @return true if the sequence started; false if they were already beaming somewhere
+     *         (a message has already been sent in that case, and {@code onDepart} never runs)
+     */
+    public static boolean start(final Player player, final Location destination, final String destinationName,
+        final Runnable onDepart)
+    {
         if (BeamFreeze.isFrozen(player))
         {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
@@ -87,7 +114,7 @@ public final class BeamAnimation
             return false;
         }
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Sequence(player, destination, destinationName), 1L);
+            new Sequence(player, destination, destinationName, onDepart), 1L);
         return true;
     }
 
@@ -121,6 +148,7 @@ public final class BeamAnimation
         private final Location origin;
         private final Location destination;
         private final String destinationName;
+        private final Runnable onDepart;
         private final int riseTicks;
         private final int vanishAtStep;
         private final int teleportAtStep;
@@ -128,12 +156,14 @@ public final class BeamAnimation
         private int tick;
         private boolean teleported;
 
-        Sequence(final Player player, final Location destination, final String destinationName)
+        Sequence(final Player player, final Location destination, final String destinationName,
+            final Runnable onDepart)
         {
             this.player = player;
             this.origin = player.getLocation();
             this.destination = destination;
             this.destinationName = destinationName;
+            this.onDepart = onDepart;
 
             // Read once, not per tick, so a config change mid-flight cannot desync a beam
             // already running. Clamped here rather than in ConfigManager, because the
@@ -191,6 +221,10 @@ public final class BeamAnimation
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
                 teleported = true;
+                if (onDepart != null)
+                {
+                    onDepart.run();
+                }
             }
 
             if (teleported)
