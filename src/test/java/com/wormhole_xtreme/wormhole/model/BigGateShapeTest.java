@@ -92,6 +92,20 @@ public class BigGateShapeTest
     }
 
     @Test
+    public void allThreeHaveEveryRowTheSameWidthAsLayerOneEstablished() throws Exception
+    {
+        // What actually would have caught Grand's original bug: three rows one cell short of
+        // the width Layer#1 established, which parses fine and just shifts every column after
+        // the gap rather than throwing. Parsing successfully (the test above) proves none of
+        // these threw; it does not prove their rows are uniform, which is what this checks
+        // instead, straight from the file's raw lines rather than the already-parsed shape.
+        for (final String name : new String[] { "Large", "Grand", "Massive" })
+        {
+            ShapeFileRowWidths.assertConsistent(SHAPE_DIR.resolve(name + ".shape"));
+        }
+    }
+
+    @Test
     public void allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
     {
         for (final String name : new String[] { "Large", "Grand", "Massive" })
@@ -138,7 +152,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void massiveRecedesThirteenStepsWithNoGapAfterTheLayerElevenFix() throws Exception
+    public void massiveRecedesThirteenStepsWithNoGapAfterTheMissingLayerTwelveFix() throws Exception
     {
         final Stargate3DShape massive = load("Massive");
         assertEquals(13, massive.getShapeWooshDepth());

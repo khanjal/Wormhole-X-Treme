@@ -40,8 +40,10 @@ public class EvenGateShapeTest
     }
 
     /**
-     * Counts every {@code :L} tag across every layer, the same way {@code :W} depth is
-     * inferred from layer contents rather than declared up front.
+     * Counts distinct light orders present across every layer (an order shared by several
+     * blocks -- the usual case, since a chevron is rarely just one block -- still counts once),
+     * the same way {@code :W} depth is inferred from layer contents rather than declared up
+     * front.
      */
     private static int countLights(final Stargate3DShape shape)
     {
@@ -66,12 +68,21 @@ public class EvenGateShapeTest
     @Test
     public void evenAndEvenSignDialParseWithoutThrowing() throws Exception
     {
-        // A grid whose rows are not all the same width throws IllegalArgumentException out of
-        // the constructor (Stargate3DShape derives one height/width from Layer#1 and applies
-        // it to every layer after) -- reaching an assertion at all is already most of the
-        // guarantee this test wants.
+        // Only a differing row *count* (height) or a missing :EP throws out of the
+        // constructor -- a row with the wrong number of cells does not; Stargate3DShape derives
+        // one width from Layer#1's first row and trusts every later row to match it, silently
+        // shifting columns after a short row rather than rejecting it. So this only guarantees
+        // both shapes parse and are named correctly; the row-width check below is what actually
+        // guarantees their rows are uniform.
         assertEquals("Even", load("Even").getShapeName());
         assertEquals("EvenSignDial", load("EvenSignDial").getShapeName());
+    }
+
+    @Test
+    public void evenAndEvenSignDialHaveEveryRowTheSameWidthAsLayerOneEstablished() throws Exception
+    {
+        ShapeFileRowWidths.assertConsistent(SHAPE_DIR.resolve("Even.shape"));
+        ShapeFileRowWidths.assertConsistent(SHAPE_DIR.resolve("EvenSignDial.shape"));
     }
 
     @Test

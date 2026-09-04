@@ -33,11 +33,11 @@ trusting it for the seven new ones, rather than hand-typing over a thousand new 
 ### Three big, deep gates: Large, Grand and Massive
 
 Three more shapes, hand-built outside this codebase and brought in after review: `Large`
-(10x10, four layers -- Standard's proportions scaled up, two lit blocks per chevron instead
-of one), `Grand` (22x22, five layers -- its ring is three layers deep, a front bezel and the
-real portal ring both carrying the same lit chevrons, then a second lit ring, before the woosh
-recedes), and `Massive` (23x23, fifteen layers -- thirteen woosh steps of recession, by far the
-deepest gate shipped).
+(10x10, six layers -- two lit blocks per chevron instead of one, and see the depth rework
+above for why it is six rather than Standard's four), `Grand` (22x22, eleven layers -- its ring
+is three layers deep, a front bezel and the real portal ring both carrying the same lit
+chevrons, then a second lit ring, before the woosh recedes), and `Massive` (23x23, fifteen
+layers -- thirteen woosh steps of recession, by far the deepest gate shipped).
 
 None of the three threw on load, which is exactly the problem: `Stargate3DShape` derives one
 width and height from `Layer#1` and trusts every later row and layer number to match it, so a
