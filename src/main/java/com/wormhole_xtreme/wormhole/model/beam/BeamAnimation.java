@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.beam;
 
+import java.util.logging.Level;
+
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -220,6 +222,24 @@ public final class BeamAnimation
                 return;
             }
 
+            // Once isVanish() has fired below, the player is frozen and invisible until
+            // either isFinished() clears them or something throws first. A Bukkit call
+            // throwing mid-tick (spawnParticle, teleport, addPotionEffect) would otherwise
+            // die here with the freeze never lifted and nothing left running to lift it --
+            // exactly the "frozen with no way out" failure BeamTiming exists to prevent,
+            // reachable another way. Same shape as RingTransit's own tick-level recovery.
+            try
+            {
+                tick();
+            }
+            catch (final RuntimeException e)
+            {
+                recover(e);
+            }
+        }
+
+        private void tick()
+        {
             // Everything about *what* happens this tick is decided by BeamFrame, purely
             // from the tick number and timing -- this method's only job left is *doing*
             // it: Bukkit calls, in the order BeamFrame says they apply, nothing more.
@@ -319,6 +339,37 @@ public final class BeamAnimation
 
             tick++;
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), this, 1L);
+        }
+
+        /**
+         * Clears a traveller a failed tick would otherwise have left stuck: frozen (so they
+         * cannot even move themselves out of it), invisible or blind to a degree the timing
+         * expected to remove explicitly later, and permanently {@code ACTIVE} in
+         * {@link BeamFreeze} -- which refuses every future beam for them until something
+         * clears it. Best-effort by design, the same reasoning as {@code RingTransit}'s own
+         * recovery: a second failure while cleaning up must not leave anything worse than the
+         * first one already did.
+         *
+         * @param cause what actually threw
+         */
+        private void recover(final RuntimeException cause)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Beam to \"" + destinationName + "\" failed mid-sequence for " + player.getName()
+                    + ", clearing them rather than leaving them stuck: " + cause.getMessage());
+            try
+            {
+                player.removePotionEffect(PotionEffectType.INVISIBILITY);
+                player.removePotionEffect(PotionEffectType.BLINDNESS);
+            }
+            catch (final RuntimeException ignored) { /* best effort; BeamFreeze.clear below is what actually matters */ }
+            BeamFreeze.clear(player);
+            try
+            {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "Something went wrong mid-beam; you have been freed rather than left stuck.");
+            }
+            catch (final RuntimeException ignored) { /* the freeze is already cleared either way */ }
         }
     }
 }

@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Fix: a beam that fails mid-sequence no longer strands the traveller
+
+Once `isVanish()` fires, a traveller is frozen and invisible until `isFinished()` clears
+them -- or until something in between throws. A Bukkit call failing mid-tick
+(`spawnParticle`, `teleport`, `addPotionEffect`) used to kill the whole sequence with the
+freeze never lifted and nothing left running to lift it: position-locked, invisible or
+blind, and permanently `ACTIVE` in `BeamFreeze`, which refuses every later beam for them
+too. Exactly the "frozen with no way out" failure `BeamTiming` already exists to prevent
+in the timing math, reachable a different way. The tick now runs inside a try/catch, the
+same shape `RingTransit`'s own mid-cycle recovery already uses: clear the freeze, remove
+whichever potion effects were applied, and tell the traveller they've been freed rather
+than leave them guessing.
+
 ### Fix: the traveller's own vision no longer arrives ahead of the beam
 
 The real teleport fires mid-rise, so the traveller is physically at the destination for
