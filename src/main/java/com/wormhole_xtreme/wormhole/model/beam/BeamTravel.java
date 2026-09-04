@@ -137,13 +137,29 @@ public final class BeamTravel
 
     /**
      * What this destination actually costs -- its own override if it has one, otherwise
-     * whatever the global default currently says.
+     * whatever the global default currently says, or {@code 0.0} if economy is not actually
+     * active.
+     *
+     * <p>That last check matters: without it, a non-zero {@code BEAM_ECONOMY_USE_COST} or
+     * per-destination override would still show "This will cost X..." and "Charged X..." to
+     * the player even with economy turned off in config or Vault not installed --
+     * {@link EconomySupport#canAfford} and {@link EconomySupport#charge} already fail open
+     * in that situation (nothing is actually withdrawn), so the messages would be describing
+     * a charge that never happened. Every other cost path in this plugin gates the same way
+     * ({@code WormholeXTremePlayerListener}'s gate-use cost, {@code GateInteractionHandler}'s
+     * build cost) -- this was missed when per-destination cost was added.
      *
      * @param destination the destination being travelled to
-     * @return the cost to use
+     * @return the cost to use, or {@code 0.0} if economy is disabled or unavailable
      */
-    private static double resolveCost(final BeamDestination destination)
+    // Package-private, not private: BeamTravelTest exercises this directly, the same reason
+    // BeamYamlManager.readDestination/writeDestination are package-private.
+    static double resolveCost(final BeamDestination destination)
     {
+        if (!(ConfigManager.isEconomyEnabled() && EconomySupport.isAvailable()))
+        {
+            return 0.0;
+        }
         final Double override = destination.getCost();
         return override != null ? override : ConfigManager.getBeamEconomyUseCost();
     }

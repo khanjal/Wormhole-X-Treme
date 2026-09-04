@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Fix: beam cost no longer charges a message with nothing behind it
+
+`BeamTravel.resolveCost` computed a destination's cost -- its own override, or the global
+`BEAM_ECONOMY_USE_COST` default -- unconditionally, unlike every other cost path in this
+plugin (a gate's use cost, its build cost), which both collapse to free whenever economy
+is not actually active (`ConfigManager.isEconomyEnabled()` false, or no Vault provider
+attached). `EconomySupport.canAfford`/`charge` already fail open in that situation --
+nothing is actually withdrawn -- so a non-zero cost here meant a player saw "This will cost
+X..." and "Charged X..." for a charge that never happened, with config off or Vault
+missing. Found by Copilot's review of #21. Fixed to match the existing pattern; three new
+`BeamTravelTest` cases pin it (economy never configured, explicitly disabled, and enabled
+in config with no Vault provider attached -- the exact scenario that was slipping through).
+
 ### Admin beaming: goto and send, from a player, console, or a command block
 
 Two new `beam admin` actions, both gated behind a new `wormhole.beam.admin.teleport` node
