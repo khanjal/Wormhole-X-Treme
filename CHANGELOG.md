@@ -2,6 +2,67 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 (2026-09-04)
+
+### Beaming: a third way to travel, alongside gates and rings
+
+`/wormhole beam to <name>` moves a player straight to a named destination -- no physical
+construct required on either end, unlike a gate or a ring. Public destinations are
+admin-curated (`beam admin set|remove`); private places are per-player
+(`beam place set|remove|list`), following the ownership shape rings already established
+rather than gates' permission-node model, since beaming shares gates' networks and owner
+rules as little as rings do -- its own `BeamPermissions` class, not `WXPermissions`.
+
+`/wormhole go` now doubles as a beam shortcut: it tries a gate first, under `wormhole.go`,
+and falls back to a beam destination or place if no gate matches or the player never held
+that permission at all. A player with no gate-admin access can use `go` as a shortcut to
+their own places, rather than beaming staying a second, unrelated command for the same
+idea of "take me to X."
+
+Cooldown (`BEAM_USE_COOLDOWN_ENABLED`/`_SECONDS`) and economy cost
+(`BEAM_ECONOMY_USE_COST`) are both off by default, reusing the same `EconomySupport`/Vault
+connection gate costs already use. Both are applied only once the teleport actually fires,
+not at the point of starting the sequence -- the same reasoning gate travel already
+applies to its own cooldown, so a player who disconnects mid-sequence is never charged or
+cooled down for a trip that never happened.
+
+### The beam effect matches its reference footage
+
+The animation went through several shapes before landing on one that actually matches how
+beaming looks on screen: a bright glow gathers at the traveller's body and appears to
+absorb them; they and the light disappear into a beam that rises and departs; at the
+destination the beam deposits them, with the light still there, and it fades quickly.
+
+An early version used a `PotionEffectType.GLOWING` charge phase before any particles
+appeared, which put a full second of nothing visible between running the command and
+anything happening -- cut. A separate charging orb (a growing sphere of coloured dust
+particles) was tried next and dropped for two reasons: `Particle.DUST`/`REDSTONE` is lit
+by ambient block light rather than self-illuminating, so a configured "pure white" was
+never fully reachable regardless of the hex value; and no amount of particle count or
+spread made a randomly scattered cloud read as one solid ball. The current version uses
+one particle system throughout (`Particle.END_ROD`, self-illuminating, no lighting
+dependency) and gets both the glow and the beam from the same column -- dense and
+body-height during the envelope, full height and constant brightness through the rise and
+descent, then fading back down quickly once the traveller is deposited.
+
+Every duration (`BEAM_ENVELOP_TICKS`, `BEAM_VANISH_AT_STEP`, `BEAM_RISE_TICKS`,
+`BEAM_TELEPORT_AT_STEP`, `BEAM_DESCEND_TICKS`, `BEAM_FADE_TICKS`) is configurable and
+resolved once per sequence through the new `BeamTiming`, which clamps them against each
+other so no combination of config values can leave a player stuck: a
+`BEAM_TELEPORT_AT_STEP` set equal to or past `BEAM_RISE_TICKS`, for instance, would
+otherwise mean the teleport condition is never reached and the traveller is frozen and
+invisible with no way out short of a restart.
+
+### `/wormhole go` now respects private network permission, like dial already does
+
+`wormhole.go` was a single blanket node with no way to know which network a target gate
+was on, because `Go.java` called the permission check before looking the gate up --
+`WXPermissions` had nothing to read a network name off of. That meant a private network's
+`wormhole.network.use.<name>` node, which `Dial` already enforces, was bypassed entirely
+for anyone holding `wormhole.go`. Fixed by looking the gate up first and passing it into
+the permission check, whose `GO` case now consults `NETWORK_USE` the same way `DIALER`
+does.
+
 ## 1.3.0 (2026-09-03)
 
 ### Holding forward against a locked gate no longer spams chat

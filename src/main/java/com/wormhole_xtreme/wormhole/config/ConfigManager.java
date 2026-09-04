@@ -144,14 +144,18 @@ public class ConfigManager
         BEAM_SOUND_CHARGE,
         BEAM_SOUND_DEPART,
         BEAM_SOUND_ARRIVE,
-        /** How long the beam-up column rises and brightens before descending resumes. */
-        BEAM_RISE_TICKS,
-        /** How far into the rise the traveller vanishes -- clamped below the teleport step. */
+        /** How long the glow gathers at body height before opening into the departure column. */
+        BEAM_ENVELOP_TICKS,
+        /** How far into the envelope the traveller vanishes -- clamped inside it. */
         BEAM_VANISH_AT_STEP,
+        /** How long the column rises and departs, once the envelope opens into it. */
+        BEAM_RISE_TICKS,
         /** How far into the rise the real teleport fires -- clamped inside the rise. */
         BEAM_TELEPORT_AT_STEP,
         /** How long the column takes to descend into place at the destination. */
         BEAM_DESCEND_TICKS,
+        /** How long the column takes to fade out once it has deposited the traveller. */
+        BEAM_FADE_TICKS,
         /** Whether beam travel has a per-player cooldown at all. */
         BEAM_USE_COOLDOWN_ENABLED,
         /** Seconds a player must wait between beams, when the above is true. */
@@ -1035,49 +1039,71 @@ public class ConfigManager
     }
 
     /**
-     * How long the beam-up column rises and brightens before the descent takes over.
+     * How long the glow gathers at body height before opening into the departure column.
      *
      * @return the configured tick count, unclamped -- {@code BeamAnimation} is where the
      *         relationships between this and the other beam timings are enforced, since
      *         clamping one setting correctly here would still need to know the others
      */
-    public static int getBeamRiseTicks()
+    public static int getBeamEnvelopTicks()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_RISE_TICKS);
-        return (s == null) ? 25 : s.getIntValue();
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_ENVELOP_TICKS);
+        return (s == null) ? 12 : s.getIntValue();
     }
 
     /**
-     * How far into the rise the traveller vanishes.
+     * How far into the envelope the traveller vanishes.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamRiseTicks()}
+     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamVanishAtStep()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_VANISH_AT_STEP);
-        return (s == null) ? 8 : s.getIntValue();
+        return (s == null) ? 6 : s.getIntValue();
+    }
+
+    /**
+     * How long the column rises and departs, once the envelope opens into it.
+     *
+     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     */
+    public static int getBeamRiseTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_RISE_TICKS);
+        return (s == null) ? 18 : s.getIntValue();
     }
 
     /**
      * How far into the rise the real teleport fires.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamRiseTicks()}
+     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamTeleportAtStep()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_TELEPORT_AT_STEP);
-        return (s == null) ? 18 : s.getIntValue();
+        return (s == null) ? 12 : s.getIntValue();
     }
 
     /**
      * How long the column takes to descend into place at the destination.
      *
-     * @return the configured tick count, unclamped -- see {@link #getBeamRiseTicks()}
+     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
      */
     public static int getBeamDescendTicks()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_DESCEND_TICKS);
         return (s == null) ? 20 : s.getIntValue();
+    }
+
+    /**
+     * How long the column takes to fade out once it has deposited the traveller.
+     *
+     * @return the configured tick count, unclamped -- see {@link #getBeamEnvelopTicks()}
+     */
+    public static int getBeamFadeTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.BEAM_FADE_TICKS);
+        return (s == null) ? 8 : s.getIntValue();
     }
 
     /**

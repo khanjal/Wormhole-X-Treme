@@ -11,29 +11,38 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 
 /**
- * Runs the beam sequence: a column at the origin rises and brightens -- more particles per
- * burst as it goes, rather than growing taller -- departs, and teleport fires mid-rise; at
- * the destination the same column descends at full brightness and stops, which is the reveal.
+ * Runs the beam sequence, matched beat for beat against the reference: a bright glow gathers
+ * at the traveller's body and appears to absorb them; they and the light disappear into a
+ * beam that rises and departs; at the destination the beam deposits them, with the light
+ * still there, and it fades quickly.
  *
- * <p>Reference sequence this follows, worked out in design discussion before any of it was
- * code: the traveller vanishes and a beam rises from where they stood; at the destination a
- * beam comes down before they are revealed there. Reproducing that means the real
- * {@link Player#teleport(Location)} call cannot sit at either end of the animation -- it fires
- * in the middle, once the traveller has had the rise in view, so they get to watch both halves
- * rather than just trigger them. That relies on a real API property: invisibility is
- * observer-relative. An invisible player still sees their own surroundings and any particles
- * normally; it only hides them from <em>other</em> players' clients. So the traveller stays
- * physically present (invisible to everyone else, frozen by {@link BeamFreeze}) through the
- * tail of the rise, then arrives partway through the descent and watches the rest of it.
+ * <ol>
+ * <li><b>Envelop</b> -- a dense burst of {@code Particle.END_ROD} at body height (not the
+ * tall column yet), brightening fast. The traveller is visible at first and vanishes
+ * partway through -- the "absorption."</li>
+ * <li><b>Rise</b> -- the envelope opens straight into the full-height column, constant
+ * brightness, climbing and departing. The real {@link Player#teleport(Location)} call
+ * fires mid-rise, not at the end, so the traveller has had most of it in view before
+ * leaving; the remainder plays out at the origin with nobody there.</li>
+ * <li><b>Descend</b> -- the same column arrives from above at full height and brightness
+ * and settles into place at the destination.</li>
+ * <li><b>Deposit and fade</b> -- the instant the column settles, the traveller is revealed
+ * (still standing inside the light, not popping in after it), and the column collapses
+ * back to nothing over a short, deliberately quick tail -- delivery reads as an arrival,
+ * not a second build-up.</li>
+ * </ol>
  *
- * <p>Departure and arrival are deliberately not mirrored the way an earlier version had them.
- * Rising while brightening is what reads as the beam building up to leave; arriving already at
- * full brightness and simply settling is what reads as delivery rather than a second build-up
- * nobody asked for.
+ * <p>Reproducing the "disappear into a beam, then reappear out of one" read relies on a real
+ * API property: invisibility is observer-relative. An invisible player still sees their own
+ * surroundings and any particles normally; it only hides them from <em>other</em> players'
+ * clients. So the traveller stays physically present (invisible to everyone else, frozen by
+ * {@link BeamFreeze}) through the tail of the rise, then arrives partway through the descent
+ * and watches the rest of it.
  *
- * <p>One asymmetry doesn't come from that choice, though: the destination track could in
- * principle be staged fully independent of the player, but the origin track cannot -- the
- * teleport has to wait on it, at least partially, rather than firing the moment they vanish.
+ * <p>One asymmetry doesn't come from mirroring departure and arrival, though: the
+ * destination track could in principle be staged fully independent of the player, but the
+ * origin track cannot -- the teleport has to wait on it, at least partially, rather than
+ * firing the moment they vanish.
  *
  * <p>Ticks a single self-rescheduling step, the same idiom {@code StargateAnimator} and the
  * ring subsystem already use ({@code scheduleSyncDelayedTask} calling itself), rather than
@@ -45,7 +54,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  */
 public final class BeamAnimation
 {
-    /** How tall the standing column is. */
+    /** Roughly a standing player's own height -- where the envelope gathers, before it opens
+     * into the taller departure column. */
+    private static final double PLAYER_HEIGHT = 1.8;
+
+    /** How tall the column stands once the envelope opens into it. */
     private static final double COLUMN_HEIGHT = 3.0;
 
     /** The vertical spacing between particle bursts within the column -- small enough that it
@@ -57,11 +70,12 @@ public final class BeamAnimation
      * rather than just thickening in place. */
     private static final double TRAVEL_HEIGHT = 4.0;
 
-    /** Particles per burst at the start of the rise. */
+    /** Particles per burst at the start of the envelope. */
     private static final int MIN_DENSITY = 1;
 
-    /** Particles per burst by the end of the rise, and throughout the descent -- the descent
-     * does not ramp, since arriving is delivery, not a second build-up. */
+    /** Particles per burst once the glow has built up -- reached by the end of the envelope
+     * and held constant through rise and descent; delivery and departure are not a second
+     * and third build-up, only the envelope is. */
     private static final int MAX_DENSITY = 8;
 
     private BeamAnimation() {}
@@ -119,22 +133,30 @@ public final class BeamAnimation
     }
 
     /**
-     * Draws the column at full height, shifted vertically by {@code yOffset} and with
-     * {@code density} particles per burst -- {@code yOffset} of zero is the column standing in
-     * place, and ramping it is what rising and descending both turn out to be.
+     * Draws a column from the ground up to {@code height}, shifted vertically by
+     * {@code yOffset} and with {@code density} particles per burst. {@code height} is what
+     * separates the envelope (body height) from the departure/arrival column (full height);
+     * {@code yOffset} is what rising and descending both turn out to be; {@code density} is
+     * what brightening and fading both turn out to be.
      *
      * @param base where the column is rooted
+     * @param height how tall the column currently is
      * @param yOffset how far the whole column is currently shifted from where it is rooted
      * @param density particles spawned per burst point -- higher reads as brighter
      */
-    private static void spawnColumn(final Location base, final double yOffset, final int density)
+    private static void spawnColumn(final Location base, final double height, final double yOffset,
+        final int density)
     {
+        if (density <= 0)
+        {
+            return;
+        }
         final World world = base.getWorld();
         if (world == null)
         {
             return;
         }
-        for (double y = 0.0; y <= COLUMN_HEIGHT; y += COLUMN_STEP)
+        for (double y = 0.0; y <= height; y += COLUMN_STEP)
         {
             final Location point = base.clone().add(0.0, y + yOffset, 0.0);
             world.spawnParticle(Particle.END_ROD, point, density, 0.15, 0.05, 0.15, 0.01);
@@ -149,10 +171,7 @@ public final class BeamAnimation
         private final Location destination;
         private final String destinationName;
         private final Runnable onDepart;
-        private final int riseTicks;
-        private final int vanishAtStep;
-        private final int teleportAtStep;
-        private final int descendTicks;
+        private final BeamTiming timing;
         private int tick;
         private boolean teleported;
 
@@ -166,14 +185,14 @@ public final class BeamAnimation
             this.onDepart = onDepart;
 
             // Read once, not per tick, so a config change mid-flight cannot desync a beam
-            // already running. Clamped here rather than in ConfigManager, because the
-            // relationships being enforced (teleport strictly inside the rise, vanish strictly
-            // before teleport) cross three separate settings at once -- there is no single
-            // setting's getter that could validate them alone.
-            this.riseTicks = Math.max(2, ConfigManager.getBeamRiseTicks());
-            this.descendTicks = Math.max(1, ConfigManager.getBeamDescendTicks());
-            this.teleportAtStep = Math.min(Math.max(1, ConfigManager.getBeamTeleportAtStep()), riseTicks - 1);
-            this.vanishAtStep = Math.min(Math.max(0, ConfigManager.getBeamVanishAtStep()), teleportAtStep - 1);
+            // already running.
+            this.timing = BeamTiming.resolve(
+                ConfigManager.getBeamEnvelopTicks(),
+                ConfigManager.getBeamVanishAtStep(),
+                ConfigManager.getBeamRiseTicks(),
+                ConfigManager.getBeamTeleportAtStep(),
+                ConfigManager.getBeamDescendTicks(),
+                ConfigManager.getBeamFadeTicks());
 
             this.tick = 0;
             this.teleported = false;
@@ -197,26 +216,35 @@ public final class BeamAnimation
                     + "Beaming to " + destinationName + "...");
             }
 
-            if (tick == vanishAtStep)
+            final int envelopTicks = timing.envelopTicks();
+            if (tick < envelopTicks)
             {
-                // Invisibility has to outlast everything from here to the destination. The
-                // remainder of the rise plus the full descent is an over-estimate of when
-                // it's actually needed until (the descent doesn't reduce it further), which is
-                // fine -- explicit removal once the column finishes descending is what the
-                // timing actually depends on, and this is only a ceiling against that removal
-                // being late.
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    (riseTicks - vanishAtStep) + descendTicks, 0, false, false));
-            }
-
-            if (tick < riseTicks)
-            {
-                final double progress = (double) tick / (double) (riseTicks - 1);
+                final double progress = (double) tick / (double) (envelopTicks - 1);
                 final int density = MIN_DENSITY + (int) Math.round((MAX_DENSITY - MIN_DENSITY) * progress);
-                spawnColumn(origin, TRAVEL_HEIGHT * ((double) tick / (double) riseTicks), density);
+                spawnColumn(origin, PLAYER_HEIGHT, 0.0, density);
             }
 
-            if (!teleported && (tick == teleportAtStep))
+            if (tick == timing.vanishAtStep())
+            {
+                // Invisibility has to outlast everything from here to the deposit. The
+                // remainder of the envelope plus the full rise and descent is an
+                // over-estimate of when it's actually needed until, which is fine --
+                // explicit removal at the deposit is what the timing actually depends on,
+                // and this is only a ceiling against that removal being late.
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
+                    (envelopTicks - timing.vanishAtStep()) + timing.riseTicks() + timing.descendTicks(),
+                    0, false, false));
+            }
+
+            final int riseTicks = timing.riseTicks();
+            final int sinceRise = tick - envelopTicks;
+            if ((sinceRise >= 0) && (sinceRise < riseTicks))
+            {
+                spawnColumn(origin, COLUMN_HEIGHT, TRAVEL_HEIGHT * ((double) sinceRise / (double) riseTicks),
+                    MAX_DENSITY);
+            }
+
+            if (!teleported && (sinceRise == timing.teleportAtStep()))
             {
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
@@ -229,18 +257,33 @@ public final class BeamAnimation
 
             if (teleported)
             {
-                final int sinceTeleport = tick - teleportAtStep;
+                final int descendTicks = timing.descendTicks();
+                final int sinceTeleport = sinceRise - timing.teleportAtStep();
 
                 if (sinceTeleport < descendTicks)
                 {
-                    spawnColumn(destination,
+                    spawnColumn(destination, COLUMN_HEIGHT,
                         TRAVEL_HEIGHT * (1.0 - ((double) sinceTeleport / (double) descendTicks)), MAX_DENSITY);
                 }
 
-                if (sinceTeleport >= descendTicks)
+                if (sinceTeleport == descendTicks)
                 {
                     BeamSounds.playArrive(destination);
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
+                }
+
+                final int fadeTicks = timing.fadeTicks();
+                final int sinceDeposit = sinceTeleport - descendTicks;
+                if ((sinceDeposit >= 0) && (sinceDeposit < fadeTicks))
+                {
+                    final double fadeProgress = (double) sinceDeposit / (double) fadeTicks;
+                    final double height = COLUMN_HEIGHT - ((COLUMN_HEIGHT - PLAYER_HEIGHT) * fadeProgress);
+                    final int density = MAX_DENSITY - (int) Math.round((MAX_DENSITY - MIN_DENSITY) * fadeProgress);
+                    spawnColumn(destination, height, 0.0, density);
+                }
+
+                if (sinceDeposit >= fadeTicks)
+                {
                     BeamFreeze.unfreeze(player);
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                         + "Beamed to " + destinationName + ".");
