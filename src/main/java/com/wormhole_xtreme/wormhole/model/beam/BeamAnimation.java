@@ -30,19 +30,32 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * not at the end, so the traveller has had most of it in view before leaving; the
  * remainder plays out at the origin with nobody there.</li>
  * <li><b>Descend</b> -- the same column arrives from above at full height and brightness
- * and settles into place at the destination.</li>
+ * and settles into place at the destination. The traveller is physically here for all of
+ * this (the real teleport already fired, mid-rise), so nothing would otherwise stop them
+ * seeing the destination clearly the moment they land -- except
+ * {@link org.bukkit.potion.PotionEffectType#BLINDNESS}, applied for exactly this stretch, so
+ * what they can see stays in step with what has actually finished arriving rather than
+ * running ahead of it.</li>
  * <li><b>Deposit and fade</b> -- the instant the column settles, the traveller is revealed
- * (still standing inside the light, not popping in after it), and the column collapses
- * back to nothing over a short, deliberately quick tail -- delivery reads as an arrival,
- * not a second build-up.</li>
+ * (still standing inside the light, not popping in after it) and can see again, and the
+ * column collapses back to nothing over a short, deliberately quick tail -- delivery reads
+ * as an arrival, not a second build-up.</li>
  * </ol>
  *
  * <p>Reproducing the "disappear into a beam, then reappear out of one" read relies on a real
  * API property: invisibility is observer-relative. An invisible player still sees their own
  * surroundings and any particles normally; it only hides them from <em>other</em> players'
  * clients. So the traveller stays physically present (invisible to everyone else, frozen by
- * {@link BeamFreeze} from the vanish tick on) through the tail of the rise, then arrives
- * partway through the descent and watches the rest of it.
+ * {@link BeamFreeze} from the vanish tick on) through the tail of the rise.
+ *
+ * <p>That same property is a problem on the other side of the teleport, though: nothing
+ * about invisibility (or the freeze, which only ever locked position, never camera) stops
+ * the traveller from freely looking around the destination the instant they physically
+ * arrive, well before the descend column has finished settling -- a clear view they already
+ * have, followed by an arrival effect that then reads as arriving late. Blindness closes
+ * that gap: applied the moment the real teleport fires and removed the moment the column
+ * settles, the same two ticks invisibility already keys off of, so the traveller's own
+ * vision resolves in sync with the visual instead of running ahead of it.
  *
  * <p>One asymmetry doesn't come from mirroring departure and arrival, though: the
  * destination track could in principle be staged fully independent of the player, but the
@@ -259,6 +272,17 @@ public final class BeamAnimation
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
                 teleported = true;
+                // The traveller is physically at the destination from this tick on -- the
+                // descend column is still only starting to fall around them, but nothing
+                // stops their own eyes from seeing straight through it to the terrain
+                // beyond, well before the "arrival" it is meant to sell has actually
+                // finished. Blindness only ever hides what the traveller themselves sees
+                // (unlike invisibility, which only hides them from others), so this is the
+                // one effect that can close that gap: an over-estimate covering descend
+                // plus fade, same reasoning as invisibility's duration below -- explicit
+                // removal at the arrive tick is what the timing actually depends on.
+                player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,
+                    timing.descendTicks() + timing.fadeTicks(), 0, false, false));
                 if (onDepart != null)
                 {
                     onDepart.run();
@@ -276,6 +300,7 @@ public final class BeamAnimation
                 {
                     BeamSounds.playArrive(destination);
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
+                    player.removePotionEffect(PotionEffectType.BLINDNESS);
                 }
 
                 if (frame.isFadeActive())

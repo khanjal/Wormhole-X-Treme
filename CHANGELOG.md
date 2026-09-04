@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Fix: the traveller's own vision no longer arrives ahead of the beam
+
+The real teleport fires mid-rise, so the traveller is physically at the destination for
+the entire descend phase -- but nothing was stopping them from freely looking around
+before the column had finished settling. Invisibility only ever hid them from *other*
+players; it never touched what the traveller themselves could see. The effect ended up
+backwards from the intended read: a busy view, then a clear one, and only after that the
+"arrival" effect finishing around them. `PotionEffectType.BLINDNESS`, applied the instant
+the real teleport fires and removed the instant the column settles (the same two ticks
+invisibility already keys off of), closes the gap -- the traveller's own vision now
+resolves in sync with the visual instead of running ahead of it.
+
 ### Fix: beam cost no longer charges a message with nothing behind it
 
 `BeamTravel.resolveCost` computed a destination's cost -- its own override, or the global
