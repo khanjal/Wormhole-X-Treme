@@ -34,6 +34,12 @@ already unreachable through the real command, not just untested. Nothing needed 
 every handler already validates its own argument count and replies with its own usage
 message on a mismatch.
 
+Tab completion covers both new actions the same way every other beam command already does,
+driven from the same `SubCommands` registry: `goto`/`send` themselves, online player names
+for the target and destination slots, and now loaded world names for the trailing
+`[world]` slot on raw coordinates -- the one piece of `goto`/`send`'s arguments that is
+both completable and had nothing offered for it at first.
+
 ### Beam and gate arrivals correct for terrain that has drifted since they were set
 
 A beam destination, a place, or a gate's arrival point is only ever as good as the ground

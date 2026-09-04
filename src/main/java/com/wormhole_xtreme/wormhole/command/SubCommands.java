@@ -512,6 +512,14 @@ public final class SubCommands
                 // send's destination, one token in: might be a player name.
                 if ("send".equals(action)) return playerNames(args[4]);
             }
+            // The trailing [world] slot after a full set of raw coordinates -- goto's sits
+            // one token earlier than send's, since send has an extra token (the player being
+            // moved) ahead of its own destination. Offered unconditionally at that position
+            // rather than only once the earlier tokens are confirmed numeric: the same
+            // lightweight, position-based approach completion already takes everywhere else
+            // in this method, not a full parse of what was typed.
+            if ("goto".equals(action) && (args.length == 7)) return worldNames(args[6]);
+            if ("send".equals(action) && (args.length == 8)) return worldNames(args[7]);
             return none();
         }
         if ("place".equals(noun))
@@ -537,6 +545,29 @@ public final class SubCommands
         for (final org.bukkit.entity.Player player : org.bukkit.Bukkit.getOnlinePlayers())
         {
             final String name = player.getName();
+            if (name.toLowerCase().startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /**
+     * Loaded world names matching what has been typed, for the trailing {@code [world]} slot
+     * on {@code beam admin goto}/{@code send}'s raw-coordinate form.
+     *
+     * @param typed what has been typed so far
+     * @return the matching loaded world names
+     */
+    private static List<String> worldNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.World world : org.bukkit.Bukkit.getWorlds())
+        {
+            final String name = world.getName();
             if (name.toLowerCase().startsWith(p))
             {
                 out.add(name);
