@@ -174,6 +174,17 @@ public final class GateSounds
      * stopping the one already dispatched, which is what let the hum outlive the gate by up to
      * a sample's length.
      *
+     * <p>Deliberate tradeoff: {@code Player.stopSound(name, category)} stops every instance of
+     * that sound for a player, not just the one this gate started -- {@code World} has no
+     * per-location stop to target instead. Every gate shares the same configured ambient sound
+     * name, so on a world with more than one gate open, closing any one of them also stops the
+     * hum for whichever others are still open. It self-heals on their own next
+     * {@link #tickAmbient} sweep, bounded to at most {@code getGateSoundAmbientTicks()} (70
+     * ticks, ~3.5s, by default) of silence. Gating the stop on whether any other gate in the
+     * world is still open was considered and rejected: that would bring back the original bug
+     * -- the closed gate's own tail outliving it -- for exactly the multi-gate-per-world case
+     * this note is about, trading one audible glitch for a worse one rather than removing it.
+     *
      * @param gate
      *            the gate shutting down
      */
