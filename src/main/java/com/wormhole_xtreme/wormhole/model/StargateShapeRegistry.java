@@ -153,7 +153,8 @@ public final class StargateShapeRegistry
             "MinimalSignDial.shape",
             "Horizontal.shape", "HorizontalSignDial.shape",
             "MinimalSignDialRedstone.shape",
-            "Even.shape", "EvenSignDial.shape"};
+            "Even.shape", "EvenSignDial.shape",
+            "Large.shape", "Grand.shape", "Massive.shape"};
         for (final String shape : defaultShapeNames)
         {
             final File defaultShapeFile = new File(directory, shape);

@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Three big, deep gates: Large, Grand and Massive
+
+Three more shapes, hand-built outside this codebase and brought in after review: `Large`
+(10x10, four layers -- Standard's proportions scaled up, two lit blocks per chevron instead
+of one), `Grand` (22x22, five layers -- its ring is three layers deep, a front bezel and the
+real portal ring both carrying the same lit chevrons, then a second lit ring, before the woosh
+recedes), and `Massive` (23x23, fifteen layers -- thirteen woosh steps of recession, by far the
+deepest gate shipped).
+
+None of the three threw on load, which is exactly the problem: `Stargate3DShape` derives one
+width and height from `Layer#1` and trusts every later row and layer number to match it, so a
+mistake here is silent rather than a parse error. Two real ones turned up under that pressure.
+`Grand` had three rows one cell short of its declared width -- a block dropped while hand-
+copying its ring pattern into a second layer -- which shifts every column after the gap rather
+than failing anything. `Massive` skipped straight from `Layer#11` to `Layer#13`; `Layer#12`
+was never declared, leaving a silent one-block dead gap in the middle of what should have been
+a continuous thirteen-step recession. Both are fixed: the dropped cells were restored by
+mirroring the row they were copied from, and the layers from 12 on were renumbered down to
+close the gap.
+
+Also brought in line with every other shipped gate's convention while reviewing: `Grand` had no
+`:EM`, so minecarts had no entry point -- added, on `Layer#4` rather than the layer directly
+behind `:EP`, since `Grand`'s ring is three layers deep and `Layer#3` still duplicates solid
+frame at that position. `Massive` had no `:N` and only six lit chevron orders instead of seven,
+its top cap sharing `L#1` with an unrelated band instead of getting its own order the way every
+other shipped gate's top light does -- both added. All three also named `PORTAL_MATERIAL` as
+`STATIONARY_WATER`, a pre-1.13 Bukkit name that does not resolve to anything in the versions
+this plugin targets and would have failed `ShippedMaterialsExistTest`; removed in favor of the
+same convention every other current shape file uses -- material comes from the palette a gate
+is actually built in, not pinned in the shape file, since none of these three need a fixed
+material the way `Horizontal`'s glass iris genuinely does.
+
+`BigGateShapeTest` pins the two structural fixes specifically (no gap in the layer array, all
+seven light orders present with none merged into another) so a future edit to any of the three
+has to own up to reintroducing that shape rather than changing behaviour quietly.
+
 ### The first even-width gate shape
 
 Every shipped ring -- Standard, Minimal, Horizontal -- is an odd number of blocks wide, which
