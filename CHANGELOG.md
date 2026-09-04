@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 (2026-09-04)
+
+### The wormhole woosh sound never actually played
+
+The lever's activation sound and each chevron's lock sound both played fine; the kawoosh --
+the sound of the wormhole itself establishing -- never did, on any gate, ever. Both the
+sound and a visual detail traced back to the same field: `gateAnimationStep3D` defaulted to
+1 instead of 0, and `StargateAnimator.animateOpening`'s "closing just finished" branch reset
+`isGateAnimationRemoving` but never reset the step counter back to 0 either. The kawoosh only
+fires when `step2D == 0 && step3D == 0` -- with the counter starting at 1 and never returning
+to 0 after a close, that condition was never true, not on a gate's first-ever opening and not
+on any opening after. The same counter indexes directly into the shape's own woosh-depth
+blocks, so every opening was additionally starting one depth layer short of the shape's first
+one -- quieter than the missing sound, easy to not notice was wrong on its own.
+
+Both are fixed: the field now defaults to 0, matching `gateAnimationStep2D` right beside it,
+and the closing branch resets the counter the same way the 2D woosh path already resets its
+own. `StargateAnimatorTest` pins both directly against the counter's value rather than trying
+to observe a sound call, so a regression here fails a fast, Bukkit-free test instead of only
+being noticed by someone dialing a gate and not hearing anything.
+
 ## 1.3.0 (2026-09-03)
 
 ### Holding forward against a locked gate no longer spams chat
