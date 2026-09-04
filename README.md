@@ -25,7 +25,7 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Writing a plugin against this one** — [docs/API.md](docs/API.md)
 
-**Also** — [Contributing](#contributing)
+**Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing)
 
 ## Server Compatibility
 
@@ -1003,6 +1003,30 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 
 - If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
 - Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
+
+## Developer notes
+
+- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
+- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
+- Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
+- `StargateYamlManager` handles per-gate YAML read/write.
+- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
+
+## Credits
+
+Wormhole X-Treme was written by **Lologarithm** (Ben Echols) and **alron** (Dean Bailey), with
+contributions from **lirelent** (Ryan Metzger) and **Jeremy Wood**. alron wrote most of it —
+309 of the commits in this repository are his, and the gate detection, shape format and
+storage layer this fork still runs on are his design.
+
+**lycano** carried the plugin on after the original went quiet, maintaining it through the
+[WolfNetDevelopment fork](https://github.com/WolfNetDevelopment/Wormhole-X-Treme) until 2015.
+That work is not in this tree — this fork descends from the original repository rather than
+from theirs — but it kept Wormhole X-Treme alive for three years after it would otherwise have
+stopped, and the plugin's history does not make sense without it.
+
+This fork picks the original up for modern Minecraft: Java 17, 1.20 through 1.21.10, and
+transport rings.
 
 ## Contributing
 
