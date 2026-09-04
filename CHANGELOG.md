@@ -229,6 +229,34 @@ for anyone holding `wormhole.go`. Fixed by looking the gate up first and passing
 the permission check, whose `GO` case now consults `NETWORK_USE` the same way `DIALER`
 does.
 
+### Fix: an interrupted woosh could leave water (or any portal material) stuck one block outside a gate
+
+Reported directly: "gates are leaving water one block from the gate," visible only to the
+player who had just gone through, and only sometimes -- both details that point at a
+timing-dependent interruption rather than something wrong on every trip. The woosh is
+drawn client-side, not written to the world, and the only thing that ever undraws it is its
+own step-by-step retraction inside `StargateAnimator.animateOpening`. A gate that closes --
+its own lever, a partner gate shutting down, an idle timeout -- while that retraction is
+still mid-flight never gets a chance to finish it: whatever was drawn so far (the woosh
+material, one block out from the portal on a 2D gate's very first step) is left showing to
+anyone nearby, and nothing about closing ever told those positions to revert. Deep gates
+made the window easy to hit: `Grand`'s nine-step woosh and `Massive`'s thirteen both take
+long enough that an early close has a real chance of landing inside one.
+
+Made worse by a second gap: each woosh step reschedules its own continuation with a raw
+`scheduleSyncDelayedTask` call, and nothing keeps a task id to cancel if the gate closes
+first. That continuation still fires afterward regardless -- and finding the counters
+freshly reset to zero, it would have read that as "nothing has happened yet" and started an
+entire new opening (kawoosh included) on a gate that had already closed.
+
+Both are fixed together. `StargateAnimator.lightStargate`'s closing branch now undraws
+whatever is left in `getGateAnimatedBlocks()` and resets both step counters
+unconditionally, the same way it already unconditionally undraws every chevron light block
+regardless of which ones were actually lit -- closing reverts whatever was left showing,
+not just whatever it expected to find. `animateOpening` now also returns immediately on an
+inactive gate, so a stale continuation firing after that reset reads the gate as closed
+rather than as a fresh start. Two new `StargateAnimatorTest` cases pin each half directly.
+
 ### A Milky Way material group, and depth made proportional to size
 
 Added a fourth gate palette, `MilkyWay`, alongside `Standard`/`Atlantis`/`Universe`: `DEEPSLATE`
