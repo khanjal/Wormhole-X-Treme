@@ -65,6 +65,7 @@ class StargateLifecycle
         try { StargateRestrictions.removeRecentArrivalsForGate(gate); } catch (final Throwable ignore) {}
 
         GateSounds.closed(gate);
+        GateSounds.stopAmbient(gate);
         gate.lightStargate(false);
         gate.toggleDialLeverState(false);
         gate.toggleRedstoneGateActivatedPower();
@@ -163,17 +164,23 @@ class StargateLifecycle
                 "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" timed out.");
             gate.setGateActivateTaskId(-1);
         }
-        Stargate s = (p != null) ? StargateManager.removeActivatedStargate(p) : gate;
-        if (s != null)
+        // By gate identity, not by player: removeActivatedStargate(p) would remove
+        // whatever gate is *currently* mapped for p, which is wrong the moment the same
+        // player has activated a second gate before this one's timer fired -- that would
+        // silently steal the second gate's still-pending activation out of the map, and
+        // then act on it (s) instead of the gate that actually timed out. Chevrons on the
+        // gate that really timed out stayed lit forever; the unrelated second gate got
+        // switched off early and lost its own map entry, so its own timeout later found
+        // nothing there and skipped its iris/message cleanup too.
+        StargateManager.removeActivatorForStargate(gate);
+
+        if (gate.isGateIrisDefaultActive())
         {
-            if (gate.isGateIrisDefaultActive())
-            {
-                setIrisState(gate, gate.isGateIrisDefaultActive());
-            }
-            if (gate.isGateLightsActive())
-            {
-                s.lightStargate(false);
-            }
+            setIrisState(gate, gate.isGateIrisDefaultActive());
+        }
+        if (gate.isGateLightsActive())
+        {
+            gate.lightStargate(false);
             if (p != null)
             {
                 p.sendMessage("Gate: " + gate.getGateName() + " timed out and deactivated.");

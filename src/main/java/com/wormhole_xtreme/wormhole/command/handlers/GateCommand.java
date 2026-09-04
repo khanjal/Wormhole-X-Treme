@@ -36,7 +36,7 @@ public class GateCommand implements SubCommand
     /** The verbs, in the order they are offered. */
     private static final List<String> VERBS = Arrays.asList(
         "build", "complete", "list", "remove", "edit", "regenerate", "refresh", "go", "force",
-        "import");
+        "import", "shapes");
 
     /**
      * The verbs, for tab completion and help.
@@ -77,6 +77,10 @@ public class GateCommand implements SubCommand
         if ("import".equals(verb))
         {
             return importLegacy(sender);
+        }
+        if ("shapes".equals(verb))
+        {
+            return new GateShapesCommand().execute(sender, args);
         }
         if ("build".equals(verb))
         {
