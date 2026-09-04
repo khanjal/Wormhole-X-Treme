@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### A Milky Way material group, and depth made proportional to size
+
+Added a fourth gate palette, `MilkyWay`, alongside `Standard`/`Atlantis`/`Universe`: `DEEPSLATE`
+frame rather than obsidian's glossy black, `IRON_BLOCK` iris, and `SHROOMLIGHT` chevrons for an
+amber glow instead of glowstone's warm yellow -- closer to the film/show's grey naquadah ring
+and orange-lit chevrons than the existing default.
+
+Separately: `Large` shipped with Standard's exact proportions, just wider -- a one-layer ring
+and three woosh steps. That was wrong for a gate its size. It was reworked to a three-layer
+ring matching `Grand`'s (a front bezel, the real portal ring, and a second lit ring) with four
+woosh steps behind it.
+
+That rework surfaced a worse inconsistency: `Grand`, at 22 wide, had *fewer* woosh steps than
+`Large` at 10 wide -- three against four -- despite being more than double the width. Both
+gates were hand-built independently with no shared depth policy, so nothing had ever compared
+them side by side. `Grand`'s woosh recession is widened from 3 steps to 9, tapering its 18-wide
+portal interior down to a point in steps of 2 (18, 16, ..., 2) rather than jumping straight
+from a 10-wide diamond to a 4-wide one. Depth by width across every shipped gate now reads as a
+smooth curve: `Large` (10 wide) 4 steps, `Grand` (22 wide) 9, `Massive` (23 wide) 13 --
+`Massive`'s remains deliberately disproportionate, the one gate meant to feel absurdly deep
+regardless of width.
+
+`BigGateShapeTest` is updated for both: the new taper rule was validated by reproducing the
+two diamonds it replaces (`Grand`'s old `W#2`/`W#3`) from the same generation rule before
+trusting it for the seven new ones, rather than hand-typing over a thousand new grid cells.
+
 ### Three big, deep gates: Large, Grand and Massive
 
 Three more shapes, hand-built outside this codebase and brought in after review: `Large`

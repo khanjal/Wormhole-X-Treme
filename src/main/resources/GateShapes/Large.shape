@@ -21,7 +21,7 @@ Version=2
 #    :A = Block where the activation switch is attached to. 1 per gate!
 #           The only restriction is that the block that faces it must be "I" (so nothing is in the way)
 #           The switch will face in the positive layer direction.
-#           In this example the switch will face towards where layer 3 would be (if there was a 3rd layer) 
+#           In this example the switch will face towards where layer 3 would be (if there was a 3rd layer)
 #    :D = Block the sign dialer hangs from. Only 1 per gate!
 #           The only restriction is that the block that faces it must be "I" (so nothing is in the way)
 #           This block is not required, so shapes with this block can be either type. (sign or dial)
@@ -36,11 +36,11 @@ Version=2
 #       Defaults to 1 if there is no #
 #    :W = Blocks that will woosh when gate is activated
 #       Optionally you may add a #number after W to indicate the order it wooshes in.
-#       Defaults to 1 if there is no # and the wait between numbers is configurable below. 
-#       After all #s are active it removes them in reverse order but 
-#       if a block is [P:W] the block will stay as portal material until gate is shutdown. 
+#       Defaults to 1 if there is no # and the wait between numbers is configurable below.
+#       After all #s are active it removes them in reverse order but
+#       if a block is [P:W] the block will stay as portal material until gate is shutdown.
 #
-#    Redstone Blocks: 
+#    Redstone Blocks:
 #   --- There can only be 1 of each of these per gate, and they can-not occupy the same block as anything else ---
 #    [RD] = Redstone activation block. A redstone charge next to this block will activate the gate.
 #           This block requires a :D block for targetting. This block should be on top of a [S] block.
@@ -49,51 +49,84 @@ Version=2
 #    [RA] = Redstone gate Activated block. This block will provide redstone charge when the gate is activated.
 #           This block should be on top of a [S] block.
 
+# The ring is three layers deep, the same shape Grand.shape uses: a front bezel (this layer)
+# carrying every chevron light with a hollow interior, the real portal ring one layer behind it
+# (Layer#2, plain frame, no lights, where :EP actually sits), and a second lit ring one layer
+# behind that (Layer#3, the same chevron pattern as this one, its interior doubling as the
+# first woosh step). :EM sits on Layer#4 rather than Layer#3, for the same reason it does on
+# Grand: Layer#3 still duplicates this layer's solid frame at that column, so the first layer
+# with genuinely open interior there is the one after it. Four woosh layers follow (Layer#3-6)
+# rather than Standard's three, proportionally deeper for a ring this much wider.
+
 GateShape=
 
 Layer#1=
 [I][I][I][S][S:L#7][S:L#7][S][I][I][I]
-[I][I][S:L#3][P][P][P][P][S:L#2][I][I]
-[I][S:L#3][P][P][P][P][P][P][S:L#2][I]
-[S][P][P][P][P][P][P][P][P][S]
-[S:L#1][P][P][P][P][P][P][P][P][S:L#6]
-[S:L#1][P][P][P][P][P][P][P][P][S:L#6]
-[S:N][P][P][P][P][P][P][P][P][S]
-[I][S:L#4][P][P][P][P][P][P][S:L#5][I]
-[I][I][S:L#4][P][P][P][P][S:L#5][I][I]
-[I][I][I][S][S:EP][S][S][I][I][I]
+[I][I][S:L#3][I][I][I][I][S:L#2][I][I]
+[I][S:L#3][I][I][I][I][I][I][S:L#2][I]
+[S][I][I][I][I][I][I][I][I][S]
+[S:L#1][I][I][I][I][I][I][I][I][S:L#6]
+[S:L#1][I][I][I][I][I][I][I][I][S:L#6]
+[S][I][I][I][I][I][I][I][I][S]
+[I][S:L#4][I][I][I][I][I][I][S:L#5][I]
+[I][I][S:L#4][I][I][I][I][S:L#5][I][I]
+[I][I][I][S][S][S][S][I][I][I]
 
 Layer#2=
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I:W#1][I:W#1][I:W#1][I:W#1][I][I][I]
-[I][I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I][I]
-[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
-[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
-[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
-[I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I]
-[I][I][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I][I]
-[I][I][I][I:W#1][I:W#1][I:W#1][I:W#1][I][I][I]
-[I][I][I][I][I][I:EM][I][I][I][I]
+[I][I][I][S][S][S][S][I][I][I]
+[I][I][S][P][P][P][P][S][I][I]
+[I][S][P][P][P][P][P][P][S][I]
+[S][P][P][P][P][P][P][P][P][S]
+[S][P][P][P][P][P][P][P][P][S]
+[S][P][P][P][P][P][P][P][P][S]
+[S][P][P][P][P][P][P][P][P][S]
+[I][S][P][P][P][P][P][P][S][I]
+[I][I][S][P][P][P][P][S][I][I]
+[I][I][I][S][S:EP][S][S][I][I][I]
 
 Layer#3=
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
-[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
-[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
-[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
-[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
-[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
-[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][S][S:L#7][S:L#7][S][I][I][I]
+[I][I][S:L#3][I:W#1][I:W#1][I:W#1][I:W#1][S:L#2][I][I]
+[I][S:L#3][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#2][I]
+[S][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S]
+[S:L#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#6]
+[S:L#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#6]
+[S:N][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S]
+[I][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][I:W#1][S:L#5][I]
+[I][I][S:L#4][I:W#1][I:W#1][I:W#1][I:W#1][S:L#5][I][I]
+[I][I][I][S][S][S][S][I][I][I]
 
 Layer#4=
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
+[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
+[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
+[I][I][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I:W#2][I][I]
+[I][I][I][I:W#2][I:W#2][I:W#2][I:W#2][I][I][I]
+[I][I][I][I][I:W#2][I:W#2][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I:EM][I][I][I][I]
+
+Layer#5=
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I:W#3][I:W#3][I][I][I][I]
 [I][I][I][I][I:W#3][I:W#3][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+
+Layer#6=
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
+[I][I][I][I][I:W#4][I][I][I][I][I]
+[I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][S:A][I][I]
@@ -104,7 +137,7 @@ WOOSH_TICKS = 3;
 # Number of ticks to wait before activating each # of the lights. 1 tick = ~50ms
 LIGHT_TICKS = 2;
 
-# Materials are not set here. A gate'''s appearance comes from its material group in
+# Materials are not set here. A gate's appearance comes from its material group in
 # config.yml, chosen by the material the frame is actually built from: build this shape
 # in obsidian for a Standard gate, in lapis for an Atlantis one.
 #

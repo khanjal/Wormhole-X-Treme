@@ -14,7 +14,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
  * {@code Large.shape}, {@code Grand.shape} and {@code Massive.shape} -- three big, hand-built
- * gates, each deeper (more woosh layers) than Standard's.
+ * gates, each deeper than Standard's.
  *
  * <p>All three were hand-authored outside this codebase and needed real fixes before they
  * were safe to ship: {@code Grand} had three rows one cell short of its declared width (a
@@ -27,6 +27,11 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * only been noticed by someone watching the gate animate in game. These tests exist so a
  * future edit to any of the three has to own up to reintroducing that shape, rather than just
  * changing behaviour quietly.
+ *
+ * <p>{@code Large} originally shipped with Standard's exact proportions (one-layer ring, three
+ * woosh steps), just wider. It was reworked to match {@code Grand}'s three-layer ring -- a
+ * front bezel, the real portal ring, and a second lit ring -- with four woosh steps behind it,
+ * proportionally deeper than {@code Grand}'s three for a ring this much narrower.
  */
 public class BigGateShapeTest
 {
@@ -113,7 +118,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void grandsRingIsThreeLayersDeepBeforeAnyWooshLayer() throws Exception
+    public void grandsRingIsThreeLayersDeepWithNineWooshStepsBehindIt() throws Exception
     {
         // Grand's ring repeats across Layer#1-#3 (a front bezel, the real portal ring, and a
         // second lit ring) before the woosh recession starts at Layer#4 -- unlike Standard,
@@ -121,9 +126,15 @@ public class BigGateShapeTest
         // Layer#4, not Layer#3, specifically because Layer#3 still duplicates the solid ring
         // frame at that position; this pins that reasoning so a future edit to the ring's
         // depth doesn't silently leave :EM embedded in a wall again.
+        //
+        // The woosh recession was widened from 3 steps to 9 after review: at 22 wide, Grand
+        // had fewer woosh layers than Large (10 wide, 4 steps) despite being more than double
+        // the width -- an artifact of the two being hand-built independently, not a deliberate
+        // choice. 9 puts it clearly between Large's 4 and Massive's 13, tapering the same
+        // 18-wide portal interior down to a point in steps of 2 (18, 16, 14, ..., 2).
         final Stargate3DShape grand = load("Grand");
-        assertEquals(3, grand.getShapeWooshDepth());
-        assertEquals(5, grand.getShapeActivationLayer());
+        assertEquals(9, grand.getShapeWooshDepth());
+        assertEquals(11, grand.getShapeActivationLayer());
     }
 
     @Test
