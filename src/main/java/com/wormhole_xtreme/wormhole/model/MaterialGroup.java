@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   A named palette that a stargate can be built from.
- */
 package com.wormhole_xtreme.wormhole.model;
 
 import org.bukkit.Material;

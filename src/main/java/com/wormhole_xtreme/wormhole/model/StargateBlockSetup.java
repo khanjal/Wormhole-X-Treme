@@ -2,7 +2,9 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.logging.Level;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -16,6 +18,7 @@ import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -476,6 +479,19 @@ class StargateBlockSetup
     /** Radius, in blocks, within which clients are sent portal visual updates. */
     private static final double VISUAL_RADIUS = 64.0;
 
+    /** How often the arrival splash is redrawn while it is showing, in ticks. */
+    private static final long SPLASH_REDRAW_INTERVAL = 2L;
+
+    /**
+     * Which gates each player is currently being shown a portal for.
+     *
+     * <p>A portal is a drawing in the client's copy of the chunk, and the server has no way
+     * to ask what a client is currently showing. Remembering what was sent is the only way to
+     * know what needs taking back.
+     */
+    private static final java.util.Map<java.util.UUID, Set<String>> DRAWN =
+        new java.util.concurrent.ConcurrentHashMap<java.util.UUID, Set<String>>();
+
     /**
      * Sends a client-side-only appearance for every portal block of {@code gate}.
      * <p>
@@ -511,13 +527,244 @@ class StargateBlockSetup
         }
         // Built only once nobody-is-watching has been ruled out: createBlockData()
         // needs a live server, and the woosh animation calls this every frame.
-        final BlockData blockData = material.createBlockData();
+        final BlockData blockData = MaterialUtils.drawnAs(material);
         for (final Location bc : portalBlocks)
         {
             final Location at = new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             for (final Player p : recipients)
             {
                 p.sendBlockChange(at, blockData);
+            }
+        }
+        // Note who is now showing this, so it can be taken back from them later even if they
+        // have wandered out of range by then. AIR is the close, which is the taking back.
+        for (final Player p : recipients)
+        {
+            if (material == Material.AIR)
+            {
+                drawnFor(p).remove(gate.getGateName());
+            }
+            else
+            {
+                drawnFor(p).add(gate.getGateName());
+            }
+        }
+    }
+
+    /**
+     * Shows a traveller a moment of water as they come out of a gate.
+     *
+     * <p>The client draws its underwater overlay from whichever block it believes its camera
+     * is in, so one block sent at eye height is the whole effect: they surface out of the
+     * event horizon and it clears. Nobody else sees anything, and nothing is written.
+     *
+     * <p>Deliberately brief, and that is not just taste. Water is physics to the client, not
+     * decoration -- for as long as it believes it is submerged it predicts swimming, and the
+     * server does not agree. A short flash is over before that argument can be felt. It is
+     * the one drawing here that makes the client's world <em>less</em> solid than the real
+     * one, which is the direction that caused trouble before, so it is kept to a moment and
+     * can be turned off outright.
+     *
+     * <p>Only sent where the eye is in open air. Water drawn over somebody's ceiling would be
+     * a strange thing to see, and the arrival point is out in the open in any case.
+     *
+     * @param player
+     *            the traveller who has just arrived
+     */
+    public static void splashArrival(final Player player)
+    {
+        final long ticks = com.wormhole_xtreme.wormhole.config.ConfigManager
+            .getGateArrivalSplashTicks();
+        if ((player == null) || (ticks <= 0L) || !player.isOnline())
+        {
+            return;
+        }
+        try
+        {
+            final Block eye = player.getEyeLocation().getBlock();
+            if (!eye.getType().isAir())
+            {
+                return;
+            }
+            final Location at = eye.getLocation();
+            // Drawn again every couple of ticks rather than once. An arrival hands the
+            // client a fresh copy of the chunk, and a fresh copy erases anything drawn into
+            // the old one -- so a single block change lands before the chunk does and is
+            // wiped by it. How long that takes is not observable from here and is not fixed:
+            // a hop to a nearby gate reuses chunks the client already has, while a trip
+            // across the world makes it fetch everything from scratch. The portal redraw
+            // above hit exactly this and answered it the same way.
+            for (long t = 0L; t < ticks; t += SPLASH_REDRAW_INTERVAL)
+            {
+                drawSplash(player, at, true, t);
+            }
+            drawSplash(player, at, false, ticks);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // Decoration. Not worth a log line on the travel path.
+        }
+    }
+
+    /**
+     * Draws or clears the arrival splash after a delay.
+     *
+     * @param player
+     *            the traveller
+     * @param at
+     *            the block their eye was in when they landed
+     * @param water
+     *            true to show water, false to put the real block back
+     * @param delay
+     *            how many ticks to wait
+     */
+    private static void drawSplash(final Player player, final Location at, final boolean water,
+        final long delay)
+    {
+        WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (!player.isOnline())
+                    {
+                        return;
+                    }
+                    try
+                    {
+                        if (water)
+                        {
+                            // Only while they are still in it. Somebody who has walked on is
+                            // no longer surfacing, and redrawing would put water behind them.
+                            if (player.getEyeLocation().getBlock().getLocation().equals(at))
+                            {
+                                player.sendBlockChange(at, Material.WATER.createBlockData());
+                            }
+                            return;
+                        }
+                        // Read again rather than remember: somebody may have put something
+                        // there in the meantime, and the real block is always the right
+                        // answer. A chunk arriving later than this shows the truth anyway,
+                        // so the failure that is left over is a splash nobody saw rather
+                        // than water nobody can clear.
+                        final Block now = at.getWorld().getBlockAt(at.getBlockX(),
+                            at.getBlockY(), at.getBlockZ());
+                        player.sendBlockChange(at, now.getBlockData());
+                    }
+                    catch (final RuntimeException ignore)
+                    {
+                        // As above.
+                    }
+                }
+            }, Math.max(1L, delay));
+    }
+
+    /**
+     * Everyone near enough to a gate to be shown its drawings.
+     *
+     * <p>Resolved once per call rather than once per block: a gate has tens of blocks and the
+     * woosh redraws them every frame, so a per-block player scan multiplies quickly.
+     *
+     * @param gate
+     *            the gate being drawn
+     * @return the players to send to, empty if nobody is close
+     */
+    private static List<Player> nearby(final Stargate gate)
+    {
+        final List<Player> recipients = new ArrayList<Player>();
+        if ((gate == null) || (gate.getGateWorld() == null))
+        {
+            return recipients;
+        }
+        final Location reference = gate.getGateNameBlockHolder() != null
+            ? gate.getGateNameBlockHolder().getLocation()
+            : gate.getGatePlayerTeleportLocation();
+        if (reference == null)
+        {
+            return recipients;
+        }
+        for (final Player p : gate.getGateWorld().getPlayers())
+        {
+            if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
+            {
+                recipients.add(p);
+            }
+        }
+        return recipients;
+    }
+
+    /**
+     * Shows nearby clients a set of blocks as something they are not.
+     *
+     * <p>Nothing is written to the world. The chevrons and the woosh used to be real blocks,
+     * which meant a server that stopped mid-dial left lit chevrons welded into the frame and
+     * a half-expanded woosh hanging in the air, with the originals it would have restored
+     * from having died with the process. A drawing cannot outlive the thing that drew it.
+     *
+     * @param gate
+     *            the gate the blocks belong to
+     * @param blocks
+     *            the positions to draw
+     * @param material
+     *            what to show there
+     */
+    public static void drawBlocks(final Stargate gate, final List<Location> blocks,
+        final Material material)
+    {
+        if ((blocks == null) || blocks.isEmpty())
+        {
+            return;
+        }
+        final List<Player> recipients = nearby(gate);
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        // Built only once nobody-is-watching has been ruled out: createBlockData() needs a
+        // live server, and the woosh calls this every frame.
+        final BlockData blockData = MaterialUtils.drawnAs(material);
+        for (final Location bc : blocks)
+        {
+            final Location at = new Location(gate.getGateWorld(),
+                bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(at, blockData);
+            }
+        }
+    }
+
+    /**
+     * Puts a set of drawn blocks back to whatever is really there.
+     *
+     * <p>Read from the world rather than remembered, which is the whole advantage of drawing:
+     * there is no original to keep, because nothing was ever changed.
+     *
+     * @param gate
+     *            the gate the blocks belong to
+     * @param blocks
+     *            the positions to put back
+     */
+    public static void undrawBlocks(final Stargate gate, final List<Location> blocks)
+    {
+        if ((blocks == null) || blocks.isEmpty())
+        {
+            return;
+        }
+        final List<Player> recipients = nearby(gate);
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        for (final Location bc : blocks)
+        {
+            final Block real = gate.getGateWorld()
+                .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            final BlockData realData = real.getBlockData();
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(real.getLocation(), realData);
             }
         }
     }
@@ -549,20 +796,150 @@ class StargateBlockSetup
             return;
         }
         final Location playerAt = player.getLocation();
+        final Set<String> stillOpen = new HashSet<String>();
+
         for (final Stargate gate : StargateManager.getOpenGates())
         {
             if (!shouldRedrawFor(gate, playerAt))
             {
                 continue;
             }
-            final BlockData blockData = gate.getEffectivePortalMaterial().createBlockData();
+            final BlockData blockData = MaterialUtils.drawnAs(gate.getEffectivePortalMaterial());
             for (final Location bc : gate.getGatePortalBlocks())
             {
                 player.sendBlockChange(
                     new Location(gate.getGateWorld(), bc.getBlockX(), bc.getBlockY(), bc.getBlockZ()),
                     blockData);
             }
+            // The chevrons are a drawing too now, so somebody who arrives after the gate
+            // dialled would otherwise find a lit wormhole in an unlit frame.
+            if (gate.isGateLightsActive())
+            {
+                sendLights(player, gate, MaterialUtils.drawnAs(gate.getEffectiveLightMaterial()));
+            }
+            stillOpen.add(gate.getGateName());
         }
+
+        // Anything this player was shown that is not open to them any more has to be taken
+        // back. The close-time send only reaches whoever was within range at that moment, and
+        // a client keeps a drawing until something hands it a fresh copy of the chunk --
+        // which walking one chunk away and back does not do, because the chunk never left.
+        // Without this the portal stays on their screen with nothing behind it: water in a
+        // gate that is off.
+        final Set<String> showing = drawnFor(player);
+        for (final String name : showing)
+        {
+            if (!stillOpen.contains(name))
+            {
+                undrawFor(player, StargateManager.getStargate(name));
+            }
+        }
+        showing.clear();
+        showing.addAll(stillOpen);
+    }
+
+    /**
+     * Shows one player the real blocks behind a portal they are still being shown.
+     *
+     * <p>Read from the world rather than assumed to be air: a gate that closed onto a default
+     * iris has real blocks in those positions, and calling them air would swap one wrong
+     * picture for another.
+     *
+     * @param player
+     *            the player to correct
+     * @param gate
+     *            the gate to take back, or null if it has been removed since
+     */
+    private static void undrawFor(final Player player, final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateWorld() == null)
+            || !gate.getGateWorld().equals(player.getWorld()))
+        {
+            return;
+        }
+        for (final Location bc : gate.getGatePortalBlocks())
+        {
+            final Block real = gate.getGateWorld()
+                .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            player.sendBlockChange(real.getLocation(), real.getBlockData());
+        }
+        sendLights(player, gate, null);
+    }
+
+    /**
+     * Sends one player every light block of a gate.
+     *
+     * @param player
+     *            the player to send to
+     * @param gate
+     *            the gate whose chevrons these are
+     * @param lit
+     *            what to show, or null to show whatever is really there
+     */
+    private static void sendLights(final Player player, final Stargate gate, final BlockData lit)
+    {
+        final List<java.util.ArrayList<Location>> groups = gate.getGateLightBlocks();
+        if (groups == null)
+        {
+            return;
+        }
+        for (final java.util.ArrayList<Location> group : groups)
+        {
+            if (group == null)
+            {
+                continue;
+            }
+            for (final Location bc : group)
+            {
+                final Block real = gate.getGateWorld()
+                    .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+                player.sendBlockChange(real.getLocation(),
+                    (lit != null) ? lit : real.getBlockData());
+            }
+        }
+    }
+
+    /**
+     * Which gates a player is currently being shown a portal for.
+     *
+     * <p>Remembered rather than worked out, so correcting a stale drawing costs only what was
+     * actually drawn for them. The alternative is walking every gate in the world on each
+     * chunk boundary somebody crosses, and most gates are nowhere near anybody.
+     *
+     * @param player
+     *            the player
+     * @return their live set of gate names, created empty if this is the first time
+     */
+    private static Set<String> drawnFor(final Player player)
+    {
+        final java.util.UUID uuid = player.getUniqueId();
+        if (uuid == null)
+        {
+            // No identity to file it under, so there is nothing to remember between calls.
+            // A throwaway set keeps every caller free of null checks.
+            return new HashSet<String>();
+        }
+        Set<String> showing = DRAWN.get(uuid);
+        if (showing == null)
+        {
+            showing = new HashSet<String>();
+            DRAWN.put(uuid, showing);
+        }
+        return showing;
+    }
+
+    /**
+     * Forgets what a player was being shown.
+     *
+     * <p>Called when they leave, because the map is keyed by uuid and would otherwise hold an
+     * entry for everyone who has ever walked past a gate.
+     *
+     * @param uuid
+     *            the player who has gone
+     */
+    public static void forgetDrawn(final java.util.UUID uuid)
+    {
+        DRAWN.remove(uuid);
     }
 
     /**

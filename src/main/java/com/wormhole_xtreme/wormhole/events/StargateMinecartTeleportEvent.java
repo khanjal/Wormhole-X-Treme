@@ -1,4 +1,4 @@
-package com.wormhole_xtreme.wormhole.event;
+package com.wormhole_xtreme.wormhole.events;
 
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.Event;

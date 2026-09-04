@@ -32,17 +32,32 @@ public class SubCommandsTest
     }
 
     @Test
-    public void theSubcommandsThatWereMissingFromCompletionAreThereNow()
+    public void whatIsAdvertisedIsTheFourNamesAndNothingElse()
     {
+        // The commands were restructured under two nouns that behave alike, the settings,
+        // and the one thing that is neither. Twenty-two names at the top level was how a
+        // plugin ends up with a help message nobody reads.
         final List<String> offered = SubCommands.namesMatching("");
-        // wooshdepth and restrict dispatched fine but were never suggested.
-        assertTrue(offered.contains("wooshdepth"), "wooshdepth should be suggested");
-        assertTrue(offered.contains("restrict"), "restrict should be suggested");
-        // These nine were suggested but unreachable.
+        assertEquals(java.util.Arrays.asList("gate", "ring", "compass", "config"),
+            offered.stream().sorted(java.util.Comparator.comparing(
+                n -> java.util.Arrays.asList("gate", "ring", "compass", "config").indexOf(n)))
+                .collect(java.util.stream.Collectors.toList()),
+            "the advertised list should be exactly the four nouns");
+    }
+
+    @Test
+    public void everyOldNameStillDispatches()
+    {
+        // The point of hiding rather than removing. Anybody with these in a command block, a
+        // script, or their fingers keeps working -- they are simply not suggested any more.
         for (final String name : new String[] { "list", "build", "complete", "remove",
-            "refresh", "go", "compass", "force", "idc" })
+            "regenerate", "refresh", "go", "force", "owner", "idc", "redstone", "custom",
+            "portalmaterial", "irismaterial", "lightmaterial", "wooshdepth",
+            "shutdown_timeout", "activate_timeout", "cooldown", "restrict" })
         {
-            assertNotNull(SubCommands.find(name), name + " should be dispatchable");
+            assertNotNull(SubCommands.find(name), name + " should still be dispatchable");
+            assertFalse(SubCommands.namesMatching("").contains(name),
+                name + " has moved, so it should not be suggested any more");
         }
     }
 
@@ -97,14 +112,17 @@ public class SubCommandsTest
     public void prefixCompletionNarrowsAsYouType()
     {
         final List<String> forC = SubCommands.namesMatching("c");
-        assertTrue(forC.contains("custom"));
         assertTrue(forC.contains("compass"));
-        assertTrue(forC.contains("cooldown"));
-        assertFalse(forC.contains("list"));
+        assertTrue(forC.contains("config"));
+        assertFalse(forC.contains("gate"));
+        // custom and cooldown used to be here. They still work, they are just reached
+        // through gate edit and config now rather than offered at the top level.
+        assertFalse(forC.contains("custom"));
+        assertFalse(forC.contains("cooldown"));
 
-        final List<String> forCust = SubCommands.namesMatching("cust");
-        assertEquals(1, forCust.size());
-        assertEquals("custom", forCust.get(0));
+        final List<String> forCon = SubCommands.namesMatching("con");
+        assertEquals(1, forCon.size());
+        assertEquals("config", forCon.get(0));
     }
 
     @Test

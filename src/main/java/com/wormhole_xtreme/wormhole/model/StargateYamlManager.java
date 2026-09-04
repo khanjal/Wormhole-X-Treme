@@ -194,10 +194,14 @@ public class StargateYamlManager
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to write YAML gate file " + outFile.getName() + ": " + e.getMessage());
             }
         }
-        // Log success for diagnostics when plugin context is available
+        // FINE rather than INFO: this fires once per gate, and onDisable() calls it for
+        // every gate on every shutdown whether or not anything changed. At INFO that is
+        // one console line per gate on every restart -- for a server with dozens of
+        // gates, that is dozens of lines nobody reads, forever. The load-time summary
+        // above stays at INFO because "N loaded" is one line regardless of gate count.
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Saved gate to YAML: " + outFile.getAbsolutePath());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Saved gate to YAML: " + outFile.getAbsolutePath());
         }
     }
 

@@ -1,20 +1,31 @@
 # Wormhole X-Treme
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
+
+This README is for **server owners** — installing it, configuring it, building gates and
+rings, and running them. If you are writing a plugin that hooks into gate or ring travel, see
+**[docs/API.md](docs/API.md)** instead.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
+There are also **transport rings**: small paired pads set into a floor or ceiling that fire when you walk into them.
 Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 ## Contents
 
 **Setting up** — [Server Compatibility](#server-compatibility) · [Build](#build) · [Configuration](#configuration) · [Permissions](#permissions) · [Commands](#commands)
 
-**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device-button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
+**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device--button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
 
 **Using gates** — [Redstone activation](#redstone-activation) · [What travels through a gate](#what-travels-through-a-gate) · [Nether and End dimension support](#nether-and-end-dimension-support)
 
-**Data and integration** — [Storage](#storage) · [Events for other plugins](#events-for-other-plugins) · [Economy](#economy)
+**Transport rings** — [Overview](#transport-rings) · [Building a ring pair](#building-a-ring-pair) · [Using rings](#using-rings) · [Ring settings](#ring-settings) · [Ring permissions](#ring-permissions)
 
-**Reference** — [Troubleshooting](#troubleshooting) · [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing)
+**Sound** — [Gate and ring sounds](#sounds)
+
+**Running a server** — [Storage](#storage) · [Economy](#economy) · [Troubleshooting](#troubleshooting)
+
+**Writing a plugin against this one** — [docs/API.md](docs/API.md)
+
+**Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing)
 
 ## Server Compatibility
 
@@ -161,13 +172,21 @@ The plugin uses permission nodes for feature access. Permissions are intended to
 - `wormhole.remove.own` — allow removing gates you own.
 - `wormhole.remove.all` — allow removing any gate (admin-level).
 - `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
-- `wormhole.config` — allow changing plugin configuration via commands.
+- `wormhole.config` — allow changing plugin configuration via commands, and everything
+  under `gate edit`, `gate regenerate`, `gate import`, and gate ownership. These were never
+  actually gated before this release — any player able to run `/wormhole` at all could
+  reconfigure or reassign any gate on the server. They now share this one node rather than
+  each getting a separate admin-only node that would mean the same thing.
 - `wormhole.list` — allow listing gates via `/wormhole list`.
 - `wormhole.go` — allow teleporting to gates via command (`/wormhole go`).
 - `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
 - `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
 
 Notes:
+- `wormhole.config` covers the settings command *and* gate management. If you have granted it
+  narrowly (e.g. only to yourself), check that trusted builders who used to run
+  `/wormhole portalmaterial`, `/wormhole custom`, or `/wormhole owner` freely still have it,
+  since those commands now require it too.
 - Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
 - The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
 
@@ -188,18 +207,90 @@ Everything is a subcommand of `/wormhole` (aliased `/wx`). Run it with no argume
 list; tab completion offers subcommand names, then gate names, networks, backends or
 booleans depending on where you are in the line.
 
-**Gates** — `list [network]`, `build <shape>`, `complete <name> [idc=IDC] [net=NET]`,
-`remove <gate>`, `regenerate <gate>` (alias `regen`), `refresh`
+Four names cover everything: two nouns that behave the same way, the settings, and the one
+thing that is neither.
 
-**Travel** — `go <gate>`, `compass`, `force <gate>`
+**Gates** — `gate build <shape>`, `gate complete <name> [idc=IDC] [net=NET]`,
+`gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate|-all>`,
+`gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`
 
-**Per gate** — `owner <gate> [player]`, `idc <gate> [code]`, `redstone <gate> [true|false]`,
-`custom <gate> [true|false]`, `portalmaterial`, `irismaterial`, `lightmaterial`,
-`wooshdepth`
+`gate edit <gate> <field> [value]` covers everything you set on a gate:
 
-**Server** — `shutdown_timeout <seconds>` (alias `timeout`),
-`activate_timeout <seconds>`, `cooldown <one|two|three|true|false> [time]`,
-`restrict <true|false>`
+| Field | Value |
+|---|---|
+| `portal` | Material the wormhole is drawn as. |
+| `iris` | Material the iris is built from. |
+| `light` | Material the chevrons light as. |
+| `group` | A whole material group at once, instead of the three above. |
+| `woosh` | How far the woosh pushes out. |
+| `redstone` | `true` or `false`. |
+| `idc` | The iris deactivation code, or `-clear`. |
+| `owner` | Hand the gate to somebody else. |
+| `custom` | `true` or `false`. |
+
+**Rings** — `ring create`, `ring cancel`, `ring list`, `ring remove [id]`,
+`ring edit [id] <ring|light|flash|name|access|style|reset> [value]`,
+`ring allow|deny <player> [id]`, `ring owner <player> [id]`
+
+**Settings** — `config <setting>` shows one with its description,
+`config <setting> <value>` changes it. Type part of a name to search. This reaches *every*
+setting, not just the four that used to have commands of their own, and takes effect
+immediately — there is nothing to reload and no restart.
+
+**Other** — `compass` points your compass at the nearest gate, and `compass reset` puts it
+back to world spawn, which is what an ordinary compass does on its own.
+
+You do not need to be holding a compass for either to work — the heading is stored against you
+and will be there when you pick one up. It tells you when nothing you are carrying will show
+it, which covers having no compass at all and having only the kinds that ignore the heading:
+a lodestone-bound compass points at its lodestone, a recovery compass at where you died.
+
+`gate edit group` changes what the gate *draws* — its portal, lights and iris. It leaves the
+frame blocks alone, because those are real blocks somebody built and rewriting them is not
+what changing a gate's group should quietly mean.
+
+### Coming from another Wormhole X-Treme
+
+Every build descended from the 2011 original kept its gates in `WormholeXTremeDB/
+WormholeXTreme.sqlite`, one binary blob per gate. This fork uses a file per gate instead, so
+swapping the jar leaves you looking at a server full of gates the plugin cannot see.
+
+**`/wormhole gate import`** brings them across. It reads that database, converts every gate,
+and reports what came and what did not — a gate is skipped rather than guessed at if its world
+is not loaded or its name is already taken.
+
+Nothing is written back to the old database and nothing is deleted, so a failed import costs
+nothing and running it twice does not duplicate anything. If gates are found on startup and
+you have none of your own, the log says so once.
+
+One requirement: your server needs a SQLite driver. It is not shipped here — thirteen
+megabytes of native libraries for a one-time import would be a poor trade for every server
+that never runs it — but any server that *wrote* one of these databases already has one,
+because the plugin that wrote it needed the same driver.
+
+`gate regenerate` also recomputes the arrival point. The exit is worked out once when a gate
+is built and then stored, so a gate that landed travellers at its side kept doing it; this is
+the command to reach for. It cannot fix a gate whose *facing* is wrong — if the woosh and the
+sign are on the wrong face too, that one needs rebuilding.
+
+**`gate regenerate -all`** does the same recompute across every gate in one pass, and reports
+how many actually needed it — recomputing is deterministic, so a gate that was already correct
+comes back unchanged and is not counted. It is narrower than running `regenerate` on a single
+gate: it only touches the arrival point, not the dial lever, iris lever, redstone hookup or
+sign that a single-gate regenerate also refreshes, since rewriting those for every gate on the
+server at once is not something an unattended sweep should do on its own.
+
+<details>
+<summary>The old flat commands still work</summary>
+
+`list`, `build`, `complete`, `remove`, `regenerate`, `refresh`, `go`, `force`, `owner`,
+`idc`, `redstone`, `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`,
+`wooshdepth`, `shutdown_timeout`, `activate_timeout`, `cooldown` and `restrict` all still
+dispatch exactly as they did. They are no longer suggested or listed, because the point of
+the restructure was a shorter list — but nothing in a command block, a script, or your
+fingers has broken.
+
+</details>
 
 ### Clearing snapshotted material overrides
 
@@ -566,11 +657,319 @@ nothing arrives from the other side on its own.
 
 Gates work correctly in the Nether and End. In those dimensions Minecraft uses `CAVE_AIR` (Nether) and `VOID_AIR` (End) for empty space instead of the normal `AIR` used in the Overworld. All portal-detection and teleport-exit-position searches use `Material.isAir()`, which covers all three air types, so gates build and activate correctly regardless of which dimension they are placed in.
 
+## Transport rings
+
+Rings are the short-range counterpart to a gate. Where a gate is a named, dialable structure
+you build once and address by name, a ring is an invisible pad set into a floor or ceiling
+that fires when you walk into it, counts down, and swaps everything at both ends in the same
+instant.
+
+| | Stargate | Ring |
+|---|---|---|
+| Addressing | Dial any gate by name | Fixed pair, no addressing |
+| Orientation | Vertical | Horizontal — floor or ceiling |
+| Activation | Button, sign, redstone, `/dial` | Walk into it |
+| Direction | One way per dial | Both ends fire together |
+| Appearance | Permanent structure | Invisible until it fires |
+| Range | Cross-world, config permitting | Same world, always |
+
+Because both ends fire at once, two people standing at opposite ends swap places in one trip.
+
+Rings are deliberately short-range: 256 blocks apart on the ground, but the full height of
+the world vertically. Going straight down is what they are for — a mine to the hall above it,
+a cellar to a tower — while anything that spans a map is a stargate's job. Both limits are
+configurable, and either can be lifted.
+
+The full design and the reasoning behind each decision is in [docs/RINGS.md](docs/RINGS.md).
+
+### Building a ring pair
+
+Lay a circle of slabs, stand inside it, and run `/wormhole ring create`. Do the same
+somewhere else in the same world and the two are paired. Only then are both sets of slabs
+consumed and both surfaces returned to how they looked — an unpaired ring does nothing, so its
+slabs stay put until there is a pair to show for them, and a restart in between costs nothing.
+
+`/wormhole ring remove` lays both circles back out again, so a pair can be picked up and moved
+without re-mining anything.
+
+There are two shapes. The odd one is the Standard gate's own ring lying flat; the even one is
+a size down for tighter rooms.
+
+```
+ODD — 7 across, 16 slabs          EVEN — 6 across, 12 slabs
+
+    . . # # # . .                     . . # # . .
+    . # : : : # .                     . # : : # .
+    # : : : : : #                     # : + : : #
+    # : : + : : #                     # : : : : #
+    # : : : : : #                     . # : : # .
+    . # : : : # .                     . . # # . .
+    . . # # # . .
+
+  # = lay a slab    : = stand anywhere in here    + = anchor
+```
+
+Rules for the template:
+
+- **Lay only the ring**, not a filled disc. The middle is where people stand.
+- **One kind of slab.** Whichever you pick becomes the ring's material, so a circle of
+  deepslate slabs rises in deepslate. No command needed.
+- **All facing the same way.** Bottom slabs resting on a floor make a floor ring; top slabs
+  hung under a ceiling make a ceiling ring. Double slabs are not accepted, because a full
+  block cannot say which surface it was laid against.
+- **Four blocks of headroom** above a floor ring for its stack.
+- A **ceiling ring needs a room four to ten blocks tall** — its rings fall to the floor and
+  stack up from there, so it needs a floor near enough to reach and far enough for the stack
+  to form. At four the top ring rests against the ceiling, which is fine.
+- The footprint may not overlap another ring or any gate.
+- **Within reach of its partner** — 256 blocks on the ground, 384 in height.
+
+Each refusal says what is actually wrong — mixed slabs, mixed halves, a filled-in circle,
+overlapping something — rather than a generic failure.
+
+Creation is two-step, so the first ring is remembered until you build its partner.
+`/wormhole ring cancel` gives up on a half-built pair and puts its slabs back.
+
+### Using rings
+
+Walk in. The floor opens along the ring's pattern with light showing from beneath it, and
+counts down; step clear before it commits and it stands down. The opening is a picture, not a
+hole -- you can walk over a ring that is waking up without falling into it. Once the rings start rising the trip is committed.
+
+Four rings then rise out of the pad a block apart, closing to half a block as each one stops,
+settling at 0.5, 1.5, 2.5 and 3.5 blocks up. A **ceiling ring** works the other way round: its
+rings fall from the ceiling all the way to the floor and stack up from there, so you end up
+standing inside them rather than under them. The stack stands a second, then the light runs
+down through the rings you are standing in as you are taken, and back up through the ones at
+the far end as you arrive — the near rings draw you in, the far ones put you out. Then the
+rings return nearest-first, and the pad stays lit until a second after the last one is home.
+
+Four rather than the show's five: a slab is half a block thick, so rings cannot sit closer
+than a block apart without touching, which makes the ring count and the stack's height the
+same number. Five put a five-block tower around a player less than two blocks tall, and three
+left barely a sequence to watch.
+
+Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
+subject to access rules; everything else rides along.
+
+If somebody builds inside a ring, or digs out its floor, the rings **refuse to engage** and
+tell you which end is at fault and which of the two problems it is. The standard is strict:
+every square inside the ring must be clear, and every one must have solid ground directly
+beneath it — one block built in, or one block missing from the floor, is enough. Water and
+lava count as no ground.
+
+Only the inside matters. What is built *around* a ring is your own business, and arriving
+next to it is no trouble since you can step back in and go home.
+
+A refused trip costs you nothing: no cycle runs, and the pair is ready to try again the
+moment the ring is cleared.
+
+Ride in on a horse or a camel and you arrive still on it. The mount is what travels and you
+are re-seated on it once you land, rather than the two of you being sent separately, which
+would drop you on the floor beside it.
+
+A pair will not fire again for a minute after carrying somebody — though a cycle that
+carried nobody, because everyone stepped out, leaves it ready straight away. Walking onto a pad that is recharging
+tells you how long is left and briefly lights the pattern so you can see where the ring is,
+since an idle one is invisible. Walking onto one that is already running just says so — its
+pad is lit already, so there is nothing to point out.
+
+Naming an end makes the messages useful: `/wormhole ring edit name Tower`, standing in the
+ring you mean, and its partner then tells travellers they are heading for Tower.
+
+**Rings are drawn, not built.** The lights and rings are sent to nearby clients and the
+server's blocks are never touched, exactly as a gate draws its portal. Nothing is left behind
+if the server stops mid-cycle, nothing appears in block logs, and nobody can mine the
+glowstone out of their own floor while it is lit. The trade is the same one gates make: the
+effect only exists for players in range, and relogging or walking far away and back clears
+it. A "light" material therefore looks lit but does not actually illuminate anything.
+
+### Sounds
+
+Both gates and rings make noise, and both are configured the same way. Everything below is
+optional: `gate-sounds-enabled: false` or `ring-sounds-enabled: false` turns off a whole
+subsystem, and any single sound set to `none` goes quiet on its own.
+
+**Sounds are named, not chosen from a list.** Anything the client already knows works, which
+means a resource pack's own sounds can be named here with no code involved. A name the client
+does not recognise is simply silent — the same thing the client does with one — so a typo
+costs you that sound and nothing else.
+
+Volume doubles as range: Bukkit ties the two together, so `1.0` carries about sixteen blocks
+and `1.5` about twenty-four. Turning a volume down makes a sound more local, not just quieter.
+
+#### Gates
+
+| Setting | Default | When it plays |
+|---|---|---|
+| `gate-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `gate-sound-volume` | 1.5 | Louder than rings on purpose — a gate is a landmark you walk towards. |
+| `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
+| `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
+| `gate-sound-kawoosh` | `block.end_portal.spawn` | Once, as the wormhole establishes. |
+| `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
+| `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
+| `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
+| `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals the gate. Pitched down — it is a shield, not a door. |
+| `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens. |
+
+The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
+seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in
+bigger steps.
+
+The water plays at 40% of `gate-sound-volume`, because an open wormhole is a background
+rather than an event, and that keeps it something you hear near the gate rather than across a
+base. `gate-sound-ambient-ticks` is set a little *under* the length of the sound on purpose,
+so it runs continuously instead of in gasps; shorten it further and it layers on itself, which
+is one way to make a gate sound busier.
+
+#### Coming out of a gate
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival, as though surfacing from the event horizon. `0` turns it off. |
+
+Drawn to that one player at eye height — nobody else sees anything and nothing is written to
+the world.
+
+The setting is both how long the water shows and how long it keeps being redrawn. Arriving
+hands the client a fresh copy of the chunk, and a fresh copy erases anything drawn into the
+old one — so a single block change lands *before* the chunk does on any trip long enough to
+need loading, and is wiped by it. If you travel far and see nothing, raise this: the window
+has to outlast the load.
+
+Do not raise it far, though. Water is physics to the client, not decoration: for as long as it
+believes it is submerged it predicts swimming, the server disagrees, and eventually that
+argument is felt as a stumble on landing.
+
+#### Rings
+
+| Setting | Default | When it plays |
+|---|---|---|
+| `ring-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `ring-sound-volume` | 1.0 | About sixteen blocks. |
+| `ring-sound-open` | `block.beacon.activate` | At both ends, as the pad opens. |
+| `ring-sound-ring` | `block.piston.extend` | Once per ring, pitch climbing as the stack builds. |
+| `ring-sound-flash` | `block.beacon.power_select` | At both ends, at the moment of transport. |
+| `ring-sound-close` | `block.beacon.deactivate` | At both ends, as the pad closes. |
+| `ring-sound-refused` | `block.note_block.bass` | To a turned-away player alone, not to the room. |
+
+The pitch on `ring-sound-ring` is what makes a deploy sound like a machine rather than four
+identical clicks: each ring leaves a step higher than the one before, and the retract replays
+the same notes in reverse, so it falls on the way home without being told to.
+
+#### Sounds worth trying
+
+| Instead of | Try | For |
+|---|---|---|
+| `gate-sound-kawoosh` | `entity.generic.explode` | A blunter, heavier open. |
+| `gate-sound-chevron` | `block.piston.contract` | A heavier clunk, if the trapdoor reads as a trapdoor. |
+| `gate-sound-ambient` | `block.conduit.ambient` | A resonant hum instead of open water. |
+| `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |
+
+### Ring settings
+
+All under `rings:` in `config.yml`.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `countdown` | 60 | Ticks before the rings commit. Floored at 30 so stepping clear stays possible. |
+| `cycle-cooldown` | 1200 | Ticks before a pair will fire again. Shared by both ends. |
+| `deploy-ticks` | 2 | Ticks between animation frames. |
+| `settle-ticks` | 20 | How long the finished stack stands before the transport. |
+| `flash-ticks` | 3 | How long each ring stays lit as the light passes. |
+| `hold-ticks` | 20 | How long the stack stands after the light finishes. |
+| `lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
+| `reach` | 4 | Block layers of passenger volume, from the pad into the room. |
+| `min-separation` | 8 | Required distance between ring anchors. Overlap is refused regardless. |
+| `max-link-distance` | 256 | Furthest two ends may be **on the ground**. 16 chunks. `0` is unlimited. |
+| `max-link-height` | 384 | Furthest two ends may be **in height**. The full world. `0` is unlimited. |
+| `max-ceiling-drop` | 10 | How far below its plane a ceiling ring looks for the floor. |
+| `max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
+| `default-access` | `PRIVATE` | What a newly built pair starts as. |
+| `default-style` | `CONCURRENT` | How the stack deploys. |
+| `default-light-material` | `GLOWSTONE` | What the pad lights up as. |
+| `default-flash-material` | `GLOWSTONE` | What a ring turns to as the transport light passes. |
+| `default-ring-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the template, and not what `reset` uses. This is the plain stone slab, not `STONE_SLAB`, which is the rougher raw-stone one. |
+| `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
+| `outline-ticks` | 40 | How long that outline stays up. |
+
+See [Sounds](#sounds) for the ring sound settings and how to change them.
+
+Per-pair and per-end settings are changed with `/wormhole ring edit`. Standing in a ring
+edits that end; naming a pair by id edits both.
+
+| Field | Scope | Values |
+|---|---|---|
+| `ring` | per end | Any slab, read from the game's own `minecraft:slabs` tag. |
+| `light` | per end | The pad, lit while the ring works. Completion suggests blocks that read as lights. |
+| `flash` | per end | The transport light running through the stack. Same list. |
+| `name` | per end | Free text. Refused with an id — stand in the ring you mean. |
+| `access` | per pair | `public` or `private` |
+| `style` | per end | `fast` or `slow` (`concurrent` and `sequential` also work) |
+| `reset` | per end | Takes no value. Rings go back to the slab that end was laid in; lights and style to the server's defaults. |
+
+`reset` restores how a ring looks and moves — slabs, both lights, deploy style — and leaves
+ownership, access, the allow list and names alone, since those are the things you would be
+annoyed to lose by undoing an experiment with colours.
+
+The rings go back to **the slab that end was actually laid in**, not to a configured default.
+Build in quartz, try a colour you do not like, reset, and you get your quartz back. The
+lights and the deploy style have no such history — nobody builds those, they are chosen — so
+those do take the server defaults.
+
+Tab completion on `light` and `flash` suggests glowstone, sea lanterns, shroomlight, redstone
+lamps, froglights and copper bulbs — things that read as a *light fixture*. That is a
+different bar from "emits light", which would let in jack o'lanterns, magma, crying obsidian
+and beacons: blocks that glow but that nobody picks when they are trying to build a lamp.
+Suggestions only, though — set any block you like, and the completion list is just there to
+save typing.
+
+Redstone lamps and copper bulbs are drawn **switched on**. Both are lights that default to
+off, so drawing one straight would have shown a dark lamp in a ring that was supposed to be
+lit.
+
+`style` decides how many rings are climbing at once, not how fast they move — `deploy-ticks`
+is the speed knob. `fast` sends several up together; `slow` sends one at a time.
+
+The ring material is checked against `minecraft:slabs`, so a data pack that adds a slab gets
+a ring material without anything here being updated. Lights have no equivalent: Minecraft has
+no light-emitting tag and Bukkit cannot read a light level from a material at all, so that
+list is written out by hand. It only has to look right, since a drawn ring emits nothing
+whatever it is made of.
+
+Access is per pair rather than per end because both ends fire together, so there is no way to
+authorise half of a swap. Materials, names and style are per end, because nobody watches both
+ends at once.
+
+A private pair is usable by its owner and whoever they have named with
+`/wormhole ring allow <player>`. That governs being carried as well as setting a ring off, so
+standing in somebody's private ring when they use it is not a free ride.
+
+### Ring permissions
+
+```
+wormhole.ring.build       create and pair rings                  default: op
+wormhole.ring.use         travel by a ring you are allowed on    default: true
+wormhole.ring.admin       use and manage any pair                default: op
+wormhole.ring.unlimited   bypass the per-player quota            default: op
+```
+
+Being named on a private pair's allow list lets somebody travel by it. It does not let them
+recolour, rename, give away or delete it — managing a pair stays with its owner and with
+staff.
+
 ## Storage
 
 Gates are stored as one YAML file each, under
 `plugins/WormholeXTreme/WormholeXTremeDB/gates/`. Back them up by copying the folder; edit
 them by hand if you need to.
+
+Rings are stored one file per *world*, under
+`plugins/WormholeXTreme/WormholeXTremeDB/rings/`, with every pair in that world inside it.
+Per world rather than per pair because a pair can never span two — so the layout enforces
+the rule — and because it cuts startup to one read per world instead of one per pair. A pair
+that will not parse is logged and skipped, and the rest of the world still loads.
 
 There is no database backend and nothing to configure. Earlier versions offered HSQLDB and
 SQLite; both are gone. A few thousand small records read once at startup and written one at
@@ -578,70 +977,11 @@ a time gains nothing from a database engine, and the drivers were over 95% of th
 download size. If you are coming from an install that used one of them, migrate with a
 build from before their removal, or rebuild the gates.
 
-## Events for other plugins
+## For developers
 
-Gate lifecycle is published as Bukkit events, so another plugin can react without this one
-knowing it exists. Both live in `com.wormhole_xtreme.wormhole.events`.
-
-| Event | Fired |
-| --- | --- |
-| `StargateCreatedEvent` | after a gate is built, named, registered and saved |
-| `StargateRemovedEvent` | while a gate is being removed, before it is torn down |
-| `StargatePlayerTravelEvent` | before a player travels, and **cancellable** |
-
-```java
-@EventHandler
-public void onGateCreated(final StargateCreatedEvent event)
-{
-    getLogger().info(event.getStargateName() + " built by "
-        + (event.getBuilder() != null ? event.getBuilder().getName() : "no player"));
-}
-```
-
-`getStargate()` gives the gate itself. `getBuilder()` and `getRemover()` give the player
-responsible, and are **null** when the gate was not created or removed by one — check before
-using them.
-
-The removal event fires *before* teardown, so the gate can still be read: name, owner,
-network, blocks and teleport location are all still populated, which is what a listener
-cleaning up its own records needs.
-
-The lifecycle events are not cancellable. Both are sent after the decision has been made
-and, for creation, after the gate is already on disk. To prevent a gate being built, deny
-`wormhole.build` rather than listening for it.
-
-### Watching and stopping travel
-
-`StargatePlayerTravelEvent` fires once every check this plugin makes has passed — permission,
-iris code, cooldown, one-way, same-world — and before anything has moved. `getStargate()` is
-the gate being entered, `getDestination()` is where it leads, and `getArrival()` is the exact
-spot the player would land.
-
-```java
-@EventHandler
-public void onTravel(final StargatePlayerTravelEvent event)
-{
-    if (inCombat(event.getPlayer()))
-    {
-        event.setCancelled(true);
-    }
-}
-```
-
-It fires for a player on foot and for one riding anything — a horse, a minecart, a boat. It
-does not fire for the vehicle itself, nor for anything travelling on its own, so cancelling
-stops the player rather than the world around them.
-
-A cancelled traveller is held, not moved. If they were walking in they are kept out; if they
-were already standing in the portal they stay free to walk away. Refusing every move of
-someone already inside would leave them unable to leave the ring at all.
-
-A listener that throws does not stop travel. Another plugin failing is not a decision to
-strand somebody halfway into a wormhole.
-
-Refreshing a gate does **not** raise a removal. A refresh deregisters the gate and registers
-it again with freshly detected geometry, which is not the gate going away, so a listener is
-not told to discard what it knows about it.
+Other plugins can listen to gate and ring travel, cancel it, and read where somebody is going.
+That is its own document: **[docs/API.md](docs/API.md)** — the events, what each one carries,
+when it fires relative to the move, and worked examples.
 
 ## Economy
 

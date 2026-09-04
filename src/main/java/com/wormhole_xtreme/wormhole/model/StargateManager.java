@@ -497,14 +497,59 @@ public class StargateManager
     }
 
     /**
-     * Redraws every open gate's portal for one player.
+     * Shows a traveller a moment of water as they come out of a gate.
+     *
+     * @param player
+     *            the traveller who has just arrived
+     */
+    public static void splashArrival(final Player player)
+    {
+        StargateBlockSetup.splashArrival(player);
+    }
+
+    /**
+     * Redraws a gate's teleport sign.
+     *
+     * <p>Exists so {@code /wormhole gate regenerate} can ask for it directly. It used to
+     * reach {@link StargateDialManager} through {@code Class.forName} and a reflective
+     * lookup of a package-private method -- reflection into this plugin's own code, which
+     * buys nothing and costs everything: a rename compiles clean, the lookup throws at
+     * runtime, and the catch swallows it. The sign would simply stop being regenerated and
+     * nobody would find out.
+     *
+     * @param gate
+     *            the gate whose sign should be redrawn
+     * @param forward
+     *            true to step the sign's target forward
+     */
+    public static void refreshTeleportSign(final Stargate gate, final boolean forward)
+    {
+        StargateDialManager.teleportSignClicked(gate, forward);
+    }
+
+    /**
+     * Forgets which portals a player was being shown.
+     *
+     * @param uuid
+     *            the player who has gone
+     */
+    public static void forgetPortalVisuals(final java.util.UUID uuid)
+    {
+        StargateBlockSetup.forgetDrawn(uuid);
+    }
+
+    /**
+     * Redraws every open gate's portal for one player, and takes back any they are still
+     * being shown for a gate that has since closed.
      *
      * <p>The portal exists only in each nearby client's copy of the chunk, so it has to be
      * redrawn for anyone who arrives after the gate opened or whose client has reloaded the
-     * chunk since. See {@link StargateBlockSetup#refreshPortalVisuals(Player)}.
+     * chunk since — and un-drawn for anyone who kept a copy through a close they were not
+     * near enough to be told about. See
+     * {@link StargateBlockSetup#refreshPortalVisuals(Player)}.
      *
      * @param player
-     *            the player to redraw for
+     *            the player to correct
      */
     public static void refreshPortalVisuals(final Player player)
     {

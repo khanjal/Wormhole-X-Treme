@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Registry of the material palettes gates can be built from.
- */
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;

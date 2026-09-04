@@ -34,6 +34,15 @@ class StargateAnimator
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
         final int wooshDepth = gate.getEffectiveWooshDepth();
 
+        // Both counters are only zero at the very start of an opening, so this fires once per
+        // wormhole rather than once per frame. Here rather than where the woosh is scheduled,
+        // because there are two paths into that and only one into this.
+        if (!gate.isGateAnimationRemoving() && (gate.getGateAnimationStep2D() == 0)
+            && (gate.getGateAnimationStep3D() == 0))
+        {
+            GateSounds.kawoosh(gate);
+        }
+
         if ((gate.getGateWooshBlocks() != null) && (gate.getGateWooshBlocks().size() > 0))
         {
             final ArrayList<Location> wooshBlockStep = gate.getGateWooshBlocks().get(gate.getGateAnimationStep3D());
@@ -41,15 +50,13 @@ class StargateAnimator
             {
                 if (wooshBlockStep != null)
                 {
+                    // Drawn to nearby clients, not written. Nothing to remember an original
+                    // for, and nothing left in the world if the server stops mid-woosh.
+                    StargateBlockSetup.drawBlocks(gate, wooshBlockStep, wooshMaterial);
                     for (final Location l : wooshBlockStep)
                     {
-                        final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                        final Material prev = b.getType();
-                        gate.getGateAnimatedBlocks().add(b);
-                        final Location key = StargateManager.normalizeBlockLocation(l);
-                        StargateManager.getOpeningAnimationOriginalMaterials().put(key, prev);
-                        StargateManager.getOpeningAnimationBlocks().put(key, b);
-                        b.setType(wooshMaterial);
+                        gate.getGateAnimatedBlocks().add(
+                            gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
                     }
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Adding: " + gate.getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
                 }
@@ -69,21 +76,13 @@ class StargateAnimator
                 // remove in reverse order — only clear blocks that are not portal blocks
                 if (wooshBlockStep != null)
                 {
+                    // Put back by showing what is really there, which needs no original and
+                    // cannot get one wrong.
+                    StargateBlockSetup.undrawBlocks(gate, wooshBlockStep);
                     for (final Location l : wooshBlockStep)
                     {
-                        final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                        final Location key = StargateManager.normalizeBlockLocation(l);
-                        final Material original = StargateManager.getOpeningAnimationOriginalMaterials().remove(key);
-                        StargateManager.getOpeningAnimationBlocks().remove(key, b);
-                        gate.getGateAnimatedBlocks().remove(b);
-                        if (original != null)
-                        {
-                            b.setType(original);
-                        }
-                        else if (!StargateManager.isBlockInGate(b))
-                        {
-                            b.setType(Material.AIR);
-                        }
+                        gate.getGateAnimatedBlocks().remove(
+                            gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
                     }
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Removing: " + gate.getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
                 }
@@ -108,17 +107,15 @@ class StargateAnimator
             // 2D gate woosh
             if ((gate.getGateAnimationStep2D() == 0) && (wooshDepth > 0))
             {
+                final ArrayList<Location> firstStep = new ArrayList<Location>();
                 for (final Location block : gate.getGatePortalBlocks())
                 {
                     final Block r = gate.getGateWorld().getBlockAt(block.getBlockX(), block.getBlockY(), block.getBlockZ())
                         .getRelative(gate.getGateFacing());
-                    final Material prev = r.getType();
-                    r.setType(wooshMaterial);
                     gate.getGateAnimatedBlocks().add(r);
-                    final Location key2 = StargateManager.normalizeBlockLocation(r.getLocation());
-                    StargateManager.getOpeningAnimationOriginalMaterials().put(key2, prev);
-                    StargateManager.getOpeningAnimationBlocks().put(key2, r);
+                    firstStep.add(r.getLocation());
                 }
+                StargateBlockSetup.drawBlocks(gate, firstStep, wooshMaterial);
                 gate.setGateAnimationStep2D(gate.getGateAnimationStep2D() + 1);
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH), 4);
             }
@@ -126,17 +123,14 @@ class StargateAnimator
             {
                 final int size = gate.getGateAnimatedBlocks().size();
                 final int start = gate.getGatePortalBlocks().size();
+                final ArrayList<Location> nextStep = new ArrayList<Location>();
                 for (int i = (size - start); i < size; i++)
                 {
-                    final Block b = gate.getGateAnimatedBlocks().get(i);
-                    final Block r = b.getRelative(gate.getGateFacing());
-                    final Material prev = r.getType();
-                    r.setType(wooshMaterial);
+                    final Block r = gate.getGateAnimatedBlocks().get(i).getRelative(gate.getGateFacing());
                     gate.getGateAnimatedBlocks().add(r);
-                    final Location key3 = StargateManager.normalizeBlockLocation(r.getLocation());
-                    StargateManager.getOpeningAnimationOriginalMaterials().put(key3, prev);
-                    StargateManager.getOpeningAnimationBlocks().put(key3, r);
+                    nextStep.add(r.getLocation());
                 }
+                StargateBlockSetup.drawBlocks(gate, nextStep, wooshMaterial);
                 gate.setGateAnimationStep2D(gate.getGateAnimationStep2D() + 1);
                 if (gate.getGateAnimationStep2D() == wooshDepth)
                 {
@@ -149,26 +143,16 @@ class StargateAnimator
             }
             else if (gate.getGateAnimationStep2D() >= wooshDepth)
             {
+                final ArrayList<Location> comingBack = new ArrayList<Location>();
                 for (int i = 0; i < gate.getGatePortalBlocks().size(); i++)
                 {
                     final int index = gate.getGateAnimatedBlocks().size() - 1;
                     if (index >= 0)
                     {
-                        final Block b = gate.getGateAnimatedBlocks().get(index);
-                        final Location key4 = StargateManager.normalizeBlockLocation(b.getLocation());
-                        final Material original = StargateManager.getOpeningAnimationOriginalMaterials().remove(key4);
-                        gate.getGateAnimatedBlocks().remove(index);
-                        StargateManager.getOpeningAnimationBlocks().remove(key4);
-                        if (original != null)
-                        {
-                            b.setType(original);
-                        }
-                        else if (!StargateManager.isBlockInGate(b))
-                        {
-                            b.setType(Material.AIR);
-                        }
+                        comingBack.add(gate.getGateAnimatedBlocks().remove(index).getLocation());
                     }
                 }
+                StargateBlockSetup.undrawBlocks(gate, comingBack);
                 if (gate.getGateAnimationStep2D() < ((wooshDepth * 2) - 1))
                 {
                     gate.setGateAnimationStep2D(gate.getGateAnimationStep2D() + 1);
@@ -201,6 +185,7 @@ class StargateAnimator
             if (gate.getGateLightingCurrentIteration() == 0)
             {
                 gate.setGateLightsActive(true);
+                GateSounds.activated(gate);
             }
             else if (!gate.isGateLightsActive())
             {
@@ -214,11 +199,16 @@ class StargateAnimator
             {
                 if ((gate.getGateLightBlocks().size() > 0) && (gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()) != null))
                 {
-                    for (final Location l : gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()))
-                    {
-                        final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                        b.setType(gate.getEffectiveLightMaterial());
-                    }
+                    // Drawn, not placed. A real lit chevron is an ordinary breakable
+                    // glowstone block for the seconds it stands there, and a server that
+                    // stops mid-dial used to leave the lit ones welded into the frame.
+                    StargateBlockSetup.drawBlocks(gate,
+                        gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()),
+                        gate.getEffectiveLightMaterial());
+                    // Off the same counter that drives the lights, so the sound cannot drift
+                    // out of step with what it is describing.
+                    GateSounds.chevron(gate, gate.getGateLightingCurrentIteration(),
+                        gate.getGateLightBlocks().size() - 1);
                 }
 
                 if (gate.getGateLightingCurrentIteration() >= gate.getGateLightBlocks().size() - 1)
@@ -244,11 +234,10 @@ class StargateAnimator
                 {
                     if (gate.getGateLightBlocks().get(i) != null)
                     {
-                        for (final Location l : gate.getGateLightBlocks().get(i))
-                        {
-                            final Block b = gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                            b.setType(gate.getEffectiveStructureMaterial());
-                        }
+                        // Shown as whatever is really there rather than as the structure
+                        // material: the frame was never changed, so this is putting a
+                        // drawing away rather than rebuilding anything.
+                        StargateBlockSetup.undrawBlocks(gate, gate.getGateLightBlocks().get(i));
                     }
                 }
             }

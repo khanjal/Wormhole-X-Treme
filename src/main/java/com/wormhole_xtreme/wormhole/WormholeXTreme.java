@@ -220,7 +220,12 @@ public class WormholeXTreme extends JavaPlugin
                 // Persist current runtime configuration to YAML on shutdown
                 com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
                 final ArrayList<Stargate> gates = StargateManager.getAllGates();
-                // Store all our gates
+                // Every gate is rewritten unconditionally, changed or not -- a clean
+                // shutdown is the one moment it costs nothing to guarantee disk matches
+                // memory, in case an earlier write failed partway through. The per-gate
+                // confirmation is FINE-level (see StargateYamlManager.saveStargate), so
+                // this logs one summary line instead of one per gate -- a server with a
+                // hundred gates does not need a hundred identical lines on every restart.
                 for (final Stargate gate : gates)
                 {
                     if (gate.isGateActive() || gate.isGateLightsActive())
@@ -228,6 +233,27 @@ public class WormholeXTreme extends JavaPlugin
                         gate.shutdownStargate(false);
                     }
                     StargateDBManager.saveStargate(gate);
+                }
+                if (!gates.isEmpty())
+                {
+                    prettyLog(Level.INFO, false, "Saved " + gates.size() + " gate"
+                        + (gates.size() == 1 ? "" : "s") + " to disk.");
+                }
+
+                // Any cycle still mid-animation is put back before its blocks are saved as
+                // part of the world, otherwise a server stopped at the wrong moment keeps
+                // the rings standing in the floor for good.
+                try
+                {
+                    com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
+                    for (final String world : ringWorlds())
+                    {
+                        com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
+                    }
+                }
+                catch (final Exception e)
+                {
+                    prettyLog(Level.WARNING, false, "Failed to save transport rings: " + e.getMessage());
                 }
 
                 StargateDBManager.shutdown();
@@ -247,6 +273,25 @@ public class WormholeXTreme extends JavaPlugin
             {
                     prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
             }
+    }
+
+    /**
+     * Every world that currently holds a ring pair.
+     *
+     * <p>Saving is per world, so the set of worlds to write is whichever ones have rings in
+     * them rather than every world the server has loaded.
+     *
+     * @return the world names to save
+     */
+    private static java.util.Set<String> ringWorlds()
+    {
+        final java.util.Set<String> worlds = new java.util.HashSet<String>();
+        for (final com.wormhole_xtreme.wormhole.model.ring.RingPair pair
+            : com.wormhole_xtreme.wormhole.model.ring.RingManager.getAllPairs())
+        {
+            worlds.add(pair.getWorldName());
+        }
+        return worlds;
     }
 
     /* (non-Javadoc)
@@ -286,6 +331,21 @@ public class WormholeXTreme extends JavaPlugin
             prettyLog(Level.WARNING, false, "Failed to load stored gates: " + e.getMessage());
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
+        // Rings load after gates so that a ring overlapping gate blocks is refused against
+        // an index that is already populated.
+        try
+        {
+            final int rings = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadAll(
+                ConfigManager.getRingReach());
+            final int waiting = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadPending();
+            prettyLog(Level.INFO, true, "Loaded " + rings + " transport ring pairs"
+                + ((waiting > 0) ? (" and " + waiting + " half-built ones.") : "."));
+        }
+        // A ring subsystem that cannot load must not stop the gates from working.
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, false, "Failed to load transport rings: " + e.getMessage());
+        }
         registerEvents(false);
         registerCommands();
         final long entityScanIntervalTicks = ConfigManager.getEntityScanIntervalTicks();
@@ -299,6 +359,19 @@ public class WormholeXTreme extends JavaPlugin
         // see, so they are followed individually and checked every tick while in flight.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             ProjectileGateTracker.createTicker(), 20L, 1L);
+        // An open wormhole hums. One sweep over the open gates rather than a task per gate:
+        // the work is the same and there is nothing per-gate to cancel or leak.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    com.wormhole_xtreme.wormhole.model.GateSounds.tickAmbient();
+                }
+            }, 20L, ConfigManager.getGateSoundAmbientTicks());
+        // Said after gates have loaded, so it can tell an empty server from a full one.
+        com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");
     }
 

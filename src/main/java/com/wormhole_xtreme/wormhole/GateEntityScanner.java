@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   Periodic sweep that sends loose entities standing in an open wormhole through it.
- */
 package com.wormhole_xtreme.wormhole;
 
 import java.util.Collection;

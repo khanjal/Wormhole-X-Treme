@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setting it up, and every config option
+    url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/README.md
+    about: Installing, permissions, commands, building gates and rings, sounds, troubleshooting.
+  - name: Writing a plugin against this one
+    url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/docs/API.md
+    about: The events, what each carries, and when it fires.
+  - name: How transport rings work, and why
+    url: https://github.com/khanjal/Wormhole-X-Treme/blob/main/docs/RINGS.md
+    about: The design of the ring subsystem, decision by decision.

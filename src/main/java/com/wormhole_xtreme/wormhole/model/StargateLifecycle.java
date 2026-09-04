@@ -64,6 +64,7 @@ class StargateLifecycle
         // can re-enter after shutdown.
         try { StargateRestrictions.removeRecentArrivalsForGate(gate); } catch (final Throwable ignore) {}
 
+        GateSounds.closed(gate);
         gate.lightStargate(false);
         gate.toggleDialLeverState(false);
         gate.toggleRedstoneGateActivatedPower();
@@ -210,7 +211,21 @@ class StargateLifecycle
      */
     static void setIrisState(final Stargate gate, final boolean irisActive)
     {
+        // Read before the state is changed, so a call that asks for what is already true is
+        // silent rather than announcing an iris that did not move.
+        final boolean moved = gate.isGateIrisActive() != irisActive;
         gate.setGateIrisActive(irisActive);
+        if (moved)
+        {
+            if (irisActive)
+            {
+                GateSounds.irisClosed(gate);
+            }
+            else
+            {
+                GateSounds.irisOpened(gate);
+            }
+        }
         if (gate.isGateIrisActive())
         {
             // The iris is a real barrier, so it is placed as real server-side blocks

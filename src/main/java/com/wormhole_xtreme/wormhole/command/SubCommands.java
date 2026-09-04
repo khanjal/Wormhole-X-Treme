@@ -1,8 +1,3 @@
-/*
- *   Wormhole X-Treme Plugin for Bukkit
- *
- *   The single registry of /wormhole subcommands.
- */
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
@@ -52,6 +47,7 @@ public final class SubCommands
         private final SubCommand handler;
         private final boolean dropSubcommandArg;
         private final ArgCompleter completer;
+        private boolean hidden;
 
         Entry(final String name, final List<String> aliases, final String usage,
             final SubCommand handler, final boolean dropSubcommandArg, final ArgCompleter completer)
@@ -65,6 +61,19 @@ public final class SubCommands
         }
 
         public String getName() { return name; }
+
+        /**
+         * Whether this name is kept working but no longer advertised.
+         *
+         * <p>The flat gate commands moved under {@code /wormhole gate}, and the four
+         * settings commands under {@code /wormhole config}. The old names still dispatch, so
+         * nothing in a command block or a script broke, but they are left out of help and
+         * tab completion -- otherwise the restructure would have made the list longer rather
+         * than shorter.
+         *
+         * @return true if it is a legacy name
+         */
+        public boolean isHidden() { return hidden; }
 
         public List<String> getAliases() { return aliases; }
 
@@ -144,7 +153,8 @@ public final class SubCommands
 
         // --- Travel ---------------------------------------------------------
         register("go", aliases(), "/wormhole go <gate>", new Go(), true, GATE_NAMES);
-        register("compass", aliases(), "/wormhole compass", new Compass(), true, null);
+        register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
+            args -> args.length == 2 ? prefixed(args[1], "reset") : none());
         register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
 
         // --- Per-gate settings ----------------------------------------------
@@ -179,6 +189,11 @@ public final class SubCommands
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
             new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
 
+        // --- Transport rings --------------------------------------------------
+        register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
+            new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false,
+            SubCommands::completeRing);
+
         // --- Server settings -------------------------------------------------
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
@@ -190,6 +205,103 @@ public final class SubCommands
         register("restrict", aliases(), "/wormhole restrict <true|false>",
             new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, args ->
                 args.length == 2 ? prefixed(args[1], "true", "false") : none());
+
+        // --- The shape people actually type --------------------------------
+        // Everything above stays registered and keeps working; it is just no longer what is
+        // advertised. Four names now cover it: two nouns that behave alike, the settings, and
+        // the one thing that is neither.
+        register("gate", aliases("gates"),
+            "/wormhole gate <" + String.join("|",
+                com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()) + ">",
+            new com.wormhole_xtreme.wormhole.command.handlers.GateCommand(), false,
+            SubCommands::completeGate);
+        register("config", aliases("set"), "/wormhole config <setting> [value]",
+            new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, args ->
+                args.length == 2 ? prefixed(args[1],
+                    com.wormhole_xtreme.wormhole.config.ConfigManager.settingNames()
+                        .toArray(new String[0])) : none());
+
+        hide("list", "build", "complete", "remove", "regenerate", "refresh", "go", "force",
+            "owner", "idc", "redstone", "custom", "portalmaterial", "irismaterial",
+            "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
+            "cooldown", "restrict");
+    }
+
+    /**
+     * Completes the arguments of {@code /wormhole gate}.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates for the argument being typed
+     */
+    private static List<String> completeGate(final String[] args)
+    {
+        if (args.length == 2)
+        {
+            return prefixed(args[1],
+                com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()
+                    .toArray(new String[0]));
+        }
+        final String verb = args[1].toLowerCase();
+        if ("edit".equals(verb))
+        {
+            // gate edit <gate> <field> [value]
+            if (args.length == 3) return gateNames(args[2]);
+            if (args.length == 4)
+            {
+                return prefixed(args[3],
+                    com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.fieldNames()
+                        .toArray(new String[0]));
+            }
+            if (args.length == 5)
+            {
+                final String field = args[3].toLowerCase();
+                if ("group".equals(field))
+                {
+                    return prefixed(args[4],
+                        com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames()
+                            .toArray(new String[0]));
+                }
+                if ("redstone".equals(field)) return prefixed(args[4], "true", "false");
+                if ("portal".equals(field) || "iris".equals(field) || "light".equals(field))
+                {
+                    return materialNames(args[4], false);
+                }
+            }
+            return none();
+        }
+        if ("build".equals(verb))
+        {
+            return args.length == 3 ? shapeNames(args[2]) : none();
+        }
+        if (("regenerate".equals(verb) || "regen".equals(verb)) && (args.length == 3))
+        {
+            // -all fixes every gate's arrival point in one pass; alongside gate names so
+            // either is offered without knowing in advance which the admin wants.
+            final java.util.List<String> out = new ArrayList<String>(gateNames(args[2]));
+            out.addAll(prefixed(args[2], "-all"));
+            return out;
+        }
+        // Every other verb takes a gate name first, and nothing after it worth guessing at.
+        return args.length == 3 ? gateNames(args[2]) : none();
+    }
+
+    /**
+     * Marks the named subcommands as kept-working but unadvertised.
+     *
+     * @param names
+     *            the legacy names
+     */
+    private static void hide(final String... names)
+    {
+        for (final String name : names)
+        {
+            final Entry e = BY_NAME.get(name);
+            if (e != null)
+            {
+                e.hidden = true;
+            }
+        }
     }
 
     private static void register(final String name, final List<String> aliases, final String usage,
@@ -251,7 +363,7 @@ public final class SubCommands
         final List<String> out = new ArrayList<String>();
         for (final Entry e : ORDERED)
         {
-            if (e.getName().startsWith(p))
+            if (!e.isHidden() && e.getName().startsWith(p))
             {
                 out.add(e.getName());
             }
@@ -265,6 +377,10 @@ public final class SubCommands
         final StringBuilder sb = new StringBuilder();
         for (final Entry e : ORDERED)
         {
+            if (e.isHidden())
+            {
+                continue;
+            }
             if (sb.length() > 0)
             {
                 sb.append(", ");
@@ -294,6 +410,249 @@ public final class SubCommands
                 out.add(c);
             }
         }
+        return out;
+    }
+
+    /** The fields {@code /wormhole ring edit} understands. */
+    private static final String[] RING_FIELDS = { "ring", "light", "flash", "built", "name", "access", "style", "reset" };
+
+    /**
+     * Completions for {@code /wormhole ring}.
+     *
+     * <p>{@code edit} comes in two forms — with a pair id and without — so the field can be
+     * at either of two positions and the value at either of two more. Rather than guess from
+     * the argument count alone, this looks at whether the word before the one being typed is
+     * a field name, which tells the two forms apart wherever they are.
+     *
+     * @param args
+     *            the full argument array, {@code ring} at index 0
+     * @return the candidates
+     */
+    private static List<String> completeRing(final String[] args)
+    {
+        if (args.length == 2)
+        {
+            return prefixed(args[1], "create", "cancel", "list", "remove", "edit",
+                "allow", "deny", "owner");
+        }
+        if (!"edit".equalsIgnoreCase(args[1]))
+        {
+            return none();
+        }
+        // Typing the word straight after "edit": either a field, or an id with the field
+        // still to come. Ids cannot be offered because a completer is not told who is asking,
+        // and listing every pair on the server would say more than it should.
+        if (args.length == 3)
+        {
+            return prefixed(args[2], RING_FIELDS);
+        }
+        // Otherwise the previous word decides: a field means a value goes here, and anything
+        // else means that word was an id and the field goes here instead.
+        final String previous = args[args.length - 2];
+        final String typed = args[args.length - 1];
+        return isRingField(previous) ? ringFieldValues(previous, typed) : prefixed(typed, RING_FIELDS);
+    }
+
+    /**
+     * Whether a word is one of the editable fields.
+     *
+     * @param word
+     *            the word to test
+     * @return true if it names a field
+     */
+    private static boolean isRingField(final String word)
+    {
+        for (final String field : RING_FIELDS)
+        {
+            if (field.equalsIgnoreCase(word))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * What can go in a given field.
+     *
+     * <p>The material fields are the reason this exists. There are around sixty slabs and
+     * several hundred blocks in the game, and nobody remembers how {@code polished_deepslate}
+     * is spelled — so the ring field offers only what it will actually accept, and the light
+     * field offers anything placeable.
+     *
+     * @param field
+     *            which field is being set
+     * @param typed
+     *            what has been typed of the value so far
+     * @return the candidates
+     */
+    private static List<String> ringFieldValues(final String field, final String typed)
+    {
+        if ("access".equalsIgnoreCase(field))
+        {
+            return prefixed(typed, "public", "private");
+        }
+        if ("style".equalsIgnoreCase(field))
+        {
+            return prefixed(typed, "fast", "slow", "concurrent", "sequential");
+        }
+        if ("ring".equalsIgnoreCase(field) || "built".equalsIgnoreCase(field))
+        {
+            // Only slabs, because only a slab can move half a block at a time, which is the
+            // whole of the rise animation. Offering anything else would be offering something
+            // the command is about to refuse. built shares the constraint: it names the same
+            // kind of slab, just recorded rather than currently worn.
+            return materialNames(typed, true);
+        }
+        if ("light".equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
+        {
+            // Solid blocks that read as glowing. Offering all several hundred blocks was a
+            // list nobody could use, and most of them look wrong set into a floor.
+            return glowingNames(typed);
+        }
+        // A name is whatever the player wants, and reset takes no value at all.
+        return none();
+    }
+
+    /**
+     * Glowing block names matching what has been typed.
+     *
+     * @param typed
+     *            what has been typed so far
+     * @return the matching names, lower case
+     */
+    private static List<String> glowingNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.Material material
+            : com.wormhole_xtreme.wormhole.model.ring.Ring.glowingMaterials())
+        {
+            final String name = material.name().toLowerCase();
+            if (name.startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out);
+        return out;
+    }
+
+    /**
+     * Material names matching what has been typed.
+     *
+     * @param typed
+     *            what has been typed so far
+     * @param slabsOnly
+     *            true to offer only slabs
+     * @return the matching material names, lower case
+     */
+    /**
+     * Whether the registry can answer what is a block.
+     *
+     * <p>From 1.20.6 on, {@link org.bukkit.Material#isBlock()} goes through the server's
+     * registry, which is not there before the server has finished starting -- and asking then
+     * throws rather than returning false. Probed once, because the answer cannot change
+     * within a run and a failed registry lookup is expensive to repeat for every material in
+     * the game on every tab press.
+     */
+    private static boolean blockCheckWorks = false;
+
+    /**
+     * Asks whether the block check is usable.
+     *
+     * @return true if it answered
+     */
+    private static boolean probeBlockCheck()
+    {
+        try
+        {
+            org.bukkit.Material.STONE.isBlock();
+            return true;
+        }
+        // Throwable rather than Exception: a registry that is not ready fails in class
+        // initialisation, which arrives as an Error.
+        catch (final Throwable ignored)
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Whether a material is a block, as far as this server can say.
+     *
+     * <p>Without a registry to ask, everything is offered rather than nothing. A completion
+     * list with a few items in it is a much smaller problem than an empty one, and on a
+     * running server -- which is the only place a player can press tab -- the registry is
+     * always there.
+     *
+     * @param material
+     *            the material to judge
+     * @return true if it is a block, or if that cannot be determined
+     */
+    private static boolean isBlock(final org.bukkit.Material material)
+    {
+        // Only a yes is remembered. A no means the registry was not ready when we asked,
+        // and that changes: this class is loaded while the plugin is still enabling, so a
+        // single probe cached at class-init would have recorded "no registry" for the life of
+        // the server and gone on offering every material in the game for ever. Asking again
+        // costs one call until the first time it works.
+        if (!blockCheckWorks)
+        {
+            blockCheckWorks = probeBlockCheck();
+        }
+        return !blockCheckWorks || material.isBlock();
+    }
+
+    private static List<String> materialNames(final String typed, final boolean slabsOnly)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.Material material : org.bukkit.Material.values())
+        {
+            // Legacy materials are duplicates of real ones under old names, and offering
+            // them would double the list with things nobody should be typing.
+            if (material.isLegacy() || !isBlock(material))
+            {
+                continue;
+            }
+            if (slabsOnly && !com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(material))
+            {
+                continue;
+            }
+            final String name = material.name().toLowerCase();
+            if (name.startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out);
+        return out;
+    }
+
+    /**
+     * Completes the name of a gate shape.
+     *
+     * <p>{@code build} never offered these, which meant the one argument it takes had to be
+     * remembered or read out of the shapes directory.
+     *
+     * @param typed
+     *            what has been typed so far
+     * @return the matching shape names
+     */
+    private static List<String> shapeNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final String name
+            : com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes().keySet())
+        {
+            if (name.toLowerCase().startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out);
         return out;
     }
 
