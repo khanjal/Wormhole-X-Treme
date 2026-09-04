@@ -50,38 +50,25 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * firing the moment they vanish.
  *
  * <p>Ticks a single self-rescheduling step, the same idiom {@code StargateAnimator} and the
- * ring subsystem already use ({@code scheduleSyncDelayedTask} calling itself), rather than
- * the pure-core/Bukkit-boundary split those two eventually grew into. That split is worth
- * doing once this shape has survived actual play-testing -- not before, for a sequence still
- * being tuned by feel. Durations are read from {@code ConfigManager} at the start of each
- * sequence (not re-read every tick, so a config change mid-flight cannot desync a beam
- * already running), the same way ring timings already are.
+ * ring subsystem already use ({@code scheduleSyncDelayedTask} calling itself). Unlike an
+ * earlier version of this class, the decisions and the Bukkit calls are no longer tangled
+ * together: {@link BeamFrame} computes what a tick should do, purely, and {@link Sequence}
+ * (below) is left doing only the Bukkit half -- spawning particles, applying effects, playing
+ * sounds, scheduling the next tick -- with no arithmetic of its own to get wrong. The same
+ * split the ring subsystem eventually grew ({@code RingCycle} for the decisions,
+ * {@code RingTransit} for touching a live world), worth doing once this shape had survived
+ * actual play-testing rather than before, for a sequence that was still being tuned by feel.
+ * Durations are read from {@code ConfigManager} at the start of each sequence (not re-read
+ * every tick, so a config change mid-flight cannot desync a beam already running), the same
+ * way ring timings already are.
  */
 public final class BeamAnimation
 {
-    /** Roughly a standing player's own height -- where the envelope gathers, before it opens
-     * into the taller departure column. */
-    private static final double PLAYER_HEIGHT = 1.8;
-
-    /** How tall the column stands once the envelope opens into it. */
-    private static final double COLUMN_HEIGHT = 3.0;
-
     /** The vertical spacing between particle bursts within the column -- small enough that it
-     * reads as one continuous beam rather than a stack of discrete points. */
+     * reads as one continuous beam rather than a stack of discrete points. The one geometry
+     * constant that stays here rather than on {@link BeamFrame}: it is a rendering-resolution
+     * detail of {@link #spawnColumn}, not something that varies by tick or phase. */
     private static final double COLUMN_STEP = 0.4;
-
-    /** How far the column travels while rising or descending, measured from its own height --
-     * past {@link #COLUMN_HEIGHT} so the departing column visibly clears where it started
-     * rather than just thickening in place. */
-    private static final double TRAVEL_HEIGHT = 4.0;
-
-    /** Particles per burst at the start of the envelope. */
-    private static final int MIN_DENSITY = 1;
-
-    /** Particles per burst once the glow has built up -- reached by the end of the envelope
-     * and held constant through rise and descent; delivery and departure are not a second
-     * and third build-up, only the envelope is. */
-    private static final int MAX_DENSITY = 8;
 
     private BeamAnimation() {}
 
@@ -220,7 +207,12 @@ public final class BeamAnimation
                 return;
             }
 
-            if (tick == 0)
+            // Everything about *what* happens this tick is decided by BeamFrame, purely
+            // from the tick number and timing -- this method's only job left is *doing*
+            // it: Bukkit calls, in the order BeamFrame says they apply, nothing more.
+            final BeamFrame frame = BeamFrame.at(tick, timing);
+
+            if (frame.isStart())
             {
                 BeamFreeze.markActive(player);
                 BeamSounds.playCharge(origin);
@@ -228,19 +220,16 @@ public final class BeamAnimation
                     + "Beaming to " + destinationName + "...");
             }
 
-            final int envelopTicks = timing.envelopTicks();
-            if (tick < envelopTicks)
+            if (frame.isEnvelopActive())
             {
                 // Not yet frozen -- tracks wherever the traveller actually is this tick,
                 // rather than the fixed origin, since they are still free to walk, turn or
                 // react right up until they vanish. A fixed column here would just miss
                 // them the moment they stepped away from where the sequence began.
-                final double progress = (double) tick / (double) (envelopTicks - 1);
-                final int density = MIN_DENSITY + (int) Math.round((MAX_DENSITY - MIN_DENSITY) * progress);
-                spawnColumn(player.getLocation(), PLAYER_HEIGHT, 0.0, density);
+                spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.getEnvelopDensity());
             }
 
-            if (tick == timing.vanishAtStep())
+            if (frame.isVanish())
             {
                 // This is the moment free movement ends: note where they are right now --
                 // the departure column roots here for the rest of the rise -- then lock
@@ -256,19 +245,16 @@ public final class BeamAnimation
                 // explicit removal at the deposit is what the timing actually depends on,
                 // and this is only a ceiling against that removal being late.
                 player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    (envelopTicks - timing.vanishAtStep()) + timing.riseTicks() + timing.descendTicks(),
+                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks() + timing.descendTicks(),
                     0, false, false));
             }
 
-            final int riseTicks = timing.riseTicks();
-            final int sinceRise = tick - envelopTicks;
-            if ((sinceRise >= 0) && (sinceRise < riseTicks))
+            if (frame.isRiseActive())
             {
-                spawnColumn(origin, COLUMN_HEIGHT, TRAVEL_HEIGHT * ((double) sinceRise / (double) riseTicks),
-                    MAX_DENSITY);
+                spawnColumn(origin, frame.columnHeight(), frame.getRiseYOffset(), BeamFrame.MAX_DENSITY);
             }
 
-            if (!teleported && (sinceRise == timing.teleportAtStep()))
+            if (!teleported && frame.isTeleport())
             {
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
@@ -281,32 +267,23 @@ public final class BeamAnimation
 
             if (teleported)
             {
-                final int descendTicks = timing.descendTicks();
-                final int sinceTeleport = sinceRise - timing.teleportAtStep();
-
-                if (sinceTeleport < descendTicks)
+                if (frame.isDescendActive())
                 {
-                    spawnColumn(destination, COLUMN_HEIGHT,
-                        TRAVEL_HEIGHT * (1.0 - ((double) sinceTeleport / (double) descendTicks)), MAX_DENSITY);
+                    spawnColumn(destination, frame.columnHeight(), frame.getDescendYOffset(), BeamFrame.MAX_DENSITY);
                 }
 
-                if (sinceTeleport == descendTicks)
+                if (frame.isArrive())
                 {
                     BeamSounds.playArrive(destination);
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
                 }
 
-                final int fadeTicks = timing.fadeTicks();
-                final int sinceDeposit = sinceTeleport - descendTicks;
-                if ((sinceDeposit >= 0) && (sinceDeposit < fadeTicks))
+                if (frame.isFadeActive())
                 {
-                    final double fadeProgress = (double) sinceDeposit / (double) fadeTicks;
-                    final double height = COLUMN_HEIGHT - ((COLUMN_HEIGHT - PLAYER_HEIGHT) * fadeProgress);
-                    final int density = MAX_DENSITY - (int) Math.round((MAX_DENSITY - MIN_DENSITY) * fadeProgress);
-                    spawnColumn(destination, height, 0.0, density);
+                    spawnColumn(destination, frame.getFadeHeight(), 0.0, frame.getFadeDensity());
                 }
 
-                if (sinceDeposit >= fadeTicks)
+                if (frame.isFinished())
                 {
                     BeamFreeze.clear(player);
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()

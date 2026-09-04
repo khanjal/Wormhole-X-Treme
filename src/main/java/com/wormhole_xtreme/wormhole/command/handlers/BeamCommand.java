@@ -118,6 +118,15 @@ public class BeamCommand implements SubCommand
                 names.append(", ");
             }
             names.append(destination.getName());
+            // Only an override is worth saying anything about -- the default cost is
+            // already visible via /wormhole config BEAM_ECONOMY_USE_COST, and repeating it
+            // next to every destination that hasn't been given one of its own would just be
+            // noise the reader has to filter back out.
+            final Double cost = destination.getCost();
+            if (cost != null)
+            {
+                names.append(cost <= 0 ? " (free)" : " (" + cost + ")");
+            }
         }
         player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
             + (names.length() == 0 ? "No public beam destinations are set." : "Beam destinations: " + names));

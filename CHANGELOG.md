@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Beam sequence decisions are now testable without a running server
+
+`BeamAnimation.Sequence` computed every phase boundary and quantity inline, mixed in with
+the Bukkit calls that acted on them -- the same tangle the ring subsystem split apart early
+on, deferred for beaming until the sequence itself stopped changing shape every few days.
+Now that it has, `BeamFrame.at(tick, timing)` is a pure function from a tick number and the
+sequence's resolved durations to everything that tick should do; `Sequence` is left doing
+only the Bukkit half, in the order `BeamFrame` says it applies, with no arithmetic of its
+own left to get wrong. Thirteen new tests pin the exact tick every transition lands on by
+hand -- envelop ending and rise beginning with no gap or overlap, the origin column still
+playing on the same tick teleport fires (independent of the traveller, who has already
+left), fade finishing on schedule rather than one tick early or late. An off-by-one at any
+of these boundaries used to only be noticeable by actually watching a beam run; now it is
+a failing assertion.
+
+`/wormhole beam list` now shows a destination's cost next to its name when it has one of
+its own -- easy to lose track of otherwise now that costs can vary per destination.
+
 ### Beaming: a third way to travel, alongside gates and rings
 
 `/wormhole beam to <name>` moves a player straight to a named destination -- no physical
