@@ -24,10 +24,19 @@ the entire descend phase -- but nothing was stopping them from freely looking ar
 before the column had finished settling. Invisibility only ever hid them from *other*
 players; it never touched what the traveller themselves could see. The effect ended up
 backwards from the intended read: a busy view, then a clear one, and only after that the
-"arrival" effect finishing around them. `PotionEffectType.BLINDNESS`, applied the instant
-the real teleport fires and removed the instant the column settles (the same two ticks
-invisibility already keys off of), closes the gap -- the traveller's own vision now
-resolves in sync with the visual instead of running ahead of it.
+"arrival" effect finishing around them.
+
+First attempt was `PotionEffectType.BLINDNESS` alone, applied the instant the real
+teleport fires and removed the instant the column settles. Play-testing caught what the
+reasoning missed: blindness is mostly a render-distance fog, not an opaque blackout --
+nearby terrain and anything bright (daylight, torches, the beam's own `END_ROD`
+particles) still showed straight through it, so the traveller could still see the
+destination clearly before arriving. `PotionEffectType.DARKNESS` -- the real dark
+vignette a warden or sculk shrieker applies -- stacked on top of blindness is what
+actually blocks the view; confirmed present across this project's full supported range
+(1.20 through 1.21.10) before adding it. Both key off the same two ticks invisibility
+already uses, so the traveller's own vision now resolves in sync with the visual instead
+of running ahead of it.
 
 ### Fix: beam cost no longer charges a message with nothing behind it
 

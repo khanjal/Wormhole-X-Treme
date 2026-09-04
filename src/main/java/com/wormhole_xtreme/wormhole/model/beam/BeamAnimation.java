@@ -35,7 +35,8 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * and settles into place at the destination. The traveller is physically here for all of
  * this (the real teleport already fired, mid-rise), so nothing would otherwise stop them
  * seeing the destination clearly the moment they land -- except
- * {@link org.bukkit.potion.PotionEffectType#BLINDNESS}, applied for exactly this stretch, so
+ * {@link org.bukkit.potion.PotionEffectType#BLINDNESS} stacked with
+ * {@link org.bukkit.potion.PotionEffectType#DARKNESS}, applied for exactly this stretch, so
  * what they can see stays in step with what has actually finished arriving rather than
  * running ahead of it.</li>
  * <li><b>Deposit and fade</b> -- the instant the column settles, the traveller is revealed
@@ -54,8 +55,12 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * about invisibility (or the freeze, which only ever locked position, never camera) stops
  * the traveller from freely looking around the destination the instant they physically
  * arrive, well before the descend column has finished settling -- a clear view they already
- * have, followed by an arrival effect that then reads as arriving late. Blindness closes
- * that gap: applied the moment the real teleport fires and removed the moment the column
+ * have, followed by an arrival effect that then reads as arriving late. Blindness alone
+ * turned out not to close that gap in play-testing: it is mostly a render-distance fog, not
+ * an opaque blackout, so nearby terrain and anything bright -- daylight, torches, the beam's
+ * own {@code END_ROD} particles -- still showed through it. Darkness, the real dark vignette
+ * a warden or sculk shrieker applies, stacked on top of it is what actually blocks the view.
+ * Both are applied the moment the real teleport fires and removed the moment the column
  * settles, the same two ticks invisibility already keys off of, so the traveller's own
  * vision resolves in sync with the visual instead of running ahead of it.
  *
@@ -296,12 +301,20 @@ public final class BeamAnimation
                 // descend column is still only starting to fall around them, but nothing
                 // stops their own eyes from seeing straight through it to the terrain
                 // beyond, well before the "arrival" it is meant to sell has actually
-                // finished. Blindness only ever hides what the traveller themselves sees
-                // (unlike invisibility, which only hides them from others), so this is the
-                // one effect that can close that gap: an over-estimate covering descend
-                // plus fade, same reasoning as invisibility's duration below -- explicit
-                // removal at the arrive tick is what the timing actually depends on.
+                // finished. Blindness and darkness are both applied together, not
+                // blindness alone: blindness by itself is mostly a render-distance fog,
+                // not an opaque blackout -- nearby terrain and anything bright (daylight,
+                // torches, the beam's own END_ROD particles) still shows through it, which
+                // is exactly the gap the reference report caught in play-testing. Darkness
+                // is the real dark vignette (the same effect a warden/sculk shrieker
+                // applies), and stacking it on top of blindness is what actually blocks
+                // the view rather than just softening it. Both key off the same two ticks
+                // invisibility already uses: an over-estimate covering descend plus fade,
+                // with explicit removal at the arrive tick as what the timing actually
+                // depends on.
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,
+                    timing.descendTicks() + timing.fadeTicks(), 0, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS,
                     timing.descendTicks() + timing.fadeTicks(), 0, false, false));
                 if (onDepart != null)
                 {
@@ -321,6 +334,7 @@ public final class BeamAnimation
                     BeamSounds.playArrive(destination);
                     player.removePotionEffect(PotionEffectType.INVISIBILITY);
                     player.removePotionEffect(PotionEffectType.BLINDNESS);
+                    player.removePotionEffect(PotionEffectType.DARKNESS);
                 }
 
                 if (frame.isFadeActive())
