@@ -47,3 +47,9 @@ gate-material-groups:
     iris: WHITE_STAINED_GLASS
     light: SEA_LANTERN
     sign: CRIMSON_WALL_SIGN
+  MilkyWay:
+    structure: DEEPSLATE
+    portal: WATER
+    iris: IRON_BLOCK
+    light: SHROOMLIGHT
+    sign: OAK_WALL_SIGN

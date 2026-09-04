@@ -14,7 +14,19 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class Stargate3DShape extends StargateShape
 {
-    private static Material parseMaterialName(final String name) {
+    /**
+     * Resolves a material name the same way a shape file's {@code PORTAL_MATERIAL} /
+     * {@code IRIS_MATERIAL} / {@code STARGATE_MATERIAL} / {@code ACTIVE_MATERIAL} /
+     * {@code SIGN_MATERIAL} lines are resolved when the file is actually loaded --
+     * including the legacy {@code STATIONARY_WATER}/{@code STATIONARY_LAVA} aliases pre-1.13
+     * shape files still use. Public so {@code ShapeFileValidator} checks a name against
+     * exactly what this parser accepts rather than a stricter reading of its own that would
+     * reject a shape the game loads fine.
+     *
+     * @param name the material name as written in the shape file
+     * @return the resolved material, or null if nothing matches
+     */
+    public static Material parseMaterialName(final String name) {
         if (name == null) return null;
         final String n = name.trim().toUpperCase();
         switch (n) {
