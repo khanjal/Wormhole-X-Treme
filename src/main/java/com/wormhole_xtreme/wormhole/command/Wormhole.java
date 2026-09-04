@@ -207,10 +207,6 @@ public class Wormhole implements CommandExecutor
                 : true)
             {
                 final String[] a = CommandUtilities.commandEscaper(args);
-                if (a.length > 4)
-                {
-                    return false;
-                }
                 if (a.length == 0)
                 {
                     sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");

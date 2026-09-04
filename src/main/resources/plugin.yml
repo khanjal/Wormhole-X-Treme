@@ -74,6 +74,9 @@ permissions:
   wormhole.beam.admin:
     description: Allow managing public beam destinations, and anyone's places.
     default: op
+  wormhole.beam.admin.teleport:
+    description: Allow beaming yourself or another player straight to a player or raw coordinates, including from console and command blocks.
+    default: op
   wormhole.list:
     description: Allow listing gates via command.
     default: false

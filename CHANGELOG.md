@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Admin beaming: goto and send, from a player, console, or a command block
+
+Two new `beam admin` actions, both gated behind a new `wormhole.beam.admin.teleport` node
+(default op) rather than the existing `wormhole.beam.admin` -- curating the destination
+list and instantly relocating any player are different orders of power, and holding the
+first shouldn't automatically hand out the second.
+
+- `/wormhole beam admin goto <player>` or `<x> <y> <z> [world]` -- beams the sender to a
+  player or raw coordinates. Player-only: there's nowhere for console or a command block to
+  beam *from*.
+- `/wormhole beam admin send <target> <player>` or `<target> <x> <y> <z> [world]` -- beams
+  a named, online player to another player or raw coordinates. The one place this command
+  accepts console or a command block as the sender, since neither is the one being moved;
+  whoever sent it gets told whether it worked, since the target's own "Beaming to X..."
+  messages don't reach them.
+
+Both run the full `BeamAnimation` sequence on the traveller -- same glow, rise, descend and
+fade as any other beam trip, and the same terrain-drift correction described below. Neither
+applies beam's cooldown or cost; this is an administrative move, not the target player
+choosing to travel, the same reasoning `Go.java`'s gate branch already applies to its own
+travel.
+
+Along the way, fixed a real bug this feature would otherwise have landed directly in:
+`Wormhole.java`'s dispatcher refused any `/wormhole` command with more than 4 arguments
+before ever reaching a handler, silently -- which also means `/wormhole beam admin cost
+<name> <amount>` (5 tokens) and `/wormhole ring edit <id> <field> <value>` (also 5) were
+already unreachable through the real command, not just untested. Nothing needed that cap;
+every handler already validates its own argument count and replies with its own usage
+message on a mismatch.
+
 ### Beam and gate arrivals correct for terrain that has drifted since they were set
 
 A beam destination, a place, or a gate's arrival point is only ever as good as the ground

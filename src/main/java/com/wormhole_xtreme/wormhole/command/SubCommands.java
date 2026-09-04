@@ -201,7 +201,8 @@ public final class SubCommands
             SubCommands::completeRing);
 
         // --- Beaming ------------------------------------------------------------
-        register("beam", aliases(), "/wormhole beam <to <name>|list|admin <set|remove|cost>|place <list|set|remove>>",
+        register("beam", aliases(),
+            "/wormhole beam <to <name>|list|admin <set|remove|cost|goto|send>|place <list|set|remove>>",
             new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
             SubCommands::completeBeam);
 
@@ -495,13 +496,22 @@ public final class SubCommands
         }
         if ("admin".equals(noun))
         {
-            if (args.length == 3) return prefixed(args[2], "set", "remove", "cost");
+            if (args.length == 3) return prefixed(args[2], "set", "remove", "cost", "goto", "send");
+            final String action = args[2].toLowerCase();
             if (args.length == 4)
             {
-                final String action = args[2].toLowerCase();
                 if ("remove".equals(action) || "cost".equals(action)) return publicBeamNames(args[3]);
+                // goto's only argument, and send's first (the player being moved), can both
+                // be a player name -- coordinates would not match a name prefix anyway, so
+                // offering names here does no harm on the numeric path.
+                if ("goto".equals(action) || "send".equals(action)) return playerNames(args[3]);
             }
-            if ((args.length == 5) && "cost".equals(args[2].toLowerCase())) return prefixed(args[4], "default");
+            if (args.length == 5)
+            {
+                if ("cost".equals(action)) return prefixed(args[4], "default");
+                // send's destination, one token in: might be a player name.
+                if ("send".equals(action)) return playerNames(args[4]);
+            }
             return none();
         }
         if ("place".equals(noun))
@@ -510,6 +520,30 @@ public final class SubCommands
             return none();
         }
         return none();
+    }
+
+    /**
+     * Online player names matching what has been typed, for {@code beam admin goto}/{@code
+     * send}. A player's own places are still not offered anywhere, same limitation as {@code
+     * to} above, but a target player's name is nobody's secret in the same way.
+     *
+     * @param typed what has been typed so far
+     * @return the matching online player names
+     */
+    private static List<String> playerNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.entity.Player player : org.bukkit.Bukkit.getOnlinePlayers())
+        {
+            final String name = player.getName();
+            if (name.toLowerCase().startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
     }
 
     private static List<String> publicBeamNames(final String typed)
