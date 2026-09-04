@@ -158,7 +158,16 @@ public class WXPermissions
                     case CONFIG :
                         return ComplexPermission.CONFIG.checkPermission(player);
                     case GO :
-                        return ComplexPermission.GO.checkPermission(player);
+                        // Mirrors DIALER below: GO used to skip network privacy entirely,
+                        // reachable only by passing a null stargate, which meant it could
+                        // never know which network to check. Go.java now looks the gate up
+                        // and passes it in before checking permission, specifically so this
+                        // branch has something to read a network name off of.
+                        if ((stargate != null) && (stargate.getGateNetwork() != null))
+                        {
+                            networkName = stargate.getGateNetwork().getNetworkName();
+                        }
+                        return (ComplexPermission.GO.checkPermission(player) && (networkName.equals("Public") || ( !networkName.equals("Public") && ComplexPermission.NETWORK_USE.checkPermission(player, networkName))));
                     case COMPASS :
                         return ComplexPermission.USE_COMPASS.checkPermission(player);
                     case DAMAGE :

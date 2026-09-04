@@ -25,6 +25,14 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * beam destination named that" rather than leak whether a gate by that name exists to someone
  * who cannot use it anyway.
  *
+ * <p>The gate is looked up before the permission check, not after, so
+ * {@link WXPermissions#checkWXPermissions(Player, Stargate, PermissionType)} has the gate to
+ * read a network name off of. {@code GO} used to skip network privacy entirely -- reachable
+ * only through the overload that passes a null stargate, which meant it could never know which
+ * network to check -- so a private network's {@code wormhole.network.use.&lt;name&gt;} node was
+ * bypassed by anyone holding the single blanket {@code wormhole.go} node. It now goes through
+ * the same {@code NETWORK_USE} check {@code Dial} already enforces.
+ *
  * <p>Both branches run the same {@link BeamAnimation} sequence rather than the gate branch
  * teleporting instantly. Before this, a gate reached via {@code go} was a blink -- an admin
  * skipping the walk to a gate got nothing a beamed player did not, and {@code go} felt like
@@ -54,14 +62,11 @@ public class Go implements CommandExecutor
         }
         final String name = args[0].trim().replace("\n", "").replace("\r", "");
 
-        if (WXPermissions.checkWXPermissions(player, PermissionType.GO))
+        final Stargate gate = StargateManager.getStargate(name);
+        if ((gate != null) && WXPermissions.checkWXPermissions(player, gate, PermissionType.GO))
         {
-            final Stargate s = StargateManager.getStargate(name);
-            if (s != null)
-            {
-                BeamAnimation.start(player, s.getGatePlayerTeleportLocation(), s.getGateName());
-                return true;
-            }
+            BeamAnimation.start(player, gate.getGatePlayerTeleportLocation(), gate.getGateName());
+            return true;
         }
 
         if (BeamTravel.travelTo(player, name))
