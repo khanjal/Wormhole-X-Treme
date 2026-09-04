@@ -17,6 +17,14 @@ import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
  * already makes, and for the same reason: applying either at the check would spend it on a
  * trip that had not happened yet and, if the player disconnected mid-sequence, might never
  * happen at all.
+ *
+ * <p>{@code wormhole.beam.admin} bypasses both limits entirely -- neither checked nor
+ * applied. That is a deliberate departure from gate travel, whose own cooldown and cost
+ * apply uniformly regardless of permission with no such bypass; beaming adds one because
+ * staff testing destinations or handling a support request are the common case this is
+ * actually for, and it costs nothing new to wire up -- it reuses the same node that already
+ * gates managing public destinations, rather than inventing a second one that would mean
+ * the same thing.
  */
 public final class BeamTravel
 {
@@ -64,7 +72,10 @@ public final class BeamTravel
                 + "That destination's world is not currently loaded.");
             return true;
         }
-        if (ConfigManager.isBeamUseCooldownEnabled() && BeamCooldown.isActive(player))
+
+        final boolean bypassesLimits = BeamPermissions.has(player, BeamPermissions.ADMIN);
+
+        if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled() && BeamCooldown.isActive(player))
         {
             // Not ConfigManager.MessageStrings.playerUseCooldownRestricted -- its wording
             // names a stargate specifically, which would be wrong here.
@@ -74,14 +85,26 @@ public final class BeamTravel
                 + BeamCooldown.remainingSeconds(player));
             return true;
         }
-        final double useCost = ConfigManager.getBeamEconomyUseCost();
+
+        final double useCost = bypassesLimits ? 0.0 : resolveCost(destination);
         if ((useCost > 0) && !EconomySupport.canAfford(player, useCost))
         {
             // Not ConfigManager.MessageStrings.economyInsufficientFunds -- same reason: its
             // wording says "this gate."
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                + "Insufficient funds to beam.");
+                + "Insufficient funds to beam -- costs " + useCost + " "
+                + EconomySupport.currencyName(useCost) + ".");
             return true;
+        }
+        if (useCost > 0)
+        {
+            // Said up front, before the sequence starts, rather than only discovered once
+            // charged: with per-destination cost now real, a silent auto-charge could be a
+            // genuine surprise. A hard confirm-before-travelling step felt like more
+            // friction than gate travel has ever needed for the same kind of cost, so this
+            // is the middle ground -- seen, not gated on.
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                + "This will cost " + useCost + " " + EconomySupport.currencyName(useCost) + ".");
         }
 
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
@@ -95,11 +118,24 @@ public final class BeamTravel
                 player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
                     + useCost + " " + EconomySupport.currencyName(useCost));
             }
-            if (ConfigManager.isBeamUseCooldownEnabled())
+            if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled())
             {
                 BeamCooldown.start(player);
             }
         });
         return true;
+    }
+
+    /**
+     * What this destination actually costs -- its own override if it has one, otherwise
+     * whatever the global default currently says.
+     *
+     * @param destination the destination being travelled to
+     * @return the cost to use
+     */
+    private static double resolveCost(final BeamDestination destination)
+    {
+        final Double override = destination.getCost();
+        return override != null ? override : ConfigManager.getBeamEconomyUseCost();
     }
 }

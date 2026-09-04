@@ -74,6 +74,36 @@ the envelope clears both on the way out, the same as a frozen player always did 
 active-but-never-frozen flag left standing would have refused that player every beam for
 good, with nothing left running that could ever clear it.
 
+### Public destinations can have their own beam cost, and admins can bypass it
+
+`BEAM_ECONOMY_USE_COST` was one flat number for every destination. `BeamDestination` now
+carries an optional cost override -- `/wormhole beam admin cost <name> <amount>`, or
+`default` to go back to inheriting the global setting -- so spawn can stay free while a
+boss-arena destination costs something, without touching the server-wide default at all.
+Deliberately not offered for private places: a place is only ever reachable by the player
+who made it, so letting them set its cost would just be them choosing what to pay
+themselves.
+
+`BeamDestination`'s cost is a `Double`, not a primitive, specifically so "no override" and
+"explicitly free" stay distinguishable -- null inherits whatever the global default
+currently says, `0.0` is a permanent "this one is free" that a later change to that default
+cannot quietly override. An absent `Cost` field in a stored destination, or a malformed
+one, both fall back to null rather than either being read as 0.0 -- the wrong one of those
+two would make every destination written before this existed, or every place, quietly free
+regardless of configuration.
+
+Since a real cost is now something a player might not expect, the amount is stated up
+front in chat before the sequence starts rather than only discovered once charged. A hard
+confirm-before-travelling step felt like more friction than gate travel has ever needed
+for the same kind of cost, so this is the middle ground: seen, not gated on.
+
+`wormhole.beam.admin` now bypasses both the cooldown and the cost entirely -- neither
+checked nor applied. Gate travel's own cooldown and cost apply uniformly regardless of permission
+with no such bypass, so this is a deliberate departure for beaming specifically: staff
+testing destinations or handling a support request are the common case a bypass is
+actually for, and reusing the node that already gates managing public destinations costs
+nothing new to wire up.
+
 ### `/wormhole go` now respects private network permission, like dial already does
 
 `wormhole.go` was a single blanket node with no way to know which network a target gate

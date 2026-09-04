@@ -27,14 +27,20 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
  * destination."
  *
  * <pre>
- * /wormhole beam to &lt;name&gt;           travel — checks your own places first, then public
- * /wormhole beam list                 list public destinations
- * /wormhole beam admin set &lt;name&gt;    register a public destination at your location
- * /wormhole beam admin remove &lt;name&gt; remove a public destination
- * /wormhole beam place list           list your own places
- * /wormhole beam place set &lt;name&gt;    save your current location as a place
- * /wormhole beam place remove &lt;name&gt; remove one of your own places
+ * /wormhole beam to &lt;name&gt;                travel — checks your own places first, then public
+ * /wormhole beam list                      list public destinations
+ * /wormhole beam admin set &lt;name&gt;         register a public destination at your location
+ * /wormhole beam admin remove &lt;name&gt;      remove a public destination
+ * /wormhole beam admin cost &lt;name&gt; &lt;amt&gt;  set what a public destination costs to use
+ * /wormhole beam admin cost &lt;name&gt; default clear the override; use the configured default
+ * /wormhole beam place list                list your own places
+ * /wormhole beam place set &lt;name&gt;         save your current location as a place
+ * /wormhole beam place remove &lt;name&gt;      remove one of your own places
  * </pre>
+ *
+ * <p>Only public destinations can have their own cost -- there is no {@code place cost}, on
+ * purpose. A place is only ever reachable by the player who made it, so letting them set its
+ * cost would just be them choosing what to pay themselves.
  */
 public class BeamCommand implements SubCommand
 {
@@ -51,7 +57,7 @@ public class BeamCommand implements SubCommand
         if (args.length < 2)
         {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                + "/wormhole beam to <name>, beam list, beam admin set|remove <name>, "
+                + "/wormhole beam to <name>, beam list, beam admin set|remove|cost <name>, "
                 + "beam place [list|set <name>|remove <name>]");
             return true;
         }
@@ -152,8 +158,68 @@ public class BeamCommand implements SubCommand
                 + (removed ? "Removed public beam destination \"" + name + "\"." : "No public beam destination named \"" + name + "\"."));
             return true;
         }
+        if ("cost".equals(action))
+        {
+            return setCost(player, args, name);
+        }
         player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-            + "/wormhole beam admin set|remove <name>");
+            + "/wormhole beam admin set|remove|cost <name>");
+        return true;
+    }
+
+    /**
+     * Sets, or clears, one public destination's own cost override.
+     *
+     * @param player the admin
+     * @param args the full argument array -- the amount is at index 4, one past the name
+     * @param name the destination's name
+     * @return true, always — command handled
+     */
+    private boolean setCost(final Player player, final String[] args, final String name)
+    {
+        if (args.length < 5)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                + "/wormhole beam admin cost <name> <amount|default>");
+            return true;
+        }
+        final BeamDestination existing = BeamManager.getPublicDestination(name);
+        if (existing == null)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                + "No public beam destination named \"" + name + "\".");
+            return true;
+        }
+        final String raw = args[4];
+        final Double newCost;
+        if ("default".equalsIgnoreCase(raw))
+        {
+            newCost = null;
+        }
+        else
+        {
+            try
+            {
+                newCost = Double.valueOf(raw);
+            }
+            catch (final NumberFormatException e)
+            {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "\"" + raw + "\" is not a number, or \"default\".");
+                return true;
+            }
+            if (newCost < 0)
+            {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Cost cannot be negative.");
+                return true;
+            }
+        }
+        BeamManager.setPublicDestination(existing.withCost(newCost));
+        BeamYamlManager.saveAll();
+        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            + (newCost == null
+                ? "\"" + name + "\" now uses the configured default beam cost."
+                : "\"" + name + "\" now costs " + newCost + " to beam to."));
         return true;
     }
 

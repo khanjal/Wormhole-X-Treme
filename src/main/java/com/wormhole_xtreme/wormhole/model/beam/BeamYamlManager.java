@@ -132,7 +132,10 @@ public final class BeamYamlManager
     }
 
     @SuppressWarnings("unchecked")
-    private static BeamDestination readDestination(final String name, final Object value)
+    // Package-private rather than private: a pure Map <-> BeamDestination conversion with no
+    // file I/O in it at all, so BeamYamlManagerTest exercises it directly rather than
+    // round-tripping through a real file.
+    static BeamDestination readDestination(final String name, final Object value)
     {
         if (!(value instanceof Map))
         {
@@ -153,7 +156,12 @@ public final class BeamYamlManager
                 log(Level.WARNING, "Skipping beam entry with no world: " + name);
                 return null;
             }
-            return new BeamDestination(name, world, x, y, z, yaw, pitch);
+            // Absent means null -- inherit the global default -- not zero. A destination
+            // written before this field existed, or a place (which never gets one set on
+            // it at all), both read back exactly the same way they would have before.
+            final Object rawCost = map.get("Cost");
+            final Double cost = rawCost instanceof Number ? ((Number) rawCost).doubleValue() : null;
+            return new BeamDestination(name, world, x, y, z, yaw, pitch, cost);
         }
         catch (final RuntimeException e)
         {
@@ -222,7 +230,7 @@ public final class BeamYamlManager
         }
     }
 
-    private static Map<String, Object> writeDestination(final BeamDestination destination)
+    static Map<String, Object> writeDestination(final BeamDestination destination)
     {
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("World", destination.getWorldName());
@@ -231,6 +239,10 @@ public final class BeamYamlManager
         map.put("Z", destination.getZ());
         map.put("Yaw", destination.getYaw());
         map.put("Pitch", destination.getPitch());
+        if (destination.getCost() != null)
+        {
+            map.put("Cost", destination.getCost());
+        }
         return map;
     }
 

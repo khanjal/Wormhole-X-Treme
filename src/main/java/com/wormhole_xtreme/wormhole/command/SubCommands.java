@@ -201,7 +201,7 @@ public final class SubCommands
             SubCommands::completeRing);
 
         // --- Beaming ------------------------------------------------------------
-        register("beam", aliases(), "/wormhole beam <to <name>|list|admin <set|remove>|place <list|set|remove>>",
+        register("beam", aliases(), "/wormhole beam <to <name>|list|admin <set|remove|cost>|place <list|set|remove>>",
             new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
             SubCommands::completeBeam);
 
@@ -495,8 +495,13 @@ public final class SubCommands
         }
         if ("admin".equals(noun))
         {
-            if (args.length == 3) return prefixed(args[2], "set", "remove");
-            if (args.length == 4 && "remove".equals(args[2].toLowerCase())) return publicBeamNames(args[3]);
+            if (args.length == 3) return prefixed(args[2], "set", "remove", "cost");
+            if (args.length == 4)
+            {
+                final String action = args[2].toLowerCase();
+                if ("remove".equals(action) || "cost".equals(action)) return publicBeamNames(args[3]);
+            }
+            if ((args.length == 5) && "cost".equals(args[2].toLowerCase())) return prefixed(args[4], "default");
             return none();
         }
         if ("place".equals(noun))
