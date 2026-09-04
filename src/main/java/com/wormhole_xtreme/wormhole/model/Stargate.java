@@ -155,8 +155,11 @@ public class Stargate
     }
     /** The gate after shutdown scheduler task id. */
     private int gateAfterShutdownTaskId;
-    /** The gate animation step 3d. */
-    private int gateAnimationStep3D = 1;
+    /** The gate animation step 3d. Idle is 0, matching gateAnimationStep2D right below --
+     *  StargateAnimator's kawoosh trigger and its first woosh-depth index both read this as
+     *  0 meaning "nothing has happened yet", so starting it at 1 meant a gate's first-ever
+     *  opening skipped both the kawoosh sound and the shape's first woosh-depth layer. */
+    private int gateAnimationStep3D = 0;
     /** The gate animation step 2d. */
     private int gateAnimationStep2D = 0;
     /** The animation removing. */

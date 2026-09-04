@@ -90,6 +90,12 @@ class StargateAnimator
                 if (gate.getGateAnimationStep3D() == 1)
                 {
                     gate.setGateAnimationRemoving(false);
+                    // Mirrors the 2D woosh path's own reset a little further down (step2D
+                    // set back to 0 once its own closing finishes) -- without this, the
+                    // counter was left at 1, and every opening after a gate's first one
+                    // skipped the kawoosh sound (only fires at step3D == 0) and started
+                    // one woosh-depth layer late.
+                    gate.setGateAnimationStep3D(0);
                     if (gate.isGateLightsActive() && gate.isGateActive())
                     {
                         gate.fillGateInterior(wooshMaterial);

@@ -229,6 +229,172 @@ for anyone holding `wormhole.go`. Fixed by looking the gate up first and passing
 the permission check, whose `GO` case now consults `NETWORK_USE` the same way `DIALER`
 does.
 
+### A Milky Way material group, and depth made proportional to size
+
+Added a fourth gate palette, `MilkyWay`, alongside `Standard`/`Atlantis`/`Universe`: `DEEPSLATE`
+frame rather than obsidian's glossy black, `IRON_BLOCK` iris, and `SHROOMLIGHT` chevrons for an
+amber glow instead of glowstone's warm yellow -- closer to the film/show's grey naquadah ring
+and orange-lit chevrons than the existing default.
+
+Separately: `Large` shipped with Standard's exact proportions, just wider -- a one-layer ring
+and three woosh steps. That was wrong for a gate its size. It was reworked to a three-layer
+ring matching `Grand`'s (a front bezel, the real portal ring, and a second lit ring) with four
+woosh steps behind it.
+
+That rework surfaced a worse inconsistency: `Grand`, at 22 wide, had *fewer* woosh steps than
+`Large` at 10 wide -- three against four -- despite being more than double the width. Both
+gates were hand-built independently with no shared depth policy, so nothing had ever compared
+them side by side. `Grand`'s woosh recession is widened from 3 steps to 9, tapering its 18-wide
+portal interior down to a point in steps of 2 (18, 16, ..., 2) rather than jumping straight
+from a 10-wide diamond to a 4-wide one. Depth by width across every shipped gate now reads as a
+smooth curve: `Large` (10 wide) 4 steps, `Grand` (22 wide) 9, `Massive` (23 wide) 13 --
+`Massive`'s remains deliberately disproportionate, the one gate meant to feel absurdly deep
+regardless of width.
+
+`BigGateShapeTest` is updated for both: the new taper rule was validated by reproducing the
+two diamonds it replaces (`Grand`'s old `W#2`/`W#3`) from the same generation rule before
+trusting it for the seven new ones, rather than hand-typing over a thousand new grid cells.
+
+### Three big, deep gates: Large, Grand and Massive
+
+Three more shapes, hand-built outside this codebase and brought in after review: `Large`
+(10x10, six layers -- two lit blocks per chevron instead of one, and see the depth rework
+above for why it is six rather than Standard's four), `Grand` (22x22, eleven layers -- its ring
+is three layers deep, a front bezel and the real portal ring both carrying the same lit
+chevrons, then a second lit ring, before the woosh recedes), and `Massive` (23x23, fifteen
+layers -- thirteen woosh steps of recession, by far the deepest gate shipped).
+
+None of the three threw on load, which is exactly the problem: `Stargate3DShape` derives one
+width and height from `Layer#1` and trusts every later row and layer number to match it, so a
+mistake here is silent rather than a parse error. Two real ones turned up under that pressure.
+`Grand` had three rows one cell short of its declared width -- a block dropped while hand-
+copying its ring pattern into a second layer -- which shifts every column after the gap rather
+than failing anything. `Massive` skipped straight from `Layer#11` to `Layer#13`; `Layer#12`
+was never declared, leaving a silent one-block dead gap in the middle of what should have been
+a continuous thirteen-step recession. Both are fixed: the dropped cells were restored by
+mirroring the row they were copied from, and the layers from 12 on were renumbered down to
+close the gap.
+
+Also brought in line with every other shipped gate's convention while reviewing: `Grand` had no
+`:EM`, so minecarts had no entry point -- added, on `Layer#4` rather than the layer directly
+behind `:EP`, since `Grand`'s ring is three layers deep and `Layer#3` still duplicates solid
+frame at that position. `Massive` had no `:N` and only six lit chevron orders instead of seven,
+its top cap sharing `L#1` with an unrelated band instead of getting its own order the way every
+other shipped gate's top light does -- both added. All three also named `PORTAL_MATERIAL` as
+`STATIONARY_WATER`, a pre-1.13 Bukkit name that does not resolve to anything in the versions
+this plugin targets and would have failed `ShippedMaterialsExistTest`; removed in favor of the
+same convention every other current shape file uses -- material comes from the palette a gate
+is actually built in, not pinned in the shape file, since none of these three need a fixed
+material the way `Horizontal`'s glass iris genuinely does.
+
+`BigGateShapeTest` pins the two structural fixes specifically (no gap in the layer array, all
+seven light orders present with none merged into another) so a future edit to any of the three
+has to own up to reintroducing that shape rather than changing behaviour quietly.
+
+### The first even-width gate shape
+
+Every shipped ring -- Standard, Minimal, Horizontal -- is an odd number of blocks wide, which
+gives it one true center column for the markers that only ever appear once: the top light,
+`:N`, `:EP`. `Even.shape` and `EvenSignDial.shape` are the first shapes that are not: an 8x8
+ring with no single center column at all, the middle falling between columns 3 and 4 instead
+of landing on one.
+
+Rather than split those markers across both middle columns, every one of them -- the top
+light, the name sign, the entry point -- is pinned to column 3 throughout the shape, so they
+still read as one straight vertical line even though it is not the geometric center. Standard's
+ring has one row at its widest, giving it one pair of lit corners; an 8-wide ring needs four
+full-width rows to stay symmetric, so only the one nearest that same column-3 line is lit and
+the rest stay plain -- the same way Standard's own off-center full-width rows already do.
+
+`EvenSignDial.shape` pairs with it the way `StandardSignDial.shape` pairs with `Standard.shape`:
+same ring, `:D` and two redstone points (`[RD]`, `[RA]`) in place of the iris switch, and no
+`[RS]` for the same reason `StandardSignDial` ships without one -- the only free cell left is
+adjacent to `[RD]`, and adjacent redstone dust connects, so a pulse would cycle the destination
+and dial it in the same signal.
+
+`EvenGateShapeTest` pins the design decisions that would otherwise only be noticed by eye in
+game: both shapes parse without throwing, the light count and woosh depth match Standard's
+scaled up (7 lights, 3 receding layers), and the redstone/dial-only split lands on the right
+layer. The existing shape-sweeping tests (`RedstoneBlockPlacementTest`,
+`ArrivalIsOutsideThePortalTest`) already cover any newly shipped shape automatically and both
+pass against these two unmodified.
+
+### Validating and reloading a gate shape without restarting the server
+
+`Stargate3DShape` derives one width and height from `Layer#1` and trusts every later row and
+layer number to match it -- a row one cell short of that width does not throw, it just shifts
+every column after the gap; a skipped `Layer#N=` does not throw either, it leaves a `null` in
+the middle of the layer array, a silent dead gap in the woosh recession. Both mistakes actually
+shipped in this project's own gate shapes before being caught by hand. `ShapeFileValidator` is
+those checks (plus duplicate singleton markers, gaps in `:L#`/`:W#` ordering, materials that do
+not resolve, and redstone markers landing on the frame) formalized into one pass over a shape
+file, so the next one is caught by running a command instead.
+
+`/wormhole gate shapes validate <name>` runs that pass without touching anything loaded.
+`/wormhole gate shapes reload [name]` runs it and, if the file is valid, replaces its entry in
+`StargateShapeRegistry` -- or reloads every shape in the directory if no name is given. This
+needed an actual behavior change in the registry: `loadShapes()`'s own "name already exists"
+rule *keeps* the earlier entry, which is exactly backwards for reloading a shape someone is
+actively editing -- every reload after the first would have silently done nothing.
+`StargateShapeRegistry.replaceIfValid` is the decision an edit-and-recheck loop actually needs,
+and a failed reload leaves the last good version in place rather than tearing it down.
+
+Both `/wormhole gate shapes` verbs require `wormhole.config`, the same node the rest of gate
+management already does -- this reaches into the GateShapes directory and changes what every
+future gate on the server can be built from.
+
+### A gate's ambient hum no longer outlives the gate
+
+`tickAmbient()` re-triggers the ambient sound every `getGateSoundAmbientTicks()` (70 ticks by
+default) -- deliberately a little under the sample's own length, so retriggers overlap and the
+hum sounds continuous rather than gasping. That means at almost any instant a gate is open,
+there is already an in-flight instance of a multi-second sample playing. Shutting the gate down
+removed it from `getOpenGates()`, which stopped *new* triggers, but nothing ever stopped the
+one already dispatched -- so the hum kept playing to its own natural end, up to a sample's
+length after the gate had actually closed.
+
+`World` turns out to have no `stopSound` of its own; only `Player` does, so unlike playing --
+which Bukkit broadcasts to whoever is in range on its own -- stopping has to be told to each
+player in the gate's world individually. `Sounds.stopForEveryoneIn` does that, and
+`GateSounds.stopAmbient` (called from `StargateLifecycle.shutdownStargate`, right alongside the
+close sound) is the actual fix.
+
+### A timed-out gate's chevrons could stay lit forever
+
+`StargateLifecycle.timeoutStargate` decided which gate to turn the lights off on by reading
+`activatedStargates`, a map keyed on the *player*, not the gate. If the same player activated a
+second gate before the first one's 30-second activation timer expired, that second activation
+silently overwrote the first gate's entry in the map. When gate one's timer then fired, the
+code resolved "the gate to deactivate" through that map -- landing on gate two instead of the
+one that actually timed out. Gate one's chevrons were never told to turn off and stayed lit
+until someone manually toggled its lever; gate two was switched off early and lost its own
+pending-activation entry, so when *its* timer later fired there was nothing left in the map and
+its own cleanup (iris restore, lights, message) was silently skipped too.
+
+The fix operates on the gate that actually timed out throughout, and clears that gate's own map
+entry by identity (`StargateManager.removeActivatorForStargate`, the same method
+`GateInteractionHandler`'s manual-deactivation path already uses for this exact reason) rather
+than removing whatever the player happens to be mapped to right now.
+
+### The wormhole woosh sound never actually played
+
+The lever's activation sound and each chevron's lock sound both played fine; the kawoosh --
+the sound of the wormhole itself establishing -- never did, on any gate, ever. Both the
+sound and a visual detail traced back to the same field: `gateAnimationStep3D` defaulted to
+1 instead of 0, and `StargateAnimator.animateOpening`'s "closing just finished" branch reset
+`isGateAnimationRemoving` but never reset the step counter back to 0 either. The kawoosh only
+fires when `step2D == 0 && step3D == 0` -- with the counter starting at 1 and never returning
+to 0 after a close, that condition was never true, not on a gate's first-ever opening and not
+on any opening after. The same counter indexes directly into the shape's own woosh-depth
+blocks, so every opening was additionally starting one depth layer short of the shape's first
+one -- quieter than the missing sound, easy to not notice was wrong on its own.
+
+Both are fixed: the field now defaults to 0, matching `gateAnimationStep2D` right beside it,
+and the closing branch resets the counter the same way the 2D woosh path already resets its
+own. `StargateAnimatorTest` pins both directly against the counter's value rather than trying
+to observe a sound call, so a regression here fails a fast, Bukkit-free test instead of only
+being noticed by someone dialing a gate and not hearing anything.
+
 ## 1.3.0 (2026-09-03)
 
 ### Holding forward against a locked gate no longer spams chat

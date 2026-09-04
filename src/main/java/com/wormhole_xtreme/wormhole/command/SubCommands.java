@@ -286,6 +286,16 @@ public final class SubCommands
         {
             return args.length == 3 ? shapeNames(args[2]) : none();
         }
+        if ("shapes".equals(verb))
+        {
+            if (args.length == 3)
+            {
+                return prefixed(args[2], "reload", "validate");
+            }
+            // Completes from names already loaded -- a brand new file not loaded yet has to
+            // be typed out in full, the same limit gate build's own completion already has.
+            return args.length == 4 ? shapeNames(args[3]) : none();
+        }
         if (("regenerate".equals(verb) || "regen".equals(verb)) && (args.length == 3))
         {
             // -all fixes every gate's arrival point in one pass; alongside gate names so
