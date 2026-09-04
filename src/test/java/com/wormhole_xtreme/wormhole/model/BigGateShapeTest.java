@@ -132,6 +132,44 @@ public class BigGateShapeTest
     }
 
     @Test
+    public void allThreeWooshEveryStepWithNoGapOrDuplicateInTheOrder() throws Exception
+    {
+        // The sibling of allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder above --
+        // written checking this specifically because a gate reported not animating at all
+        // (no lighting, no woosh, straight to the open portal) turned out, once checked, to
+        // have nothing wrong with its parsed woosh orders: this passes for all three,
+        // meaning that particular bug report's cause is downstream of shape parsing, in the
+        // live construction or animation code, not here.
+        for (final String name : new String[] { "Large", "Grand", "Massive" })
+        {
+            final Stargate3DShape shape = load(name);
+            final java.util.Set<Integer> orders = new java.util.TreeSet<Integer>();
+            for (final StargateShapeLayer layer : shape.getShapeLayers())
+            {
+                if (layer == null)
+                {
+                    continue;
+                }
+                for (int order = 0; order < layer.getLayerWooshPositions().size(); order++)
+                {
+                    if (layer.getLayerWooshPositions().get(order) != null)
+                    {
+                        orders.add(order);
+                    }
+                }
+            }
+            final java.util.Set<Integer> expected = new java.util.TreeSet<Integer>();
+            for (int i = 1; i <= shape.getShapeWooshDepth(); i++)
+            {
+                expected.add(i);
+            }
+            assertEquals(expected, orders,
+                name + ": expected woosh orders 1.." + shape.getShapeWooshDepth()
+                    + " matching getShapeWooshDepth(), got " + orders);
+        }
+    }
+
+    @Test
     public void grandsRingIsThreeLayersDeepWithNineWooshStepsBehindIt() throws Exception
     {
         // Grand's ring repeats across Layer#1-#3 (a front bezel, the real portal ring, and a
