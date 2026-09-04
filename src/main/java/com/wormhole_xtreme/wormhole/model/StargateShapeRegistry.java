@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
 
 public final class StargateShapeRegistry
@@ -25,6 +26,12 @@ public final class StargateShapeRegistry
     private static final ConcurrentHashMap<String, StargateShape> stargateShapes = new ConcurrentHashMap<String, StargateShape>();
 
     private StargateShapeRegistry() {}
+
+    /** @return the GateShapes directory, the same one {@link #loadShapes()} reads from */
+    private static File shapeDirectory()
+    {
+        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes" + File.separator);
+    }
 
     public static StargateShape getStargateShape(final String name)
     {
@@ -108,7 +115,7 @@ public final class StargateShapeRegistry
 
     public static void loadShapes()
     {
-        final File directory = new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes" + File.separator);
+        final File directory = shapeDirectory();
 
         if (!directory.isDirectory())
         {
@@ -246,6 +253,114 @@ public final class StargateShapeRegistry
 
         rebuildKnownStructureMaterials();
         reportShapesWithoutMaterialGroup();
+    }
+
+    /**
+     * Re-scans the whole GateShapes directory from scratch, so an admin trying out shape
+     * edits does not have to restart the server to see them.
+     *
+     * <p>Unlike a single-file {@link #reloadShapeFile}, this can just clear the registry and
+     * call {@link #loadShapes()} again: {@code loadShapes()}'s "name already exists" skip only
+     * exists to guard against two different files in the directory claiming the same name, and
+     * an empty map can never trigger it, so every file is read fresh with no special-casing
+     * needed here.
+     *
+     * <p>Gates already built keep whichever {@link StargateShape} instance they already hold a
+     * reference to; only shapes resolved after this call see the reloaded versions. That is
+     * fine for the workflow this exists for -- testing a shape before building anything real
+     * with it -- but this is not a live hot-swap for a shape gates already stand on.
+     */
+    public static void reloadAllShapes()
+    {
+        getStargateShapes().clear();
+        loadShapes();
+    }
+
+    /**
+     * Re-reads one shape file from disk and, if it is valid, replaces its entry in the
+     * registry -- or adds it, if this is a file nothing had loaded yet. Reused by
+     * {@code /wormhole gate shapes reload <name>} so a shape author can check one file at a
+     * time without waiting on every other shape to re-parse too.
+     *
+     * <p>The registry is keyed by the shape's declared {@code Name=}, not its filename. If a
+     * reload changes that name, the old key is left exactly as it was -- this does not go
+     * hunting for an entry that might now be stale under a name the file no longer claims.
+     * {@link #reloadAllShapes()} is the way to clear that kind of drift.
+     *
+     * @param fileName
+     *            the file's name within the GateShapes directory, e.g. {@code "Standard.shape"}
+     * @return the validation result; the registry is only changed if it came back valid
+     */
+    public static ShapeFileValidator.Result reloadShapeFile(final String fileName)
+    {
+        final String[] lines = readShapeFileLines(fileName);
+        if (lines == null)
+        {
+            return ShapeFileValidator.Result.unreadable("No such file: " + fileName);
+        }
+        return replaceIfValid(lines);
+    }
+
+    /**
+     * Checks one shape file the same way {@link #reloadShapeFile} would, without changing the
+     * registry either way -- for looking a shape over before deciding it is worth loading, or
+     * checking a fix landed without disturbing whatever is already active under that name.
+     *
+     * @param fileName
+     *            the file's name within the GateShapes directory, e.g. {@code "Standard.shape"}
+     * @return the validation result
+     */
+    public static ShapeFileValidator.Result validateShapeFile(final String fileName)
+    {
+        final String[] lines = readShapeFileLines(fileName);
+        if (lines == null)
+        {
+            return ShapeFileValidator.Result.unreadable("No such file: " + fileName);
+        }
+        return ShapeFileValidator.validate(lines);
+    }
+
+    /** @return the file's lines, or null if it does not exist or could not be read */
+    private static String[] readShapeFileLines(final String fileName)
+    {
+        final File file = new File(shapeDirectory(), fileName);
+        if (!file.isFile())
+        {
+            return null;
+        }
+        final ArrayList<String> fileLines = new ArrayList<String>();
+        try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(file)))
+        {
+            for (String s = ""; (s = bufferedReader.readLine()) != null;)
+            {
+                fileLines.add(s);
+            }
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                "Unable to read " + fileName + ": " + e.getMessage());
+            return null;
+        }
+        return fileLines.toArray(new String[fileLines.size()]);
+    }
+
+    /**
+     * The part of {@link #reloadShapeFile} that has nothing to do with the filesystem:
+     * validate, and only touch the registry if that came back clean. Split out so the
+     * validate-then-replace decision can be tested against plain lines, the same reason
+     * {@link ShapeFileValidator} itself takes lines rather than a file.
+     */
+    static ShapeFileValidator.Result replaceIfValid(final String[] lines)
+    {
+        final ShapeFileValidator.Result result = ShapeFileValidator.validate(lines);
+        if (result.isValid())
+        {
+            final StargateShape shape = StargateShapeFactory.createShapeFromFile(lines);
+            getStargateShapes().put(shape.getShapeName(), shape);
+            rebuildKnownStructureMaterials();
+        }
+        return result;
     }
 
     /**
