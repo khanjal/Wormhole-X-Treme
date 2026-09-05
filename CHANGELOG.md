@@ -4,6 +4,62 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Beaming hid the traveller and left their gear standing in the column
+
+Reported from play-testing: the beam swallows you, but not the sword in your hand.
+
+The sequence used `PotionEffectType.INVISIBILITY`, which is the obvious tool and the wrong
+one. Invisibility hides a player's *body*. Held items, worn armour, a shield, an elytra all
+keep rendering exactly where they were.
+
+So a traveller carrying anything never dissolved into the column at all -- a person-shaped set
+of equipment stayed standing in it for the whole rise, which is the one read the effect exists
+to sell.
+
+`Player#hideEntity(Plugin, Entity)` is the API that actually does what invisibility looked like
+it did: the entity stops being sent to that client, so equipment, nameplate and hitbox go with
+it. It is on plain Spigot rather than only Paper, across the whole 1.20-1.21.10 range, and
+unlike the one-argument `hidePlayer(Player)` it is not deprecated.
+
+Hiding is per-observer, so this walks the online players and skips the traveller themselves,
+who still needs to see where they are going. That is the same observer-relative property the
+sequence already leaned on -- just through an API that covers what a player is carrying.
+
+One thing fell out of the swap. `INVISIBILITY` was on the list of effects the arrival tick
+strips, and that list does not check which of them the sequence actually applied. A beam was
+therefore cancelling an invisibility potion the traveller had drunk themselves. It is off the
+list now.
+
+### Beaming takes your mount with you
+
+Beaming off a horse left the horse behind, and said nothing about it.
+
+Less a missing feature than an unnoticed contract. Bukkit documents
+`Entity#teleport(Location)` as "if this entity is riding a vehicle, it will be dismounted prior
+to teleportation" -- unchanged across every version this plugin supports. The sequence made one
+`player.teleport(destination)` call, so that dismount happened silently, every time.
+
+Gates already solved this and beaming borrows the answer: move the mount, then put the rider
+back on it. The retry loop that makes re-seating stick -- the client does not reliably accept
+the first attempt -- moved out of `WormholeXTremePlayerListener` into a shared
+`PassengerReattach` now that two subsystems need it, rather than being written a second time.
+
+Paper's `TeleportFlag.EntityState.RETAIN_VEHICLE` would be the one-call version of this. It is
+not in the plain Spigot API at any version in the supported range, and this plugin ships one
+jar for Spigot, Paper and Purpur alike.
+
+Writing it turned up a second problem the report had not mentioned: a mounted traveller was
+never actually frozen. The freeze locks a player by reverting `PlayerMoveEvent`, and a rider
+does not raise one -- their position comes from the vehicle. A "frozen" player could steer a
+horse clean out of the departure column during the rise, which is eighteen ticks by default and
+a long way at a gallop.
+
+The traveller is dismounted at the vanish tick now, which puts their movement back through the
+event the freeze can revert, and the mount's AI is switched off so it does not wander off on
+its own either. Neither is visible to anyone -- both are already hidden by that point -- and
+both are undone at every ending, including the one where the traveller logs out mid-beam. A
+mount left with its AI off has nothing still running that would ever turn it back on.
+
 ### `HorizontalSignDial` could not be built at all
 
 Found reading the shape files while working out whether the DHD could become a type a gate
