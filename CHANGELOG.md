@@ -4,6 +4,65 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### One redstone circuit is one trigger, not several
+
+Reported from in game: running dust past the button and up to the marker activated the gate
+twice in rapid succession.
+
+One circuit is not one event. Every dust block along a run fires its own `BlockRedstoneEvent`
+as the signal propagates, a tick or so apart, and since the change above a gate answers to any
+component touching its DHD as well as to its `[RD]` cell. So a single run legitimately powers
+several blocks the gate is listening to, and each rising edge read as a separate press. The
+synchronous "already open" guard does not catch it, because the events arrive in different
+ticks and each one is a genuine new edge.
+
+This was reachable before, in principle, with dust touching both the DHD and the marker.
+Widening what counts as a trigger is what made it the normal case rather than a corner one.
+
+A gate now ignores further triggers for 250ms after acting on one. Five ticks: longer than a
+signal takes to cross the few blocks around a DHD, far shorter than anyone can deliberately
+pulse a gate twice.
+
+### A signal on an open gate extends it now, up to the existing maximum
+
+Asked for while testing the above, and it is the third answer this has had. Originally a
+trigger on an open gate closed it, which made repeated triggers useless -- a second cart shut
+the wormhole the first one had opened. Then it did nothing at all, because re-dialling restarts
+the shutdown timer and a cart every few seconds would have held the gate open for ever.
+
+Doing nothing was safe by construction. Extending is safe for a different reason:
+`max_open_seconds` already exists, already defaults to 300, and is already measured from when
+the wormhole *first* opened rather than from the last dial. Nothing in the extension touches
+that timestamp, so a signal can buy more time and cannot buy unlimited time -- once the maximum
+is spent the gate closes on the next trigger regardless of how often it is poked.
+
+It is deliberately not a re-dial: no chunk reload, no animation, no target lookup, no rebuilt
+connection. It moves the shutdown task and nothing else. `redstone-extend-open-time: false`
+restores a trigger on an open gate doing nothing.
+
+The clamp that reconciles the shutdown timeout against the maximum was inline in the dial path
+and is now `shutdownDelayTicks`, shared by both callers and tested directly. Writing those
+tests turned up an edge the inline version had right by accident and would have been easy to
+lose: integer division turns a few milliseconds of remaining maximum into zero ticks, and zero
+means "no timer at all" everywhere else in this code -- so a gate a hair from its limit would
+have been granted an indefinite stay by rounding.
+
+### The sign colours were too loud
+
+Reported as neon green with a white border on the selected gate, and light blue with white
+around the gate name.
+
+The white border is the glow. Glowing text draws a bright outline around every character, and
+on top of an already-coloured line that reads as a halo -- it makes a sign carry further and
+harder to actually read, which is the opposite of the point. It is off by default now, and the
+colours carry the emphasis on their own.
+
+The colours themselves came down a step as well: `DARK_AQUA` for a gate's name, `DARK_GREEN`
+for the selected destination, and the two greys swapped so the dimmed lines sit further back.
+All six remain config keys, so a server that liked the brighter set can put it back without a
+new build -- and `sign-glowing-text: true` restores the glow for anyone whose gate room is dark
+enough to want it.
+
 ### The dial sign is made to match the gate it belongs to
 
 Following directly from the correction above. The dial sign is the one sign this plugin does

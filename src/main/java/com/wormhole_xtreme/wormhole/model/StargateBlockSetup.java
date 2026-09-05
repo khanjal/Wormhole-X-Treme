@@ -169,19 +169,19 @@ class StargateBlockSetup
             // Colour codes do not count toward a sign's visible width, so the owner is still
             // truncated on the text alone -- painting it cannot push it off the sign.
             front.setLine(0, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.AQUA),
+                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
                 "-" + gate.getGateName() + "-"));
             if (gate.getGateNetwork() != null)
             {
                 front.setLine(1, SignStyle.paint(
-                    SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                    SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.DARK_GRAY),
                     "N:" + gate.getGateNetwork().getNetworkName()));
             }
             if (gate.getGateOwner() != null)
             {
                 final String ownerDisplay = gate.getGateOwnerName();
                 front.setLine(2, SignStyle.paint(
-                    SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColor.DARK_GRAY),
+                    SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColor.GRAY),
                     "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
                         ? ownerDisplay.substring(0, 13) : ownerDisplay)));
             }

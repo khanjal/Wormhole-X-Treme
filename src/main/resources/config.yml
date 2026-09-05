@@ -14,6 +14,12 @@ permissions-support-disable: false
 # disable the automatic fallback.
 permissions-auto-fallback: true
 
+# Whether a redstone signal on a gate that is already open pushes its shutdown back, instead
+# of doing nothing. Never past max_open_seconds, which is measured from when the wormhole
+# first opened and is not affected by this -- so a cart crossing a detector rail can hold a
+# gate open while traffic is flowing, but cannot hold it open indefinitely.
+redstone-extend-open-time: true
+
 # Sign styling. The plugin writes two signs: the gate's name sign (the `:N` block on the
 # frame) and the dial sign a player puts on the `[D]` block. These control how it writes
 # them. Colours are Bukkit colour names -- AQUA, GRAY, DARK_GRAY, GREEN, GOLD and so on.
@@ -29,25 +35,27 @@ permissions-auto-fallback: true
 # up exactly as they placed it.
 sign-dial-match-material: true
 
-# Whether the plugin's own sign text glows. Gate rooms are usually dark and underground,
-# and glowing text reads from further away. Set false for the plain vanilla look.
-sign-glowing-text: true
+# Whether the plugin's own sign text glows. Glow draws a bright outline around every
+# character, which on top of an already-coloured line reads as a halo and is harder to read,
+# not easier -- so this is off and the colours below carry the emphasis instead. Set true if
+# you want signs legible from further away in a dark gate room and can live with that.
+sign-glowing-text: false
 
 # A gate's own name, on both its name sign and its dial sign.
-sign-color-gate-name: AQUA
+sign-color-gate-name: DARK_AQUA
 
 # The network line on a gate's name sign.
-sign-color-network: GRAY
+sign-color-network: DARK_GRAY
 
 # The owner line on a gate's name sign.
-sign-color-owner: DARK_GRAY
+sign-color-owner: GRAY
 
 # The destination currently selected on a dial sign. Worth keeping clearly distinct from
 # the neighbour colour below -- telling those apart at a glance is what the dial sign is for.
-sign-color-selected: GREEN
+sign-color-selected: DARK_GREEN
 
 # The destinations either side of the selected one on a dial sign.
-sign-color-neighbour: DARK_GRAY
+sign-color-neighbour: GRAY
 
 # Material groups define the palettes a stargate can be built from. The first group
 # listed is the default. A gate's palette is identified by the material of its frame,

@@ -140,6 +140,7 @@ public class ConfigManager
         ECONOMY_USE_COST,
         /** Cost in currency units charged to build a gate. 0 = free. */
         ECONOMY_BUILD_COST,
+        REDSTONE_EXTEND_OPEN_TIME,
         SIGN_GLOWING_TEXT,
         SIGN_DIAL_MATCH_MATERIAL,
         SIGN_COLOR_GATE_NAME,
@@ -1173,6 +1174,17 @@ public class ConfigManager
     public static boolean isSignGlowingText()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_GLOWING_TEXT);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Whether a redstone signal on an already-open gate pushes its shutdown back.
+     *
+     * @return true if a trigger should extend an open wormhole
+     */
+    public static boolean isRedstoneExtendOpenTime()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME);
         return (s == null) || s.getBooleanValue();
     }
 

@@ -644,12 +644,16 @@ Use a detector rail, not a powered rail. A powered rail is already energised by 
 switching it, so a cart passing over it changes nothing and produces no event. A detector
 rail emits a pulse only while a cart is on it, which is exactly the trigger you want.
 
-A trigger on an already-open gate does nothing at all — it neither closes the gate nor
-re-dials it. Closing was the old behaviour and made repeated triggers useless: a second cart
-shut the wormhole the first one had opened. Re-dialling is not the answer either, because
-dialling restarts the shutdown timer, so a cart every few seconds would hold the gate open
-and lock everyone else out. Leaving it alone means the gate always closes on its own timer,
-however often it is triggered.
+A trigger on an already-open gate pushes its shutdown back, rather than closing it or
+re-dialling it. Closing was the original behaviour and made repeated triggers useless: a
+second cart shut the wormhole the first one had opened. Re-dialling is not the answer either
+— it rebuilds the connection from scratch for no reason.
+
+Extending is bounded by `max_open_seconds`, which is measured from when the wormhole *first*
+opened and is not affected by any of this. So a cart every few seconds keeps the gate open
+while traffic is actually flowing, and still cannot hold it open indefinitely: once the
+maximum is reached the gate closes on the next trigger regardless. Set
+`redstone-extend-open-time: false` to go back to a trigger on an open gate doing nothing.
 
 A trigger on a gate that is lit but never dialled still deactivates it, which is the only
 way to clear a gate somebody activated and walked away from.

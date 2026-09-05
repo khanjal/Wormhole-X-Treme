@@ -115,9 +115,9 @@ class StargateDialManager
         });
 
         final SignSide face = gate.getGateDialSign().getSide(Side.FRONT);
-        final ChatColor nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.AQUA);
-        final ChatColor selectedColor = SignStyle.resolveColor(ConfigManager.getSignColorSelected(), ChatColor.GREEN);
-        final ChatColor neighbourColor = SignStyle.resolveColor(ConfigManager.getSignColorNeighbour(), ChatColor.DARK_GRAY);
+        final ChatColor nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA);
+        final ChatColor selectedColor = SignStyle.resolveColor(ConfigManager.getSignColorSelected(), ChatColor.DARK_GREEN);
+        final ChatColor neighbourColor = SignStyle.resolveColor(ConfigManager.getSignColorNeighbour(), ChatColor.GRAY);
         face.setGlowingText(ConfigManager.isSignGlowingText());
 
         // Line 0: always this gate's name.
@@ -210,10 +210,10 @@ class StargateDialManager
             final SignSide idle = gate.getGateDialSign().getSide(Side.FRONT);
             idle.setGlowingText(ConfigManager.isSignGlowingText());
             idle.setLine(0, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.AQUA),
+                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
                 gate.getGateName()));
             idle.setLine(1, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.DARK_GRAY),
                 gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public"));
             idle.setLine(2, "");
             idle.setLine(3, "");
@@ -303,6 +303,93 @@ class StargateDialManager
      *
      * @param gate the gate to activate
      */
+    /**
+     * Works out how long a wormhole's shutdown should be scheduled for.
+     *
+     * <p>Two limits meet here. The shutdown timeout says how long a gate stays open after it
+     * was last dialled; the maximum open time says how long it may stay open at all, measured
+     * from when it first opened. The second always wins, because it is the one stopping a
+     * gate that is re-triggered on a schedule from staying open for ever and locking everyone
+     * else out.
+     *
+     * @param timeoutTicks
+     *            the configured shutdown timeout in ticks, 0 for "stay open indefinitely"
+     * @param remainingMillis
+     *            what is left of the maximum open time, or {@code Long.MAX_VALUE} for no cap
+     * @return ticks to wait, 0 to leave the gate open with no timer, or
+     *         {@link #CLOSE_NOW} if the maximum open time is already spent
+     */
+    static int shutdownDelayTicks(final int timeoutTicks, final long remainingMillis)
+    {
+        if (remainingMillis == Long.MAX_VALUE)
+        {
+            return timeoutTicks;
+        }
+        if (remainingMillis <= 0L)
+        {
+            return CLOSE_NOW;
+        }
+        // At least one tick: a cap with a few milliseconds left should still close on a timer
+        // rather than rounding down to "no timer at all" and staying open.
+        final int remainingTicks = (int) Math.max(1L, remainingMillis / 50L);
+        return (timeoutTicks > 0) ? Math.min(timeoutTicks, remainingTicks) : remainingTicks;
+    }
+
+    /** {@link #shutdownDelayTicks} says the maximum open time is spent and the gate must close. */
+    static final int CLOSE_NOW = -1;
+
+    /**
+     * Pushes an open wormhole's shutdown back, without letting it outlive its maximum.
+     *
+     * <p>A redstone signal landing on a gate that is already open used to do nothing at all,
+     * deliberately: re-dialling restarts the shutdown timer, so a cart crossing a detector
+     * rail every few seconds would have held the gate open indefinitely. That reasoning was
+     * sound when nothing capped the total. The maximum open time caps it now, measured from
+     * when the wormhole first opened and unaffected by anything here -- so a signal can buy
+     * more time without being able to buy unlimited time.
+     *
+     * <p>Deliberately not a re-dial. Nothing about the connection changes: no chunk reload, no
+     * animation, no target lookup, and the gate's own open timestamp is left alone. This only
+     * moves the shutdown task.
+     *
+     * @param gate
+     *            the open gate to extend
+     * @return true if the shutdown was pushed back, false if it was not extended at all
+     */
+    static boolean extendOpenTime(final Stargate gate)
+    {
+        if ((gate == null) || !gate.isGateActive())
+        {
+            return false;
+        }
+        final int delay = shutdownDelayTicks(ConfigManager.getTimeoutShutdown() * 20,
+            gate.remainingOpenMillis(ConfigManager.getMaxOpenSeconds()));
+
+        if (delay == CLOSE_NOW)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Wormhole \"" + gate.getGateName() + "\" is at its maximum open time; not extending.");
+            return false;
+        }
+        if (delay == 0)
+        {
+            // No shutdown timeout configured, so the gate was never going to close on its own
+            // and there is nothing to push back.
+            return false;
+        }
+
+        if (gate.getGateShutdownTaskId() > 0)
+        {
+            WormholeXTreme.getScheduler().cancelTask(gate.getGateShutdownTaskId());
+        }
+        gate.setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
+            WormholeXTreme.getThisPlugin(),
+            new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), delay));
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            "Wormhole \"" + gate.getGateName() + "\" open time extended by " + delay + " ticks.");
+        return true;
+    }
+
     static void dialStargate(final Stargate gate)
     {
         WorldUtils.scheduleChunkLoad(gate.getGatePlayerTeleportLocation().getBlock());
@@ -318,23 +405,17 @@ class StargateDialManager
         // Measured from when the wormhole first opened, so re-dialling does not restart it.
         gate.markGateOpened();
 
-        int timeout = ConfigManager.getTimeoutShutdown() * 20;
-
-        // Never let a re-dial push the shutdown past the maximum open time. Dialling
-        // restarts the shutdown timer, so without this clamp anything re-triggering a gate
-        // on a schedule would hold it open forever.
-        final long remainingMillis = gate.remainingOpenMillis(ConfigManager.getMaxOpenSeconds());
-        if (remainingMillis != Long.MAX_VALUE)
+        // Never let a re-dial push the shutdown past the maximum open time. Dialling restarts
+        // the shutdown timer, so without this clamp anything re-triggering a gate on a
+        // schedule would hold it open forever.
+        final int timeout = shutdownDelayTicks(ConfigManager.getTimeoutShutdown() * 20,
+            gate.remainingOpenMillis(ConfigManager.getMaxOpenSeconds()));
+        if (timeout == CLOSE_NOW)
         {
-            if (remainingMillis <= 0L)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                    "Wormhole \"" + gate.getGateName() + "\" reached its maximum open time; closing.");
-                gate.shutdownStargate(true);
-                return;
-            }
-            final int remainingTicks = (int) Math.max(1L, remainingMillis / 50L);
-            timeout = (timeout > 0) ? Math.min(timeout, remainingTicks) : remainingTicks;
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Wormhole \"" + gate.getGateName() + "\" reached its maximum open time; closing.");
+            gate.shutdownStargate(true);
+            return;
         }
 
         if (timeout > 0)

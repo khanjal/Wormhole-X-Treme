@@ -807,6 +807,20 @@ public class Stargate
     }
 
     /**
+     * Pushes this wormhole's shutdown back, without letting it outlive its maximum open time.
+     *
+     * <p>Not a re-dial: nothing about the connection is rebuilt and the gate's own open
+     * timestamp is untouched, so {@code max_open_seconds} still measures from when the
+     * wormhole first opened.
+     *
+     * @return true if the shutdown was pushed back
+     */
+    public boolean extendOpenTime()
+    {
+        return StargateDialManager.extendOpenTime(this);
+    }
+
+    /**
      * Opens or clears the portal interior. The server-side blocks stay AIR;
      * {@code material} is the appearance shown to nearby clients.
      *
