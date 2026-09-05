@@ -740,6 +740,8 @@ public class Stargate
         {
             setupGateSign(true);
         }
+        // The dial sign is the player's, so it is matched to the gate rather than placed.
+        matchDialSignMaterial();
         // 2. Set up Iris stuff
         setIrisDeactivationCode(idc);
 
@@ -2031,6 +2033,17 @@ public class Stargate
     public void setupRedstone(final boolean create)
     {
         StargateBlockSetup.setupRedstone(this, create);
+    }
+
+    /**
+     * Converts this gate's dial sign to its own sign material, keeping text and facing.
+     *
+     * <p>Does nothing when the sign already matches, when the server has turned this off, or
+     * when the gate has no dial sign at all.
+     */
+    public void matchDialSignMaterial()
+    {
+        StargateBlockSetup.matchDialSignMaterial(this);
     }
 
     /**

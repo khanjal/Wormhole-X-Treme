@@ -366,7 +366,7 @@ that material out of palettes entirely; leave it unset unless the geometry needs
 | `PORTAL_MATERIAL=` | `WATER` | The block type filling the open portal (`[P]` blocks when active). |
 | `IRIS_MATERIAL=` | `STONE` | The block type filling the portal when the iris is closed. |
 | `ACTIVE_MATERIAL=` | `GLOWSTONE` | The block type used for light blocks (`:L` markers) when the gate is active. |
-| `SIGN_MATERIAL=` | `OAK_WALL_SIGN` | The wall-sign type used for the gate's **name sign**. Any `*_WALL_SIGN` material is valid (e.g. `CRIMSON_WALL_SIGN`, `WARPED_WALL_SIGN`). It does **not** apply to the dial sign — that one is placed by a player on the `[D]` block, and the plugin accepts whatever wall sign it finds there. |
+| `SIGN_MATERIAL=` | `OAK_WALL_SIGN` | The wall-sign type used for the gate's **name sign**. Any `*_WALL_SIGN` material is valid (e.g. `CRIMSON_WALL_SIGN`, `WARPED_WALL_SIGN`). The dial sign is placed by a player on the `[D]` block, and the plugin accepts whatever wall sign it finds there — but converts it to match this material when the gate is completed or regenerated, keeping its text and facing. Set `sign-dial-match-material: false` in config.yml to leave a player's own sign alone. |
 
 Example — a Nether-themed gate using crimson materials:
 

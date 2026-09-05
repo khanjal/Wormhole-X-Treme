@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The dial sign is made to match the gate it belongs to
+
+Following directly from the correction above. The dial sign is the one sign this plugin does
+not place -- a player puts it on the `[D]` block in whatever wood they happened to be holding
+-- so a themed gate ended up with an oak dial sign hanging on a crimson frame, right beside a
+crimson name sign the plugin had placed itself.
+
+It is now converted to the gate's own sign material when the gate is completed or regenerated.
+`sign-dial-match-material: false` leaves a player's sign exactly as they placed it, for a
+server that would rather the plugin did not replace a block someone else put down.
+
+Changing a block's type wipes a sign's contents, so everything worth keeping is read first and
+written back after: the text on both faces, whether each face glows, and the way the sign is
+facing. The gate's cached sign state is replaced too -- it refers to the block as it was, and
+every later write to the dial sign goes through it, so leaving the old one in place would have
+aimed every destination update at a block that no longer existed.
+
+Waxed state is deliberately neither read nor preserved, and this is the version boundary worth
+recording rather than the feature. `Sign.isWaxed` and `setWaxed` do not exist before **1.20.4**
+-- confirmed by disassembling the actual class in each jar, absent at 1.20 and present from
+1.20.4 on. This project compiles against 1.20.4, so calling either would have compiled cleanly
+and thrown `NoSuchMethodError` on a 1.20 or 1.20.1 server, invisible until one ran it. It costs
+nothing to skip: the plugin rewrites the dial sign every time anyone clicks it, so a waxed dial
+sign could never have worked as a dial sign in the first place.
+
+Everything else the conversion touches was checked across the same range and is identical at
+both ends: `getSide`, `Side.BACK`, `SignSide.setGlowingText`, and `Directional`.
+
 ### Signs are coloured now, and say which destination is selected
 
 Both signs the plugin writes were plain white text. On a gate's name sign that was merely

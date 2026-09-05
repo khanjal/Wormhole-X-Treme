@@ -218,6 +218,136 @@ class StargateBlockSetup
         }
     }
 
+
+    /**
+     * Decides whether a dial sign should be converted to the gate's sign material.
+     *
+     * <p>Pulled out as a plain function of three values so the rule can be pinned without a
+     * world: the block work either side of it is unconditional once this says yes.
+     *
+     * @param have
+     *            the material of the sign the player actually placed
+     * @param want
+     *            the gate's own sign material
+     * @param enabled
+     *            whether the server has asked for this at all
+     * @return true if the block should be converted
+     */
+    static boolean shouldMatchDialSignMaterial(final Material have, final Material want, final boolean enabled)
+    {
+        if (!enabled || (want == null) || (have == want))
+        {
+            return false;
+        }
+        // Both ends must be wall signs. A gate whose configured sign material is somehow not
+        // one would otherwise turn a working dial sign into a block that cannot hold text,
+        // which breaks dialling rather than restyling it.
+        return MaterialUtils.isWallSign(have) && MaterialUtils.isWallSign(want);
+    }
+
+    /**
+     * Converts a player-placed dial sign to the gate's own sign material.
+     *
+     * <p>The dial sign is the one sign the plugin does not place: a player puts it on the
+     * {@code [D]} block themselves, in whatever wood they happened to hold. On a themed gate
+     * that left an oak dial sign on a crimson frame. This makes it match.
+     *
+     * <p>Changing a block's type wipes a sign's contents, so everything worth keeping is read
+     * first and written back after: the text on both faces, whether each face glows, and the
+     * way the sign is facing. The gate's cached sign state is replaced too -- it refers to the
+     * block as it was, and every later write to the dial sign goes through it.
+     *
+     * <p>Waxed state is deliberately neither read nor preserved. {@code Sign.isWaxed} does not
+     * exist before 1.20.4, so calling it would compile against this project's target and throw
+     * on a 1.20 server. It costs nothing here in practice: the plugin rewrites the dial sign
+     * every time someone clicks it, so a waxed dial sign could never have worked as one.
+     *
+     * @param gate
+     *            the gate whose dial sign should be matched
+     */
+    static void matchDialSignMaterial(final Stargate gate)
+    {
+        final Block signBlock = gate.getGateDialSignBlock();
+        if (signBlock == null)
+        {
+            return;
+        }
+        final Material want = gate.getEffectiveSignMaterial();
+        if (!shouldMatchDialSignMaterial(signBlock.getType(), want,
+            ConfigManager.isSignDialMatchMaterial()))
+        {
+            return;
+        }
+        try
+        {
+            final org.bukkit.block.BlockState before = signBlock.getState();
+            if (!(before instanceof Sign))
+            {
+                return;
+            }
+            final Sign old = (Sign) before;
+            final String[] frontLines = old.getSide(Side.FRONT).getLines();
+            final String[] backLines = old.getSide(Side.BACK).getLines();
+            final boolean frontGlows = old.getSide(Side.FRONT).isGlowingText();
+            final boolean backGlows = old.getSide(Side.BACK).isGlowingText();
+
+            BlockFace facing = null;
+            final BlockData oldData = signBlock.getBlockData();
+            if (oldData instanceof Directional)
+            {
+                facing = ((Directional) oldData).getFacing();
+            }
+
+            signBlock.setType(want, false);
+
+            if (facing != null)
+            {
+                final BlockData newData = signBlock.getBlockData();
+                if (newData instanceof Directional)
+                {
+                    ((Directional) newData).setFacing(facing);
+                    signBlock.setBlockData(newData, false);
+                }
+            }
+
+            final org.bukkit.block.BlockState after = signBlock.getState();
+            if (after instanceof Sign)
+            {
+                final Sign fresh = (Sign) after;
+                restoreSignSide(fresh.getSide(Side.FRONT), frontLines, frontGlows);
+                restoreSignSide(fresh.getSide(Side.BACK), backLines, backGlows);
+                fresh.update(true, false);
+                // The gate holds this state and writes destinations through it, so leaving
+                // the old one in place would send every later write at a block that is gone.
+                gate.setGateDialSign(fresh);
+            }
+        }
+        catch (final Throwable t)
+        {
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, false,
+                    "Could not match dial sign material on gate " + gate.getGateName() + ": " + t.getMessage());
+            }
+        }
+    }
+
+    /** Writes saved lines and glow back onto one face of a replaced sign. */
+    private static void restoreSignSide(final org.bukkit.block.sign.SignSide side,
+                                        final String[] lines,
+                                        final boolean glowing)
+    {
+        if (lines != null)
+        {
+            for (int i = 0; i < lines.length && i < 4; i++)
+            {
+                side.setLine(i, lines[i] != null ? lines[i] : "");
+            }
+        }
+        side.setGlowingText(glowing);
+    }
+
     // -----------------------------------------------------------------------
     // Iris lever
     // -----------------------------------------------------------------------

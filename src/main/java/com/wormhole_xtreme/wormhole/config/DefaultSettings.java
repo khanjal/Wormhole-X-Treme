@@ -65,6 +65,7 @@ class DefaultSettings
         new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. Set to 0.0 to disable use cost.", "WormholeXTreme"),
         new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme"),
         new Setting(ConfigKeys.SIGN_GLOWING_TEXT, true, "Whether the plugin's own sign text glows. Gate rooms are usually dark, and glowing text reads from further away. Set false for the plain vanilla look.", "WormholeXTreme"),
+        new Setting(ConfigKeys.SIGN_DIAL_MATCH_MATERIAL, true, "Whether a player-placed dial sign is converted to the gate's own sign material, so a themed gate does not end up with an oak dial sign on a crimson frame. The sign's text and facing are kept. Set false to leave whatever sign the player put up exactly as they placed it.", "WormholeXTreme"),
         new Setting(ConfigKeys.SIGN_COLOR_GATE_NAME, "AQUA", "Colour of a gate's own name, on both its name sign and its dial sign. Any Bukkit colour name; anything unrecognised falls back to the default.", "WormholeXTreme"),
         new Setting(ConfigKeys.SIGN_COLOR_NETWORK, "GRAY", "Colour of the network line on a gate's name sign.", "WormholeXTreme"),
         new Setting(ConfigKeys.SIGN_COLOR_OWNER, "DARK_GRAY", "Colour of the owner line on a gate's name sign.", "WormholeXTreme"),

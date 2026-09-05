@@ -23,6 +23,12 @@ permissions-auto-fallback: true
 # The selected destination on a dial sign is also wrapped in >> << markers, so it still
 # reads as the chosen one with colours turned off or for a colourblind player.
 
+# Whether a player-placed dial sign is converted to the gate's own sign material, so a
+# themed gate does not end up with an oak dial sign on a crimson frame. The sign's text and
+# which way it faces are kept across the swap. Set false to leave whatever sign a player put
+# up exactly as they placed it.
+sign-dial-match-material: true
+
 # Whether the plugin's own sign text glows. Gate rooms are usually dark and underground,
 # and glowing text reads from further away. Set false for the plain vanilla look.
 sign-glowing-text: true

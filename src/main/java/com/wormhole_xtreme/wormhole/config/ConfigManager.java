@@ -141,6 +141,7 @@ public class ConfigManager
         /** Cost in currency units charged to build a gate. 0 = free. */
         ECONOMY_BUILD_COST,
         SIGN_GLOWING_TEXT,
+        SIGN_DIAL_MATCH_MATERIAL,
         SIGN_COLOR_GATE_NAME,
         SIGN_COLOR_NETWORK,
         SIGN_COLOR_OWNER,
@@ -1172,6 +1173,17 @@ public class ConfigManager
     public static boolean isSignGlowingText()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_GLOWING_TEXT);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Whether a player-placed dial sign is converted to the gate's own sign material.
+     *
+     * @return true if the dial sign should be made to match the gate's palette
+     */
+    public static boolean isSignDialMatchMaterial()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_DIAL_MATCH_MATERIAL);
         return (s == null) || s.getBooleanValue();
     }
 
