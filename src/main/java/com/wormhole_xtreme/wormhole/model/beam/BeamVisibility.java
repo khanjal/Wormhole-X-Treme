@@ -165,8 +165,11 @@ final class BeamVisibility
     private static void change(final Player observer, final Entity subject, final Plugin plugin,
         final boolean hide)
     {
-        if (subject == null)
+        if ((subject == null) || observer.equals(subject))
         {
+            // Nobody is ever hidden from themselves. The traveller is already skipped by the
+            // caller, but a second player riding the same mount arrives here through
+            // alsoHide, and hiding a client's own player from itself is undefined at best.
             return;
         }
         try

@@ -97,6 +97,46 @@ public class BeamMountTest
     }
 
     @Test
+    public void aMountSomebodyElseIsAlsoSittingOnIsLeftAlone()
+    {
+        // Boats and camels seat two. Carrying a shared mount re-seats its whole passenger
+        // stack at the destination, so the second rider would be teleported wherever the
+        // traveller was going -- past the permission check, the cooldown and the cost that
+        // beaming them would have charged, and without having asked to go anywhere at all.
+        //
+        // Treated as no mount rather than as a mount left behind, so nothing is held, hidden
+        // or moved: the co-rider keeps a boat that behaves normally.
+        final Player traveller = mock(Player.class);
+        final Player coRider = mock(Player.class);
+        final Horse shared = someHorse(true, Arrays.<Entity>asList(traveller, coRider));
+        when(traveller.getVehicle()).thenReturn((Entity) shared);
+
+        final BeamMount mount = BeamMount.capture(traveller);
+
+        assertTrue(mount.stack().isEmpty(), "a mount shared with another player must not be carried");
+        mount.hold(traveller);
+        verify(traveller, never()).leaveVehicle();
+        verify(shared, never()).setAI(false);
+    }
+
+    @Test
+    public void aMountTheTravellerIsAloneOnIsStillCarried()
+    {
+        // The guard above keys off other passengers, not off there being any passengers --
+        // the traveller is still aboard when capture() runs, since hold() has not dismounted
+        // them yet. Reading their own presence as "shared" would leave every mount behind
+        // and quietly undo the whole feature.
+        final Player traveller = mock(Player.class);
+        final Horse horse = someHorse(true, Arrays.<Entity>asList((Entity) traveller));
+        when(traveller.getVehicle()).thenReturn((Entity) horse);
+
+        final List<Entity> stack = BeamMount.capture(traveller).stack();
+
+        assertFalse(stack.isEmpty(), "the traveller riding alone must still have their mount carried");
+        assertSame(horse, stack.get(0), "the mount itself comes first");
+    }
+
+    @Test
     public void holdingAMountDismountsTheRiderSoTheFreezeCanActuallyHoldThem()
     {
         // BeamFreeze locks a traveller by reverting PlayerMoveEvent, and a rider does not

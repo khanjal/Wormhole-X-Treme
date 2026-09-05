@@ -60,6 +60,17 @@ Paper's `TeleportFlag.EntityState.RETAIN_VEHICLE` would be the one-call version 
 not in the plain Spigot API at any version in the supported range, and this plugin ships one
 jar for Spigot, Paper and Purpur alike.
 
+A mount somebody else is also sitting on is left alone. Boats and camels seat two, and
+re-seating a mount's passengers at the destination means re-seating *all* of them -- so a
+first pass at this would have dragged whoever shared your boat through the beam with you,
+past the permission check, the cooldown and the cost that beaming them would have charged,
+and without their having asked to go anywhere. Sharing a boat is not consent to be teleported
+out of it.
+
+So a shared mount is treated as no mount: nothing is held, hidden or moved, and you beam
+alone exactly as you did before mounts travelled at all. Players only -- a mob riding along
+is cargo, and travelling with the mount is the point of it.
+
 Writing it turned up a second problem the report had not mentioned: a mounted traveller was
 never actually frozen. The freeze locks a player by reverting `PlayerMoveEvent`, and a rider
 does not raise one -- their position comes from the vehicle. A "frozen" player could steer a

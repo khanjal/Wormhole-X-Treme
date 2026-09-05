@@ -100,10 +100,60 @@ final class BeamMount
         {
             return none();
         }
+        if (isSharedWithAnotherPlayer(ridden, player))
+        {
+            // A boat or a camel seats two, and the second seat is not the traveller's to
+            // take. Carrying the mount re-seats its whole passenger stack at the destination,
+            // so another player sharing it would be dragged through the beam past the
+            // permission check, the cooldown and the cost that beaming them would have
+            // charged -- without having asked to go anywhere.
+            //
+            // Treated as no mount at all rather than as a mount left behind: nothing is held,
+            // hidden or moved, so the other player keeps a boat that behaves normally and the
+            // traveller beams alone, exactly as they did before mounts travelled.
+            //
+            // Players only, deliberately. A mob riding along is cargo -- it belongs to the
+            // mount and travelling with it is the point -- and nothing about a chicken on a
+            // horse is a consent problem.
+            return none();
+        }
         final List<Entity> collected = new ArrayList<Entity>();
         collected.add(ridden);
         EntityUtils.collectPassengerPairs(ridden, new ArrayList<Entity>(), collected);
         return new BeamMount(ridden, collected);
+    }
+
+    /**
+     * Whether a player other than the traveller is aboard {@code ridden}.
+     *
+     * <p>Only the immediate vehicle's own seats are checked. The traveller is still aboard at
+     * this point -- {@link #hold} has not run yet -- so they are expected in the list and are
+     * not what this is looking for.
+     *
+     * @param ridden what the traveller is riding
+     * @param player the traveller, who does not count against themselves
+     * @return true if the mount is shared with another player, and so not the traveller's to
+     *         take
+     */
+    private static boolean isSharedWithAnotherPlayer(final Entity ridden, final Player player)
+    {
+        try
+        {
+            for (final Entity passenger : ridden.getPassengers())
+            {
+                if ((passenger instanceof Player) && !player.equals(passenger))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (final RuntimeException ignored)
+        {
+            // A mount that will not list its seats is treated as shared: leaving it behind is
+            // the outcome that cannot move a player who did not ask to be moved.
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -41,11 +41,16 @@ public final class PassengerReattach
      *
      * @param parent
      *            the entity to ride
+     * <p>Private on purpose: it re-seats once, with no retry and no backoff, which is only
+     * ever correct as a step inside {@link #schedule}. Exposed, it would read like the
+     * obvious way to seat a passenger and quietly drop the guarantees that actually make
+     * re-seating stick.
+     *
      * @param passenger
      *            the entity to seat
      * @return true if the passenger ends up aboard
      */
-    public static boolean attachPassenger(final Entity parent, final Entity passenger)
+    private static boolean attachPassenger(final Entity parent, final Entity passenger)
     {
         try
         {
