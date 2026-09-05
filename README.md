@@ -555,9 +555,16 @@ Each shape marks two cells:
 - **`[RA]`, the gate-is-open output** — put a lever here. The plugin switches it on itself
   when the gate opens, so it can drive doors, lamps or anything else that should react.
 
-Neither is a frame block: do not build gate material at them. That is also why an already
-built sign gate does not need rebuilding for any of this — the cells were empty before and
-are empty now. Place the dust and the lever, then run `/wormhole redstone <gate> true`.
+Neither is a frame block: do not build gate material at them, and nothing about the frame
+itself changed — the cells these markers use were already empty.
+
+**An existing gate does not pick this up on its own.** A gate records where its redstone
+blocks are once, when it is first detected, and stores those positions with the gate. Nothing
+re-reads the shape afterwards, so a sign gate built before its shape gained `[RD]` has no
+dial-activation block stored and will not respond to a signal however it is wired —
+`/wormhole redstone <gate> true` sets the flag but cannot invent the position. Re-detect the
+gate (remove and re-complete it; the structure itself can stay standing) and it comes back
+with the markers.
 
 Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign is
 showing, so with no target selected a pulse does nothing.
@@ -593,6 +600,29 @@ apart.
 that lever on itself when the gate opens, and a signal counts anywhere within a block of a
 marker, so putting the two together would feed the gate's own output straight back into its
 dial input.
+
+### Wiring a gate that is sunk into the ground
+
+Gates are commonly built one block low so the entrance is flush with the ground rather than a
+step up. That moves the markers down with everything else, and how far the dust has to climb
+depends on how tall the shape's DHD is. Measured from the surrounding ground:
+
+| Shape | Button | `[RD]` — run the dust here | `[RA]` |
+|---|---|---|---|
+| `HorizontalSignDial` | ground level | **ground level** | ground level |
+| `StandardSignDial`, `EvenSignDial` | ground level | **one block up**, on top of the button block | below ground |
+| `MinimalSignDial` | one block up | **two blocks up**, on top of the pillar | below ground |
+
+`HorizontalSignDial` is the easiest to wire of the three, since the whole gate lies flat and
+dust can run along the ground straight to the marker. `MinimalSignDial` is the most awkward:
+its DHD pillar stands two blocks tall above an empty row, so sinking the gate puts `[RD]` at
+head height and the dust has to be brought up to it.
+
+`[RA]` ends up underground on the three upright shapes. Nothing about triggering a gate needs
+it — it is only the gate-is-open output — so it can simply be left unused. To wire it, dig
+out the block it occupies and put the lever in the pocket. On `StandardSignDial` and
+`EvenSignDial` that cell sits beside the DHD pillar and is easy to reach; on `MinimalSignDial`
+it is directly beneath the pillar.
 
 ### Driving a gate with a minecart
 

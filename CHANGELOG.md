@@ -20,10 +20,18 @@ offering it as a permanent, unlabelled consequence of which file you picked.
 
 So the rule is now uniform: a shape with a `[D]` dial sign carries `[RD]` and `[RA]`.
 `StandardSignDial` and `EvenSignDial` already did. `MinimalSignDial` and `HorizontalSignDial`
-have gained them, and since both markers land on cells those shapes left empty, no existing
-gate needs rebuilding -- place the dust and the lever on a gate you already have. The seven
-shapes with no dial sign keep no markers at all, which is the same rule read the other way:
-with no sign to leave preset, a pulse would have nothing to dial.
+have gained them, on cells those shapes already left empty, so the frame an admin builds is
+unchanged. The seven shapes with no dial sign keep no markers at all, which is the same rule
+read the other way: with no sign to leave preset, a pulse would have nothing to dial.
+
+A gate already standing does not pick this up, and the README now says so. A gate records
+where its redstone blocks are once, when it is first detected, and `GateSerializer` stores
+those positions with it; nothing re-reads the shape afterwards. So a sign gate built before
+its shape gained `[RD]` has no dial-activation block stored, and the listener's null check
+means no amount of wiring will fire it -- `/wormhole redstone <gate> true` sets the flag but
+cannot invent the position. Re-detecting the gate fixes it. I had written the opposite first,
+on the strength of the frame being unchanged, which is true and turns out not to be the part
+that matters.
 
 `[RS]`, the sign-cycling input, is gone from the shipped shapes entirely. The point of
 redstone dialling is a sign left preset on a destination and a pulse that fires it, and an
