@@ -62,14 +62,14 @@ public final class GateEntityScanner implements Runnable
                 }
                 catch (final Throwable t)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                         "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null") + ": " + t.getMessage());
                 }
             }
         }
         catch (final Throwable t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Entity scan aborted: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Entity scan aborted: " + t.getMessage());
         }
     }
 
@@ -126,7 +126,7 @@ public final class GateEntityScanner implements Runnable
             }
             catch (final Throwable t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Failed to send entity through gate: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate: " + t.getMessage());
             }
         }
     }
@@ -181,7 +181,7 @@ public final class GateEntityScanner implements Runnable
         }
         catch (final RuntimeException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not respawn projectile through gate, falling back to teleport: " + e.getMessage());
             return null;
         }
@@ -312,7 +312,7 @@ public final class GateEntityScanner implements Runnable
         }
         catch (final RuntimeException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not set exit velocity after gate sweep: " + e.getMessage());
         }
     }
@@ -442,7 +442,7 @@ public final class GateEntityScanner implements Runnable
             }
             catch (final Throwable t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Failed to re-seat passenger after gate sweep: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to re-seat passenger after gate sweep: " + t.getMessage());
             }
         }
     }

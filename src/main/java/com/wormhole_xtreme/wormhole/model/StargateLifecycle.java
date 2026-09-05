@@ -40,7 +40,7 @@ class StargateLifecycle
     {
         if (gate.getGateShutdownTaskId() > 0)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" cancelled.");
             WormholeXTreme.getScheduler().cancelTask(gate.getGateShutdownTaskId());
             gate.setGateShutdownTaskId(-1);
@@ -108,7 +108,7 @@ class StargateLifecycle
         gate.setGateActivateTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, p, ActionToTake.DEACTIVATE), timeout));
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
             "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" created.");
     }
 
@@ -121,7 +121,7 @@ class StargateLifecycle
     {
         if (gate.getGateActivateTaskId() > 0)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" cancelled.");
             WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
             gate.setGateActivateTaskId(-1);
@@ -137,7 +137,7 @@ class StargateLifecycle
     {
         if (gate.getGateAfterShutdownTaskId() > 0)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + "\" cancelled.");
             WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
             gate.setGateAfterShutdownTaskId(-1);
@@ -160,7 +160,7 @@ class StargateLifecycle
     {
         if (gate.getGateActivateTaskId() > 0)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" timed out.");
             gate.setGateActivateTaskId(-1);
         }
@@ -280,11 +280,11 @@ class StargateLifecycle
         gate.setGateAfterShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.AFTERSHUTDOWN), timeout));
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
             "Wormhole \"" + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + "\" created.");
         if (gate.getGateAfterShutdownTaskId() == -1)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
                 "Failed to schdule wormhole after shutdown, received task id of -1.");
             gate.setGateRecentlyActive(false);
         }

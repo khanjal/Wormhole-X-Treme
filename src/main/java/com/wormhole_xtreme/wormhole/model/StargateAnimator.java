@@ -87,7 +87,7 @@ class StargateAnimator
                     gate.getGateAnimatedBlocks().add(
                         gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
                 }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Adding: " + step + " Woosh Block Size: " + wave.size());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + " Woosh Adding: " + step + " Woosh Block Size: " + wave.size());
             }
 
             if (waveCount == (step + 1))
@@ -113,7 +113,7 @@ class StargateAnimator
                     gate.getGateAnimatedBlocks().remove(
                         gate.getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ()));
                 }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Removing: " + step + " Woosh Block Size: " + wave.size());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, gate.getGateName() + " Woosh Removing: " + step + " Woosh Block Size: " + wave.size());
             }
 
             if (step == 0)
@@ -218,7 +218,7 @@ class StargateAnimator
     {
         if (on)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Lighting up Order: " + gate.getGateLightingCurrentIteration());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Lighting up Order: " + gate.getGateLightingCurrentIteration());
             if (gate.getGateLightingCurrentIteration() == 0)
             {
                 gate.setGateLightsActive(true);

@@ -156,7 +156,7 @@ class StargateBlockSetup
                     // ignore
                 }
 
-                _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
+                _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
             }
 
             gate.getGateStructureBlocks().add(placeBlock.getLocation());
@@ -211,7 +211,7 @@ class StargateBlockSetup
                     {
                         dbg.append(" PlaceBlock=null");
                     }
-                    _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
+                    _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
                 }
                 gate.getGateStructureBlocks().remove(placeBlock.getLocation());
                 placeBlock.setType(Material.AIR);
@@ -328,7 +328,7 @@ class StargateBlockSetup
             final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
             if (plugin != null)
             {
-                plugin.prettyLog(Level.WARNING, false,
+                plugin.prettyLog(Level.WARNING,
                     "Could not match dial sign material on gate " + gate.getGateName() + ": " + t.getMessage());
             }
         }
@@ -440,7 +440,7 @@ class StargateBlockSetup
                     }
                     dbg.append(" IrisBlockType=").append(irisType != null ? irisType.toString() : "null");
                     dbg.append(" GateFacing=").append(gate.getGateFacing() != null ? gate.getGateFacing().toString() : "null");
-                    _plugin_for_log.prettyLog(Level.INFO, false, dbg.toString());
+                    _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
                 }
 
                 gate.getGateStructureBlocks().add(gate.getGateIrisLeverBlock().getLocation());
@@ -501,7 +501,7 @@ class StargateBlockSetup
                     }
                     else
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping RD placement; target occupied: " + current);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RD placement; target occupied: " + current);
                     }
                 }
                 catch (final Throwable ignore) {}
@@ -536,7 +536,7 @@ class StargateBlockSetup
                     }
                     else
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping RA lever placement; target occupied: " + current);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RA lever placement; target occupied: " + current);
                     }
                 }
                 catch (final Throwable ignore) {}
@@ -570,7 +570,7 @@ class StargateBlockSetup
                     }
                     else
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Skipping RS placement; target occupied: " + current);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RS placement; target occupied: " + current);
                     }
                 }
                 catch (final Throwable ignore) {}
@@ -1335,7 +1335,7 @@ class StargateBlockSetup
                 {
                     ((Player) entity).setNoDamageTicks(5);
                 }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Moved " + entity.getType() + " clear of closing iris on gate: " + gate.getGateName());
             }
             catch (final RuntimeException t)
@@ -1343,7 +1343,7 @@ class StargateBlockSetup
                 // One entity that cannot be moved does not stop the iris closing, or stop
                 // the rest of the sweep. Errors are left to propagate rather than being
                 // swallowed here, where they would look like an ordinary immovable mob.
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Failed to move " + entity.getType() + " clear of closing iris on gate: "
                         + gate.getGateName() + ": " + t.getMessage());
             }
@@ -1451,7 +1451,7 @@ class StargateBlockSetup
             {
                 WorldUtils.scheduleChunkUnload(gate.getGateDialLeverBlock());
             }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Dial Button Lever Gate: \"" + gate.getGateName() + "\" Material: \"" + mat.toString() + "\"");
         }
     }

@@ -240,7 +240,7 @@ final class BeamMount
         }
         catch (final RuntimeException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Could not beam " + rider.getName() + "'s mount to the destination; they arrive on foot: "
                     + e.getMessage());
             return;

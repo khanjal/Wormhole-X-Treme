@@ -50,7 +50,7 @@ public class Dial implements CommandExecutor
                         return true;
                     }
                     final String targetnetwork = CommandUtilities.getGateNetwork(target);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Dial Target - Gate: \"" + target.getGateName() + "\" Network: \"" + targetnetwork + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Dial Target - Gate: \"" + target.getGateName() + "\" Network: \"" + targetnetwork + "\"");
                     // Not on same network
                     if ( !startnetwork.equals(targetnetwork))
                     {
@@ -121,14 +121,14 @@ public class Dial implements CommandExecutor
                             // Attempt recovery: remove stale activator mapping and retry with force.
                             if (WormholeXTreme.getThisPlugin() != null)
                             {
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
                             }
                             StargateManager.removeActivatorForStargate(target);
                             if (start.dialStargate(target, true))
                             {
                                 if (WormholeXTreme.getThisPlugin() != null)
                                 {
-                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Dial recovery succeeded for target " + target.getGateName());
+                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Dial recovery succeeded for target " + target.getGateName());
                                 }
                                 player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
                             }
@@ -136,7 +136,7 @@ public class Dial implements CommandExecutor
                             {
                                 if (WormholeXTreme.getThisPlugin() != null)
                                 {
-                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Dial recovery failed for target " + target.getGateName());
+                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Dial recovery failed for target " + target.getGateName());
                                 }
                                 CommandUtilities.closeGate(start, false);
                                 player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());

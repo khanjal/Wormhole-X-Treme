@@ -172,7 +172,11 @@ public class GateSerializerTest
 
             GateSerializer.parseVersionedData(GateSerializer.stargatetoBinary(minimalGate(w)), w, "b", null);
 
-            verify(plugin, never()).prettyLog(any(), anyBoolean(), contains("not all byte data was read"));
+            // Two arguments, not three. The reader logs through the two-argument prettyLog,
+            // and a verification against the three-argument overload would pass here for the
+            // wrong reason -- nothing calls it, so "never" would hold even if the buffer were
+            // badly sized and the warning were being logged on every run.
+            verify(plugin, never()).prettyLog(any(), contains("not all byte data was read"));
         }
         finally
         {

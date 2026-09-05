@@ -267,7 +267,7 @@ public class WorldUtils
                 {
                     if (!w.isChunkLoaded(cx + dx, cz + dz))
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Pre-loading destination chunk (" + (cx + dx) + "," + (cz + dz) + ") on: " + w.getName());
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Pre-loading destination chunk (" + (cx + dx) + "," + (cz + dz) + ") on: " + w.getName());
                         w.loadChunk(cx + dx, cz + dz);
                     }
                 }
@@ -379,7 +379,7 @@ public class WorldUtils
         final int cZ = c.getZ();
         if ( !w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Loading chunk: " + c.toString() + " on: " + w.getName());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Loading chunk: " + c.toString() + " on: " + w.getName());
             w.loadChunk(cX, cZ);
         }
     }
@@ -398,7 +398,7 @@ public class WorldUtils
         final int cZ = c.getZ();
         if (w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
             w.unloadChunkRequest(cX, cZ);
         }
     }

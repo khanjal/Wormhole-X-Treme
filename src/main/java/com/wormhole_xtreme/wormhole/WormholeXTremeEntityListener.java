@@ -40,7 +40,7 @@ class WormholeXTremeEntityListener implements Listener
             if (StargateManager.isBlockInGate(eb.get(i)))
             {
                 final Stargate s = StargateManager.getGateFromBlock(eb.get(i));
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Creeper Explosion on Stargate: \"" + s.getGateName() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Creeper Explosion on Stargate: \"" + s.getGateName() + "\"");
                 return true;
             }
         }
@@ -64,7 +64,7 @@ class WormholeXTremeEntityListener implements Listener
             final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
             if ((closest.isGateActive() || closest.isGateRecentlyActive()) && (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 16)))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Event: \"" + event.getCause().toString() + "\" On: \"" + p.getName() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Event: \"" + event.getCause().toString() + "\" On: \"" + p.getName() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
                 p.setFireTicks(0);
                 return true;
             }

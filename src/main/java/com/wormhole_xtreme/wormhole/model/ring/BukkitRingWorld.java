@@ -392,8 +392,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
                         // outcome than a stack trace, but not a reason to abandon the rest.
                         catch (final RuntimeException e)
                         {
-                            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
-                                false, "Could not re-seat a ring passenger: " + e.getMessage());
+                            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "Could not re-seat a ring passenger: " + e.getMessage());
                         }
                     }
                 }

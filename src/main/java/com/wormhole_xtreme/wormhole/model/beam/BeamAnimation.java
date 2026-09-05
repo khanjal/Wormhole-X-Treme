@@ -505,7 +505,7 @@ public final class BeamAnimation
          */
         private void recover(final RuntimeException cause)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Beam to \"" + destinationName + "\" failed mid-sequence for " + player.getName()
                     + ", clearing them rather than leaving them stuck: " + cause.getMessage());
             try

@@ -147,7 +147,7 @@ class ConfigurationFlatFile
                 }
                 catch (final Exception e)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Error parsing setting enum:" + e.toString());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Error parsing setting enum:" + e.toString());
                 }
             }
             bufferedReader.close();
@@ -155,7 +155,7 @@ class ConfigurationFlatFile
         }
         catch (final FileNotFoundException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, e.getMessage());
         }
         finally
         {

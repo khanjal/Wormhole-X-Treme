@@ -163,7 +163,7 @@ public class CommandUtilities
         catch (final Exception e)
         {
             // Be conservative: log and continue with removal to avoid leaving stale DB entries.
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error shutting down gate before removal: " + e.getMessage());
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error shutting down gate before removal: " + e.getMessage());
         }
         // Remove any activator/player mapping referencing this stargate.
         try
@@ -172,7 +172,7 @@ public class CommandUtilities
         }
         catch (final Exception e)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "No activator mapping to remove or error: " + e.getMessage());
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "No activator mapping to remove or error: " + e.getMessage());
         }
 
         stargate.setupGateSign(false);
@@ -264,7 +264,7 @@ public class CommandUtilities
         }
         catch (final Throwable t)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error executing command: " + t.getMessage());
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing command: " + t.getMessage());
             if (playerCheck(sender))
             {
                 ((Player) sender).sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");

@@ -151,7 +151,7 @@ public final class GateEvents
             final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
             if (plugin != null)
             {
-                plugin.prettyLog(Level.WARNING, false,
+                plugin.prettyLog(Level.WARNING,
                     "A listener for " + event.getEventName() + " failed: " + cause.getMessage());
             }
         }

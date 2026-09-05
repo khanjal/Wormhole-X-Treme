@@ -152,7 +152,7 @@ class WormholeXTremeBlockListener implements Listener
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked non-player block break on registered gate: " + (stargate != null ? stargate.getGateName() : "unknown") );
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked non-player block break on registered gate: " + (stargate != null ? stargate.getGateName() : "unknown") );
         }
         // Return true to signal that the break should be cancelled.
         return true;
@@ -192,7 +192,7 @@ class WormholeXTremeBlockListener implements Listener
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
                 if (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 25))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Block Burn Distance Squared: \"" + blockDistanceSquared + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Block Burn Distance Squared: \"" + blockDistanceSquared + "\"");
                     event.setCancelled(true);
                 }
             }
@@ -212,7 +212,7 @@ class WormholeXTremeBlockListener implements Listener
             if ((stargate != null) && (player != null) && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE))
             {
                 event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player: " + player.getName() + " denied damage on: " + stargate.getGateName());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player: " + player.getName() + " denied damage on: " + stargate.getGateName());
             }
         }
     }
@@ -248,7 +248,7 @@ class WormholeXTremeBlockListener implements Listener
                 final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
                 if (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 25))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Blocked Gate: \"" + closest.getGateName() + "\" Block Type: \"" + event.getBlock().getType().toString() + "\" Proximity Block Ignite: \"" + event.getCause().toString() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Gate: \"" + closest.getGateName() + "\" Block Type: \"" + event.getBlock().getType().toString() + "\" Proximity Block Ignite: \"" + event.getCause().toString() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
                     event.setCancelled(true);
                 }
             }

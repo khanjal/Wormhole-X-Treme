@@ -91,11 +91,11 @@ public class StargateManager
             GateSpatialIndex.add(norm);
             try
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
             }
             catch (final Exception e)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error logging indexed block: " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error logging indexed block: " + e.getMessage());
             }
         }
     }
@@ -219,7 +219,7 @@ public class StargateManager
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error indexing gate activation blocks: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error indexing gate activation blocks: " + e.getMessage());
         }
     }
 
@@ -288,9 +288,9 @@ public class StargateManager
             complete.setGateOwner(p.getUniqueId().toString());
             complete.setGateOwnerName(p.getName());
             complete.completeGate(name, idc);
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
             addStargate(complete);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Gate debug: Name=" + complete.getGateName()
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate debug: Name=" + complete.getGateName()
                         + " Owner=" + complete.getGateOwner()
                         + " DialLever=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getLocation().toString() : "null")
                         + " DialLeverType=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getType().toString() : "null")
@@ -602,20 +602,20 @@ public class StargateManager
         // built two Location strings and a Material name per call and discarded them all.
         if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup: loc=" + b.getLocation() + " type=" + b.getType() + " indexed=" + contains);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate lookup: loc=" + b.getLocation() + " type=" + b.getType() + " indexed=" + contains);
         }
         if (contains)
         {
             final Stargate s = getAllGateBlocks().get(key);
             if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation());
             }
             return s;
         }
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Gate lookup miss for loc=" + b.getLocation().toString());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate lookup miss for loc=" + b.getLocation().toString());
         }
         return null;
     }
@@ -1028,7 +1028,7 @@ public class StargateManager
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Error removing activation block indices: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Error removing activation block indices: " + e.getMessage());
         }
     }
 

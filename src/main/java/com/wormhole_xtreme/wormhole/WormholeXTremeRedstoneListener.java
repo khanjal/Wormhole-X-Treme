@@ -303,7 +303,7 @@ class WormholeXTremeRedstoneListener implements Listener
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Redstone trigger on already-open gate " + stargate.getGateName() + "; leaving it open.");
         }
     }
@@ -391,7 +391,7 @@ class WormholeXTremeRedstoneListener implements Listener
                 {
                     // Returns rather than falling through to the sign cycle below: a repeat is
                     // one circuit still settling, and it must not cycle the sign either.
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                         "Ignoring repeat redstone trigger on gate " + gateKey
                             + " within " + TRIGGER_WINDOW_MS + "ms of the last one.");
                     return;

@@ -314,7 +314,7 @@ public final class LegacyDatabaseImporter
         {
             return;
         }
-        plugin.prettyLog(Level.INFO, false,
+        plugin.prettyLog(Level.INFO,
             "Found " + DB_NAME + " from an older Wormhole X-Treme and no gates of our own. "
                 + "Run /wormhole gate import to bring them across. Nothing is changed until "
                 + "you do, and the old database is never written to.");

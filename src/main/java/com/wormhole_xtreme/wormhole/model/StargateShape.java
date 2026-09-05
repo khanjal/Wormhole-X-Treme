@@ -140,7 +140,7 @@ public class StargateShape
             if (line.contains("Name="))
             {
                 shapeName = line.split("=")[1];
-                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Begin parsing shape: \"" + shapeName + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Begin parsing shape: \"" + shapeName + "\"");
             }
             else if (line.equals("GateShape="))
             {
@@ -164,12 +164,12 @@ public class StargateShape
                 // At this point we should know the height and width
                 if ((height <= 0) || (width <= 0))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
                     throw new IllegalArgumentException("Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
                 }
                 else
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Shape: \"" + shapeName + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Shape: \"" + shapeName + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
                 }
 
                 // Now parse each [X] and put into int array.
@@ -263,9 +263,9 @@ public class StargateShape
                 try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase(Locale.ROOT))); } catch (final Exception e) { /* ignore unknown */ }
             }
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Sign Position: \"" + Arrays.toString(getShapeSignPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Enter Position: \"" + Arrays.toString(getShapeEnterPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Button Position [Left/Right,Up/Down,Forward/Back]: \"" + Arrays.toString(getShapeToGateCorner()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Sign Position: \"" + Arrays.toString(getShapeSignPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Enter Position: \"" + Arrays.toString(getShapeEnterPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Button Position [Left/Right,Up/Down,Forward/Back]: \"" + Arrays.toString(getShapeToGateCorner()) + "\"");
 
         final int[][] tempPortalPositions = new int[portalPositions.size()][3];
         for (int i = 0; i < portalPositions.size(); i++)
@@ -278,7 +278,7 @@ public class StargateShape
             tempPortalPositions[i] = point;
         }
         setShapePortalPositions(tempPortalPositions);
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Portal Positions: \"" + Arrays.deepToString(getShapePortalPositions()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Portal Positions: \"" + Arrays.deepToString(getShapePortalPositions()) + "\"");
 
         final int[] tempLightPositions = new int[lightPositions.size()];
         for (int i = 0; i < lightPositions.size(); i++)
@@ -286,7 +286,7 @@ public class StargateShape
             tempLightPositions[i] = lightPositions.get(i);
         }
         setShapeLightPositions(tempLightPositions);
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Light Material Positions: \"" + Arrays.toString(getShapeLightPositions()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Light Material Positions: \"" + Arrays.toString(getShapeLightPositions()) + "\"");
 
         final int[][] tempStructurePositions = new int[blockPositions.size()][3];
         for (int i = 0; i < blockPositions.size(); i++)
@@ -299,8 +299,8 @@ public class StargateShape
             tempStructurePositions[i] = point;
         }
         setShapeStructurePositions(tempStructurePositions);
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Material Positions: \"" + Arrays.deepToString(getShapeStructurePositions()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Finished parsing shape: \"" + shapeName + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Material Positions: \"" + Arrays.deepToString(getShapeStructurePositions()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Finished parsing shape: \"" + shapeName + "\"");
 
         setShapeWooshDepth(curWooshDepth);
         setShapeWooshDepthSquared(curWooshDepth * curWooshDepth);

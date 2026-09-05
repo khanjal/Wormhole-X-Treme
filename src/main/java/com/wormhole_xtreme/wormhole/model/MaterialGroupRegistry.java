@@ -356,7 +356,7 @@ public final class MaterialGroupRegistry
     {
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, message);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, message);
         }
     }
 
@@ -364,7 +364,7 @@ public final class MaterialGroupRegistry
     {
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, message);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, message);
         }
     }
 }

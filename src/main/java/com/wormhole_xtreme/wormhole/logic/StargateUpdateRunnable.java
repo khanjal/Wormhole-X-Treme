@@ -112,7 +112,7 @@ public class StargateUpdateRunnable implements Runnable
     @Override
     public void run()
     {
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Run Action \"" + action.toString() + (stargate != null
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Run Action \"" + action.toString() + (stargate != null
             ? "\" Stargate \"" + stargate.getGateName()
             : "") + "\"");
         switch (action)

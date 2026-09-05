@@ -61,7 +61,7 @@ public final class PassengerReattach
         }
         catch (final RuntimeException t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
         }
         // An earlier attempt may already have succeeded without reporting it.
         try
@@ -80,7 +80,7 @@ public final class PassengerReattach
         }
         catch (final RuntimeException t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger after position sync failed: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after position sync failed: " + t.getMessage());
         }
         return false;
     }
@@ -152,7 +152,7 @@ public final class PassengerReattach
                         }
                         catch (final RuntimeException t)
                         {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Exception during passenger reattach: " + t.getMessage());
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
                             remaining++;
                         }
                     }
@@ -185,12 +185,12 @@ public final class PassengerReattach
                     }
                     else
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to reattach passengers to " + ridden.getUniqueId() + " after " + attempts[0] + " attempts");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to reattach passengers to " + ridden.getUniqueId() + " after " + attempts[0] + " attempts");
                     }
                 }
                 catch (final RuntimeException t)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception during passenger reattach: " + t.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach: " + t.getMessage());
                 }
             }
         };

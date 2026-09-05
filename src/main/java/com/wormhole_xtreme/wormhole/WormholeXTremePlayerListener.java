@@ -274,7 +274,7 @@ class WormholeXTremePlayerListener implements Listener
         }
         final Player player = event.getPlayer();
         if (player == null) {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "handlePlayerMoveEvent: event player is null, ignoring event.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "handlePlayerMoveEvent: event player is null, ignoring event.");
             return false;
         }
         final Location toLocFinal = event.getTo();
@@ -287,7 +287,7 @@ class WormholeXTremePlayerListener implements Listener
             {
                 final Block fromBlock = event.getFrom().getWorld().getBlockAt(event.getFrom().getBlockX(), event.getFrom().getBlockY(), event.getFrom().getBlockZ());
                 final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerMove: " + player.getName()
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerMove: " + player.getName()
                     + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
             }
             // Diagnostics only, and on the move path, so never let it disturb the event.
@@ -310,7 +310,7 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     gateBlockFinal = mountBlock;
                     stargate = StargateManager.getGateFromBlock(mountBlock);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
                 }
             }
         }
@@ -321,7 +321,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (stargate != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Player entered a gate that is not open, or a block of it that is not the portal.");
             }
             return false;
@@ -434,7 +434,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             gatenetwork = "Public";
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
 
         // Refill the player's air while they stand in the portal so a water-material
         // gate does not drown them. Cosmetic, so a failure is not worth reporting.
@@ -556,15 +556,15 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (target == null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target is null for gate: " + stargate.getGateTarget().getGateName());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Teleport target is null for gate: " + stargate.getGateTarget().getGateName());
             }
             else if (target.getWorld() == null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Teleport target world is null for gate: " + stargate.getGateTarget().getGateName() + " loc: " + target.toString());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Teleport target world is null for gate: " + stargate.getGateTarget().getGateName() + " loc: " + target.toString());
             }
             else
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Teleporting " + player.getName() + " to " + stargate.getGateTarget().getGateName() + " @ " + target.toString());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting " + player.getName() + " to " + stargate.getGateTarget().getGateName() + " @ " + target.toString());
             }
         }
         player.setNoDamageTicks(5);
@@ -618,11 +618,11 @@ class WormholeXTremePlayerListener implements Listener
                 {
                     ridden.teleport(riddenTarget);
                     riddenTeleported = true;
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerTeleport: teleported " + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerTeleport: teleported " + ridden.getType().name() + " " + ridden.getUniqueId() + " for player " + player.getName());
                 }
                 catch (final RuntimeException tt)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
                 }
 
                 if (riddenTeleported)
@@ -650,7 +650,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Exception while teleporting " + player.getName() + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception while teleporting " + player.getName() + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
             }
         }
         try
@@ -661,7 +661,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             // Not fatal to the teleport that already happened, but a silently skipped
             // cooldown lets a player re-enter immediately, so say so.
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to apply use cooldown for " + player.getName() + ": " + e.getMessage());
         }
         // Mark player as having just arrived from this gate to prevent immediate re-entry
@@ -676,7 +676,7 @@ class WormholeXTremePlayerListener implements Listener
         {
             // Without this marker the player can walk straight back into the gate they
             // just arrived from, so a failure is worth a line in the log.
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to mark recent arrival for " + player.getName() + ": " + e.getMessage());
         }
 
@@ -712,7 +712,7 @@ class WormholeXTremePlayerListener implements Listener
         catch (final RuntimeException ignore) {}
         if (target != stargate.getGatePlayerTeleportLocation())
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
         }
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
@@ -761,16 +761,16 @@ class WormholeXTremePlayerListener implements Listener
     {
         if (event.getClickedBlock() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             if (GateInteractionHandler.handlePlayerInteractEvent(event))
             {
                 event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Cancelled Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             }
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Caught and ignored Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught and ignored Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\"");
         }
     }
 

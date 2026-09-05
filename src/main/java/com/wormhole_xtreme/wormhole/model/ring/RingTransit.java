@@ -348,7 +348,7 @@ public final class RingTransit
         final int travelled = cycle.flash();
         if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Ring pair " + cycle.getPair().getId() + " carried " + travelled + " passengers.");
         }
         runArrival(cycle, world, 0);
@@ -535,7 +535,7 @@ public final class RingTransit
      */
     private static void recover(final RingCycle cycle, final World world, final RuntimeException cause)
     {
-        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
             "Ring pair " + cycle.getPair().getId() + " failed mid-cycle, putting it back: "
                 + cause.getMessage());
         try

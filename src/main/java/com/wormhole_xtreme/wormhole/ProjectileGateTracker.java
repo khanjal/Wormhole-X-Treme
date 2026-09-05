@@ -157,7 +157,7 @@ class ProjectileGateTracker implements Listener
                     catch (final RuntimeException e)
                     {
                         it.remove();
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                             "Projectile gate tracking failed: " + e.getMessage());
                     }
                 }
