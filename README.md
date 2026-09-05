@@ -701,7 +701,9 @@ the two markers are placed like this:
                           V  [RA]  gate open  -> lever
 ```
 
-`R` goes on top of the activation block; `V` hangs on the side of the pillar below it.
+`R` goes on top of the activation block; `V` hangs on the side of the pillar below it. The
+frame block under the activation block is the iris holder — it carries the shape's `:IA`, and
+the iris lever goes on its face toward the player.
 
 `MinimalSignDial` has the same two-block DHD pillar in a much smaller footprint. `[RD]` sits
 on top of the activation block exactly as above; `[RA]` goes on the ground row at the foot of

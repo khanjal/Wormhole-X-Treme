@@ -4,6 +4,71 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### `HorizontalSignDial` could not be built at all
+
+Found reading the shape files while working out whether the DHD could become a type a gate
+has, rather than something welded into the ring. Build a `HorizontalSignDial`, hang the dial
+sign, click the button, and what came back was a plain `Horizontal` gate -- `/dial` only, no
+redstone -- with its name sign painted over the dial sign you had just written.
+
+Detection reads a shape's frame and portal cells and nothing else. Strip the markers and those
+two shapes are the same file:
+
+```
+Horizontal                          HorizontalSignDial
+[I][I][I][I][I][I][I]               [I][I][RD][I][RA][I][I]
+[I][I][S:A][S:N:L#8][S:IA][I][I]    [I][I][S:A][S:D:L#8][S:IA][I][I]
+```
+
+So both matched the same build, and which one a player got came down to a tiebreak. The
+tiebreak was `REDSTONE_ACTIVATED`, both of these declare `FALSE`, and below that it fell
+through to whichever shape the registry handed back first. The registry is a
+`ConcurrentHashMap` keyed by shape name. `Horizontal` hashes ahead of `HorizontalSignDial`, so
+it won every time.
+
+The same coin toss was deciding `Minimal` against `MinimalSignDial`, where it happened to land
+the right way round. That is not a fact about either shape: adding a twelfth shape to the
+folder resizes the table and reshuffles all of it, so a server could have lost that toss by
+installing an unrelated custom shape. `StandardSignDial` and `EvenSignDial` were only ever
+safe because they declare `REDSTONE_ACTIVATED=TRUE`.
+
+Matches are ranked properly now, most significant test first: a shape that **found a dial
+sign** beats one that cannot look for one, then `REDSTONE_ACTIVATED`, then the shape that
+accounts for more of the frame, then the name. The sign is the honest signal -- only a shape
+carrying `:D` ever looks for one, so finding one is proof of what the player actually built.
+
+A gate with no sign hung is a plain `/dial` gate whichever of a pair wins, so the lower rules
+are there to make that answer stable rather than to make it different. Nothing about what you
+build changed, and gates already standing are unaffected -- they store their block positions
+rather than re-reading the shape.
+
+### Choosing a sign dial no longer costs you the iris
+
+`StandardSignDial` and `EvenSignDial` could not have an iris. Not a lever that was awkward to
+reach -- no iris lever at all, and no way to get one.
+
+A shape says where the iris lever hangs with `:IA`. Leave it out and `setupIrisLever` works
+the position out from the DHD button instead, but only for a shape that does not declare
+`REDSTONE_ACTIVATED=TRUE`, which switches that fallback off. Those two did both: no `:IA`, and
+the flag set.
+
+`MinimalSignDial` was missing `:IA` too and survived only because it declares `FALSE`, so the
+fallback covered for it. `HorizontalSignDial` always marked its own. Nothing in the files, the
+README or the code ever said a sign gate should not have an iris -- and the frame block was
+still there in all three, sitting directly under the button. Only the marker was missing:
+
+```
+StandardSignDial, before          after
+[I][I][I][I][RA][S][S]            [I][I][I][I][RA][S:IA][S]
+```
+
+All eleven shipped shapes declare `:IA` now, so none of them is left depending on the fallback
+guessing right. Nothing changes about what you build: that block was always part of the DHD.
+
+An existing gate keeps what it was detected with, since the position is recorded once and
+stored with the gate. `/wormhole refresh` and a click on the DHD button re-reads the shape and
+picks the marker up, without touching a block of what you built.
+
 ### A gate's redstone wiring can be taken back up again
 
 Reported in testing: a redstone block sitting on top of a DHD could not be removed. The
