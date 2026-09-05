@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
@@ -692,7 +693,7 @@ public class ConfigManager
         try
         {
             return RingAccess.valueOf(
-                String.valueOf(s == null ? "PRIVATE" : s.getStringValue()).toUpperCase());
+                String.valueOf(s == null ? "PRIVATE" : s.getStringValue()).toUpperCase(Locale.ROOT));
         }
         catch (final RuntimeException e)
         {
@@ -711,7 +712,7 @@ public class ConfigManager
         try
         {
             return RingStyle.valueOf(
-                String.valueOf(s == null ? "CONCURRENT" : s.getStringValue()).toUpperCase());
+                String.valueOf(s == null ? "CONCURRENT" : s.getStringValue()).toUpperCase(Locale.ROOT));
         }
         catch (final RuntimeException e)
         {
@@ -1406,7 +1407,9 @@ public class ConfigManager
      *
      * <p>Typed from what is already there rather than from a declaration: every setting
      * arrives with a default, and that default's type is what the setting is. A boolean
-     * stays a boolean, a number stays a number, and anything else is text.
+     * stays a boolean, a number stays a number, and text with a closed set of valid values
+     * -- a ring style, a material, a log level -- has to be one of them. See
+     * {@link ParsedSetting} for the rules and for what is deliberately left as free text.
      *
      * <p>Takes effect immediately, because everything reads its setting when it needs it
      * rather than caching it at startup. That is the point of having this at all -- before
@@ -1426,38 +1429,14 @@ public class ConfigManager
         {
             return null;
         }
-        final Object current = setting.getValue();
-        final Object parsed;
-        try
+        final ParsedSetting parsed = ParsedSetting.read(setting.getName(), setting.getValue(), raw);
+        if (!parsed.isAccepted())
         {
-            if (current instanceof Boolean)
-            {
-                if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw))
-                {
-                    return setting.getName().name() + " is true or false, not \"" + raw + "\".";
-                }
-                parsed = Boolean.valueOf(raw);
-            }
-            else if (current instanceof Integer)
-            {
-                parsed = Integer.valueOf(raw.trim());
-            }
-            else if (current instanceof Double)
-            {
-                parsed = Double.valueOf(raw.trim());
-            }
-            else
-            {
-                parsed = raw;
-            }
+            return parsed.getRefusal();
         }
-        catch (final NumberFormatException e)
-        {
-            return setting.getName().name() + " is a number, not \"" + raw + "\".";
-        }
-        setting.setValue(parsed);
+        setting.setValue(parsed.getValue());
         Configuration.persistCurrentConfiguration("WormholeXTreme");
-        return setting.getName().name() + " is now " + parsed + ".";
+        return setting.getName().name() + " is now " + parsed.getValue() + ".";
     }
 
     /**
@@ -1475,7 +1454,7 @@ public class ConfigManager
         }
         try
         {
-            return getConfigurations().get(ConfigKeys.valueOf(name.trim().toUpperCase()));
+            return getConfigurations().get(ConfigKeys.valueOf(name.trim().toUpperCase(Locale.ROOT)));
         }
         catch (final IllegalArgumentException notASetting)
         {

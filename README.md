@@ -238,6 +238,12 @@ thing that is neither.
 setting, not just the four that used to have commands of their own, and takes effect
 immediately — there is nothing to reload and no restart.
 
+A setting with a fixed set of valid values is checked before it is written, and a bad value is
+refused with the options named rather than accepted and quietly ignored later. That covers the
+ring style and access modes, the ring material, light and flash materials, and the log level.
+Sound names are deliberately not checked: a resource pack's own sound is a name this plugin
+cannot know, and it still has to pass through.
+
 **Other** — `compass` points your compass at the nearest gate, and `compass reset` puts it
 back to world spawn, which is what an ordinary compass does on its own.
 

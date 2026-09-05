@@ -105,6 +105,83 @@ registry needs a running server, but it catches the mistake that is actually eas
 while editing this list. The failure it guards against is invisible: an unrecognised name is
 silent, and silence is what a sound setting looks like when it is switched off deliberately.
 
+### `/wormhole config` no longer accepts a value it cannot read back
+
+```
+> /wormhole config ring_default_style banana
+RING_DEFAULT_STYLE is now banana.
+```
+
+It was not. `ConfigManager.applySetting` typed a value by what was already in the setting --
+a boolean stayed a boolean, a number stayed a number, and anything else was stored exactly as
+typed. Several settings are text with a closed set of valid values, and each of them reads
+back through a getter that quietly substitutes a fallback when it cannot parse what it finds.
+So the write succeeded, `getRingDefaultStyle()` went on answering `CONCURRENT`, and the only
+message that could have said so said the opposite.
+
+`RING_DEFAULT_ACCESS` was the same shape and worse in effect: it falls back to `PRIVATE`, so
+a server owner who meant to publish rings and mistyped `public` was told they had. The ring
+material, light and flash settings were unvalidated too, though the in-game
+`/wormhole ring edit` commands had checked the identical values all along -- one path
+enforced the rule, the other did not, on the same data.
+
+`LOG_LEVEL` was the one with no safety net at all: `Setting.getLevel()` calls `Level.parse`
+straight, uncaught and case-sensitive, so a mistyped level threw at every log call afterwards
+-- from inside logging, which is a poor place to be the first to notice.
+
+Values with a closed set are now checked before they are stored, and refused with the options
+named. The rules live in a new `ParsedSetting`, which is pure -- no reading, no writing, no
+config file -- because the refusals are the whole point and `applySetting` persists on the way
+past, so there is no other way to see them.
+
+Accepted values are stored canonically rather than as typed, and that is not tidiness.
+`RingStyle.parse` accepts `slow` for `SEQUENTIAL` -- taken deliberately, so the two places a
+style can be set agree on what a style is called -- while `getRingDefaultStyle()` reads the
+stored text back with `valueOf`. Storing the word as typed would have made `slow` mean
+`CONCURRENT`: this exact bug, reintroduced by the fix for it. Caught by reading the two
+functions side by side rather than by testing, which is the only reason to write it down here
+-- a rule that has to hold between a parser and a getter that never call each other is
+exactly the kind that gets broken by someone changing one of them.
+
+The block check moved to `MaterialUtils.isBlockOrUnknown` rather than being copied. Tab
+completion already had it, along with the reason it is written the way it is: from 1.20.6 on
+`Material.isBlock()` goes through the server's registry and throws if asked before the server
+has finished starting, so it accepts rather than refuses when it cannot ask. On a live server
+-- the only place either caller is reached by a player -- the registry is always there.
+
+Sound names are deliberately still free text. Naming a sound instead of resolving it to a
+`Sound` constant is what lets a resource pack's own sound through, and this plugin cannot know
+those names; validating them would be a regression, not a fix. There is a test pinning that,
+aimed at whoever tidies this up next.
+
+### `/wormhole config` worked in English and not much else
+
+Found in review of the change above, and larger than what it was found in. Every name in
+that command was folded with a bare `toUpperCase()`, which uses whatever locale the JVM
+happens to be running in. A Turkish JVM maps `i` to a dotted capital I (U+0130) rather than
+to `I` -- so `ring_default_style` became `RİNG_DEFAULT_STYLE`, matched no setting, and the
+command answered:
+
+```
+No setting called ring_default_style.
+```
+
+Most of this plugin's settings have an `i` somewhere in their name, so most of them were
+unreachable on such a server. The name on screen looks perfectly correct, because the
+mangling happens after it is read -- it reads as a typo that isn't one, which is why nobody
+reported it.
+
+`LOG_LEVEL` had the same fault in the value rather than the name, and would have refused a
+level that is valid everywhere else. The setting search behind
+`/wormhole config <partial name>` had it too, and so did the read-back of the two ring enums
+when the value in config.yml was not already upper case.
+
+All five now fold against `Locale.ROOT`. These names are fixed ASCII and were never the
+server owner's language to begin with.
+
+The rest of the plugin still folds case in the default locale in about seventy other places.
+Those are a separate sweep, deliberately not swept up here.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally
