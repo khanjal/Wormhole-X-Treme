@@ -740,6 +740,8 @@ public class Stargate
         {
             setupGateSign(true);
         }
+        // The dial sign is the player's, so it is matched to the gate rather than placed.
+        matchDialSignMaterial();
         // 2. Set up Iris stuff
         setIrisDeactivationCode(idc);
 
@@ -802,6 +804,20 @@ public class Stargate
     public boolean dialStargate(final Stargate target, final boolean force)
     {
         return StargateDialManager.dialStargate(this, target, force);
+    }
+
+    /**
+     * Pushes this wormhole's shutdown back, without letting it outlive its maximum open time.
+     *
+     * <p>Not a re-dial: nothing about the connection is rebuilt and the gate's own open
+     * timestamp is untouched, so {@code max_open_seconds} still measures from when the
+     * wormhole first opened.
+     *
+     * @return true if the shutdown was pushed back
+     */
+    public boolean extendOpenTime()
+    {
+        return StargateDialManager.extendOpenTime(this);
     }
 
     /**
@@ -1122,6 +1138,22 @@ public class Stargate
             return gateOwnerName;
         }
         return gateOwner;
+    }
+
+    /**
+     * Gets the stored display name, without falling back to the owner id.
+     *
+     * <p>{@link #getGateOwnerName()} is for showing a person: it answers "what should I put
+     * on the sign", and an id is a better answer than nothing. This one answers "is there a
+     * display name at all", which is the question anything copying or saving the field has
+     * to ask instead. Using the display getter for that writes the id into the name and
+     * makes it permanent -- see {@code StargateYamlManager.saveStargate}.
+     *
+     * @return the stored owner display name, or null if none was ever resolved
+     */
+    public String getStoredGateOwnerName()
+    {
+        return gateOwnerName;
     }
 
     /**
@@ -2015,6 +2047,17 @@ public class Stargate
     public void setupRedstone(final boolean create)
     {
         StargateBlockSetup.setupRedstone(this, create);
+    }
+
+    /**
+     * Converts this gate's dial sign to its own sign material, keeping text and facing.
+     *
+     * <p>Does nothing when the sign already matches, when the server has turned this off, or
+     * when the gate has no dial sign at all.
+     */
+    public void matchDialSignMaterial()
+    {
+        StargateBlockSetup.matchDialSignMaterial(this);
     }
 
     /**

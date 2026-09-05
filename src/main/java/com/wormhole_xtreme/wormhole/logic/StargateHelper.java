@@ -185,8 +185,10 @@ public final class StargateHelper
             return null;
         }
         // Scan all shapes and pick the most specific match: prefer shapes that declare
-        // REDSTONE_ACTIVATED=TRUE over plain shapes with identical structure layouts,
-        // so StandardSignDialRedstone wins over StandardSignDial for the same frame.
+        // REDSTONE_ACTIVATED=TRUE over plain shapes with identical structure layouts.
+        // No shipped shape pair needs this any more -- every sign-dial shape carries its
+        // own [RD] rather than having a separate redstone twin -- but a server's custom
+        // shapes can still be written that way, so the preference stays.
         Stargate best = null;
         boolean bestIsRedstone = false;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())
@@ -568,8 +570,13 @@ public final class StargateHelper
                         gate.setGateDialSignBlock(signBlock);
                         gate.setGateDialSign(signState);
                         // Read the name the player wrote on line 0 of the sign.
+                        // Stripped, because the plugin writes this same line itself once the
+                        // gate is running. Re-detecting a styled sign would otherwise take the
+                        // colour codes into the gate's name -- invisible characters in a name
+                        // that has to be typed to dial it.
                         final String line0 = signState.getSide(Side.FRONT).getLine(0);
-                        final String signName = line0 != null ? line0.trim() : "";
+                        final String signName = com.wormhole_xtreme.wormhole.utils.SignStyle
+                            .stripFormatting(line0).trim();
                         if (!signName.isEmpty())
                         {
                             gate.setGateName(signName);

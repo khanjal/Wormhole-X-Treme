@@ -13,7 +13,7 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Setting up** — [Server Compatibility](#server-compatibility) · [Build](#build) · [Configuration](#configuration) · [Permissions](#permissions) · [Commands](#commands)
 
-**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device--button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
+**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device--button-and-lever-support) · [Signs](#signs) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
 
 **Using gates** — [Redstone activation](#redstone-activation) · [What travels through a gate](#what-travels-through-a-gate) · [Nether and End dimension support](#nether-and-end-dimension-support)
 
@@ -348,6 +348,13 @@ silently lose a custom shape.
 
 Default shapes are extracted from the jar on first run only — they will **not** overwrite user-customized files.
 
+`MinimalSignDialRedstone` is no longer shipped. Its reason for existing was that
+`MinimalSignDial` could not be dialled by redstone; now every sign-dial shape can, so a
+separate redstone-flavoured file has nothing left to offer. Because defaults are only ever
+written when missing, an existing server keeps the copy already in its folder and any gate
+built from it keeps working — nothing is deleted from an install. New installs simply do not
+get it.
+
 ### Shape material parameters
 
 Shapes describe geometry. Appearance comes from the gate's [material group](#material-groups),
@@ -364,7 +371,7 @@ that material out of palettes entirely; leave it unset unless the geometry needs
 | `PORTAL_MATERIAL=` | `WATER` | The block type filling the open portal (`[P]` blocks when active). |
 | `IRIS_MATERIAL=` | `STONE` | The block type filling the portal when the iris is closed. |
 | `ACTIVE_MATERIAL=` | `GLOWSTONE` | The block type used for light blocks (`:L` markers) when the gate is active. |
-| `SIGN_MATERIAL=` | `OAK_WALL_SIGN` | The wall-sign type used for the gate name sign and the dial sign. Any `*_WALL_SIGN` material is valid (e.g. `CRIMSON_WALL_SIGN`, `WARPED_WALL_SIGN`). |
+| `SIGN_MATERIAL=` | `OAK_WALL_SIGN` | The wall-sign type used for the gate's **name sign**. Any `*_WALL_SIGN` material is valid (e.g. `CRIMSON_WALL_SIGN`, `WARPED_WALL_SIGN`). The dial sign is placed by a player on the `[D]` block, and the plugin accepts whatever wall sign it finds there — but converts it to match this material when the gate is completed or regenerated, keeping its text and facing. Set `sign-dial-match-material: false` in config.yml to leave a player's own sign alone. |
 
 Example — a Nether-themed gate using crimson materials:
 
@@ -481,6 +488,75 @@ were `Standard.shape` with different materials, which is exactly what a palette 
 Build `Standard.shape` in lapis for an Atlantis gate or polished blackstone for a Universe
 one.
 
+## Signs
+
+A gate has up to two signs, and they are not the same thing.
+
+- The **name sign** is placed by the plugin on the shape's `:N` block. It shows the gate's
+  name, its network, and its owner.
+- The **dial sign** is placed by *you*, on the shape's `[D]` block, and it is what makes a
+  gate a sign gate. Write the gate's name on it when you build. Afterwards the plugin writes
+  it: the gate's name, the destination currently selected, and the one either side of it.
+  Right-clicking cycles through them.
+
+```
+      NAME SIGN                    DIAL SIGN
+
+      -Helios-                     -Helios-
+      N:Public                     Abydos          <- previous
+      O:Justin                   » Chulak «        <- selected, and what a dial will use
+                                   Dakara          <- next
+```
+
+The selected destination is coloured and wrapped in `»` `«`. Both are deliberate: the colour
+carries it at a glance, and the markers carry it for a colourblind player or a server that has
+turned the colours off.
+
+### Appearance
+
+Every colour is a Bukkit colour name — `AQUA`, `GRAY`, `DARK_GREEN`, `GOLD` and so on. A name
+that is not recognised, or a formatting code that is not a colour such as `MAGIC`, falls back
+to the default rather than putting a stray control character on a sign.
+
+| Setting | Default | What it colours |
+|---|---|---|
+| `sign-color-gate-name` | `DARK_AQUA` | the gate's own name, on both signs |
+| `sign-color-network` | `GRAY` | the network line on the name sign |
+| `sign-color-owner` | `GRAY` | the owner line on the name sign |
+| `sign-color-selected` | `DARK_GREEN` | the destination a dial will use |
+| `sign-color-neighbour` | `GRAY` | the destinations either side of it |
+| `sign-glowing-text` | `false` | whether the text glows |
+| `sign-dial-match-material` | `true` | whether a player's dial sign is converted to the gate's sign material |
+
+Glow is off by default, and it is worth knowing why before turning it on. Glowing text draws a
+bright outline around every character, which on top of an already-coloured line reads as a halo
+— it makes a sign carry further and read *worse*. It is genuinely useful on a very dark gate
+room, and unhelpful anywhere else.
+
+`sign-dial-match-material` is what stops a themed gate ending up with an oak dial sign on a
+crimson frame: the sign a player put up is converted to the gate's own sign material when the
+gate is completed or regenerated, keeping its text and which way it faces. Set it false to
+leave a player's own sign exactly as they placed it.
+
+### Changing them
+
+All of these can be set while the server runs, and take effect on the next repaint:
+
+```
+/wormhole config sign-glowing-text false
+/wormhole config sign-color-selected GOLD
+```
+
+`/wormhole config sign` lists them all, and `/wormhole config <name>` on its own shows the
+current value and what it does.
+
+**Signs repaint when they are next written, not on restart.** A dial sign repaints on the next
+click; a name sign repaints on `/wormhole regenerate <gate>`.
+
+**Editing `config.yml` while the server is running does not work.** The plugin writes the file
+back from memory when it shuts down, so an edit made underneath it is overwritten. Either use
+the command above, or edit the file with the server stopped.
+
 ## DHD (dial-home device) — button and lever support
 
 The DHD block that a player clicks to activate a gate can be any button type or a lever. All of the following are recognised:
@@ -513,68 +589,110 @@ An iris closes over the portal to block travel. When a remote gate's iris is act
 
 ## Redstone activation
 
-Two redstone activation modes are supported and controlled by blocks registered to the gate at build time.
-
-### Redstone sign dial (sign gate)
-
-A gate with a redstone sign dial cycles through available network targets via a redstone pulse on the `gateRedstoneSignActivationBlock`. Each pulse advances the dial sign to the next target. A sustained high signal does not repeatedly cycle — only transitions trigger a step.
+Redstone activation is controlled by blocks registered to the gate at build time.
 
 ### Redstone direct dial
 
 A gate can be activated directly by a redstone signal on the `gateRedstoneDialActivationBlock`. When the signal goes high the gate dials its current sign target; when the signal drops the gate shuts down (if `shutdown_timeout` is `0`). Enable this mode per gate with `/wormhole redstone <gate> true`.
 
-Both modes work via `BlockRedstoneEvent` and are fully compatible with all Bukkit-based servers.
+### Redstone sign cycling (custom shapes only)
+
+A shape can also mark an `[RS]` block, which advances the dial sign to the next network target on each pulse. **No shipped shape carries one.** Redstone dialling exists so a sign can be left preset on a destination and fired by a pulse, and an input that moves the sign works against that — so the shipped shapes give redstone the trigger and leave choosing the destination to whoever clicks the sign.
+
+The support stays for custom shapes. If you add an `[RS]`, keep it more than a block from `[RD]`: a signal counts anywhere within a block of a marker, so placing them together gives one pulse two meanings — cycle the destination, then dial whatever it just landed on. The plugin drops an `[RS]` that lands adjacent to `[RD]` rather than letting that happen.
+
+Both work via `BlockRedstoneEvent` and are fully compatible with all Bukkit-based servers.
 
 A signal counts when it lands **on** the activation block or on any redstone component **touching** it — dust, a repeater, a comparator, a lever, a button, a pressure plate, an observer, a redstone block or torch, or a detector/powered/activator rail. You do not have to place dust exactly on the activation block.
 
 ### Building a redstone gate
 
-A redstone gate is a **sign gate with redstone inputs**. Redstone does not choose a
+A redstone gate is a **sign gate with a redstone input**. Redstone does not choose a
 destination — the dial sign does, exactly as if a player were clicking it. Redstone just
-presses the buttons. A shape without a `[D]` dial sign block cannot be redstone-dialled.
+presses the button.
 
-Two shapes take redstone: `MinimalSignDialRedstone` and `StandardSignDial`. The minimal one
-is covered first because it carries the full set of markers; if you already have a Standard
-gate built, skip to [Redstone on a Standard gate](#redstone-on-a-standard-gate).
+Every sign gate takes redstone. A gate becomes redstone-dialable the moment its shape has an
+`[RD]` block, and all four shipped sign-dial shapes carry one: `StandardSignDial`,
+`EvenSignDial`, `MinimalSignDial` and `HorizontalSignDial`. There is no separate
+redstone-flavoured shape to know to pick at build time — build the sign gate whose size and
+layout you want, then wire it up.
 
-`MinimalSignDialRedstone.shape` is not laid out like `MinimalSignDial` — it is a block
-taller and the pillars are further apart — so building the plain sign-dial gate will not
-give you a redstone one.
+The shapes with no `[D]` dial sign — `Standard`, `Minimal`, `Horizontal`, `Even`, `Large`,
+`Grand` and `Massive` — carry no markers, deliberately. With no sign to leave preset there
+would be nothing for a pulse to dial, so those stay `/dial`-only.
 
-```
-Layer 1 — the ring              Layer 2 — behind it, the DHD side
-   y=5   .  .  .                   y=5   .  .  .
-   y=4   .  ~  .                   y=4   A  .  D
-   y=3   .  ~  .                   y=3   #  .  #
-   y=2   .  e  .                   y=2   R  m  C
-   y=1   .  V  .                   y=1   #  .  #
-   y=0   .  #  .                   y=0   .  .  .
+Each shape marks two cells:
 
-   #  gate frame block            ~  portal, leave empty
-   .  leave empty                 e  player exit    m  minecart exit
-   A  activation lever or button  D  dial sign
-   R  [RD]  dial          -> redstone dust
-   C  [RS]  next target   -> redstone dust
-   V  [RA]  gate is open  -> lever
-```
+- **`[RD]`, the dial trigger** — run redstone dust to it. A pulse dials whatever the dial
+  sign is currently showing. On every shipped shape this is the block **directly above the
+  activation block** (the one the button or lever is mounted on).
+- **`[RA]`, the gate-is-open output** — put a lever here. The plugin switches it on itself
+  when the gate opens, so it can drive doors, lamps or anything else that should react.
 
-`R`, `C` and `V` are not frame blocks — do not build gate material at them. Each sits
-directly on top of a frame block, which is why the shape file says they belong "on top of a
-[S] block".
+Neither is a frame block: do not build gate material at them, and nothing about the frame
+itself changed — the cells these markers use were already empty.
 
-The two pillars are mirror images, so if `R` and `C` end up swapped the gate will cycle
-targets when you meant to dial. Swap the dust to the other side if that happens.
+**An existing gate does not pick this up on its own.** A gate records where its redstone
+blocks are once, when it is first detected, and stores those positions with the gate. Nothing
+re-reads the shape afterwards, so a sign gate built before its shape gained `[RD]` has no
+dial-activation block stored and will not respond to a signal however it is wired —
+`/wormhole redstone <gate> true` sets the flag but cannot invent the position.
 
-Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign
-is showing, so with no target selected a pulse does nothing.
+Run `/wormhole refresh` and click the gate's DHD button. That re-detects the geometry from
+the shape as it is now and re-registers the gate with it, keeping the name, owner, IDC and
+network, and without touching a single block of what you built. The gate comes back with its
+markers and the wiring then works.
+
+Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign is
+showing, so with no target selected a pulse does nothing.
 
 A signal counts when it lands on the marked block **or on any redstone component touching
 it**, so you can run dust up to it rather than having to land exactly on the cell.
 
-### Redstone on a Standard gate
+The same is true of the DHD itself: any redstone component touching the block the button is
+mounted on will dial the gate, including one directly underneath it. On a gate sunk into the
+ground that is usually the easiest place to wire, since the `[RD]` cell ends up above head
+height while the block below the button is at hand level. The gate's own `[RA]` output lever
+is the one exception — it is ignored as a trigger however close it sits, so a gate cannot
+re-dial itself when it opens.
 
-`StandardSignDial` also takes redstone, on the DHD side (layer 4), next to the activation
-block and dial sign:
+### What actually counts as a trigger
+
+This is the part that catches people out, so it is worth being precise. The gate listens for a
+redstone **change** with a rising edge, and that change is reported on the block whose own
+power level changed.
+
+**A constant source does nothing on its own.** A redstone block placed beside the marker never
+changes — it is simply always on — so no change is ever reported for it and the gate never
+hears anything. The same is true of a torch that just sits there lit. What works is something
+that *switches*:
+
+- a **lever**, **button** or **pressure plate**
+- a **detector rail** a cart rolls over
+- dust whose power changes because one of the above fed it
+- a **repeater** or **comparator** carrying such a change along
+
+A redstone block is still useful, but as the thing a piston or observer moves in and out to
+*create* a change, not as the trigger itself.
+
+**You usually do not need to place the dust.** When a redstone-capable gate is set up the
+plugin puts redstone dust on the `[RD]` cell for you, and on `[RS]` if the shape has one. So
+the normal job is to run your circuit up to that dust and switch it, not to build the marker
+cell yourself.
+
+**One circuit is one trigger.** Every dust block along a run reports its own change as the
+signal travels, so a single lever can produce several changes a tick apart, all of them within
+reach of the gate. The gate acts once and then ignores further triggers for a quarter of a
+second, which is far longer than a signal takes to cross a DHD and far shorter than anyone can
+deliberately pulse a gate twice.
+
+**The wiring is yours.** Dust, levers and repeaters on the marker cells can be broken and
+replaced freely, even though the gate knows where they are. Only the frame refuses a pickaxe.
+
+### Where the markers are on each shape
+
+On `StandardSignDial` and `EvenSignDial` the DHD sits on its own layer behind the ring, and
+the two markers are placed like this:
 
 ```
    y=2   .  .  R          #  gate frame block   .  leave empty
@@ -584,19 +702,44 @@ block and dial sign:
 ```
 
 `R` goes on top of the activation block; `V` hangs on the side of the pillar below it.
-Neither is a frame block, so an existing Standard gate does not need rebuilding — place the
-dust and the lever and run `/wormhole redstone <gate> true`.
 
-There is no `[RS]` cycle block on this shape. The only free block top left is the one right
-beside `[RD]`, and a signal counts anywhere within a block of a marker, so a single pulse
-would cycle the destination and then dial whatever it landed on. Use
-`MinimalSignDialRedstone` if you want redstone target cycling as well as redstone dialling;
-on a Standard gate, click the sign to choose the destination and let redstone do the
-dialling.
+`MinimalSignDial` has the same two-block DHD pillar in a much smaller footprint. `[RD]` sits
+on top of the activation block exactly as above; `[RA]` goes on the ground row at the foot of
+that pillar, directly below it, next to the minecart exit — three blocks clear of `[RD]`
+rather than the two the larger shapes leave.
 
-`[RA]` is deliberately two blocks below `[RD]` rather than beside it. The plugin switches
-that lever on itself when the gate opens, so keeping it out of range stops the gate's own
-output from feeding back into its dial input.
+`HorizontalSignDial` lies flat, and its DHD is a single row of three blocks — activation,
+dial sign, iris — with open space above. Both markers go in the row directly above that one:
+`[RD]` on top of the activation block, `[RA]` on top of the iris block, two clear blocks
+apart.
+
+`[RA]` is always kept out of `[RD]`'s reach rather than placed beside it. The plugin switches
+that lever on itself when the gate opens, and a signal counts anywhere within a block of a
+marker, so putting the two together would feed the gate's own output straight back into its
+dial input.
+
+### Wiring a gate that is sunk into the ground
+
+Gates are commonly built one block low so the entrance is flush with the ground rather than a
+step up. That moves the markers down with everything else, and how far the dust has to climb
+depends on how tall the shape's DHD is. Measured from the surrounding ground:
+
+| Shape | Button | `[RD]` — run the dust here | `[RA]` |
+|---|---|---|---|
+| `HorizontalSignDial` | ground level | **ground level** | ground level |
+| `StandardSignDial`, `EvenSignDial` | ground level | **one block up**, on top of the button block | below ground |
+| `MinimalSignDial` | one block up | **two blocks up**, on top of the pillar | below ground |
+
+`HorizontalSignDial` is the easiest to wire of the three, since the whole gate lies flat and
+dust can run along the ground straight to the marker. `MinimalSignDial` is the most awkward:
+its DHD pillar stands two blocks tall above an empty row, so sinking the gate puts `[RD]` at
+head height and the dust has to be brought up to it.
+
+`[RA]` ends up underground on the three upright shapes. Nothing about triggering a gate needs
+it — it is only the gate-is-open output — so it can simply be left unused. To wire it, dig
+out the block it occupies and put the lever in the pocket. On `StandardSignDial` and
+`EvenSignDial` that cell sits beside the DHD pillar and is easy to reach; on `MinimalSignDial`
+it is directly beneath the pillar.
 
 ### Driving a gate with a minecart
 
@@ -608,12 +751,16 @@ Use a detector rail, not a powered rail. A powered rail is already energised by 
 switching it, so a cart passing over it changes nothing and produces no event. A detector
 rail emits a pulse only while a cart is on it, which is exactly the trigger you want.
 
-A trigger on an already-open gate does nothing at all — it neither closes the gate nor
-re-dials it. Closing was the old behaviour and made repeated triggers useless: a second cart
-shut the wormhole the first one had opened. Re-dialling is not the answer either, because
-dialling restarts the shutdown timer, so a cart every few seconds would hold the gate open
-and lock everyone else out. Leaving it alone means the gate always closes on its own timer,
-however often it is triggered.
+A trigger on an already-open gate pushes its shutdown back, rather than closing it or
+re-dialling it. Closing was the original behaviour and made repeated triggers useless: a
+second cart shut the wormhole the first one had opened. Re-dialling is not the answer either
+— it rebuilds the connection from scratch for no reason.
+
+Extending is bounded by `max_open_seconds`, which is measured from when the wormhole *first*
+opened and is not affected by any of this. So a cart every few seconds keeps the gate open
+while traffic is actually flowing, and still cannot hold it open indefinitely: once the
+maximum is reached the gate closes on the next trigger regardless. Set
+`redstone-extend-open-time: false` to go back to a trigger on an open gate doing nothing.
 
 A trigger on a gate that is lit but never dialled still deactivates it, which is the only
 way to clear a gate somebody activated and walked away from.

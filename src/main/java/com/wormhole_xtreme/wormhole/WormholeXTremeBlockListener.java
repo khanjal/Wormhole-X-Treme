@@ -34,6 +34,35 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 class WormholeXTremeBlockListener implements Listener
 {
     /**
+     * Whether a block is redstone wiring the admin owns rather than gate structure.
+     *
+     * <p>A gate's [RD], [RS] and [RA] cells are indexed as gate blocks, and they have to be:
+     * a redstone event arrives with only the block it fired on, and the index is how that
+     * finds the gate. Being indexed also meant being protected, so the dust and levers an
+     * admin lays to wire a gate could never be taken back up again -- the plugin told them to
+     * remove the whole gate first, for a redstone block sitting on top of the DHD.
+     *
+     * <p>These are the one part of a gate the plugin expects a person to place, change and
+     * remove freely. The frame is what protection is for.
+     *
+     * @param stargate
+     *            the gate the block belongs to
+     * @param block
+     *            the block being broken
+     * @return true if the break should be allowed
+     */
+    static boolean isRemovableGateWiring(final Stargate stargate, final Block block)
+    {
+        if ((stargate == null) || (block == null))
+        {
+            return false;
+        }
+        return WorldUtils.isSameBlock(stargate.getGateRedstoneDialActivationBlock(), block)
+            || WorldUtils.isSameBlock(stargate.getGateRedstoneSignActivationBlock(), block)
+            || WorldUtils.isSameBlock(stargate.getGateRedstoneGateActivatedBlock(), block);
+    }
+
+    /**
      * Handle block break.
      * 
      * @param player
@@ -46,6 +75,11 @@ class WormholeXTremeBlockListener implements Listener
      */
     private static boolean handleBlockBreak(final Player player, final Stargate stargate, final Block block)
     {
+        // Redstone wiring is the admin's to change, even though it is indexed as gate blocks.
+        if (isRemovableGateWiring(stargate, block))
+        {
+            return false; // allow break
+        }
         // Allow breaking the block directly under the dial button/lever if it is NOT the iris control block.
         try
         {

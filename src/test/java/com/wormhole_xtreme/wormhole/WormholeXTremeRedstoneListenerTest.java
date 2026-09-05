@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.bukkit.Location;
@@ -25,6 +26,9 @@ public class WormholeXTremeRedstoneListenerTest
     public void beforeEach()
     {
         GateSpatialIndex.clear();
+        // Gate names are reused across these cases and they run milliseconds apart, well
+        // inside the repeat-trigger window, so one case would otherwise silence the next.
+        WormholeXTremeRedstoneListener.clearTriggerHistory();
         // Ensure static plugin reference is non-null to avoid logging NPEs during indexing
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
@@ -75,27 +79,43 @@ public class WormholeXTremeRedstoneListenerTest
         doNothing().when(gate).shutdownStargate(anyBoolean());
         StargateManager.registerStargate(gate);
 
-        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(wire, 0, 1));
+        // A real scheduler would run the rescheduled shutdown, and the listener swallows
+        // Throwable, so a mock is the only way to tell "shutdown pushed back" apart from
+        // "shutdown happened" -- which is the whole distinction under test.
+        final org.bukkit.scheduler.BukkitScheduler scheduler =
+            mock(org.bukkit.scheduler.BukkitScheduler.class);
+        setScheduler(scheduler);
+        try
+        {
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(wire, 0, 1));
 
-        // A second cart over a detector rail used to shut the wormhole the first one
-        // opened. The gate is left to close on its own timer instead.
-        verify(gate, never()).shutdownStargate(anyBoolean());
-        // And it is not re-dialled either: dialling restarts the shutdown timer, so a
-        // repeatedly triggered gate would stay open and lock everyone else out.
-        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
-
-        StargateManager.removeStargate(gate);
+            // A second cart over a detector rail used to shut the wormhole the first one
+            // opened. It must still never do that.
+            verify(gate, never()).shutdownStargate(anyBoolean());
+            // And it is not re-dialled either. Re-dialling rebuilds the connection and, before
+            // max_open_seconds existed, restarted the timer from scratch -- which is what would
+            // have let a repeatedly triggered gate stay open and lock everyone else out.
+            verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+            // What it does instead: pushes the shutdown back. Bounded by max_open_seconds,
+            // which is measured from when the wormhole first opened and is not touched here.
+            verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+        }
+        finally
+        {
+            setScheduler(null);
+            StargateManager.removeStargate(gate);
+        }
     }
 
     @Test
     public void theSignCycleBlockIsIgnoredWhileTheGateIsOpen()
     {
-        // The [RA] lever is the gate's own output, switched on the moment the gate opens,
-        // and in MinimalSignDialRedstone it sits diagonally next to [RD] and [RS] on the
-        // neighbouring layer. Since a signal counts anywhere within a block of a marker,
-        // opening the gate necessarily lands a signal on both inputs. This guard is the
-        // only reason that is harmless: without it a gate would advance its own dial sign
-        // every single time it opened.
+        // The [RA] lever is the gate's own output, switched on the moment the gate opens.
+        // A shape that puts it within a block of [RD] and [RS] -- easily done, since a
+        // signal counts anywhere within a block of a marker and consecutive layers are
+        // neighbours in the world -- lands a signal on both inputs every time the gate
+        // opens. This guard is the only reason that is harmless: without it such a gate
+        // would advance its own dial sign every single time it opened.
         final World world = mock(World.class);
         final int cx = 400, cy = 64, cz = 500;
 
@@ -284,5 +304,212 @@ public class WormholeXTremeRedstoneListenerTest
         // circuit, not a wire into this gate.
         final Stargate gate = fireRedstoneNextToRdBlock(Material.DETECTOR_RAIL, 2, 0, 0);
         verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
+
+    /**
+     * Fires a redstone change at an offset from a gate's DHD button and returns the gate.
+     *
+     * <p>No [RD] block is registered, so anything that dials here did so through the DHD
+     * itself rather than through the marker cell.
+     */
+    private Stargate fireRedstoneNextToDhd(final Material sourceType,
+                                           final int offX, final int offY, final int offZ,
+                                           final boolean sourceIsOwnOutput)
+    {
+        final World world = mock(World.class);
+        final int dx = 300, dy = 64, dz = 400;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("dhdTest");
+
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getX()).thenReturn(dx);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        final Block source = mock(Block.class);
+        when(source.getLocation()).thenReturn(new Location(world, dx + offX, dy + offY, dz + offZ));
+        when(source.getX()).thenReturn(dx + offX);
+        when(source.getY()).thenReturn(dy + offY);
+        when(source.getZ()).thenReturn(dz + offZ);
+        when(source.getType()).thenReturn(sourceType);
+
+        gate.setGateDialLeverBlock(button);
+        if (sourceIsOwnOutput)
+        {
+            gate.setGateRedstoneGateActivatedBlock(source);
+        }
+        gate.setGateRedstonePowered(true);
+        gate.setGateSignPowered(true);
+        gate.setGateActive(false);
+
+        final Stargate target = new Stargate();
+        target.setGateName("targetGate");
+        doReturn(target).when(gate).getGateDialSignTarget();
+        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+
+        StargateManager.registerStargate(gate);
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, 0, 15));
+        StargateManager.removeStargate(gate);
+        return gate;
+    }
+
+    /**
+     * A repeater against the DHD dials, the same as dust against it does.
+     *
+     * <p>The [RD] cell has always accepted any redstone component beside it; the DHD
+     * accepted dust and nothing else. So a repeater feeding the button worked one block
+     * higher and did nothing at all here, with no way to tell the two cases apart from
+     * in game -- the dust that "worked" and the repeater that did not are the same circuit
+     * to whoever built it.
+     */
+    @Test
+    public void aRepeaterAgainstTheDhdDialsTheSameWayDustDoes()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.REPEATER, 1, 0, 0, false);
+        verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /**
+     * A signal underneath the DHD dials.
+     *
+     * <p>This is the natural place to bring redstone on a gate sunk a block into the
+     * ground for a flush entrance, which is how they are commonly built: the marker cell
+     * ends up above head height, while the block below the button is at hand level and
+     * can be dug out and wired without disturbing the gate.
+     */
+    @Test
+    public void aSignalUnderTheDhdDials()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.REDSTONE_WIRE, 0, -1, 0, false);
+        verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /**
+     * An ordinary block against the DHD does not dial.
+     *
+     * <p>Guards the widening above. Redstone events fire for plenty of reasons near a
+     * gate, and if any of them counted, a gate would dial itself on unrelated block
+     * updates nearby.
+     */
+    @Test
+    public void anOrdinaryBlockAgainstTheDhdDoesNotDial()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.STONE, 1, 0, 0, false);
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
+
+    /**
+     * The gate's own [RA] output never dials the gate, even sitting right against the DHD.
+     *
+     * <p>[RA] is a lever the plugin switches on itself the moment the gate opens, and on
+     * some shapes it is close enough to the DHD to be adjacent to it. A lever is a redstone
+     * source, so once any source beside the DHD counts, the gate's own output becomes an
+     * input to its own dial trigger. The shapes keep [RA] clear of [RD] by geometry; this
+     * keeps it clear of the DHD by rule, which geometry alone cannot do on a small shape.
+     */
+    @Test
+    public void theGatesOwnActivatedLeverDoesNotDialItEvenWhenItTouchesTheDhd()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.LEVER, 1, 0, 0, true);
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
+
+    /**
+     * A second dust block in the same run does not dial the gate a second time.
+     *
+     * <p>Reported from in game: running redstone past the button and up to the marker
+     * activated the gate twice in rapid succession. One circuit is not one event -- every dust
+     * block along a run fires its own BlockRedstoneEvent as the signal propagates, and a gate
+     * answers to any component touching its DHD as well as to its [RD] cell, so a single run
+     * legitimately powers several blocks it listens to.
+     *
+     * <p>The synchronous "already open" guard does not catch this on its own, because the
+     * events arrive a tick or so apart and each one is a fresh rising edge.
+     */
+    @Test
+    public void asecondDustBlockInTheSameRunDoesNotDialTwice()
+    {
+        final World world = mock(World.class);
+        final int dx = 500, dy = 64, dz = 600;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("debounceTest");
+
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getX()).thenReturn(dx);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        // Two different dust blocks, both within reach of the DHD, as a real run would be.
+        final Block dustLow = mock(Block.class);
+        when(dustLow.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dustLow.getX()).thenReturn(dx + 1);
+        when(dustLow.getY()).thenReturn(dy);
+        when(dustLow.getZ()).thenReturn(dz);
+        when(dustLow.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        final Block dustHigh = mock(Block.class);
+        when(dustHigh.getLocation()).thenReturn(new Location(world, dx + 1, dy + 1, dz));
+        when(dustHigh.getX()).thenReturn(dx + 1);
+        when(dustHigh.getY()).thenReturn(dy + 1);
+        when(dustHigh.getZ()).thenReturn(dz);
+        when(dustHigh.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        gate.setGateDialLeverBlock(button);
+        gate.setGateRedstonePowered(true);
+        gate.setGateSignPowered(true);
+        gate.setGateActive(false);
+
+        final Stargate target = new Stargate();
+        target.setGateName("targetGate");
+        doReturn(target).when(gate).getGateDialSignTarget();
+        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+
+        StargateManager.registerStargate(gate);
+        final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
+        listener.onBlockRedstoneChange(new BlockRedstoneEvent(dustLow, 0, 15));
+        listener.onBlockRedstoneChange(new BlockRedstoneEvent(dustHigh, 0, 15));
+        StargateManager.removeStargate(gate);
+
+        verify(gate, times(1)).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    @Test
+    public void aFirstTriggerIsNeverARepeat()
+    {
+        assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(null, 1000L, 250L));
+    }
+
+    @Test
+    public void aTriggerInsideTheWindowIsARepeat()
+    {
+        assertTrue(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(1000L), 1100L, 250L));
+    }
+
+    @Test
+    public void aTriggerAfterTheWindowIsANewPress()
+    {
+        assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(1000L), 1300L, 250L),
+            "a deliberate second pulse must still work, or redstone dialling is one-shot");
+    }
+
+    /**
+     * A clock that jumps backwards does not deafen a gate.
+     *
+     * <p>Wall-clock time is not monotonic -- an NTP correction can move it back. Treating a
+     * negative gap as "recent" would leave the gate ignoring redstone until real time caught
+     * up again, which for a large correction could be a very long time.
+     */
+    @Test
+    public void aClockJumpingBackwardsDoesNotSilenceTheGate()
+    {
+        assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(5000L), 1000L, 250L));
     }
 }
