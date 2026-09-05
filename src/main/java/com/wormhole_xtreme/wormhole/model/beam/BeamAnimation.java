@@ -11,6 +11,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * Runs the beam sequence, matched beat for beat against the reference: a bright glow gathers
@@ -142,8 +143,22 @@ public final class BeamAnimation
                 + "You're already beaming somewhere.");
             return false;
         }
+        // Terrain drifts away from the coordinates a destination was recorded at -- dug
+        // out, built up, whatever -- and nothing re-checks them until someone actually
+        // travels, so a stored point can strand a traveller buried or hanging in mid-air.
+        // Corrected here rather than by each caller: every one of them was already doing
+        // this, identically, immediately before calling in, which made it a convention the
+        // fifth caller could forget rather than a guarantee. The correction is idempotent
+        // (it prefers the exact stored spot whenever that spot is already standable), so a
+        // caller that still snaps its own location first loses nothing by it.
+        //
+        // Done once, here, rather than separately for the teleport and the visual: this
+        // becomes Sequence's destination field, which the real teleport call and the
+        // descend/fade columns already share, so the effect cannot land somewhere the
+        // player does not.
+        final Location corrected = WorldUtils.findSafePlayerLocation(destination);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Sequence(player, destination, destinationName, onDepart), 1L);
+            new Sequence(player, corrected, destinationName, onDepart), 1L);
         return true;
     }
 

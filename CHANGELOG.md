@@ -46,6 +46,29 @@ waves prints a note saying the depth will not change how the gate looks, and wha
 still control. The alternative was renaming the command, which would break anyone's existing
 scripts to fix a wording problem.
 
+### Arrival ground correction is now the beam's job, not each caller's
+
+Every beam corrects its destination for terrain that has drifted since the point was
+recorded -- ground dug out or built up, which would otherwise strand a traveller hanging in
+mid-air or buried in a block that had risen to meet them. That was already true, but it was
+true by repetition: all four callers of `BeamAnimation.start` ran
+`WorldUtils.findSafePlayerLocation` themselves, identically, on the line before calling in.
+
+Four out of four getting it right is not a guarantee, it is a convention -- and the caller
+that forgets is the one that drops somebody inside a wall. `BeamAnimation.start` now applies
+the correction to every beam it runs, and the four call sites pass their stored point in
+as-is.
+
+Safe to fold inward because the correction is idempotent: it tries the exact stored spot
+before searching, and re-centring an already-centred coordinate lands on the same block. A
+caller that still snaps its own location first therefore loses nothing. That property is now
+pinned by a test, since correctness depends on it and neither half of it is obvious from
+reading the function.
+
+The gate walk-through listener keeps its own separate call, deliberately -- it teleports
+directly and never runs a beam sequence at all, so there is nothing there to inherit the
+guarantee from.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally
