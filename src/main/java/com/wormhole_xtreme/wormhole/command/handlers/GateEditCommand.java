@@ -56,11 +56,11 @@ public class GateEditCommand implements SubCommand
     static
     {
         FIELDS.put("portal", (sender, gate, value) ->
-            new PortalMaterialCommand().execute(sender, new String[] { "portalmaterial", gate, value }));
+            new MaterialCommand(MaterialCommand.Kind.PORTAL).execute(sender, new String[] { "portalmaterial", gate, value }));
         FIELDS.put("iris", (sender, gate, value) ->
-            new IrisMaterialCommand().execute(sender, new String[] { "irismaterial", gate, value }));
+            new MaterialCommand(MaterialCommand.Kind.IRIS).execute(sender, new String[] { "irismaterial", gate, value }));
         FIELDS.put("light", (sender, gate, value) ->
-            new LightMaterialCommand().execute(sender, new String[] { "lightmaterial", gate, value }));
+            new MaterialCommand(MaterialCommand.Kind.LIGHT).execute(sender, new String[] { "lightmaterial", gate, value }));
         FIELDS.put("woosh", (sender, gate, value) ->
             new WooshDepthCommand().execute(sender, new String[] { "wooshdepth", gate, value }));
         FIELDS.put("redstone", (sender, gate, value) ->

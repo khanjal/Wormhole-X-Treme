@@ -186,12 +186,18 @@ public final class SubCommands
                 }
                 return none();
             });
-        register("portalmaterial", aliases(), "/wormhole portalmaterial <gate> <material>",
-            new com.wormhole_xtreme.wormhole.command.handlers.PortalMaterialCommand(), false, GATE_THEN_VALUE);
-        register("irismaterial", aliases(), "/wormhole irismaterial <gate> <material>",
-            new com.wormhole_xtreme.wormhole.command.handlers.IrisMaterialCommand(), false, GATE_THEN_VALUE);
-        register("lightmaterial", aliases(), "/wormhole lightmaterial <gate> <material>",
-            new com.wormhole_xtreme.wormhole.command.handlers.LightMaterialCommand(), false, GATE_THEN_VALUE);
+        // The three material overrides differ only in which set of materials they accept, so
+        // they share one handler and the completer offers that set at the value position.
+        for (final com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind kind
+            : com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind.values())
+        {
+            final String name = kind.command();
+            register(name, aliases(), "/wormhole " + name + " <gate> <material>",
+                new com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand(kind), false, args ->
+                    args.length == 2 ? gateNames(args[1])
+                        : args.length == 3 ? prefixed(args[2], kind.allowedNames().toArray(new String[0]))
+                        : none());
+        }
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
             new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
 
