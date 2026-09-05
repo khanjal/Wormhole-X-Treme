@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -85,7 +86,7 @@ public class ConfigCommand implements SubCommand
         int count = 0;
         for (final String name : names)
         {
-            if (name.toUpperCase().contains(needle.toUpperCase()))
+            if (name.toUpperCase(Locale.ROOT).contains(needle.toUpperCase(Locale.ROOT)))
             {
                 count++;
                 if (count <= TOO_MANY_TO_LIST)

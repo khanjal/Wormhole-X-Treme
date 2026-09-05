@@ -150,6 +150,28 @@ public class ParsedSettingTest
     }
 
     @Test
+    public void aLogLevelIsFoldedAsAsciiRatherThanInTheServerOwnersLanguage()
+    {
+        // Caught in review on PR #36, not by me. A Turkish JVM upper-cases "i" to a dotted
+        // capital I (U+0130) rather than to "I", so the first version of this -- a plain
+        // toUpperCase() -- handed Level.parse a character it has never heard of and refused
+        // "fine" on Turkish servers alone. Level names are fixed ASCII; the fold has to be
+        // too. The default locale is JVM-wide state, so it is put back before leaving.
+        final java.util.Locale before = java.util.Locale.getDefault();
+        try
+        {
+            java.util.Locale.setDefault(new java.util.Locale("tr", "TR"));
+            storesAs(ConfigKeys.LOG_LEVEL, "fine", "FINE");
+            storesAs(ConfigKeys.LOG_LEVEL, "info", "INFO");
+            storesAs(ConfigKeys.LOG_LEVEL, "finest", "FINEST");
+        }
+        finally
+        {
+            java.util.Locale.setDefault(before);
+        }
+    }
+
+    @Test
     public void aSoundNameIsStillWhateverTheServerOwnerTyped()
     {
         // Deliberately not validated, and this is the guard against somebody "tidying" that

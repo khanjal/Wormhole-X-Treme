@@ -118,6 +118,34 @@ Sound names are deliberately still free text. Naming a sound instead of resolvin
 those names; validating them would be a regression, not a fix. There is a test pinning that,
 aimed at whoever tidies this up next.
 
+### `/wormhole config` worked in English and not much else
+
+Found in review of the change above, and larger than what it was found in. Every name in
+that command was folded with a bare `toUpperCase()`, which uses whatever locale the JVM
+happens to be running in. A Turkish JVM maps `i` to a dotted capital I (U+0130) rather than
+to `I` -- so `ring_default_style` became `RİNG_DEFAULT_STYLE`, matched no setting, and the
+command answered:
+
+```
+No setting called ring_default_style.
+```
+
+Most of this plugin's settings have an `i` somewhere in their name, so most of them were
+unreachable on such a server. The name on screen looks perfectly correct, because the
+mangling happens after it is read -- it reads as a typo that isn't one, which is why nobody
+reported it.
+
+`LOG_LEVEL` had the same fault in the value rather than the name, and would have refused a
+level that is valid everywhere else. The setting search behind
+`/wormhole config <partial name>` had it too, and so did the read-back of the two ring enums
+when the value in config.yml was not already upper case.
+
+All five now fold against `Locale.ROOT`. These names are fixed ASCII and were never the
+server owner's language to begin with.
+
+The rest of the plugin still folds case in the default locale in about seventy other places.
+Those are a separate sweep, deliberately not swept up here.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally

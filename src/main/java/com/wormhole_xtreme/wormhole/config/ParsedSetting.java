@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import java.util.Locale;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
@@ -156,6 +157,12 @@ final class ParsedSetting
      * happily and then throw at every log call afterwards -- inside logging, which is a
      * poor place to be the first to notice.
      *
+     * <p>Upper-cased against {@link Locale#ROOT} rather than the server's own locale. A
+     * Turkish JVM upper-cases {@code i} to a dotted capital I (U+0130) rather than to
+     * {@code I}, so {@code fine} would arrive at {@link Level#parse} carrying a character
+     * it has never heard of, and a level that is valid on every other server would be
+     * refused on that one. Level names are fixed ASCII and should be folded as ASCII.
+     *
      * @param key
      *            which setting is being written
      * @param raw
@@ -166,7 +173,7 @@ final class ParsedSetting
     {
         try
         {
-            return accepted(Level.parse(raw.toUpperCase()).getName());
+            return accepted(Level.parse(raw.toUpperCase(Locale.ROOT)).getName());
         }
         catch (final IllegalArgumentException notALevel)
         {

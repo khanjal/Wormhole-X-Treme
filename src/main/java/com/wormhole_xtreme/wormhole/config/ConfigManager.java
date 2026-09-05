@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.config;
 
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
@@ -692,7 +693,7 @@ public class ConfigManager
         try
         {
             return RingAccess.valueOf(
-                String.valueOf(s == null ? "PRIVATE" : s.getStringValue()).toUpperCase());
+                String.valueOf(s == null ? "PRIVATE" : s.getStringValue()).toUpperCase(Locale.ROOT));
         }
         catch (final RuntimeException e)
         {
@@ -711,7 +712,7 @@ public class ConfigManager
         try
         {
             return RingStyle.valueOf(
-                String.valueOf(s == null ? "CONCURRENT" : s.getStringValue()).toUpperCase());
+                String.valueOf(s == null ? "CONCURRENT" : s.getStringValue()).toUpperCase(Locale.ROOT));
         }
         catch (final RuntimeException e)
         {
@@ -1453,7 +1454,7 @@ public class ConfigManager
         }
         try
         {
-            return getConfigurations().get(ConfigKeys.valueOf(name.trim().toUpperCase()));
+            return getConfigurations().get(ConfigKeys.valueOf(name.trim().toUpperCase(Locale.ROOT)));
         }
         catch (final IllegalArgumentException notASetting)
         {
