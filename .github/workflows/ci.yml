@@ -124,3 +124,60 @@ jobs:
           name: spotbugs-report
           path: target/spotbugsXml.xml
           retention-days: 14
+
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    # A pull request from a fork does not receive this repository's secrets, so SONAR_TOKEN
+    # is empty there and the scan can only fail auth. Skip that case outright rather than
+    # running it and swallowing the failure: a job that always passes because it never
+    # analysed anything is indistinguishable at a glance from one that works, which is worse
+    # than having no job at all. Anything that runs here is expected to succeed, so a failure
+    # is a real one and is allowed to fail the build. That is about the analysis being
+    # uploaded at all -- code quality itself is not blocking yet, since no quality gate is
+    # waited on until there is a baseline worth judging against.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # SonarCloud's new-code and blame data need real history, not the single commit a
+          # shallow checkout would give it.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # The skip above covers the one case where the token is legitimately absent. If it is
+      # missing anywhere else the secret has been removed or has expired, and saying so here
+      # is clearer than the scanner's auth error several minutes into a build.
+      - name: Check the Sonar token is present
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Build, test, and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >
+          mvn --batch-mode verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar
+          -Dsonar.projectKey=khanjal_Wormhole-X-Treme
+          -Dsonar.organization=ironraptor
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml

@@ -125,6 +125,49 @@
 					<includeTests>false</includeTests>
 				</configuration>
 			</plugin>
+			<plugin>
+				<!-- Coverage for SonarCloud to report against. prepare-agent instruments the
+				     tests surefire already runs; report turns that into the XML SonarCloud's
+				     Java analyzer picks up automatically from the default
+				     target/site/jacoco/jacoco.xml path. Nothing here fails the build on its
+				     own; measuring only, the quality gate is what would judge it.
+
+				     Scoped to this project's own classes only: the agent instruments every
+				     class actually loaded during the test run, not just ours, and
+				     org.bukkit.Material's generated <clinit> is large enough on its own that
+				     instrumenting it trips JaCoCo's ASM writer (MethodTooLargeException,
+				     65535-byte method limit) and aborts the whole test run. Coverage of a
+				     dependency was never the point anyway.
+
+				     The version floor here is the JDK, not the bytecode: this project targets
+				     Java 17, but the agent runs inside whichever JVM the tests do, and CI runs
+				     them on 25 as well. A JaCoCo older than that JDK rejects the class files
+				     the JDK itself loads, so this version tracks the newest JDK in the CI
+				     matrix rather than the release level the compiler is given. -->
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.15</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+						<configuration>
+							<includes>
+								<include>com/wormhole_xtreme/**</include>
+							</includes>
+						</configuration>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
