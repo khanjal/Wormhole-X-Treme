@@ -178,6 +178,50 @@ public final class BeamAnimation
         }
     }
 
+    /**
+     * Every potion effect a beam sequence applies to its traveller, and so everything any
+     * path that ends one has to take back off them.
+     *
+     * <p>Named in one place on purpose. These are applied across two different ticks
+     * (invisibility at the vanish, blindness and darkness at the teleport) but have to be
+     * cleared together by two different endings -- the normal arrival, and
+     * {@link Sequence#recover}. Listing them separately at each ending is what let darkness
+     * be added to the sequence without the recovery path learning about it: a beam that
+     * threw mid-flight freed the traveller and gave them back invisibility and blindness,
+     * then left them sitting in the dark vignette until it timed out on its own. Adding an
+     * effect to the sequence now means adding it here, which both endings read.
+     *
+     * <p>Deliberately not pinned by a unit test, and not for lack of trying: naming any
+     * {@link PotionEffectType} constant from a test fails with
+     * {@code NoClassDefFoundError: Could not initialize class org.bukkit.potion.PotionEffectType},
+     * because the class is registry-backed in modern Bukkit and its static initialiser wants a
+     * running server. That is why nothing in this project's suite touches potion effects, and
+     * why this list being shared is the guarantee rather than a test being the guarantee.
+     */
+    static final PotionEffectType[] TRAVELLER_EFFECTS =
+    {
+        PotionEffectType.INVISIBILITY,
+        PotionEffectType.BLINDNESS,
+        PotionEffectType.DARKNESS
+    };
+
+    /**
+     * Takes every effect in {@link #TRAVELLER_EFFECTS} back off a traveller.
+     *
+     * <p>Removing one the player never actually had is a no-op in Bukkit, so this is safe
+     * to call from an ending that failed before all of them were applied -- which is
+     * precisely the case {@link Sequence#recover} is for.
+     *
+     * @param player the traveller to clear
+     */
+    static void removeTravellerEffects(final Player player)
+    {
+        for (final PotionEffectType effect : TRAVELLER_EFFECTS)
+        {
+            player.removePotionEffect(effect);
+        }
+    }
+
     /** One running sequence. A fresh instance per beam; nothing about it is shared or reused. */
     private static final class Sequence implements Runnable
     {
@@ -332,9 +376,7 @@ public final class BeamAnimation
                 if (frame.isArrive())
                 {
                     BeamSounds.playArrive(destination);
-                    player.removePotionEffect(PotionEffectType.INVISIBILITY);
-                    player.removePotionEffect(PotionEffectType.BLINDNESS);
-                    player.removePotionEffect(PotionEffectType.DARKNESS);
+                    removeTravellerEffects(player);
                 }
 
                 if (frame.isFadeActive())
@@ -373,8 +415,7 @@ public final class BeamAnimation
                     + ", clearing them rather than leaving them stuck: " + cause.getMessage());
             try
             {
-                player.removePotionEffect(PotionEffectType.INVISIBILITY);
-                player.removePotionEffect(PotionEffectType.BLINDNESS);
+                removeTravellerEffects(player);
             }
             catch (final RuntimeException ignored) { /* best effort; BeamFreeze.clear below is what actually matters */ }
             BeamFreeze.clear(player);

@@ -4,6 +4,33 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Fix: a failed beam left the traveller in the dark, literally
+
+Caught reviewing the beam work before merging it, and a drift between two places that were
+each correct the day they were written. A beam applies three potion effects across two
+different ticks -- invisibility at the vanish, blindness and darkness together at the
+teleport -- and two separate endings have to undo them: the normal arrival, and the
+mid-flight recovery added just below. Each ending listed the effects itself.
+
+Darkness was stacked onto blindness *after* that recovery path already existed (see the
+vision fix below for why), and only the arrival path was updated to take it back off. So a
+beam that threw anywhere between its teleport and its deposit did everything else right --
+unfroze the traveller, made them visible, cleared their blindness -- and left them sitting
+in the warden's dark vignette until it expired on its own. Not permanent, but recovery
+exists precisely so a failed beam leaves nothing behind, and it was already going to the
+trouble of removing blindness, which has exactly the same duration.
+
+Fixed structurally rather than by adding a third copy of the list: both endings now read
+one shared `TRAVELLER_EFFECTS`, so an effect added to the sequence cannot be taught to one
+ending and forgotten by the other.
+
+No test pins it, and not for lack of trying -- naming any `PotionEffectType` constant from
+a test fails with `NoClassDefFoundError: Could not initialize class
+org.bukkit.potion.PotionEffectType`, since the class is registry-backed in modern Bukkit
+and its static initialiser wants a running server. That is why nothing in this suite
+touches potion effects at all, and why the list being shared *is* the guarantee here
+instead of a test being it.
+
 ### Fix: a beam that fails mid-sequence no longer strands the traveller
 
 Once `isVanish()` fires, a traveller is frozen and invisible until `isFinished()` clears
