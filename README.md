@@ -819,7 +819,7 @@ and `1.5` about twenty-four. Turning a volume down makes a sound more local, not
 | `gate-sound-volume` | 1.5 | Louder than rings on purpose — a gate is a landmark you walk towards. |
 | `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
 | `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
-| `gate-sound-kawoosh` | `entity.player.splash.high_speed` | Once, as the wormhole establishes. The heavy splash, played a fifth below its own pitch. |
+| `gate-sound-kawoosh` | `entity.player.splash.high_speed` | Once, as the wormhole establishes. The heavy splash, played at pitch 0.7 rather than its own. |
 | `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
 | `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |

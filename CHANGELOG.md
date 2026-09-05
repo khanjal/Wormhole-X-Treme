@@ -81,7 +81,7 @@ loudest thing on a server, describing an event it sounds nothing like: a kawoosh
 surge of water thrown out of the ring and falling back, not a detonation.
 
 It is now `entity.player.splash.high_speed` -- the heavy splash of a body hitting water at
-speed -- played at pitch 0.7 rather than its own. Dropping it a fifth lengthens and deepens
+speed -- played at pitch 0.7 rather than its own. Dropping it that far lengthens and deepens
 the sample until it reads as a far larger volume of water than one person, which is the
 whole of the effect. It also puts the kawoosh in the same material as the hum that follows
 it: the open wormhole has always been `ambient.underwater.loop`, so the gate now opens with

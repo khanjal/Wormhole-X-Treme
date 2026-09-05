@@ -25,10 +25,10 @@ public final class GateSounds
     private static final float CHEVRON_CLIMB = 0.7f;
 
     /**
-     * How far below its own note the kawoosh is played.
+     * The pitch the kawoosh plays at, rather than its own.
      *
      * <p>The default is a splash, and a splash at its own pitch is somebody landing in a
-     * pond. Dropped a fifth it lengthens and deepens into a body of water being thrown
+     * pond. Dropped to 0.7 it lengthens and deepens into a body of water being thrown
      * outward, which is the sound a gate opening is supposed to be. Below the pitch floor
      * this would flatten out silently, so it stays comfortably above it.
      */
