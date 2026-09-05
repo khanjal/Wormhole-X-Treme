@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -879,6 +880,83 @@ class StargateBlockSetup
     }
 
     /**
+     * Shows nearby clients one wave of a gate's chevrons lit.
+     *
+     * <p>Separate from {@link #drawBlocks} because a chevron is not necessarily drawn as the
+     * gate's light material. Where the player built one out of the chevron material and that
+     * material is a light with an off and an on, the better thing to show is that same fixture
+     * switched on -- a redstone lamp lighting up, rather than a redstone lamp being replaced
+     * by glowstone for the duration of the call.
+     *
+     * <p>Decided per position rather than once for the wave, because detection accepts either
+     * material at a chevron cell: a gate can quite legitimately have lamps at three chevrons
+     * and obsidian at the other four, and each should light as whatever it actually is.
+     *
+     * @param gate
+     *            the gate whose chevrons these are
+     * @param blocks
+     *            the positions to light
+     */
+    static void drawLights(final Stargate gate, final List<Location> blocks)
+    {
+        if ((blocks == null) || blocks.isEmpty())
+        {
+            return;
+        }
+        final List<Player> recipients = nearby(gate);
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        // Both resolved once for the wave: createBlockData() needs a live server and this
+        // runs once per chevron step, so there is no reason to pay for it per block.
+        final BlockData lightData = MaterialUtils.drawnAs(gate.getEffectiveLightMaterial());
+        final Material chevronMaterial = gate.getEffectiveChevronMaterial();
+        final BlockData fixtureOn = MaterialUtils.litFormOf(chevronMaterial);
+
+        for (final Location bc : blocks)
+        {
+            final Block real = gate.getGateWorld()
+                .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            final BlockData data = litChevron(real.getType(), chevronMaterial, fixtureOn, lightData);
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(real.getLocation(), data);
+            }
+        }
+    }
+
+    /**
+     * What one chevron position should be shown as while it is lit.
+     *
+     * <p>Split out from {@link #drawLights} so the choice can be tested without a live server:
+     * everything either side of it needs {@code createBlockData()}, which does not work off a
+     * running Bukkit instance.
+     *
+     * @param standing
+     *            the material actually built at that position
+     * @param chevronMaterial
+     *            what an unlit chevron of this gate is built from, may be null
+     * @param fixtureOn
+     *            the chevron material switched on, or null if it has no lit state
+     * @param lightData
+     *            the gate's light material, used for everything else
+     * @return what to draw there
+     */
+    static BlockData litChevron(final Material standing, final Material chevronMaterial,
+        final BlockData fixtureOn, final BlockData lightData)
+    {
+        // fixtureOn being null covers both "this gate has no chevron material" and "it has one
+        // but the block cannot be switched on" -- a gold-block chevron drawn as itself would
+        // simply never appear to light, so those fall back to the light material.
+        if ((fixtureOn != null) && (standing == chevronMaterial))
+        {
+            return fixtureOn;
+        }
+        return lightData;
+    }
+
+    /**
      * Puts a set of drawn blocks back to whatever is really there.
      *
      * <p>Read from the world rather than remembered, which is the whole advantage of drawing:
@@ -958,7 +1036,7 @@ class StargateBlockSetup
             // dialled would otherwise find a lit wormhole in an unlit frame.
             if (gate.isGateLightsActive())
             {
-                sendLights(player, gate, MaterialUtils.drawnAs(gate.getEffectiveLightMaterial()));
+                sendLights(player, gate, true);
             }
             stillOpen.add(gate.getGateName());
         }
@@ -1006,26 +1084,35 @@ class StargateBlockSetup
                 .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             player.sendBlockChange(real.getLocation(), real.getBlockData());
         }
-        sendLights(player, gate, null);
+        sendLights(player, gate, false);
     }
 
     /**
      * Sends one player every light block of a gate.
+     *
+     * <p>Lighting here uses the same per-position rule as {@link #drawLights}, and has to:
+     * this is the path that catches somebody arriving at a gate that dialled while they were
+     * out of range, so a lamp chevron the animation switched on must not come back to a later
+     * arrival as glowstone.
      *
      * @param player
      *            the player to send to
      * @param gate
      *            the gate whose chevrons these are
      * @param lit
-     *            what to show, or null to show whatever is really there
+     *            true to show the chevrons lit, false to show whatever is really there
      */
-    private static void sendLights(final Player player, final Stargate gate, final BlockData lit)
+    private static void sendLights(final Player player, final Stargate gate, final boolean lit)
     {
         final List<java.util.ArrayList<Location>> groups = gate.getGateLightBlocks();
         if (groups == null)
         {
             return;
         }
+        final BlockData lightData = lit ? MaterialUtils.drawnAs(gate.getEffectiveLightMaterial()) : null;
+        final Material chevronMaterial = lit ? gate.getEffectiveChevronMaterial() : null;
+        final BlockData fixtureOn = lit ? MaterialUtils.litFormOf(chevronMaterial) : null;
+
         for (final java.util.ArrayList<Location> group : groups)
         {
             if (group == null)
@@ -1037,7 +1124,8 @@ class StargateBlockSetup
                 final Block real = gate.getGateWorld()
                     .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
                 player.sendBlockChange(real.getLocation(),
-                    (lit != null) ? lit : real.getBlockData());
+                    lit ? litChevron(real.getType(), chevronMaterial, fixtureOn, lightData)
+                        : real.getBlockData());
             }
         }
     }
@@ -1172,11 +1260,121 @@ class StargateBlockSetup
      */
     static void fillGateIris(final Stargate gate, final Material material)
     {
+        clearIrisPath(gate);
         for (final Location bc : gate.getGatePortalBlocks())
         {
             final Block b = gate.getGateWorld().getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             b.setType(material);
         }
+    }
+
+    /**
+     * Moves anyone standing in the gate opening clear before the iris fills it with blocks.
+     *
+     * <p>The iris is real blocks, and {@link #fillGateIris} placed them without looking at
+     * who was there. Every path that closes an iris can therefore land solid blocks inside a
+     * player: the gate shutting down onto an iris that defaults closed, an activation timing
+     * out, someone flipping the iris lever, or an IDC being cleared. A traveller walking into
+     * the event horizon as the far gate times out is the case that gets reported, because it
+     * needs no bad timing on anyone's part -- the shutdown timer picks the moment.
+     *
+     * <p>The iris still closes. It is a barrier, and one that could be held open by standing
+     * in it would be worth nothing; the occupants are moved rather than the closure refused.
+     * They go to the gate's own arrival point, which the shape file already places one block
+     * outside the portal, and {@code findSafePlayerLocation} corrects it for terrain that has
+     * changed since. A player also gets a few ticks of damage immunity, which is what the
+     * remote-iris-locked path in the move listener does for the same reason: the block placed
+     * on the tick they leave should not still be able to reach them.
+     *
+     * <p>Only living entities are moved. Dropped items and arrows do not suffocate, and
+     * teleporting a gate's worth of loose items to the exit every time an iris closes would
+     * be a surprise of its own.
+     *
+     * @param gate the gate whose iris is about to close
+     */
+    static void clearIrisPath(final Stargate gate)
+    {
+        final org.bukkit.World world = gate.getGateWorld();
+        final org.bukkit.util.BoundingBox bounds = gate.getGatePortalBounds();
+        final Location exit = gate.getGatePlayerTeleportLocation();
+        if (world == null || bounds == null || exit == null)
+        {
+            return;
+        }
+
+        // One query for the whole opening, the same shape as the entity sweep: the box
+        // encloses the ring, so candidates are still confirmed against the portal blocks.
+        final java.util.Collection<org.bukkit.entity.Entity> candidates = world.getNearbyEntities(bounds);
+        if (candidates.isEmpty())
+        {
+            return;
+        }
+
+        Location safe = null;
+        for (final org.bukkit.entity.Entity entity : candidates)
+        {
+            try
+            {
+                if (!(entity instanceof org.bukkit.entity.LivingEntity))
+                {
+                    continue;
+                }
+                if (!isInIrisPath(gate, entity.getLocation()))
+                {
+                    continue;
+                }
+
+                // Deferred until someone is actually in the way: the safe-location search
+                // reads the world, and an iris closing on an empty gate is the normal case.
+                if (safe == null)
+                {
+                    safe = WorldUtils.findSafePlayerLocation(exit);
+                }
+                entity.teleport(safe);
+                if (entity instanceof Player)
+                {
+                    ((Player) entity).setNoDamageTicks(5);
+                }
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "Moved " + entity.getType() + " clear of closing iris on gate: " + gate.getGateName());
+            }
+            catch (final RuntimeException t)
+            {
+                // One entity that cannot be moved does not stop the iris closing, or stop
+                // the rest of the sweep. Errors are left to propagate rather than being
+                // swallowed here, where they would look like an ordinary immovable mob.
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    "Failed to move " + entity.getType() + " clear of closing iris on gate: "
+                        + gate.getGateName() + ": " + t.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Whether an entity at this location would have iris blocks placed inside it.
+     *
+     * <p>Both the block the entity stands in and the one above it are checked. A player
+     * whose feet are on the block below the opening still has their head in the lowest
+     * portal block, and the head is the half that suffocates -- testing the feet alone,
+     * which is all the entity sweep needs for deciding who travels, would walk straight
+     * past the person most likely to be hurt.
+     *
+     * <p>Pulled out as its own function because it is the whole decision. What surrounds it
+     * -- querying the world for entities, teleporting them -- needs a live server; this does
+     * not, and it is the part that can be wrong.
+     *
+     * @param gate the gate whose iris is closing
+     * @param at   where the entity is
+     * @return true if the closing iris would occupy the entity's own space
+     */
+    static boolean isInIrisPath(final Stargate gate, final Location at)
+    {
+        if (gate == null || at == null)
+        {
+            return false;
+        }
+        return gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ())
+            || gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY() + 1, at.getBlockZ());
     }
 
     // -----------------------------------------------------------------------
@@ -1227,13 +1425,27 @@ class StargateBlockSetup
             // update its powered state; do not convert buttons to levers.
             if (mat == Material.LEVER)
             {
+                // Flipping this lever fires BlockRedstoneEvent straight back at the redstone
+                // listener, for the lever and for everything it powers. Marked as ours so the
+                // listener does not read the gate opening as somebody pressing the button --
+                // which dialled a sign gate twice. See GateRedstoneWrite.
+                GateRedstoneWrite.begin();
                 try
                 {
                     final Powerable llp = (Powerable) gate.getGateDialLeverBlock().getBlockData();
                     llp.setPowered(gate.isGateActive());
                     gate.getGateDialLeverBlock().setBlockData(llp);
                 }
-                catch (final Throwable ignore) {}
+                catch (final RuntimeException ignore)
+                {
+                    // A lever that refuses the write leaves the gate's light wrong, which is
+                    // cosmetic. Errors are left to propagate; the finally still clears the
+                    // guard either way, so a failure here cannot wedge the redstone listener.
+                }
+                finally
+                {
+                    GateRedstoneWrite.end();
+                }
             }
             if (!gate.isGateActive())
             {
@@ -1256,9 +1468,20 @@ class StargateBlockSetup
             && (gate.getGateRedstoneGateActivatedBlock() != null)
             && (gate.getGateRedstoneGateActivatedBlock().getType() == Material.LEVER))
         {
-            final Powerable rp = (Powerable) gate.getGateRedstoneGateActivatedBlock().getBlockData();
-            rp.setPowered(gate.isGateActive());
-            gate.getGateRedstoneGateActivatedBlock().setBlockData(rp);
+            // The listener already refuses this lever as a trigger by position, but not the
+            // conductors it powers, and on a small shape those can touch the DHD. Marked as
+            // ours for the same reason the dial lever is.
+            GateRedstoneWrite.begin();
+            try
+            {
+                final Powerable rp = (Powerable) gate.getGateRedstoneGateActivatedBlock().getBlockData();
+                rp.setPowered(gate.isGateActive());
+                gate.getGateRedstoneGateActivatedBlock().setBlockData(rp);
+            }
+            finally
+            {
+                GateRedstoneWrite.end();
+            }
         }
     }
 }

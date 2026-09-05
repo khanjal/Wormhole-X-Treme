@@ -49,6 +49,25 @@ public class RingAnimatorTest
         return out;
     }
 
+    /**
+     * The stack is as many blocks tall as there are rings in it.
+     *
+     * <p>Not a coincidence and not a choice: a slab is half a block thick, so rings cannot
+     * settle closer than a block apart centre to centre without touching. {@code STACK_HEIGHT}
+     * is written as the arithmetic that falls out of the spacing rather than as
+     * {@code RING_COUNT} typed a second time, and this is what keeps the two honest -- a
+     * change to {@code SPACING} or {@code BASE_HALF_STEP} that broke the relationship would
+     * otherwise show up only as rings drawn through a ceiling the survey had approved.
+     */
+    @Test
+    public void theStackIsAsManyBlocksTallAsThereAreRingsInIt()
+    {
+        assertEquals(RingAnimator.RING_COUNT, RingAnimator.STACK_HEIGHT,
+            "rings a block apart make a stack as tall as their number");
+        assertEquals(RingAnimator.STACK_HEIGHT - 1, RingAnimator.TOP_HALF_STEP / 2,
+            "the top ring settles in the last layer of the stack, not past it");
+    }
+
     @Test
     public void theFirstFrameIsOneRingSittingWhereTheTemplateWas()
     {

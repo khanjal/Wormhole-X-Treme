@@ -17,6 +17,16 @@ public class StargateShapeLayer
     /** The block positions. */
     private ArrayList<Integer[]> layerBlockPositions = new ArrayList<Integer[]>();
 
+    /**
+     * The chevron positions -- cells written {@code [C]} rather than {@code [S]}.
+     *
+     * <p>Held apart from the frame blocks because the whole point of a chevron cell is that
+     * it is built from a different material, and detection works out which palette a gate
+     * belongs to by reading the first frame block it finds. A chevron in that list would
+     * have a gate fronted with lamps resolve to the lamp palette, or to no palette at all.
+     */
+    private ArrayList<Integer[]> layerChevronPositions = new ArrayList<Integer[]>();
+
     /** The sign position. */
     private int[] layerNameSignPosition = null;
 
@@ -81,6 +91,10 @@ public class StargateShapeLayer
                     else if (mod.equalsIgnoreCase("P"))
                     {
                         getLayerPortalPositions().add(point);
+                    }
+                    else if (mod.equalsIgnoreCase("C"))
+                    {
+                        getLayerChevronPositions().add(point);
                     }
                     else if (mod.equalsIgnoreCase("N") || mod.equalsIgnoreCase("EP") || mod.equalsIgnoreCase("EM") || mod.equalsIgnoreCase("A") || mod.equalsIgnoreCase("D") || mod.equalsIgnoreCase("IA") || mod.equalsIgnoreCase("RA") || mod.equalsIgnoreCase("RD") || mod.equalsIgnoreCase("RS"))
                     {
@@ -202,6 +216,16 @@ public class StargateShapeLayer
     public ArrayList<Integer[]> getLayerBlockPositions()
     {
         return layerBlockPositions;
+    }
+
+    /**
+     * Gets the layer chevron positions.
+     *
+     * @return the layer chevron positions
+     */
+    public ArrayList<Integer[]> getLayerChevronPositions()
+    {
+        return layerChevronPositions;
     }
 
     /**

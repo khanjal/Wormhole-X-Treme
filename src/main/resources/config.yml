@@ -71,6 +71,15 @@ sign-color-neighbour: GRAY
 # iris:      what the iris is made of when engaged (a real, solid block).
 # light:     what the light blocks become while the gate is active.
 # sign:      wall-sign type used for the gate's name sign. Any *_WALL_SIGN material.
+# chevron:   optional. What an UNLIT chevron is built from, so a gate shows where its
+#            chevrons are before it dials. Building a chevron position from this
+#            instead of the frame material becomes allowed — it is never required, so
+#            gates already standing keep working and keep being detected. Leave it out
+#            and chevrons are ordinary frame blocks, invisible until they light.
+#            A block with an off and an on state (REDSTONE_LAMP, or COPPER_BULB on
+#            Minecraft 1.21+) simply switches on when the gate dials, which is the look
+#            worth having. Anything else — a GOLD_BLOCK chevron, say — has no on state,
+#            so it lights as `light` above instead.
 gate-material-groups:
   Standard:
     structure: OBSIDIAN
@@ -78,6 +87,7 @@ gate-material-groups:
     iris: STONE
     light: GLOWSTONE
     sign: OAK_WALL_SIGN
+    chevron: REDSTONE_LAMP
   Atlantis:
     structure: LAPIS_BLOCK
     portal: WATER

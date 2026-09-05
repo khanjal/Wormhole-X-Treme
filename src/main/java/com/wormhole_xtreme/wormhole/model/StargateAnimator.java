@@ -239,9 +239,12 @@ class StargateAnimator
                     // Drawn, not placed. A real lit chevron is an ordinary breakable
                     // glowstone block for the seconds it stands there, and a server that
                     // stops mid-dial used to leave the lit ones welded into the frame.
-                    StargateBlockSetup.drawBlocks(gate,
-                        gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()),
-                        gate.getEffectiveLightMaterial());
+                    //
+                    // Through drawLights rather than drawBlocks because a chevron the player
+                    // built out of the chevron material lights as that same block switched on,
+                    // and which positions those are is a per-block question.
+                    StargateBlockSetup.drawLights(gate,
+                        gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()));
                     // Off the same counter that drives the lights, so the sound cannot drift
                     // out of step with what it is describing.
                     GateSounds.chevron(gate, gate.getGateLightingCurrentIteration(),

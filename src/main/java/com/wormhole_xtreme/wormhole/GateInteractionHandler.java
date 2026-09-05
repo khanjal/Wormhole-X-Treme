@@ -375,120 +375,190 @@ final class GateInteractionHandler
      *            the player
      * @return true, if successful
      */
-    private static boolean handleGateActivationSwitch(final Stargate stargate, final Player player)
+    static boolean handleGateActivationSwitch(final Stargate stargate, final Player player)
     {
         if (stargate.isGateActive() || stargate.isGateLightsActive())
         {
-            if (stargate.getGateTarget() != null)
-            {
-                //Shutdown stargate
-                stargate.shutdownStargate(true);
-                player.sendMessage(ConfigManager.MessageStrings.gateShutdown.toString());
-                return true;
-            }
-            else
-            {
-                final Stargate s2 = StargateManager.removeActivatedStargate(player);
-                if ((s2 != null) && (stargate.getGateId() == s2.getGateId()))
-                {
-                    stargate.stopActivationTimer();
-                    stargate.setGateActive(false);
-                    stargate.toggleDialLeverState(false);
-                    stargate.lightStargate(false);
-                    player.sendMessage(ConfigManager.MessageStrings.gateDeactivated.toString());
-                    return true;
-                }
-                else
-                {
-                    if (stargate.isGateLightsActive() && !stargate.isGateActive())
-                    {
-                        // Attempt to force-clear stale activation mapping so gate can be deactivated.
-                        final org.bukkit.entity.Player activator = StargateManager.removeActivatorForStargate(stargate);
-                        // Stop timers and clear visual state
-                        stargate.stopActivationTimer();
-                        stargate.setGateActive(false);
-                        stargate.toggleDialLeverState(false);
-                        stargate.lightStargate(false);
-                        if (activator != null)
-                        {
-                            try
-                            {
-                                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated (was activated by: " + activator.getName() + ").");
-                                if (activator.isOnline())
-                                {
-                                    activator.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Your pending gate activation was force-cleared by: " + player.getName());
-                                }
-                            }
-                            catch (final Exception e)
-                            {
-                                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
-                            }
-                        }
-                        else
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
-                        }
-                        return true;
-                    }
-                    else
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
-                    }
-                    return false;
-                }
-            }
+            return closeOrDeactivate(stargate, player);
         }
-        else
+        if (stargate.isGateSignPowered())
         {
-            if (stargate.isGateSignPowered())
-            {
-                final boolean isOwnerInner = player.isOp() || stargate.isOwner(player);
-                if (isOwnerInner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
-                {
-                    if ((stargate.getGateDialSign() == null) && (stargate.getGateDialSignBlock() != null))
-                    {
-                        stargate.tryClickTeleportSign(stargate.getGateDialSignBlock());
-                    }
+            return dialFromSign(stargate, player);
+        }
+        return activateForDialling(stargate, player);
+    }
 
-                    if (stargate.getGateDialSignTarget() != null)
-                    {
-                        if (stargate.dialStargate(stargate.getGateDialSignTarget(), false))
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargates connected!");
-                            return true;
-                        }
-                        else
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
-                        return false;
-                    }
-                }
-                else
-                {
-                    final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
-                    player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    return false;
-                }
-            }
-            else
+    /**
+     * Puts an open or lit gate back to rest.
+     *
+     * <p>Three cases, in the order they are worth trying: an open wormhole is closed, a gate
+     * this player activated is deactivated, and a gate left lit by somebody else is
+     * force-cleared. The last exists because an activation mapping can outlive the player it
+     * belongs to -- they log out, or the mapping is lost -- and without it the gate would stay
+     * lit with no way for anyone to put it out.
+     *
+     * @param stargate
+     *            the gate that is open or lit
+     * @param player
+     *            the player working the switch
+     * @return true if the gate was acted on
+     */
+    static boolean closeOrDeactivate(final Stargate stargate, final Player player)
+    {
+        if (stargate.getGateTarget() != null)
+        {
+            //Shutdown stargate
+            stargate.shutdownStargate(true);
+            player.sendMessage(ConfigManager.MessageStrings.gateShutdown.toString());
+            return true;
+        }
+
+        final Stargate s2 = StargateManager.removeActivatedStargate(player);
+        if ((s2 != null) && (stargate.getGateId() == s2.getGateId()))
+        {
+            clearActivation(stargate);
+            player.sendMessage(ConfigManager.MessageStrings.gateDeactivated.toString());
+            return true;
+        }
+
+        if (stargate.isGateLightsActive() && !stargate.isGateActive())
+        {
+            // The gate is cleared whatever happens from here, so this arm is always a success.
+            forceClearStaleActivation(stargate, player);
+            return true;
+        }
+
+        player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
+        return false;
+    }
+
+    /**
+     * Stops a gate's activation timer and puts its lever and lights out.
+     *
+     * <p>The four calls have to go together and in this order: the timer would otherwise fire
+     * against a gate that is already dark, and the lever reads {@code isGateActive} to decide
+     * which way to throw, so clearing the flag before touching it is what makes it go down.
+     *
+     * @param stargate
+     *            the gate to clear
+     */
+    static void clearActivation(final Stargate stargate)
+    {
+        stargate.stopActivationTimer();
+        stargate.setGateActive(false);
+        stargate.toggleDialLeverState(false);
+        stargate.lightStargate(false);
+    }
+
+    /**
+     * Clears a gate left lit by an activation that no longer has a player behind it.
+     *
+     * <p>Both people are told, when there is somebody to tell: whoever pressed the button
+     * learns whose activation they cleared, and the original activator learns their pending
+     * activation is gone rather than finding the gate mysteriously dark later.
+     *
+     * @param stargate
+     *            the lit gate
+     * @param player
+     *            the player clearing it
+     */
+    static void forceClearStaleActivation(final Stargate stargate, final Player player)
+    {
+        // Stop timers and clear visual state. Deliberately before the activator lookup, which
+        // is only needed to write the messages below: removeActivatorForStargate tolerates a
+        // null gate and returns null, so calling it first says nothing about whether the gate
+        // exists and leaves every dereference after it looking unguarded. Clearing first is
+        // the dereference that settles it. The two do not interact -- one touches timers,
+        // lever and lights, the other only the activated-gate map -- so the order is free.
+        clearActivation(stargate);
+        // Attempt to force-clear stale activation mapping so gate can be deactivated.
+        final Player activator = StargateManager.removeActivatorForStargate(stargate);
+
+        if (activator == null)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+            return;
+        }
+
+        try
+        {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated (was activated by: " + activator.getName() + ").");
+            if (activator.isOnline())
             {
-                //Activate Stargate
-                player.sendMessage(ConfigManager.MessageStrings.gateActivated.toString());
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons Locked! \u00A73:: \u00A7B<required> \u00A76[optional]");
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
-                StargateManager.addActivatedStargate(player, stargate);
-                stargate.startActivationTimer(player);
-                stargate.lightStargate(true);
-                return true;
+                activator.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Your pending gate activation was force-cleared by: " + player.getName());
             }
         }
+        catch (final Exception e)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+        }
+    }
+
+    /**
+     * Dials a closed sign gate to whatever its sign is showing.
+     *
+     * @param stargate
+     *            the closed sign-powered gate
+     * @param player
+     *            the player working the switch
+     * @return true if the gates connected
+     */
+    static boolean dialFromSign(final Stargate stargate, final Player player)
+    {
+        final boolean isOwnerInner = player.isOp() || stargate.isOwner(player);
+        if (!isOwnerInner && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
+        {
+            final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return false;
+        }
+
+        // Asked whenever there is no destination object, not just when the sign object is
+        // missing: after a load a gate can have both its sign and its saved index and still no
+        // destination, which is exactly the case that left the first press after a restart
+        // dialling nothing. Resolving is immediate and does not advance the selection, so the
+        // gate dials what the sign has been showing all along.
+        if ((stargate.getGateDialSignTarget() == null) && (stargate.getGateDialSignBlock() != null))
+        {
+            stargate.refreshDialSignTarget();
+        }
+
+        final Stargate target = stargate.getGateDialSignTarget();
+        if (target == null)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            return false;
+        }
+
+        if (stargate.dialStargate(target, false))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargates connected!");
+            return true;
+        }
+        player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
+        return false;
+    }
+
+    /**
+     * Lights a closed dial gate and waits for the player to name a destination.
+     *
+     * @param stargate
+     *            the closed gate
+     * @param player
+     *            the player activating it
+     * @return true, always
+     */
+    static boolean activateForDialling(final Stargate stargate, final Player player)
+    {
+        //Activate Stargate
+        player.sendMessage(ConfigManager.MessageStrings.gateActivated.toString());
+        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons Locked! \u00A73:: \u00A7B<required> \u00A76[optional]");
+        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
+        StargateManager.addActivatedStargate(player, stargate);
+        stargate.startActivationTimer(player);
+        stargate.lightStargate(true);
+        return true;
     }
 
     /**
