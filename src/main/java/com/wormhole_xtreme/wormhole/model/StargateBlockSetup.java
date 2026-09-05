@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
@@ -1337,13 +1338,27 @@ class StargateBlockSetup
             // update its powered state; do not convert buttons to levers.
             if (mat == Material.LEVER)
             {
+                // Flipping this lever fires BlockRedstoneEvent straight back at the redstone
+                // listener, for the lever and for everything it powers. Marked as ours so the
+                // listener does not read the gate opening as somebody pressing the button --
+                // which dialled a sign gate twice. See GateRedstoneWrite.
+                GateRedstoneWrite.begin();
                 try
                 {
                     final Powerable llp = (Powerable) gate.getGateDialLeverBlock().getBlockData();
                     llp.setPowered(gate.isGateActive());
                     gate.getGateDialLeverBlock().setBlockData(llp);
                 }
-                catch (final Throwable ignore) {}
+                catch (final RuntimeException ignore)
+                {
+                    // A lever that refuses the write leaves the gate's light wrong, which is
+                    // cosmetic. Errors are left to propagate; the finally still clears the
+                    // guard either way, so a failure here cannot wedge the redstone listener.
+                }
+                finally
+                {
+                    GateRedstoneWrite.end();
+                }
             }
             if (!gate.isGateActive())
             {
@@ -1366,9 +1381,20 @@ class StargateBlockSetup
             && (gate.getGateRedstoneGateActivatedBlock() != null)
             && (gate.getGateRedstoneGateActivatedBlock().getType() == Material.LEVER))
         {
-            final Powerable rp = (Powerable) gate.getGateRedstoneGateActivatedBlock().getBlockData();
-            rp.setPowered(gate.isGateActive());
-            gate.getGateRedstoneGateActivatedBlock().setBlockData(rp);
+            // The listener already refuses this lever as a trigger by position, but not the
+            // conductors it powers, and on a small shape those can touch the DHD. Marked as
+            // ours for the same reason the dial lever is.
+            GateRedstoneWrite.begin();
+            try
+            {
+                final Powerable rp = (Powerable) gate.getGateRedstoneGateActivatedBlock().getBlockData();
+                rp.setPowered(gate.isGateActive());
+                gate.getGateRedstoneGateActivatedBlock().setBlockData(rp);
+            }
+            finally
+            {
+                GateRedstoneWrite.end();
+            }
         }
     }
 }
