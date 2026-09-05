@@ -31,7 +31,17 @@ public final class GateRedstoneWrite
         DEPTH.set(Integer.valueOf(DEPTH.get().intValue() + 1));
     }
 
-    /** Closes a window opened by {@link #begin()}. */
+    /**
+     * Closes a window opened by {@link #begin()}.
+     *
+     * <p>The depth floors at closed rather than going negative, so an unmatched {@code end()}
+     * cannot bank a credit that swallows the next real {@link #begin()} -- which would leave
+     * the listener acting on writes it should ignore, with nothing to show why. It cannot
+     * repair the other direction: an {@code end()} that belongs to nobody still closes an
+     * outer window early. Nothing here can know which {@code begin()} a stray call was meant
+     * for, so the pairing is the caller's to keep, and both call sites keep it with
+     * {@code try}/{@code finally}.
+     */
     public static void end()
     {
         final int remaining = DEPTH.get().intValue() - 1;
@@ -42,6 +52,7 @@ public final class GateRedstoneWrite
         else
         {
             // Removed rather than set to zero so a pooled thread is not left holding an entry.
+            // Underflow lands here too, and removing is what floors it at closed.
             DEPTH.remove();
         }
     }

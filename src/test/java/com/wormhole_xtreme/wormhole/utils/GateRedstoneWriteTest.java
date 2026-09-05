@@ -52,4 +52,30 @@ public class GateRedstoneWriteTest
         GateRedstoneWrite.end();
         assertFalse(GateRedstoneWrite.inProgress());
     }
+
+    /**
+     * An unmatched close cannot bank a credit against the next real one.
+     *
+     * <p>The floor is what makes the depth safe to reason about. Without it a stray
+     * {@code end()} would leave the count at -1, and the next genuine {@code begin()} would
+     * only bring it back to zero -- so a gate really would be switching its own lever with the
+     * listener wide open, and the double dial would be back with nothing to show why.
+     */
+    @Test
+    public void anUnmatchedCloseDoesNotSwallowTheNextWindow()
+    {
+        GateRedstoneWrite.end();
+        assertFalse(GateRedstoneWrite.inProgress());
+
+        GateRedstoneWrite.begin();
+        try
+        {
+            assertTrue(GateRedstoneWrite.inProgress(), "the stray close must not have been banked");
+        }
+        finally
+        {
+            GateRedstoneWrite.end();
+        }
+        assertFalse(GateRedstoneWrite.inProgress());
+    }
 }
