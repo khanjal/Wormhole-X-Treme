@@ -687,4 +687,18 @@ public class WormholeXTremeRedstoneListenerTest
     {
         assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(5000L), 1000L, 250L));
     }
+
+    /**
+     * A malformed event is walked away from rather than thrown on.
+     *
+     * <p>The listener swallows Throwable further down, so an NPE here would be invisible --
+     * but only after it had already skipped whatever came after it in the same dispatch.
+     * Cheap to state, and it pins the first thing the rewritten entry point does.
+     */
+    @Test
+    public void anEventWithNoBlockIsIgnored()
+    {
+        final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
+        assertDoesNotThrow(() -> listener.onBlockRedstoneChange(null));
+    }
 }

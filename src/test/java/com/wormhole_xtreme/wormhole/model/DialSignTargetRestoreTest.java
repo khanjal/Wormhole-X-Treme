@@ -227,4 +227,31 @@ public class DialSignTargetRestoreTest
 
         assertNull(gate.getGateDialSignTarget());
     }
+
+    /**
+     * A dial sign that is no longer a sign leaves the gate's selection alone.
+     *
+     * <p>Someone breaks the sign, or it pops off when its support goes. The block position is
+     * still recorded against the gate, so the next press reads a block state that is not a
+     * sign at all -- and the refresh runs on exactly that path, on a gate that has just been
+     * loaded and has no destination yet.
+     *
+     * <p>Reading the sign's lines from that state would throw, and the throw would surface as
+     * a DHD that does nothing with no explanation. Leaving the selection untouched is what
+     * lets the gate keep working once the sign is put back.
+     */
+    @Test
+    public void aDialSignThatIsNoLongerASignLeavesTheSelectionAlone()
+    {
+        final Block broken = mock(Block.class);
+        when(broken.getType()).thenReturn(Material.AIR);
+        when(broken.getState()).thenReturn(mock(org.bukkit.block.BlockState.class));
+        gate.setGateDialSignBlock(broken);
+        gate.setGateDialSignIndex(1);
+
+        gate.refreshDialSignTarget();
+
+        assertNull(gate.getGateDialSignTarget(), "nothing can be resolved from a block that is not a sign");
+        assertEquals(1, gate.getGateDialSignIndex(), "and the saved selection survives for when the sign goes back");
+    }
 }
