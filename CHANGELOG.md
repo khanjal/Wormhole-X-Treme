@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.4.1 (2026-09-05)
+## 1.5.0 (unreleased)
 
 ### The woosh had two implementations; now it has one
 
