@@ -1477,9 +1477,13 @@ public class ConfigManager
      * reason the rest of this path already is: a Turkish JVM upper-cases {@code i} to a
      * dotted capital I, and most of the names here have an {@code i} in them.
      *
+     * <p>Only a null name comes back null. Blank text comes back blank and is left to fail
+     * the lookup like any other name that is not a setting, rather than being given a second
+     * meaning here.
+     *
      * @param typed
-     *            the name as typed, in either spelling
-     * @return the name in enum form, or null if nothing was typed
+     *            the name as typed, in either spelling, or null
+     * @return the same name in enum form, or null if {@code typed} was null
      */
     static String settingKey(final String typed)
     {
