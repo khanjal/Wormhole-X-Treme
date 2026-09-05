@@ -24,7 +24,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
  * something a test can see through {@code ConfigManager.applySetting}, which writes
  * config.yml on the way past.
  */
-public class ParsedSettingTest
+class ParsedSettingTest
 {
     /** Reads a value the way the config command does, against a text setting. */
     private static ParsedSetting text(final ConfigKeys key, final String typed)
@@ -73,7 +73,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aRingStyleThatIsNotAStyleIsRefusedRatherThanStored()
+    void aRingStyleThatIsNotAStyleIsRefusedRatherThanStored()
     {
         // The reported case, verbatim. This used to answer "RING_DEFAULT_STYLE is now banana."
         final ParsedSetting parsed = refuses(ConfigKeys.RING_DEFAULT_STYLE, "banana");
@@ -84,7 +84,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void theFriendlierWordForASlowRingIsStoredAsTheStyleItMeans()
+    void theFriendlierWordForASlowRingIsStoredAsTheStyleItMeans()
     {
         // The trap in accepting aliases at all. RingStyle.parse takes "slow", but
         // getRingDefaultStyle reads the stored text back with valueOf -- so storing the word
@@ -95,14 +95,14 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aRingStyleTypedInAnyCaseIsStoredInTheCaseTheGetterReads()
+    void aRingStyleTypedInAnyCaseIsStoredInTheCaseTheGetterReads()
     {
         storesAs(ConfigKeys.RING_DEFAULT_STYLE, "sequential", "SEQUENTIAL");
         storesAs(ConfigKeys.RING_DEFAULT_STYLE, "  Concurrent  ", "CONCURRENT");
     }
 
     @Test
-    public void aRingAccessThatIsNotPublicOrPrivateIsRefused()
+    void aRingAccessThatIsNotPublicOrPrivateIsRefused()
     {
         // Worse than the style case if it had gone the other way: the getter falls back to
         // PRIVATE, so a server owner who meant to publish rings and mistyped it would have
@@ -113,7 +113,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aRingMaterialThatIsNotASlabIsRefused()
+    void aRingMaterialThatIsNotASlabIsRefused()
     {
         // The same rule /wormhole ring edit ring already applies: the rise is drawn out of
         // slab halves, and a full block costs the animation its half-block movement.
@@ -123,7 +123,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aRingLightThatIsNotAMaterialAtAllIsRefused()
+    void aRingLightThatIsNotAMaterialAtAllIsRefused()
     {
         // Only the "no such material" half is asserted, deliberately. Whether a material is a
         // block is answered by the server's registry from 1.20.6 on, and there is no registry
@@ -138,7 +138,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aLogLevelIsCheckedAndStoredInTheCaseThatCanBeReadBack()
+    void aLogLevelIsCheckedAndStoredInTheCaseThatCanBeReadBack()
     {
         // The one setting whose getter does not catch its own parse failure: Setting.getLevel
         // calls Level.parse straight, and Level.parse is case-sensitive. So "fine" was written
@@ -150,7 +150,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aLogLevelIsFoldedAsAsciiRatherThanInTheServerOwnersLanguage()
+    void aLogLevelIsFoldedAsAsciiRatherThanInTheServerOwnersLanguage()
     {
         // Caught in review on PR #36, not by me. A Turkish JVM upper-cases "i" to a dotted
         // capital I (U+0130) rather than to "I", so the first version of this -- a plain
@@ -172,7 +172,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void aSoundNameIsStillWhateverTheServerOwnerTyped()
+    void aSoundNameIsStillWhateverTheServerOwnerTyped()
     {
         // Deliberately not validated, and this is the guard against somebody "tidying" that
         // up later. The whole point of naming a sound instead of resolving it to a Sound
@@ -184,7 +184,7 @@ public class ParsedSettingTest
     }
 
     @Test
-    public void booleansAndNumbersAreCheckedTheWayTheyAlwaysWere()
+    void booleansAndNumbersAreCheckedTheWayTheyAlwaysWere()
     {
         // These worked before this change and have to go on working: the refusals below are
         // the shape every message above was written to match.

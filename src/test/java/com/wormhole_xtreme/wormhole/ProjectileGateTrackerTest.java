@@ -33,7 +33,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * every twenty ticks nearly always misses the crossing, and when it did catch one the arrow
  * had already landed and stopped, which is what made arrows trickle out of the destination.
  */
-public class ProjectileGateTrackerTest
+class ProjectileGateTrackerTest
 {
     private World world;
     private Stargate origin;
@@ -44,7 +44,7 @@ public class ProjectileGateTrackerTest
     private static final int BX = 10, BY = 64, BZ = 20;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         GateSpatialIndex.clear();
         ProjectileGateTracker.clear();
@@ -115,7 +115,7 @@ public class ProjectileGateTrackerTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         StargateManager.removeStargate(origin);
         ProjectileGateTracker.clear();
@@ -129,7 +129,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void aLaunchedProjectileIsFollowed()
+    void aLaunchedProjectileIsFollowed()
     {
         arrowAt(0, 64, 0);
         new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
@@ -138,7 +138,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void itCrossesTheGateOnTheTickItArrives()
+    void itCrossesTheGateOnTheTickItArrives()
     {
         new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
 
@@ -155,7 +155,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void aCrossedProjectileStopsBeingFollowedAndItsReplacementTakesOver()
+    void aCrossedProjectileStopsBeingFollowedAndItsReplacementTakesOver()
     {
         new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
         arrowAt(BX + 0.5, BY, BZ + 0.5);
@@ -167,7 +167,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void anArrowThatOutrunsTheSamplingIsStillCaught()
+    void anArrowThatOutrunsTheSamplingIsStillCaught()
     {
         // The case that made arrows only work with a block behind the gate. A drawn bow
         // moves an arrow about three blocks a tick and a portal is one thick, so checking
@@ -187,7 +187,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void aPathThatMissesTheGateEntirelyDoesNotCross()
+    void aPathThatMissesTheGateEntirelyDoesNotCross()
     {
         // Sanity on the other side: walking the path must not make near misses count.
         new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
@@ -200,7 +200,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void anInvalidProjectileIsForgotten()
+    void anInvalidProjectileIsForgotten()
     {
         new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
         when(arrow.isValid()).thenReturn(false);
@@ -212,7 +212,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void nothingIsFollowedWhileNoGateIsOpen()
+    void nothingIsFollowedWhileNoGateIsOpen()
     {
         // The common case on any server: no wormhole open, so a projectile cannot cross
         // anything and following it would be pure cost.
@@ -225,7 +225,7 @@ public class ProjectileGateTrackerTest
     }
 
     @Test
-    public void anIdleTickCostsNothingWhenNothingIsInFlight()
+    void anIdleTickCostsNothingWhenNothingIsInFlight()
     {
         assertEquals(0, ProjectileGateTracker.trackedCount());
         clearInvocations(world);

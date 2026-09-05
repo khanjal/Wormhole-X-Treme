@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
  * than of any code, so nothing else would notice a shape that changed sides -- and a new
  * shape is exactly the kind of thing somebody adds without knowing this rule exists.
  */
-public class ArrivalIsOutsideThePortalTest
+class ArrivalIsOutsideThePortalTest
 {
 
     private static List<Path> shippedShapes() throws IOException
@@ -65,7 +65,7 @@ public class ArrivalIsOutsideThePortalTest
         java.util.Arrays.asList("Horizontal.shape", "HorizontalSignDial.shape");
 
     @Test
-    public void onlyTheHorizontalShapesLandArrivalsInsideTheirPortal() throws IOException
+    void onlyTheHorizontalShapesLandArrivalsInsideTheirPortal() throws IOException
     {
         final List<Path> shapes = shippedShapes();
         assertFalse(shapes.isEmpty(), "no shape files were read, so this proved nothing");

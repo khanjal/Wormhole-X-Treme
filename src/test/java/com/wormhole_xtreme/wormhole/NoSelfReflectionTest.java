@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  * the manager. This test is here so the next person reaching for {@code Class.forName} on our
  * own package has to argue with something first.
  */
-public class NoSelfReflectionTest
+class NoSelfReflectionTest
 {
     /** Our own package, which nothing here should be looking up by name. */
     private static final String OWN_PACKAGE = "com.wormhole_xtreme";
@@ -47,7 +47,7 @@ public class NoSelfReflectionTest
     }
 
     @Test
-    public void nothingLooksUpOneOfOurOwnClassesByName() throws IOException
+    void nothingLooksUpOneOfOurOwnClassesByName() throws IOException
     {
         final List<Path> sources = sources();
         assertTrue(!sources.isEmpty(), "no sources were read, so this proved nothing");

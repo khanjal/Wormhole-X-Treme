@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  * pairs by owner, so a transfer that skipped the check would let anyone go past their limit
  * by having a friend build the ring and hand it over.
  */
-public class RingOwnershipTest
+class RingOwnershipTest
 {
     private static final String WORLD = "world";
     private static final int REACH = 4;
@@ -34,19 +34,19 @@ public class RingOwnershipTest
     }
 
     @BeforeEach
-    public void clearBefore()
+    void clearBefore()
     {
         RingManager.clear();
     }
 
     @AfterEach
-    public void clearAfter()
+    void clearAfter()
     {
         RingManager.clear();
     }
 
     @Test
-    public void ownershipMovesAndTheQuotaMovesWithIt()
+    void ownershipMovesAndTheQuotaMovesWithIt()
     {
         final RingPair pair = pairAt("own00001", 0, 0);
         RingManager.addPair(pair, REACH);
@@ -62,7 +62,7 @@ public class RingOwnershipTest
     }
 
     @Test
-    public void theNewOwnerCanUseAPrivatePairAndTheOldOneCannot()
+    void theNewOwnerCanUseAPrivatePairAndTheOldOneCannot()
     {
         // The consequence a transfer has to say out loud. Staff who built a ring for
         // somebody should not keep standing access to it afterwards, and the new owner can
@@ -79,7 +79,7 @@ public class RingOwnershipTest
     }
 
     @Test
-    public void anAllowedPlayerKeepsAccessAcrossATransfer()
+    void anAllowedPlayerKeepsAccessAcrossATransfer()
     {
         // The allow list belongs to the pair rather than to whoever owns it, so people who
         // were using a ring do not lose it because it changed hands.
@@ -94,7 +94,7 @@ public class RingOwnershipTest
     }
 
     @Test
-    public void aQuotaIsCountedPerOwnerSoTransfersCanBeCheckedAgainstIt()
+    void aQuotaIsCountedPerOwnerSoTransfersCanBeCheckedAgainstIt()
     {
         // What the command consults before handing anything over. Without this, a limit of
         // three could be walked around by having somebody else build the fourth.
@@ -113,7 +113,7 @@ public class RingOwnershipTest
     }
 
     @Test
-    public void ownershipSurvivesBeingWrittenOutAndReadBack()
+    void ownershipSurvivesBeingWrittenOutAndReadBack()
     {
         final RingPair pair = pairAt("own00004", 0, 0);
         pair.setOwner(PLAYER);

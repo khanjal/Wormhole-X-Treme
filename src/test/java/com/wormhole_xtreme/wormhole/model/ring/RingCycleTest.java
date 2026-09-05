@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
  * point of the change these tests cover: rings are shown to clients and never written, so
  * every test here can assert that the world came out of a cycle exactly as it went in.
  */
-public class RingCycleTest
+class RingCycleTest
 {
     private static final int REACH = 3;
     private static final String OWNER = "owner-uuid";
@@ -204,7 +204,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void everyoneAtBothEndsTravelsInTheSameInstant()
+    void everyoneAtBothEndsTravelsInTheSameInstant()
     {
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -217,7 +217,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void arrivalsFromOneEndAreNeverPickedUpAsOccupantsOfTheOther()
+    void arrivalsFromOneEndAreNeverPickedUpAsOccupantsOfTheOther()
     {
         // The single most important ordering here. Reading A, moving them, then reading B
         // would find alice standing in B and send her straight home again.
@@ -233,7 +233,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void anOutsidePluginCanTakeOnePassengerOutOfATrip()
+    void anOutsidePluginCanTakeOnePassengerOutOfATrip()
     {
         // What RingTravelEvent is for. A refusal drops that traveller and leaves the rest of
         // the trip alone: the rings still fire and everyone else still goes.
@@ -248,7 +248,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void anOutsidePluginIsAskedOnlyAfterBothEndsHaveBeenRead()
+    void anOutsidePluginIsAskedOnlyAfterBothEndsHaveBeenRead()
     {
         // The ordering the event's contract rests on. A listener must always see the trip as
         // it was before any of it happened, never a half-finished one with the people from
@@ -266,7 +266,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRiderIsCarriedByItsMountRatherThanSentSeparately()
+    void aRiderIsCarriedByItsMountRatherThanSentSeparately()
     {
         // The camel bug. A rider and its mount are two things standing in the same ring, and
         // moving them one at a time leaves whichever went first without the other for an
@@ -285,7 +285,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRiderWhoseMountIsStayingBehindTravelsAlone()
+    void aRiderWhoseMountIsStayingBehindTravelsAlone()
     {
         // Their ride is not going, so dismounting is the right answer rather than a bug.
         final RingPair pair = pair();
@@ -299,7 +299,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRiderRefusedByAccessDoesNotStopTheMountGoing()
+    void aRiderRefusedByAccessDoesNotStopTheMountGoing()
     {
         // Cargo is not subject to access, so the camel travels and the stranger stays. They
         // are dropped for the access rule, not by being counted as a passenger of it.
@@ -315,7 +315,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void nobodyIsSentIntoARingThatHasBeenBuiltIn()
+    void nobodyIsSentIntoARingThatHasBeenBuiltIn()
     {
         // A ring is invisible and its inside is ordinary ground, so somebody can drop a block
         // in one long after it was made. Arriving inside that block is the one outcome worse
@@ -330,7 +330,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRingWithAHoleInItsFloorTakesNobodyEither()
+    void aRingWithAHoleInItsFloorTakesNobodyEither()
     {
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -341,7 +341,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void oneBlockedEndDoesNotStopTheOtherDirection()
+    void oneBlockedEndDoesNotStopTheOtherDirection()
     {
         // The two directions are separate journeys. Somebody standing in the blocked end can
         // still leave it — there is nothing wrong with departing from a ring you cannot
@@ -358,7 +358,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aCycleThatCarriedNobodyOwesNoCooldown()
+    void aCycleThatCarriedNobodyOwesNoCooldown()
     {
         // The cooldown exists so an arrival cannot immediately re-fire the ring it landed in.
         // A cycle that moved nobody has no arrival to guard against, so making somebody wait
@@ -378,7 +378,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aOneSidedCycleStillWorks()
+    void aOneSidedCycleStillWorks()
     {
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -388,13 +388,13 @@ public class RingCycleTest
     }
 
     @Test
-    public void anEmptyCommittedCycleSendsNobodyAndDoesNotComplain()
+    void anEmptyCommittedCycleSendsNobodyAndDoesNotComplain()
     {
         assertEquals(0, new RingCycle(pair(), new FakeWorld(), REACH).flash());
     }
 
     @Test
-    public void aPrivatePairLeavesAnUnpermittedPlayerStandingThere()
+    void aPrivatePairLeavesAnUnpermittedPlayerStandingThere()
     {
         // Access governs being carried, not only arming. Standing in somebody's private ring
         // when they use it is not a free ride.
@@ -415,7 +415,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void cargoTravelsThroughAPrivateRingBecauseItCannotHaveArmedIt()
+    void cargoTravelsThroughAPrivateRingBecauseItCannotHaveArmedIt()
     {
         final RingPair pair = pair();
         pair.setAccess(RingAccess.PRIVATE);
@@ -429,7 +429,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void theCountdownLightsAreDrawnAndCleanedUpOnAbort()
+    void theCountdownLightsAreDrawnAndCleanedUpOnAbort()
     {
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -446,7 +446,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void anEmptyPairAbortsAndAnOccupiedOneDoesNot()
+    void anEmptyPairAbortsAndAnOccupiedOneDoesNot()
     {
         final RingPair pair = pair();
         final FakeWorld world = new FakeWorld();
@@ -459,7 +459,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void onceDeployingTheCycleWillNoLongerAbort()
+    void onceDeployingTheCycleWillNoLongerAbort()
     {
         // The committed phase. Everyone can walk away and it still runs to the end.
         final RingPair pair = pair();
@@ -472,7 +472,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void thePadStaysLitAllTheWayThroughTheCycle()
+    void thePadStaysLitAllTheWayThroughTheCycle()
     {
         // The lights are lit for the whole trip, not just the countdown. Putting them out as
         // the rings start rising would have the pad go dark exactly as it does the thing it
@@ -504,7 +504,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void theRingsCanGoWhileThePadIsStillLit()
+    void theRingsCanGoWhileThePadIsStillLit()
     {
         // What the linger is made of: the rings are taken down on their own, and the lights
         // follow a beat later rather than on the same tick.
@@ -527,7 +527,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void theLightTakesPeopleInAtOneEndAndPutsThemOutAtTheOther()
+    void theLightTakesPeopleInAtOneEndAndPutsThemOutAtTheOther()
     {
         // The two sweeps mean different things and belong to different ends. An end that is
         // only receiving should not appear to swallow anybody first, and an end that is only
@@ -562,7 +562,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aCycleCarryingNobodyShowsNoTransportLightAtAll()
+    void aCycleCarryingNobodyShowsNoTransportLightAtAll()
     {
         // Nothing is being transported, so there is no transport to light. The stack still
         // stands there, which is the honest picture of an empty committed cycle.
@@ -579,7 +579,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aFullRunLeavesNothingDrawnBehind()
+    void aFullRunLeavesNothingDrawnBehind()
     {
         // The thing that would otherwise leave a ring hanging in somebody's room until they
         // next relogged.
@@ -594,7 +594,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aWholeCycleNeverChangesASingleRealBlock()
+    void aWholeCycleNeverChangesASingleRealBlock()
     {
         // The point of drawing rather than placing. A server stopped mid-cycle keeps nothing,
         // block loggers see nothing, and nobody can mine the glowstone out of their own floor
@@ -611,7 +611,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void thePadAppearsToOpenAndThenCloseAgain()
+    void thePadAppearsToOpenAndThenCloseAgain()
     {
         // The surface parts and the light shows from below it, so the ring reads as having
         // opened rather than as a pattern painted on the ground. Neither block is really
@@ -638,7 +638,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRingIsDrawnStraightOverWhateverIsInItsWay()
+    void aRingIsDrawnStraightOverWhateverIsInItsWay()
     {
         // Since nothing is being replaced, a ring passing through somebody's staircase can
         // simply be drawn over it and still look like a complete ring. Placing real blocks
@@ -675,7 +675,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void bothStylesRunToTheEndAndCleanUpAfterThemselves()
+    void bothStylesRunToTheEndAndCleanUpAfterThemselves()
     {
         for (final RingStyle style : RingStyle.values())
         {
@@ -707,7 +707,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRingBelowSeaLevelStillPutsItsBlocksBack()
+    void aRingBelowSeaLevelStillPutsItsBlocksBack()
     {
         // Regression: positions are packed into a long to be remembered, and y lives in the
         // low twelve bits where a plain mask loses its sign. A ring at a negative height was
@@ -729,7 +729,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void aRunningPairSaysSoSoNothingElseDrawsOverIt()
+    void aRunningPairSaysSoSoNothingElseDrawsOverIt()
     {
         // Regression: stepping out of a ring and back in while it counted down took the
         // refusal path, which lit an outline for that player and scheduled it to put "the
@@ -757,7 +757,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void anAbortedCycleIsIdleAgainStraightAway()
+    void anAbortedCycleIsIdleAgainStraightAway()
     {
         // The other way a cycle ends. It has to release the pad too, or a ring that stood
         // down would stay marked as busy and nothing could draw on it again.
@@ -769,7 +769,7 @@ public class RingCycleTest
     }
 
     @Test
-    public void finishingStartsTheCooldownThatKeepsArrivalsFromBouncing()
+    void finishingStartsTheCooldownThatKeepsArrivalsFromBouncing()
     {
         final RingPair pair = pair();
         final RingCycle cycle = new RingCycle(pair, new FakeWorld(), REACH);

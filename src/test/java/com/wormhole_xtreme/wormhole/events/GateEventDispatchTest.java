@@ -30,13 +30,13 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * <p>There is no server here to dispatch through, so these watch the seam the dispatcher
  * calls rather than registering a real Bukkit listener.
  */
-public class GateEventDispatchTest
+class GateEventDispatchTest
 {
     private final List<Event> raised = new ArrayList<Event>();
     private World world;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
@@ -51,7 +51,7 @@ public class GateEventDispatchTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         GateEvents.setDispatcherForTest(null);
         GateSpatialIndex.clear();
@@ -81,7 +81,7 @@ public class GateEventDispatchTest
     }
 
     @Test
-    public void removingAGateAnnouncesIt()
+    void removingAGateAnnouncesIt()
     {
         final Stargate gate = registeredGate("doomed");
         final Player remover = mock(Player.class);
@@ -96,7 +96,7 @@ public class GateEventDispatchTest
     }
 
     @Test
-    public void theGateIsStillReadableWhenTheRemovalIsAnnounced()
+    void theGateIsStillReadableWhenTheRemovalIsAnnounced()
     {
         // A listener's whole reason to handle this is to act on the gate before it goes.
         // Firing after teardown would hand it a gate with nothing left on it, so the event
@@ -124,7 +124,7 @@ public class GateEventDispatchTest
     }
 
     @Test
-    public void refreshingAGateDoesNotAnnounceARemoval()
+    void refreshingAGateDoesNotAnnounceARemoval()
     {
         // A refresh deregisters the gate and registers it again with freshly detected
         // geometry. It runs through the same removal path but the gate is still there
@@ -139,7 +139,7 @@ public class GateEventDispatchTest
     }
 
     @Test
-    public void anOrdinaryGateRemovalCommandStillAnnounces()
+    void anOrdinaryGateRemovalCommandStillAnnounces()
     {
         // The control for the test above: suppressing the refresh case must not have
         // suppressed real removals, which is the entire point of the event.

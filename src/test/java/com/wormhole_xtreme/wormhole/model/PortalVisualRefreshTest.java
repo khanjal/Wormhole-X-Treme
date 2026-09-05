@@ -24,10 +24,10 @@ import org.junit.jupiter.api.Test;
  * while the traveller is still standing at the source gate, far outside the range the portal
  * is drawn to. They were never sent it at all, so they stepped out into an empty frame.
  */
-public class PortalVisualRefreshTest
+class PortalVisualRefreshTest
 {
     @AfterEach
-    public void afterEach()
+    void afterEach()
     {
         for (final Stargate gate : new java.util.ArrayList<Stargate>(StargateManager.getOpenGates()))
         {
@@ -51,7 +51,7 @@ public class PortalVisualRefreshTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void openingAndClosingAGateTracksItInTheOpenSet()
+    void openingAndClosingAGateTracksItInTheOpenSet()
     {
         // The refresh runs on every chunk boundary a player crosses, so it walks the open
         // gates rather than filtering all of them. That only works if the set follows the
@@ -71,7 +71,7 @@ public class PortalVisualRefreshTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void aNearbyOpenGateIsRedrawn()
+    void aNearbyOpenGateIsRedrawn()
     {
         final World world = mock(World.class);
         final Stargate gate = openGateAt(world, 100, 64, 100);
@@ -80,7 +80,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void aGateBeyondTheVisualRangeIsNotRedrawn()
+    void aGateBeyondTheVisualRangeIsNotRedrawn()
     {
         final World world = mock(World.class);
         final Stargate gate = openGateAt(world, 100, 64, 100);
@@ -92,7 +92,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void aGateInAnotherWorldIsNotRedrawn()
+    void aGateInAnotherWorldIsNotRedrawn()
     {
         final World world = mock(World.class);
         final World elsewhere = mock(World.class);
@@ -103,7 +103,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void aGateShowingAnIrisIsNotRedrawn()
+    void aGateShowingAnIrisIsNotRedrawn()
     {
         // The iris is real blocks. Drawing the portal over it would show an open wormhole
         // where the gate is actually sealed, which is exactly backwards.
@@ -115,7 +115,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void aGateWithNoPortalBlocksIsNotRedrawn()
+    void aGateWithNoPortalBlocksIsNotRedrawn()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -130,7 +130,7 @@ public class PortalVisualRefreshTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void aNearbyOpenGateReachesTheSend()
+    void aNearbyOpenGateReachesTheSend()
     {
         // The send itself cannot be asserted directly here: it needs createBlockData(),
         // which goes through Bukkit.getServer(), and this project pins the subclass mock
@@ -155,7 +155,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void aPlayerFarFromEveryGateIsSentNothing()
+    void aPlayerFarFromEveryGateIsSentNothing()
     {
         // The control for the test above: without it that one would still pass if the
         // range check were dropped entirely.
@@ -172,7 +172,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void anOfflinePlayerIsSentNothing()
+    void anOfflinePlayerIsSentNothing()
     {
         final World world = mock(World.class);
         openGateAt(world, 100, 64, 100);
@@ -186,7 +186,7 @@ public class PortalVisualRefreshTest
     }
 
     @Test
-    public void aClosedGateIsSentToNobodyEvenStandingInIt()
+    void aClosedGateIsSentToNobodyEvenStandingInIt()
     {
         // Closing removes the gate from the open set, which is the only thing stopping the
         // refresh from painting a portal back over a gate that has just shut down.

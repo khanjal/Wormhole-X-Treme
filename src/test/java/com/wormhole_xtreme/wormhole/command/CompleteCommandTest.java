@@ -17,10 +17,10 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 /**
  * Unit tests for the `/wormhole complete` command parsing and robustness.
  */
-public class CompleteCommandTest
+class CompleteCommandTest
 {
     @BeforeEach
-    public void beforeEach()
+    void beforeEach()
     {
         // Ensure plugin reference exists to avoid NPEs during logging
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
@@ -34,13 +34,13 @@ public class CompleteCommandTest
     }
 
     @AfterEach
-    public void afterEach()
+    void afterEach()
     {
         // no-op cleanup; tests remove any pending completion they create
     }
 
     @Test
-    public void completeHandlesIdcWithSeparatedValue()
+    void completeHandlesIdcWithSeparatedValue()
     {
         final Player player = mock(Player.class);
         when(player.isOp()).thenReturn(true);
@@ -74,7 +74,7 @@ public class CompleteCommandTest
     }
 
     @Test
-    public void completeHandlesEmptyIdcToken()
+    void completeHandlesEmptyIdcToken()
     {
         final Player player = mock(Player.class);
         when(player.isOp()).thenReturn(true);

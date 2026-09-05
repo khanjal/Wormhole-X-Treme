@@ -28,7 +28,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * rubber-banded the player and pulled them further into the ring while claiming to keep
  * them out.
  */
-public class GateEntryRefusalTest
+class GateEntryRefusalTest
 {
     private World world;
     private Player player;
@@ -38,7 +38,7 @@ public class GateEntryRefusalTest
     private static final int BX = 10, BY = 64, BZ = 20;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
@@ -84,7 +84,7 @@ public class GateEntryRefusalTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         StargateManager.removeStargate(origin);
         GateSpatialIndex.clear();
@@ -100,7 +100,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void walkingIntoTheExitEndIsRefused()
+    void walkingIntoTheExitEndIsRefused()
     {
         final PlayerMoveEvent event = walkIntoDestination();
 
@@ -109,7 +109,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void refusalDoesNotTeleportThePlayer()
+    void refusalDoesNotTeleportThePlayer()
     {
         // The old code teleported to the gate's arrival point — inside the ring — so a
         // refusal pulled the player in rather than keeping them out.
@@ -119,7 +119,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void refusalLeavesTheEventsOwnFromAndToAlone()
+    void refusalLeavesTheEventsOwnFromAndToAlone()
     {
         // Cancelling returns the player to getFrom(). Rewriting from/to as well meant
         // three mechanisms competing in one tick, which is what caused the rubber-band.
@@ -133,7 +133,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void refusalDoesNotTouchDamageImmunity()
+    void refusalDoesNotTouchDamageImmunity()
     {
         // setNoDamageTicks was copied from the teleport path; nothing here deals damage.
         walkIntoDestination();
@@ -156,7 +156,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void walkingOutOfTheExitEndIsAllowed()
+    void walkingOutOfTheExitEndIsAllowed()
     {
         // The traveller who just came through arrives standing in the ring, and refusing a
         // move is cancelling it — which holds them exactly where they are. Applying the
@@ -169,7 +169,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void aPlayerStandingInTheExitIsNotTrappedByRepeatedAttempts()
+    void aPlayerStandingInTheExitIsNotTrappedByRepeatedAttempts()
     {
         // The failure was not one refused step, it was never being able to take one. Each
         // of these is a fresh event, the way the client retries after a cancelled move.
@@ -182,7 +182,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void movingWithinTheExitPortalIsAllowed()
+    void movingWithinTheExitPortalIsAllowed()
     {
         // Shuffling inside the ring is still not an entry, so it must not be refused
         // either. Both ends of this move are the portal block.
@@ -196,7 +196,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void walkingInIsStillRefusedAfterTheWalkingOutFix()
+    void walkingInIsStillRefusedAfterTheWalkingOutFix()
     {
         // The control: letting people out must not have let people in. This is the case
         // the whole refusal exists for — a wormhole is an exit at this end, so a mob or a
@@ -207,7 +207,7 @@ public class GateEntryRefusalTest
     }
 
     @Test
-    public void holdingForwardAgainstTheExitIsRefusedOnceNotEveryTick()
+    void holdingForwardAgainstTheExitIsRefusedOnceNotEveryTick()
     {
         // Cancelling a move returns the player to event.getFrom() — the exact spot they
         // tried to leave — so someone holding a movement key generates a fresh event every

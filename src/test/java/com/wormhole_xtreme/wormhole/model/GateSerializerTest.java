@@ -9,10 +9,10 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
 
-public class GateSerializerTest
+class GateSerializerTest
 {
     @Test
-    public void roundtripSerializeAndParseProducesConsistentMinimalGate() throws Exception
+    void roundtripSerializeAndParseProducesConsistentMinimalGate() throws Exception
     {
         final World w = mock(World.class);
         when(w.getName()).thenReturn("gw");
@@ -93,7 +93,7 @@ public class GateSerializerTest
     }
 
     @Test
-    public void customMaterialsSurviveARoundTrip()
+    void customMaterialsSurviveARoundTrip()
     {
         final World w = mockWorld();
         final Stargate s1 = minimalGate(w);
@@ -114,7 +114,7 @@ public class GateSerializerTest
     }
 
     @Test
-    public void absentCustomMaterialsRoundTripAsNull()
+    void absentCustomMaterialsRoundTripAsNull()
     {
         final World w = mockWorld();
         final Stargate s1 = minimalGate(w);
@@ -130,7 +130,7 @@ public class GateSerializerTest
     }
 
     @Test
-    public void materialsAreStoredByNameNotOrdinal()
+    void materialsAreStoredByNameNotOrdinal()
     {
         // The point of version 9: the encoded form must not depend on the enum's
         // declaration order, which shifts whenever Minecraft adds or removes a block.
@@ -147,7 +147,7 @@ public class GateSerializerTest
     }
 
     @Test
-    public void serializedBufferIsExactlyConsumedByTheReader() throws Exception
+    void serializedBufferIsExactlyConsumedByTheReader() throws Exception
     {
         // The four materials are variable-length now, so the size calculation can no
         // longer be eyeballed. Over-allocating leaves trailing padding, which the reader
@@ -185,7 +185,7 @@ public class GateSerializerTest
     }
 
     @Test
-    public void writerEmitsCurrentSaveVersion()
+    void writerEmitsCurrentSaveVersion()
     {
         final World w = mockWorld();
         final byte[] data = GateSerializer.stargatetoBinary(minimalGate(w));
@@ -194,7 +194,7 @@ public class GateSerializerTest
     }
 
     @Test
-    public void mixedPresentAndAbsentMaterialsStayAlignedInTheStream()
+    void mixedPresentAndAbsentMaterialsStayAlignedInTheStream()
     {
         // Variable-length fields mean a miscounted length desyncs everything after it,
         // so pin a gate where only some materials are set.

@@ -20,10 +20,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * disk is covered instead by {@code StargateShapeRegistryReloadTest}, against plain lines
  * rather than a file path that only exists once a server has actually run.
  */
-public class GateShapesCommandTest
+class GateShapesCommandTest
 {
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -32,7 +32,7 @@ public class GateShapesCommandTest
     }
 
     @Test
-    public void tooFewArgumentsShowsUsageRatherThanThrowing()
+    void tooFewArgumentsShowsUsageRatherThanThrowing()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes" }));
@@ -40,7 +40,7 @@ public class GateShapesCommandTest
     }
 
     @Test
-    public void anUnknownActionIsReportedRatherThanSilentlyIgnored()
+    void anUnknownActionIsReportedRatherThanSilentlyIgnored()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "frobnicate" }));
@@ -48,7 +48,7 @@ public class GateShapesCommandTest
     }
 
     @Test
-    public void validateWithNoNameShowsUsageRatherThanThrowing()
+    void validateWithNoNameShowsUsageRatherThanThrowing()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender, new String[] { "gate", "shapes", "validate" }));
@@ -56,7 +56,7 @@ public class GateShapesCommandTest
     }
 
     @Test
-    public void validatingAFileThatDoesNotExistReportsAProblemRatherThanThrowing()
+    void validatingAFileThatDoesNotExistReportsAProblemRatherThanThrowing()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertTrue(new GateShapesCommand().execute(sender,

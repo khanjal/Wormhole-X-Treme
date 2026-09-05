@@ -39,13 +39,13 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * reason, in the same spirit as the rest of this suite: the decision is pulled far enough out
  * to be asked directly, rather than a fake world being built around it.
  */
-public class GateActivationSwitchTest
+class GateActivationSwitchTest
 {
     /** A player who owns everything, so permission checks never stand in the way. */
     private Player player;
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
@@ -68,7 +68,7 @@ public class GateActivationSwitchTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         for (final Stargate s : StargateManager.getAllGates())
         {
@@ -96,7 +96,7 @@ public class GateActivationSwitchTest
      * press dialled nothing and the next dialled one gate too far.
      */
     @Test
-    public void pressingTheDhdAfterAReloadDialsWhatTheSignWasShowing()
+    void pressingTheDhdAfterAReloadDialsWhatTheSignWasShowing()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("home");
@@ -130,7 +130,7 @@ public class GateActivationSwitchTest
      * named would be the same surprise as the bug, pointed the other way.
      */
     @Test
-    public void pressingTheDhdOnASignNobodyHasSetDialsNothing()
+    void pressingTheDhdOnASignNobodyHasSetDialsNothing()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("unset");
@@ -149,7 +149,7 @@ public class GateActivationSwitchTest
 
     /** Pressing the DHD on an open wormhole closes it. */
     @Test
-    public void pressingTheDhdOnAnOpenGateShutsItDown()
+    void pressingTheDhdOnAnOpenGateShutsItDown()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("open");
@@ -169,7 +169,7 @@ public class GateActivationSwitchTest
      * is why it exists at all.
      */
     @Test
-    public void aGateLitByNobodyCanStillBeCleared()
+    void aGateLitByNobodyCanStillBeCleared()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("stale");
@@ -186,7 +186,7 @@ public class GateActivationSwitchTest
 
     /** Pressing the DHD on a plain dial gate lights it and waits for a /dial. */
     @Test
-    public void pressingTheDhdOnAPlainGateLightsItForDialling()
+    void pressingTheDhdOnAPlainGateLightsItForDialling()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("plain");
@@ -207,7 +207,7 @@ public class GateActivationSwitchTest
      * typing /dial at a gate that has never accepted one.
      */
     @Test
-    public void aClosedSignGateIsRoutedToItsSign()
+    void aClosedSignGateIsRoutedToItsSign()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("signRouted");
@@ -233,7 +233,7 @@ public class GateActivationSwitchTest
      * <p>The ordinary way to change your mind after activating a gate and before dialling it.
      */
     @Test
-    public void pressingTheDhdOnYourOwnActivationDeactivatesIt()
+    void pressingTheDhdOnYourOwnActivationDeactivatesIt()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("mine");
@@ -255,7 +255,7 @@ public class GateActivationSwitchTest
      * the dial leaves behind if it fails part way. Saying so beats silently doing nothing.
      */
     @Test
-    public void aGateInNeitherStateIsReportedRatherThanSilentlyIgnored()
+    void aGateInNeitherStateIsReportedRatherThanSilentlyIgnored()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("neither");
@@ -274,7 +274,7 @@ public class GateActivationSwitchTest
      * activator learns theirs is gone rather than finding the gate dark later with no idea why.
      */
     @Test
-    public void clearingSomebodyElsesActivationTellsThemBoth()
+    void clearingSomebodyElsesActivationTellsThemBoth()
     {
         final Player activator = mock(Player.class);
         when(activator.getName()).thenReturn("someoneElse");
@@ -302,7 +302,7 @@ public class GateActivationSwitchTest
      * button and get nothing back at all.
      */
     @Test
-    public void aRefusedDialTellsThePlayerTheGateIsBusy()
+    void aRefusedDialTellsThePlayerTheGateIsBusy()
     {
         final Stargate gate = spy(new Stargate());
         gate.setGateName("refused");

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
  * represent. That is the opposite of how materials work, and deliberately: a material is
  * cosmetic and local, access is functional and about the link.
  */
-public class RingAccessTest
+class RingAccessTest
 {
     private static final String WORLD = "world";
     private static final int REACH = 4;
@@ -46,19 +46,19 @@ public class RingAccessTest
     }
 
     @BeforeEach
-    public void clearBefore()
+    void clearBefore()
     {
         RingManager.clear();
     }
 
     @AfterEach
-    public void clearAfter()
+    void clearAfter()
     {
         RingManager.clear();
     }
 
     @Test
-    public void aNewPairIsPrivateToItsOwner()
+    void aNewPairIsPrivateToItsOwner()
     {
         // Rings are personal point-to-point links rather than public network infrastructure,
         // so the safe default is the closed one. A server that wants otherwise flips it.
@@ -69,7 +69,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void aPublicPairIsUsableByAnybody()
+    void aPublicPairIsUsableByAnybody()
     {
         final RingPair pair = pair();
         pair.setAccess(RingAccess.PUBLIC);
@@ -78,7 +78,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void namedPlayersMayUseAPrivatePair()
+    void namedPlayersMayUseAPrivatePair()
     {
         final RingPair pair = pair();
         assertFalse(pair.mayUse(FRIEND));
@@ -89,7 +89,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void namingSomebodyTwiceIsNotAnError()
+    void namingSomebodyTwiceIsNotAnError()
     {
         final RingPair pair = pair();
         assertTrue(pair.allow(FRIEND));
@@ -98,7 +98,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void takingSomebodyOffTheListRevokesThem()
+    void takingSomebodyOffTheListRevokesThem()
     {
         final RingPair pair = pair();
         pair.allow(FRIEND);
@@ -108,7 +108,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void theOwnerCannotBeLockedOutByRevokingThem()
+    void theOwnerCannotBeLockedOutByRevokingThem()
     {
         // The owner's access comes from ownership, not from the list, so a stray deny
         // cannot leave a pair nobody can use or change.
@@ -118,13 +118,13 @@ public class RingAccessTest
     }
 
     @Test
-    public void theAllowListCannotBeEditedThroughItsGetter()
+    void theAllowListCannotBeEditedThroughItsGetter()
     {
         assertThrows(UnsupportedOperationException.class, () -> pair().getAllowed().add(STRANGER));
     }
 
     @Test
-    public void accessAndTheAllowListSurviveARoundTrip() throws IOException
+    void accessAndTheAllowListSurviveARoundTrip() throws IOException
     {
         final RingPair pair = pair();
         pair.setAccess(RingAccess.PUBLIC);
@@ -142,7 +142,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void aStoredPairWithNoAccessFieldLoadsAsPrivate() throws IOException
+    void aStoredPairWithNoAccessFieldLoadsAsPrivate() throws IOException
     {
         // Files written before access existed have no such field. Reading that as public
         // would silently open every ring on an upgrading server.
@@ -166,7 +166,7 @@ public class RingAccessTest
     }
 
     @Test
-    public void anUnreadableAccessFieldFailsClosedRatherThanOpen() throws IOException
+    void anUnreadableAccessFieldFailsClosedRatherThanOpen() throws IOException
     {
         // The one failure here that cannot be undone once people have used the ring, so a
         // corrupted value resolves to private rather than to whatever it looks most like.

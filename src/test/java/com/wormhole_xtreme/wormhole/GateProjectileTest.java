@@ -36,7 +36,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * Confirmed in play: arrows came out of the destination and fell straight down. So the
  * original is consumed and an identical one is fired at the destination instead.
  */
-public class GateProjectileTest
+class GateProjectileTest
 {
     private World world;
     private Stargate origin;
@@ -46,7 +46,7 @@ public class GateProjectileTest
     private static final int BX = 10, BY = 64, BZ = 20;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
@@ -109,7 +109,7 @@ public class GateProjectileTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         StargateManager.removeStargate(origin);
         GateSpatialIndex.clear();
@@ -124,7 +124,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void theOriginalArrowIsConsumedRatherThanMoved()
+    void theOriginalArrowIsConsumedRatherThanMoved()
     {
         sendArrowThroughGate();
 
@@ -133,7 +133,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void aReplacementIsFiredOutOfTheDestinationGate()
+    void aReplacementIsFiredOutOfTheDestinationGate()
     {
         sendArrowThroughGate();
 
@@ -149,7 +149,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void theReplacementGetsItsVelocityAfterSpawningAndAgainNextTick()
+    void theReplacementGetsItsVelocityAfterSpawningAndAgainNextTick()
     {
         // The bug that made three builds' worth of fixes look ineffective: velocity was
         // only set inside the spawn callback, which runs before the entity joins the world
@@ -164,7 +164,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void theReplacementKeepsTheStateThatMattersInCombat()
+    void theReplacementKeepsTheStateThatMattersInCombat()
     {
         final Player shooter = mock(Player.class);
         when(arrow.getShooter()).thenReturn(shooter);
@@ -181,7 +181,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void anArrowThatHasAlreadyLandedIsRelaunchedNotDroppedAgain()
+    void anArrowThatHasAlreadyLandedIsRelaunchedNotDroppedAgain()
     {
         // The actual cause of arrows falling out of the destination. Portal blocks are air,
         // so an arrow flies through the ring and sticks in whatever is behind it; the sweep
@@ -203,7 +203,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void aSlowProjectileIsBroughtUpToLaunchSpeed()
+    void aSlowProjectileIsBroughtUpToLaunchSpeed()
     {
         // An arrow caught mid-flight but already slowed would otherwise dribble out.
         when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -0.2));
@@ -217,7 +217,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void aFastArrowKeepsItsOwnSpeed()
+    void aFastArrowKeepsItsOwnSpeed()
     {
         // Anything already travelling faster than the launch floor is left alone.
         when(arrow.getVelocity()).thenReturn(new Vector(0, 0, -5.0));
@@ -230,7 +230,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void everyProjectileTypeIsReplacedNotJustArrows()
+    void everyProjectileTypeIsReplacedNotJustArrows()
     {
         // Anything that flies under its own momentum has the same problem, so the rule is
         // Projectile, not Arrow.
@@ -253,7 +253,7 @@ public class GateProjectileTest
     }
 
     @Test
-    public void aNonProjectileIsStillJustTeleported()
+    void aNonProjectileIsStillJustTeleported()
     {
         // Only projectiles need replacing; everything else moves as before.
         final org.bukkit.entity.Zombie zombie = mock(org.bukkit.entity.Zombie.class);

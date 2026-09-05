@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  * outward extrusion derived on demand from its portal face. These tests pin that the derived
  * version really does reproduce what the deleted path drew, since nothing else does now.
  */
-public class WooshWaveTest
+class WooshWaveTest
 {
     /**
      * A portal block at a plain coordinate. The world is deliberately null -- both
@@ -56,7 +56,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void aShapeThatAuthorsItsOwnWavesIsCountedByHowManyItAuthored()
+    void aShapeThatAuthorsItsOwnWavesIsCountedByHowManyItAuthored()
     {
         final Stargate gate = new Stargate();
         gate.getGateWooshBlocks().add(new ArrayList<Location>());
@@ -67,7 +67,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void aShapeWithNoAuthoredWavesFallsBackToItsConfiguredDepth()
+    void aShapeWithNoAuthoredWavesFallsBackToItsConfiguredDepth()
     {
         // This is the case that used to take the separate 2D path entirely. It has to keep
         // producing a woosh, or collapsing the two paths would silently delete the animation
@@ -81,7 +81,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void aGateWithNeitherAuthoredWavesNorADepthHasNoWooshAtAll()
+    void aGateWithNeitherAuthoredWavesNorADepthHasNoWooshAtAll()
     {
         // Every shipped shape declares :W# markers and none declares WOOSH_DEPTH, so this is
         // the shape of a hand-written shape file that asked for no woosh. It must read as
@@ -92,7 +92,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void theFirstDerivedWaveSitsOneBlockOutFromThePortalFace()
+    void theFirstDerivedWaveSitsOneBlockOutFromThePortalFace()
     {
         // The old 2D path's very first step was the portal blocks' getRelative(facing) --
         // one block out. Index 0 has to land in exactly that spot, or every derived woosh
@@ -109,7 +109,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void eachLaterWaveIsOneBlockFurtherOutThanTheOneBefore()
+    void eachLaterWaveIsOneBlockFurtherOutThanTheOneBefore()
     {
         // The old path reached wave N by extruding the *previous* wave one more step, so
         // wave N sat N blocks out. Expressed as a function of the index instead of as
@@ -124,7 +124,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void aGateLyingOnItsBackExtrudesUpwardsRatherThanSideways()
+    void aGateLyingOnItsBackExtrudesUpwardsRatherThanSideways()
     {
         // The Horizontal shape faces UP, and the old path used getRelative(facing), which
         // carries the Y component like any other. Multiplying the facing's offsets by the
@@ -140,7 +140,7 @@ public class WooshWaveTest
     }
 
     @Test
-    public void aGateWhoseFacingIsNotKnownYetDerivesNothingRatherThanGuessing()
+    void aGateWhoseFacingIsNotKnownYetDerivesNothingRatherThanGuessing()
     {
         // Facing is resolved during detection; a gate that has not been through that has no
         // direction to extrude along. Returning null puts it down the same branch an

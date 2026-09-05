@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>These pin the file surgery rather than the file writing, so they need no disk.
  */
-public class ConfigPreservesUnownedContentTest
+class ConfigPreservesUnownedContentTest
 {
     private static Map<String, String> values(final String... pairs)
     {
@@ -40,7 +40,7 @@ public class ConfigPreservesUnownedContentTest
     }
 
     @Test
-    public void asettingTheFileCarriesIsUpdatedInPlace()
+    void asettingTheFileCarriesIsUpdatedInPlace()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(
@@ -57,7 +57,7 @@ public class ConfigPreservesUnownedContentTest
      * under one top-level name, none of it in the flat setting list.
      */
     @Test
-    public void anestedMaterialGroupBlockIsLeftExactlyAsItWas()
+    void anestedMaterialGroupBlockIsLeftExactlyAsItWas()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
@@ -82,7 +82,7 @@ public class ConfigPreservesUnownedContentTest
      * every gate in that palette.
      */
     @Test
-    public void anIndentedKeyIsNotTreatedAsASettingOfTheSameName()
+    void anIndentedKeyIsNotTreatedAsASettingOfTheSameName()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
@@ -96,7 +96,7 @@ public class ConfigPreservesUnownedContentTest
     }
 
     @Test
-    public void commentsAndBlankLinesAreKept()
+    void commentsAndBlankLinesAreKept()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
@@ -110,7 +110,7 @@ public class ConfigPreservesUnownedContentTest
 
     /** A commented-out setting stays commented out, rather than becoming live config. */
     @Test
-    public void acommentedOutSettingIsNotRevived()
+    void acommentedOutSettingIsNotRevived()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(
@@ -128,7 +128,7 @@ public class ConfigPreservesUnownedContentTest
      * untouched is what turns "not written" back into "not disturbed".
      */
     @Test
-    public void akeyThePluginDoesNotOwnIsUntouched()
+    void akeyThePluginDoesNotOwnIsUntouched()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
@@ -141,7 +141,7 @@ public class ConfigPreservesUnownedContentTest
 
     /** An absent setting is left for the caller to append with its description. */
     @Test
-    public void asettingAbsentFromTheFileIsNotReportedAsUpdated()
+    void asettingAbsentFromTheFileIsNotReportedAsUpdated()
     {
         final Set<String> updated = new HashSet<String>();
         ConfigurationYAML.updateSettingLines(
@@ -151,7 +151,7 @@ public class ConfigPreservesUnownedContentTest
     }
 
     @Test
-    public void avalueContainingDotsIsReplacedWhole()
+    void avalueContainingDotsIsReplacedWhole()
     {
         final Set<String> updated = new HashSet<String>();
         final List<String> after = ConfigurationYAML.updateSettingLines(
@@ -170,7 +170,7 @@ public class ConfigPreservesUnownedContentTest
      * around it -- is the thing a synthetic example is most likely to get wrong.
      */
     @Test
-    public void theShippedConfigKeepsItsMaterialGroupsThroughASave() throws Exception
+    void theShippedConfigKeepsItsMaterialGroupsThroughASave() throws Exception
     {
         final java.nio.file.Path shipped = java.nio.file.Paths.get("src/main/resources/config.yml");
         final List<String> before = java.nio.file.Files.readAllLines(shipped);

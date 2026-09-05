@@ -16,7 +16,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  * misbehave at runtime, so the shape of these classes is worth pinning: each concrete event
  * needs its own handler list, reachable both statically and from an instance.
  */
-public class GateEventTest
+class GateEventTest
 {
     private static Stargate namedGate()
     {
@@ -26,7 +26,7 @@ public class GateEventTest
     }
 
     @Test
-    public void eachEventTypeHasItsOwnHandlerList()
+    void eachEventTypeHasItsOwnHandlerList()
     {
         // The bug this prevents: a handler list declared once on the shared base class.
         // Bukkit dispatches on the list the concrete class returns, so a single shared list
@@ -41,7 +41,7 @@ public class GateEventTest
     }
 
     @Test
-    public void theInstanceHandlerListMatchesTheStaticOne()
+    void theInstanceHandlerListMatchesTheStaticOne()
     {
         // Bukkit reads the static one to register a listener and the instance one to
         // dispatch. If they differ, registration succeeds and nothing is ever called.
@@ -54,7 +54,7 @@ public class GateEventTest
     }
 
     @Test
-    public void anEventCarriesItsGateAndTheActingPlayer()
+    void anEventCarriesItsGateAndTheActingPlayer()
     {
         final Stargate gate = namedGate();
         final Player player = mock(Player.class);
@@ -70,7 +70,7 @@ public class GateEventTest
     }
 
     @Test
-    public void theActingPlayerIsOptional()
+    void theActingPlayerIsOptional()
     {
         // Gates are also removed by things that are not players, and a listener has to be
         // able to tell that apart rather than being handed something invented.
@@ -81,7 +81,7 @@ public class GateEventTest
     }
 
     @Test
-    public void anEventWithoutAGateIsRefusedAtConstruction()
+    void anEventWithoutAGateIsRefusedAtConstruction()
     {
         // Every listener will call getStargate(). Failing here names the problem; allowing
         // it would surface as an NPE inside somebody else's plugin.
@@ -90,7 +90,7 @@ public class GateEventTest
     }
 
     @Test
-    public void firingWithNoServerRunningIsHarmless()
+    void firingWithNoServerRunningIsHarmless()
     {
         // Gate creation and removal are exercised without a server, and raising an event is
         // something the gate operation does on the way past. It must not be the thing that

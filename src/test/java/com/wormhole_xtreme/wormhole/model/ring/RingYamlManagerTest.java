@@ -27,7 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * ring in that world. Losing one broken pair is recoverable; losing a base's whole transport
  * network to a typo is not, so bad entries are skipped rather than fatal.
  */
-public class RingYamlManagerTest
+class RingYamlManagerTest
 {
     private static final String WORLD = "world";
     private static final int REACH = 4;
@@ -51,19 +51,19 @@ public class RingYamlManagerTest
     }
 
     @BeforeEach
-    public void clearBefore()
+    void clearBefore()
     {
         RingManager.clear();
     }
 
     @AfterEach
-    public void clearAfter()
+    void clearAfter()
     {
         RingManager.clear();
     }
 
     @Test
-    public void aPairComesBackExactlyAsItWentIn() throws IOException
+    void aPairComesBackExactlyAsItWentIn() throws IOException
     {
         RingManager.addPair(pair("7f3a1c2e", 10, 10), REACH);
         RingYamlManager.saveWorld(directory, WORLD);
@@ -90,7 +90,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void eachEndKeepsItsOwnMaterials() throws IOException
+    void eachEndKeepsItsOwnMaterials() throws IOException
     {
         // Per-end materials are the point of storing them on the end rather than the pair.
         // A round trip that quietly copied one end's materials over the other would undo it.
@@ -107,7 +107,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void theSlabAnEndWasLaidInSurvivesBeingRecoloured() throws IOException
+    void theSlabAnEndWasLaidInSurvivesBeingRecoloured() throws IOException
     {
         // What reset goes back to, so it has to outlive the material it is meant to restore.
         final RingPair pair = pair("beef0001", 0, 0);
@@ -123,7 +123,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aRingStoredBeforeTheBuiltSlabWasRecordedFallsBackToItsCurrentOne()
+    void aRingStoredBeforeTheBuiltSlabWasRecordedFallsBackToItsCurrentOne()
         throws IOException
     {
         // Rings written by an older version have no Built field. Their current material is
@@ -150,7 +150,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aLoadedPairIsIndexedSoItWorksWithoutBeingRebuilt() throws IOException
+    void aLoadedPairIsIndexedSoItWorksWithoutBeingRebuilt() throws IOException
     {
         // Loading has to put rings back in the index, not just in the registry. A pair that
         // loads but is not indexed is a ring that exists in a listing and does nothing when
@@ -164,7 +164,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void everyPairInAWorldSharesOneFile() throws IOException
+    void everyPairInAWorldSharesOneFile() throws IOException
     {
         RingManager.addPair(pair("aaaaaaaa", 0, 0), REACH);
         RingManager.addPair(pair("bbbbbbbb", 500, 500), REACH);
@@ -179,7 +179,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void oneDamagedPairDoesNotCostTheWorldItsOtherRings() throws IOException
+    void oneDamagedPairDoesNotCostTheWorldItsOtherRings() throws IOException
     {
         // The whole reason a shared file is acceptable. A pair with an unreadable pattern is
         // logged and skipped, and its neighbours still load.
@@ -208,7 +208,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aFileThatIsNotYamlAtAllIsReportedRatherThanThrown() throws IOException
+    void aFileThatIsNotYamlAtAllIsReportedRatherThanThrown() throws IOException
     {
         Files.write(new File(directory, "world.yml").toPath(),
             "\t: : not yaml : [".getBytes(StandardCharsets.UTF_8));
@@ -217,7 +217,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aFileNamingNoWorldIsSkippedRatherThanGuessedAt() throws IOException
+    void aFileNamingNoWorldIsSkippedRatherThanGuessedAt() throws IOException
     {
         // The World field inside the file is authoritative, never the filename, so a file
         // without one cannot be placed and must not be guessed from what it is called.
@@ -228,7 +228,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void theWorldFieldWinsOverTheFilename() throws IOException
+    void theWorldFieldWinsOverTheFilename() throws IOException
     {
         final String yaml =
             "World: nether_wastes\n"
@@ -248,7 +248,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aWorldNameThatIsNotAValidFilenameIsStillWritable()
+    void aWorldNameThatIsNotAValidFilenameIsStillWritable()
     {
         final File file = RingYamlManager.fileForWorld(directory, "my:world/with*junk");
         assertFalse(file.getName().contains(":"));
@@ -258,7 +258,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void removingTheLastPairLeavesNoFileBehind() throws IOException
+    void removingTheLastPairLeavesNoFileBehind() throws IOException
     {
         final RingPair only = pair("dddd4444", 0, 0);
         RingManager.addPair(only, REACH);
@@ -274,7 +274,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void eachEndKeepsItsOwnName() throws IOException
+    void eachEndKeepsItsOwnName() throws IOException
     {
         // The name is per end because the useful thing to say is where somebody is going,
         // and that is a different answer depending on which end they walked into.
@@ -290,7 +290,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void theTwoLightsAreStoredSeparately() throws IOException
+    void theTwoLightsAreStoredSeparately() throws IOException
     {
         final RingPair pair = pair("lite0001", 900, 900);
         pair.getEndA().setFlashMaterial(Material.SEA_LANTERN);
@@ -305,7 +305,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aRingStoredBeforeTheFlashExistedUsesItsPadLightForBoth() throws IOException
+    void aRingStoredBeforeTheFlashExistedUsesItsPadLightForBoth() throws IOException
     {
         // Written when one material did both jobs. Falling back to the light keeps those
         // rings looking exactly as they did rather than turning them a default colour.
@@ -328,7 +328,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aPairWithNoNamesFallsBackToItsId()
+    void aPairWithNoNamesFallsBackToItsId()
     {
         final Ring a = new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
             Material.STONE_SLAB, Material.GLOWSTONE);
@@ -343,7 +343,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void aHalfBuiltPairSurvivesARestart() throws IOException
+    void aHalfBuiltPairSurvivesARestart() throws IOException
     {
         // The first end costs the player their slabs the moment it registers, so losing it to
         // a restart would take the slabs with it and leave nothing to show for them.
@@ -369,7 +369,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void finishingOrCancellingLeavesNoPendingFile() throws IOException
+    void finishingOrCancellingLeavesNoPendingFile() throws IOException
     {
         final java.util.UUID builder = java.util.UUID.randomUUID();
         RingManager.setPending(builder, new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
@@ -384,7 +384,7 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void thePendingFileIsNotMistakenForAWorld() throws IOException
+    void thePendingFileIsNotMistakenForAWorld() throws IOException
     {
         // It lives in the same folder and ends in .yml, so the world scan has to know better
         // than to try loading it as a world's worth of pairs.
@@ -399,14 +399,14 @@ public class RingYamlManagerTest
     }
 
     @Test
-    public void anEmptyDirectoryLoadsNothingAndDoesNotComplain()
+    void anEmptyDirectoryLoadsNothingAndDoesNotComplain()
     {
         assertEquals(0, RingYamlManager.loadAll(directory, REACH));
         assertTrue(RingManager.getAllPairs().isEmpty());
     }
 
     @Test
-    public void pairsAreFoundByWorldAfterLoading() throws IOException
+    void pairsAreFoundByWorldAfterLoading() throws IOException
     {
         RingManager.addPair(pair("eeee5555", 0, 0), REACH);
         RingYamlManager.saveWorld(directory, WORLD);

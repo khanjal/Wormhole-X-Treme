@@ -29,12 +29,12 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * <p>Nine of these were dead code until recently, so "does it still load and execute at
  * all" is a real question worth pinning.
  */
-public class SubCommandSmokeTest
+class SubCommandSmokeTest
 {
     private Player player;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field pluginField = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -59,7 +59,7 @@ public class SubCommandSmokeTest
 
     /** Every subcommand, invoked with only its own name and nothing else. */
     @Test
-    public void noSubcommandThrowsWhenGivenNoArguments()
+    void noSubcommandThrowsWhenGivenNoArguments()
     {
         final List<String> failures = new ArrayList<String>();
         for (final SubCommands.Entry entry : SubCommands.all())
@@ -79,7 +79,7 @@ public class SubCommandSmokeTest
 
     /** Every subcommand, invoked with a gate name that does not exist. */
     @Test
-    public void noSubcommandThrowsOnAnUnknownGateName()
+    void noSubcommandThrowsOnAnUnknownGateName()
     {
         final List<String> failures = new ArrayList<String>();
         for (final SubCommands.Entry entry : SubCommands.all())
@@ -99,7 +99,7 @@ public class SubCommandSmokeTest
 
     /** Every subcommand, invoked with a junk third argument. */
     @Test
-    public void noSubcommandThrowsOnAJunkValueArgument()
+    void noSubcommandThrowsOnAJunkValueArgument()
     {
         final List<String> failures = new ArrayList<String>();
         for (final SubCommands.Entry entry : SubCommands.all())
@@ -119,7 +119,7 @@ public class SubCommandSmokeTest
 
     /** The migration reports rather than acting when not confirmed. */
     @Test
-    public void customCleanReportsWithoutConfirmAndDoesNotThrow()
+    void customCleanReportsWithoutConfirmAndDoesNotThrow()
     {
         final SubCommands.Entry custom = SubCommands.find("custom");
         assertDoesNotThrow(() -> custom.run(player, new String[] { "custom", "-clean" }));

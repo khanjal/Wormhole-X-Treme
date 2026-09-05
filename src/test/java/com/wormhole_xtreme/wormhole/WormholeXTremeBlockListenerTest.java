@@ -21,10 +21,10 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 /**
  * Unit tests for `WormholeXTremeBlockListener` protection logic.
  */
-public class WormholeXTremeBlockListenerTest
+class WormholeXTremeBlockListenerTest
 {
     @BeforeEach
-    public void beforeEach()
+    void beforeEach()
     {
         GateSpatialIndex.clear();
         // Ensure static plugin reference is non-null to avoid logging NPEs during indexing
@@ -39,13 +39,13 @@ public class WormholeXTremeBlockListenerTest
     }
 
     @AfterEach
-    public void afterEach()
+    void afterEach()
     {
         GateSpatialIndex.clear();
     }
 
     @Test
-    public void blockThatIsPartOfGateIsCancelled()
+    void blockThatIsPartOfGateIsCancelled()
     {
         final World world = mock(World.class);
         final int x = 10, y = 64, z = 20;
@@ -72,7 +72,7 @@ public class WormholeXTremeBlockListenerTest
     }
 
     @Test
-    public void blockAdjacentToGateIsNotCancelled()
+    void blockAdjacentToGateIsNotCancelled()
     {
         final World world = mock(World.class);
         final int x = 10, y = 64, z = 20;
@@ -99,7 +99,7 @@ public class WormholeXTremeBlockListenerTest
     }
 
     @Test
-    public void allowBreakingIrisPlaceholderUnderDial()
+    void allowBreakingIrisPlaceholderUnderDial()
     {
         final World world = mock(World.class);
         final int dx = 10, dy = 66, dz = 20;

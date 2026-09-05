@@ -20,12 +20,12 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * would have been silently denied to operators, looking for all the world like a
  * misconfigured permissions plugin.
  */
-public class OperatorPermissionTest
+class OperatorPermissionTest
 {
     private Player op;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -41,7 +41,7 @@ public class OperatorPermissionTest
     }
 
     @Test
-    public void anOperatorHasEveryPermissionType()
+    void anOperatorHasEveryPermissionType()
     {
         for (final PermissionType type : PermissionType.values())
         {
@@ -51,7 +51,7 @@ public class OperatorPermissionTest
     }
 
     @Test
-    public void anOperatorHasEveryPermissionTypeAgainstAGateTheyDoNotOwn()
+    void anOperatorHasEveryPermissionTypeAgainstAGateTheyDoNotOwn()
     {
         final com.wormhole_xtreme.wormhole.model.Stargate gate =
             new com.wormhole_xtreme.wormhole.model.Stargate();
@@ -66,7 +66,7 @@ public class OperatorPermissionTest
     }
 
     @Test
-    public void aPlainPlayerDeniedEveryNodeGetsNothingOnAnotherPlayersGate()
+    void aPlainPlayerDeniedEveryNodeGetsNothingOnAnotherPlayersGate()
     {
         // The mirror case: without op and without any node, an owned gate stays closed.
         // Without this, the test above would pass even if the check allowed everyone.

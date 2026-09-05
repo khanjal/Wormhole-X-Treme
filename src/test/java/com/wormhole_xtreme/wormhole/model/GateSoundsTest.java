@@ -20,10 +20,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * <p>The chevron climb is the part with arithmetic in it, and the part that has to survive
  * shapes with a different number of chevrons from the seven everybody pictures.
  */
-public class GateSoundsTest
+class GateSoundsTest
 {
     @Test
-    public void theChevronsClimbThroughTheSequence()
+    void theChevronsClimbThroughTheSequence()
     {
         float previous = -1f;
         for (int i = 1; i <= 7; i++)
@@ -35,7 +35,7 @@ public class GateSoundsTest
     }
 
     @Test
-    public void aShorterGateClimbsTheSameDistanceInBiggerSteps()
+    void aShorterGateClimbsTheSameDistanceInBiggerSteps()
     {
         // Shapes are configurable, so the chevron count is not seven by definition. A gate
         // with three should still start and end on the same notes, or a small gate would
@@ -45,7 +45,7 @@ public class GateSoundsTest
     }
 
     @Test
-    public void aSingleStepShapeDoesNotDivideByZero()
+    void aSingleStepShapeDoesNotDivideByZero()
     {
         // A shape can light everything at once. That is one step, and one step has no
         // distance to climb across.
@@ -53,7 +53,7 @@ public class GateSoundsTest
     }
 
     @Test
-    public void everyChevronIsWithinWhatMinecraftWillPlay()
+    void everyChevronIsWithinWhatMinecraftWillPlay()
     {
         // Bukkit clamps pitch to 0.5 - 2.0, and a sequence that ran past the top would
         // quietly flatten there -- the climb this exists for, lost silently.
@@ -69,7 +69,7 @@ public class GateSoundsTest
     }
 
     @Test
-    public void theAmbientPeriodIsNeverZero()
+    void theAmbientPeriodIsNeverZero()
     {
         // A zero or negative period is not a faster hum, it is a repeating task with no delay
         // in it. Config is text somebody can type anything into, so this is floored rather
@@ -79,7 +79,7 @@ public class GateSoundsTest
     }
 
     @Test
-    public void anIterationPastTheEndStaysAtTheTop()
+    void anIterationPastTheEndStaysAtTheTop()
     {
         // The animator's counter and the light-block list have been off by one from each
         // other before now. Running past the end should sound like the last chevron rather
@@ -92,7 +92,7 @@ public class GateSoundsTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void stopAmbientTellsEveryPlayerInTheGatesWorldToStopTheConfiguredSound()
+    void stopAmbientTellsEveryPlayerInTheGatesWorldToStopTheConfiguredSound()
     {
         // The bug this exists for: tickAmbient() re-triggers the hum faster than the sample's
         // own length so it sounds continuous, which means there is almost always an in-flight
@@ -110,7 +110,7 @@ public class GateSoundsTest
     }
 
     @Test
-    public void stopAmbientOnANullGateDoesNothingRatherThanThrowing()
+    void stopAmbientOnANullGateDoesNothingRatherThanThrowing()
     {
         assertDoesNotThrow(() -> GateSounds.stopAmbient(null));
     }

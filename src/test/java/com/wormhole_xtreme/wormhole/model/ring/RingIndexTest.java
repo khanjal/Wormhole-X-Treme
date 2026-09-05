@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * ring holds its passengers above the ring plane and a ceiling ring below it, and an
  * orientation handled backwards produces a ring that looks correct and never fires.
  */
-public class RingIndexTest
+class RingIndexTest
 {
     private static final String WORLD = "world";
     private static final int REACH = 3;
@@ -31,19 +31,19 @@ public class RingIndexTest
     }
 
     @BeforeEach
-    public void clearBefore()
+    void clearBefore()
     {
         RingIndex.clear();
     }
 
     @AfterEach
-    public void clearAfter()
+    void clearAfter()
     {
         RingIndex.clear();
     }
 
     @Test
-    public void theAnchorOfAFloorRingIsInsideItsOwnTriggerVolume()
+    void theAnchorOfAFloorRingIsInsideItsOwnTriggerVolume()
     {
         final RingPair pair = pair(RingOrientation.FLOOR);
         RingIndex.add(pair, REACH);
@@ -55,7 +55,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void bothEndsOfAPairAreIndexedAndResolveToTheSamePair()
+    void bothEndsOfAPairAreIndexedAndResolveToTheSamePair()
     {
         final RingPair pair = pair(RingOrientation.FLOOR);
         RingIndex.add(pair, REACH);
@@ -70,7 +70,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void aFloorRingsVolumeRunsUpwardAndACeilingRingsRunsDown()
+    void aFloorRingsVolumeRunsUpwardAndACeilingRingsRunsDown()
     {
         final RingPair floor = pair(RingOrientation.FLOOR);
         RingIndex.add(floor, REACH);
@@ -86,7 +86,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void theVolumeStopsAtTheConfiguredReach()
+    void theVolumeStopsAtTheConfiguredReach()
     {
         final RingPair pair = pair(RingOrientation.FLOOR);
         RingIndex.add(pair, REACH);
@@ -96,7 +96,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void perimeterBlocksAreNotTriggers()
+    void perimeterBlocksAreNotTriggers()
     {
         // The ring's own row has its outline at dx=-3. Standing there is standing on the
         // ring, which must not start a cycle.
@@ -108,14 +108,14 @@ public class RingIndexTest
     }
 
     @Test
-    public void aBlockOutsideEveryRingResolvesToNothing()
+    void aBlockOutsideEveryRingResolvesToNothing()
     {
         RingIndex.add(pair(RingOrientation.FLOOR), REACH);
         assertNull(RingIndex.volumeAt(WORLD, 150, 64, 150));
     }
 
     @Test
-    public void anotherWorldsBlocksAreNeverMatched()
+    void anotherWorldsBlocksAreNeverMatched()
     {
         // Coordinates repeat across worlds, so a ring in the overworld must not answer for
         // the same position in the nether.
@@ -124,7 +124,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void removingAPairTakesBothEndsOutOfTheIndex()
+    void removingAPairTakesBothEndsOutOfTheIndex()
     {
         final RingPair pair = pair(RingOrientation.FLOOR);
         RingIndex.add(pair, REACH);
@@ -136,7 +136,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void positionsPackAndDistinguishNeighbouringBlocks()
+    void positionsPackAndDistinguishNeighbouringBlocks()
     {
         // Every lookup on the move path is this one function. Two different blocks colliding
         // to the same key would make one ring answer for another's position.
@@ -147,7 +147,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void aPackedPositionReadsBackAsTheBlockItCameFrom()
+    void aPackedPositionReadsBackAsTheBlockItCameFrom()
     {
         // The restore path unpacks these to work out which block to put back, so a position
         // that does not survive the round trip puts a block back in the wrong place —
@@ -166,7 +166,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void everyHeightInTheWorldSurvivesTheRoundTrip()
+    void everyHeightInTheWorldSurvivesTheRoundTrip()
     {
         // The world starts at -64, so rings in deepslate, caves and on the nether floor all
         // sit below zero. Y is the coordinate a naive mask gets wrong, because twelve bits
@@ -178,7 +178,7 @@ public class RingIndexTest
     }
 
     @Test
-    public void negativeAndFarOutCoordinatesStillPackDistinctly()
+    void negativeAndFarOutCoordinatesStillPackDistinctly()
     {
         // Negative coordinates are the case a hand-rolled packing usually gets wrong, and
         // rings will be built in all four quadrants.

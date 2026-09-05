@@ -11,16 +11,16 @@ import org.junit.jupiter.api.Test;
  * closes too early puts the double-dial back; a window that never closes leaves a gate deaf to
  * redstone for the rest of the server's life, with nothing in the log to say why.
  */
-public class GateRedstoneWriteTest
+class GateRedstoneWriteTest
 {
     @Test
-    public void nothingIsInProgressBeforeAnythingBegins()
+    void nothingIsInProgressBeforeAnythingBegins()
     {
         assertFalse(GateRedstoneWrite.inProgress());
     }
 
     @Test
-    public void aWindowIsOpenBetweenBeginAndEnd()
+    void aWindowIsOpenBetweenBeginAndEnd()
     {
         GateRedstoneWrite.begin();
         try
@@ -43,7 +43,7 @@ public class GateRedstoneWriteTest
      * exactly the moment the listener must not be listening.
      */
     @Test
-    public void anInnerWindowClosingLeavesTheOuterOneOpen()
+    void anInnerWindowClosingLeavesTheOuterOneOpen()
     {
         GateRedstoneWrite.begin();
         GateRedstoneWrite.begin();
@@ -62,7 +62,7 @@ public class GateRedstoneWriteTest
      * listener wide open, and the double dial would be back with nothing to show why.
      */
     @Test
-    public void anUnmatchedCloseDoesNotSwallowTheNextWindow()
+    void anUnmatchedCloseDoesNotSwallowTheNextWindow()
     {
         GateRedstoneWrite.end();
         assertFalse(GateRedstoneWrite.inProgress());

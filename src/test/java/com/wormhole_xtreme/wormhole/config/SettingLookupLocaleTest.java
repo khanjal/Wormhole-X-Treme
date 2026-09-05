@@ -23,13 +23,13 @@ import org.junit.jupiter.api.Test;
  * while a setting not found reads as a typo, and the setting name on screen looks perfectly
  * correct because the mangling happens after it is read.
  */
-public class SettingLookupLocaleTest
+class SettingLookupLocaleTest
 {
     /** The locale to put back, since this is JVM-wide state. */
     private Locale before;
 
     @BeforeEach
-    public void speakTurkish()
+    void speakTurkish()
     {
         before = Locale.getDefault();
         Locale.setDefault(new Locale("tr", "TR"));
@@ -37,14 +37,14 @@ public class SettingLookupLocaleTest
     }
 
     @AfterEach
-    public void speakWhateverWeDidBefore()
+    void speakWhateverWeDidBefore()
     {
         ConfigTestSupport.clear();
         Locale.setDefault(before);
     }
 
     @Test
-    public void aSettingWhoseNameContainsAnIIsStillFoundOnATurkishServer()
+    void aSettingWhoseNameContainsAnIIsStillFoundOnATurkishServer()
     {
         for (final String typed : new String[] {
             "ring_default_style", "RING_DEFAULT_STYLE", "same_world_only", "log_level",

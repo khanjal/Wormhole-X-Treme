@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  * the same arithmetic {@link BeamFrame} uses, so a change to that arithmetic has to own up to
  * moving one of these numbers rather than just changing behaviour quietly.
  */
-public class BeamFrameTest
+class BeamFrameTest
 {
     private static final BeamTiming TIMING = BeamTiming.resolve(12, 6, 18, 12, 20, 8);
 
@@ -31,7 +31,7 @@ public class BeamFrameTest
     // finished: tick >= 52
 
     @Test
-    public void tickZeroIsStartAndTheFirstEnvelopFrameAtMinimumDensity()
+    void tickZeroIsStartAndTheFirstEnvelopFrameAtMinimumDensity()
     {
         final BeamFrame frame = BeamFrame.at(0, TIMING);
         assertTrue(frame.isStart());
@@ -40,14 +40,14 @@ public class BeamFrameTest
     }
 
     @Test
-    public void onlyTickZeroIsStart()
+    void onlyTickZeroIsStart()
     {
         assertFalse(BeamFrame.at(1, TIMING).isStart());
         assertFalse(BeamFrame.at(51, TIMING).isStart());
     }
 
     @Test
-    public void envelopDensityReachesMaximumOnTheLastEnvelopTickNotJustBeforeIt()
+    void envelopDensityReachesMaximumOnTheLastEnvelopTickNotJustBeforeIt()
     {
         // The ramp's denominator is envelopTicks - 1, deliberately, so the last rendered
         // tick actually hits MAX_DENSITY rather than falling just short of it.
@@ -57,7 +57,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void envelopEndsExactlyAtEnvelopTicksWithNoGapOrOverlapBeforeRise()
+    void envelopEndsExactlyAtEnvelopTicksWithNoGapOrOverlapBeforeRise()
     {
         final BeamFrame lastEnvelop = BeamFrame.at(11, TIMING);
         final BeamFrame firstRise = BeamFrame.at(12, TIMING);
@@ -71,7 +71,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void vanishFiresOnceAtTheConfiguredStepRegardlessOfEnvelopLength()
+    void vanishFiresOnceAtTheConfiguredStepRegardlessOfEnvelopLength()
     {
         assertTrue(BeamFrame.at(6, TIMING).isVanish());
         assertFalse(BeamFrame.at(5, TIMING).isVanish());
@@ -79,7 +79,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void teleportFiresExactlyOnceAtTheExpectedAbsoluteTick()
+    void teleportFiresExactlyOnceAtTheExpectedAbsoluteTick()
     {
         // sinceRise == teleportAtStep (12), and sinceRise = tick - envelopTicks (12), so
         // this lands at tick 24 -- worked out by hand, not derived from the code under test.
@@ -89,7 +89,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void riseIsStillActiveOnTheTeleportTickSoTheOriginColumnKeepsPlayingAfterTheyAreGone()
+    void riseIsStillActiveOnTheTeleportTickSoTheOriginColumnKeepsPlayingAfterTheyAreGone()
     {
         final BeamFrame teleportTick = BeamFrame.at(24, TIMING);
         assertTrue(teleportTick.isTeleport());
@@ -98,7 +98,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void descendStartsAtFullTravelHeightRightWhenTeleportFires()
+    void descendStartsAtFullTravelHeightRightWhenTeleportFires()
     {
         final BeamFrame frame = BeamFrame.at(24, TIMING);
         assertTrue(frame.isDescendActive());
@@ -107,7 +107,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void descendEndsExactlyAtArriveWithNoGapOrOverlapBeforeFade()
+    void descendEndsExactlyAtArriveWithNoGapOrOverlapBeforeFade()
     {
         final BeamFrame lastDescend = BeamFrame.at(43, TIMING);
         final BeamFrame arrive = BeamFrame.at(44, TIMING);
@@ -121,7 +121,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void fadeStartsAtFullColumnHeightAndMaximumDensity()
+    void fadeStartsAtFullColumnHeightAndMaximumDensity()
     {
         final BeamFrame frame = BeamFrame.at(44, TIMING);
         assertEquals(3.0, frame.getFadeHeight(), 1e-9);
@@ -129,7 +129,7 @@ public class BeamFrameTest
     }
 
     @Test
-    public void fadeShrinksTowardPlayerHeightAndMinimumDensityByItsLastTick()
+    void fadeShrinksTowardPlayerHeightAndMinimumDensityByItsLastTick()
     {
         final BeamFrame lastFadeTick = BeamFrame.at(51, TIMING);
         assertTrue(lastFadeTick.isFadeActive());
@@ -138,14 +138,14 @@ public class BeamFrameTest
     }
 
     @Test
-    public void finishesExactlyOnceFadeIsDoneNotBefore()
+    void finishesExactlyOnceFadeIsDoneNotBefore()
     {
         assertFalse(BeamFrame.at(51, TIMING).isFinished(), "the last fade tick must still play, not be skipped");
         assertTrue(BeamFrame.at(52, TIMING).isFinished());
     }
 
     @Test
-    public void nothingIsActiveOnceFinished()
+    void nothingIsActiveOnceFinished()
     {
         final BeamFrame frame = BeamFrame.at(52, TIMING);
         assertFalse(frame.isEnvelopActive());

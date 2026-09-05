@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
  * filtered copy under target/classes rather than the source, because the source is the
  * placeholder and the built file is what ships.
  */
-public class PluginDescriptorTest
+class PluginDescriptorTest
 {
     private static final Path BUILT_PLUGIN_YML = Paths.get("target/classes/plugin.yml");
 
@@ -41,7 +41,7 @@ public class PluginDescriptorTest
     }
 
     @Test
-    public void theBuiltDescriptorCarriesARealVersion() throws Exception
+    void theBuiltDescriptorCarriesARealVersion() throws Exception
     {
         final String version = valueOf("version");
 
@@ -53,7 +53,7 @@ public class PluginDescriptorTest
     }
 
     @Test
-    public void theDescriptorVersionMatchesTheProjectVersion() throws Exception
+    void theDescriptorVersionMatchesTheProjectVersion() throws Exception
     {
         // The whole point: one place declares the version and everything else follows it.
         // Read the pom directly rather than trusting the two to agree.
@@ -76,7 +76,7 @@ public class PluginDescriptorTest
     }
 
     @Test
-    public void theDescriptorStillNamesItsMainClassAndApi() throws Exception
+    void theDescriptorStillNamesItsMainClassAndApi() throws Exception
     {
         // Filtering rewrites this file at build time, so the rest of it is worth a glance:
         // a broken plugin.yml is a plugin the server refuses to load at all.

@@ -17,10 +17,10 @@ import org.junit.jupiter.api.Test;
  * and handled by nothing, while two that worked were never suggested. These tests pin the
  * properties that made that possible.
  */
-public class SubCommandsTest
+class SubCommandsTest
 {
     @Test
-    public void everySuggestedSubcommandIsAlsoDispatchable()
+    void everySuggestedSubcommandIsAlsoDispatchable()
     {
         // The drift that started this: `list`, `go`, `remove` and six others were offered
         // by tab completion and answered with "Invalid request".
@@ -32,7 +32,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void whatIsAdvertisedIsTheFiveNamesAndNothingElse()
+    void whatIsAdvertisedIsTheFiveNamesAndNothingElse()
     {
         // The commands were restructured under nouns that behave alike (gate, ring, beam --
         // three ways to travel), the settings, and the one thing that is neither. Twenty-two
@@ -46,7 +46,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void everyOldNameStillDispatches()
+    void everyOldNameStillDispatches()
     {
         // The point of hiding rather than removing. Anybody with these in a command block, a
         // script, or their fingers keeps working -- they are simply not suggested any more.
@@ -62,7 +62,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void aliasesResolveToTheSameEntryAsTheCanonicalName()
+    void aliasesResolveToTheSameEntryAsTheCanonicalName()
     {
         assertSame(SubCommands.find("regenerate"), SubCommands.find("regen"));
         assertSame(SubCommands.find("perms"), SubCommands.find("perm"));
@@ -70,14 +70,14 @@ public class SubCommandsTest
     }
 
     @Test
-    public void lookupIsCaseInsensitive()
+    void lookupIsCaseInsensitive()
     {
         assertNotNull(SubCommands.find("LIST"));
         assertNotNull(SubCommands.find("CuStOm"));
     }
 
     @Test
-    public void aliasesAreNotOfferedAsSeparateSuggestions()
+    void aliasesAreNotOfferedAsSeparateSuggestions()
     {
         // Suggesting both "regenerate" and "regen" is noise; the canonical name is enough.
         final List<String> offered = SubCommands.namesMatching("");
@@ -87,7 +87,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void noTwoSubcommandsShareAName()
+    void noTwoSubcommandsShareAName()
     {
         final Set<String> seen = new HashSet<String>();
         final List<String> duplicates = new ArrayList<String>();
@@ -109,7 +109,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void prefixCompletionNarrowsAsYouType()
+    void prefixCompletionNarrowsAsYouType()
     {
         final List<String> forC = SubCommands.namesMatching("c");
         assertTrue(forC.contains("compass"));
@@ -126,7 +126,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void customOffersItsFlagsAlongsideGateNames()
+    void customOffersItsFlagsAlongsideGateNames()
     {
         // -clean is the migration for gates carrying snapshotted overrides; it has to be
         // discoverable or nobody will know it exists.
@@ -136,7 +136,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void cleanOffersConfirmRatherThanTrueFalse()
+    void cleanOffersConfirmRatherThanTrueFalse()
     {
         final SubCommands.Entry custom = SubCommands.find("custom");
         assertEquals(List.of("confirm"), custom.completeArgs(new String[] { "custom", "-clean", "" }));
@@ -145,7 +145,7 @@ public class SubCommandsTest
     }
 
     @Test
-    public void everySubcommandHasUsageTextForHelp()
+    void everySubcommandHasUsageTextForHelp()
     {
         for (final SubCommands.Entry e : SubCommands.all())
         {

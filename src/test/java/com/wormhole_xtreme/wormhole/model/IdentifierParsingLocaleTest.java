@@ -26,26 +26,26 @@ import com.wormhole_xtreme.wormhole.model.ring.RingStyle;
  * name is not logged, not reported, and not visible anywhere: the shape simply falls back to
  * its default sign material as though the line had never been written.
  */
-public class IdentifierParsingLocaleTest
+class IdentifierParsingLocaleTest
 {
     /** The locale to put back, since this is JVM-wide state. */
     private Locale before;
 
     @BeforeEach
-    public void speakTurkish()
+    void speakTurkish()
     {
         before = Locale.getDefault();
         Locale.setDefault(new Locale("tr", "TR"));
     }
 
     @AfterEach
-    public void speakWhateverWeDidBefore()
+    void speakWhateverWeDidBefore()
     {
         Locale.setDefault(before);
     }
 
     @Test
-    public void aMaterialNamedInAShapeFileStillResolvesOnATurkishServer()
+    void aMaterialNamedInAShapeFileStillResolvesOnATurkishServer()
     {
         // A shape file writes its materials in the game's own spelling. Upper-casing "ice"
         // in Turkish produces a dotted capital I, which is not the I in Material.ICE.
@@ -58,7 +58,7 @@ public class IdentifierParsingLocaleTest
     }
 
     @Test
-    public void aRingStyleTypedInLowerCaseIsStillUnderstood()
+    void aRingStyleTypedInLowerCaseIsStillUnderstood()
     {
         // This one breaks in the direction nobody expects. RingStyle.parse folds *both* the
         // typed text and the enum constant's own name, so "SEQUENTIAL" typed in upper case
@@ -76,7 +76,7 @@ public class IdentifierParsingLocaleTest
     }
 
     @Test
-    public void aDiscoveredGroupKeepsItsAsciiSpelling()
+    void aDiscoveredGroupKeepsItsAsciiSpelling()
     {
         // suggestGroupName titles a Material's own name for display, and that name then keys
         // the registry. Folded in Turkish, "DIAMOND_BLOCK" came out "Dıamond" -- a name an

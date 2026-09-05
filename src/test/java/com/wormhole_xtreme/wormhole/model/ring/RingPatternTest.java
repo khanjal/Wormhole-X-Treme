@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  *  . . # # # . .
  * </pre>
  */
-public class RingPatternTest
+class RingPatternTest
 {
     /** Collects offsets into a set of "dx,dz" strings, so membership reads directly. */
     private static Set<String> cells(final List<RingPattern.Offset> offsets)
@@ -46,7 +46,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void theOddPatternIsTheStandardGatesOwnRing()
+    void theOddPatternIsTheStandardGatesOwnRing()
     {
         // Profile 3,5,7,7,7,5,3 — the same numbers as Standard.shape's Layer#1, lying flat.
         assertEquals(7, RingPattern.ODD.getDiameter());
@@ -55,7 +55,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void theEvenPatternIsTheSmallRoundOne()
+    void theEvenPatternIsTheSmallRoundOne()
     {
         // A size down from the gate's ring, for rooms that cannot spare seven blocks each
         // way. Six is as small as a two-step corner goes.
@@ -65,7 +65,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void theEvenPatternIsSmallerThanTheOddOne()
+    void theEvenPatternIsSmallerThanTheOddOne()
     {
         // The two sizes on offer, and which is which. Odd is the gate's own ring; even is
         // the one that fits somewhere tighter.
@@ -74,7 +74,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void theOddInteriorIsItselfARoundedShapeNotARectangle()
+    void theOddInteriorIsItselfARoundedShapeNotARectangle()
     {
         // 3,5,5,5,3 — the disc inset by one, which is what an outline encloses. A rectangle
         // here would mean the corners had not really been cut.
@@ -93,7 +93,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void theEvenInteriorIsAnchoredToACornerOfTheMiddleFour()
+    void theEvenInteriorIsAnchoredToACornerOfTheMiddleFour()
     {
         // An even ring has no centre block, so it is anchored to the low-x, low-z block of
         // its central 2x2. That is what makes the offsets asymmetric — they run -2..+3
@@ -111,7 +111,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void cornersAreCutSoTheRingReadsAsACircleAndNotASquare()
+    void cornersAreCutSoTheRingReadsAsACircleAndNotASquare()
     {
         // The four corners of the bounding box are the whole reason these are circles. A
         // pattern that kept them would be a square with a hole in it.
@@ -134,7 +134,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void perimeterAndInteriorNeverShareABlock()
+    void perimeterAndInteriorNeverShareABlock()
     {
         // A block cannot be both a thing that animates and a thing that holds a passenger.
         // The whole design leans on that, including the rule that only the interior arms a
@@ -151,7 +151,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void everyInteriorBlockIsFullyEnclosedByTheDisc()
+    void everyInteriorBlockIsFullyEnclosedByTheDisc()
     {
         // Being interior means having no unfilled orthogonal neighbour, so every neighbour
         // of an interior cell must itself be part of the ring. If one were not, a passenger
@@ -174,7 +174,7 @@ public class RingPatternTest
     }
 
     @Test
-    public void theOffsetTablesCannotBeMutatedByCallers()
+    void theOffsetTablesCannotBeMutatedByCallers()
     {
         // These are shared out of a static enum table. A caller that could edit one would
         // reshape every ring on the server at once.

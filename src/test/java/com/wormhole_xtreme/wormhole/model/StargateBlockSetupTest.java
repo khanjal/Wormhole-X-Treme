@@ -19,12 +19,12 @@ import org.junit.jupiter.api.Test;
  * <p>Focuses on methods that operate solely on gate-state flags and mocked
  * Bukkit {@link Block} objects so no live Bukkit server is needed.
  */
-public class StargateBlockSetupTest
+class StargateBlockSetupTest
 {
     private Stargate gate;
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         gate = new Stargate();
         gate.setGateName("TestGate");
@@ -35,14 +35,14 @@ public class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void fillGateInteriorWithEmptyPortalBlocksDoesNothing()
+    void fillGateInteriorWithEmptyPortalBlocksDoesNothing()
     {
         // No blocks in list → no NPE, just a no-op
         assertDoesNotThrow(() -> StargateBlockSetup.fillGateInterior(gate, Material.WATER));
     }
 
     @Test
-    public void fillGateInteriorSetsServerBlockToAirAndSendsVisualToClients()
+    void fillGateInteriorSetsServerBlockToAirAndSendsVisualToClients()
     {
         final World world = mock(World.class);
         final Block b1 = mock(Block.class);
@@ -66,7 +66,7 @@ public class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void fillGateIrisPlacesRealServerBlocksNotClientVisuals()
+    void fillGateIrisPlacesRealServerBlocksNotClientVisuals()
     {
         // Regression guard: the iris is the gate's barrier. If it is only drawn
         // client-side (the way the portal is) a traveller walks straight through a
@@ -91,7 +91,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void fillGateIrisWithEmptyPortalBlocksDoesNothing()
+    void fillGateIrisWithEmptyPortalBlocksDoesNothing()
     {
         assertDoesNotThrow(() -> StargateBlockSetup.fillGateIris(gate, Material.STONE));
     }
@@ -101,13 +101,13 @@ public class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void deletePortalBlocksWithEmptyListDoesNothing()
+    void deletePortalBlocksWithEmptyListDoesNothing()
     {
         assertDoesNotThrow(() -> StargateBlockSetup.deletePortalBlocks(gate));
     }
 
     @Test
-    public void deletePortalBlocksSetsAirOnEachBlock()
+    void deletePortalBlocksSetsAirOnEachBlock()
     {
         final World world = mock(World.class);
         final Block b = mock(Block.class);
@@ -125,13 +125,13 @@ public class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void deleteGateBlocksWithEmptyListDoesNothing()
+    void deleteGateBlocksWithEmptyListDoesNothing()
     {
         assertDoesNotThrow(() -> StargateBlockSetup.deleteGateBlocks(gate));
     }
 
     @Test
-    public void deleteGateBlocksSetsAirOnEachStructureBlock()
+    void deleteGateBlocksSetsAirOnEachStructureBlock()
     {
         final World world = mock(World.class);
         final Block b = mock(Block.class);
@@ -149,7 +149,7 @@ public class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void deleteTeleportSignSetsRelativeBlockToAir()
+    void deleteTeleportSignSetsRelativeBlockToAir()
     {
         final Block signHolder = mock(Block.class);
         final Block teleportSignBlock = mock(Block.class);
@@ -166,7 +166,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void deleteTeleportSignNoopWhenDialSignBlockIsNull()
+    void deleteTeleportSignNoopWhenDialSignBlockIsNull()
     {
         // dialSignBlock is null → no block interaction at all
         gate.setGateDialSignBlock(null);
@@ -174,7 +174,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void deleteTeleportSignNoopWhenDialSignIsNull()
+    void deleteTeleportSignNoopWhenDialSignIsNull()
     {
         final Block signHolder = mock(Block.class);
         gate.setGateDialSignBlock(signHolder);
@@ -191,7 +191,7 @@ public class StargateBlockSetupTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void toggleRedstoneGateActivatedPowerNoopWhenNotRedstonePowered()
+    void toggleRedstoneGateActivatedPowerNoopWhenNotRedstonePowered()
     {
         final Block leverBlock = mock(Block.class);
         gate.setGateRedstonePowered(false);
@@ -203,7 +203,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void toggleRedstoneGateActivatedPowerNoopWhenRedstoneBlockIsNull()
+    void toggleRedstoneGateActivatedPowerNoopWhenRedstoneBlockIsNull()
     {
         gate.setGateRedstonePowered(true);
         gate.setGateRedstoneGateActivatedBlock(null);
@@ -213,7 +213,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void toggleRedstoneGateActivatedPowerNoopWhenBlockIsNotLever()
+    void toggleRedstoneGateActivatedPowerNoopWhenBlockIsNotLever()
     {
         final Block block = mock(Block.class);
         when(block.getType()).thenReturn(Material.OAK_BUTTON);
@@ -226,7 +226,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void toggleRedstoneGateActivatedPowerSetsLeverPoweredToTrueWhenGateActive()
+    void toggleRedstoneGateActivatedPowerSetsLeverPoweredToTrueWhenGateActive()
     {
         final Block leverBlock = mock(Block.class);
         final Powerable powerable = mock(Powerable.class);
@@ -243,7 +243,7 @@ public class StargateBlockSetupTest
     }
 
     @Test
-    public void toggleRedstoneGateActivatedPowerSetsLeverPoweredToFalseWhenGateInactive()
+    void toggleRedstoneGateActivatedPowerSetsLeverPoweredToFalseWhenGateInactive()
     {
         final Block leverBlock = mock(Block.class);
         final Powerable powerable = mock(Powerable.class);

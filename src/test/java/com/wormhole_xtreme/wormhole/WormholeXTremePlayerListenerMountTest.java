@@ -28,12 +28,12 @@ import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 /**
  * Tests for player-mounted entities teleport/reattach behavior (horses, pigs, camels).
  */
-public class WormholeXTremePlayerListenerMountTest
+class WormholeXTremePlayerListenerMountTest
 {
     private BukkitScheduler mockScheduler;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         // Install a mock scheduler so scheduling calls don't NPE.
         mockScheduler = mock(BukkitScheduler.class);
@@ -53,13 +53,13 @@ public class WormholeXTremePlayerListenerMountTest
     }
 
     @AfterEach
-    public void tearDown() throws Exception
+    void tearDown() throws Exception
     {
         GateSpatialIndex.clear();
     }
 
     @Test
-    public void mountReattachForTwoRiders() throws Exception
+    void mountReattachForTwoRiders() throws Exception
     {
         // Arrange world and gate block
         final World world = mock(World.class);
@@ -146,7 +146,7 @@ public class WormholeXTremePlayerListenerMountTest
     }
 
     @Test
-    public void gateIsDetectedUnderMountWhenRiderClearsThePortal() throws Exception
+    void gateIsDetectedUnderMountWhenRiderClearsThePortal() throws Exception
     {
         // A tall mount (camel) puts the rider's own block above the portal, so the
         // gate has to be found under the mount or the trip never triggers.

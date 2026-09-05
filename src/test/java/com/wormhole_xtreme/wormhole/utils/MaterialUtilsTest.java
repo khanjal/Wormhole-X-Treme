@@ -5,36 +5,36 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
-public class MaterialUtilsTest {
+class MaterialUtilsTest {
 
     @Test
-    public void testIsRail() {
+    void testIsRail() {
         assertTrue(MaterialUtils.isRail(Material.RAIL));
     }
 
     @Test
-    public void testIsLiquid() {
+    void testIsLiquid() {
         assertTrue(MaterialUtils.isLiquid(Material.WATER));
         assertTrue(MaterialUtils.isLiquid(Material.LAVA));
         assertFalse(MaterialUtils.isLiquid(Material.AIR));
     }
 
     @Test
-    public void testIsDoor() {
+    void testIsDoor() {
         assertTrue(MaterialUtils.isDoor(Material.OAK_DOOR));
         assertTrue(MaterialUtils.isDoor(Material.OAK_TRAPDOOR));
         assertFalse(MaterialUtils.isDoor(Material.AIR));
     }
 
     @Test
-    public void testIsSign() {
+    void testIsSign() {
         assertTrue(MaterialUtils.isSign(Material.OAK_WALL_SIGN));
         assertTrue(MaterialUtils.isSign(Material.OAK_SIGN));
         assertFalse(MaterialUtils.isSign(Material.AIR));
     }
 
     @Test
-    public void testIsButtonAndWallSign() {
+    void testIsButtonAndWallSign() {
         assertTrue(MaterialUtils.isButton(Material.OAK_BUTTON));
         assertTrue(MaterialUtils.isButton(Material.STONE_BUTTON));
         assertFalse(MaterialUtils.isButton(Material.AIR));
@@ -44,7 +44,7 @@ public class MaterialUtilsTest {
     }
 
     @Test
-    public void testWaterLavaHelpers() {
+    void testWaterLavaHelpers() {
         assertTrue(MaterialUtils.isWater(Material.WATER));
         assertTrue(MaterialUtils.isLava(Material.LAVA));
         assertFalse(MaterialUtils.isWater(Material.AIR));

@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  * <p>The pitch is the whole point of playing one sound per ring rather than one per cycle, so
  * it is worth pinning: a flat repeat says a ring moved, a climb says the stack is rising.
  */
-public class RingSoundsTest
+class RingSoundsTest
 {
     private static Ring ring(final RingOrientation orientation)
     {
@@ -27,7 +27,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void thePitchClimbsWithEachRingThatLeavesThePad()
+    void thePitchClimbsWithEachRingThatLeavesThePad()
     {
         float previous = -1f;
         for (int index = 0; index < RingAnimator.RING_COUNT; index++)
@@ -39,7 +39,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void goingHomeFallsWithoutBeingToldTo()
+    void goingHomeFallsWithoutBeingToldTo()
     {
         // Retracting replays the same pitches in the order the rings come back, which is the
         // reverse of the order they went out. The fall is free -- nothing has to know which
@@ -61,7 +61,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void bothEndsOfAPairClimbWhicheverWayTheirRingsTravel()
+    void bothEndsOfAPairClimbWhicheverWayTheirRingsTravel()
     {
         // A ceiling ring's first ring travels downward and a floor ring's travels up, but
         // both are the first out -- and that, not where they end up, is what sets the pitch.
@@ -94,7 +94,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void theFirstRingOutLeavesOnFrameZero()
+    void theFirstRingOutLeavesOnFrameZero()
     {
         // Worth pinning on its own, because frame zero is drawn when the phase begins rather
         // than by the frame loop -- so anything that plays sounds only as it advances skips
@@ -109,7 +109,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void everyRingIsHeardExactlyOnceAcrossAWholeDeploy()
+    void everyRingIsHeardExactlyOnceAcrossAWholeDeploy()
     {
         // Walks the frames the way a cycle does, counting sounds. Four rings, four noises --
         // whether they leave together or one at a time, and whichever way they travel.
@@ -141,7 +141,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void everyRingGetsItsOwnFrameSoNoneOfThemAreSilent()
+    void everyRingGetsItsOwnFrameSoNoneOfThemAreSilent()
     {
         // Sequential rings leave one at a time, so a shared frame would mean two sounds at
         // once and one ring moving without a noise.
@@ -158,7 +158,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void goingHomeIsTheDeployRunBackwards()
+    void goingHomeIsTheDeployRunBackwards()
     {
         // The first ring out is the last one home, and its frames should mirror. Otherwise a
         // retract would play its sounds at times that have nothing to do with what is moving.
@@ -173,7 +173,7 @@ public class RingSoundsTest
     }
 
     @Test
-    public void everyRingSoundsWithinWhatMinecraftWillPlay()
+    void everyRingSoundsWithinWhatMinecraftWillPlay()
     {
         // Bukkit clamps pitch to 0.5 - 2.0. A ring outside that would quietly play at the
         // limit, collapsing the climb this whole class exists for -- so this is the test that

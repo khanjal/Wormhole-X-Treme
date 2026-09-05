@@ -28,13 +28,13 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * ignores its lever until you cycle the sign by hand -- and what it dialled after that was the
  * gate <em>after</em> the one it had been left showing.
  */
-public class DialSignTargetRestoreTest
+class DialSignTargetRestoreTest
 {
     /** The gate under test: sign-powered, three peers to choose between. */
     private Stargate gate;
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         // The sign code logs, and the logger goes through the static plugin reference.
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
@@ -65,7 +65,7 @@ public class DialSignTargetRestoreTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         for (final Stargate s : StargateManager.getAllGates())
         {
@@ -92,7 +92,7 @@ public class DialSignTargetRestoreTest
      * the selection while trying to restore it.
      */
     @Test
-    public void aReloadedGateDialsTheDestinationItsSignWasShowing()
+    void aReloadedGateDialsTheDestinationItsSignWasShowing()
     {
         gate.setGateDialSignIndex(1);
         assertNull(gate.getGateDialSignTarget(), "a freshly loaded gate has no destination object yet");
@@ -111,7 +111,7 @@ public class DialSignTargetRestoreTest
      * turning the dial sign into something that can never be changed.
      */
     @Test
-    public void clickingTheSignStillAdvancesToTheNextDestination()
+    void clickingTheSignStillAdvancesToTheNextDestination()
     {
         gate.setGateDialSignIndex(1);
 
@@ -123,7 +123,7 @@ public class DialSignTargetRestoreTest
 
     /** Clicking backwards still goes back, and wraps rather than going negative. */
     @Test
-    public void clickingBackwardsFromTheFirstDestinationWrapsToTheLast()
+    void clickingBackwardsFromTheFirstDestinationWrapsToTheLast()
     {
         gate.setGateDialSignIndex(0);
 
@@ -141,7 +141,7 @@ public class DialSignTargetRestoreTest
      * pointed the other way.
      */
     @Test
-    public void aSignThatWasNeverClickedSelectsNothing()
+    void aSignThatWasNeverClickedSelectsNothing()
     {
         gate.setGateDialSignIndex(-1);
 
@@ -159,7 +159,7 @@ public class DialSignTargetRestoreTest
      * throw would surface as a gate that silently refuses to dial.
      */
     @Test
-    public void aSavedIndexPastTheEndOfTheListStillResolves()
+    void aSavedIndexPastTheEndOfTheListStillResolves()
     {
         gate.setGateDialSignIndex(7);
 
@@ -177,7 +177,7 @@ public class DialSignTargetRestoreTest
      * a server with organised networks actually runs -- would break with nothing to catch it.
      */
     @Test
-    public void aNetworkedGateResolvesAgainstItsOwnNetwork()
+    void aNetworkedGateResolvesAgainstItsOwnNetwork()
     {
         final Stargate networked = new Stargate();
         networked.setGateName("hub");
@@ -209,7 +209,7 @@ public class DialSignTargetRestoreTest
      * place would have the gate keep dialling a gate that is no longer there.
      */
     @Test
-    public void aGateWithNoPeersSelectsNothing()
+    void aGateWithNoPeersSelectsNothing()
     {
         gate.setGateDialSignIndex(1);
         gate.refreshDialSignTarget();
@@ -241,7 +241,7 @@ public class DialSignTargetRestoreTest
      * lets the gate keep working once the sign is put back.
      */
     @Test
-    public void aDialSignThatIsNoLongerASignLeavesTheSelectionAlone()
+    void aDialSignThatIsNoLongerASignLeavesTheSelectionAlone()
     {
         final Block broken = mock(Block.class);
         when(broken.getType()).thenReturn(Material.AIR);

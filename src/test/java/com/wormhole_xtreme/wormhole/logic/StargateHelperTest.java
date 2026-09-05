@@ -17,7 +17,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  * gate's true facing direction from the spatial layout of its structure blocks,
  * and that the DHD block coordinate is properly excluded from that computation.
  */
-public class StargateHelperTest
+class StargateHelperTest
 {
     // -----------------------------------------------------------------------
     // Helpers
@@ -51,7 +51,7 @@ public class StargateHelperTest
      * </pre>
      */
     @Test
-    public void southFacingGateReturnsSOUTH()
+    void southFacingGateReturnsSOUTH()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("south");
@@ -69,7 +69,7 @@ public class StargateHelperTest
      * Frame spread along X at constant Z; DHD placed north (lower Z) → NORTH.
      */
     @Test
-    public void northFacingGateReturnsNORTH()
+    void northFacingGateReturnsNORTH()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("north");
@@ -87,7 +87,7 @@ public class StargateHelperTest
      * Frame spread along Z at constant X; DHD placed east (higher X) → EAST.
      */
     @Test
-    public void eastFacingGateReturnsEAST()
+    void eastFacingGateReturnsEAST()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("east");
@@ -105,7 +105,7 @@ public class StargateHelperTest
      * Frame spread along Z at constant X; DHD placed west (lower X) → WEST.
      */
     @Test
-    public void westFacingGateReturnsWEST()
+    void westFacingGateReturnsWEST()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("west");
@@ -127,7 +127,7 @@ public class StargateHelperTest
      * When varX == varZ the result is indeterminate → null.
      */
     @Test
-    public void equalVarianceReturnsNull()
+    void equalVarianceReturnsNull()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("degenerate");
@@ -145,7 +145,7 @@ public class StargateHelperTest
      * Null DHD block → null (no NPE).
      */
     @Test
-    public void nullDhdBlockReturnsNull()
+    void nullDhdBlockReturnsNull()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("nullDhd");
@@ -159,7 +159,7 @@ public class StargateHelperTest
      * Empty structure block set → null (early-exit guard).
      */
     @Test
-    public void emptyStructureBlocksReturnsNull()
+    void emptyStructureBlocksReturnsNull()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("empty");
@@ -173,7 +173,7 @@ public class StargateHelperTest
      * DHD is the only entry in the structure block set; after exclusion count == 0 → null.
      */
     @Test
-    public void onlyDhdInStructureBlocksReturnsNull()
+    void onlyDhdInStructureBlocksReturnsNull()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("dhdOnly");
@@ -191,7 +191,7 @@ public class StargateHelperTest
      * result must still be SOUTH (dhdZ=1000 > meanZ=5).
      */
     @Test
-    public void dhdBlockExcludedFromVarianceComputation()
+    void dhdBlockExcludedFromVarianceComputation()
     {
         final Stargate gate = new Stargate();
         gate.setGateName("exclude");

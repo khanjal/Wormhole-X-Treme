@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
  * {@link org.bukkit.event.vehicle.VehicleMoveEvent}. Testing for Vehicle therefore hands
  * ridable animals to a listener that never hears about them.
  */
-public class GateMovementOwnershipTest
+class GateMovementOwnershipTest
 {
     private static Entity mockOf(final Class<? extends Entity> type)
     {
@@ -36,14 +36,14 @@ public class GateMovementOwnershipTest
     }
 
     @Test
-    public void onlyMinecartsAndBoatsRaiseVehicleMoveEvents()
+    void onlyMinecartsAndBoatsRaiseVehicleMoveEvents()
     {
         assertTrue(WormholeXTremeVehicleListener.handlesMovementOf(mockOf(Minecart.class)));
         assertTrue(WormholeXTremeVehicleListener.handlesMovementOf(mockOf(Boat.class)));
     }
 
     @Test
-    public void ridableAnimalsAreNotTheVehicleListenersJobDespiteBeingVehicles()
+    void ridableAnimalsAreNotTheVehicleListenersJobDespiteBeingVehicles()
     {
         // Each of these is a Bukkit Vehicle and none of them raises VehicleMoveEvent.
         for (final Class<? extends Entity> type : java.util.Arrays.asList(
@@ -57,7 +57,7 @@ public class GateMovementOwnershipTest
     }
 
     @Test
-    public void ordinaryMobsAndItemsAreNobodyElsesJob()
+    void ordinaryMobsAndItemsAreNobodyElsesJob()
     {
         // These reach a gate only via the periodic sweep, so it must not skip them.
         for (final Class<? extends Entity> type : java.util.Arrays.asList(
@@ -69,7 +69,7 @@ public class GateMovementOwnershipTest
     }
 
     @Test
-    public void thrownItemsAndOrbsAreSwept()
+    void thrownItemsAndOrbsAreSwept()
     {
         // Confirmed in game: drop an item into an open gate and it comes out the far side.
         for (final Class<? extends Entity> type : java.util.Arrays.asList(
@@ -81,7 +81,7 @@ public class GateMovementOwnershipTest
     }
 
     @Test
-    public void hangingEntitiesAreNeverSwept()
+    void hangingEntitiesAreNeverSwept()
     {
         // An item frame or painting is attached to a block. Sending one through a gate
         // rips it off the wall and orphans it at the far end, so a decorated gate frame
@@ -95,7 +95,7 @@ public class GateMovementOwnershipTest
     }
 
     @Test
-    public void nullIsNobodysJob()
+    void nullIsNobodysJob()
     {
         assertFalse(WormholeXTremeVehicleListener.handlesMovementOf(null));
     }

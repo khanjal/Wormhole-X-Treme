@@ -26,7 +26,7 @@ import org.mockito.ArgumentCaptor;
  * captured at all: everything else in {@code RingMessages} goes through {@code player.spigot()},
  * which a bare mock cannot answer.
  */
-public class RingMessagesTest
+class RingMessagesTest
 {
     /** Everything said to a player when one end turns them away. */
     private static List<String> refusalFor(final RingBlockage why, final String destination)
@@ -52,7 +52,7 @@ public class RingMessagesTest
      * the old wording and send players looking for a block nobody had placed.
      */
     @Test
-    public void aLowCeilingSaysSoRatherThanBlamingSomethingBuiltInTheRing()
+    void aLowCeilingSaysSoRatherThanBlamingSomethingBuiltInTheRing()
     {
         final String text = refusalText(RingBlockage.NO_HEADROOM);
         assertTrue(text.contains("too low a ceiling"),
@@ -65,7 +65,7 @@ public class RingMessagesTest
 
     /** The number in the message comes from the stack, so it cannot drift from the rule. */
     @Test
-    public void theHeadroomMessageQuotesTheStacksOwnHeight()
+    void theHeadroomMessageQuotesTheStacksOwnHeight()
     {
         assertTrue(refusalText(RingBlockage.NO_HEADROOM).contains(String.valueOf(Ring.STACK_HEIGHT)),
             "a hardcoded number here would go stale the moment the animation changed");
@@ -73,7 +73,7 @@ public class RingMessagesTest
 
     /** Something dropped in the ring is still reported as something dropped in the ring. */
     @Test
-    public void somethingBuiltInsideAnEndSaysToClearTheInside()
+    void somethingBuiltInsideAnEndSaysToClearTheInside()
     {
         final String text = refusalText(RingBlockage.OBSTRUCTED);
         assertTrue(text.contains("built inside it"), text);
@@ -83,7 +83,7 @@ public class RingMessagesTest
 
     /** A dug-out floor names the floor. */
     @Test
-    public void aMissingFloorSaysThereIsAHoleInIt()
+    void aMissingFloorSaysThereIsAHoleInIt()
     {
         assertTrue(refusalText(RingBlockage.NO_GROUND).contains("hole in its floor"),
             "a hole is a different job from a chest, and gets its own words");
@@ -91,7 +91,7 @@ public class RingMessagesTest
 
     /** Both ceiling faults get the sentence explaining why a ceiling ring needs a floor. */
     @Test
-    public void bothCeilingFaultsExplainWhatACeilingRingNeeds()
+    void bothCeilingFaultsExplainWhatACeilingRingNeeds()
     {
         for (final RingBlockage why
             : new RingBlockage[] { RingBlockage.CEILING_TOO_HIGH, RingBlockage.CEILING_TOO_LOW })
@@ -112,7 +112,7 @@ public class RingMessagesTest
      * bothered still has to produce a sentence rather than "The  end".
      */
     @Test
-    public void aRefusalNamesWhichEndIsAtFault()
+    void aRefusalNamesWhichEndIsAtFault()
     {
         assertTrue(refusalFor(RingBlockage.NO_GROUND, "Tower").get(0).contains("The Tower end"),
             "the far end is usually somewhere else entirely, so it has to be named");
@@ -123,7 +123,7 @@ public class RingMessagesTest
 
     /** Every reason produces its own wording, so none of them is a copy of another. */
     @Test
-    public void everyBlockageReasonReadsDifferently()
+    void everyBlockageReasonReadsDifferently()
     {
         final java.util.Set<String> seen = new java.util.HashSet<String>();
         for (final RingBlockage why : RingBlockage.values())

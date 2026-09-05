@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
-public class LegacyCompatTest {
+class LegacyCompatTest {
 
     @Test
-    public void testMaterialFromId() {
+    void testMaterialFromId() {
         assertEquals(Material.AIR, LegacyCompat.materialFromId(0));
         assertEquals(Material.WATER, LegacyCompat.materialFromId(8));
         assertEquals(Material.WATER, LegacyCompat.materialFromId(9));

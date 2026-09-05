@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
  * oak dial sign on a crimson frame. Matching it means replacing a block somebody else placed,
  * which is why the rule for when to do that is worth pinning rather than leaving implicit.
  */
-public class DialSignMaterialMatchTest
+class DialSignMaterialMatchTest
 {
     @Test
-    public void aSignOfTheWrongWoodIsConverted()
+    void aSignOfTheWrongWoodIsConverted()
     {
         assertTrue(StargateBlockSetup.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.CRIMSON_WALL_SIGN, true));
@@ -31,14 +31,14 @@ public class DialSignMaterialMatchTest
      * nothing, every time.
      */
     @Test
-    public void aSignThatAlreadyMatchesIsLeftAlone()
+    void aSignThatAlreadyMatchesIsLeftAlone()
     {
         assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
             Material.CRIMSON_WALL_SIGN, Material.CRIMSON_WALL_SIGN, true));
     }
 
     @Test
-    public void nothingHappensWhenTheServerHasTurnedThisOff()
+    void nothingHappensWhenTheServerHasTurnedThisOff()
     {
         assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.CRIMSON_WALL_SIGN, false),
@@ -53,7 +53,7 @@ public class DialSignMaterialMatchTest
      * would stop the gate being dialable at all.
      */
     @Test
-    public void aGateAskingForSomethingThatIsNotAWallSignIsRefused()
+    void aGateAskingForSomethingThatIsNotAWallSignIsRefused()
     {
         assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, Material.STONE, true),
@@ -71,7 +71,7 @@ public class DialSignMaterialMatchTest
      * player had deliberately removed.
      */
     @Test
-    public void aBlockThatIsNoLongerASignIsNotTurnedIntoOne()
+    void aBlockThatIsNoLongerASignIsNotTurnedIntoOne()
     {
         assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
             Material.AIR, Material.CRIMSON_WALL_SIGN, true));
@@ -80,7 +80,7 @@ public class DialSignMaterialMatchTest
     }
 
     @Test
-    public void aGateWithNoSignMaterialResolvedConvertsNothing()
+    void aGateWithNoSignMaterialResolvedConvertsNothing()
     {
         assertFalse(StargateBlockSetup.shouldMatchDialSignMaterial(
             Material.OAK_WALL_SIGN, null, true));

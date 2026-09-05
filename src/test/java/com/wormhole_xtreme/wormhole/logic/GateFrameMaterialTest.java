@@ -19,7 +19,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
  * one block read instead of a geometry scan per registered shape, so a false negative
  * would silently stop gates being detected.
  */
-public class GateFrameMaterialTest
+class GateFrameMaterialTest
 {
     private static void loadGroups(final String name, final String structure)
     {
@@ -31,7 +31,7 @@ public class GateFrameMaterialTest
     }
 
     @Test
-    public void materialGroupFramesAreRecognised()
+    void materialGroupFramesAreRecognised()
     {
         loadGroups("Atlantis", "LAPIS_BLOCK");
 
@@ -39,7 +39,7 @@ public class GateFrameMaterialTest
     }
 
     @Test
-    public void shapeFramesAreRecognisedEvenWhenNoGroupUsesThem()
+    void shapeFramesAreRecognisedEvenWhenNoGroupUsesThem()
     {
         // A shape may declare a frame material that no configured palette mentions;
         // rejecting it here would make that shape undetectable.
@@ -61,7 +61,7 @@ public class GateFrameMaterialTest
     }
 
     @Test
-    public void ordinaryBuildingBlocksAreRejected()
+    void ordinaryBuildingBlocksAreRejected()
     {
         loadGroups("Standard", "OBSIDIAN");
 
@@ -74,7 +74,7 @@ public class GateFrameMaterialTest
     }
 
     @Test
-    public void nullMaterialIsRejectedRatherThanThrowing()
+    void nullMaterialIsRejectedRatherThanThrowing()
     {
         loadGroups("Standard", "OBSIDIAN");
 

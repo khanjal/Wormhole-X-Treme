@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  * <p>The countdown light has no such constraint. It is a block that appears in the ring's
  * own pattern and then goes away again, so anything placeable will do.
  */
-public class RingTest
+class RingTest
 {
     private static Ring ring()
     {
@@ -25,7 +25,7 @@ public class RingTest
     }
 
     @Test
-    public void slabsAreAcceptedAsTheTravellingRing()
+    void slabsAreAcceptedAsTheTravellingRing()
     {
         assertTrue(Ring.isUsableAsRing(Material.STONE_SLAB));
         assertTrue(Ring.isUsableAsRing(Material.DEEPSLATE_TILE_SLAB));
@@ -33,7 +33,7 @@ public class RingTest
     }
 
     @Test
-    public void anythingThatIsNotASlabIsRejectedAsTheTravellingRing()
+    void anythingThatIsNotASlabIsRejectedAsTheTravellingRing()
     {
         // A full block here would silently cost the animation its half-block resolution,
         // which is the whole visual effect, so this is refused rather than accepted quietly.
@@ -44,7 +44,7 @@ public class RingTest
     }
 
     @Test
-    public void theSlabTestFallsBackToTheNameWithNoServerToAsk()
+    void theSlabTestFallsBackToTheNameWithNoServerToAsk()
     {
         // On a server this reads minecraft:slabs, so a data pack that adds one gets a ring
         // material for free. There is no registry here, so this is the fallback answering —
@@ -57,7 +57,7 @@ public class RingTest
     }
 
     @Test
-    public void thereIsNoSuchTagForLightsSoTheyAreListedByHand()
+    void thereIsNoSuchTagForLightsSoTheyAreListedByHand()
     {
         // Minecraft has no light-emitting group and Bukkit cannot read a light level from a
         // Material at all, so this list is written out. It only has to look right, since a
@@ -72,7 +72,7 @@ public class RingTest
     }
 
     @Test
-    public void bothMaterialsAreEditableIndependently()
+    void bothMaterialsAreEditableIndependently()
     {
         final Ring ring = ring();
         assertEquals(Material.STONE_SLAB, ring.getRingMaterial());
@@ -86,7 +86,7 @@ public class RingTest
     }
 
     @Test
-    public void aRingCoversEveryColumnOfItsOwnFootprint()
+    void aRingCoversEveryColumnOfItsOwnFootprint()
     {
         // Used to refuse overlapping builds. It ignores y on purpose: two rings sharing a
         // column at different heights still means one animating through the other.
@@ -99,7 +99,7 @@ public class RingTest
     }
 
     @Test
-    public void anchorDistanceIsSquaredSoSeparationChecksNeedNoSquareRoot()
+    void anchorDistanceIsSquaredSoSeparationChecksNeedNoSquareRoot()
     {
         final Ring here = ring();
         final Ring there = new Ring(3, 64, 4, RingPattern.ODD, RingOrientation.FLOOR,
@@ -108,7 +108,7 @@ public class RingTest
     }
 
     @Test
-    public void anchorDistanceIgnoresHeight()
+    void anchorDistanceIgnoresHeight()
     {
         // Minimum separation is about footprints on the ground, not about how far apart two
         // rings are in the air. A ring directly above another is zero apart horizontally,
@@ -120,7 +120,7 @@ public class RingTest
     }
 
     @Test
-    public void theTriggerVolumeRepeatsTheInteriorOncePerLayer()
+    void theTriggerVolumeRepeatsTheInteriorOncePerLayer()
     {
         final Ring ring = ring();
         assertEquals(21, ring.interiorBlocks().size());
@@ -129,7 +129,7 @@ public class RingTest
     }
 
     @Test
-    public void theSuggestedLightsAreLightsRatherThanThingsThatGlow()
+    void theSuggestedLightsAreLightsRatherThanThingsThatGlow()
     {
         // Suggestions, not a rule -- any block can be set. The bar is "reads as a light
         // fixture", which is a different question from "emits light" and a much more useful

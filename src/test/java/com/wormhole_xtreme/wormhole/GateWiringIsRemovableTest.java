@@ -22,7 +22,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  * <p>These cells are the one part of a gate the plugin expects a person to place, change and
  * remove freely. Protection is for the frame.
  */
-public class GateWiringIsRemovableTest
+class GateWiringIsRemovableTest
 {
     private static Block blockAt(final World world, final int x, final int y, final int z)
     {
@@ -36,7 +36,7 @@ public class GateWiringIsRemovableTest
     }
 
     @Test
-    public void theDialActivationBlockCanBeBroken()
+    void theDialActivationBlockCanBeBroken()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -48,7 +48,7 @@ public class GateWiringIsRemovableTest
     }
 
     @Test
-    public void theSignCycleBlockCanBeBroken()
+    void theSignCycleBlockCanBeBroken()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -59,7 +59,7 @@ public class GateWiringIsRemovableTest
     }
 
     @Test
-    public void theGateActivatedLeverCanBeBroken()
+    void theGateActivatedLeverCanBeBroken()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -76,7 +76,7 @@ public class GateWiringIsRemovableTest
      * A frame block a metre from the DHD must still refuse a pickaxe and say so.
      */
     @Test
-    public void ablockThatIsNotWiringIsStillProtected()
+    void ablockThatIsNotWiringIsStillProtected()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -93,7 +93,7 @@ public class GateWiringIsRemovableTest
      * opened every block on every gate that had never been wired.
      */
     @Test
-    public void agateWithNoWiringDoesNotTreatEveryBlockAsWiring()
+    void agateWithNoWiringDoesNotTreatEveryBlockAsWiring()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -103,7 +103,7 @@ public class GateWiringIsRemovableTest
     }
 
     @Test
-    public void nothingMatchesWhenThereIsNoGateOrNoBlock()
+    void nothingMatchesWhenThereIsNoGateOrNoBlock()
     {
         final World world = mock(World.class);
         assertFalse(WormholeXTremeBlockListener.isRemovableGateWiring(null, blockAt(world, 1, 2, 3)));

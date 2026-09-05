@@ -47,7 +47,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * <p>The literals below are written as escapes on purpose. This is the charset test, so it
  * should not itself depend on the encoding its own source file was saved in.
  */
-public class Utf8GateStorageTest
+class Utf8GateStorageTest
 {
     /** "cafe-gate", with an acute accent on the e. */
     private static final String GATE_NAME = "caf\u00e9-gate";
@@ -64,7 +64,7 @@ public class Utf8GateStorageTest
     private Object previousPlugin;
 
     @BeforeEach
-    public void installPluginMock() throws Exception
+    void installPluginMock() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -74,7 +74,7 @@ public class Utf8GateStorageTest
     }
 
     @AfterEach
-    public void restorePlugin() throws Exception
+    void restorePlugin() throws Exception
     {
         final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
         f.setAccessible(true);
@@ -147,7 +147,7 @@ public class Utf8GateStorageTest
     }
 
     @Test
-    public void aGateNameOutsideAsciiIsOnDiskAsUtf8() throws Exception
+    void aGateNameOutsideAsciiIsOnDiskAsUtf8() throws Exception
     {
         final Stargate s = minimalGate(mockWorld(), GATE_NAME);
         StargateYamlManager.saveStargate(s, gatesDir());
@@ -162,7 +162,7 @@ public class Utf8GateStorageTest
     }
 
     @Test
-    public void theSameYamlReaderTheLoaderUsesGetsTheNameBack() throws Exception
+    void theSameYamlReaderTheLoaderUsesGetsTheNameBack() throws Exception
     {
         final Stargate s = minimalGate(mockWorld(), GATE_NAME);
         s.setGateOwner("00000000-0000-0000-0000-000000000001");
@@ -188,7 +188,7 @@ public class Utf8GateStorageTest
      * gate whose owner is locked out by their own password.
      */
     @Test
-    public void anIrisCodeOutsideAsciiSurvivesTheBinaryRoundTrip()
+    void anIrisCodeOutsideAsciiSurvivesTheBinaryRoundTrip()
     {
         final World w = mockWorld();
         final Stargate s = minimalGate(w, "iris-gate");

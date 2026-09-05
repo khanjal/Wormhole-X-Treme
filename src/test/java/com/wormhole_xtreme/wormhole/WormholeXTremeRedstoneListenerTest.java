@@ -20,10 +20,10 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 /**
  * Tests for `WormholeXTremeRedstoneListener` adjacency activation behavior.
  */
-public class WormholeXTremeRedstoneListenerTest
+class WormholeXTremeRedstoneListenerTest
 {
     @BeforeEach
-    public void beforeEach()
+    void beforeEach()
     {
         GateSpatialIndex.clear();
         // Gate names are reused across these cases and they run milliseconds apart, well
@@ -41,13 +41,13 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @AfterEach
-    public void afterEach()
+    void afterEach()
     {
         GateSpatialIndex.clear();
     }
 
     @Test
-    public void redstoneOnAnAlreadyOpenGateLeavesItOpen()
+    void redstoneOnAnAlreadyOpenGateLeavesItOpen()
     {
         final World world = mock(World.class);
         final int dx = 100, dy = 64, dz = 200;
@@ -108,7 +108,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void theSignCycleBlockIsIgnoredWhileTheGateIsOpen()
+    void theSignCycleBlockIsIgnoredWhileTheGateIsOpen()
     {
         // The [RA] lever is the gate's own output, switched on the moment the gate opens.
         // A shape that puts it within a block of [RD] and [RS] -- easily done, since a
@@ -182,7 +182,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void rdBlockRisingEdgeOnInactiveSignGateDialsSignTarget()
+    void rdBlockRisingEdgeOnInactiveSignGateDialsSignTarget()
     {
         final World world = mock(World.class);
         final int dx = 200, dy = 64, dz = 300;
@@ -270,7 +270,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void detectorRailBesideRdBlockDialsSignTarget()
+    void detectorRailBesideRdBlockDialsSignTarget()
     {
         // The minecart case: a cart rolls over a detector rail next to the gate. The
         // event fires on the rail, never on the RD block, so an exact-match check
@@ -280,7 +280,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void redstoneWireRunningIntoRdBlockDialsSignTarget()
+    void redstoneWireRunningIntoRdBlockDialsSignTarget()
     {
         // Dust run up to the activation block powers it, but the current change is
         // reported on the dust.
@@ -289,7 +289,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void nonRedstoneBlockBesideRdBlockDoesNotDial()
+    void nonRedstoneBlockBesideRdBlockDoesNotDial()
     {
         // Guards the adjacency widening: only redstone components may trigger, or any
         // block update near a gate would dial it.
@@ -298,7 +298,7 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void redstoneSourceTwoBlocksFromRdBlockDoesNotDial()
+    void redstoneSourceTwoBlocksFromRdBlockDoesNotDial()
     {
         // Adjacency means adjacency — a rail one block further out is someone else's
         // circuit, not a wire into this gate.
@@ -367,7 +367,7 @@ public class WormholeXTremeRedstoneListenerTest
      * to whoever built it.
      */
     @Test
-    public void aRepeaterAgainstTheDhdDialsTheSameWayDustDoes()
+    void aRepeaterAgainstTheDhdDialsTheSameWayDustDoes()
     {
         final Stargate gate = fireRedstoneNextToDhd(Material.REPEATER, 1, 0, 0, false);
         verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
@@ -382,7 +382,7 @@ public class WormholeXTremeRedstoneListenerTest
      * can be dug out and wired without disturbing the gate.
      */
     @Test
-    public void aSignalUnderTheDhdDials()
+    void aSignalUnderTheDhdDials()
     {
         final Stargate gate = fireRedstoneNextToDhd(Material.REDSTONE_WIRE, 0, -1, 0, false);
         verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
@@ -396,7 +396,7 @@ public class WormholeXTremeRedstoneListenerTest
      * updates nearby.
      */
     @Test
-    public void anOrdinaryBlockAgainstTheDhdDoesNotDial()
+    void anOrdinaryBlockAgainstTheDhdDoesNotDial()
     {
         final Stargate gate = fireRedstoneNextToDhd(Material.STONE, 1, 0, 0, false);
         verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
@@ -412,7 +412,7 @@ public class WormholeXTremeRedstoneListenerTest
      * keeps it clear of the DHD by rule, which geometry alone cannot do on a small shape.
      */
     @Test
-    public void theGatesOwnActivatedLeverDoesNotDialItEvenWhenItTouchesTheDhd()
+    void theGatesOwnActivatedLeverDoesNotDialItEvenWhenItTouchesTheDhd()
     {
         final Stargate gate = fireRedstoneNextToDhd(Material.LEVER, 1, 0, 0, true);
         verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
@@ -433,7 +433,7 @@ public class WormholeXTremeRedstoneListenerTest
      * dialled it again from inside its own first dial.
      */
     @Test
-    public void aGatePartWayThroughDiallingIsNotDialledAgain()
+    void aGatePartWayThroughDiallingIsNotDialledAgain()
     {
         final World world = mock(World.class);
         final int dx = 700, dy = 64, dz = 800;
@@ -501,7 +501,7 @@ public class WormholeXTremeRedstoneListenerTest
      * no rule about which block may trigger can recognise them.
      */
     @Test
-    public void redstoneRaisedByThePluginsOwnWritesIsIgnored()
+    void redstoneRaisedByThePluginsOwnWritesIsIgnored()
     {
         final Stargate gate;
         com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite.begin();
@@ -531,7 +531,7 @@ public class WormholeXTremeRedstoneListenerTest
      * <p>The saved index is resolved here rather than being treated as no destination at all.
      */
     @Test
-    public void aRedstoneTriggerAfterAReloadDialsTheSignsSavedSelection()
+    void aRedstoneTriggerAfterAReloadDialsTheSignsSavedSelection()
     {
         final World world = mock(World.class);
         final int dx = 900, dy = 64, dz = 1000;
@@ -606,7 +606,7 @@ public class WormholeXTremeRedstoneListenerTest
      * events arrive a tick or so apart and each one is a fresh rising edge.
      */
     @Test
-    public void asecondDustBlockInTheSameRunDoesNotDialTwice()
+    void asecondDustBlockInTheSameRunDoesNotDialTwice()
     {
         final World world = mock(World.class);
         final int dx = 500, dy = 64, dz = 600;
@@ -657,19 +657,19 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     @Test
-    public void aFirstTriggerIsNeverARepeat()
+    void aFirstTriggerIsNeverARepeat()
     {
         assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(null, 1000L, 250L));
     }
 
     @Test
-    public void aTriggerInsideTheWindowIsARepeat()
+    void aTriggerInsideTheWindowIsARepeat()
     {
         assertTrue(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(1000L), 1100L, 250L));
     }
 
     @Test
-    public void aTriggerAfterTheWindowIsANewPress()
+    void aTriggerAfterTheWindowIsANewPress()
     {
         assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(1000L), 1300L, 250L),
             "a deliberate second pulse must still work, or redstone dialling is one-shot");
@@ -683,7 +683,7 @@ public class WormholeXTremeRedstoneListenerTest
      * up again, which for a large correction could be a very long time.
      */
     @Test
-    public void aClockJumpingBackwardsDoesNotSilenceTheGate()
+    void aClockJumpingBackwardsDoesNotSilenceTheGate()
     {
         assertFalse(WormholeXTremeRedstoneListener.isRepeatTrigger(Long.valueOf(5000L), 1000L, 250L));
     }
@@ -696,7 +696,7 @@ public class WormholeXTremeRedstoneListenerTest
      * Cheap to state, and it pins the first thing the rewritten entry point does.
      */
     @Test
-    public void anEventWithNoBlockIsIgnored()
+    void anEventWithNoBlockIsIgnored()
     {
         final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
         assertDoesNotThrow(() -> listener.onBlockRedstoneChange(null));
@@ -710,7 +710,7 @@ public class WormholeXTremeRedstoneListenerTest
      * this it stays lit until the server restarts.
      */
     @Test
-    public void aTriggerOnAGateLitButNeverDialledDeactivatesIt()
+    void aTriggerOnAGateLitButNeverDialledDeactivatesIt()
     {
         final World world = mock(World.class);
         final int dx = 1100, dy = 64, dz = 1200;
@@ -765,7 +765,7 @@ public class WormholeXTremeRedstoneListenerTest
      * consulted, those gates would just quietly stop responding.
      */
     @Test
-    public void aPoweredMonitorBlockDialsTheGate()
+    void aPoweredMonitorBlockDialsTheGate()
     {
         final World world = mock(World.class);
         final int dx = 1300, dy = 64, dz = 1400;
@@ -821,7 +821,7 @@ public class WormholeXTremeRedstoneListenerTest
      * somebody deliberately took off a circuit would keep firing on it.
      */
     @Test
-    public void aGateThatIsNotRedstonePoweredIgnoresTheSignal()
+    void aGateThatIsNotRedstonePoweredIgnoresTheSignal()
     {
         final World world = mock(World.class);
         final int dx = 1500, dy = 64, dz = 1600;
