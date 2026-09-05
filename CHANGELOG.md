@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### No sign colour ships as dark grey any more
+
+Reported in testing: the dark greys are too dark to read.
+
+`DARK_GRAY` is the dimmest colour Minecraft has that is not black, and sign text sits on wood
+rather than on a dark background -- so a line in it reads as almost absent on a light sign and
+genuinely absent on a dark one. It was the wrong instinct for "secondary text": the point of
+dimming the network, owner and unselected destinations is that they should sit behind the
+line that matters, not disappear.
+
+All three are `GRAY` now, which still steps back from the coloured lines without vanishing.
+Nothing in the shipped defaults uses `DARK_GRAY`.
+
+Worth knowing when reading a bug report about this: a colour already written into a server's
+`config.yml` is never overwritten by a changed default, so an install that ran an earlier
+build keeps whatever it was given first. `/wormhole config sign-color-owner GRAY` and its
+siblings change a running server immediately; changing the default only affects an install
+that has never seen the key.
+
 ### Saving the config no longer destroys the rest of the file
 
 Found chasing a report that config edits reset on reboot. They did, and that was the smaller

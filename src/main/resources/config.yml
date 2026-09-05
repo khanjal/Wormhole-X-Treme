@@ -45,7 +45,7 @@ sign-glowing-text: false
 sign-color-gate-name: DARK_AQUA
 
 # The network line on a gate's name sign.
-sign-color-network: DARK_GRAY
+sign-color-network: GRAY
 
 # The owner line on a gate's name sign.
 sign-color-owner: GRAY

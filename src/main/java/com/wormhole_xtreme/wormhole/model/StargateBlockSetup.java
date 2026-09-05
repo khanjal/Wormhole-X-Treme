@@ -174,7 +174,7 @@ class StargateBlockSetup
             if (gate.getGateNetwork() != null)
             {
                 front.setLine(1, SignStyle.paint(
-                    SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.DARK_GRAY),
+                    SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
                     "N:" + gate.getGateNetwork().getNetworkName()));
             }
             if (gate.getGateOwner() != null)

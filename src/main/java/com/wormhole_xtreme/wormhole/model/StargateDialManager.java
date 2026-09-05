@@ -213,7 +213,7 @@ class StargateDialManager
                 SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
                 gate.getGateName()));
             idle.setLine(1, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.DARK_GRAY),
+                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
                 gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public"));
             idle.setLine(2, "");
             idle.setLine(3, "");
