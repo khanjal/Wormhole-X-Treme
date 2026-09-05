@@ -190,10 +190,7 @@ public class StargateShapeLayer
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Dial Activation Position: \"" + Arrays.toString(getLayerRedstoneDialActivationPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Sign Activation Position: \"" + Arrays.toString(getLayerRedstoneSignActivationPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Gate Activated Position: \"" + Arrays.toString(getLayerRedstoneGateActivatedPosition()) + "\"");
-        //WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Portal Positions: \"" + Arrays.deepToString((int[][])this.waterPositions) + "\"");
 
-        // WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Light Material Positions: \"" + lightPositions.toString() + "\"");
-        //WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Material Positions: \"" + Arrays.deepToString((int[][])this.stargatePositions) + "\"");
     }
 
     /**

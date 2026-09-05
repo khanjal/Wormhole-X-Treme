@@ -6,7 +6,6 @@ package com.wormhole_xtreme.wormhole.model;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
@@ -220,10 +219,7 @@ public final class StargateShapeRegistry
                         getStargateShapes().put(shape.getShapeName(), shape);
                     }
                 }
-                catch (final FileNotFoundException e)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());
-                }
+                // FileNotFoundException is an IOException and was handled identically.
                 catch (final IOException e)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());

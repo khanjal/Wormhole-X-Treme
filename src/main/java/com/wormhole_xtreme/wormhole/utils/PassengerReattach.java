@@ -39,13 +39,13 @@ public final class PassengerReattach
     /**
      * Seats {@code passenger} on {@code parent}, retrying once via a position sync.
      *
-     * @param parent
-     *            the entity to ride
      * <p>Private on purpose: it re-seats once, with no retry and no backoff, which is only
      * ever correct as a step inside {@link #schedule}. Exposed, it would read like the
      * obvious way to seat a passenger and quietly drop the guarantees that actually make
      * re-seating stick.
      *
+     * @param parent
+     *            the entity to ride
      * @param passenger
      *            the entity to seat
      * @return true if the passenger ends up aboard
