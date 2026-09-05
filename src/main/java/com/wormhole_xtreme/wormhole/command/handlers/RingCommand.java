@@ -37,6 +37,8 @@ import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
  * whole. For the two per-end settings that distinction decides scope as well — standing in
  * a ring edits that end, naming a pair edits both.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class RingCommand implements SubCommand
 {
     /* (non-Javadoc)

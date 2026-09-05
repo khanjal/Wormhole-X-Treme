@@ -31,6 +31,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * validation, the permission checks and the messages are all still the originals. This class
  * is a front door, not a rewrite.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class GateEditCommand implements SubCommand
 {
     /**

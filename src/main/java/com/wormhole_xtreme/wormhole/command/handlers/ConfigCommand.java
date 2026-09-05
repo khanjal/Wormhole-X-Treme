@@ -23,6 +23,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * <p>This is the one command for all of them, and it takes effect immediately: settings are
  * read where they are used rather than cached at startup, so there is nothing to reload.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class ConfigCommand implements SubCommand
 {
     /** How many settings to list before telling them to narrow it down. */
