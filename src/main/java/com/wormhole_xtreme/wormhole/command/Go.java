@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,12 +9,39 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
+import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * The Class Go.
- * 
+ *
+ * <p>A shortcut for two different things, tried in order: a gate, under gate permissions, for
+ * whoever holds {@code wormhole.go} -- an admin/debug node, same as it always was; then a beam
+ * destination or one of the player's own places, under beaming's own permission, for everyone
+ * else. That split is deliberate rather than one blanket check up front: a player with no
+ * gate-admin access should still be able to use this as a shortcut for
+ * {@code /wormhole beam to}, and a name that exists only as a gate should read as "no gate or
+ * beam destination named that" rather than leak whether a gate by that name exists to someone
+ * who cannot use it anyway.
+ *
+ * <p>The gate is looked up before the permission check, not after, so
+ * {@link WXPermissions#checkWXPermissions(Player, Stargate, PermissionType)} has the gate to
+ * read a network name off of. {@code GO} used to skip network privacy entirely -- reachable
+ * only through the overload that passes a null stargate, which meant it could never know which
+ * network to check -- so a private network's {@code wormhole.network.use.&lt;name&gt;} node was
+ * bypassed by anyone holding the single blanket {@code wormhole.go} node. It now goes through
+ * the same {@code NETWORK_USE} check {@code Dial} already enforces.
+ *
+ * <p>Both branches run the same {@link BeamAnimation} sequence rather than the gate branch
+ * teleporting instantly. Before this, a gate reached via {@code go} was a blink -- an admin
+ * skipping the walk to a gate got nothing a beamed player did not, and {@code go} felt like
+ * two different commands depending on what it resolved to. It still is not the gate's own
+ * event-horizon woosh, and does not touch it: that effect belongs to actually walking through
+ * a gate, a different moment this command has never played any part in.
+ *
  * @author alron
  */
 public class Go implements CommandExecutor
@@ -21,7 +49,7 @@ public class Go implements CommandExecutor
 
     /**
      * Do go.
-     * 
+     *
      * @param player
      *            the player
      * @param args
@@ -30,30 +58,31 @@ public class Go implements CommandExecutor
      */
     private static boolean doGo(final Player player, final String[] args)
     {
-        if (WXPermissions.checkWXPermissions(player, PermissionType.GO))
+        if (args.length != 1)
         {
-            if (args.length == 1)
-            {
-                final String goGate = args[0].trim().replace("\n", "").replace("\r", "");
-                final Stargate s = StargateManager.getStargate(goGate);
-                if (s != null)
-                {
-                    player.teleport(s.getGatePlayerTeleportLocation());
-                }
-                else
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate does not exist: " + args[0]);
-                }
-            }
-            else
-            {
-                return false;
-            }
+            return false;
         }
-        else
+        final String name = args[0].trim().replace("\n", "").replace("\r", "");
+
+        final Stargate gate = StargateManager.getStargate(name);
+        if ((gate != null) && WXPermissions.checkWXPermissions(player, gate, PermissionType.GO))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            // The walk-through path (WormholeXTremePlayerListener) already snaps to safe
+            // ground before a gate teleport; this shortcut skipped that and would deliver
+            // someone into whatever terrain had drifted around the gate's stored arrival
+            // point since it was built.
+            final Location target = WorldUtils.findSafePlayerLocation(gate.getGatePlayerTeleportLocation());
+            BeamAnimation.start(player, target, gate.getGateName());
+            return true;
         }
+
+        if (BeamTravel.travelTo(player, name))
+        {
+            return true;
+        }
+
+        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            + "No gate or beam destination named: " + args[0]);
         return true;
     }
 

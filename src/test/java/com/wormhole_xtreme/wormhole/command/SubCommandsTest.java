@@ -32,17 +32,17 @@ public class SubCommandsTest
     }
 
     @Test
-    public void whatIsAdvertisedIsTheFourNamesAndNothingElse()
+    public void whatIsAdvertisedIsTheFiveNamesAndNothingElse()
     {
-        // The commands were restructured under two nouns that behave alike, the settings,
-        // and the one thing that is neither. Twenty-two names at the top level was how a
-        // plugin ends up with a help message nobody reads.
+        // The commands were restructured under nouns that behave alike (gate, ring, beam --
+        // three ways to travel), the settings, and the one thing that is neither. Twenty-two
+        // names at the top level was how a plugin ends up with a help message nobody reads.
         final List<String> offered = SubCommands.namesMatching("");
-        assertEquals(java.util.Arrays.asList("gate", "ring", "compass", "config"),
+        assertEquals(java.util.Arrays.asList("gate", "ring", "beam", "compass", "config"),
             offered.stream().sorted(java.util.Comparator.comparing(
-                n -> java.util.Arrays.asList("gate", "ring", "compass", "config").indexOf(n)))
+                n -> java.util.Arrays.asList("gate", "ring", "beam", "compass", "config").indexOf(n)))
                 .collect(java.util.stream.Collectors.toList()),
-            "the advertised list should be exactly the four nouns");
+            "the advertised list should be exactly the five nouns");
     }
 
     @Test

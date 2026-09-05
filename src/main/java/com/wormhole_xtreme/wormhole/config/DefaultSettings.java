@@ -63,7 +63,21 @@ class DefaultSettings
         new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Only unambiguous palettes are added: if two shapes share a frame material but disagree on their other materials, neither is added. Set false to curate the list by hand.", "WormholeXTreme"),
         new Setting(ConfigKeys.ECONOMY_ENABLED, false, "Enable Vault economy integration. Requires Vault and an economy plugin (e.g. EssentialsX). When false all economy features are disabled regardless of cost settings.", "WormholeXTreme"),
         new Setting(ConfigKeys.ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they walk through a gate. Set to 0.0 to disable use cost.", "WormholeXTreme"),
-        new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme")
+        new Setting(ConfigKeys.ECONOMY_BUILD_COST, 0.0, "Amount charged to a player when they successfully build a new gate. Set to 0.0 to disable build cost.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_SOUNDS_ENABLED, true, "Whether beaming makes any noise. Everything below is ignored when this is false.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_SOUND_VOLUME, 1.0, "How loud beam sounds are. Bukkit scales audible range with volume, so this is a distance knob too: 1.0 is heard about sixteen blocks away.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_SOUND_CHARGE, "block.respawn_anchor.charge", "Played the instant a beam sequence starts.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_SOUND_DEPART, "entity.enderman.teleport", "Played the instant the real teleport fires, partway through the rise.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_SOUND_ARRIVE, "entity.shulker.teleport", "Played once the column finishes descending at the destination.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_ENVELOP_TICKS, 12, "How long, in ticks, the glow gathers at body height before opening into the departure column.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_VANISH_AT_STEP, 6, "How far into the envelope, in ticks, the traveller vanishes. Clamped inside it at run time, whatever this is set to.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_RISE_TICKS, 18, "How long, in ticks, the column rises and departs once the envelope opens into it.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_TELEPORT_AT_STEP, 12, "How far into the rise, in ticks, the real teleport fires. Clamped inside the rise at run time, whatever this is set to.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_DESCEND_TICKS, 20, "How long, in ticks, the column takes to descend into place at the destination.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_FADE_TICKS, 8, "How long, in ticks, the column takes to fade out once it has deposited the traveller.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED, false, "Whether beam travel has a per-player cooldown at all.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between beams, when the cooldown above is enabled.", "WormholeXTreme"),
+        new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. Set to 0.0 to disable. Uses the same Vault connection as gate costs -- ECONOMY_ENABLED must also be true.", "WormholeXTreme")
     };
 
 }

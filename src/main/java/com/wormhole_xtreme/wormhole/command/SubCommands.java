@@ -152,7 +152,13 @@ public final class SubCommands
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
         // --- Travel ---------------------------------------------------------
-        register("go", aliases(), "/wormhole go <gate>", new Go(), true, GATE_NAMES);
+        // Tries a gate first, then a beam destination or place -- see Go's own class comment.
+        // Completion offers both for the same reason: gate names and public beam destinations
+        // are nobody's secret, so both are safe to suggest regardless of who is asking. A
+        // player's own private places are not offered here, same limitation as everywhere else
+        // a completer cannot see who is asking -- see completeBeam's "to" case.
+        register("go", aliases(), "/wormhole go <gate|destination>", new Go(), true, args ->
+            args.length == 2 ? combine(gateNames(args[1]), publicBeamNames(args[1])) : none());
         register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
             args -> args.length == 2 ? prefixed(args[1], "reset") : none());
         register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
@@ -193,6 +199,12 @@ public final class SubCommands
         register("ring", aliases("rings"), "/wormhole ring <create|cancel|list|remove|edit|allow|deny|owner>",
             new com.wormhole_xtreme.wormhole.command.handlers.RingCommand(), false,
             SubCommands::completeRing);
+
+        // --- Beaming ------------------------------------------------------------
+        register("beam", aliases(),
+            "/wormhole beam <to <name>|list|admin <set|remove|cost|goto|send>|place <list|set|remove>>",
+            new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand(), false,
+            SubCommands::completeBeam);
 
         // --- Server settings -------------------------------------------------
         register("shutdown_timeout", aliases("timeout"), "/wormhole shutdown_timeout <seconds>",
@@ -409,6 +421,13 @@ public final class SubCommands
         return Collections.emptyList();
     }
 
+    private static List<String> combine(final List<String> first, final List<String> second)
+    {
+        final List<String> out = new ArrayList<String>(first);
+        out.addAll(second);
+        return out;
+    }
+
     private static List<String> prefixed(final String typed, final String... candidates)
     {
         final String p = typed == null ? "" : typed.toLowerCase();
@@ -461,6 +480,173 @@ public final class SubCommands
         final String previous = args[args.length - 2];
         final String typed = args[args.length - 1];
         return isRingField(previous) ? ringFieldValues(previous, typed) : prefixed(typed, RING_FIELDS);
+    }
+
+    /**
+     * Completions for {@code /wormhole beam}.
+     *
+     * @param args
+     *            the full argument array, {@code beam} at index 0
+     * @return the candidates
+     */
+    private static List<String> completeBeam(final String[] args)
+    {
+        if (args.length == 2)
+        {
+            return prefixed(args[1], "to", "list", "admin", "place");
+        }
+        final String noun = args[1].toLowerCase();
+        if ("to".equals(noun))
+        {
+            // Only public names are offered here, for the same reason "place remove" cannot
+            // offer place names: a tab completer is not handed the CommandSender, only the
+            // argument array, so there is no "the player asking" to look their own places up
+            // for. Public destinations have no such problem, since they belong to nobody.
+            return args.length == 3 ? publicBeamNames(args[2]) : none();
+        }
+        if ("admin".equals(noun))
+        {
+            if (args.length == 3) return prefixed(args[2], "set", "remove", "cost", "goto", "send");
+            final String action = args[2].toLowerCase();
+            if (args.length == 4)
+            {
+                if ("remove".equals(action) || "cost".equals(action)) return publicBeamNames(args[3]);
+                // goto's only argument is a destination: a player, a public destination name,
+                // or the first of three coordinates -- coordinates would not match a name
+                // prefix anyway, so offering names here does no harm on the numeric path.
+                if ("goto".equals(action)) return playerOrDestinationNames(args[3]);
+                // send's first argument is different in kind: the player being *moved*, who
+                // has to be an actual online player. A destination name would be meaningless
+                // in this slot, so only players are offered.
+                if ("send".equals(action)) return playerNames(args[3]);
+            }
+            if (args.length == 5)
+            {
+                if ("cost".equals(action)) return prefixed(args[4], "default");
+                // send's destination, one token in -- same shape as goto's above.
+                if ("send".equals(action)) return playerOrDestinationNames(args[4]);
+            }
+            // The trailing [world] slot after a full set of raw coordinates -- goto's sits
+            // one token earlier than send's, since send has an extra token (the player being
+            // moved) ahead of its own destination. Offered unconditionally at that position
+            // rather than only once the earlier tokens are confirmed numeric: the same
+            // lightweight, position-based approach completion already takes everywhere else
+            // in this method, not a full parse of what was typed.
+            if ("goto".equals(action) && (args.length == 7)) return worldNames(args[6]);
+            if ("send".equals(action) && (args.length == 8)) return worldNames(args[7]);
+            return none();
+        }
+        if ("place".equals(noun))
+        {
+            if (args.length == 3) return prefixed(args[2], "list", "set", "remove");
+            return none();
+        }
+        return none();
+    }
+
+    /**
+     * Online player names matching what has been typed, for {@code beam admin goto}/{@code
+     * send}. A player's own places are still not offered anywhere, same limitation as {@code
+     * to} above, but a target player's name is nobody's secret in the same way.
+     *
+     * @param typed what has been typed so far
+     * @return the matching online player names
+     */
+    private static List<String> playerNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.entity.Player player : org.bukkit.Bukkit.getOnlinePlayers())
+        {
+            final String name = player.getName();
+            if (name.toLowerCase().startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /**
+     * Online player names and public destination names together, for the one argument slot
+     * that genuinely accepts either: {@code goto}'s destination, and {@code send}'s.
+     *
+     * <p>Deliberately not the slot naming the player {@code send} is moving -- that one has
+     * to be a real online player, and offering destination names there would suggest a
+     * command that does not exist.
+     *
+     * <p>A public destination sharing a name with an online player is offered once, not
+     * twice: the resolver checks players first, so the completion would be describing two
+     * different outcomes with one identical string. Sorted together so the list does not
+     * betray which kind a given name is -- by the time it matters, the resolver has already
+     * decided.
+     *
+     * @param typed what has been typed so far
+     * @return the matching names, players and public destinations combined
+     */
+    private static List<String> playerOrDestinationNames(final String typed)
+    {
+        final List<String> out = playerNames(typed);
+        for (final String name : publicBeamNames(typed))
+        {
+            boolean already = false;
+            for (final String existing : out)
+            {
+                // Case-insensitively: the destination list is keyed lowercase, so "Spawn" and
+                // "spawn" are one destination, and a player differing only in case from one
+                // would still resolve to the player either way.
+                if (existing.equalsIgnoreCase(name))
+                {
+                    already = true;
+                    break;
+                }
+            }
+            if (!already)
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /**
+     * Loaded world names matching what has been typed, for the trailing {@code [world]} slot
+     * on {@code beam admin goto}/{@code send}'s raw-coordinate form.
+     *
+     * @param typed what has been typed so far
+     * @return the matching loaded world names
+     */
+    private static List<String> worldNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final org.bukkit.World world : org.bukkit.Bukkit.getWorlds())
+        {
+            final String name = world.getName();
+            if (name.toLowerCase().startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    private static List<String> publicBeamNames(final String typed)
+    {
+        final String p = typed == null ? "" : typed.toLowerCase();
+        final List<String> out = new ArrayList<String>();
+        for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination destination
+            : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getAllPublicDestinations())
+        {
+            if (destination.getName().toLowerCase().startsWith(p))
+            {
+                out.add(destination.getName());
+            }
+        }
+        return out;
     }
 
     /**

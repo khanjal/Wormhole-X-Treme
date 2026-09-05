@@ -4,6 +4,275 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### Fix: a failed beam left the traveller in the dark, literally
+
+Caught reviewing the beam work before merging it, and a drift between two places that were
+each correct the day they were written. A beam applies three potion effects across two
+different ticks -- invisibility at the vanish, blindness and darkness together at the
+teleport -- and two separate endings have to undo them: the normal arrival, and the
+mid-flight recovery added just below. Each ending listed the effects itself.
+
+Darkness was stacked onto blindness *after* that recovery path already existed (see the
+vision fix below for why), and only the arrival path was updated to take it back off. So a
+beam that threw anywhere between its teleport and its deposit did everything else right --
+unfroze the traveller, made them visible, cleared their blindness -- and left them sitting
+in the warden's dark vignette until it expired on its own. Not permanent, but recovery
+exists precisely so a failed beam leaves nothing behind, and it was already going to the
+trouble of removing blindness, which has exactly the same duration.
+
+Fixed structurally rather than by adding a third copy of the list: both endings now read
+one shared `TRAVELLER_EFFECTS`, so an effect added to the sequence cannot be taught to one
+ending and forgotten by the other.
+
+No test pins it, and not for lack of trying -- naming any `PotionEffectType` constant from
+a test fails with `NoClassDefFoundError: Could not initialize class
+org.bukkit.potion.PotionEffectType`, since the class is registry-backed in modern Bukkit
+and its static initialiser wants a running server. That is why nothing in this suite
+touches potion effects at all, and why the list being shared *is* the guarantee here
+instead of a test being it.
+
+### Fix: a beam that fails mid-sequence no longer strands the traveller
+
+Once `isVanish()` fires, a traveller is frozen and invisible until `isFinished()` clears
+them -- or until something in between throws. A Bukkit call failing mid-tick
+(`spawnParticle`, `teleport`, `addPotionEffect`) used to kill the whole sequence with the
+freeze never lifted and nothing left running to lift it: position-locked, invisible or
+blind, and permanently `ACTIVE` in `BeamFreeze`, which refuses every later beam for them
+too. Exactly the "frozen with no way out" failure `BeamTiming` already exists to prevent
+in the timing math, reachable a different way. The tick now runs inside a try/catch, the
+same shape `RingTransit`'s own mid-cycle recovery already uses: clear the freeze, remove
+whichever potion effects were applied, and tell the traveller they've been freed rather
+than leave them guessing.
+
+### Fix: the traveller's own vision no longer arrives ahead of the beam
+
+The real teleport fires mid-rise, so the traveller is physically at the destination for
+the entire descend phase -- but nothing was stopping them from freely looking around
+before the column had finished settling. Invisibility only ever hid them from *other*
+players; it never touched what the traveller themselves could see. The effect ended up
+backwards from the intended read: a busy view, then a clear one, and only after that the
+"arrival" effect finishing around them.
+
+First attempt was `PotionEffectType.BLINDNESS` alone, applied the instant the real
+teleport fires and removed the instant the column settles. Play-testing caught what the
+reasoning missed: blindness is mostly a render-distance fog, not an opaque blackout --
+nearby terrain and anything bright (daylight, torches, the beam's own `END_ROD`
+particles) still showed straight through it, so the traveller could still see the
+destination clearly before arriving. `PotionEffectType.DARKNESS` -- the real dark
+vignette a warden or sculk shrieker applies -- stacked on top of blindness is what
+actually blocks the view; confirmed present across this project's full supported range
+(1.20 through 1.21.10) before adding it. Both key off the same two ticks invisibility
+already uses, so the traveller's own vision now resolves in sync with the visual instead
+of running ahead of it.
+
+### Fix: beam cost no longer charges a message with nothing behind it
+
+`BeamTravel.resolveCost` computed a destination's cost -- its own override, or the global
+`BEAM_ECONOMY_USE_COST` default -- unconditionally, unlike every other cost path in this
+plugin (a gate's use cost, its build cost), which both collapse to free whenever economy
+is not actually active (`ConfigManager.isEconomyEnabled()` false, or no Vault provider
+attached). `EconomySupport.canAfford`/`charge` already fail open in that situation --
+nothing is actually withdrawn -- so a non-zero cost here meant a player saw "This will cost
+X..." and "Charged X..." for a charge that never happened, with config off or Vault
+missing. Found by Copilot's review of #21. Fixed to match the existing pattern; three new
+`BeamTravelTest` cases pin it (economy never configured, explicitly disabled, and enabled
+in config with no Vault provider attached -- the exact scenario that was slipping through).
+
+### Admin beaming: goto and send, from a player, console, or a command block
+
+Two new `beam admin` actions, both gated behind a new `wormhole.beam.admin.teleport` node
+(default op) rather than the existing `wormhole.beam.admin` -- curating the destination
+list and instantly relocating any player are different orders of power, and holding the
+first shouldn't automatically hand out the second.
+
+- `/wormhole beam admin goto <player|destination>` or `<x> <y> <z> [world]` -- beams the
+  sender to a player, a public beam destination, or raw coordinates. Player-only: there's
+  nowhere for console or a command block to beam *from*.
+- `/wormhole beam admin send <target> <player|destination>` or `<target> <x> <y> <z>
+  [world]` -- beams a named, online player to another player, a public beam destination, or
+  raw coordinates. The one place this command accepts console or a command block as the
+  sender, since neither is the one being moved; whoever sent it gets told whether it worked,
+  since the target's own "Beaming to X..." messages don't reach them.
+
+Destination names were not accepted at first -- both actions took a player or raw
+coordinates and nothing else, so "send someone to spawn" meant looking spawn's coordinates
+up by hand to say it. That was a gap rather than a decision, and it showed up the moment
+anyone asked the obvious question. A name that isn't an online player now falls through to
+the public destination list before erroring, and the failure message names both things it
+looked for rather than only mentioning players.
+
+Public destinations only, deliberately. A private place belongs to whoever set it, which
+for `send` is the *target*, not the sender -- so a bare name could silently mean something
+the sender can't see and never chose. An admin move shouldn't route through another
+player's private list. Players still reach their own places through `beam to`, which checks
+them first by design. `send`'s *first* argument stays players-only too: that slot names who
+is being moved, and a destination there would be meaningless.
+
+Both run the full `BeamAnimation` sequence on the traveller -- same glow, rise, descend and
+fade as any other beam trip, and the same terrain-drift correction described below. Neither
+applies beam's cooldown or cost; this is an administrative move, not the target player
+choosing to travel, the same reasoning `Go.java`'s gate branch already applies to its own
+travel.
+
+Along the way, fixed a real bug this feature would otherwise have landed directly in:
+`Wormhole.java`'s dispatcher refused any `/wormhole` command with more than 4 arguments
+before ever reaching a handler, silently -- which also means `/wormhole beam admin cost
+<name> <amount>` (5 tokens) and `/wormhole ring edit <id> <field> <value>` (also 5) were
+already unreachable through the real command, not just untested. Nothing needed that cap;
+every handler already validates its own argument count and replies with its own usage
+message on a mismatch.
+
+Tab completion covers both new actions the same way every other beam command already does,
+driven from the same `SubCommands` registry: `goto`/`send` themselves, online player names
+and public destination names together in the slots that accept either, players alone in the
+slot naming who `send` is moving, and loaded world names for the trailing `[world]` slot on
+raw coordinates -- the one piece of `goto`/`send`'s arguments that is both completable and
+had nothing offered for it at first. A destination sharing a name with an online player is
+offered once rather than twice, since the resolver checks players first and the two would
+otherwise be one string describing two different outcomes.
+
+### Beam and gate arrivals correct for terrain that has drifted since they were set
+
+A beam destination, a place, or a gate's arrival point is only ever as good as the ground
+was the moment it was recorded -- building up or digging out afterward doesn't move the
+stored coordinates, so an exact teleport there could land somebody buried in a block that
+had since risen to meet them, or hanging in the air over ground that had since dropped
+away. `WormholeXTremePlayerListener` already searched outward for standable ground before
+a gate's own walk-through arrival, so that search (`WorldUtils.findSafePlayerLocation`) is
+now shared: `BeamTravel.travelTo` runs it once on the resolved destination before starting
+the beam sequence, so the real teleport and the arrival column -- both already reading from
+the same `Location` -- land in the same corrected spot with nothing further to keep in
+sync. `/wormhole go`'s gate shortcut gets the same correction, closing the one path into a
+gate that had been skipping it.
+
+### Beam sequence decisions are now testable without a running server
+
+`BeamAnimation.Sequence` computed every phase boundary and quantity inline, mixed in with
+the Bukkit calls that acted on them -- the same tangle the ring subsystem split apart early
+on, deferred for beaming until the sequence itself stopped changing shape every few days.
+Now that it has, `BeamFrame.at(tick, timing)` is a pure function from a tick number and the
+sequence's resolved durations to everything that tick should do; `Sequence` is left doing
+only the Bukkit half, in the order `BeamFrame` says it applies, with no arithmetic of its
+own left to get wrong. Thirteen new tests pin the exact tick every transition lands on by
+hand -- envelop ending and rise beginning with no gap or overlap, the origin column still
+playing on the same tick teleport fires (independent of the traveller, who has already
+left), fade finishing on schedule rather than one tick early or late. An off-by-one at any
+of these boundaries used to only be noticeable by actually watching a beam run; now it is
+a failing assertion.
+
+`/wormhole beam list` now shows a destination's cost next to its name when it has one of
+its own -- easy to lose track of otherwise now that costs can vary per destination.
+
+### Beaming: a third way to travel, alongside gates and rings
+
+`/wormhole beam to <name>` moves a player straight to a named destination -- no physical
+construct required on either end, unlike a gate or a ring. Public destinations are
+admin-curated (`beam admin set|remove`); private places are per-player
+(`beam place set|remove|list`), following the ownership shape rings already established
+rather than gates' permission-node model, since beaming shares gates' networks and owner
+rules as little as rings do -- its own `BeamPermissions` class, not `WXPermissions`.
+
+`/wormhole go` now doubles as a beam shortcut: it tries a gate first, under `wormhole.go`,
+and falls back to a beam destination or place if no gate matches or the player never held
+that permission at all. A player with no gate-admin access can use `go` as a shortcut to
+their own places, rather than beaming staying a second, unrelated command for the same
+idea of "take me to X."
+
+Cooldown (`BEAM_USE_COOLDOWN_ENABLED`/`_SECONDS`) and economy cost
+(`BEAM_ECONOMY_USE_COST`) are both off by default, reusing the same `EconomySupport`/Vault
+connection gate costs already use. Both are applied only once the teleport actually fires,
+not at the point of starting the sequence -- the same reasoning gate travel already
+applies to its own cooldown, so a player who disconnects mid-sequence is never charged or
+cooled down for a trip that never happened.
+
+### The beam effect matches its reference footage
+
+The animation went through several shapes before landing on one that actually matches how
+beaming looks on screen: a bright glow gathers at the traveller's body and appears to
+absorb them; they and the light disappear into a beam that rises and departs; at the
+destination the beam deposits them, with the light still there, and it fades quickly.
+
+An early version used a `PotionEffectType.GLOWING` charge phase before any particles
+appeared, which put a full second of nothing visible between running the command and
+anything happening -- cut. A separate charging orb (a growing sphere of coloured dust
+particles) was tried next and dropped for two reasons: `Particle.DUST`/`REDSTONE` is lit
+by ambient block light rather than self-illuminating, so a configured "pure white" was
+never fully reachable regardless of the hex value; and no amount of particle count or
+spread made a randomly scattered cloud read as one solid ball. The current version uses
+one particle system throughout (`Particle.END_ROD`, self-illuminating, no lighting
+dependency) and gets both the glow and the beam from the same column -- dense and
+body-height during the envelope, full height and constant brightness through the rise and
+descent, then fading back down quickly once the traveller is deposited.
+
+Every duration (`BEAM_ENVELOP_TICKS`, `BEAM_VANISH_AT_STEP`, `BEAM_RISE_TICKS`,
+`BEAM_TELEPORT_AT_STEP`, `BEAM_DESCEND_TICKS`, `BEAM_FADE_TICKS`) is configurable and
+resolved once per sequence through the new `BeamTiming`, which clamps them against each
+other so no combination of config values can leave a player stuck: a
+`BEAM_TELEPORT_AT_STEP` set equal to or past `BEAM_RISE_TICKS`, for instance, would
+otherwise mean the teleport condition is never reached and the traveller is frozen and
+invisible with no way out short of a restart.
+
+### The traveller can move during the envelope, matching the reference
+
+The envelope used to freeze the traveller in place from the moment the command ran, before
+they had even vanished -- but the reference shows someone still walking, turning, reacting
+while the glow gathers on them. `BeamFreeze` now only takes hold at the vanish tick, once
+they have actually been "absorbed"; the envelope's particles track wherever the traveller
+currently is rather than a fixed spot, since a fixed column would just miss them the moment
+they stepped away from where the sequence began. The departure column that opens out of the
+envelope roots itself wherever they happened to be standing at that exact tick, not
+wherever they started.
+
+This split the already-beaming guard from the position lock, which had been the same flag.
+`BeamAnimation.start` used to refuse a second beam by checking whether the player was
+frozen -- but nobody is frozen during the envelope anymore, so that check would have let a
+second sequence start on top of a first one still gathering. `BeamFreeze` now tracks two
+states: active (the whole sequence, envelope included, checked by the guard) and frozen
+(only from vanish onward, checked by the movement listener). A player disconnecting during
+the envelope clears both on the way out, the same as a frozen player always did -- an
+active-but-never-frozen flag left standing would have refused that player every beam for
+good, with nothing left running that could ever clear it.
+
+### Public destinations can have their own beam cost, and admins can bypass it
+
+`BEAM_ECONOMY_USE_COST` was one flat number for every destination. `BeamDestination` now
+carries an optional cost override -- `/wormhole beam admin cost <name> <amount>`, or
+`default` to go back to inheriting the global setting -- so spawn can stay free while a
+boss-arena destination costs something, without touching the server-wide default at all.
+Deliberately not offered for private places: a place is only ever reachable by the player
+who made it, so letting them set its cost would just be them choosing what to pay
+themselves.
+
+`BeamDestination`'s cost is a `Double`, not a primitive, specifically so "no override" and
+"explicitly free" stay distinguishable -- null inherits whatever the global default
+currently says, `0.0` is a permanent "this one is free" that a later change to that default
+cannot quietly override. An absent `Cost` field in a stored destination, or a malformed
+one, both fall back to null rather than either being read as 0.0 -- the wrong one of those
+two would make every destination written before this existed, or every place, quietly free
+regardless of configuration.
+
+Since a real cost is now something a player might not expect, the amount is stated up
+front in chat before the sequence starts rather than only discovered once charged. A hard
+confirm-before-travelling step felt like more friction than gate travel has ever needed
+for the same kind of cost, so this is the middle ground: seen, not gated on.
+
+`wormhole.beam.admin` now bypasses both the cooldown and the cost entirely -- neither
+checked nor applied. Gate travel's own cooldown and cost apply uniformly regardless of permission
+with no such bypass, so this is a deliberate departure for beaming specifically: staff
+testing destinations or handling a support request are the common case a bypass is
+actually for, and reusing the node that already gates managing public destinations costs
+nothing new to wire up.
+
+### `/wormhole go` now respects private network permission, like dial already does
+
+`wormhole.go` was a single blanket node with no way to know which network a target gate
+was on, because `Go.java` called the permission check before looking the gate up --
+`WXPermissions` had nothing to read a network name off of. That meant a private network's
+`wormhole.network.use.<name>` node, which `Dial` already enforces, was bypassed entirely
+for anyone holding `wormhole.go`. Fixed by looking the gate up first and passing it into
+the permission check, whose `GO` case now consults `NETWORK_USE` the same way `DIALER`
+does.
+
 ### Fix: the woosh could leave water (or any portal material) stuck outside a gate, or an extra layer inside it
 
 Reported directly: "gates are leaving water one block from the gate," visible only to the

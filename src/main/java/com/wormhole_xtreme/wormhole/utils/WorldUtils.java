@@ -278,6 +278,94 @@ public class WorldUtils
 
 
     /**
+     * Finds the nearest place a player can actually stand near {@code preferred}, searching
+     * up before down.
+     *
+     * <p>A stored teleport target — a gate's arrival point, a beam destination, a place — is
+     * only ever as good as the terrain was the moment it was recorded. Building up or digging
+     * out around it afterward does not move the stored coordinates, so an exact teleport
+     * there can land somebody buried in a block that has since risen to meet them, or
+     * hanging in the air a lowered ground line no longer reaches. This walks outward from the
+     * stored point until it finds somewhere that is actually standable, rather than trusting
+     * the record.
+     *
+     * <p>Up is searched first, then down, both out to 3 blocks — matching
+     * {@code max-ceiling-drop}-style reasoning elsewhere in this plugin: a small, bounded
+     * search that only exists to correct terrain drift since the point was set, not to go
+     * hunting for ground far from where an admin actually put it.
+     *
+     * @param preferred the stored location; returned as-is if it or its world is null
+     * @return the nearest standable location to {@code preferred}, or {@code preferred}
+     *         itself (cloned) if nothing nearby qualifies
+     */
+    public static Location findSafePlayerLocation(final Location preferred)
+    {
+        if (preferred == null || preferred.getWorld() == null)
+        {
+            return preferred;
+        }
+        final World w = preferred.getWorld();
+        final int x = preferred.getBlockX();
+        final int z = preferred.getBlockZ();
+        final int baseY = preferred.getBlockY();
+
+        // Prefer the exact stored location if it is safe, then search upward, then down.
+        for (int dy = 0; dy <= 3; dy++)
+        {
+            if (isStandableAt(w, x, baseY + dy, z))
+            {
+                return new Location(w, x + 0.5, baseY + dy, z + 0.5, preferred.getYaw(), preferred.getPitch());
+            }
+        }
+
+        for (int dy = 1; dy <= 3; dy++)
+        {
+            final int y = baseY - dy;
+            if (y < w.getMinHeight())
+            {
+                break;
+            }
+            if (isStandableAt(w, x, y, z))
+            {
+                return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
+            }
+        }
+
+        // Fallback to the original preferred location
+        return preferred.clone();
+    }
+
+    /**
+     * Checks whether a player can stand at the given block: head and feet clear, solid
+     * ground underneath.
+     *
+     * <p>The blocks are null-checked rather than wrapped in a catch. A world can return
+     * null for an unloaded or out-of-range column, and "no block there" is an ordinary
+     * answer meaning not standable — not an error worth swallowing.
+     *
+     * @param w
+     *            the world
+     * @param x
+     *            block x
+     * @param y
+     *            block y of the player's feet
+     * @param z
+     *            block z
+     * @return true if a player can stand there
+     */
+    public static boolean isStandableAt(final World w, final int x, final int y, final int z)
+    {
+        final Block feet = w.getBlockAt(x, y, z);
+        final Block head = w.getBlockAt(x, y + 1, z);
+        final Block below = w.getBlockAt(x, y - 1, z);
+        if (feet == null || head == null || below == null)
+        {
+            return false;
+        }
+        return feet.isPassable() && head.isPassable() && !below.isPassable();
+    }
+
+    /**
      * Schedule chunk load.
      * 
      * @param b

@@ -66,73 +66,6 @@ class WormholeXTremePlayerListener implements Listener
         return true;
     }
 
-    private static Location findSafePlayerLocation(final Location preferred)
-    {
-        if (preferred == null || preferred.getWorld() == null)
-        {
-            return preferred;
-        }
-        final org.bukkit.World w = preferred.getWorld();
-        final int x = preferred.getBlockX();
-        final int z = preferred.getBlockZ();
-        final int baseY = preferred.getBlockY();
-
-        // Prefer the exact stored location if it is safe, then search upward, then down.
-        for (int dy = 0; dy <= 3; dy++)
-        {
-            if (isStandableAt(w, x, baseY + dy, z))
-            {
-                return new Location(w, x + 0.5, baseY + dy, z + 0.5, preferred.getYaw(), preferred.getPitch());
-            }
-        }
-
-        for (int dy = 1; dy <= 3; dy++)
-        {
-            final int y = baseY - dy;
-            if (y < w.getMinHeight())
-            {
-                break;
-            }
-            if (isStandableAt(w, x, y, z))
-            {
-                return new Location(w, x + 0.5, y, z + 0.5, preferred.getYaw(), preferred.getPitch());
-            }
-        }
-
-        // Fallback to the original preferred location
-        return preferred.clone();
-    }
-
-    /**
-     * Checks whether a player can stand at the given block: head and feet clear, solid
-     * ground underneath.
-     *
-     * <p>The blocks are null-checked rather than wrapped in a catch. A world can return
-     * null for an unloaded or out-of-range column, and "no block there" is an ordinary
-     * answer meaning not standable — not an error worth swallowing.
-     *
-     * @param w
-     *            the world
-     * @param x
-     *            block x
-     * @param y
-     *            block y of the player's feet
-     * @param z
-     *            block z
-     * @return true if a player can stand there
-     */
-    private static boolean isStandableAt(final org.bukkit.World w, final int x, final int y, final int z)
-    {
-        final org.bukkit.block.Block feet = w.getBlockAt(x, y, z);
-        final org.bukkit.block.Block head = w.getBlockAt(x, y + 1, z);
-        final org.bukkit.block.Block below = w.getBlockAt(x, y - 1, z);
-        if (feet == null || head == null || below == null)
-        {
-            return false;
-        }
-        return feet.isPassable() && head.isPassable() && !below.isPassable();
-    }
-
     /**
      * Returns true if {@code ridden} is a living mount this listener is responsible for.
      *
@@ -716,7 +649,7 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
 
-        final Location safeTarget = findSafePlayerLocation(target);
+        final Location safeTarget = WorldUtils.findSafePlayerLocation(target);
 
         // Every check this plugin makes has passed and nothing has moved yet, which is
         // the only honest point to let another plugin object.
