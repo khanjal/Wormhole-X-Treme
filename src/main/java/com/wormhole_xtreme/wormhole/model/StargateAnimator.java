@@ -27,10 +27,24 @@ class StargateAnimator
      * Called repeatedly via the scheduler until the animation completes,
      * at which point the gate interior is filled with portal material.
      *
+     * <p>Each step schedules its own continuation with a raw {@code scheduleSyncDelayedTask}
+     * call, with no task id kept anywhere to cancel if the gate closes before that delay
+     * elapses -- unlike the activation and shutdown timers, which do track theirs. A gate
+     * can close mid-woosh ({@link Stargate#isGateActive()} already handles the visible mess
+     * that leaves via {@link #lightStargate}'s own cleanup, called from the same shutdown),
+     * but the already-scheduled continuation still fires afterward regardless. Without this
+     * guard it would find the counters {@link #lightStargate} just reset to zero and read
+     * that as "start a fresh opening" -- replaying the kawoosh and redrawing the first woosh
+     * step on a gate that has already closed, rather than harmlessly doing nothing.
+     *
      * @param gate the gate being animated
      */
     static void animateOpening(final Stargate gate)
     {
+        if (!gate.isGateActive())
+        {
+            return;
+        }
         final Material wooshMaterial = gate.getEffectivePortalMaterial();
         final int wooshDepth = gate.getEffectiveWooshDepth();
 
@@ -87,14 +101,20 @@ class StargateAnimator
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Removing: " + gate.getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
                 }
 
-                if (gate.getGateAnimationStep3D() == 1)
+                if (gate.getGateAnimationStep3D() == 0)
                 {
                     gate.setGateAnimationRemoving(false);
-                    // Mirrors the 2D woosh path's own reset a little further down (step2D
-                    // set back to 0 once its own closing finishes) -- without this, the
-                    // counter was left at 1, and every opening after a gate's first one
-                    // skipped the kawoosh sound (only fires at step3D == 0) and started
-                    // one woosh-depth layer late.
+                    // Checked against 0, not 1: the block just undrawn above this tick is
+                    // getGateWooshBlocks().get(gate.getGateAnimationStep3D()), so ending the
+                    // retraction as soon as step3D reaches 1 -- before this tick's own undraw
+                    // of index 0 has even run -- skipped undrawing wave #1 (the shallowest
+                    // layer, right behind the portal) every single time, on every completed
+                    // opening, not just an interrupted one. It stayed lit as woosh material
+                    // for as long as the gate stayed open: reported as "the event horizon has
+                    // an extra layer... in the gate," alongside the already-fixed "one block
+                    // outside" case this same method's 2D path and closing-cleanup cover.
+                    // Mirrors the 2D woosh path's own reset a little further down (step2D set
+                    // back to 0 once its own closing finishes).
                     gate.setGateAnimationStep3D(0);
                     if (gate.isGateLightsActive() && gate.isGateActive())
                     {
@@ -247,6 +267,33 @@ class StargateAnimator
                     }
                 }
             }
+
+            // The woosh can be mid-step when a gate closes: its own step-by-step
+            // retraction is the only thing that ever undraws it, and closing does not wait
+            // for that to finish first. A deep gate's woosh (Massive's thirteen steps, for
+            // instance) takes long enough that an early manual close, or a partner gate
+            // shutting down mid-opening, has a real window to land inside it -- leaving
+            // whatever was drawn so far (the woosh material, one block out from the portal
+            // on a 2D gate's very first step) showing to anyone nearby until their client
+            // happens to get a fresh copy of that chunk some other way. Same principle as
+            // the chevron undraw just above, extended to the animation that never had it:
+            // closing reverts whatever was left showing, not just whatever it expected to
+            // find. animateOpening's own gate.isGateActive() guard is what stops an
+            // already-scheduled continuation from reading these reset-to-zero counters as
+            // "start a fresh opening" once it fires after this.
+            if (!gate.getGateAnimatedBlocks().isEmpty())
+            {
+                final ArrayList<Location> stillShowing = new ArrayList<Location>();
+                for (final Block b : gate.getGateAnimatedBlocks())
+                {
+                    stillShowing.add(b.getLocation());
+                }
+                StargateBlockSetup.undrawBlocks(gate, stillShowing);
+                gate.getGateAnimatedBlocks().clear();
+            }
+            gate.setGateAnimationStep2D(0);
+            gate.setGateAnimationStep3D(0);
+            gate.setGateAnimationRemoving(false);
         }
     }
 }
