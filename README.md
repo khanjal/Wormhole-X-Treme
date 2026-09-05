@@ -13,7 +13,7 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Setting up** — [Server Compatibility](#server-compatibility) · [Build](#build) · [Configuration](#configuration) · [Permissions](#permissions) · [Commands](#commands)
 
-**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device--button-and-lever-support) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
+**Building gates** — [Shapes](#shapes) · [Material groups](#material-groups) · [DHD](#dhd-dial-home-device--button-and-lever-support) · [Signs](#signs) · [Iris](#iris-gate-shield-setup-and-troubleshooting)
 
 **Using gates** — [Redstone activation](#redstone-activation) · [What travels through a gate](#what-travels-through-a-gate) · [Nether and End dimension support](#nether-and-end-dimension-support)
 
@@ -483,6 +483,75 @@ were `Standard.shape` with different materials, which is exactly what a palette 
 Build `Standard.shape` in lapis for an Atlantis gate or polished blackstone for a Universe
 one.
 
+## Signs
+
+A gate has up to two signs, and they are not the same thing.
+
+- The **name sign** is placed by the plugin on the shape's `:N` block. It shows the gate's
+  name, its network, and its owner.
+- The **dial sign** is placed by *you*, on the shape's `[D]` block, and it is what makes a
+  gate a sign gate. Write the gate's name on it when you build. Afterwards the plugin writes
+  it: the gate's name, the destination currently selected, and the one either side of it.
+  Right-clicking cycles through them.
+
+```
+      NAME SIGN                    DIAL SIGN
+
+      -Helios-                     -Helios-
+      N:Public                     Abydos          <- previous
+      O:Justin                   » Chulak «        <- selected, and what a dial will use
+                                   Dakara          <- next
+```
+
+The selected destination is coloured and wrapped in `»` `«`. Both are deliberate: the colour
+carries it at a glance, and the markers carry it for a colourblind player or a server that has
+turned the colours off.
+
+### Appearance
+
+Every colour is a Bukkit colour name — `AQUA`, `GRAY`, `DARK_GREEN`, `GOLD` and so on. A name
+that is not recognised, or a formatting code that is not a colour such as `MAGIC`, falls back
+to the default rather than putting a stray control character on a sign.
+
+| Setting | Default | What it colours |
+|---|---|---|
+| `sign-color-gate-name` | `DARK_AQUA` | the gate's own name, on both signs |
+| `sign-color-network` | `GRAY` | the network line on the name sign |
+| `sign-color-owner` | `GRAY` | the owner line on the name sign |
+| `sign-color-selected` | `DARK_GREEN` | the destination a dial will use |
+| `sign-color-neighbour` | `GRAY` | the destinations either side of it |
+| `sign-glowing-text` | `false` | whether the text glows |
+| `sign-dial-match-material` | `true` | whether a player's dial sign is converted to the gate's sign material |
+
+Glow is off by default, and it is worth knowing why before turning it on. Glowing text draws a
+bright outline around every character, which on top of an already-coloured line reads as a halo
+— it makes a sign carry further and read *worse*. It is genuinely useful on a very dark gate
+room, and unhelpful anywhere else.
+
+`sign-dial-match-material` is what stops a themed gate ending up with an oak dial sign on a
+crimson frame: the sign a player put up is converted to the gate's own sign material when the
+gate is completed or regenerated, keeping its text and which way it faces. Set it false to
+leave a player's own sign exactly as they placed it.
+
+### Changing them
+
+All of these can be set while the server runs, and take effect on the next repaint:
+
+```
+/wormhole config sign-glowing-text false
+/wormhole config sign-color-selected GOLD
+```
+
+`/wormhole config sign` lists them all, and `/wormhole config <name>` on its own shows the
+current value and what it does.
+
+**Signs repaint when they are next written, not on restart.** A dial sign repaints on the next
+click; a name sign repaints on `/wormhole regenerate <gate>`.
+
+**Editing `config.yml` while the server is running does not work.** The plugin writes the file
+back from memory when it shuts down, so an edit made underneath it is overwritten. Either use
+the command above, or edit the file with the server stopped.
+
 ## DHD (dial-home device) — button and lever support
 
 The DHD block that a player clicks to activate a gate can be any button type or a lever. All of the following are recognised:
@@ -581,6 +650,39 @@ ground that is usually the easiest place to wire, since the `[RD]` cell ends up 
 height while the block below the button is at hand level. The gate's own `[RA]` output lever
 is the one exception — it is ignored as a trigger however close it sits, so a gate cannot
 re-dial itself when it opens.
+
+### What actually counts as a trigger
+
+This is the part that catches people out, so it is worth being precise. The gate listens for a
+redstone **change** with a rising edge, and that change is reported on the block whose own
+power level changed.
+
+**A constant source does nothing on its own.** A redstone block placed beside the marker never
+changes — it is simply always on — so no change is ever reported for it and the gate never
+hears anything. The same is true of a torch that just sits there lit. What works is something
+that *switches*:
+
+- a **lever**, **button** or **pressure plate**
+- a **detector rail** a cart rolls over
+- dust whose power changes because one of the above fed it
+- a **repeater** or **comparator** carrying such a change along
+
+A redstone block is still useful, but as the thing a piston or observer moves in and out to
+*create* a change, not as the trigger itself.
+
+**You usually do not need to place the dust.** When a redstone-capable gate is set up the
+plugin puts redstone dust on the `[RD]` cell for you, and on `[RS]` if the shape has one. So
+the normal job is to run your circuit up to that dust and switch it, not to build the marker
+cell yourself.
+
+**One circuit is one trigger.** Every dust block along a run reports its own change as the
+signal travels, so a single lever can produce several changes a tick apart, all of them within
+reach of the gate. The gate acts once and then ignores further triggers for a quarter of a
+second, which is far longer than a signal takes to cross a DHD and far shorter than anyone can
+deliberately pulse a gate twice.
+
+**The wiring is yours.** Dust, levers and repeaters on the marker cells can be broken and
+replaced freely, even though the gate knows where they are. Only the frame refuses a pickaxe.
 
 ### Where the markers are on each shape
 
