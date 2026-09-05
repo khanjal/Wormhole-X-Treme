@@ -101,14 +101,20 @@ class StargateAnimator
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, gate.getGateName() + " Woosh Removing: " + gate.getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
                 }
 
-                if (gate.getGateAnimationStep3D() == 1)
+                if (gate.getGateAnimationStep3D() == 0)
                 {
                     gate.setGateAnimationRemoving(false);
-                    // Mirrors the 2D woosh path's own reset a little further down (step2D
-                    // set back to 0 once its own closing finishes) -- without this, the
-                    // counter was left at 1, and every opening after a gate's first one
-                    // skipped the kawoosh sound (only fires at step3D == 0) and started
-                    // one woosh-depth layer late.
+                    // Checked against 0, not 1: the block just undrawn above this tick is
+                    // getGateWooshBlocks().get(gate.getGateAnimationStep3D()), so ending the
+                    // retraction as soon as step3D reaches 1 -- before this tick's own undraw
+                    // of index 0 has even run -- skipped undrawing wave #1 (the shallowest
+                    // layer, right behind the portal) every single time, on every completed
+                    // opening, not just an interrupted one. It stayed lit as woosh material
+                    // for as long as the gate stayed open: reported as "the event horizon has
+                    // an extra layer... in the gate," alongside the already-fixed "one block
+                    // outside" case this same method's 2D path and closing-cleanup cover.
+                    // Mirrors the 2D woosh path's own reset a little further down (step2D set
+                    // back to 0 once its own closing finishes).
                     gate.setGateAnimationStep3D(0);
                     if (gate.isGateLightsActive() && gate.isGateActive())
                     {
