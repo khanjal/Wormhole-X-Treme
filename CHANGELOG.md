@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The DHD takes redstone from any component now, not only from dust
+
+Reported from in-game testing of the change above. Running dust to the block above the
+activation block worked; running a repeater into the DHD itself did nothing, and there was no
+way to tell those apart from in game -- to whoever built it, it is the same circuit.
+
+The listener had two different rules for the same idea. `[RD]` accepted any redstone
+component within a block of it -- dust, a repeater, a comparator, a torch, a lever, a rail --
+which is what the README has always described. The DHD accepted `Material.REDSTONE_WIRE` and
+nothing else, both for the block the button sits on and for the three monitored cells around
+it. Anything else touching the DHD was silently ignored.
+
+Both now use the same test the `[RD]` cell already used. This matters most on a gate sunk a
+block into the ground for a flush entrance, which is how they tend to get built: the marker
+cell ends up above head height, while the block below the button is at hand level and is the
+obvious place to bring a signal.
+
+One thing had to be excluded to make that safe, and the test for it is the reason it is here.
+`[RA]` is a lever the plugin switches on itself the instant the gate opens, and on some shapes
+it sits close enough to the DHD to be adjacent to it. A lever is a redstone component, so
+widening the rule turned the gate's own output into an input to its own dial trigger --
+confirmed by removing the exclusion and watching
+`theGatesOwnActivatedLeverDoesNotDialItEvenWhenItTouchesTheDhd` fail. The shapes keep `[RA]`
+clear of `[RD]` by geometry; a small shape cannot always do the same for the DHD, so this one
+is a rule rather than a distance.
+
 ### Every sign gate takes redstone, not just the one with "Redstone" in its name
 
 Whether a sign gate could be dialled by redstone depended on which of two similarly-named

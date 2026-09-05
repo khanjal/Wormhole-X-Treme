@@ -285,4 +285,116 @@ public class WormholeXTremeRedstoneListenerTest
         final Stargate gate = fireRedstoneNextToRdBlock(Material.DETECTOR_RAIL, 2, 0, 0);
         verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
     }
+
+    /**
+     * Fires a redstone change at an offset from a gate's DHD button and returns the gate.
+     *
+     * <p>No [RD] block is registered, so anything that dials here did so through the DHD
+     * itself rather than through the marker cell.
+     */
+    private Stargate fireRedstoneNextToDhd(final Material sourceType,
+                                           final int offX, final int offY, final int offZ,
+                                           final boolean sourceIsOwnOutput)
+    {
+        final World world = mock(World.class);
+        final int dx = 300, dy = 64, dz = 400;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("dhdTest");
+
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getX()).thenReturn(dx);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        final Block source = mock(Block.class);
+        when(source.getLocation()).thenReturn(new Location(world, dx + offX, dy + offY, dz + offZ));
+        when(source.getX()).thenReturn(dx + offX);
+        when(source.getY()).thenReturn(dy + offY);
+        when(source.getZ()).thenReturn(dz + offZ);
+        when(source.getType()).thenReturn(sourceType);
+
+        gate.setGateDialLeverBlock(button);
+        if (sourceIsOwnOutput)
+        {
+            gate.setGateRedstoneGateActivatedBlock(source);
+        }
+        gate.setGateRedstonePowered(true);
+        gate.setGateSignPowered(true);
+        gate.setGateActive(false);
+
+        final Stargate target = new Stargate();
+        target.setGateName("targetGate");
+        doReturn(target).when(gate).getGateDialSignTarget();
+        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+
+        StargateManager.registerStargate(gate);
+        new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, 0, 15));
+        StargateManager.removeStargate(gate);
+        return gate;
+    }
+
+    /**
+     * A repeater against the DHD dials, the same as dust against it does.
+     *
+     * <p>The [RD] cell has always accepted any redstone component beside it; the DHD
+     * accepted dust and nothing else. So a repeater feeding the button worked one block
+     * higher and did nothing at all here, with no way to tell the two cases apart from
+     * in game -- the dust that "worked" and the repeater that did not are the same circuit
+     * to whoever built it.
+     */
+    @Test
+    public void aRepeaterAgainstTheDhdDialsTheSameWayDustDoes()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.REPEATER, 1, 0, 0, false);
+        verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /**
+     * A signal underneath the DHD dials.
+     *
+     * <p>This is the natural place to bring redstone on a gate sunk a block into the
+     * ground for a flush entrance, which is how they are commonly built: the marker cell
+     * ends up above head height, while the block below the button is at hand level and
+     * can be dug out and wired without disturbing the gate.
+     */
+    @Test
+    public void aSignalUnderTheDhdDials()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.REDSTONE_WIRE, 0, -1, 0, false);
+        verify(gate, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /**
+     * An ordinary block against the DHD does not dial.
+     *
+     * <p>Guards the widening above. Redstone events fire for plenty of reasons near a
+     * gate, and if any of them counted, a gate would dial itself on unrelated block
+     * updates nearby.
+     */
+    @Test
+    public void anOrdinaryBlockAgainstTheDhdDoesNotDial()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.STONE, 1, 0, 0, false);
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
+
+    /**
+     * The gate's own [RA] output never dials the gate, even sitting right against the DHD.
+     *
+     * <p>[RA] is a lever the plugin switches on itself the moment the gate opens, and on
+     * some shapes it is close enough to the DHD to be adjacent to it. A lever is a redstone
+     * source, so once any source beside the DHD counts, the gate's own output becomes an
+     * input to its own dial trigger. The shapes keep [RA] clear of [RD] by geometry; this
+     * keeps it clear of the DHD by rule, which geometry alone cannot do on a small shape.
+     */
+    @Test
+    public void theGatesOwnActivatedLeverDoesNotDialItEvenWhenItTouchesTheDhd()
+    {
+        final Stargate gate = fireRedstoneNextToDhd(Material.LEVER, 1, 0, 0, true);
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+    }
 }

@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole;
 
 import java.util.logging.Level;
 
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -106,6 +105,7 @@ class WormholeXTremeRedstoneListener implements Listener
                 final Block dial = stargate.getGateDialLeverBlock();
                 final Block rdBlock = stargate.getGateRedstoneDialActivationBlock();
                 final Block rsBlock = stargate.getGateRedstoneSignActivationBlock();
+                final Block raBlock = stargate.getGateRedstoneGateActivatedBlock();
 
                 // A signal counts when it lands on the activation block itself or on a
                 // redstone component touching it. Requiring an exact match meant only dust
@@ -117,8 +117,21 @@ class WormholeXTremeRedstoneListener implements Listener
                 final boolean isDialSame = (dial != null) && WorldUtils.isSameBlock(dial, block);
                 final boolean isDialAdjacent = (dial != null) && WorldUtils.isAdjacent(dial, block);
 
-                // Consider redstone wire adjacency to the dial as an activation trigger.
-                final boolean isWireAdjacent = (block.getType() == Material.REDSTONE_WIRE) && isDialAdjacent;
+                // Any redstone component touching the DHD counts, not only dust. The [RD]
+                // cell has always accepted a repeater, torch, block, lever or rail beside it
+                // (see isPoweringActivationBlock); the DHD itself accepted dust and nothing
+                // else, so wiring that worked one block higher silently did nothing here.
+                // The DHD is the part a player can actually see and reach -- especially on a
+                // gate sunk into the ground, where the marker cell is above head height and
+                // the natural place to bring a signal is alongside or underneath the button.
+                //
+                // The gate's own [RA] output is excluded. It sits close enough to the DHD on
+                // some shapes to be adjacent to it, and it goes high the instant the gate
+                // opens, so counting it would let a gate re-trigger itself.
+                final boolean isOwnOutput = (raBlock != null) && WorldUtils.isSameBlock(raBlock, block);
+                final boolean isSourceAdjacent = !isOwnOutput
+                    && isDialAdjacent
+                    && MaterialUtils.isRedstoneSource(block.getType());
 
                 // Monitor-mode: if the gate defined monitor blocks we treat redstone
                 // on those blocks as an activation trigger rather than requiring the
@@ -129,7 +142,8 @@ class WormholeXTremeRedstoneListener implements Listener
                 {
                     for (final Block m : stargate.getGateRedstoneDialMonitorBlocks())
                     {
-                        if (m != null && WorldUtils.isSameBlock(m, block) && block.getType() == Material.REDSTONE_WIRE)
+                        if (m != null && !isOwnOutput && WorldUtils.isSameBlock(m, block)
+                            && MaterialUtils.isRedstoneSource(block.getType()))
                         {
                             isMonitorTriggered = true;
                             break;
@@ -139,7 +153,7 @@ class WormholeXTremeRedstoneListener implements Listener
                 catch (final Throwable ignore) {}
 
                 // RD block (or dial-adjacent wire or monitored wire): activate or shutdown
-                if (isRedstoneDial || isDialSame || isWireAdjacent || isMonitorTriggered)
+                if (isRedstoneDial || isDialSame || isSourceAdjacent || isMonitorTriggered)
                 {
                     if (stargate.isGateActive() && (stargate.getGateTarget() != null))
                     {

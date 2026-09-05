@@ -575,6 +575,13 @@ showing, so with no target selected a pulse does nothing.
 A signal counts when it lands on the marked block **or on any redstone component touching
 it**, so you can run dust up to it rather than having to land exactly on the cell.
 
+The same is true of the DHD itself: any redstone component touching the block the button is
+mounted on will dial the gate, including one directly underneath it. On a gate sunk into the
+ground that is usually the easiest place to wire, since the `[RD]` cell ends up above head
+height while the block below the button is at hand level. The gate's own `[RA]` output lever
+is the one exception — it is ignored as a trigger however close it sits, so a gate cannot
+re-dial itself when it opens.
+
 ### Where the markers are on each shape
 
 On `StandardSignDial` and `EvenSignDial` the DHD sits on its own layer behind the ring, and
