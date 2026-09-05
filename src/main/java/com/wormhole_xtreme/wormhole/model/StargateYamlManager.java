@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -48,7 +49,7 @@ public class StargateYamlManager
             return;
         }
 
-        final File[] files = GATES_DIR.listFiles((d, name) -> name.toLowerCase().endsWith(".yml") || name.toLowerCase().endsWith(".yaml"));
+        final File[] files = GATES_DIR.listFiles((d, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml") || name.toLowerCase(Locale.ROOT).endsWith(".yaml"));
         if (files == null)
         {
             return;

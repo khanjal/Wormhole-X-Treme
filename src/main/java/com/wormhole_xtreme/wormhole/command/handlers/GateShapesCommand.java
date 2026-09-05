@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.Locale;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -46,7 +48,7 @@ public class GateShapesCommand implements SubCommand
             return true;
         }
 
-        final String action = args[2].toLowerCase();
+        final String action = args[2].toLowerCase(Locale.ROOT);
         final String name = (args.length >= 4) ? args[3] : null;
 
         if ("reload".equals(action))
