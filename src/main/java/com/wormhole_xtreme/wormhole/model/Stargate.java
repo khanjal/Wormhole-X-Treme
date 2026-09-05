@@ -155,13 +155,12 @@ public class Stargate
     }
     /** The gate after shutdown scheduler task id. */
     private int gateAfterShutdownTaskId;
-    /** The gate animation step 3d. Idle is 0, matching gateAnimationStep2D right below --
-     *  StargateAnimator's kawoosh trigger and its first woosh-depth index both read this as
-     *  0 meaning "nothing has happened yet", so starting it at 1 meant a gate's first-ever
-     *  opening skipped both the kawoosh sound and the shape's first woosh-depth layer. */
+    /** The woosh animation's step counter -- the only one, since the separately-tracked 2D
+     *  animation was folded into this same state machine. Idle is 0: StargateAnimator's
+     *  kawoosh trigger and its wave index both read this as 0 meaning "nothing has happened
+     *  yet", so starting it at 1 meant a gate's first-ever opening skipped both the kawoosh
+     *  sound and the shape's first woosh wave. */
     private int gateAnimationStep3D = 0;
-    /** The gate animation step 2d. */
-    private int gateAnimationStep2D = 0;
     /** The animation removing. */
     private boolean gateAnimationRemoving = false;
     /** The current_lighting_iteration. */
@@ -861,16 +860,6 @@ public class Stargate
     }
 
     /**
-     * Gets the gate animation step 2d.
-     * 
-     * @return the gate animation step 2d
-     */
-    public int getGateAnimationStep2D()
-    {
-        return gateAnimationStep2D;
-    }
-
-    /**
      * Gets the gate animation step.
      * 
      * @return the gate animation step
@@ -1486,17 +1475,6 @@ public class Stargate
     void setGateAnimationRemoving(final boolean gateAnimationRemoving)
     {
         this.gateAnimationRemoving = gateAnimationRemoving;
-    }
-
-    /**
-     * Sets the gate animation step 2d.
-     * 
-     * @param gateAnimationStep2D
-     *            the new gate animation step 2d
-     */
-    public void setGateAnimationStep2D(final int gateAnimationStep2D)
-    {
-        this.gateAnimationStep2D = gateAnimationStep2D;
     }
 
     /**
