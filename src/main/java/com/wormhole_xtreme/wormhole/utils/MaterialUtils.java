@@ -39,6 +39,55 @@ public final class MaterialUtils {
         return data;
     }
 
+    /**
+     * Whether the registry can answer what is a block.
+     *
+     * <p>From 1.20.6 on, {@link Material#isBlock()} goes through the server's registry, which
+     * is not there before the server has finished starting — and asking then throws rather
+     * than returning false. Probed once, because the answer cannot change within a run and a
+     * failed registry lookup is expensive to repeat for every material in the game.
+     *
+     * <p>Only a yes is remembered. A no means the registry was not ready when we asked, and
+     * that changes: a single probe cached at class-init would have recorded "no registry" for
+     * the life of the server. Asking again costs one call until the first time it works.
+     */
+    private static boolean blockCheckWorks = false;
+
+    /** @return true if {@link Material#isBlock()} can be called without throwing */
+    private static boolean probeBlockCheck() {
+        try {
+            Material.STONE.isBlock();
+            return true;
+        }
+        // Throwable rather than Exception: a registry that is not ready fails in class
+        // initialisation, which arrives as an Error.
+        catch (final Throwable ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether a material is a block, as far as this server can say.
+     *
+     * <p>Without a registry to ask, everything is a block rather than nothing. Both callers
+     * would rather be permissive than wrong: tab completion offering a few extra names is a
+     * much smaller problem than an empty list, and refusing a perfectly good config value
+     * because the server had not finished starting would be worse than accepting one that
+     * turns out to be an item. On a running server — the only place either caller is reached
+     * by a player — the registry is always there, so this is the strict check in practice.
+     *
+     * @param m
+     *            the material to judge
+     * @return true if it is a block, or if that cannot be determined
+     */
+    public static boolean isBlockOrUnknown(final Material m) {
+        if (m == null) return false;
+        if (!blockCheckWorks) {
+            blockCheckWorks = probeBlockCheck();
+        }
+        return !blockCheckWorks || m.isBlock();
+    }
+
     public static boolean isButton(final Material m) {
         if (m == null) return false;
         final String name = m.name();
