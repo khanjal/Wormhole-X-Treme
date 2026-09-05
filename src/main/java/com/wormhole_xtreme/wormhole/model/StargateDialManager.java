@@ -79,13 +79,6 @@ class StargateDialManager
     }
 
     /**
-     * Rewrites the dial sign, moving the selection by {@code step} places first.
-     *
-     * @param gate the gate whose sign to rewrite
-     * @param step {@code 1} for the next destination, {@code -1} for the previous,
-     *             {@code 0} to re-resolve the one already selected
-     */
-    /**
      * The destinations this gate's sign can cycle through, in the order it cycles them.
      *
      * <p>Named-network gates see only peers on the same network. Networkless gates form the
@@ -145,6 +138,13 @@ class StargateDialManager
         return others;
     }
 
+    /**
+     * Rewrites the dial sign, moving the selection by {@code step} places first.
+     *
+     * @param gate the gate whose sign to rewrite
+     * @param step {@code 1} for the next destination, {@code -1} for the previous,
+     *             {@code 0} to re-resolve the one already selected
+     */
     private static void updateDialSign(final Stargate gate, final int step)
     {
         // Fetch the sign block state first.
