@@ -2198,6 +2198,19 @@ public class Stargate
     }
 
     /**
+     * Re-resolves the destination this gate's dial sign is showing, without moving on to the
+     * next one.
+     *
+     * <p>Needed after a load: the selection index survives a restart but the gate it points
+     * at is worked out at click time, so a gate that has not had its sign clicked since the
+     * server came up has a sign naming a destination and no destination to dial.
+     */
+    public void refreshDialSignTarget()
+    {
+        StargateDialManager.refreshSignTarget(this);
+    }
+
+    /**
      * Timeout stargate.
      * 
      * @param p

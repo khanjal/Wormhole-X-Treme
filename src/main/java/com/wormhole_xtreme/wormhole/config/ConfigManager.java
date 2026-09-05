@@ -690,7 +690,7 @@ public class ConfigManager
      */
     public static Material getRingDefaultLight()
     {
-        return materialSetting(ConfigKeys.RING_DEFAULT_LIGHT, Material.GLOWSTONE);
+        return materialSetting(ConfigKeys.RING_DEFAULT_LIGHT, Material.REDSTONE_LAMP);
     }
 
     /**
