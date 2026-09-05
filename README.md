@@ -825,7 +825,7 @@ and `1.5` about twenty-four. Turning a volume down makes a sound more local, not
 | `gate-sound-volume` | 1.5 | Louder than rings on purpose — a gate is a landmark you walk towards. |
 | `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
 | `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
-| `gate-sound-kawoosh` | `block.end_portal.spawn` | Once, as the wormhole establishes. |
+| `gate-sound-kawoosh` | `entity.player.splash.high_speed` | Once, as the wormhole establishes. The heavy splash, played at pitch 0.7 rather than its own. |
 | `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
 | `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
 | `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
@@ -835,6 +835,14 @@ and `1.5` about twenty-four. Turning a volume down makes a sound more local, not
 The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
 seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in
 bigger steps.
+
+The kawoosh is a surge of water thrown out of the ring, so it is played as one — the
+splash a body hitting water at speed makes, pitched down until it reads as a much larger
+volume of it. It was `block.end_portal.spawn` in 1.4.0, which is both one of the loudest
+samples the client owns and a low resonant boom; at a gate volume set high on purpose, an
+opening gate was the loudest thing on the server and sounded like nothing a gate does.
+Changing the default does not change a `config.yml` that already has the old value written
+into it — set `gate-sound-kawoosh` yourself, or delete the line and let it be rewritten.
 
 The water plays at 40% of `gate-sound-volume`, because an open wormhole is a background
 rather than an event, and that keeps it something you hear near the gate rather than across a
@@ -881,7 +889,7 @@ the same notes in reverse, so it falls on the way home without being told to.
 
 | Instead of | Try | For |
 |---|---|---|
-| `gate-sound-kawoosh` | `entity.generic.explode` | A blunter, heavier open. |
+| `gate-sound-kawoosh` | `item.trident.riptide_3` | A longer rush instead of a single burst. |
 | `gate-sound-chevron` | `block.piston.contract` | A heavier clunk, if the trapdoor reads as a trapdoor. |
 | `gate-sound-ambient` | `block.conduit.ambient` | A resonant hum instead of open water. |
 | `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |

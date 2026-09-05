@@ -832,7 +832,7 @@ public class ConfigManager
      */
     public static String getGateSoundKawoosh()
     {
-        return soundSetting(ConfigKeys.GATE_SOUND_KAWOOSH, "block.end_portal.spawn");
+        return soundSetting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed");
     }
 
     /**

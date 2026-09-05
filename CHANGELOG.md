@@ -69,6 +69,42 @@ The gate walk-through listener keeps its own separate call, deliberately -- it t
 directly and never runs a beam sequence at all, so there is nothing there to inherit the
 guarantee from.
 
+### The kawoosh sounded like an explosion, not like water
+
+`gate-sound-kawoosh` shipped as `block.end_portal.spawn`, and 1.4.0 was the first release in
+which anyone actually heard it -- the sound had been wired up since 1.1.0 but never fired,
+which is the bug that release fixed. What that fix revealed is that the sound was the wrong
+one. `block.end_portal.spawn` is among the loudest samples the client owns and a low
+resonant boom besides, and gate volume is set to 1.5 on purpose, because a gate is a
+landmark you should hear from across a base. The two together made an opening gate the
+loudest thing on a server, describing an event it sounds nothing like: a kawoosh is a
+surge of water thrown out of the ring and falling back, not a detonation.
+
+It is now `entity.player.splash.high_speed` -- the heavy splash of a body hitting water at
+speed -- played at pitch 0.7 rather than its own. Dropping it that far lengthens and deepens
+the sample until it reads as a far larger volume of water than one person, which is the
+whole of the effect. It also puts the kawoosh in the same material as the hum that follows
+it: the open wormhole has always been `ambient.underwater.loop`, so the gate now opens with
+water and then keeps running with it, rather than opening with an explosion and then
+inexplicably becoming a stream.
+
+Nothing changed about volume or range. The complaint was the sample, and turning the volume
+down to fix a sample would have quietly halved how far every *other* gate sound carries.
+
+Two notes for anyone upgrading. A `config.yml` that already exists keeps whatever is written
+in it -- defaults are only used for keys that are absent -- so set `gate-sound-kawoosh`
+yourself or delete the line and let it be rewritten. And if you preferred the boom, it is
+one config line away; the "sounds worth trying" table in the README now suggests
+`item.trident.riptide_3` there instead, for a longer rush rather than a single burst.
+
+Sound names are text the compiler never sees, so a new test walks every sound this plugin
+ships and checks it is shaped like a sound event at all -- a dotted lowercase name rather
+than a pasted-in `ENTITY_PLAYER_SPLASH_HIGH_SPEED` constant or a name with a stray capital
+in it. It cannot ask whether the sound exists, because that is a registry lookup and a
+registry needs a running server, but it catches the mistake that is actually easy to make
+while editing this list. The failure it guards against is invisible: an unrecognised name is
+silent, and silence is what a sound setting looks like when it is switched off deliberately.
+
 ### `/wormhole config` no longer accepts a value it cannot read back
 
 ```
