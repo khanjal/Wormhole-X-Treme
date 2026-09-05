@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A gate's redstone wiring can be taken back up again
+
+Reported in testing: a redstone block sitting on top of a DHD could not be removed. The
+plugin answered a pickaxe with an instruction to remove the entire gate first.
+
+A gate's `[RD]`, `[RS]` and `[RA]` cells are indexed as gate blocks, and they have to be -- a
+redstone event arrives carrying only the block it fired on, and the index is how that finds
+the gate it belongs to. Protection is keyed off the same index, so being findable also meant
+being unbreakable.
+
+That is backwards for these three specifically. They are the one part of a gate the plugin
+expects a person to place, change and remove: it does not put the dust or the levers there,
+it only says where they go. Everything else the index covers is genuinely gate structure and
+still refuses a pickaxe with the same message as before.
+
+Breaking one leaves the gate's stored position alone, which is what makes this safe to allow.
+A signal landing near that cell later still works, because the check is against the position
+rather than against whatever is standing in it.
+
 ### No sign colour ships as dark grey any more
 
 Reported in testing: the dark greys are too dark to read.
