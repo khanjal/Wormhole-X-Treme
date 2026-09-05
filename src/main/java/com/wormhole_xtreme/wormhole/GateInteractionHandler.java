@@ -183,7 +183,9 @@ final class GateInteractionHandler
             // Preserve metadata from the existing gate before re-detecting geometry.
             final String oldName    = existing.getGateName();
             final String oldOwner   = existing.getGateOwner();
-            final String oldOwnerNm = existing.getGateOwnerName();
+            // Stored, not displayed: copying the fallback would set the owner id as this
+            // gate's display name, and the refresh saves immediately afterwards.
+            final String oldOwnerNm = existing.getStoredGateOwnerName();
             final String oldIdc     = existing.getGateIrisDeactivationCode();
             final com.wormhole_xtreme.wormhole.model.StargateNetwork oldNet = existing.getGateNetwork();
 

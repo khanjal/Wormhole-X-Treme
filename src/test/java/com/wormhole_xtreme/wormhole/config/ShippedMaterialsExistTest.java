@@ -43,6 +43,17 @@ public class ShippedMaterialsExistTest
         "ACTIVE_MATERIAL", "SIGN_MATERIAL", "LIGHT_TICKS", "WOOSH_TICKS",
         "REDSTONE_ACTIVATED", "TRUE", "FALSE", "WALL_SIGN");
 
+    /**
+     * Settings whose value is a colour name, which looks exactly like a material name.
+     *
+     * <p>Skipped by key rather than by adding GREEN, GRAY and the rest to
+     * {@code NOT_MATERIALS}: those are colour names here and could be part of a real material
+     * name somewhere else, and a list of them would quietly grow every time a default colour
+     * changed. Matching the key says what is actually true -- the value on this line was never
+     * meant to be a material.
+     */
+    private static final Pattern COLOUR_SETTING = Pattern.compile("^sign-color-[a-z-]+\s*:");
+
     private static List<Path> shippedResources() throws IOException
     {
         final List<Path> files = new ArrayList<Path>();
@@ -84,6 +95,10 @@ public class ShippedMaterialsExistTest
                 // shipped default that will fail.
                 final String code = line.trim();
                 if (code.startsWith("#"))
+                {
+                    continue;
+                }
+                if (COLOUR_SETTING.matcher(code).find())
                 {
                     continue;
                 }

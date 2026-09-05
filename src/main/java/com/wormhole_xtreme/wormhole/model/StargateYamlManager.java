@@ -93,10 +93,14 @@ public class StargateYamlManager
                             if ((owner != null) && !owner.isEmpty())
                             {
                                 s.setGateOwner(owner);
-                                // Resolve display name
-                                if ((ownerName != null) && !ownerName.isEmpty())
+                                // Resolve display name. A name equal to the owner id is not
+                                // a name -- it is what the save bug above wrote -- so it is
+                                // treated as absent and resolved again below. That is what
+                                // heals a file already carrying a UUID as its OwnerName.
+                                final String savedName = ownerNameFromSave(ownerName, owner);
+                                if (savedName != null)
                                 {
-                                    s.setGateOwnerName(ownerName);
+                                    s.setGateOwnerName(savedName);
                                 }
                                 else
                                 {
@@ -165,7 +169,7 @@ public class StargateYamlManager
         final Map<String, Object> map = new HashMap<>();
         map.put("Name", s.getGateName());
         map.put("OwnerUUID", s.getGateOwner());
-        map.put("OwnerName", s.getGateOwnerName());
+        map.put("OwnerName", ownerNameToSave(s.getStoredGateOwnerName()));
         map.put("Network", s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "");
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
@@ -258,5 +262,55 @@ public class StargateYamlManager
     public static void shutdown()
     {
         // nothing to do for YAML
+    }
+
+    /**
+     * What a gate's {@code OwnerName} field should hold when it is written out.
+     *
+     * <p>Takes the <em>stored</em> name, which is null when nobody has ever resolved one.
+     * {@code Stargate.getGateOwnerName()} would answer the owner id instead, because for
+     * display an id beats nothing -- but writing that answer to disk turns it into the
+     * gate's name for good: the next load sees a non-empty OwnerName, takes it for a real
+     * name, and never tries to resolve the UUID again. One save of a gate whose owner the
+     * server had not seen yet was enough to put a UUID on its sign permanently, and
+     * refreshing a gate saves it.
+     *
+     * @param storedName
+     *            the gate's stored display name, or null if it has none
+     * @return the value to write, empty when there is no name to write
+     */
+    static String ownerNameToSave(final String storedName)
+    {
+        return storedName != null ? storedName : "";
+    }
+
+    /**
+     * The display name a saved gate actually carries, or null if it carries none.
+     *
+     * <p>A name equal to the owner id is not a name. It is what the bug above wrote, and
+     * treating it as absent is what lets an already-written file heal itself: the caller
+     * falls through to resolving the UUID again, and the next save stores the real answer.
+     *
+     * <p>A legacy gate whose owner <em>is</em> a player name reaches the same place by the
+     * same rule and still ends up correct -- the caller's UUID parse fails and it sets the
+     * owner string as the name, which for those gates is exactly right.
+     *
+     * @param ownerNameField
+     *            the OwnerName value read from the file
+     * @param owner
+     *            the gate's owner id
+     * @return a usable display name, or null if the file has none worth trusting
+     */
+    static String ownerNameFromSave(final String ownerNameField, final String owner)
+    {
+        if ((ownerNameField == null) || ownerNameField.isEmpty())
+        {
+            return null;
+        }
+        if (ownerNameField.equals(owner))
+        {
+            return null;
+        }
+        return ownerNameField;
     }
 }

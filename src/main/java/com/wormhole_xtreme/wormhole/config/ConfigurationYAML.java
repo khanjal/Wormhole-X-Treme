@@ -311,7 +311,69 @@ public class ConfigurationYAML
     }
 
     /**
-     * Write current runtime configuration (from ConfigManager) to YAML.
+     * Rewrites the top-level settings in an existing config, leaving everything else alone.
+     *
+     * <p>Pure, so the part that decides what a saved config should look like can be tested
+     * without touching a disk. Only lines starting a top-level key in column zero count: a
+     * nested block's children are indented, so a material group's own portal or sign entry
+     * is never mistaken for a setting of that name.
+     *
+     * @param lines
+     *            the file as it stands
+     * @param values
+     *            kebab-case key to the value that should be written for it
+     * @param updated
+     *            filled in with the keys actually found and rewritten
+     * @return the file as it should be written back
+     */
+    static List<String> updateSettingLines(final List<String> lines,
+                                           final java.util.Map<String, String> values,
+                                           final java.util.Set<String> updated)
+    {
+        final List<String> out = new java.util.ArrayList<String>(lines.size());
+        for (final String line : lines)
+        {
+            final int colon = line.indexOf(':');
+            if ((colon > 0) && (line.length() > 0)
+                && !Character.isWhitespace(line.charAt(0))
+                && (line.charAt(0) != '#'))
+            {
+                final String key = line.substring(0, colon).trim();
+                if (values.containsKey(key))
+                {
+                    out.add(key + ": " + values.get(key));
+                    updated.add(key);
+                    continue;
+                }
+            }
+            out.add(line);
+        }
+        return out;
+    }
+
+    /**
+     * Persists the running configuration without destroying the rest of the file.
+     *
+     * <p>This used to regenerate config.yml from the flat setting list on every shutdown,
+     * opening it truncating and writing back only the keys it knew about. Everything else
+     * went with it: the whole nested gate-material-groups block, permissions-support-disable
+     * (skipped deliberately, and so deleted), and every comment an admin had written.
+     *
+     * <p>Material groups being partly rebuilt by discovery on the next startup is what kept
+     * this from being obvious. A group tuned by hand came back with discovered defaults
+     * instead of the admin's own portal, iris, light and sign choices, on every restart.
+     *
+     * <p>It now edits the settings it owns in place and leaves every other line exactly as it
+     * found it. A file that does not exist yet is still generated whole, which is the one
+     * case where writing the entire thing is the right answer.
+     *
+     * <p>permissions-support-disable is still never written, but that now means left as the
+     * admin has it rather than dropped.
+     *
+     * @param file
+     *            the config file
+     * @param pluginName
+     *            the plugin's folder name
      */
     protected static void writeCurrentConfiguration(final File file, final String pluginName)
     {
@@ -322,43 +384,72 @@ public class ConfigurationYAML
             {
                 directory.mkdir();
             }
+
+            final Setting[] defaults = com.wormhole_xtreme.wormhole.config.DefaultSettings.config;
+            final java.util.Map<String, String> values = new java.util.LinkedHashMap<String, String>();
+            final java.util.Map<String, Setting> byKey = new java.util.LinkedHashMap<String, Setting>();
+            for (final Setting def : defaults)
+            {
+                final com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys key = def.getName();
+                if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
+                {
+                    continue;
+                }
+                final Setting runtime = com.wormhole_xtreme.wormhole.config.ConfigManager.getConfigurations().get(key);
+                final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
+                final String keyName = kebabKeyName(key.name());
+                values.put(keyName, formatValueForYaml(value));
+                byKey.put(keyName, def);
+            }
+
+            if (!file.exists())
+            {
+                writeFile(file, pluginName, defaults);
+                return;
+            }
+
+            final List<String> existing = java.nio.file.Files.readAllLines(file.toPath());
+            final java.util.Set<String> updated = new java.util.HashSet<String>();
+            final List<String> rewritten = updateSettingLines(existing, values, updated);
+
+            final List<Setting> missing = new java.util.ArrayList<Setting>();
+            for (final java.util.Map.Entry<String, Setting> e : byKey.entrySet())
+            {
+                if (!updated.contains(e.getKey()))
+                {
+                    missing.add(e.getValue());
+                }
+            }
+
             try (final FileWriter writer = new FileWriter(file))
             {
-                final Setting[] defaults = com.wormhole_xtreme.wormhole.config.DefaultSettings.config;
-                final java.util.List<String> skipped = new java.util.ArrayList<>();
-                for (final Setting def : defaults)
+                for (final String line : rewritten)
                 {
-                    final com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys key = def.getName();
-                    // Skip permission backend settings entirely
-                    if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
-                    {
-                        skipped.add(key.name());
-                        continue;
-                    }
-                    // (Legacy build-group keys removed; nothing to skip here.)
-                    final Setting runtime = com.wormhole_xtreme.wormhole.config.ConfigManager.getConfigurations().get(key);
-                    final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
-                    final String keyName = kebabKeyName(key.name());
-                    // write description comment
-                    if ((def.getDescription() != null) && (def.getDescription().length() > 0))
-                    {
-                        for (final String wrapped : wrapComment(def.getDescription(), 80))
-                        {
-                            writer.write("# " + wrapped + System.lineSeparator());
-                        }
-                    }
-                    writer.write(keyName + ": " + formatValueForYaml(value) + System.lineSeparator());
-                    writer.write(System.lineSeparator());
+                    writer.write(line + System.lineSeparator());
                 }
-                if (!skipped.isEmpty())
+                if (!missing.isEmpty())
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Skipped migrating permission keys: " + skipped.toString());
+                    writer.write(System.lineSeparator());
+                    writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
+                    for (final Setting s : missing)
+                    {
+                        final String keyName = kebabKeyName(s.getName().name());
+                        if ((s.getDescription() != null) && (s.getDescription().length() > 0))
+                        {
+                            for (final String wrapped : wrapComment(s.getDescription(), 80))
+                            {
+                                writer.write("# " + wrapped + System.lineSeparator());
+                            }
+                        }
+                        writer.write(keyName + ": " + values.get(keyName) + System.lineSeparator());
+                        writer.write(System.lineSeparator());
+                    }
                 }
             }
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write migrated config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write config.yml: " + e.getMessage());
         }
     }
 

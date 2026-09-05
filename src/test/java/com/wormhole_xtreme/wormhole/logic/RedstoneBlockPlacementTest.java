@@ -135,11 +135,11 @@ public class RedstoneBlockPlacementTest
     {
         // Both conventions pinned from one shape, so the branch stays covered no matter
         // which form the shipped shapes happen to use at any given time.
-        final Stargate3DShape shape = load("MinimalSignDialRedstone");
-        final StargateShapeLayer dhd = shape.getShapeLayers().get(2);
+        final Stargate3DShape shape = load("StandardSignDial");
+        final StargateShapeLayer dhd = shape.getShapeLayers().get(4);
         final int[] bare = dhd.getLayerRedstoneDialActivationPosition();
 
-        assertFalse(isFrameAt(dhd, bare[1], bare[2]), "MinimalSignDialRedstone writes the bare form");
+        assertFalse(isFrameAt(dhd, bare[1], bare[2]), "StandardSignDial writes the bare form");
         assertEquals(70, StargateHelper.redstoneComponentY(dhd, bare, 70),
             "a bare marker is already the empty cell, so the redstone goes at the marker");
 
@@ -150,22 +150,48 @@ public class RedstoneBlockPlacementTest
             "an [S:RA] style marker is the frame block, so the redstone goes one above it");
     }
 
+    /**
+     * Every shipped [RD] has a frame block underneath it to stand on.
+     *
+     * <p>[RD] is where an admin runs dust to, so the cell has to be somewhere dust can
+     * physically be placed -- a block, not open air three blocks off the ground. Sweeping
+     * rather than pinning one shape because this is the rule a new sign-dial shape is most
+     * likely to get wrong: the marker parses fine, the gate registers fine, and the only
+     * symptom is that the dust an admin tries to lay never stays put.
+     *
+     * <p>Deliberately not asserted for [RA]. That one is a lever the plugin places itself
+     * rather than something an admin builds up to, and StandardSignDial and EvenSignDial
+     * both hang it off the side of the DHD pillar's base with nothing beneath it, which is
+     * what keeps it out of [RD]'s reach.
+     */
     @Test
-    public void aBareMarkerSitsDirectlyOnAFrameBlock() throws Exception
+    public void everyRedstoneDialMarkerHasAFrameBlockUnderIt() throws Exception
     {
-        // The shape file's own rule for the bare form, and what makes the marker cell a
-        // place redstone can actually be put rather than open air.
-        final Stargate3DShape shape = load("MinimalSignDialRedstone");
-        final StargateShapeLayer dhd = shape.getShapeLayers().get(2);
-        final int[] rd = dhd.getLayerRedstoneDialActivationPosition();
-        final int[] rs = dhd.getLayerRedstoneSignActivationPosition();
-
-        assertTrue(isFrameAt(dhd, rd[1] - 1, rd[2]), "[RD] should sit directly on a frame block");
-        assertTrue(isFrameAt(dhd, rs[1] - 1, rs[2]), "[RS] should sit directly on a frame block");
-
-        final StargateShapeLayer ring = shape.getShapeLayers().get(1);
-        final int[] ra = ring.getLayerRedstoneGateActivatedPosition();
-        assertTrue(isFrameAt(ring, ra[1] - 1, ra[2]), "[RA] should sit directly on a frame block");
+        int checked = 0;
+        for (final String name : shippedShapeNames())
+        {
+            final Stargate3DShape shape = load(name);
+            for (final StargateShapeLayer layer : shape.getShapeLayers())
+            {
+                if (layer == null)
+                {
+                    continue;
+                }
+                final int[] rd = layer.getLayerRedstoneDialActivationPosition();
+                if (rd.length < 3)
+                {
+                    continue;
+                }
+                checked++;
+                // Resolving first covers both spellings: a bare [RD] keeps its own cell, so
+                // the block below it is the frame; an [S:RD] is the frame block itself and
+                // resolves one higher, which lands on the same rule.
+                final int resolved = StargateHelper.redstoneComponentY(layer, rd, rd[1]);
+                assertTrue(isFrameAt(layer, resolved - 1, rd[2]),
+                    name + " puts [RD] with nothing under it, so dust laid there will not stay");
+            }
+        }
+        assertTrue(checked > 0, "no [RD] markers were found to check, so this proved nothing");
     }
 
     @Test
@@ -178,9 +204,11 @@ public class RedstoneBlockPlacementTest
         // also both redstone dust, which physically connects when adjacent.
         //
         // Nothing can guard against this the way the open-gate check guards [RA], because
-        // on a closed gate both commands are legitimate. Separation is the only fix, and it
-        // is why StandardSignDial ships [RD] without [RS]: its DHD has one free block top
-        // and every other candidate cell touches it.
+        // on a closed gate both commands are legitimate. Separation is the only fix, and no
+        // shipped shape carries [RS] at all any more -- a preset sign is the whole point of
+        // redstone dialling, and a cycle input moves the sign out from under it. So this
+        // sweep finds nothing to compare today, and exists to catch the shape that
+        // reintroduces [RS] without giving it the room it would need.
         //
         // Layers count as a third axis here — consecutive layers are one block apart along
         // the gate's facing, so markers on neighbouring layers are neighbours in the world.
@@ -257,10 +285,45 @@ public class RedstoneBlockPlacementTest
         }
     }
 
+    /**
+     * Every shape with a dial sign can be dialled by redstone.
+     *
+     * <p>The point of redstone dialling is a sign left preset on a destination and a pulse
+     * that fires it, so the shapes it makes sense on are exactly the ones with a [D] sign
+     * to preset. Before this was made uniform, whether a sign-dial shape could see a
+     * redstone signal depended on which of two similarly-named files an admin had happened
+     * to build from -- MinimalSignDial could not, MinimalSignDialRedstone could -- and the
+     * only way to find out was to build one and wire it up.
+     *
+     * <p>The converse is not asserted: a shape with no [D] block has nothing to preset, so
+     * it stays /dial-only and correctly carries no markers at all.
+     */
     @Test
-    public void theRedstoneShapeAdvertisesItself() throws Exception
+    public void everyShapeWithADialSignCanBeRedstoneDialled() throws Exception
     {
-        assertTrue(load("MinimalSignDialRedstone").isShapeRedstoneActivated(),
-            "REDSTONE_ACTIVATED should be TRUE");
+        int signDialShapes = 0;
+        for (final String name : shippedShapeNames())
+        {
+            final Stargate3DShape shape = load(name);
+            boolean hasDialSign = false;
+            boolean hasDialMarker = false;
+            for (final StargateShapeLayer layer : shape.getShapeLayers())
+            {
+                if (layer == null)
+                {
+                    continue;
+                }
+                hasDialSign |= layer.getLayerDialSignPosition().length >= 3;
+                hasDialMarker |= layer.getLayerRedstoneDialActivationPosition().length >= 3;
+            }
+            if (hasDialSign)
+            {
+                signDialShapes++;
+                assertTrue(hasDialMarker,
+                    name + " has a [D] sign but no [RD], so it is the one sign gate that"
+                        + " cannot be automated -- the gap this rule exists to close");
+            }
+        }
+        assertTrue(signDialShapes > 0, "no sign-dial shapes were found, so this proved nothing");
     }
 }

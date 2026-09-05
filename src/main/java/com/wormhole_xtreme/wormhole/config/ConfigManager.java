@@ -140,6 +140,14 @@ public class ConfigManager
         ECONOMY_USE_COST,
         /** Cost in currency units charged to build a gate. 0 = free. */
         ECONOMY_BUILD_COST,
+        REDSTONE_EXTEND_OPEN_TIME,
+        SIGN_GLOWING_TEXT,
+        SIGN_DIAL_MATCH_MATERIAL,
+        SIGN_COLOR_GATE_NAME,
+        SIGN_COLOR_NETWORK,
+        SIGN_COLOR_OWNER,
+        SIGN_COLOR_SELECTED,
+        SIGN_COLOR_NEIGHBOUR,
         BEAM_SOUNDS_ENABLED,
         BEAM_SOUND_VOLUME,
         BEAM_SOUND_CHARGE,
@@ -1158,6 +1166,85 @@ public class ConfigManager
      *            the sound to use when it is unset
      * @return the sound name, trimmed; empty means play nothing
      */
+    /**
+     * Whether the plugin's own sign text glows.
+     *
+     * @return true if signs the plugin writes should use glowing text
+     */
+    public static boolean isSignGlowingText()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_GLOWING_TEXT);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Whether a redstone signal on an already-open gate pushes its shutdown back.
+     *
+     * @return true if a trigger should extend an open wormhole
+     */
+    public static boolean isRedstoneExtendOpenTime()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Whether a player-placed dial sign is converted to the gate's own sign material.
+     *
+     * @return true if the dial sign should be made to match the gate's palette
+     */
+    public static boolean isSignDialMatchMaterial()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.SIGN_DIAL_MATCH_MATERIAL);
+        return (s == null) || s.getBooleanValue();
+    }
+
+    /**
+     * Reads a configured colour name, resolved by {@code SignStyle} at the point of use.
+     *
+     * <p>Returned as the raw name rather than a resolved colour so the fallback stays with
+     * the caller that knows what this particular line should look like.
+     *
+     * @param key
+     *            the colour setting to read
+     * @return the configured name, or empty when unset
+     */
+    private static String colorSetting(final ConfigKeys key)
+    {
+        final Setting s = ConfigManager.getConfigurations().get(key);
+        return s == null ? "" : String.valueOf(s.getStringValue()).trim();
+    }
+
+    /** @return colour name for a gate's own name, on either sign */
+    public static String getSignColorGateName()
+    {
+        return colorSetting(ConfigKeys.SIGN_COLOR_GATE_NAME);
+    }
+
+    /** @return colour name for the network line on a gate's name sign */
+    public static String getSignColorNetwork()
+    {
+        return colorSetting(ConfigKeys.SIGN_COLOR_NETWORK);
+    }
+
+    /** @return colour name for the owner line on a gate's name sign */
+    public static String getSignColorOwner()
+    {
+        return colorSetting(ConfigKeys.SIGN_COLOR_OWNER);
+    }
+
+    /** @return colour name for the destination currently selected on a dial sign */
+    public static String getSignColorSelected()
+    {
+        return colorSetting(ConfigKeys.SIGN_COLOR_SELECTED);
+    }
+
+    /** @return colour name for the destinations either side of the selected one */
+    public static String getSignColorNeighbour()
+    {
+        return colorSetting(ConfigKeys.SIGN_COLOR_NEIGHBOUR);
+    }
+
     private static String soundSetting(final ConfigKeys key, final String fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
