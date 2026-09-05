@@ -213,6 +213,38 @@ public class RingSurveyTest
     }
 
     /**
+     * A ring sitting on the bottom of the world has nothing under it.
+     *
+     * <p>The world's floor is not a block, so there is nothing there to stand on and nothing
+     * to read. Asked before any column is walked, because it is a fact about the layer rather
+     * than about any one square.
+     */
+    @Test
+    public void aFloorRingOnTheBottomOfTheWorldHasNoGroundUnderIt()
+    {
+        final Ring ring = floorRing();
+        final Room room = new Room().bounds(PLANE, 320);
+        assertEquals(RingBlockage.NO_GROUND, survey(room, ring),
+            "the layer below the world's own floor is not somewhere to arrive");
+    }
+
+    /**
+     * A ceiling ring over the void stops looking at the bottom of the world.
+     *
+     * <p>Without this the search would walk out past the world floor asking for blocks that
+     * cannot exist. It comes out as the same refusal as a ring over a shaft, which is the
+     * right answer: either way there is no floor for the rings to fall to.
+     */
+    @Test
+    public void aCeilingRingOverTheVoidStopsAtTheBottomOfTheWorld()
+    {
+        final Ring ring = ring(RingOrientation.CEILING, PLANE);
+        final Room room = new Room().bounds(PLANE - 2, 320);
+        assertEquals(RingBlockage.CEILING_TOO_HIGH, survey(room, ring),
+            "the search has to end at the world floor rather than run past it");
+    }
+
+    /**
      * A ceiling ring set flush into a four-block room still works.
      *
      * <p>Its top ring settles level with the plane the ring was cut into — that is what
