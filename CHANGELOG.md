@@ -57,6 +57,122 @@ Only new installs pick this up. A server with a `config.yml` already written kee
 it, so an existing pad stays glowstone until it is changed -- either the setting, or
 `/wormhole ring edit light redstone_lamp` for one ring.
 
+### A closing iris no longer buries whoever is standing in the gate
+
+Found reading the bug trackers of the two forks this one descends from, to see what we had
+inherited. Reported in 2011 against lycano's fork and never fixed there; it is still true here.
+
+Dial a gate whose far end has an iris, hand over the IDC so it opens for you, then walk into
+the event horizon as the shutdown timer runs out. The iris re-engages while you are in the
+opening and you are inside it. Nobody has to mistime anything -- the timer picks the moment.
+
+`fillGateIris` set every portal block to the iris material and looked at nothing else:
+
+```java
+for (final Location bc : gate.getGatePortalBlocks())
+{
+    gate.getGateWorld().getBlockAt(...).setType(material);
+}
+```
+
+That is not a stray case to guard. The iris has to be real, server-side blocks -- a
+client-side one could be walked straight through -- so closing it is, unavoidably, placing
+solid blocks over the whole opening. Every path that closes one could do this: the gate
+shutting down onto an iris that defaults closed, an activation timing out, someone flipping
+the lever, an IDC being cleared.
+
+The opening is now checked for living entities first, and any found are moved to the gate's
+own arrival point, which the shape file already places one block outside the portal, plus a
+few ticks of damage immunity so the block landing behind them cannot still reach. The iris
+still closes: one that could be held open by standing in it would be worth nothing. Dropped
+items and arrows are left where they are, since they do not suffocate.
+
+A traveller who had already arrived was never at risk here -- `EP` puts them outside the
+portal by construction. It is the person walking *into* the horizon who was in it.
+
+I first wrote the check the way the entity sweep does it, on the block the entity stands in,
+because that sweep is the existing code for "who is in this wormhole." The test caught it. The
+sweep is deciding who travels, and feet are the right question for that; this is deciding who
+gets a block in the face, and the answer is the head. Someone whose feet are on the block below
+the opening has their head in its lowest portal block, and the naive version walked right past
+them. Both blocks are checked now.
+
+The per-entity guard around the move catches `RuntimeException`, not `Throwable`. One mob that
+cannot be moved should not stop the iris closing or stop the rest of the sweep, which is the
+whole point of guarding each entity separately; a JVM error is not that, and swallowing it here
+would have made a broken build look like an ordinary immovable mob. What it logs now names the
+entity and the gate -- "failed to move entity" on a server running several irises said almost
+nothing.
+
+### A sign gate wired to redstone dialled twice on one press
+
+Reported from in game: a sign gate with redstone run to its DHD dialled twice from one press
+of the lever, animation and all.
+
+One press really was one dial -- and then the gate dialled itself. Opening a gate switches the
+gate's own DHD lever on, and Bukkit reports that write, and every conductor it lights up,
+straight back to the redstone listener as an ordinary rising edge. So the wire a player ran to
+the button carried the gate's own dial back in, looking exactly like somebody pressing it.
+
+What turned that into a second dial rather than a harmless re-trigger was the order inside the
+dial:
+
+```java
+gate.setGateActive(true);
+gate.toggleDialLeverState(false);   // fires BlockRedstoneEvent, synchronously
+...
+gate.setGateTarget(target);         // only now does the gate have a target
+```
+
+The listener's "already open, leave it alone" check asked for an active gate *and* a target.
+In the gap above there is one but not the other, so the signal matched neither that nor "lit
+but never dialled", fell through to the sign branch, and dialled the gate from inside its own
+first dial.
+
+Two things changed. The check is now `isGateActive()` alone -- an active gate is never
+re-dialled by redstone, target assigned or not. And the plugin no longer listens to its own
+writes at all: `GateRedstoneWrite` marks the window in which a gate's own levers are being
+switched, and the listener ignores anything raised inside it. The second is the one that
+covers the wire, since a conductor a player placed is not one of the gate's own blocks, and no
+rule about *which block* may trigger could ever have recognised it.
+
+The 250ms repeat window did not catch this. It is measured per gate and both dials were the
+same gate, but the first one was a player's click, which never touches that window.
+
+Both of the redstone listener's own guards now catch `RuntimeException` rather than
+`Throwable` -- the lever write inside that window, and the fallback gate lookup beside it.
+Swallowing `Throwable` meant a `NoClassDefFoundError` from a Bukkit version that had moved the
+block-data API would have read exactly like a lever that would not take the write: silence,
+and a gate whose light was wrong. The `finally` still clears the write window either way, so
+an error getting out cannot leave the listener deaf to real redstone.
+
+### A sign gate ignored its sign until you cycled it by hand
+
+After a restart -- or the first time a gate's chunk loaded -- pressing the DHD on a sign gate
+did nothing. Cycle the sign by hand and it worked again, but it dialled the gate *after* the
+one the sign had been showing.
+
+A selection is stored two ways and only one of them survives a restart. The index is written
+into the gate's save data; the destination it points at is worked out from the network when
+someone clicks the sign, and is simply absent on a gate that has just been loaded. So the gate
+came back with a sign in the world naming a destination, a saved index agreeing with it, and
+nothing to dial.
+
+The recovery that existed made it worse. It pretended somebody had clicked the sign, which
+advances the selection by one -- and does it on a scheduled task, so the target was still
+missing for the press that triggered it. That is both halves of what was reported: the first
+press dials nothing, and the press after it dials one gate too far.
+
+Restoring is its own thing now. `refreshSignTarget` resolves the saved index without moving
+it, immediately rather than a tick later, so the first press after a restart dials what the
+sign has been showing all along. Both dial paths ask for it -- the DHD and a redstone trigger
+-- since a gate opened by redstone was equally deaf after a reload.
+
+A sign nobody has ever clicked still selects nothing. Restoring recovers a choice somebody
+made; making one for them would have a gate dial a destination its sign never named, which is
+the same surprise pointed the other way. An index left stranded past the end of the list --
+peers can be removed while a gate is unloaded -- now wraps back into it rather than throwing.
+
 ### `HorizontalSignDial` could not be built at all
 
 Found reading the shape files while working out whether the DHD could become a type a gate

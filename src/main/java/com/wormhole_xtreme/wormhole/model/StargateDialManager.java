@@ -53,21 +53,46 @@ class StargateDialManager
      */
     static void teleportSignClicked(final Stargate gate, final boolean forward)
     {
-        // Fetch the sign block state first.
-        final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
-        if (!(bState instanceof Sign))
-        {
-            return;
-        }
-        gate.setGateDialSign((Sign) bState);
+        updateDialSign(gate, forward ? 1 : -1);
+    }
 
-        // Build a filtered list of OTHER gates reachable from this gate.
-        // Named-network gates see only peers on the same network.
-        // Networkless gates form the implicit public pool — they see all other networkless gates.
+    /**
+     * Works out what the dial sign is currently showing, without changing it.
+     *
+     * <p>A gate's selected destination is two things: an index, which is saved with the gate,
+     * and the {@link Stargate} at that index, which is not -- it is worked out from the
+     * network when the sign is clicked. So a freshly loaded gate has a sign in the world
+     * naming a destination, an index agreeing with it, and no destination object at all, and
+     * pressing its button dialled nothing.
+     *
+     * <p>The fix has to resolve the index without advancing it. Recovering by pretending
+     * someone had clicked the sign moved the selection on by one, so the first press after a
+     * restart dialled nothing and the second dialled the gate <em>after</em> the one the sign
+     * had been left showing.
+     *
+     * @param gate
+     *            the gate whose selection should be resolved
+     */
+    static void refreshSignTarget(final Stargate gate)
+    {
+        updateDialSign(gate, 0);
+    }
+
+    /**
+     * The destinations this gate's sign can cycle through, in the order it cycles them.
+     *
+     * <p>Named-network gates see only peers on the same network. Networkless gates form the
+     * implicit public pool -- they see every other networkless gate. Sorted by name so the
+     * order a click walks is the same one a saved index is read against.
+     *
+     * @param gate the gate whose sign is being written
+     * @return the peers, never null, possibly empty
+     */
+    private static List<Stargate> dialPeers(final Stargate gate)
+    {
         final List<Stargate> others = new ArrayList<Stargate>();
-        final boolean hasNetwork = gate.getGateNetwork() != null;
 
-        if (hasNetwork)
+        if (gate.getGateNetwork() != null)
         {
             synchronized (gate.getGateNetwork().getNetworkGateLock())
             {
@@ -88,7 +113,6 @@ class StargateDialManager
         }
         else
         {
-            // No named network — public pool: all other gates that also have no network.
             final java.util.ArrayList<Stargate> allGates = StargateManager.getAllGates();
             WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false,
                 "SignDial: gate=" + gate.getGateName() + " network=none(public) allGatesSize=" + allGates.size());
@@ -103,7 +127,6 @@ class StargateDialManager
             }
         }
 
-        // Sort peers alphabetically so cycling order is predictable.
         java.util.Collections.sort(others, new java.util.Comparator<Stargate>()
         {
             @Override
@@ -112,6 +135,27 @@ class StargateDialManager
                 return a.getGateName().compareToIgnoreCase(b.getGateName());
             }
         });
+        return others;
+    }
+
+    /**
+     * Rewrites the dial sign, moving the selection by {@code step} places first.
+     *
+     * @param gate the gate whose sign to rewrite
+     * @param step {@code 1} for the next destination, {@code -1} for the previous,
+     *             {@code 0} to re-resolve the one already selected
+     */
+    private static void updateDialSign(final Stargate gate, final int step)
+    {
+        // Fetch the sign block state first.
+        final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
+        if (!(bState instanceof Sign))
+        {
+            return;
+        }
+        gate.setGateDialSign((Sign) bState);
+
+        final List<Stargate> others = dialPeers(gate);
 
         final SignSide face = gate.getGateDialSign().getSide(Side.FRONT);
         final ChatColor nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA);
@@ -136,16 +180,22 @@ class StargateDialManager
         int idx = gate.getGateDialSignIndex();
         if (idx < 0)
         {
+            if (step == 0)
+            {
+                // Nothing has ever been selected on this sign, so there is nothing to
+                // restore. A refresh recovers a choice somebody made; it does not make one
+                // for them, or a gate would dial a destination its sign never showed.
+                return;
+            }
             // First click: start at the beginning regardless of direction.
             idx = 0;
         }
-        else if (forward)
-        {
-            idx = (idx + 1) % others.size();
-        }
         else
         {
-            idx = (idx - 1 + others.size()) % others.size();
+            // Modulo twice so a backward step wraps rather than going negative, and so a
+            // saved index left stranded past the end -- peers can be removed while a gate is
+            // unloaded -- lands back inside the list instead of throwing.
+            idx = (((idx + step) % others.size()) + others.size()) % others.size();
         }
         gate.setGateDialSignIndex(idx);
 
