@@ -783,6 +783,53 @@ chain that used to call these went with it. An orphaned `Do simple permissions.`
 method under it had been sitting there too. The class is 246 lines shorter and keeps `onCommand`,
 which is the only part Bukkit ever calls.
 
+### A gate named `Cafe` with an accent on the e no longer becomes `Caf?` on restart
+
+Every file this plugin wrote went out in whatever charset the host happened to default to, and
+every file it read came back as UTF-8. Those are the same thing on a developer's machine and on
+most desktops, which is why this survived so long. They are not the same thing on a minimal
+container with a POSIX/C locale -- a common way to run a Minecraft server -- where the default
+is effectively ASCII.
+
+On that host, saving a gate whose name carried an accent wrote the accent as a `?`. SnakeYAML
+read the `?` back as the gate's name, the next shutdown saved it, and the original was gone.
+Nothing failed and nothing was logged: `FileWriter` encoded exactly as instructed, and the
+reader decoded exactly as instructed, in a different charset. The same applied to owner names,
+to anything an admin typed into `config.yml`, and to shape files.
+
+The nastiest instance was inside one file. `GateSerializer` wrote the iris deactivation code
+with an explicit `getBytes("UTF8")` and read it back forty lines later with a bare
+`new String(idcBytes)`. A gate whose iris code was not plain ASCII stopped accepting the code
+its owner had set -- locked out of their own gate by their own password, on a gate they could
+still see working for everyone else.
+
+Twenty-seven sites across eight files now name `StandardCharsets.UTF_8`. That is what SnakeYAML
+and `Files.readAllLines` already assumed, so nothing needs migrating: files that were written
+correctly stay correct, and files that were mangled were already unreadable.
+
+Two tests, doing different jobs. `Utf8GateStorageTest` saves a gate with an accented name and an
+accented iris code and checks the bytes on disk, not just the round trip -- a round trip alone
+passes on a UTF-8 host, which is precisely why nobody noticed. `PlatformCharsetIsNeverUsedTest`
+reads the sources and fails on any charset-less `FileWriter`, `FileReader`, `InputStreamReader`,
+`OutputStreamWriter`, `getBytes()` or byte-decoding `new String(...)`, because that guard works
+on every machine including the ones where the bug is invisible, and the broken form is shorter
+to type than the correct one.
+
+The first draft of that guard matched `new FileWriter(` and let two real offenders through:
+`ConfigurationYAML` spelled them `new java.io.FileWriter(...)`. Matching without the `new` is
+what caught them -- a guard that only recognises the unqualified form rewards writing it the
+long way.
+
+Verified by running the whole suite with `-Dfile.encoding=US-ASCII`, which is the host this bug
+needs. 652 tests pass. Reverting the fix under that same flag fails with
+`expected: <cafe-gate> but was: <caf?-gate>` and an iris code of `??ppna`, which is the bug
+report as an assertion.
+
+`StargateYamlManager.saveStargate` gained a package-private overload taking the target
+directory. `getGatesDir()` resolves through `JavaPlugin.getDataFolder()`, which is `final` and
+cannot be stubbed, and the only other way to redirect it is reflecting into a private Bukkit
+field -- someone else's implementation detail, and not something a test should depend on.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally

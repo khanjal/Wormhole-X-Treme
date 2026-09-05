@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.config;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
@@ -75,7 +76,7 @@ public class Configuration
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to create new file: " + e.getMessage());
             }
-            final BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(options));
+            final BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(options, StandardCharsets.UTF_8));
 
             ConfigurationFlatFile.createNewHeader(bufferedwriter, desc.getName() + " " + desc.getVersion(), desc.getName() + " Config Settings", true);
 

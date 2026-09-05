@@ -13,6 +13,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -173,8 +174,8 @@ public final class StargateShapeRegistry
                         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Default shape resource not found in JAR: " + shape);
                         continue;
                     }
-                    try (final BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                         final BufferedWriter bw = new BufferedWriter(new FileWriter(defaultShapeFile)))
+                    try (final BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                         final BufferedWriter bw = new BufferedWriter(new FileWriter(defaultShapeFile, StandardCharsets.UTF_8)))
                     {
                         for (String s = ""; (s = br.readLine()) != null;)
                         {
@@ -201,7 +202,7 @@ public final class StargateShapeRegistry
                 try
                 {
                     final ArrayList<String> fileLines = new ArrayList<String>();
-                    bufferedReader = new BufferedReader(new FileReader(fi));
+                    bufferedReader = new BufferedReader(new FileReader(fi, StandardCharsets.UTF_8));
                     for (String s = ""; (s = bufferedReader.readLine()) != null;)
                     {
                         fileLines.add(s);
@@ -328,7 +329,7 @@ public final class StargateShapeRegistry
             return null;
         }
         final ArrayList<String> fileLines = new ArrayList<String>();
-        try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(file)))
+        try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8)))
         {
             for (String s = ""; (s = bufferedReader.readLine()) != null;)
             {

@@ -161,7 +161,7 @@ public final class GateSerializer
             final int facingSize = byteBuff.getInt();
             final byte[] strBytes = new byte[facingSize];
             byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes);
+            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
             s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
@@ -171,7 +171,7 @@ public final class GateSerializer
             final int idcLen = byteBuff.getInt();
             final byte[] idcBytes = new byte[idcLen];
             byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes));
+            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
 
@@ -238,7 +238,7 @@ public final class GateSerializer
             final int facingSize = byteBuff.getInt();
             final byte[] strBytes = new byte[facingSize];
             byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes);
+            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
             s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
@@ -248,7 +248,7 @@ public final class GateSerializer
             final int idcLen = byteBuff.getInt();
             final byte[] idcBytes = new byte[idcLen];
             byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes));
+            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
             s.setGateIrisDefaultActive(s.isGateIrisActive());
@@ -315,7 +315,7 @@ public final class GateSerializer
             final int facingSize = byteBuff.getInt();
             final byte[] strBytes = new byte[facingSize];
             byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes);
+            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
             s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
@@ -325,7 +325,7 @@ public final class GateSerializer
             final int idcLen = byteBuff.getInt();
             final byte[] idcBytes = new byte[idcLen];
             byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes));
+            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
             s.setGateIrisDefaultActive(s.isGateIrisActive());
@@ -409,7 +409,7 @@ public final class GateSerializer
             final int facingSize = byteBuff.getInt();
             final byte[] strBytes = new byte[facingSize];
             byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes);
+            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
 
             s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
@@ -419,7 +419,7 @@ public final class GateSerializer
             final int idcLen = byteBuff.getInt();
             final byte[] idcBytes = new byte[idcLen];
             byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes));
+            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
             s.setGateIrisDefaultActive(s.isGateIrisActive());
@@ -544,7 +544,7 @@ public final class GateSerializer
             final int facingSize = byteBuff.getInt();
             final byte[] strBytes = new byte[facingSize];
             byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes);
+            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
             s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
@@ -553,7 +553,7 @@ public final class GateSerializer
             final int idcLen = byteBuff.getInt();
             final byte[] idcBytes = new byte[idcLen];
             byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes));
+            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
             s.setGateIrisDefaultActive(s.isGateIrisActive());
@@ -680,7 +680,7 @@ public final class GateSerializer
             final int facingSize = byteBuff.getInt();
             final byte[] strBytes = new byte[facingSize];
             byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes);
+            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
             s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
             s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
             s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
@@ -692,7 +692,7 @@ public final class GateSerializer
             final int idcLen = byteBuff.getInt();
             final byte[] idcBytes = new byte[idcLen];
             byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes));
+            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
 
             s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
             s.setGateIrisDefaultActive(s.isGateIrisActive());
@@ -800,8 +800,8 @@ public final class GateSerializer
         byte[] utfIdcBytes;
         try
         {
-            utfFaceBytes = s.getGateFacing().toString().getBytes("UTF8");
-            utfIdcBytes = s.getGateIrisDeactivationCode().getBytes("UTF8");
+            utfFaceBytes = s.getGateFacing().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            utfIdcBytes = s.getGateIrisDeactivationCode().getBytes(java.nio.charset.StandardCharsets.UTF_8);
         }
         catch (final Exception e)
         {
