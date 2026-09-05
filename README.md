@@ -562,9 +562,12 @@ itself changed — the cells these markers use were already empty.
 blocks are once, when it is first detected, and stores those positions with the gate. Nothing
 re-reads the shape afterwards, so a sign gate built before its shape gained `[RD]` has no
 dial-activation block stored and will not respond to a signal however it is wired —
-`/wormhole redstone <gate> true` sets the flag but cannot invent the position. Re-detect the
-gate (remove and re-complete it; the structure itself can stay standing) and it comes back
-with the markers.
+`/wormhole redstone <gate> true` sets the flag but cannot invent the position.
+
+Run `/wormhole refresh` and click the gate's DHD button. That re-detects the geometry from
+the shape as it is now and re-registers the gate with it, keeping the name, owner, IDC and
+network, and without touching a single block of what you built. The gate comes back with its
+markers and the wiring then works.
 
 Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign is
 showing, so with no target selected a pulse does nothing.

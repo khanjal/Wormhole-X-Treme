@@ -29,9 +29,13 @@ where its redstone blocks are once, when it is first detected, and `GateSerializ
 those positions with it; nothing re-reads the shape afterwards. So a sign gate built before
 its shape gained `[RD]` has no dial-activation block stored, and the listener's null check
 means no amount of wiring will fire it -- `/wormhole redstone <gate> true` sets the flag but
-cannot invent the position. Re-detecting the gate fixes it. I had written the opposite first,
-on the strength of the frame being unchanged, which is true and turns out not to be the part
-that matters.
+cannot invent the position. `/wormhole refresh`, clicking the gate's DHD button, re-detects
+the geometry from the current shape and re-registers the gate with it, keeping name, owner,
+IDC and network and destroying nothing. That is the fix, and it already existed.
+
+I had written the opposite first, on the strength of the frame being unchanged -- true, and
+not the part that matters -- and then described the fix as removing and re-completing the
+gate before finding that `refresh` already does exactly this, in place.
 
 `[RS]`, the sign-cycling input, is gone from the shipped shapes entirely. The point of
 redstone dialling is a sign left preset on a destination and a pulse that fires it, and an
