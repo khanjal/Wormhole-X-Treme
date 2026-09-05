@@ -93,10 +93,6 @@ public class WXPermissions
      */
     private static boolean checkWXPermissions(final Player player, final Stargate stargate, final String network, final PermissionType permissiontype)
     {
-        if (player == null)
-        {
-            return false;
-        }
         // An operator may do anything with a gate, with or without a permissions plugin
         // installed. This deliberately outranks a negated node: on a server where someone
         // has been given op, that is taken as the final word.

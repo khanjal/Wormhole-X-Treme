@@ -698,8 +698,8 @@ public class Ring
      */
     public long anchorDistanceSquared(final Ring other)
     {
-        final long dx = anchorX - other.anchorX;
-        final long dz = anchorZ - other.anchorZ;
+        final long dx = (long) anchorX - other.anchorX;
+        final long dz = (long) anchorZ - other.anchorZ;
         return (dx * dx) + (dz * dz);
     }
 

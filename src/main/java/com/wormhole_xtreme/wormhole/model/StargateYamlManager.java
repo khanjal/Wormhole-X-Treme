@@ -234,9 +234,10 @@ public class StargateYamlManager
         final File GATES_DIR = getGatesDir();
         final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
         final File outFile = new File(GATES_DIR, fileName);
-        if (outFile.exists())
+        if (outFile.exists() && !outFile.delete())
         {
-            outFile.delete();
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not delete gate file " + outFile.getPath() + "; the gate may come back on next load.");
         }
     }
 

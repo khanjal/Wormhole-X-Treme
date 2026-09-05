@@ -314,7 +314,7 @@ public class WorldUtils
         {
             if (isStandableAt(w, x, baseY + dy, z))
             {
-                return new Location(w, x + 0.5, baseY + dy, z + 0.5, preferred.getYaw(), preferred.getPitch());
+                return new Location(w, x + 0.5, (double) baseY + dy, z + 0.5, preferred.getYaw(), preferred.getPitch());
             }
         }
 
