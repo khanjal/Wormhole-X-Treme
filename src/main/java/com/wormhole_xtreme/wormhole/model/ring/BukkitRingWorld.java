@@ -19,9 +19,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * Everything the ring subsystem does to a real world, in one place.
  *
  * <p>This class exists to be boring. All the decisions — what order things happen in, who
- * travels, what is drawn when — live in {@link RingCycle} and {@link RingAnimator}, where
- * they can be checked without a server. What is left here is drawing blocks, finding
- * entities and moving them, with no logic worth arguing about.
+ * travels, what is drawn when, whether a ring can receive anybody at all — live in
+ * {@link RingCycle}, {@link RingAnimator} and {@link RingSurvey}, where they can be checked
+ * without a server. What is left here is drawing blocks, finding entities and moving them,
+ * with no logic worth arguing about.
  *
  * <p><b>Nothing here changes the world.</b> Rings and their lights are sent to clients as
  * block changes and the server's own blocks are never touched, exactly as a gate draws its
@@ -35,7 +36,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * anything handing a client a fresh copy of the chunk erases it. Both are the same trade
  * gates already make.
  */
-public class BukkitRingWorld implements RingCycle.Surroundings
+public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Ground
 {
     /** How far from a ring a player has to be to be sent its drawing. */
     private static final int VIEW_DISTANCE = 96;
@@ -405,78 +406,34 @@ public class BukkitRingWorld implements RingCycle.Surroundings
     @Override
     public RingBlockage survey(final Ring ring)
     {
-        if (ring.getOrientation() == RingOrientation.CEILING)
-        {
-            final int found = floorBelow(ring);
-            if (found < 0)
-            {
-                return RingBlockage.CEILING_TOO_HIGH;
-            }
-            if (found < Ring.MIN_CEILING_DROP)
-            {
-                return RingBlockage.CEILING_TOO_LOW;
-            }
-            // Recorded on the ring so the stack forms on this floor rather than under the
-            // ceiling. Everything downstream measures from it.
-            ring.setDrop(found);
-        }
-        final int y = arrivalHeight(ring);
-        // Every column, not just the middle. Somewhere to stand is not the same as somewhere
-        // fit to arrive: one block dropped into a ring would still leave twenty free columns,
-        // and delivering people to whichever corner happened to be empty is not what a
-        // transport ring should do. One block in it stops the whole thing.
-        for (final int[] block : ring.interiorBlocks())
-        {
-            if ((y - 1 < world.getMinHeight()) || ((y + 1) >= world.getMaxHeight()))
-            {
-                return RingBlockage.NO_GROUND;
-            }
-            if (!world.getBlockAt(block[0], y, block[2]).isPassable()
-                || !world.getBlockAt(block[0], y + 1, block[2]).isPassable())
-            {
-                return RingBlockage.OBSTRUCTED;
-            }
-            // Ground directly under every column, so nobody arrives over a hole somebody dug.
-            // Directly, not somewhere below: a gap with a floor three blocks further down is
-            // still a gap to fall through, and a ring you drop out of is not a ring that
-            // works. Water and lava are passable and count as no ground too, which is the
-            // right answer — landing in either is not arriving.
-            if (world.getBlockAt(block[0], y - 1, block[2]).isPassable())
-            {
-                return RingBlockage.NO_GROUND;
-            }
-        }
-        return null;
+        return RingSurvey.survey(this, ring, ConfigManager.getRingMaxCeilingDrop());
     }
 
-    /**
-     * How far below a ceiling ring's plane the floor is.
-     *
-     * <p>Searched down the middle of the ring, out to the configured limit. Beyond that a
-     * ceiling ring is over a shaft rather than a room, and rings that fall out of sight are
-     * not a transport.
-     *
-     * @param ring
-     *            the ceiling ring
-     * @return the drop in blocks, or -1 if there is no floor within reach
+    /* (non-Javadoc)
+     * @see RingSurvey.Ground#isPassable(int, int, int)
      */
-    private int floorBelow(final Ring ring)
+    @Override
+    public boolean isPassable(final int x, final int y, final int z)
     {
-        final int limit = ConfigManager.getRingMaxCeilingDrop();
-        for (int down = 1; down <= (limit + 1); down++)
-        {
-            final int y = ring.getAnchorY() - down;
-            if (y < world.getMinHeight())
-            {
-                return -1;
-            }
-            if (!world.getBlockAt(ring.getAnchorX(), y, ring.getAnchorZ()).isPassable())
-            {
-                // Feet go on top of it, so the drop is to the layer above the solid block.
-                return down - 1;
-            }
-        }
-        return -1;
+        return world.getBlockAt(x, y, z).isPassable();
+    }
+
+    /* (non-Javadoc)
+     * @see RingSurvey.Ground#minHeight()
+     */
+    @Override
+    public int minHeight()
+    {
+        return world.getMinHeight();
+    }
+
+    /* (non-Javadoc)
+     * @see RingSurvey.Ground#maxHeight()
+     */
+    @Override
+    public int maxHeight()
+    {
+        return world.getMaxHeight();
     }
 
     /**

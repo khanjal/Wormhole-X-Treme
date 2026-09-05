@@ -16,6 +16,10 @@ package com.wormhole_xtreme.wormhole.model.ring;
  * <p>Only the interior counts. What anybody has built around a ring is their business, and
  * arriving next to it is no trouble — you can walk away, or step back in and go home.
  *
+ * <p>Room to stand and room to work are separate questions, and the ceiling answers them
+ * differently. A stack is four blocks tall and a traveller is two, so a room can have space
+ * for somebody and no space for the rings that are supposed to arrive around them.
+ *
  * <p>The last two are a ceiling ring's own problem. Its rings fall all the way to the floor
  * and stack up from there, so it needs a floor to fall to: near enough that they reach it,
  * and far enough that the stack has somewhere to form.
@@ -27,6 +31,9 @@ public enum RingBlockage
 
     /** The floor under the ring has gone, so there is nothing to arrive on. */
     NO_GROUND,
+
+    /** A floor ring with too little room above it for the stack to stand up in. */
+    NO_HEADROOM,
 
     /** A ceiling ring with no floor near enough below it for the rings to reach. */
     CEILING_TOO_HIGH,

@@ -737,7 +737,10 @@ have been a second motion to keep in step with the first, for an effect that fal
 rings simply stopping when they get there.
 
 Because rings stop where they land, the finished stack is also the highest anything ever
-gets — so four blocks of headroom is the whole requirement.
+gets — so four blocks of headroom is the whole requirement, and the survey that decides
+whether a ring can receive anybody enforces exactly that number. It is derived from the
+spacing rather than written down twice, so a change to how far apart rings settle moves the
+requirement with it.
 
 There are **two ways they get there**, both of which the show uses. `rings.default-style` picks the default and
 `/wormhole ring edit style` changes one pair.
@@ -844,10 +847,22 @@ clear square:
 
 - **Nothing built inside it.** Every interior column must be clear at the arrival layer and
   the one above. A single block dropped in is enough to stop it.
+- **Room for the stack, not just for the person.** Every interior column must also be clear
+  for the four layers the finished stack fills. This is a separate question from the one
+  above and it used to go unasked: a traveller is two blocks tall and the stack is four, so a
+  three-block room had space for somebody and no space at all for the rings meant to come up
+  around them — and the ring fired anyway, drawing its top half inside the ceiling. The two
+  are told apart in the message, because "somebody built in your ring" and "your ceiling is
+  too low" send a player to different places.
 - **Ground under all of it.** Every interior column must have a solid block *directly*
   beneath. Not somewhere beneath — a gap with a floor three blocks further down is still a
   gap to fall through. Water and lava count as no ground, because landing in either is not
   arriving.
+
+A ceiling ring's own plane is exempt from the headroom rule, and only ever comes up at its
+shallowest, where the top ring settles level with the ceiling it was cut into. Somebody
+laying a ring into their ceiling leaves the middle of it as ceiling; refusing that would have
+turned the ordinary way of building one into an error.
 
 Somewhere to stand is not the same as somewhere fit to arrive. One block dropped into a
 seven-wide ring still leaves twenty free columns, and delivering people to whichever corner
@@ -937,8 +952,8 @@ rings:
   max-link-height: 384       # in height; the full world. 0 = unlimited
   max-ceiling-drop: 10       # how far a ceiling ring will look for its floor
   default-ring-material: SMOOTH_STONE_SLAB   # fallback only; not what reset goes back to
-  default-light-material: GLOWSTONE
-  default-flash-material: GLOWSTONE   # set it apart to make the transport its own moment
+  default-light-material: REDSTONE_LAMP
+  default-flash-material: REDSTONE_LAMP   # set it apart to make the transport its own moment
   default-access: PRIVATE    # what a newly built pair starts as
   default-style: CONCURRENT  # or SEQUENTIAL; how the stack comes out
   reach: 4                   # block layers of passenger volume, from the ring plane
