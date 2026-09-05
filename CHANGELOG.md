@@ -4,6 +4,75 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A sign gate wired to redstone dialled twice on one press
+
+Reported from in game: a sign gate with redstone run to its DHD dialled twice from one press
+of the lever, animation and all.
+
+One press really was one dial -- and then the gate dialled itself. Opening a gate switches the
+gate's own DHD lever on, and Bukkit reports that write, and every conductor it lights up,
+straight back to the redstone listener as an ordinary rising edge. So the wire a player ran to
+the button carried the gate's own dial back in, looking exactly like somebody pressing it.
+
+What turned that into a second dial rather than a harmless re-trigger was the order inside the
+dial:
+
+```java
+gate.setGateActive(true);
+gate.toggleDialLeverState(false);   // fires BlockRedstoneEvent, synchronously
+...
+gate.setGateTarget(target);         // only now does the gate have a target
+```
+
+The listener's "already open, leave it alone" check asked for an active gate *and* a target.
+In the gap above there is one but not the other, so the signal matched neither that nor "lit
+but never dialled", fell through to the sign branch, and dialled the gate from inside its own
+first dial.
+
+Two things changed. The check is now `isGateActive()` alone -- an active gate is never
+re-dialled by redstone, target assigned or not. And the plugin no longer listens to its own
+writes at all: `GateRedstoneWrite` marks the window in which a gate's own levers are being
+switched, and the listener ignores anything raised inside it. The second is the one that
+covers the wire, since a conductor a player placed is not one of the gate's own blocks, and no
+rule about *which block* may trigger could ever have recognised it.
+
+The 250ms repeat window did not catch this. It is measured per gate and both dials were the
+same gate, but the first one was a player's click, which never touches that window.
+
+Both of the redstone listener's own guards now catch `RuntimeException` rather than
+`Throwable` -- the lever write inside that window, and the fallback gate lookup beside it.
+Swallowing `Throwable` meant a `NoClassDefFoundError` from a Bukkit version that had moved the
+block-data API would have read exactly like a lever that would not take the write: silence,
+and a gate whose light was wrong. The `finally` still clears the write window either way, so
+an error getting out cannot leave the listener deaf to real redstone.
+
+### A sign gate ignored its sign until you cycled it by hand
+
+After a restart -- or the first time a gate's chunk loaded -- pressing the DHD on a sign gate
+did nothing. Cycle the sign by hand and it worked again, but it dialled the gate *after* the
+one the sign had been showing.
+
+A selection is stored two ways and only one of them survives a restart. The index is written
+into the gate's save data; the destination it points at is worked out from the network when
+someone clicks the sign, and is simply absent on a gate that has just been loaded. So the gate
+came back with a sign in the world naming a destination, a saved index agreeing with it, and
+nothing to dial.
+
+The recovery that existed made it worse. It pretended somebody had clicked the sign, which
+advances the selection by one -- and does it on a scheduled task, so the target was still
+missing for the press that triggered it. That is both halves of what was reported: the first
+press dials nothing, and the press after it dials one gate too far.
+
+Restoring is its own thing now. `refreshSignTarget` resolves the saved index without moving
+it, immediately rather than a tick later, so the first press after a restart dials what the
+sign has been showing all along. Both dial paths ask for it -- the DHD and a redstone trigger
+-- since a gate opened by redstone was equally deaf after a reload.
+
+A sign nobody has ever clicked still selects nothing. Restoring recovers a choice somebody
+made; making one for them would have a gate dial a destination its sign never named, which is
+the same surprise pointed the other way. An index left stranded past the end of the list --
+peers can be removed while a gate is unloaded -- now wraps back into it rather than throwing.
+
 ### `HorizontalSignDial` could not be built at all
 
 Found reading the shape files while working out whether the DHD could become a type a gate
