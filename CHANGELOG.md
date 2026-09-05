@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A closing iris no longer buries whoever is standing in the gate
+
+Found reading the bug trackers of the two forks this one descends from, to see what we had
+inherited. Reported in 2011 against lycano's fork and never fixed there; it is still true here.
+
+Dial a gate whose far end has an iris, hand over the IDC so it opens for you, then walk into
+the event horizon as the shutdown timer runs out. The iris re-engages while you are in the
+opening and you are inside it. Nobody has to mistime anything -- the timer picks the moment.
+
+`fillGateIris` set every portal block to the iris material and looked at nothing else:
+
+```java
+for (final Location bc : gate.getGatePortalBlocks())
+{
+    gate.getGateWorld().getBlockAt(...).setType(material);
+}
+```
+
+That is not a stray case to guard. The iris has to be real, server-side blocks -- a
+client-side one could be walked straight through -- so closing it is, unavoidably, placing
+solid blocks over the whole opening. Every path that closes one could do this: the gate
+shutting down onto an iris that defaults closed, an activation timing out, someone flipping
+the lever, an IDC being cleared.
+
+The opening is now checked for living entities first, and any found are moved to the gate's
+own arrival point, which the shape file already places one block outside the portal, plus a
+few ticks of damage immunity so the block landing behind them cannot still reach. The iris
+still closes: one that could be held open by standing in it would be worth nothing. Dropped
+items and arrows are left where they are, since they do not suffocate.
+
+A traveller who had already arrived was never at risk here -- `EP` puts them outside the
+portal by construction. It is the person walking *into* the horizon who was in it.
+
+I first wrote the check the way the entity sweep does it, on the block the entity stands in,
+because that sweep is the existing code for "who is in this wormhole." The test caught it. The
+sweep is deciding who travels, and feet are the right question for that; this is deciding who
+gets a block in the face, and the answer is the head. Someone whose feet are on the block below
+the opening has their head in its lowest portal block, and the naive version walked right past
+them. Both blocks are checked now.
+
 ### `HorizontalSignDial` could not be built at all
 
 Found reading the shape files while working out whether the DHD could become a type a gate
