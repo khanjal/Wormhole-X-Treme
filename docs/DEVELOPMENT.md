@@ -15,18 +15,18 @@ mvn -DskipTests=false test
 mvn -DskipTests=true package
 ```
 
-The resulting shaded JAR will be in `target/` (e.g. `target/WormholeXTreme-1.0.0.jar`).
+The resulting shaded JAR will be in `target/`, named from the version in `pom.xml` (e.g. `target/WormholeXTreme-1.5.0.jar`).
 
 ## Tests
 - Unit tests use JUnit 5 + Mockito. Run all tests with `mvn test`.
 
 ## Coding conventions
 - Java 17, Allman-style braces, 4-space indentation.
-- Use anonymous `Runnable` classes (no lambdas).
+- Use anonymous `Runnable` classes for scheduled tasks, not lambdas -- they reschedule themselves and mutate retry state through the array-holder idiom. Lambdas and method references are used freely elsewhere (tab completion, `computeIfAbsent` suppliers, `FilenameFilter`). See `.github/copilot-instructions.md` for the full convention.
 - Use `WormholeXTreme.getThisPlugin().prettyLog(Level, boolean, String)` for logging.
 
 ## Submitting changes
-- Create feature branches from `upgrade/spigot-1.20.4` (or main branch policy).
+- Create feature branches from `main`, and open a PR. Nothing is committed to `main` directly, including small fixes.
 - Run tests locally and ensure build passes before creating PR.
 
 ## Common tasks
