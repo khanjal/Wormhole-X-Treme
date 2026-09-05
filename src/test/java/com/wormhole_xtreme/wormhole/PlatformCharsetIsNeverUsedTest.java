@@ -38,10 +38,12 @@ import org.junit.jupiter.api.Test;
 public class PlatformCharsetIsNeverUsedTest
 {
     /**
-     * Constructors that fall back to the platform charset when not given one.
+     * Forms that fall back to the platform charset when not given one.
      *
-     * <p>All four have had a {@code Charset} overload since Java 11, so there is always a
-     * correct form to move to; none of them has a legitimate charset-less use.
+     * <p>The first four are constructors, and have taken a {@code Charset} since Java 11. The
+     * fifth is {@link String#getBytes()}, whose charset-taking overload has been there since
+     * Java 6. Either way there has always been a correct form to move to, and none of the five
+     * has a legitimate charset-less use.
      *
      * <p>Matched without the {@code new}, which the first draft of this test included and
      * which let two real offenders through: {@code ConfigurationYAML} spelled them
