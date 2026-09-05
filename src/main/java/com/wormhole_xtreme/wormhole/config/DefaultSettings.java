@@ -45,7 +45,7 @@ class DefaultSettings
         new Setting(ConfigKeys.GATE_SOUND_VOLUME, 1.5, "How loud gate sounds are. Bukkit scales audible range with volume, so this is a distance knob too: 1.5 carries about twenty-four blocks, which suits something people walk towards.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_ACTIVATE, "block.conduit.activate", "Played as a gate begins to dial. Set to none for silence. Any sound name the client knows works, including one from a resource pack.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_CHEVRON, "block.iron_trapdoor.close", "Played once per chevron as it locks, pitch climbing through the sequence so the gate sounds like it is working towards something.", "WormholeXTreme"),
-        new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "block.end_portal.spawn", "Played once as the wormhole establishes and the woosh rolls out.", "WormholeXTreme"),
+        new Setting(ConfigKeys.GATE_SOUND_KAWOOSH, "entity.player.splash.high_speed", "Played once as the wormhole establishes and the woosh rolls out. A kawoosh is a surge of water bursting out of the ring, so this is the heavy splash, pitched down for size. Set to none for silence.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_CLOSE, "block.conduit.deactivate", "Played as a wormhole closes.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_IRIS_CLOSE, "block.iron_door.close", "The iris closing over a gate. Pitched down a little, since it is a shield rather than a door. Set to none for silence.", "WormholeXTreme"),
         new Setting(ConfigKeys.GATE_SOUND_IRIS_OPEN, "block.iron_door.open", "The iris opening. Set to none for silence.", "WormholeXTreme"),

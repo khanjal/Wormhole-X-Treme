@@ -24,6 +24,16 @@ public final class GateSounds
     /** How far the chevrons climb by the last one. */
     private static final float CHEVRON_CLIMB = 0.7f;
 
+    /**
+     * The pitch the kawoosh plays at, rather than its own.
+     *
+     * <p>The default is a splash, and a splash at its own pitch is somebody landing in a
+     * pond. Dropped to 0.7 it lengthens and deepens into a body of water being thrown
+     * outward, which is the sound a gate opening is supposed to be. Below the pitch floor
+     * this would flatten out silently, so it stays comfortably above it.
+     */
+    private static final float KAWOOSH_PITCH = 0.7f;
+
     /** Static helpers only. */
     private GateSounds()
     {
@@ -88,12 +98,20 @@ public final class GateSounds
     /**
      * Plays the wormhole establishing.
      *
+     * <p>A kawoosh is water bursting out of the ring and falling back, not an explosion.
+     * The sound was {@code block.end_portal.spawn} for exactly one release: it is one of the
+     * loudest samples the client has, and a low resonant boom besides -- so at this
+     * plugin's own gate volume, which is deliberately set high to carry the length of a
+     * base, an opening gate was the loudest thing on a server and sounded nothing like the
+     * thing it was describing. It is now the heavy splash, pitched down; see
+     * {@link #KAWOOSH_PITCH}.
+     *
      * @param gate
      *            the gate opening
      */
     public static void kawoosh(final Stargate gate)
     {
-        play(gate, ConfigManager.getGateSoundKawoosh(), 1.0f);
+        play(gate, ConfigManager.getGateSoundKawoosh(), KAWOOSH_PITCH);
     }
 
     /**
