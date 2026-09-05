@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -181,7 +182,7 @@ public class ConfigurationYAML
 
             if (sectionStart < 0)
             {
-                try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, true))
+                try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true))
                 {
                     writer.write(System.lineSeparator());
                     writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
@@ -247,7 +248,7 @@ public class ConfigurationYAML
 
     private static void appendMissingSettings(final File cfg, final List<Setting> missing)
     {
-        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, true /* append */))
+        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true /* append */))
         {
             writer.write(System.lineSeparator());
             writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
@@ -285,7 +286,7 @@ public class ConfigurationYAML
             {
                 directory.mkdir();
             }
-            try (final FileWriter writer = new FileWriter(file))
+            try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
             {
                 for (final Setting s : config)
                 {
@@ -421,7 +422,7 @@ public class ConfigurationYAML
                 }
             }
 
-            try (final FileWriter writer = new FileWriter(file))
+            try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
             {
                 for (final String line : rewritten)
                 {

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
@@ -159,13 +160,31 @@ public class StargateYamlManager
 
     public static void saveStargate(final Stargate s)
     {
-        final File GATES_DIR = getGatesDir();
-        if (!GATES_DIR.exists())
+        saveStargate(s, getGatesDir());
+    }
+
+    /**
+     * Writes one gate's file into a given directory.
+     *
+     * <p>Split out from {@link #saveStargate(Stargate)} so a test can point the write
+     * somewhere other than the live plugin folder. {@link #getGatesDir()} resolves through
+     * {@code JavaPlugin.getDataFolder()}, which is {@code final} and therefore cannot be
+     * stubbed; the only other way in is reflecting into a private Bukkit field, which is
+     * someone else's implementation detail and not something to depend on.
+     *
+     * @param s
+     *            the gate to write
+     * @param gatesDir
+     *            the directory to write it into, created if it is not there yet
+     */
+    static void saveStargate(final Stargate s, final File gatesDir)
+    {
+        if (!gatesDir.exists())
         {
-            GATES_DIR.mkdirs();
+            gatesDir.mkdirs();
         }
         final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
-        final File outFile = new File(GATES_DIR, fileName);
+        final File outFile = new File(gatesDir, fileName);
         final Map<String, Object> map = new HashMap<>();
         map.put("Name", s.getGateName());
         map.put("OwnerUUID", s.getGateOwner());
@@ -186,7 +205,7 @@ public class StargateYamlManager
         try
         {
             final File tmp = new File(outFile.getAbsolutePath() + ".tmp");
-            try (BufferedWriter w = new BufferedWriter(new FileWriter(tmp)))
+            try (BufferedWriter w = new BufferedWriter(new FileWriter(tmp, StandardCharsets.UTF_8)))
             {
                 yaml.dump(map, w);
             }

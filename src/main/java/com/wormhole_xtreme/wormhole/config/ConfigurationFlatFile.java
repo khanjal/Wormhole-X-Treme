@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
@@ -121,7 +122,7 @@ class ConfigurationFlatFile
         BufferedReader bufferedReader = null;
         try
         {
-            bufferedReader = new BufferedReader(new FileReader(input));
+            bufferedReader = new BufferedReader(new FileReader(input, StandardCharsets.UTF_8));
             for (String s = ""; (s = bufferedReader.readLine()) != null;)
             {
                 try

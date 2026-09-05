@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
@@ -393,7 +394,7 @@ public final class RingYamlManager
         try
         {
             final File temp = new File(target.getAbsolutePath() + ".tmp");
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp)))
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, StandardCharsets.UTF_8)))
             {
                 yaml.dump(root, writer);
             }

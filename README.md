@@ -1186,6 +1186,7 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 
 - If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
 - Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
+- If a gate name, owner name or iris deactivation code came back with a `?` in place of an accented character, that is a pre-1.5.0 bug: files were written in the host's default charset and read back as UTF-8, which only differ on a server whose locale is not UTF-8 (a minimal container with a POSIX/C locale, typically). 1.5.0 writes UTF-8 everywhere, but it cannot undo damage already on disk -- the original character is not in the file to recover. A gate already carrying a `?` has to be rebuilt under the name you want, and an iris code that stopped being accepted has to be set again.
 
 ## Developer notes
 
@@ -1194,6 +1195,7 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 - Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
 - `StargateYamlManager` handles per-gate YAML read/write.
 - `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
+- Every file read and write names `StandardCharsets.UTF_8` explicitly. `FileWriter`, `FileReader`, `InputStreamReader` and `OutputStreamWriter` fall back to the platform charset when not given one, and the readers around them (SnakeYAML, `Files.readAllLines`) assume UTF-8 unconditionally, so a charset-less constructor is a mismatch waiting for a non-UTF-8 host. `PlatformCharsetIsNeverUsedTest` reads the sources and fails on any that reappears.
 
 ## Credits
 
