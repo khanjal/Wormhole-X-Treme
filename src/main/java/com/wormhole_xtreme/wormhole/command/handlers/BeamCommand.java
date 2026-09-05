@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.Locale;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -71,7 +73,7 @@ public class BeamCommand implements SubCommand
             return true;
         }
 
-        final String verb = args[1].toLowerCase();
+        final String verb = args[1].toLowerCase(Locale.ROOT);
         if ("admin".equals(verb))
         {
             // admin has its own sender handling: goto/send accept console and command
@@ -161,7 +163,7 @@ public class BeamCommand implements SubCommand
                 + "send <player> <player|destination>|<x> <y> <z> [world]");
             return true;
         }
-        final String action = args[2].toLowerCase();
+        final String action = args[2].toLowerCase(Locale.ROOT);
 
         if ("goto".equals(action))
         {
@@ -500,7 +502,7 @@ public class BeamCommand implements SubCommand
                 + "/wormhole beam place list|set <name>|remove <name>");
             return true;
         }
-        final String sub = args[2].toLowerCase();
+        final String sub = args[2].toLowerCase(Locale.ROOT);
         if ("list".equals(sub))
         {
             return listPlaces(player);

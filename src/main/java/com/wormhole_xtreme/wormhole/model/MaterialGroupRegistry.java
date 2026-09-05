@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -64,7 +65,7 @@ public final class MaterialGroupRegistry
         {
             return null;
         }
-        return groupsByName.get(name.toLowerCase());
+        return groupsByName.get(name.toLowerCase(Locale.ROOT));
     }
 
     /**
@@ -157,7 +158,7 @@ public final class MaterialGroupRegistry
                 final Material sign = defaulted(parseMaterial(groupName, "sign", values.get("sign")), Material.OAK_WALL_SIGN);
 
                 final MaterialGroup group = new MaterialGroup(groupName, structure, portal, iris, light, sign);
-                byName.put(groupName.toLowerCase(), group);
+                byName.put(groupName.toLowerCase(Locale.ROOT), group);
                 byMaterial.put(structure, group);
                 if (first == null)
                 {
@@ -172,7 +173,7 @@ public final class MaterialGroupRegistry
             // plugin still works on a server that has never touched this section.
             final MaterialGroup builtin = new MaterialGroup("Standard", Material.OBSIDIAN, Material.WATER,
                 Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN);
-            byName.put(builtin.getName().toLowerCase(), builtin);
+            byName.put(builtin.getName().toLowerCase(Locale.ROOT), builtin);
             byMaterial.put(builtin.getStructureMaterial(), builtin);
             first = builtin;
         }
@@ -285,7 +286,7 @@ public final class MaterialGroupRegistry
             {
                 continue; // "DIAMOND_BLOCK" reads better as "Diamond"
             }
-            out.append(part.charAt(0)).append(part.substring(1).toLowerCase());
+            out.append(part.charAt(0)).append(part.substring(1).toLowerCase(Locale.ROOT));
         }
         final String name = out.toString();
         return name.isEmpty() ? frame.name() : name;
@@ -306,7 +307,7 @@ public final class MaterialGroupRegistry
         }
         final Map<String, MaterialGroup> byName = new LinkedHashMap<String, MaterialGroup>(groupsByName);
         final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<Material, MaterialGroup>(groupsByStructureMaterial);
-        byName.put(group.getName().toLowerCase(), group);
+        byName.put(group.getName().toLowerCase(Locale.ROOT), group);
         byMaterial.put(group.getStructureMaterial(), group);
         groupsByName = Collections.unmodifiableMap(byName);
         groupsByStructureMaterial = Collections.unmodifiableMap(byMaterial);
@@ -333,7 +334,7 @@ public final class MaterialGroupRegistry
         {
             return null;
         }
-        final Material m = Material.matchMaterial(raw.toString().trim().toUpperCase());
+        final Material m = Material.matchMaterial(raw.toString().trim().toUpperCase(Locale.ROOT));
         if (m == null)
         {
             warn("Material group \"" + groupName + "\" has unrecognised " + key + " material \"" + raw + "\".");

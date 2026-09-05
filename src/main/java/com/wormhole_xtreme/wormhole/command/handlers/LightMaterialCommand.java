@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.Locale;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
@@ -48,7 +49,7 @@ public class LightMaterialCommand implements SubCommand
                         Material m = null;
                         try
                         {
-                            m = Material.valueOf(args[2].trim().toUpperCase());
+                            m = Material.valueOf(args[2].trim().toUpperCase(Locale.ROOT));
                         }
                         catch (final Exception e)
                         {

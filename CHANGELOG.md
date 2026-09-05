@@ -182,6 +182,77 @@ server owner's language to begin with.
 The rest of the plugin still folds case in the default locale in about seventy other places.
 Those are a separate sweep, deliberately not swept up here.
 
+### The rest of the plugin worked in English and not much else
+
+The sweep the entry above deferred. Sixty-seven bare `toLowerCase()` / `toUpperCase()` calls
+across twenty-two files now fold against `Locale.ROOT`, for the same reason the five in
+`/wormhole config` already did: every one of them compares player text, a file's text, or an
+enum's own name against a fixed ASCII identifier, and none of them was ever the server
+owner's language.
+
+The scope was written up beforehand as "not all sixty-seven are bugs" -- the reasoning being
+that where both sides of a comparison go through the same fold they agree, so the prefix
+matching behind tab completion was safe. That was wrong, and reading the code rather than the
+pattern is what showed it. The two sides go through the same *function*, but not from the
+same *kind* of input: one side is a literal spelled out in the source, the other is what a
+player typed. Turkish lower-cases `I` to a dotless `ı` and leaves `i` alone, so `"LIST"` folds
+to `lıst` while a typed `list` stays `list`. Folding both sides does not save a comparison
+when only one side has an `I` in it to begin with.
+
+So the failures are wider than the ones that got listed. On a Turkish server, before this:
+
+```
+> /wormhole RING
+Invalid request.
+```
+
+`ring` and `config` are two of the five commands this plugin advertises, and both carry an
+`i`. Typing either in upper case reached nothing. Tab completion had it in the other
+direction -- typing `RI` and pressing tab offered nothing at all, because the folded prefix
+no longer starts the word `ring`.
+
+Below that: `gate edit <gate> IRIS <material>` answered "No such field"; the iris, light and
+portal material commands refused every material with an `i` in it (`ice`, `iron_block`,
+`brick_slab`); and `ring edit access private` was refused outright, the exact bug the entry
+above fixed for `RING_DEFAULT_ACCESS`, still sitting in the sibling command that sets the
+same value on a built pair.
+
+Two were quieter than any of those. A `.shape` file's `SIGN_MATERIAL` line is resolved inside
+a catch block that ignores unknown names, so a rejected material was not logged, not
+reported, and not visible anywhere -- the shape just used its default sign as though the line
+had never been written. And `config.yml`'s migration writer builds each key by lower-casing
+the setting's own name, which on such a server produced `gate-sound-ırıs-open`: a key the
+plugin then could not read back, written into the file by the plugin itself.
+
+`RingStyle.parse` broke in the direction nobody would guess. It folds the typed text *and*
+the enum constant's name, so `SEQUENTIAL` in upper case kept working -- both sides mangle
+identically -- while ordinary lower-case `sequential` stopped matching, because only the
+constant's name changes under the fold. The one spelling a player would actually type was the
+one that failed.
+
+Three of the sixty-seven were deleted rather than fixed. `Boolean.valueOf(x.toLowerCase())`
+in the cooldown, restrict and redstone commands folds a value that `Boolean.parseBoolean`
+already compares case-insensitively, behind a guard (`CommandUtilities.isBoolean`) that
+already uses `equalsIgnoreCase`. Adding `Locale.ROOT` to a fold that should not exist would
+have been the wrong repair. Those three now parse the argument as typed, and the two that
+echo the result report the value that was actually set rather than a re-folded copy of the
+input.
+
+One thing genuinely changes behaviour rather than restoring it. Gate and beam destination
+names are player text, not identifiers, and are keyed in memory by their folded form. Those
+now fold against `Locale.ROOT` too, so a name resolves the same way whatever locale the
+server starts in. Both halves already used the same fold, so nothing breaks within a single
+run either way; what this fixes is a server whose locale changes between runs, where the
+names written to disk under one fold would no longer be found under the other.
+
+Six tests, all confirmed failing against the old code first, split by what they guard:
+`CommandLookupLocaleTest` for finding a command, `IdentifierParsingLocaleTest` for reading an
+identifier out of a file or an argument. Both set the default locale to `tr_TR` and put it
+back afterwards, in the shape `SettingLookupLocaleTest` established -- Surefire runs
+sequentially here, so swapping JVM-wide state is safe as long as it is restored.
+
+569 tests pass.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally

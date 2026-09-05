@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import java.util.Locale;
 import java.util.UUID;
 
 import org.bukkit.Material;
@@ -50,7 +51,7 @@ public class RingCommand implements SubCommand
             return true;
         }
         final Player player = (Player) sender;
-        final String verb = (args.length > 1) ? args[1].toLowerCase() : "help";
+        final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "help";
 
         if ("create".equals(verb))
         {
@@ -558,7 +559,7 @@ public class RingCommand implements SubCommand
             return true;
         }
 
-        final String field = args[fieldAt].toLowerCase();
+        final String field = args[fieldAt].toLowerCase(Locale.ROOT);
         final String value = noValue ? "" : join(args, fieldAt + 1);
         // Naming a pair means both ends; standing in one means that end only. Materials are
         // per end precisely so a base and a mine can each look like where they are.
@@ -598,7 +599,7 @@ public class RingCommand implements SubCommand
         {
             try
             {
-                pair.setAccess(RingAccess.valueOf(value.toUpperCase()));
+                pair.setAccess(RingAccess.valueOf(value.toUpperCase(Locale.ROOT)));
             }
             catch (final IllegalArgumentException e)
             {

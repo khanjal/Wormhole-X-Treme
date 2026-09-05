@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.beam;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,17 +30,17 @@ public final class BeamManager
 
     public static void setPublicDestination(final BeamDestination destination)
     {
-        PUBLIC.put(destination.getName().toLowerCase(), destination);
+        PUBLIC.put(destination.getName().toLowerCase(Locale.ROOT), destination);
     }
 
     public static BeamDestination getPublicDestination(final String name)
     {
-        return name == null ? null : PUBLIC.get(name.toLowerCase());
+        return name == null ? null : PUBLIC.get(name.toLowerCase(Locale.ROOT));
     }
 
     public static boolean removePublicDestination(final String name)
     {
-        return name != null && PUBLIC.remove(name.toLowerCase()) != null;
+        return name != null && PUBLIC.remove(name.toLowerCase(Locale.ROOT)) != null;
     }
 
     public static Collection<BeamDestination> getAllPublicDestinations()
@@ -54,7 +55,7 @@ public final class BeamManager
     public static void setPlace(final UUID owner, final BeamDestination place)
     {
         PLACES.computeIfAbsent(owner, k -> new ConcurrentHashMap<String, BeamDestination>())
-            .put(place.getName().toLowerCase(), place);
+            .put(place.getName().toLowerCase(Locale.ROOT), place);
     }
 
     public static BeamDestination getPlace(final UUID owner, final String name)
@@ -64,7 +65,7 @@ public final class BeamManager
             return null;
         }
         final Map<String, BeamDestination> places = PLACES.get(owner);
-        return places == null ? null : places.get(name.toLowerCase());
+        return places == null ? null : places.get(name.toLowerCase(Locale.ROOT));
     }
 
     public static boolean removePlace(final UUID owner, final String name)
@@ -74,7 +75,7 @@ public final class BeamManager
             return false;
         }
         final Map<String, BeamDestination> places = PLACES.get(owner);
-        return places != null && places.remove(name.toLowerCase()) != null;
+        return places != null && places.remove(name.toLowerCase(Locale.ROOT)) != null;
     }
 
     public static Collection<BeamDestination> getPlaces(final UUID owner)

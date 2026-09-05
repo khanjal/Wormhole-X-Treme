@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.command.CommandSender;
@@ -164,7 +165,7 @@ public class GateEditCommand implements SubCommand
      */
     public static boolean isField(final String field)
     {
-        return (field != null) && FIELDS.containsKey(field.toLowerCase());
+        return (field != null) && FIELDS.containsKey(field.toLowerCase(Locale.ROOT));
     }
 
     @Override
@@ -189,7 +190,7 @@ public class GateEditCommand implements SubCommand
             return true;
         }
         final String gate = args[2];
-        final String field = args[3].toLowerCase();
+        final String field = args[3].toLowerCase(Locale.ROOT);
         final Field handler = FIELDS.get(field);
         if (handler == null)
         {

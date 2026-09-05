@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -25,11 +26,11 @@ public class DialTabCompleter implements TabCompleter
         }
         if (args.length == 1)
         {
-            final String prefix = args[0].toLowerCase();
+            final String prefix = args[0].toLowerCase(Locale.ROOT);
             for (final Stargate g : StargateManager.getAllGates())
             {
                 final String name = g.getGateName();
-                if ((prefix.length() == 0) || name.toLowerCase().startsWith(prefix))
+                if ((prefix.length() == 0) || name.toLowerCase(Locale.ROOT).startsWith(prefix))
                 {
                     out.add(name);
                 }

@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
+import java.util.Locale;
+
 /**
  * How a ring stack comes out.
  *
@@ -76,10 +78,10 @@ public enum RingStyle
         {
             return null;
         }
-        final String wanted = text.trim().toLowerCase();
+        final String wanted = text.trim().toLowerCase(Locale.ROOT);
         for (final RingStyle style : values())
         {
-            if (style.name().toLowerCase().equals(wanted) || style.aliases.contains(wanted))
+            if (style.name().toLowerCase(Locale.ROOT).equals(wanted) || style.aliases.contains(wanted))
             {
                 return style;
             }

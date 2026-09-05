@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -117,7 +118,7 @@ public final class RingYamlManager
         final File[] files = directory.listFiles((d, name) ->
             // pending.yml sits in here too and is not a world.
             !name.equalsIgnoreCase("pending.yml")
-                && (name.toLowerCase().endsWith(".yml") || name.toLowerCase().endsWith(".yaml")));
+                && (name.toLowerCase(Locale.ROOT).endsWith(".yml") || name.toLowerCase(Locale.ROOT).endsWith(".yaml")));
         if (files == null)
         {
             return 0;

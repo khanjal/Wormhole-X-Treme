@@ -37,8 +37,9 @@ public class RestrictCommand implements SubCommand
         // always returned -1. Build restriction is a plain on/off switch.
         if ((args.length == 2) && com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[1]))
         {
-            ConfigManager.setBuildRestrictionEnabled(Boolean.valueOf(args[1].toLowerCase()));
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole build count restrictions set to: " + args[1].toLowerCase());
+            final boolean enabled = Boolean.parseBoolean(args[1]);
+            ConfigManager.setBuildRestrictionEnabled(enabled);
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole build count restrictions set to: " + enabled);
         }
         else
         {
