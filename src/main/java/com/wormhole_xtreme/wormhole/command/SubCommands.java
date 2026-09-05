@@ -217,7 +217,7 @@ public final class SubCommands
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
         register("activate_timeout", aliases(), "/wormhole activate_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
-        register("cooldown", aliases(), "/wormhole cooldown <true|false|seconds>",
+        register("cooldown", aliases(), "/wormhole cooldown <seconds> or <true|false>",
             new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, args ->
                 args.length == 2 ? prefixed(args[1], "true", "false") : none());
         // Kept dispatchable, but it reports that build restriction is gone rather than

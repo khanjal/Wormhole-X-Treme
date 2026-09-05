@@ -39,8 +39,42 @@ public class StargateRestrictions
         }
         final long cooldownSeconds = ConfigManager.getUseCooldownSeconds();
         getPlayerUseCooldownStart().put(player, System.nanoTime());
-        // scheduleSyncDelayedTask expects an int/ticks on some platforms; cast explicitly to avoid lossy-conversion errors
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), (int) (cooldownSeconds * 20L));
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), cooldownTicks(cooldownSeconds));
+    }
+
+    /**
+     * How many ticks to wait before clearing a cooldown, for a wait given in seconds.
+     *
+     * <p>{@code scheduleSyncDelayedTask} takes an {@code int} of ticks, and the obvious
+     * {@code (int) (seconds * 20L)} wraps: past 107,374,182 seconds the product exceeds
+     * {@link Integer#MAX_VALUE} and comes back negative, which Bukkit runs on the next tick.
+     * The result is the exact inverse of what was asked for -- a cooldown set absurdly long
+     * becomes no cooldown at all -- and it fails silently, since nothing about a task running
+     * early looks like an arithmetic problem.
+     *
+     * <p>That was unreachable until this setting became real: the value was previously a
+     * hardcoded 120 that no command or config file could change. Now that an admin can type a
+     * number into {@code config.yml}, both ends of the range need to hold. A negative wait is
+     * treated as no wait, and anything too large to schedule saturates at
+     * {@link Integer#MAX_VALUE} ticks, which is a little over three years -- long enough to
+     * read as "forever", which is what someone setting a number that size meant.
+     *
+     * @param seconds
+     *            the configured wait, which may be any value the file contains
+     * @return a tick count that is safe to schedule
+     */
+    static int cooldownTicks(final long seconds)
+    {
+        if (seconds <= 0L)
+        {
+            return 0;
+        }
+        // Tested against the limit rather than multiplying and checking the product: the
+        // product overflows long as well, well before it is compared, so a large enough
+        // value came back negative from the very check meant to catch it.
+        final long longestExact = Integer.MAX_VALUE / 20L;
+        return (seconds > longestExact) ? Integer.MAX_VALUE : (int) (seconds * 20L);
     }
 
     /**

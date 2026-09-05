@@ -319,6 +319,21 @@ so the message is now evidence the write landed instead of a restatement of what
 which is precisely what the old one got wrong. Anyone with the group form in a script is told
 the groups are gone rather than being quietly ignored.
 
+Making the setting real is what first put an arbitrary number into the scheduler. The wait is
+converted to ticks for `scheduleSyncDelayedTask`, which takes an `int`, and
+`(int) (seconds * 20L)` wraps past 107,374,182 seconds -- coming back negative, which Bukkit
+runs on the next tick. A cooldown set absurdly long would have cleared itself immediately: the
+exact inverse of what was asked for, and silent, since a task firing early looks nothing like
+an arithmetic fault. That was unreachable while the value was a hardcoded 120 no file could
+change, so it arrives as a bug in the same change that fixes the setting. `cooldownTicks`
+saturates instead, and treats a negative wait as no wait.
+
+The first version of that guard multiplied and then checked the product, which is wrong for the
+same reason at one remove: the product overflows `long` as well, so a large enough value came
+back negative from the very comparison meant to catch it. The test found it -- the case with
+`Long.MAX_VALUE / 2` in it failed on the first run. It now tests the input against the limit
+before multiplying.
+
 ### `/wormhole restrict` was three layers of doing nothing
 
 The same fault, further along. `BUILD_RESTRICTION_ENABLED` was unregistered, so the setter

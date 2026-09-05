@@ -17,6 +17,11 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * write went nowhere and the read fell back to a hardcoded literal: the command reported
  * "cooldown time set to: 300" and the cooldown stayed at 120. Only one of the three groups
  * was read by anything at all, so a single setting is what the feature actually was.
+ *
+ * <p>The bounds below apply to what is typed here, not to {@code config.yml} -- an admin
+ * editing the file directly is trusted with whatever they write, and
+ * {@code StargateRestrictions.cooldownTicks} is what keeps an extreme value in that file
+ * schedulable.
  */
 public class CooldownCommand implements SubCommand
 {
@@ -120,10 +125,14 @@ public class CooldownCommand implements SubCommand
      */
     private static void usage(final CommandSender sender)
     {
+        // Two lines rather than one <true|false|seconds> alternation. Sharing a bracket
+        // group with two literals made the third read like a literal too -- as though the
+        // word "seconds" were what you typed.
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-            + "Command: /wormhole cooldown <true|false|seconds>");
+            + "Command: /wormhole cooldown <seconds> - how long to wait between trips, "
+            + MIN_SECONDS + " to " + MAX_SECONDS + ".");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-            + "Valid cooldown times are between " + MIN_SECONDS + " and " + MAX_SECONDS + " seconds.");
+            + "         /wormhole cooldown <true|false> - switch cooldowns on or off.");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
             + "Cooldowns enabled: " + ConfigManager.isUseCooldownEnabled()
             + ", currently " + ConfigManager.getUseCooldownSeconds() + " seconds.");
