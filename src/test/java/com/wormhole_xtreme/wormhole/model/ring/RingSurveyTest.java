@@ -54,6 +54,13 @@ public class RingSurveyTest
             return this;
         }
 
+        /** Takes one block back out again, for digging a hole in a floor already laid. */
+        Room clear(final int x, final int y, final int z)
+        {
+            solid.remove(Long.valueOf(RingIndex.pack(x, y, z)));
+            return this;
+        }
+
         Room bounds(final int minHeight, final int maxHeight)
         {
             this.min = minHeight;
@@ -191,7 +198,7 @@ public class RingSurveyTest
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1).layer(ring, PLANE + Ring.STACK_HEIGHT);
         final int[] corner = ring.interiorBlocks().get(0);
-        room.solid.remove(Long.valueOf(RingIndex.pack(corner[0], PLANE - 1, corner[2])));
+        room.clear(corner[0], PLANE - 1, corner[2]);
         assertEquals(RingBlockage.NO_GROUND, survey(room, ring),
             "one missing floor block is a hole to fall through");
     }

@@ -17,8 +17,10 @@ package com.wormhole_xtreme.wormhole.model.ring;
  * arriving next to it is no trouble — you can walk away, or step back in and go home.
  *
  * <p>Room to stand and room to work are separate questions, and the ceiling answers them
- * differently. A stack is four blocks tall and a traveller is two, so a room can have space
- * for somebody and no space for the rings that are supposed to arrive around them.
+ * differently. A stack is {@link Ring#STACK_HEIGHT} blocks tall and a traveller is two, so a
+ * room can have space for somebody and no space for the rings that are supposed to arrive
+ * around them. The number is deliberately not written down here: it falls out of how far
+ * apart the rings settle, and a comment repeating it would be the first thing to go stale.
  *
  * <p>The last two are a ceiling ring's own problem. Its rings fall all the way to the floor
  * and stack up from there, so it needs a floor to fall to: near enough that they reach it,
