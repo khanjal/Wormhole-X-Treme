@@ -128,6 +128,36 @@ public class WorldUtilsTest {
     }
 
     @Test
+    public void correctingAnAlreadyCorrectedLocationChangesNothingFurther() {
+        // The property that lets BeamAnimation.start own this correction for every beam it
+        // runs, instead of each caller applying it just before calling in. Every call site
+        // used to do it separately and identically, which made it a convention the next
+        // caller could forget rather than a guarantee. Folding it inward is only safe if
+        // running it twice is the same as running it once -- a caller that still snaps its
+        // own location first must not have that undone or nudged again.
+        //
+        // Two things could break this: the search preferring some *other* standable spot
+        // over the exact one it is handed, and the +0.5 block-centring accumulating on each
+        // pass. It searches dy=0 first, and getBlockX() of an already-centred x is the same
+        // integer it started from, so neither does -- but neither is obvious enough from
+        // reading it to leave unpinned now that correctness depends on it.
+        final World world = worldWithGroundAt(61);
+        final Location stored = new Location(world, 5, 64, 9, 12.0f, 34.0f);
+
+        final Location once = WorldUtils.findSafePlayerLocation(stored);
+        final Location twice = WorldUtils.findSafePlayerLocation(once);
+
+        assertEquals(once.getX(), twice.getX(), 1e-9,
+            "a second correction must not re-centre an already-centred x");
+        assertEquals(once.getY(), twice.getY(), 1e-9,
+            "nor move a location that is already resting on standable ground");
+        assertEquals(once.getZ(), twice.getZ(), 1e-9,
+            "a second correction must not re-centre an already-centred z");
+        assertEquals(once.getYaw(), twice.getYaw(), "facing must survive a second pass too");
+        assertEquals(once.getPitch(), twice.getPitch());
+    }
+
+    @Test
     public void findSafePlayerLocationPassesThroughNullsUnchanged() {
         assertNull(WorldUtils.findSafePlayerLocation(null));
 

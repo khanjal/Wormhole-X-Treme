@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
-import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * Resolves a name to a beam destination and sends the player there -- shared by
@@ -73,15 +72,9 @@ public final class BeamTravel
                 + "That destination's world is not currently loaded.");
             return true;
         }
-        // Terrain can drift away from the coordinates a destination was set at -- dug out,
-        // built up, whatever -- since nothing here re-checks them until someone actually
-        // travels. Snapping to the nearest standable ground now, once, means the real
-        // teleport and the arrival column both end up at the same corrected spot: this
-        // location becomes BeamAnimation.Sequence's destination field, which both the
-        // teleport call and the descend/fade columns already share, so there is nothing
-        // further to keep in sync.
-        final Location location = WorldUtils.findSafePlayerLocation(stored);
-
+        // Terrain drift away from a destination's recorded coordinates is corrected by
+        // BeamAnimation.start, for every beam it runs rather than per caller -- the stored
+        // point goes in as-is from here.
         final boolean bypassesLimits = BeamPermissions.has(player, BeamPermissions.ADMIN);
 
         if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled() && BeamCooldown.isActive(player))
@@ -119,7 +112,7 @@ public final class BeamTravel
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
         // there is nothing left to do with its result either way -- this call has handled
         // the attempt fully regardless of which way it went.
-        BeamAnimation.start(player, location, destination.getName(), () ->
+        BeamAnimation.start(player, stored, destination.getName(), () ->
         {
             if (useCost > 0)
             {

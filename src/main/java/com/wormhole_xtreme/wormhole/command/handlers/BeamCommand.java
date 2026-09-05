@@ -14,7 +14,6 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamPermissions;
 import com.wormhole_xtreme.wormhole.model.beam.BeamTravel;
 import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
-import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
  * Handler for {@code /wormhole beam}.
@@ -319,7 +318,7 @@ public class BeamCommand implements SubCommand
         // BeamAnimation.start already refuses (and messages the player) if they're mid-beam,
         // and sends its own "Beaming to X..."/"Beamed to X." messages either way -- nothing
         // further to say here regardless of which way it goes.
-        BeamAnimation.start(player, WorldUtils.findSafePlayerLocation(destination), describeDestination(args, 3));
+        BeamAnimation.start(player, destination, describeDestination(args, 3));
         return true;
     }
 
@@ -361,7 +360,7 @@ public class BeamCommand implements SubCommand
             return true;
         }
         final String label = describeDestination(args, 4);
-        final boolean started = BeamAnimation.start(target, WorldUtils.findSafePlayerLocation(destination), label);
+        final boolean started = BeamAnimation.start(target, destination, label);
         // The target already hears BeamAnimation's own messages; this is for whoever sent
         // them, who is very often not the same person (console, a command block, or a
         // different admin) and would otherwise have no idea whether it worked.
