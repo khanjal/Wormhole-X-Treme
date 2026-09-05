@@ -53,6 +53,40 @@ class StargateDialManager
      */
     static void teleportSignClicked(final Stargate gate, final boolean forward)
     {
+        updateDialSign(gate, forward ? 1 : -1);
+    }
+
+    /**
+     * Works out what the dial sign is currently showing, without changing it.
+     *
+     * <p>A gate's selected destination is two things: an index, which is saved with the gate,
+     * and the {@link Stargate} at that index, which is not -- it is worked out from the
+     * network when the sign is clicked. So a freshly loaded gate has a sign in the world
+     * naming a destination, an index agreeing with it, and no destination object at all, and
+     * pressing its button dialled nothing.
+     *
+     * <p>The fix has to resolve the index without advancing it. Recovering by pretending
+     * someone had clicked the sign moved the selection on by one, so the first press after a
+     * restart dialled nothing and the second dialled the gate <em>after</em> the one the sign
+     * had been left showing.
+     *
+     * @param gate
+     *            the gate whose selection should be resolved
+     */
+    static void refreshSignTarget(final Stargate gate)
+    {
+        updateDialSign(gate, 0);
+    }
+
+    /**
+     * Rewrites the dial sign, moving the selection by {@code step} places first.
+     *
+     * @param gate the gate whose sign to rewrite
+     * @param step {@code 1} for the next destination, {@code -1} for the previous,
+     *             {@code 0} to re-resolve the one already selected
+     */
+    private static void updateDialSign(final Stargate gate, final int step)
+    {
         // Fetch the sign block state first.
         final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
         if (!(bState instanceof Sign))
@@ -136,16 +170,22 @@ class StargateDialManager
         int idx = gate.getGateDialSignIndex();
         if (idx < 0)
         {
+            if (step == 0)
+            {
+                // Nothing has ever been selected on this sign, so there is nothing to
+                // restore. A refresh recovers a choice somebody made; it does not make one
+                // for them, or a gate would dial a destination its sign never showed.
+                return;
+            }
             // First click: start at the beginning regardless of direction.
             idx = 0;
         }
-        else if (forward)
-        {
-            idx = (idx + 1) % others.size();
-        }
         else
         {
-            idx = (idx - 1 + others.size()) % others.size();
+            // Modulo twice so a backward step wraps rather than going negative, and so a
+            // saved index left stranded past the end -- peers can be removed while a gate is
+            // unloaded -- lands back inside the list instead of throwing.
+            idx = (((idx + step) % others.size()) + others.size()) % others.size();
         }
         gate.setGateDialSignIndex(idx);
 

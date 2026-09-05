@@ -419,6 +419,109 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     /**
+     * A gate part way through dialling is not dialled a second time.
+     *
+     * <p>Reported from in game: a sign gate with redstone wired to its DHD dialled twice from
+     * one press of the lever. Opening a gate switches the gate's own lever on, which powers
+     * whatever the player wired to it, and every one of those changes arrives back at this
+     * listener as an ordinary rising edge.
+     *
+     * <p>What made it a second dial rather than a harmless re-trigger is the order inside the
+     * dial: the gate is marked active first and its target is assigned afterwards, so a signal
+     * landing in that gap found a gate that was active but had no target, matched neither
+     * "already open" nor "lit but never dialled", and fell through to the sign branch -- which
+     * dialled it again from inside its own first dial.
+     */
+    @Test
+    public void aGatePartWayThroughDiallingIsNotDialledAgain()
+    {
+        final World world = mock(World.class);
+        final int dx = 700, dy = 64, dz = 800;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("midDialTest");
+
+        final Block lever = mock(Block.class);
+        when(lever.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(lever.getX()).thenReturn(dx);
+        when(lever.getY()).thenReturn(dy);
+        when(lever.getZ()).thenReturn(dz);
+        when(lever.getType()).thenReturn(Material.LEVER);
+
+        // The dust the player wired to the DHD, which the lever powers as the gate opens.
+        final Block dust = mock(Block.class);
+        when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getX()).thenReturn(dx + 1);
+        when(dust.getY()).thenReturn(dy);
+        when(dust.getZ()).thenReturn(dz);
+        when(dust.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        gate.setGateDialLeverBlock(lever);
+        gate.setGateRedstonePowered(true);
+        gate.setGateSignPowered(true);
+
+        final Stargate target = new Stargate();
+        target.setGateName("targetGate");
+        doReturn(target).when(gate).getGateDialSignTarget();
+        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+
+        StargateManager.registerStargate(gate);
+        setScheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
+        try
+        {
+            // Exactly the state the gate is in when its own lever goes up: active, no target.
+            gate.setGateActive(true);
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
+            verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+
+            // The same signal on a closed gate does dial, which is what proves the check above
+            // is the state guard doing the work and not the signal failing to reach the branch.
+            // History cleared because the call above stamped it, and a stamp inside the window
+            // would silence this one for a reason that has nothing to do with what is tested.
+            WormholeXTremeRedstoneListener.clearTriggerHistory();
+            gate.setGateActive(false);
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
+            verify(gate).dialStargate(eq(target), eq(false));
+        }
+        finally
+        {
+            setScheduler(null);
+            StargateManager.removeStargate(gate);
+        }
+    }
+
+    /**
+     * Redstone the plugin raised itself, opening a gate, never counts as a trigger.
+     *
+     * <p>The plugin switches a gate's own dial lever and [RA] output as it opens, and Bukkit
+     * reports those writes straight back here. The state guard above catches the case that was
+     * actually reported; this catches the class it belongs to, because a gate's own levers
+     * power whatever is wired to them and those conductors are not the gate's own blocks, so
+     * no rule about which block may trigger can recognise them.
+     */
+    @Test
+    public void redstoneRaisedByThePluginsOwnWritesIsIgnored()
+    {
+        final Stargate gate;
+        com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite.begin();
+        try
+        {
+            gate = fireRedstoneNextToDhd(Material.REDSTONE_WIRE, 1, 0, 0, false);
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite.end();
+        }
+        verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+
+        // The identical signal outside the window dials, so the guard is what suppressed it.
+        WormholeXTremeRedstoneListener.clearTriggerHistory();
+        final Stargate unguarded = fireRedstoneNextToDhd(Material.REDSTONE_WIRE, 1, 0, 0, false);
+        verify(unguarded, atLeastOnce()).dialStargate(any(Stargate.class), eq(false));
+    }
+
+    /**
      * A second dust block in the same run does not dial the gate a second time.
      *
      * <p>Reported from in game: running redstone past the button and up to the marker

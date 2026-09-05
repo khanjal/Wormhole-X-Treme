@@ -13,6 +13,7 @@ import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
@@ -123,6 +124,14 @@ class WormholeXTremeRedstoneListener implements Listener
             return;
         }
 
+        // A gate opening switches its own levers, and Bukkit reports those writes back here
+        // as ordinary redstone changes. They are not a player's circuit and must not act as
+        // one -- doing so dialled a sign gate a second time in the middle of its first dial.
+        if (GateRedstoneWrite.inProgress())
+        {
+            return;
+        }
+
         Stargate stargate = StargateManager.getGateFromBlock(block);
         if (stargate == null)
         {
@@ -220,7 +229,11 @@ class WormholeXTremeRedstoneListener implements Listener
                     }
                     lastTrigger.put(gateKey, Long.valueOf(now));
 
-                    if (stargate.isGateActive() && (stargate.getGateTarget() != null))
+                    // Asked of the gate alone, not of the gate and its target together. A gate
+                    // is marked active before its target is assigned, so a signal arriving in
+                    // that gap used to fall through to the sign branch below and dial a gate
+                    // that was already dialling.
+                    if (stargate.isGateActive())
                     {
                         // Already open. This used to close the gate, which made repeated
                         // triggers useless: a second minecart over a detector rail shut the
@@ -261,6 +274,13 @@ class WormholeXTremeRedstoneListener implements Listener
                     else if (stargate.isGateSignPowered())
                     {
                         // Closed and sign-powered: dial whatever the dial sign is showing.
+                        // A gate that has not had its sign clicked since the server came up
+                        // has no destination object yet, only the saved index that names one,
+                        // so resolve that first rather than refusing to dial.
+                        if ((stargate.getGateDialSignTarget() == null) && (stargate.getGateDialSignBlock() != null))
+                        {
+                            stargate.refreshDialSignTarget();
+                        }
                         final Stargate signTarget = stargate.getGateDialSignTarget();
                         if (signTarget != null)
                         {

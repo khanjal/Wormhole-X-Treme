@@ -445,9 +445,15 @@ final class GateInteractionHandler
                 final boolean isOwnerInner = player.isOp() || stargate.isOwner(player);
                 if (isOwnerInner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
                 {
-                    if ((stargate.getGateDialSign() == null) && (stargate.getGateDialSignBlock() != null))
+                    // Asked whenever there is no destination object, not just when the sign
+                    // object is missing: after a load a gate can have both its sign and its
+                    // saved index and still no destination, which is exactly the case that
+                    // left the first press after a restart dialling nothing. Resolving is
+                    // immediate and does not advance the selection, so the gate dials what
+                    // the sign has been showing all along.
+                    if ((stargate.getGateDialSignTarget() == null) && (stargate.getGateDialSignBlock() != null))
                     {
-                        stargate.tryClickTeleportSign(stargate.getGateDialSignBlock());
+                        stargate.refreshDialSignTarget();
                     }
 
                     if (stargate.getGateDialSignTarget() != null)
