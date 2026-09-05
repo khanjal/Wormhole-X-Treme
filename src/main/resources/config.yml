@@ -76,9 +76,10 @@ sign-color-neighbour: GRAY
 #            instead of the frame material becomes allowed — it is never required, so
 #            gates already standing keep working and keep being detected. Leave it out
 #            and chevrons are ordinary frame blocks, invisible until they light.
-#            Setting `light` to the same block gives the neatest result: a REDSTONE_LAMP
-#            or COPPER_BULB chevron then simply switches on rather than turning into a
-#            different block. (COPPER_BULB needs Minecraft 1.21 or newer.)
+#            A block with an off and an on state (REDSTONE_LAMP, or COPPER_BULB on
+#            Minecraft 1.21+) simply switches on when the gate dials, which is the look
+#            worth having. Anything else — a GOLD_BLOCK chevron, say — has no on state,
+#            so it lights as `light` above instead.
 gate-material-groups:
   Standard:
     structure: OBSIDIAN
