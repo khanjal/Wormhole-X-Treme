@@ -1250,10 +1250,14 @@ class StargateBlockSetup
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
                     "Moved " + entity.getType() + " clear of closing iris on gate: " + gate.getGateName());
             }
-            catch (final Throwable t)
+            catch (final RuntimeException t)
             {
+                // One entity that cannot be moved does not stop the iris closing, or stop
+                // the rest of the sweep. Errors are left to propagate rather than being
+                // swallowed here, where they would look like an ordinary immovable mob.
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
-                    "Failed to move entity clear of closing iris: " + t.getMessage());
+                    "Failed to move " + entity.getType() + " clear of closing iris on gate: "
+                        + gate.getGateName() + ": " + t.getMessage());
             }
         }
     }

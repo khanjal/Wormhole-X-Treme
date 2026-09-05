@@ -44,6 +44,13 @@ gets a block in the face, and the answer is the head. Someone whose feet are on 
 the opening has their head in its lowest portal block, and the naive version walked right past
 them. Both blocks are checked now.
 
+The per-entity guard around the move catches `RuntimeException`, not `Throwable`. One mob that
+cannot be moved should not stop the iris closing or stop the rest of the sweep, which is the
+whole point of guarding each entity separately; a JVM error is not that, and swallowing it here
+would have made a broken build look like an ordinary immovable mob. What it logs now names the
+entity and the gate -- "failed to move entity" on a server running several irises said almost
+nothing.
+
 ### `HorizontalSignDial` could not be built at all
 
 Found reading the shape files while working out whether the DHD could become a type a gate
