@@ -464,10 +464,15 @@ final class GateInteractionHandler
      */
     static void forceClearStaleActivation(final Stargate stargate, final Player player)
     {
+        // Stop timers and clear visual state. Deliberately before the activator lookup, which
+        // is only needed to write the messages below: removeActivatorForStargate tolerates a
+        // null gate and returns null, so calling it first says nothing about whether the gate
+        // exists and leaves every dereference after it looking unguarded. Clearing first is
+        // the dereference that settles it. The two do not interact -- one touches timers,
+        // lever and lights, the other only the activated-gate map -- so the order is free.
+        clearActivation(stargate);
         // Attempt to force-clear stale activation mapping so gate can be deactivated.
         final Player activator = StargateManager.removeActivatorForStargate(stargate);
-        // Stop timers and clear visual state
-        clearActivation(stargate);
 
         if (activator == null)
         {

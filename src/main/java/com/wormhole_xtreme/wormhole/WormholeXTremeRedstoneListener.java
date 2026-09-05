@@ -318,11 +318,17 @@ class WormholeXTremeRedstoneListener implements Listener
      */
     private static void deactivateLitGate(final Stargate stargate)
     {
-        final Player activator = StargateManager.removeActivatorForStargate(stargate);
+        // Clearing the gate comes before the activator lookup, which is only needed for the
+        // message below. removeActivatorForStargate tolerates a null gate and returns null, so
+        // leading with it leaves everything after it looking like an unguarded dereference.
+        // The two do not interact -- one touches timers, lever and lights, the other only the
+        // activated-gate map -- so the order is free to be the one that reads honestly.
         stargate.stopActivationTimer();
         stargate.setGateActive(false);
         stargate.toggleDialLeverState(false);
         stargate.lightStargate(false);
+
+        final Player activator = StargateManager.removeActivatorForStargate(stargate);
         if (activator != null)
         {
             activator.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
