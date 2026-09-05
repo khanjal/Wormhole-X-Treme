@@ -8,7 +8,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.entity.Boat;
 import org.bukkit.entity.Minecart;
 import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
@@ -32,6 +31,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -145,9 +145,6 @@ class WormholeXTremePlayerListener implements Listener
         return null;
     }
 
-    /** Maximum re-seat attempts before a passenger is given up on. */
-    private static final int MAX_REATTACH_ATTEMPTS = 12;
-
     /**
      * Teleports a player through a gate on their own, with no mount involved.
      *
@@ -170,57 +167,12 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
-     * Seats {@code passenger} on {@code parent}, retrying once via a position sync.
-     *
-     * @param parent
-     *            the entity to ride
-     * @param passenger
-     *            the entity to seat
-     * @return true if the passenger ends up aboard
-     */
-    private static boolean attachPassenger(final Entity parent, final Entity passenger)
-    {
-        try
-        {
-            if (parent.addPassenger(passenger))
-            {
-                return true;
-            }
-        }
-        catch (final RuntimeException t)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
-        }
-        // An earlier attempt may already have succeeded without reporting it.
-        try
-        {
-            if (parent.getPassengers().contains(passenger))
-            {
-                return true;
-            }
-        }
-        catch (final RuntimeException ignore) {}
-        // A passenger too far from its parent is refused, so close the gap and retry.
-        try
-        {
-            passenger.teleport(parent.getLocation());
-            return parent.addPassenger(passenger);
-        }
-        catch (final RuntimeException t)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after position sync failed: " + t.getMessage());
-        }
-        return false;
-    }
-
-    /**
      * Re-seats every passenger of {@code ridden} after it has been teleported through a
      * gate, then applies its exit velocity once the whole stack is aboard.
      *
-     * <p>Teleporting an entity detaches its passengers, and the client does not reliably
-     * accept the re-seat on the first try, so this retries on an exponential backoff.
-     * Boats additionally need a position re-sync or the client keeps drawing them at the
-     * departure point.
+     * <p>Moved to {@link PassengerReattach} once beaming needed to re-seat a stack too.
+     * Kept here as a delegate so the callers in this package read the same as they always
+     * did.
      *
      * @param ridden
      *            the boat or mount that was just teleported
@@ -231,101 +183,7 @@ class WormholeXTremePlayerListener implements Listener
      */
     private static void schedulePassengerReattach(final Entity ridden, final Player player, final Vector exitVelocity)
     {
-        final java.util.List<Entity> parents = new java.util.ArrayList<Entity>();
-        final java.util.List<Entity> children = new java.util.ArrayList<Entity>();
-        WormholeXTremeVehicleListener.collectPassengerPairs(ridden, parents, children);
-        // The teleport has usually already detached the moving player, so they will not
-        // appear in the collected tree — put them back explicitly.
-        if (!children.contains(player))
-        {
-            parents.add(ridden);
-            children.add(player);
-        }
-
-        final int[] attempts = new int[] { 0 };
-        final boolean[] attached = new boolean[children.size()];
-        final Runnable[] taskHolder = new Runnable[1];
-        taskHolder[0] = new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                attempts[0]++;
-                try
-                {
-                    if (!ridden.isValid())
-                    {
-                        return;
-                    }
-                    int remaining = 0;
-                    for (int i = 0; i < children.size(); i++)
-                    {
-                        if (attached[i])
-                        {
-                            continue;
-                        }
-                        final Entity psg = children.get(i);
-                        try
-                        {
-                            if (!psg.isValid())
-                            {
-                                continue;
-                            }
-                            if (attachPassenger(parents.get(i), psg))
-                            {
-                                attached[i] = true;
-                            }
-                            else
-                            {
-                                remaining++;
-                            }
-                        }
-                        catch (final RuntimeException t)
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
-                            remaining++;
-                        }
-                    }
-
-                    if (remaining == 0)
-                    {
-                        try
-                        {
-                            ridden.setVelocity(exitVelocity != null ? exitVelocity : new Vector(0, 0, 0));
-                            ridden.setFireTicks(0);
-                        }
-                        catch (final RuntimeException ignore) {}
-                        if (ridden instanceof Boat)
-                        {
-                            final Location resyncLoc = ridden.getLocation();
-                            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                            {
-                                @Override
-                                public void run()
-                                {
-                                    try { if (ridden.isValid()) { ridden.teleport(resyncLoc); } } catch (final RuntimeException ignore) {}
-                                }
-                            }, 3L);
-                        }
-                    }
-                    else if (attempts[0] < MAX_REATTACH_ATTEMPTS)
-                    {
-                        final long backoff = Math.min(1L << Math.max(0, attempts[0] - 1), 20L);
-                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], backoff);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to reattach passengers to " + ridden.getUniqueId() + " after " + attempts[0] + " attempts");
-                    }
-                }
-                catch (final RuntimeException t)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach: " + t.getMessage());
-                }
-            }
-        };
-        // 2-tick delay: there is no teleport-ack to wait for, the client re-seats immediately.
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 2);
+        PassengerReattach.schedule(ridden, player, exitVelocity);
     }
 
     /**

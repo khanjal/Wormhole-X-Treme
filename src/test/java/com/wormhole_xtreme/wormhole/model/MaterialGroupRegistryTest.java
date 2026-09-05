@@ -124,4 +124,67 @@ public class MaterialGroupRegistryTest
         assertEquals(Material.OBSIDIAN, fallback.getStructureMaterial());
         assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN));
     }
+
+    /**
+     * A palette can say what an unlit chevron is built from.
+     *
+     * <p>This is the one palette material that changes what a player has to build rather than
+     * only how it looks, so it is read like the rest but defaulted like none of them -- see
+     * the test below.
+     */
+    @Test
+    public void aPaletteCanNameTheMaterialItsUnlitChevronsAreBuiltFrom()
+    {
+        final Map<String, Object> standard = group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE");
+        standard.put("chevron", "REDSTONE_LAMP");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Standard", standard);
+
+        MaterialGroupRegistry.load(section);
+
+        assertEquals(Material.REDSTONE_LAMP,
+            MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN).getChevronMaterial());
+    }
+
+    /**
+     * A palette that says nothing about chevrons gets none, rather than a default.
+     *
+     * <p>Every other material here falls back to a built-in when the key is missing, and this
+     * one deliberately does not. A default would widen what detection accepts as a gate frame
+     * on every server that never asked for distinct chevrons -- silently, at the next restart,
+     * with nothing in the config to explain why an unfamiliar block now builds a gate.
+     */
+    @Test
+    public void aPaletteThatNamesNoChevronMaterialGetsNoneRatherThanADefault()
+    {
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
+
+        MaterialGroupRegistry.load(section);
+
+        assertNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN).getChevronMaterial(),
+            "an absent chevron key must mean no chevron material, not a built-in one");
+    }
+
+    /**
+     * An unreadable chevron material leaves the palette usable.
+     *
+     * <p>Consistent with how a bad portal or iris name is treated: the group still loads. A
+     * typo in an optional decorative key should cost the chevrons, not the whole palette and
+     * every gate built from it.
+     */
+    @Test
+    public void anUnreadableChevronMaterialDoesNotCostThePalette()
+    {
+        final Map<String, Object> standard = group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE");
+        standard.put("chevron", "NOT_A_REAL_BLOCK");
+        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        section.put("Standard", standard);
+
+        MaterialGroupRegistry.load(section);
+
+        final MaterialGroup g = MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN);
+        assertNotNull(g, "the palette itself must survive a bad chevron name");
+        assertNull(g.getChevronMaterial());
+    }
 }

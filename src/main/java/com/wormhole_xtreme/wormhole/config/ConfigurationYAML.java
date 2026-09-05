@@ -168,6 +168,13 @@ public class ConfigurationYAML
                 block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
                 block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
                 block.append("    sign: ").append(g.getSignMaterial().name()).append(System.lineSeparator());
+                // Written only when the shape this palette was derived from asked for one.
+                // Writing a placeholder would hand the server a palette whose gates must be
+                // built differently from the shape that suggested it.
+                if (g.getChevronMaterial() != null)
+                {
+                    block.append("    chevron: ").append(g.getChevronMaterial().name()).append(System.lineSeparator());
+                }
             }
 
             int sectionStart = -1;

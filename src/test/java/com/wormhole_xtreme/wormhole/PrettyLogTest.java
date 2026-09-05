@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  * Logging goes through the two-argument {@code prettyLog}, and the tag it builds is right.
  *
  * <p>{@code prettyLog(Level, boolean, String)} was the only form there was, and the boolean
- * says whether to put the plugin version in the tag. Almost nothing wants that: 263 of the 273
+ * says whether to put the plugin version in the tag. Almost nothing wants that: 268 of the 277
  * calls in the plugin passed a literal {@code false}, and the nine that passed {@code true} are
  * all startup and shutdown lines in {@link WormholeXTreme} itself. So the overwhelmingly common
  * call carried a bare boolean literal that told a reader nothing and sat directly beside the
@@ -39,7 +39,7 @@ public class PrettyLogTest
     /**
      * The short form logs the same line as the long form told not to include the version.
      *
-     * <p>This is not a formality. The mechanical rewrite that dropped {@code false} from 267
+     * <p>This is not a formality. The mechanical rewrite that dropped {@code false} from 268
      * call sites also rewrote the delegation inside the new overload, turning it into
      * {@code prettyLog(severity, message)} calling itself -- infinite recursion on the first
      * line the plugin ever logged.
@@ -65,7 +65,7 @@ public class PrettyLogTest
      * The tag is the plugin name in brackets, and the version only when asked for.
      *
      * <p>Pinned because the version lookup moved: it used to be read on every call and thrown
-     * away 263 times out of 273, and now happens only in the branch that uses it. The visible
+     * away 268 times out of 277, and now happens only in the branch that uses it. The visible
      * output has to be unchanged by that.
      */
     @Test

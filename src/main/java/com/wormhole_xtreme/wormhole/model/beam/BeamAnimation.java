@@ -47,13 +47,31 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * </ol>
  *
  * <p>Reproducing the "disappear into a beam, then reappear out of one" read relies on a real
- * API property: invisibility is observer-relative. An invisible player still sees their own
- * surroundings and any particles normally; it only hides them from <em>other</em> players'
- * clients. So the traveller stays physically present (invisible to everyone else, frozen by
- * {@link BeamFreeze} from the vanish tick on) through the tail of the rise.
+ * API property: hiding is observer-relative. A hidden player still sees their own
+ * surroundings and any particles normally; they are only withheld from <em>other</em>
+ * players' clients. So the traveller stays physically present (hidden from everyone else by
+ * {@link BeamVisibility}, frozen by {@link BeamFreeze}, from the vanish tick on) through the
+ * tail of the rise.
+ *
+ * {@link BeamVisibility} does that with {@code hideEntity} rather than
+ * {@code PotionEffectType.INVISIBILITY}, which is what this used to be and does not do the
+ * job on its own: invisibility hides a body and leaves held items, armour and shields
+ * rendering where they were, so a traveller carrying anything left a person-shaped set of
+ * equipment standing in the column instead of dissolving into it.
+ *
+ * <p>Invisibility is still stacked on top, for a different audience. Hiding is
+ * observer-relative and never reaches the traveller's own camera -- a client always renders
+ * its own player -- so without it a traveller in third person watches themselves stand solid
+ * in the column while everyone else sees an empty beam. It is a partial answer, since their
+ * own equipment keeps rendering for them regardless; {@link BeamVisibility} has the trade.
+ *
+ * <p>What the traveller was riding is {@link BeamMount}'s problem, and it is a real one:
+ * Bukkit dismounts a rider before teleporting them, so a beam that did nothing about it would
+ * silently leave the horse behind. It is captured, parked and hidden at the vanish tick and
+ * sent after the traveller at the teleport tick.
  *
  * <p>That same property is a problem on the other side of the teleport, though: nothing
- * about invisibility (or the freeze, which only ever locked position, never camera) stops
+ * about hiding (or the freeze, which only ever locked position, never camera) stops
  * the traveller from freely looking around the destination the instant they physically
  * arrive, well before the descend column has finished settling -- a clear view they already
  * have, followed by an arrival effect that then reads as arriving late. Blindness alone
@@ -62,7 +80,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * own {@code END_ROD} particles -- still showed through it. Darkness, the real dark vignette
  * a warden or sculk shrieker applies, stacked on top of it is what actually blocks the view.
  * Both are applied the moment the real teleport fires and removed the moment the column
- * settles, the same two ticks invisibility already keys off of, so the traveller's own
+ * settles, the same two ticks the hide and the reveal already key off of, so the traveller's own
  * vision resolves in sync with the visual instead of running ahead of it.
  *
  * <p>One asymmetry doesn't come from mirroring departure and arrival, though: the
@@ -197,14 +215,19 @@ public final class BeamAnimation
      * Every potion effect a beam sequence applies to its traveller, and so everything any
      * path that ends one has to take back off them.
      *
-     * <p>Named in one place on purpose. These are applied across two different ticks
-     * (invisibility at the vanish, blindness and darkness at the teleport) but have to be
-     * cleared together by two different endings -- the normal arrival, and
-     * {@link Sequence#recover}. Listing them separately at each ending is what let darkness
-     * be added to the sequence without the recovery path learning about it: a beam that
-     * threw mid-flight freed the traveller and gave them back invisibility and blindness,
-     * then left them sitting in the dark vignette until it timed out on its own. Adding an
-     * effect to the sequence now means adding it here, which both endings read.
+     * <p>Named in one place on purpose. These are applied on one tick but have to be cleared
+     * by two different endings -- the normal arrival, and {@link Sequence#recover}. Listing
+     * them separately at each ending is what let darkness be added to the sequence without
+     * the recovery path learning about it: a beam that threw mid-flight freed the traveller
+     * and gave them back their sight, then left them sitting in the dark vignette until it
+     * timed out on its own. Adding an effect to the sequence now means adding it here, which
+     * both endings read.
+     *
+     * <p>Invisibility is deliberately not on this list, even though a beam does apply it.
+     * Everything here is removed unconditionally, and invisibility is the one effect a
+     * traveller might already have had from a potion of their own -- removing it that way is
+     * exactly how a beam used to cancel one. {@link BeamVisibility} applies and removes it
+     * instead, under a guard that only ever takes back what it actually gave.
      *
      * <p>Deliberately not pinned by a unit test, and not for lack of trying: naming any
      * {@link PotionEffectType} constant from a test fails with
@@ -215,7 +238,6 @@ public final class BeamAnimation
      */
     static final PotionEffectType[] TRAVELLER_EFFECTS =
     {
-        PotionEffectType.INVISIBILITY,
         PotionEffectType.BLINDNESS,
         PotionEffectType.DARKNESS
     };
@@ -246,6 +268,10 @@ public final class BeamAnimation
         private final String destinationName;
         private final Runnable onDepart;
         private final BeamTiming timing;
+        /** Hiding and revealing, per sequence because it tracks what it applied. */
+        private final BeamVisibility visibility;
+        /** What they were riding, settled at the vanish tick; never null, possibly absent. */
+        private BeamMount mount;
         private int tick;
         private boolean teleported;
 
@@ -272,6 +298,10 @@ public final class BeamAnimation
                 ConfigManager.getBeamDescendTicks(),
                 ConfigManager.getBeamFadeTicks());
 
+            this.visibility = BeamVisibility.of(player);
+            // Not captured here: the traveller is free to mount or dismount right through
+            // the envelope, so what they are riding is not settled until the vanish tick.
+            this.mount = BeamMount.none();
             this.tick = 0;
             this.teleported = false;
         }
@@ -281,12 +311,16 @@ public final class BeamAnimation
         {
             if (!player.isOnline())
             {
-                // They are gone; nothing left to animate, and nothing left to clear --
-                // BeamFreezeListener already cleared it on the way out.
+                // They are gone; nothing left to animate, and BeamFreezeListener already
+                // cleared their freeze on the way out. What it could not clear is anything
+                // done to what they were riding: a mount parked with its AI switched off and
+                // hidden from everyone has nothing else still running that would ever put it
+                // back, so this tick is the last chance to.
+                releaseMount();
                 return;
             }
 
-            // Once isVanish() has fired below, the player is frozen and invisible until
+            // Once isVanish() has fired below, the player is frozen and hidden until
             // either isFinished() clears them or something throws first. A Bukkit call
             // throwing mid-tick (spawnParticle, teleport, addPotionEffect) would otherwise
             // die here with the freeze never lifted and nothing left running to lift it --
@@ -334,16 +368,31 @@ public final class BeamAnimation
                 // what keeps the last envelope frame and the first rise frame coincident
                 // rather than one tick apart.
                 origin = player.getLocation();
+
+                // Settled here, not in the constructor: the traveller is free to mount or
+                // dismount right through the envelope, so this is the first tick at which
+                // what they are riding is a fixed fact. Held before the freeze, because
+                // holding is what makes the freeze work at all on a mounted traveller --
+                // it dismounts them, so their movement goes back through PlayerMoveEvent,
+                // which is the only thing BeamFreezeListener can revert.
+                mount = BeamMount.capture(player);
+                mount.hold(player);
                 BeamFreeze.freeze(player);
 
-                // Invisibility has to outlast everything from here to the deposit. The
-                // remainder of the envelope plus the full rise and descent is an
-                // over-estimate of when it's actually needed until, which is fine --
-                // explicit removal at the deposit is what the timing actually depends on,
-                // and this is only a ceiling against that removal being late.
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,
-                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks() + timing.descendTicks(),
-                    0, false, false));
+                // The traveller and their mount both leave everyone else's screen here --
+                // hideEntity rather than an invisibility effect, which would have left
+                // whatever they were holding, wearing and riding rendered exactly where it
+                // was. Invisibility goes on too, but only for the traveller's own camera,
+                // which hiding cannot reach. Both are undone explicitly at the deposit, and
+                // by recover() if this sequence never gets that far.
+                //
+                // The duration is a ceiling, not the timing: the remainder of the envelope
+                // plus the full rise and descent over-estimates when it is needed until,
+                // which is fine, since explicit removal at the deposit is what the sequence
+                // actually depends on and this only guards against that removal being late.
+                visibility.hide(mount.stack(),
+                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks()
+                        + timing.descendTicks());
             }
 
             if (frame.isRiseActive())
@@ -356,6 +405,12 @@ public final class BeamAnimation
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
                 teleported = true;
+                // Bukkit dismounts a rider before teleporting them, so the traveller has
+                // arrived alone whatever they were sitting on. Sending it after them, and
+                // putting them back on it, is the whole of BeamMount's job -- and it goes
+                // after the player's own teleport rather than before so that the re-seat is
+                // a short hop at the destination rather than a cross-world one.
+                mount.carry(player, destination);
                 // The traveller is physically at the destination from this tick on -- the
                 // descend column is still only starting to fall around them, but nothing
                 // stops their own eyes from seeing straight through it to the terrain
@@ -368,7 +423,7 @@ public final class BeamAnimation
                 // is the real dark vignette (the same effect a warden/sculk shrieker
                 // applies), and stacking it on top of blindness is what actually blocks
                 // the view rather than just softening it. Both key off the same two ticks
-                // invisibility already uses: an over-estimate covering descend plus fade,
+                // the hide already uses: an over-estimate covering descend plus fade,
                 // with explicit removal at the arrive tick as what the timing actually
                 // depends on.
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,
@@ -392,6 +447,11 @@ public final class BeamAnimation
                 {
                     BeamSounds.playArrive(destination);
                     removeTravellerEffects(player);
+                    // Revealed the instant the column settles, standing inside the light
+                    // rather than popping in after it -- the same tick their sight comes
+                    // back, so what they can see and what everyone else can see resolve
+                    // together.
+                    visibility.show(mount.stack());
                 }
 
                 if (frame.isFadeActive())
@@ -413,13 +473,33 @@ public final class BeamAnimation
         }
 
         /**
+         * Puts back everything {@link BeamMount#hold} took away and reveals whatever
+         * {@link BeamVisibility} hid, for an ending that is not the normal one.
+         *
+         * <p>Both endings that need this -- a traveller who logs out mid-sequence, and a tick
+         * that threw -- can reach it before the vanish tick ever ran, so both calls are
+         * against an absent mount and a traveller who was never hidden. Both are no-ops in
+         * that case, which is exactly why this is safe to call unconditionally rather than
+         * each ending working out how far the sequence had got.
+         */
+        private void releaseMount()
+        {
+            mount.release();
+            try
+            {
+                visibility.show(mount.stack());
+            }
+            catch (final RuntimeException ignored) { /* best effort, same as everything else here */ }
+        }
+
+        /**
          * Clears a traveller a failed tick would otherwise have left stuck: frozen (so they
-         * cannot even move themselves out of it), invisible or blind to a degree the timing
-         * expected to remove explicitly later, and permanently {@code ACTIVE} in
-         * {@link BeamFreeze} -- which refuses every future beam for them until something
-         * clears it. Best-effort by design, the same reasoning as {@code RingTransit}'s own
-         * recovery: a second failure while cleaning up must not leave anything worse than the
-         * first one already did.
+         * cannot even move themselves out of it), hidden from everyone else or blinded to a
+         * degree the timing expected to undo explicitly later, sitting beside a mount parked
+         * with its AI switched off, and permanently {@code ACTIVE} in {@link BeamFreeze} --
+         * which refuses every future beam for them until something clears it. Best-effort by
+         * design, the same reasoning as {@code RingTransit}'s own recovery: a second failure
+         * while cleaning up must not leave anything worse than the first one already did.
          *
          * @param cause what actually threw
          */
@@ -433,6 +513,7 @@ public final class BeamAnimation
                 removeTravellerEffects(player);
             }
             catch (final RuntimeException ignored) { /* best effort; BeamFreeze.clear below is what actually matters */ }
+            releaseMount();
             BeamFreeze.clear(player);
             try
             {

@@ -191,6 +191,14 @@ public final class RingMessages
                 + "stack up from there, so it needs one near enough to reach.");
             return;
         }
+        if (why == RingBlockage.NO_HEADROOM)
+        {
+            player.sendMessage(ERROR + "The rings stand " + Ring.STACK_HEIGHT + " blocks tall "
+                + "around whoever arrives, so they need " + Ring.STACK_HEIGHT
+                + " blocks of clear air above the pad -- more than a person needs to stand "
+                + "in it.");
+            return;
+        }
         player.sendMessage(ERROR + "Clear the inside of that ring and try again. What is "
             + "built around it does not matter.");
     }
@@ -215,6 +223,10 @@ public final class RingMessages
         if (why == RingBlockage.CEILING_TOO_LOW)
         {
             return " has no room between it and the floor.";
+        }
+        if (why == RingBlockage.NO_HEADROOM)
+        {
+            return " has too low a ceiling for the rings.";
         }
         return " has something built inside it.";
     }

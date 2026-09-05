@@ -107,6 +107,23 @@ public final class RingAnimator
      */
     public static final int MIN_CEILING_DROP = (TOP_HALF_STEP - 1) / 2;
 
+    /**
+     * How many block layers a finished stack fills, counting up from the stack base.
+     *
+     * <p>Derived rather than chosen, for the same reason {@link #MIN_CEILING_DROP} is: the
+     * top ring settles at {@link #TOP_HALF_STEP}, which is the upper half of the block
+     * {@code TOP_HALF_STEP / 2} above the base, and the base layer itself is the first. So
+     * this comes out equal to {@link #RING_COUNT} — as that constant's own note says it must,
+     * since slabs cannot sit closer than a block apart without touching — but it is written
+     * as the arithmetic that makes it true rather than as the same number typed twice. Change
+     * the spacing and this follows; leave it and the two agree.
+     *
+     * <p>This is the number a room has to be tall enough for. Two layers is what a traveller
+     * needs and is not the same question: a stack half of which is inside the ceiling is not
+     * a transport, however comfortably the person underneath it fits.
+     */
+    public static final int STACK_HEIGHT = (TOP_HALF_STEP / 2) + 1;
+
 
     private RingAnimator() {}
 

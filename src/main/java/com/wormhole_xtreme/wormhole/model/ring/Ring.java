@@ -46,6 +46,15 @@ public class Ring
      */
     public static final int MIN_CEILING_DROP = RingAnimator.MIN_CEILING_DROP;
 
+    /**
+     * How many block layers above {@link #stackBase()} the finished stack occupies.
+     *
+     * <p>Mirrored here for the same reason as the constant above: a ring's callers ask a ring
+     * how much room it needs, and should not have to know that the answer comes out of the
+     * animator's arithmetic.
+     */
+    public static final int STACK_HEIGHT = RingAnimator.STACK_HEIGHT;
+
     /** The travelling slabs. Must be a slab: the rise animation is built out of slab halves. */
     private Material ringMaterial;
 

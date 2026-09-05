@@ -66,6 +66,17 @@ public class StargateShape
     private Material shapeSignMaterial = Material.OAK_WALL_SIGN;
 
     /**
+     * What an unlit chevron is built from, or null if this shape has no distinct chevrons.
+     *
+     * <p>Null rather than a default, because there is no safe default to pick: every gate
+     * standing in every world today has frame material at its chevron positions, so a shape
+     * that has not asked for distinct chevrons must go on accepting exactly what it accepted
+     * before. This is also why it needs no {@code explicit} flag like the materials above --
+     * a non-null value already means the file named one.
+     */
+    private Material shapeChevronMaterial = null;
+
+    /**
      * Materials this shape's file named outright, as opposed to inheriting the defaults
      * above. A shape that asks for a glass iris means it — a horizontal gate is meant to
      * be seen through — so an explicit value outranks whatever palette the gate resolves
@@ -243,6 +254,10 @@ public class StargateShape
             {
                 setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
             }
+            else if (line.contains("CHEVRON_MATERIAL"))
+            {
+                try { setShapeChevronMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase(Locale.ROOT))); } catch (final Exception e) { /* ignore unknown */ }
+            }
             else if (line.contains("SIGN_MATERIAL"))
             {
                 try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase(Locale.ROOT))); } catch (final Exception e) { /* ignore unknown */ }
@@ -319,6 +334,27 @@ public class StargateShape
     public Material getShapeLightMaterial()
     {
         return shapeLightMaterial;
+    }
+
+    /**
+     * Gets the material an unlit chevron is built from.
+     *
+     * @return the chevron material, or null if this shape has no distinct chevrons
+     */
+    public Material getShapeChevronMaterial()
+    {
+        return shapeChevronMaterial;
+    }
+
+    /**
+     * Sets the material an unlit chevron is built from.
+     *
+     * @param shapeChevronMaterial
+     *            the chevron material
+     */
+    public void setShapeChevronMaterial(final Material shapeChevronMaterial)
+    {
+        this.shapeChevronMaterial = shapeChevronMaterial;
     }
 
     /**
