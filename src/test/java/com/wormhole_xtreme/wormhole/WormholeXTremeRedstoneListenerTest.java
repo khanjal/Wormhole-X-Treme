@@ -701,4 +701,166 @@ public class WormholeXTremeRedstoneListenerTest
         final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
         assertDoesNotThrow(() -> listener.onBlockRedstoneChange(null));
     }
+
+    /**
+     * A trigger on a gate somebody lit and walked away from puts it out.
+     *
+     * <p>The only way to clear an activation that was never dialled, and the reason the
+     * middle branch exists at all. A gate left lit holds its activator's slot, so without
+     * this it stays lit until the server restarts.
+     */
+    @Test
+    public void aTriggerOnAGateLitButNeverDialledDeactivatesIt()
+    {
+        final World world = mock(World.class);
+        final int dx = 1100, dy = 64, dz = 1200;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("litNeverDialled");
+
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getX()).thenReturn(dx);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        final Block dust = mock(Block.class);
+        when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getX()).thenReturn(dx + 1);
+        when(dust.getY()).thenReturn(dy);
+        when(dust.getZ()).thenReturn(dz);
+        when(dust.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        gate.setGateDialLeverBlock(button);
+        gate.setGateRedstonePowered(true);
+        // Lit, never dialled: no target, and not active.
+        gate.setGateLightsActive(true);
+        doNothing().when(gate).lightStargate(anyBoolean());
+        doNothing().when(gate).toggleDialLeverState(anyBoolean());
+
+        StargateManager.registerStargate(gate);
+        try
+        {
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
+
+            verify(gate).lightStargate(false);
+            verify(gate).toggleDialLeverState(false);
+            assertFalse(gate.isGateActive());
+            verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+        }
+    }
+
+    /**
+     * A monitored block powers the gate the same way a marker cell does.
+     *
+     * <p>Monitor blocks are how a sign gate keeps its own lever and still answers to redstone
+     * a player laid themselves, instead of the plugin placing dust on the gate. The list is
+     * built at detection time, so nothing about it is visible in game -- if it stopped being
+     * consulted, those gates would just quietly stop responding.
+     */
+    @Test
+    public void aPoweredMonitorBlockDialsTheGate()
+    {
+        final World world = mock(World.class);
+        final int dx = 1300, dy = 64, dz = 1400;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("monitored");
+
+        // Two blocks from the DHD: near enough that the gate is still found, far enough that
+        // it is not adjacent, so nothing but the monitor list can explain a dial. A block
+        // further out again and the gate would not be found at all -- monitored or not, a
+        // signal has to land within GATE_SEARCH_RADIUS of something indexed to be attributed.
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx + 2, dy, dz));
+        when(button.getX()).thenReturn(dx + 2);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        final Block monitored = mock(Block.class);
+        when(monitored.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(monitored.getX()).thenReturn(dx);
+        when(monitored.getY()).thenReturn(dy);
+        when(monitored.getZ()).thenReturn(dz);
+        when(monitored.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        gate.setGateDialLeverBlock(button);
+        gate.getGateRedstoneDialMonitorBlocks().add(monitored);
+        gate.setGateRedstonePowered(true);
+        gate.setGateSignPowered(true);
+
+        final Stargate target = new Stargate();
+        target.setGateName("targetGate");
+        doReturn(target).when(gate).getGateDialSignTarget();
+        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+
+        StargateManager.registerStargate(gate);
+        try
+        {
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(monitored, 0, 15));
+            verify(gate).dialStargate(eq(target), eq(false));
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+        }
+    }
+
+    /**
+     * A gate that is not set up for redstone ignores redstone entirely.
+     *
+     * <p>{@code /wormhole redstone <gate> false} has to actually mean something, or a gate
+     * somebody deliberately took off a circuit would keep firing on it.
+     */
+    @Test
+    public void aGateThatIsNotRedstonePoweredIgnoresTheSignal()
+    {
+        final World world = mock(World.class);
+        final int dx = 1500, dy = 64, dz = 1600;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("notWired");
+
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getX()).thenReturn(dx);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        final Block dust = mock(Block.class);
+        when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getX()).thenReturn(dx + 1);
+        when(dust.getY()).thenReturn(dy);
+        when(dust.getZ()).thenReturn(dz);
+        when(dust.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        gate.setGateDialLeverBlock(button);
+        gate.setGateSignPowered(true);
+        gate.setGateRedstonePowered(false);
+
+        final Stargate target = new Stargate();
+        target.setGateName("targetGate");
+        doReturn(target).when(gate).getGateDialSignTarget();
+
+        StargateManager.registerStargate(gate);
+        try
+        {
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
+            verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+        }
+    }
 }

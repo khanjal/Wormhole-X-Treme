@@ -375,7 +375,7 @@ final class GateInteractionHandler
      *            the player
      * @return true, if successful
      */
-    private static boolean handleGateActivationSwitch(final Stargate stargate, final Player player)
+    static boolean handleGateActivationSwitch(final Stargate stargate, final Player player)
     {
         if (stargate.isGateActive() || stargate.isGateLightsActive())
         {
@@ -403,7 +403,7 @@ final class GateInteractionHandler
      *            the player working the switch
      * @return true if the gate was acted on
      */
-    private static boolean closeOrDeactivate(final Stargate stargate, final Player player)
+    static boolean closeOrDeactivate(final Stargate stargate, final Player player)
     {
         if (stargate.getGateTarget() != null)
         {
@@ -423,7 +423,9 @@ final class GateInteractionHandler
 
         if (stargate.isGateLightsActive() && !stargate.isGateActive())
         {
-            return forceClearStaleActivation(stargate, player);
+            // The gate is cleared whatever happens from here, so this arm is always a success.
+            forceClearStaleActivation(stargate, player);
+            return true;
         }
 
         player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
@@ -440,7 +442,7 @@ final class GateInteractionHandler
      * @param stargate
      *            the gate to clear
      */
-    private static void clearActivation(final Stargate stargate)
+    static void clearActivation(final Stargate stargate)
     {
         stargate.stopActivationTimer();
         stargate.setGateActive(false);
@@ -459,9 +461,8 @@ final class GateInteractionHandler
      *            the lit gate
      * @param player
      *            the player clearing it
-     * @return true, always -- the gate is cleared either way
      */
-    private static boolean forceClearStaleActivation(final Stargate stargate, final Player player)
+    static void forceClearStaleActivation(final Stargate stargate, final Player player)
     {
         // Attempt to force-clear stale activation mapping so gate can be deactivated.
         final Player activator = StargateManager.removeActivatorForStargate(stargate);
@@ -471,7 +472,7 @@ final class GateInteractionHandler
         if (activator == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
-            return true;
+            return;
         }
 
         try
@@ -486,7 +487,6 @@ final class GateInteractionHandler
         {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
         }
-        return true;
     }
 
     /**
@@ -498,7 +498,7 @@ final class GateInteractionHandler
      *            the player working the switch
      * @return true if the gates connected
      */
-    private static boolean dialFromSign(final Stargate stargate, final Player player)
+    static boolean dialFromSign(final Stargate stargate, final Player player)
     {
         final boolean isOwnerInner = player.isOp() || stargate.isOwner(player);
         if (!isOwnerInner && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
@@ -544,7 +544,7 @@ final class GateInteractionHandler
      *            the player activating it
      * @return true, always
      */
-    private static boolean activateForDialling(final Stargate stargate, final Player player)
+    static boolean activateForDialling(final Stargate stargate, final Player player)
     {
         //Activate Stargate
         player.sendMessage(ConfigManager.MessageStrings.gateActivated.toString());
