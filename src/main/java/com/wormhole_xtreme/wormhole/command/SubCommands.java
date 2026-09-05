@@ -229,7 +229,10 @@ public final class SubCommands
             SubCommands::completeGate);
         register("config", aliases("set"), "/wormhole config <setting> [value]",
             new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, args ->
-                args.length == 2 ? prefixed(args[1],
+                args.length == 2 ? prefixed(
+                    // Completing what is in config.yml: gate-sound- has to reach
+                    // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
+                    args[1] == null ? null : args[1].replace('-', '_'),
                     com.wormhole_xtreme.wormhole.config.ConfigManager.settingNames()
                         .toArray(new String[0])) : none());
 
