@@ -27,40 +27,22 @@ public class ConfigManager
         PERMISSIONS_SUPPORT_DISABLE,
         /** Automatically fall back to simple permission mode when no Vault provider is detected. */
         PERMISSIONS_AUTO_FALLBACK,
-        /** The WORMHOL e_ us e_ i s_ teleport. */
+        /** Whether wormhole.use is required to travel, not merely to dial. */
         WORMHOLE_USE_IS_TELEPORT,
 
-        /** The TIMEOU t_ activate. */
+        /** Seconds a gate stays activated, awaiting a destination, before it times out. */
         TIMEOUT_ACTIVATE,
 
-        /** The TIMEOU t_ shutdown. */
+        /** Seconds a dialled gate stays open before it shuts itself down. */
         TIMEOUT_SHUTDOWN,
         /** Hard ceiling on how long a wormhole may stay open, however often it is re-dialled. */
         MAX_OPEN_SECONDS,
 
-        /** The BUIL d_ restrictio n_ enabled. */
-        BUILD_RESTRICTION_ENABLED,
-
-        /** The BUIL d_ restrictio n_ grou p_ one. */
-        BUILD_RESTRICTION_GROUP_ONE,
-
-        /** The BUIL d_ restrictio n_ grou p_ two. */
-        BUILD_RESTRICTION_GROUP_TWO,
-
-        /** The BUIL d_ restrictio n_ grou p_ three. */
-        BUILD_RESTRICTION_GROUP_THREE,
-
-        /** The US e_ cooldow n_ enabled. */
+        /** Whether walking through a gate starts a per-player cooldown. */
         USE_COOLDOWN_ENABLED,
 
-        /** The US e_ cooldow n_ grou p_ one. */
-        USE_COOLDOWN_GROUP_ONE,
-
-        /** The US e_ cooldow n_ grou p_ two. */
-        USE_COOLDOWN_GROUP_TWO,
-
-        /** The US e_ cooldow n_ grou p_ three. */
-        USE_COOLDOWN_GROUP_THREE,
+        /** Seconds a player waits between gate trips, when the cooldown above is enabled. */
+        USE_COOLDOWN_SECONDS,
 
         /** The HELP SUPPORT DISABLE. */
         HELP_SUPPORT_DISABLE,
@@ -233,9 +215,6 @@ public class ConfigManager
         /** The gate not specified. */
         gateNotSpecified(errorHeader + "No gate name specified."),
 
-        /** The player build count restricted. */
-        playerBuildCountRestricted(errorHeader + "You are at your max number of built gates."),
-
         /** The player use cooldown restricted. */
         playerUseCooldownRestricted(errorHeader + "You must wait longer before using a stargate."),
 
@@ -280,43 +259,6 @@ public class ConfigManager
 
     /** The Constant configurations. */
     private static final ConcurrentHashMap<ConfigKeys, Setting> configurations = new ConcurrentHashMap<ConfigKeys, Setting>();
-
-    /**
-     * Gets the builds the restriction group one.
-     * 
-     * @return the builds the restriction group one
-     */
-    public static int getBuildRestrictionGroupOne()
-    {
-        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE)
-            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE).getIntValue()
-            : 1;
-    }
-
-    /**
-     * Gets the builds the restriction group three.
-     * 
-     * @return the builds the restriction group three
-     */
-    public static int getBuildRestrictionGroupThree()
-    {
-        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE)
-            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE).getIntValue()
-            : 3;
-    }
-
-    /**
-     * Gets the builds the restriction group two.
-     * 
-     * @return the builds the restriction group two
-     */
-    public static int getBuildRestrictionGroupTwo()
-    {
-        return isConfigurationKey(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO)
-            ? getSetting(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO).getIntValue()
-            : 2;
-    }
-
 
     /**
      * Gets the configurations.
@@ -1294,39 +1236,23 @@ public class ConfigManager
     }
 
     /**
-     * Gets the use cooldown group one.
-     * 
-     * @return the use cooldown group one
+     * How long a player waits between gate trips, in seconds.
+     *
+     * <p>This replaced three separate group settings that were never registered in
+     * {@link DefaultSettings}. Because they were absent, {@code isConfigurationKey} was
+     * false for all three: the getter always returned its hardcoded literal and the
+     * matching setter silently did nothing, so {@code /wormhole cooldown one 300} reported
+     * success and changed nothing. Only group one was ever read, and only from one place,
+     * so the honest shape is a single registered setting -- which is also what beaming
+     * already does with {@code BEAM_USE_COOLDOWN_SECONDS}.
+     *
+     * @return the cooldown in seconds
      */
-    public static int getUseCooldownGroupOne()
+    public static int getUseCooldownSeconds()
     {
-        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_ONE)
-            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_ONE).getIntValue()
+        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_SECONDS)
+            ? getSetting(ConfigKeys.USE_COOLDOWN_SECONDS).getIntValue()
             : 120;
-    }
-
-    /**
-     * Gets the use cooldown group three.
-     * 
-     * @return the use cooldown group three
-     */
-    public static int getUseCooldownGroupThree()
-    {
-        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_THREE)
-            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_THREE).getIntValue()
-            : 60;
-    }
-
-    /**
-     * Gets the use cooldown group two.
-     * 
-     * @return the use cooldown group two
-     */
-    public static int getUseCooldownGroupTwo()
-    {
-        return isConfigurationKey(ConfigKeys.USE_COOLDOWN_GROUP_TWO)
-            ? getSetting(ConfigKeys.USE_COOLDOWN_GROUP_TWO).getIntValue()
-            : 30;
     }
 
     /*
@@ -1349,18 +1275,6 @@ public class ConfigManager
         {
             return false;
         }
-    }
-
-    /**
-     * Checks if is builds the restriction enabled.
-     * 
-     * @return true, if is builds the restriction enabled
-     */
-    public static boolean isBuildRestrictionEnabled()
-    {
-        return ConfigManager.getConfigurations().get(ConfigKeys.BUILD_RESTRICTION_ENABLED) != null
-            ? ConfigManager.getConfigurations().get(ConfigKeys.BUILD_RESTRICTION_ENABLED).getBooleanValue()
-            : false;
     }
 
     /**
@@ -1404,50 +1318,6 @@ public class ConfigManager
         {
             return false;
         }
-    }
-
-    /**
-     * Sets the builds the restriction enabled.
-     * 
-     * @param b
-     *            the new builds the restriction enabled
-     */
-    public static void setBuildRestrictionEnabled(final boolean b)
-    {
-        ConfigManager.setConfigValue(ConfigKeys.BUILD_RESTRICTION_ENABLED, b);
-    }
-
-    /**
-     * Sets the builds the restriction group one.
-     * 
-     * @param count
-     *            the new builds the restriction group one
-     */
-    public static void setBuildRestrictionGroupOne(final int count)
-    {
-        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_ONE, count);
-    }
-
-    /**
-     * Sets the builds the restriction group three.
-     * 
-     * @param count
-     *            the new builds the restriction group three
-     */
-    public static void setBuildRestrictionGroupThree(final int count)
-    {
-        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_THREE, count);
-    }
-
-    /**
-     * Sets the builds the restriction group two.
-     * 
-     * @param count
-     *            the new builds the restriction group two
-     */
-    public static void setBuildRestrictionGroupTwo(final int count)
-    {
-        setConfigValue(ConfigKeys.BUILD_RESTRICTION_GROUP_TWO, count);
     }
 
     /**
@@ -1670,36 +1540,14 @@ public class ConfigManager
     }
 
     /**
-     * Sets the use cooldown group one.
-     * 
-     * @param time
-     *            the new use cooldown group one
+     * Sets how long a player waits between gate trips.
+     *
+     * @param seconds
+     *            the new cooldown, in seconds
      */
-    public static void setUseCooldownGroupOne(final int time)
+    public static void setUseCooldownSeconds(final int seconds)
     {
-        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_ONE, time);
-    }
-
-    /**
-     * Sets the use cooldown group three.
-     * 
-     * @param time
-     *            the new use cooldown group three
-     */
-    public static void setUseCooldownGroupThree(final int time)
-    {
-        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_THREE, time);
-    }
-
-    /**
-     * Sets the use cooldown group two.
-     * 
-     * @param time
-     *            the new use cooldown group two
-     */
-    public static void setUseCooldownGroupTwo(final int time)
-    {
-        setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_TWO, time);
+        setConfigValue(ConfigKeys.USE_COOLDOWN_SECONDS, seconds);
     }
 
     /** Returns true if Vault economy integration is enabled in config. */

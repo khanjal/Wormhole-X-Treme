@@ -20,9 +20,8 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * <p>Dispatch, tab completion and the help text all read this registry. They used to be
  * three hand-maintained lists — an if/else chain, a string array in the tab completer, and
  * two copies of a help sentence — and they had drifted badly: nine subcommands the
- * completer offered were dispatched by nothing at all, while {@code wooshdepth} and
- * {@code restrict} worked but were never suggested. Anything added here now appears in all
- * three automatically.
+ * completer offered were dispatched by nothing at all, while {@code wooshdepth} worked but
+ * was never suggested. Anything added here now appears in all three automatically.
  */
 public final class SubCommands
 {
@@ -187,12 +186,18 @@ public final class SubCommands
                 }
                 return none();
             });
-        register("portalmaterial", aliases(), "/wormhole portalmaterial <gate> <material>",
-            new com.wormhole_xtreme.wormhole.command.handlers.PortalMaterialCommand(), false, GATE_THEN_VALUE);
-        register("irismaterial", aliases(), "/wormhole irismaterial <gate> <material>",
-            new com.wormhole_xtreme.wormhole.command.handlers.IrisMaterialCommand(), false, GATE_THEN_VALUE);
-        register("lightmaterial", aliases(), "/wormhole lightmaterial <gate> <material>",
-            new com.wormhole_xtreme.wormhole.command.handlers.LightMaterialCommand(), false, GATE_THEN_VALUE);
+        // The three material overrides differ only in which set of materials they accept, so
+        // they share one handler and the completer offers that set at the value position.
+        for (final com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind kind
+            : com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand.Kind.values())
+        {
+            final String name = kind.command();
+            register(name, aliases(), "/wormhole " + name + " <gate> <material>",
+                new com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand(kind), false, args ->
+                    args.length == 2 ? gateNames(args[1])
+                        : args.length == 3 ? prefixed(args[2], kind.allowedNames().toArray(new String[0]))
+                        : none());
+        }
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
             new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
 
@@ -212,12 +217,13 @@ public final class SubCommands
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
         register("activate_timeout", aliases(), "/wormhole activate_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
-        register("cooldown", aliases(), "/wormhole cooldown <one|two|three|true|false> [time]",
+        register("cooldown", aliases(), "/wormhole cooldown <seconds> or <true|false>",
             new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, args ->
-                args.length == 2 ? prefixed(args[1], "one", "two", "three", "true", "false") : none());
-        register("restrict", aliases(), "/wormhole restrict <true|false>",
-            new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, args ->
                 args.length == 2 ? prefixed(args[1], "true", "false") : none());
+        // Kept dispatchable, but it reports that build restriction is gone rather than
+        // pretending to set it. See RestrictCommand.
+        register("restrict", aliases(), "/wormhole restrict (removed)",
+            new com.wormhole_xtreme.wormhole.command.handlers.RestrictCommand(), false, null);
 
         // --- The shape people actually type --------------------------------
         // Everything above stays registered and keeps working; it is just no longer what is

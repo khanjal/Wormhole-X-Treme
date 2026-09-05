@@ -96,52 +96,45 @@ public class Complete implements CommandExecutor, TabCompleter
             }
             if (WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
             {
-                if ( !StargateRestrictions.isPlayerBuildRestricted(player))
+                if (StargateManager.getStargate(name) == null)
                 {
-                    if (StargateManager.getStargate(name) == null)
+                    // If player already has an incomplete stargate registered, attempt immediate completion.
+                    final String incompleteName = com.wormhole_xtreme.wormhole.model.StargateManager.getIncompleteStargateName(player);
+                    if (incompleteName != null)
                     {
-                        // If player already has an incomplete stargate registered, attempt immediate completion.
-                        final String incompleteName = com.wormhole_xtreme.wormhole.model.StargateManager.getIncompleteStargateName(player);
-                        if (incompleteName != null)
+                        final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
+                        if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
                         {
-                            final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
-                            if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+                            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                        }
+                        else if (StargateManager.completeStargate(player, name, idc, network))
+                        {
+                            player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+                            if (buildCost > 0)
                             {
-                                player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                            }
-                            else if (StargateManager.completeStargate(player, name, idc, network))
-                            {
-                                player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                                if (buildCost > 0)
-                                {
-                                    com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                                    player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                        + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                                }
-                            }
-                            else
-                            {
-                                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
-                                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
+                                com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+                                player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                                    + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
                             }
                         }
                         else
                         {
-                            // Enter interactive completion mode: wait for the player to click the DHD lever/button.
-                            addPendingCompletion(player, name, idc, network);
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Please click the DHD lever/button to complete the gate.");
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
+                            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
+                            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
                         }
                     }
                     else
                     {
-                        player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
+                        // Enter interactive completion mode: wait for the player to click the DHD lever/button.
+                        addPendingCompletion(player, name, idc, network);
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Please click the DHD lever/button to complete the gate.");
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
                     }
                 }
                 else
                 {
-                    player.sendMessage(ConfigManager.MessageStrings.playerBuildCountRestricted.toString());
+                    player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
                 }
             }
             else

@@ -615,6 +615,109 @@ five assertions failed against the old code, on every hyphenated name.
 Accepting either spelling is not accepting anything: `gate-sound-banana` is still not a
 setting, and there is a test for that too.
 
+### `/wormhole cooldown` reported a setting it never saved
+
+A `ConfigKeys` constant only becomes a real setting by appearing in
+`DefaultSettings.config`. That array is the only thing that ever populates the settings map,
+and seven keys had accessors in `ConfigManager` without an entry in it.
+
+The effect was invisible from both ends. `setConfigValue` checks `isConfigurationKey` first
+and returns quietly when it is false, so the setter discarded the write. The matching getter
+is written as `isConfigurationKey(...) ? getSetting(...) : literal`, so it always took the
+literal branch and answered a hardcoded constant. The key never reached `config.yml` either,
+so there was no editing the file to work around it.
+
+So `/wormhole cooldown one 300` printed `Wormhole cooldown time set to: 300` and the cooldown
+stayed at 120 seconds, on every server, since the groups were introduced.
+
+Only group one was ever read -- by `StargateRestrictions`, for the actual wait -- and groups
+two and three by nothing at all. The three collapse to one registered `use-cooldown-seconds`,
+which is also the shape beaming already uses with `beam-use-cooldown-seconds`. The command now
+takes a plain number of seconds:
+
+```
+/wormhole cooldown 300        # was: /wormhole cooldown one 300
+/wormhole cooldown true       # unchanged
+```
+
+Its confirmation line reads the value back through the getter rather than echoing the argument,
+so the message is now evidence the write landed instead of a restatement of what was typed --
+which is precisely what the old one got wrong. Anyone with the group form in a script is told
+the groups are gone rather than being quietly ignored.
+
+Making the setting real is what first put an arbitrary number into the scheduler. The wait is
+converted to ticks for `scheduleSyncDelayedTask`, which takes an `int`, and
+`(int) (seconds * 20L)` wraps past 107,374,182 seconds -- coming back negative, which Bukkit
+runs on the next tick. A cooldown set absurdly long would have cleared itself immediately: the
+exact inverse of what was asked for, and silent, since a task firing early looks nothing like
+an arithmetic fault. That was unreachable while the value was a hardcoded 120 no file could
+change, so it arrives as a bug in the same change that fixes the setting. `cooldownTicks`
+saturates instead, and treats a negative wait as no wait.
+
+The first version of that guard multiplied and then checked the product, which is wrong for the
+same reason at one remove: the product overflows `long` as well, so a large enough value came
+back negative from the very comparison meant to catch it. The test found it -- the case with
+`Long.MAX_VALUE / 2` in it failed on the first run. It now tests the input against the limit
+before multiplying.
+
+### `/wormhole restrict` was three layers of doing nothing
+
+The same fault, further along. `BUILD_RESTRICTION_ENABLED` was unregistered, so the setter
+discarded the write as above. Nothing read the value back. And
+`StargateRestrictions.isPlayerBuildRestricted` had already been reduced to `return false` when
+the feature was removed, so all four of its call sites were constants and the "you are at your
+max number of built gates" message was unreachable.
+
+Any one of those three would have made the command inert; it had all three. What is left of
+build restriction is now deleted, including the unreachable message and the always-true guards
+that were reading as though they still decided something.
+
+The subcommand name stays dispatchable -- this registry's standing rule is that a name in
+someone's command block keeps working -- but it now says the feature is gone instead of
+claiming to set it. Gate building is governed by the `wormhole.build` permission.
+
+The new test is the structural guard rather than a test of either command: every `ConfigKeys`
+constant must be registered, so adding a setting and forgetting `DefaultSettings` reintroduces
+exactly this for whatever the new setting is. Run against the previous commit it fails listing
+all seven broken keys.
+
+### The three material commands were one command copied twice
+
+`PortalMaterialCommand`, `IrisMaterialCommand` and `LightMaterialCommand` were 97 lines each
+and identical but for a material whitelist, a display noun, and one getter/setter pair. Each
+also stated its whitelist twice over -- once as a chain of `==` comparisons, once as English
+spread across three or four message strings -- with nothing holding the two together.
+
+They had already drifted. The iris variant printed its valid-material line under `normalHeader`
+in two of the four places the other two used `errorHeader`, so the same advice arrived in a
+different colour depending on which of the three you had typed and how you had got it wrong.
+Nothing was broken by that. It is just what happens to three copies given time.
+
+`MaterialCommand` takes a `Kind`, and the set in `Kind` is now the only statement of what a
+material may be: the membership test reads it, the sentence listing the options is generated
+from it, and so is tab completion. That last one is new -- none of the three offered material
+completion before, because a hand-written list in the completer would have been a fourth copy
+to keep in step.
+
+Behaviour is otherwise unchanged, apart from the iris colour inconsistency now matching the
+other two. One small thing did go: an unrecognised material name is no longer logged at `FINE`.
+That is a player typing, not an event, and they are already told what would have worked.
+
+The test transcribes each accepted set from the deleted files rather than from the new enum --
+copying the new values across would make it agree with whatever the code says. It also sets
+through one `Kind` and reads back through all three, which is what catches an entry wired to
+another's accessor: the one mistake this refactor could make that still compiles. Mis-wiring
+`IRIS` to the portal accessors on purpose fails it with that message.
+
+### Twelve dead dispatch stubs
+
+`Wormhole.java` carried twelve private `do*` methods, each a single line delegating to a handler
+in `command/handlers`, and every one of them was called from nowhere. Dispatch had moved into
+`SubCommands` -- now the one place a `/wormhole` subcommand is declared -- and the `if`/`else`
+chain that used to call these went with it. An orphaned `Do simple permissions.` javadoc with no
+method under it had been sitting there too. The class is 246 lines shorter and keeps `onCommand`,
+which is the only part Bukkit ever calls.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally

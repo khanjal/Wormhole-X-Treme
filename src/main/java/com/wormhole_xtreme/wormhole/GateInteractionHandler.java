@@ -311,7 +311,7 @@ final class GateInteractionHandler
 
             if (newGate != null)
             {
-                if (WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD) && !StargateRestrictions.isPlayerBuildRestricted(player))
+                if (WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
                 {
                     if (newGate.isGateSignPowered())
                     {
@@ -346,10 +346,6 @@ final class GateInteractionHandler
                         newGate.resetTeleportSign();
                     }
                     StargateManager.removeIncompleteStargate(player);
-                    if (StargateRestrictions.isPlayerBuildRestricted(player))
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.playerBuildCountRestricted.toString());
-                    }
                     player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                     return true;
                 }
@@ -672,8 +668,7 @@ final class GateInteractionHandler
      */
     private static void announceNearbyGate(final Stargate nearbyGate, final Block candidate, final Player player)
     {
-        if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD)
-            && !StargateRestrictions.isPlayerBuildRestricted(player))
+        if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD))
         {
             StargateManager.addIncompleteStargate(player, nearbyGate);
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
