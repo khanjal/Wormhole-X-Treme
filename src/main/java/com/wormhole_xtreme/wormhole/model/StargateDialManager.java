@@ -11,14 +11,13 @@ import org.bukkit.ChatColor;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
+import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -297,13 +296,6 @@ class StargateDialManager
     // -----------------------------------------------------------------------
 
     /**
-     * Activates this gate as the local end of an established wormhole. Cancels
-     * any pending shutdown timer, schedules a new one, and kicks off the
-     * lighting + woosh animation sequence.
-     *
-     * @param gate the gate to activate
-     */
-    /**
      * Works out how long a wormhole's shutdown should be scheduled for.
      *
      * <p>Two limits meet here. The shutdown timeout says how long a gate stays open after it
@@ -390,6 +382,13 @@ class StargateDialManager
         return true;
     }
 
+    /**
+     * Activates this gate as the local end of an established wormhole. Cancels
+     * any pending shutdown timer, schedules a new one, and kicks off the
+     * lighting + woosh animation sequence.
+     *
+     * @param gate the gate to activate
+     */
     static void dialStargate(final Stargate gate)
     {
         WorldUtils.scheduleChunkLoad(gate.getGatePlayerTeleportLocation().getBlock());

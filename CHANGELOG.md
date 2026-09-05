@@ -173,10 +173,11 @@ plain; on a dial sign it was a real usability problem, because the destination y
 to dial looked identical to the two either side of it. `>Name<` was the only thing
 distinguishing the one a click would actually use.
 
-The selected destination is now coloured (green by default) against dimmed neighbours, and
-the gate's own name reads in aqua on both signs. Glowing text is on by default -- gate rooms
-are usually dark and underground, and it is the single largest readability gain available
-here -- with `sign-glowing-text: false` for anyone who wants the vanilla look back.
+The selected destination is now coloured against dimmed neighbours, and the gate's own name
+is coloured on both signs. Glowing text was on by default here, on the reasoning that gate
+rooms are dark and underground; in-game testing said otherwise and it now ships off, along
+with softer colours -- see "The sign colours were too loud" above for what the defaults
+actually are and why they changed.
 
 Colours are named in config.yml rather than written as raw section-sign codes, following what
 `Sounds` already established: a name is something an admin can read back and check, and a name

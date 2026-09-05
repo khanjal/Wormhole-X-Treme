@@ -230,10 +230,12 @@ class WormholeXTremeVehicleListener implements Listener
      * they entered, which on a gate turning a corner meant arriving facing sideways or
      * backwards while the cart drove on ahead.
      *
-     * <p>Only players have a view to correct. The vehicle has already ejected its passengers
-     * by this point, so there is a window to move them before {@code addPassenger} puts them
-     * back, and this is the same call the failure path below has always made -- it simply
-     * never ran when reattachment worked first time, which is to say almost always.
+     * <p>Only players have a view to correct. The vehicle teleport has already ejected its
+     * passengers when this runs, so there is no mount to disturb -- and it runs there, right
+     * after the vehicle moves, rather than in the reattach tick. A player teleport makes the
+     * client withhold the packets that follow until it acknowledges the move, and the mount
+     * packet is exactly what would be withheld, which is the failure the delay before
+     * reattaching already exists to avoid. Both moves now sit on the same side of that wait.
      *
      * @param child
      *            the passenger about to be re-seated
@@ -281,6 +283,17 @@ class WormholeXTremeVehicleListener implements Listener
         try
         {
             veh.teleport(safeTarget);
+            // Face the riders now rather than in the reattach tick below. A player teleport
+            // makes the client withhold the packets that follow until it has acknowledged
+            // the move, and the mount packet is exactly what would be withheld -- the
+            // failure mode the delay before reattaching already exists to avoid. Doing it
+            // here puts both the vehicle move and the rider's turn on the same side of that
+            // wait. The vehicle teleport has already ejected them, so there is no mount to
+            // disturb yet.
+            for (final Entity rider : children)
+            {
+                faceTravelDirection(rider, safeTarget);
+            }
             final int[] attempts = new int[] { 0 };
             final int MAX_ATTEMPTS = 8;
             final boolean[] attached = new boolean[children.size()];
@@ -308,7 +321,6 @@ class WormholeXTremeVehicleListener implements Listener
                             {
                                 if (!child.isValid()) { continue; }
                                 boolean added = false;
-                                faceTravelDirection(child, safeTarget);
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
@@ -426,6 +438,17 @@ class WormholeXTremeVehicleListener implements Listener
         try
         {
             veh.teleport(safeTarget);
+            // Face the riders now rather than in the reattach tick below. A player teleport
+            // makes the client withhold the packets that follow until it has acknowledged
+            // the move, and the mount packet is exactly what would be withheld -- the
+            // failure mode the delay before reattaching already exists to avoid. Doing it
+            // here puts both the vehicle move and the rider's turn on the same side of that
+            // wait. The vehicle teleport has already ejected them, so there is no mount to
+            // disturb yet.
+            for (final Entity rider : children)
+            {
+                faceTravelDirection(rider, safeTarget);
+            }
             final int[] attempts = new int[] { 0 };
             final int MAX_ATTEMPTS = 12;
             final boolean[] attached = new boolean[children.size()];
@@ -453,7 +476,6 @@ class WormholeXTremeVehicleListener implements Listener
                             {
                                 if (!child.isValid()) { continue; }
                                 boolean added = false;
-                                faceTravelDirection(child, safeTarget);
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
