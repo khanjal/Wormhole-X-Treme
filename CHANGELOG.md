@@ -4,6 +4,59 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A ring in a room too short to hold it fired anyway
+
+Walk into a floor ring in a three-block room and it counted down, deployed, flashed and
+teleported you -- with the top of its stack drawn inside whatever was above it.
+
+Before a pair engages, both ends are surveyed: every interior column has to be clear, and
+every one has to have solid ground directly beneath it. "Clear" meant two block layers, the
+arrival layer and the one above. That is a player's height, and it is the wrong number. A
+finished stack is four blocks tall -- `RingAnimator`'s own note says four rings were chosen
+over five because four "still fits a four-block room" -- so the survey was approving rooms the
+animation could not fit into. The README and `docs/RINGS.md` have said "four blocks of
+headroom" for as long as rings have existed. Nothing enforced it.
+
+The survey asks for the whole stack height now, and says which of the two problems it found:
+
+```
+The Base end has too low a ceiling for the rings.
+The rings stand 4 blocks tall around whoever arrives, so they need 4 blocks of clear
+air above the pad -- more than a person needs to stand in it.
+```
+
+Told apart because they send a player to different places: one is a chest to move, the other
+is a ceiling to dig out. A block in the two layers a traveller occupies is still reported as
+something built inside the ring.
+
+Four is derived from the ring spacing rather than typed a second time, so the requirement
+follows the animation if that ever changes, and a test asserts the two agree.
+
+Ceiling rings are unaffected. One already refuses to engage unless its floor is at least a
+stack's height below its plane, which is the same guarantee arrived at from the other
+direction -- and its own plane is exempt from the new rule, because somebody who lays a ring
+into their ceiling leaves the middle of it as ceiling, and refusing that would have made the
+ordinary way of building one an error.
+
+Getting at the rule to test it meant moving the survey out of `BukkitRingWorld`, which needs a
+live world, into a `RingSurvey` that reads blocks through an interface -- the same split
+`RingTemplate` already uses for detection. The three older rules came along with it and have
+tests for the first time.
+
+### The ring pad lights up as a redstone lamp
+
+`rings.default-light-material` and `rings.default-flash-material` ship as `REDSTONE_LAMP`
+rather than `GLOWSTONE`.
+
+An unpowered redstone lamp is a dark block, which would be a strange thing for a pad to light
+up as. It is not one here: rings and their lights are drawn to clients rather than placed, and
+everything drawn goes through `MaterialUtils.drawnAs`, which switches on anything the game
+calls `Lightable`. The pad shows the lit texture.
+
+Only new installs pick this up. A server with a `config.yml` already written keeps what is in
+it, so an existing pad stays glowstone until it is changed -- either the setting, or
+`/wormhole ring edit light redstone_lamp` for one ring.
+
 ### A closing iris no longer buries whoever is standing in the gate
 
 Found reading the bug trackers of the two forks this one descends from, to see what we had
