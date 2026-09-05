@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A rider arrives facing where the cart is going
+
+Also from in-game testing: riding a minecart through a gate left the traveller looking
+whichever way they had been looking on the way in, rather than along the track they came out
+on.
+
+The arrival location has carried a yaw worked out from the exit velocity all along, but it was
+only ever applied to the vehicle. A passenger's view is theirs and not the seat's -- teleporting
+a cart does not turn the person in it, and neither does re-seating them.
+
+What made this easy to miss is that the code looked as though it handled it. The reattachment
+failure path teleports the passenger to the arrival location, yaw and all. So the view came out
+right exactly when `addPassenger` had failed, and wrong the rest of the time. Riders are now
+turned before being re-seated, on the path that actually runs, for boats as well as minecarts
+since both reattach the same way.
+
 ### A gate's owner no longer turns into a UUID
 
 Reported after refreshing a gate: the name sign came back showing the owner's UUID instead of
