@@ -49,6 +49,7 @@ public class WooshDepthCommand implements SubCommand
                                 stargate.setGateCustomWooshDepth(wooshDepth);
                                 stargate.setGateCustomWooshDepthSquared(wooshDepth * wooshDepth);
                                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " woosh depth set to: " + stargate.getGateCustomWooshDepth());
+                                warnIfShapeOwnsTheWaves(sender, stargate);
                             }
                             else
                             {
@@ -66,6 +67,7 @@ public class WooshDepthCommand implements SubCommand
                     {
                         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " woosh depth is currently: " + stargate.getGateCustomWooshDepth());
                         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid depth: 0 - 5");
+                        warnIfShapeOwnsTheWaves(sender, stargate);
                     }
                 }
                 else
@@ -86,6 +88,29 @@ public class WooshDepthCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole wooshdepth [stargate] <depth>");
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid depth: 0 - 5");
             return false;
+        }
+    }
+
+    /**
+     * Says so when this setting cannot move what the player is presumably trying to move.
+     *
+     * <p>The woosh animation prefers a shape's own {@code :W#N} waves and only derives waves
+     * from this depth when the shape authors none. Every shipped shape authors them, so on
+     * an ordinary gate this setting changes no visuals at all -- it still governs how far
+     * from the gate the block and entity protection reaches, which is a real effect, just
+     * not the one the name suggests. Saying that plainly beats letting someone set a number,
+     * watch nothing happen, and conclude the feature is broken.
+     *
+     * @param sender who to tell
+     * @param stargate the gate whose depth was just set or read
+     */
+    private static void warnIfShapeOwnsTheWaves(final CommandSender sender, final Stargate stargate)
+    {
+        if ((stargate.getGateWooshBlocks() != null) && !stargate.getGateWooshBlocks().isEmpty())
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                + "Note: this gate's shape defines its own woosh waves, so depth will not change "
+                + "how it looks -- it still sets how far protection reaches from the gate.");
         }
     }
 
