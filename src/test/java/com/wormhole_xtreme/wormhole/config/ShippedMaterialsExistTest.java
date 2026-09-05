@@ -40,7 +40,7 @@ public class ShippedMaterialsExistTest
      */
     private static final List<String> NOT_MATERIALS = java.util.Arrays.asList(
         "MATERIAL_GROUPS", "PORTAL_MATERIAL", "IRIS_MATERIAL", "STARGATE_MATERIAL",
-        "ACTIVE_MATERIAL", "SIGN_MATERIAL", "LIGHT_TICKS", "WOOSH_TICKS",
+        "ACTIVE_MATERIAL", "SIGN_MATERIAL", "CHEVRON_MATERIAL", "LIGHT_TICKS", "WOOSH_TICKS",
         "REDSTONE_ACTIVATED", "TRUE", "FALSE", "WALL_SIGN");
 
     /**

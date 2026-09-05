@@ -375,6 +375,57 @@ public final class StargateHelper
         return shapeMaterial;
     }
 
+    /**
+     * Which cells of a layer carry a light marker, keyed for lookup.
+     *
+     * <p>A chevron written the old way is an {@code [S:L#n]} cell — a frame block that also
+     * appears in a lighting wave — so telling one from an ordinary frame block means asking
+     * whether its position is in any wave. Built once per layer rather than searched per
+     * block: detection runs up to 156 times on a single click, and the alternative is a scan
+     * of every wave for every frame block of every candidate shape.
+     *
+     * @param layer
+     *            the layer
+     * @return the keys of its light-marked cells, empty if it has none
+     */
+    static java.util.Set<Long> lightCells(final StargateShapeLayer layer)
+    {
+        final java.util.Set<Long> cells = new java.util.HashSet<Long>();
+        final ArrayList<ArrayList<Integer[]>> waves = layer.getLayerLightPositions();
+        if (waves == null)
+        {
+            return cells;
+        }
+        for (final ArrayList<Integer[]> wave : waves)
+        {
+            if (wave == null)
+            {
+                continue; // index 0 is the placeholder the runtime lighting expects
+            }
+            for (final Integer[] pos : wave)
+            {
+                cells.add(cellKey(pos));
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * A layer cell's row and column packed into one key.
+     *
+     * <p>Only the row and column identify a cell within a layer; the first element of a
+     * shape position is always zero, the layer index being carried by the list the position
+     * lives in.
+     *
+     * @param pos
+     *            the shape position
+     * @return the key
+     */
+    static Long cellKey(final Integer[] pos)
+    {
+        return Long.valueOf(((long) pos[1].intValue() << 32) ^ (pos[2].intValue() & 0xffffffffL));
+    }
+
     private static Stargate check3DShape(final Block clickedBlock,
                                           final BlockFace facing,
                                           final Stargate3DShape shape)
@@ -433,6 +484,11 @@ public final class StargateHelper
             return null; // frame is not built from any palette this shape accepts
         }
 
+        // What an unlit chevron is built from, if this shape has them at all. Null is the
+        // ordinary case and means the shape never named one: [S:L#n] then accepts only the
+        // frame material, exactly as before, and a [C] cell means the same as [S].
+        final org.bukkit.Material chevronMat = shape.getShapeChevronMaterial();
+
         // Verify every structure (S) block has the expected material,
         // AND every portal (P) block is NOT the structure material.
         // The second check prevents false positives inside solid obsidian rooms
@@ -445,14 +501,40 @@ public final class StargateHelper
             {
                 continue;
             }
+            final java.util.Set<Long> litCells = lightCells(layer);
             for (final Integer[] pos : layer.getLayerBlockPositions())
             {
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
                 final int wy = oy + pos[1];
                 final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                if (world.getBlockAt(wx, wy, wz).getType() != structMat)
+                final org.bukkit.Material found = world.getBlockAt(wx, wy, wz).getType();
+                if (found == structMat)
                 {
-                    return null; // structure block mismatch
+                    continue;
+                }
+                // An [S:L#n] cell is a chevron, and a shape with a chevron material lets one
+                // be built from that instead, so the gate shows where its chevrons are before
+                // any of them light. Both materials are accepted rather than only the chevron
+                // one: every gate standing in every world today has frame material in those
+                // positions, and re-detection has to go on finding them.
+                if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
+                {
+                    continue;
+                }
+                return null; // structure block mismatch
+            }
+            for (final Integer[] pos : layer.getLayerChevronPositions())
+            {
+                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
+                final int wy = oy + pos[1];
+                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
+                // A [C] cell is the strict form: the shape asked for a distinct block there,
+                // so the frame material will not do. Unless the shape named no chevron
+                // material at all, in which case [C] falls back to meaning [S] rather than
+                // making the shape impossible to build.
+                if (world.getBlockAt(wx, wy, wz).getType() != ((chevronMat != null) ? chevronMat : structMat))
+                {
+                    return null; // chevron block mismatch
                 }
             }
             for (final Integer[] pos : layer.getLayerPortalPositions())
@@ -489,6 +571,17 @@ public final class StargateHelper
 
             // Structure blocks
             for (final Integer[] pos : layer.getLayerBlockPositions())
+            {
+                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
+                final int wy = oy + pos[1];
+                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
+                gate.getGateStructureBlocks().add(world.getBlockAt(wx, wy, wz).getLocation());
+            }
+
+            // Chevron blocks are frame for every purpose except which material they have to
+            // be: protected from breaking, indexed for lookup, and cleared when the gate is
+            // removed. Only the verification above cares about the difference.
+            for (final Integer[] pos : layer.getLayerChevronPositions())
             {
                 final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
                 final int wy = oy + pos[1];

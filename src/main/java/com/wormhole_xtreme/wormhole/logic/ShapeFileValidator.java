@@ -34,7 +34,7 @@ public final class ShapeFileValidator
     private static final Pattern CELL = Pattern.compile("\\[(.+?)\\]");
     private static final Pattern LAYER_HEADER = Pattern.compile("Layer#(\\d+)=");
     private static final Pattern MATERIAL_LINE = Pattern.compile(
-        "^(PORTAL_MATERIAL|IRIS_MATERIAL|STARGATE_MATERIAL|ACTIVE_MATERIAL)=(.+)$");
+        "^(PORTAL_MATERIAL|IRIS_MATERIAL|STARGATE_MATERIAL|ACTIVE_MATERIAL|CHEVRON_MATERIAL)=(.+)$");
 
     private ShapeFileValidator() {}
 
@@ -372,6 +372,16 @@ public final class ShapeFileValidator
     private static boolean isFrameAt(final StargateShapeLayer layer, final int y, final int col)
     {
         for (final Integer[] p : layer.getLayerBlockPositions())
+        {
+            if ((p[1].intValue() == y) && (p[2].intValue() == col))
+            {
+                return true;
+            }
+        }
+        // A chevron cell is a block a player has to build too, just not from the frame
+        // material. Asking only about frame blocks would call a [C] cell empty and pass a
+        // redstone marker that lands inside it.
+        for (final Integer[] p : layer.getLayerChevronPositions())
         {
             if ((p[1].intValue() == y) && (p[2].intValue() == col))
             {

@@ -187,6 +187,11 @@ public class Stargate3DShape extends StargateShape
                 final Material m = parseMaterialName(line.split("=")[1]);
                 if (m != null) setShapeLightMaterial(m);
             }
+            else if (line.contains("CHEVRON_MATERIAL=") && (line.split("=").length > 1))
+            {
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null) setShapeChevronMaterial(m);
+            }
             else if (line.contains("SIGN_MATERIAL=") && (line.split("=").length > 1))
             {
                 final Material m = parseMaterialName(line.split("=")[1]);
