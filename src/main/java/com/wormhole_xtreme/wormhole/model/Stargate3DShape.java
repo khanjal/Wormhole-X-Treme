@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,7 +29,7 @@ public class Stargate3DShape extends StargateShape
      */
     public static Material parseMaterialName(final String name) {
         if (name == null) return null;
-        final String n = name.trim().toUpperCase();
+        final String n = name.trim().toUpperCase(Locale.ROOT);
         switch (n) {
             case "STATIONARY_WATER":
                 return Material.WATER;

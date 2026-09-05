@@ -41,7 +41,7 @@ public class RedstoneCommand implements SubCommand
                 {
                     if (com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
                     {
-                        stargate.setGateRedstonePowered(Boolean.valueOf(args[2].trim().toLowerCase()));
+                        stargate.setGateRedstonePowered(Boolean.parseBoolean(args[2].trim()));
                         if (stargate.isGateRedstonePowered())
                         {
                             stargate.setupRedstone(true);

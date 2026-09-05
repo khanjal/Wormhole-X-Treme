@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.command.CommandSender;
@@ -257,7 +258,7 @@ public final class SubCommands
                 com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()
                     .toArray(new String[0]));
         }
-        final String verb = args[1].toLowerCase();
+        final String verb = args[1].toLowerCase(Locale.ROOT);
         if ("edit".equals(verb))
         {
             // gate edit <gate> <field> [value]
@@ -270,7 +271,7 @@ public final class SubCommands
             }
             if (args.length == 5)
             {
-                final String field = args[3].toLowerCase();
+                final String field = args[3].toLowerCase(Locale.ROOT);
                 if ("group".equals(field))
                 {
                     return prefixed(args[4],
@@ -372,7 +373,7 @@ public final class SubCommands
      */
     public static Entry find(final String name)
     {
-        return name == null ? null : BY_NAME.get(name.toLowerCase());
+        return name == null ? null : BY_NAME.get(name.toLowerCase(Locale.ROOT));
     }
 
     /** @return every subcommand, in the order declared above */
@@ -384,7 +385,7 @@ public final class SubCommands
     /** @return canonical subcommand names matching the given prefix, for tab completion */
     public static List<String> namesMatching(final String prefix)
     {
-        final String p = prefix == null ? "" : prefix.toLowerCase();
+        final String p = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final Entry e : ORDERED)
         {
@@ -433,11 +434,11 @@ public final class SubCommands
 
     private static List<String> prefixed(final String typed, final String... candidates)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final String c : candidates)
         {
-            if (c.toLowerCase().startsWith(p))
+            if (c.toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(c);
             }
@@ -498,7 +499,7 @@ public final class SubCommands
         {
             return prefixed(args[1], "to", "list", "admin", "place");
         }
-        final String noun = args[1].toLowerCase();
+        final String noun = args[1].toLowerCase(Locale.ROOT);
         if ("to".equals(noun))
         {
             // Only public names are offered here, for the same reason "place remove" cannot
@@ -510,7 +511,7 @@ public final class SubCommands
         if ("admin".equals(noun))
         {
             if (args.length == 3) return prefixed(args[2], "set", "remove", "cost", "goto", "send");
-            final String action = args[2].toLowerCase();
+            final String action = args[2].toLowerCase(Locale.ROOT);
             if (args.length == 4)
             {
                 if ("remove".equals(action) || "cost".equals(action)) return publicBeamNames(args[3]);
@@ -557,12 +558,12 @@ public final class SubCommands
      */
     private static List<String> playerNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final org.bukkit.entity.Player player : org.bukkit.Bukkit.getOnlinePlayers())
         {
             final String name = player.getName();
-            if (name.toLowerCase().startsWith(p))
+            if (name.toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(name);
             }
@@ -623,12 +624,12 @@ public final class SubCommands
      */
     private static List<String> worldNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final org.bukkit.World world : org.bukkit.Bukkit.getWorlds())
         {
             final String name = world.getName();
-            if (name.toLowerCase().startsWith(p))
+            if (name.toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(name);
             }
@@ -639,12 +640,12 @@ public final class SubCommands
 
     private static List<String> publicBeamNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination destination
             : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getAllPublicDestinations())
         {
-            if (destination.getName().toLowerCase().startsWith(p))
+            if (destination.getName().toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(destination.getName());
             }
@@ -722,12 +723,12 @@ public final class SubCommands
      */
     private static List<String> glowingNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final org.bukkit.Material material
             : com.wormhole_xtreme.wormhole.model.ring.Ring.glowingMaterials())
         {
-            final String name = material.name().toLowerCase();
+            final String name = material.name().toLowerCase(Locale.ROOT);
             if (name.startsWith(p))
             {
                 out.add(name);
@@ -748,7 +749,7 @@ public final class SubCommands
      */
     private static List<String> materialNames(final String typed, final boolean slabsOnly)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final org.bukkit.Material material : org.bukkit.Material.values())
         {
@@ -763,7 +764,7 @@ public final class SubCommands
             {
                 continue;
             }
-            final String name = material.name().toLowerCase();
+            final String name = material.name().toLowerCase(Locale.ROOT);
             if (name.startsWith(p))
             {
                 out.add(name);
@@ -785,12 +786,12 @@ public final class SubCommands
      */
     private static List<String> shapeNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final String name
             : com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes().keySet())
         {
-            if (name.toLowerCase().startsWith(p))
+            if (name.toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(name);
             }
@@ -801,12 +802,12 @@ public final class SubCommands
 
     private static List<String> gateNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final List<String> out = new ArrayList<String>();
         for (final Stargate g : StargateManager.getAllGatesUnsorted())
         {
             final String name = g.getGateName();
-            if (name != null && name.toLowerCase().startsWith(p))
+            if (name != null && name.toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(name);
             }
@@ -817,7 +818,7 @@ public final class SubCommands
 
     private static List<String> networkNames(final String typed)
     {
-        final String p = typed == null ? "" : typed.toLowerCase();
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
         final java.util.LinkedHashSet<String> nets = new java.util.LinkedHashSet<String>();
         nets.add("Public");
         for (final Stargate g : StargateManager.getAllGatesUnsorted())
@@ -830,7 +831,7 @@ public final class SubCommands
         final List<String> out = new ArrayList<String>();
         for (final String n : nets)
         {
-            if (n.toLowerCase().startsWith(p))
+            if (n.toLowerCase(Locale.ROOT).startsWith(p))
             {
                 out.add(n);
             }

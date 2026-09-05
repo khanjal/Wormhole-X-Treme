@@ -64,8 +64,9 @@ public class CooldownCommand implements SubCommand
         }
         else if ((args.length == 2) && CommandUtilities.isBoolean(args[1]))
         {
-            ConfigManager.setUseCooldownEnabled(Boolean.valueOf(args[1].toLowerCase()));
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole use cooldowns set to: " + args[1].toLowerCase());
+            final boolean enabled = Boolean.parseBoolean(args[1]);
+            ConfigManager.setUseCooldownEnabled(enabled);
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole use cooldowns set to: " + enabled);
         }
         else
         {

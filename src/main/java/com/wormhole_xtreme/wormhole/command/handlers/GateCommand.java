@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -56,7 +57,7 @@ public class GateCommand implements SubCommand
             sender.sendMessage("/wormhole gate <" + String.join("|", VERBS) + ">");
             return true;
         }
-        final String verb = args[1].toLowerCase();
+        final String verb = args[1].toLowerCase(Locale.ROOT);
         // What the verb's own handler expects. The older ones were written as standalone
         // commands and read their arguments from index zero; the newer ones take the whole
         // array with the subcommand still in front. Both shapes are fed what they expect

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import org.yaml.snakeyaml.Yaml;
@@ -375,7 +376,7 @@ public class ConfigurationYAML
      */
     static String kebabKeyName(final String constantName)
     {
-        return constantName.toLowerCase().replace('_', '-');
+        return constantName.toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
     private static String formatValueForYaml(final Object value)

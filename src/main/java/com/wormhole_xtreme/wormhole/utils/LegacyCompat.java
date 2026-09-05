@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import java.util.Locale;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -86,7 +88,7 @@ public final class LegacyCompat {
             // Redstone wire: try reflection to set power if present
             try {
                 final Class<?> cls = bd.getClass();
-                if (cls.getSimpleName().toLowerCase().contains("redstone")) {
+                if (cls.getSimpleName().toLowerCase(Locale.ROOT).contains("redstone")) {
                     final java.lang.reflect.Method setPower = cls.getMethod("setPower", int.class);
                     int power = data & 0xF;
                     if (power < 0) power = 0;
@@ -130,7 +132,7 @@ public final class LegacyCompat {
             // Redstone wire: reflection-based getter
             try {
                 final Class<?> cls = bd.getClass();
-                if (cls.getSimpleName().toLowerCase().contains("redstone")) {
+                if (cls.getSimpleName().toLowerCase(Locale.ROOT).contains("redstone")) {
                     final java.lang.reflect.Method getPower = cls.getMethod("getPower");
                     final Object val = getPower.invoke(bd);
                     if (val instanceof Integer) return ((Integer) val).byteValue();

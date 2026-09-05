@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -244,7 +245,7 @@ public class StargateShape
             }
             else if (line.contains("SIGN_MATERIAL"))
             {
-                try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase())); } catch (final Exception e) { /* ignore unknown */ }
+                try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase(Locale.ROOT))); } catch (final Exception e) { /* ignore unknown */ }
             }
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Sign Position: \"" + Arrays.toString(getShapeSignPosition()) + "\"");
@@ -423,7 +424,7 @@ public class StargateShape
         {
             return true;
         }
-        return groupName != null && shapeMaterialGroups.contains(groupName.toLowerCase());
+        return groupName != null && shapeMaterialGroups.contains(groupName.toLowerCase(Locale.ROOT));
     }
 
     /**
@@ -442,7 +443,7 @@ public class StargateShape
         }
         for (final String part : csv.split(","))
         {
-            final String trimmed = part.trim().toLowerCase();
+            final String trimmed = part.trim().toLowerCase(Locale.ROOT);
             if (!trimmed.isEmpty())
             {
                 shapeMaterialGroups.add(trimmed);
