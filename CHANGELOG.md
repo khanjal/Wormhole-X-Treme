@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A gate's owner no longer turns into a UUID
+
+Reported after refreshing a gate: the name sign came back showing the owner's UUID instead of
+their name. Refresh was where it showed, and not where it happened.
+
+`Stargate.getGateOwnerName()` falls back to the raw owner id when no display name has been
+resolved, which is right for display -- an id beats showing nothing. The bug was that saving
+used that same getter. A gate whose owner the server had not seen yet wrote its UUID into the
+file's `OwnerName` field, and the next load then saw a non-empty name, took it for a real one,
+and never ran the resolve-from-UUID path again. The id was the name from then on.
+
+The sign made it look like refresh's doing. Signs are world state: the one on the gate had
+been showing a correct name written back when the gate was built, while the field behind it
+had been empty on every load since. Refresh rewrites the sign, so it was the first thing to
+show what was actually stored.
+
+Saving now writes the *stored* name and never the fallback, and loading treats a name equal to
+the owner id as no name at all -- which is what heals the files already written that way,
+rather than only stopping new ones. `refresh` copies the stored name too, for the same reason:
+it was reading the fallback and writing it onto the gate it rebuilt, moments before saving.
+
+The decision is two small functions, `ownerNameToSave` and `ownerNameFromSave`, so it could be
+tested without a running server -- nothing in this suite can call `Bukkit.getOfflinePlayer`.
+Worth knowing while reading them: a legacy gate whose owner genuinely *is* a player name trips
+the "name equals owner" rule and is read as having no name. That is correct and needs no
+special case -- the caller then fails to parse the owner as a UUID and sets the owner string as
+the name, which for those gates is the right answer.
+
 ### The DHD takes redstone from any component now, not only from dust
 
 Reported from in-game testing of the change above. Running dust to the block above the

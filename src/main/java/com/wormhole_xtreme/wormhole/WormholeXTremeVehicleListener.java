@@ -221,6 +221,43 @@ class WormholeXTremeVehicleListener implements Listener
 
 
     /**
+     * Points a rider the way the vehicle is travelling, before they are re-seated.
+     *
+     * <p>The arrival location already carries a yaw worked out from the exit velocity, but
+     * it was only ever applied to the vehicle. A passenger's view direction is theirs, not
+     * the seat's: teleporting the cart does not turn the person in it, and neither does
+     * re-seating them. So a rider arrived still looking the way they had been looking when
+     * they entered, which on a gate turning a corner meant arriving facing sideways or
+     * backwards while the cart drove on ahead.
+     *
+     * <p>Only players have a view to correct. The vehicle has already ejected its passengers
+     * by this point, so there is a window to move them before {@code addPassenger} puts them
+     * back, and this is the same call the failure path below has always made -- it simply
+     * never ran when reattachment worked first time, which is to say almost always.
+     *
+     * @param child
+     *            the passenger about to be re-seated
+     * @param arrival
+     *            the vehicle's arrival location, carrying the travel-direction yaw
+     */
+    static void faceTravelDirection(final Entity child, final Location arrival)
+    {
+        if (!(child instanceof Player) || (arrival == null))
+        {
+            return;
+        }
+        try
+        {
+            child.teleport(arrival.clone());
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Could not face rider along travel direction: " + t.getMessage());
+        }
+    }
+
+    /**
      * Teleport an occupied minecart through a gate.
      * <p>
      * Teleports the vehicle (which ejects the passenger server-side), then schedules
@@ -271,6 +308,7 @@ class WormholeXTremeVehicleListener implements Listener
                             {
                                 if (!child.isValid()) { continue; }
                                 boolean added = false;
+                                faceTravelDirection(child, safeTarget);
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
@@ -415,6 +453,7 @@ class WormholeXTremeVehicleListener implements Listener
                             {
                                 if (!child.isValid()) { continue; }
                                 boolean added = false;
+                                faceTravelDirection(child, safeTarget);
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {

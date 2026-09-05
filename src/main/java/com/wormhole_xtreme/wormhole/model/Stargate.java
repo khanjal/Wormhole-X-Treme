@@ -1125,6 +1125,22 @@ public class Stargate
     }
 
     /**
+     * Gets the stored display name, without falling back to the owner id.
+     *
+     * <p>{@link #getGateOwnerName()} is for showing a person: it answers "what should I put
+     * on the sign", and an id is a better answer than nothing. This one answers "is there a
+     * display name at all", which is the question anything copying or saving the field has
+     * to ask instead. Using the display getter for that writes the id into the name and
+     * makes it permanent -- see {@code StargateYamlManager.saveStargate}.
+     *
+     * @return the stored owner display name, or null if none was ever resolved
+     */
+    public String getStoredGateOwnerName()
+    {
+        return gateOwnerName;
+    }
+
+    /**
      * Returns true if the given player is the owner of this gate.
      * Handles both UUID-based identifiers (new gates) and legacy name-based identifiers.
      *
