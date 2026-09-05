@@ -371,6 +371,7 @@ that material out of palettes entirely; leave it unset unless the geometry needs
 | `PORTAL_MATERIAL=` | `WATER` | The block type filling the open portal (`[P]` blocks when active). |
 | `IRIS_MATERIAL=` | `STONE` | The block type filling the portal when the iris is closed. |
 | `ACTIVE_MATERIAL=` | `GLOWSTONE` | The block type used for light blocks (`:L` markers) when the gate is active. |
+| `CHEVRON_MATERIAL=` | *(none)* | The block type an **unlit** chevron may be built from, so the gate shows where its chevrons are before it dials. See [unlit chevrons](#unlit-chevrons). Unset means chevrons are ordinary frame blocks. |
 | `SIGN_MATERIAL=` | `OAK_WALL_SIGN` | The wall-sign type used for the gate's **name sign**. Any `*_WALL_SIGN` material is valid (e.g. `CRIMSON_WALL_SIGN`, `WARPED_WALL_SIGN`). The dial sign is placed by a player on the `[D]` block, and the plugin accepts whatever wall sign it finds there — but converts it to match this material when the gate is completed or regenerated, keeping its text and facing. Set `sign-dial-match-material: false` in config.yml to leave a player's own sign alone. |
 
 Example — a Nether-themed gate using crimson materials:
@@ -405,6 +406,7 @@ gate-material-groups:
     portal: WATER
     iris: STONE
     light: GLOWSTONE
+    chevron: REDSTONE_LAMP
   Atlantis:
     structure: LAPIS_BLOCK
     portal: WATER
@@ -415,6 +417,33 @@ gate-material-groups:
 
 `sign` sets the wall-sign type used for the gate's name sign — any `*_WALL_SIGN`
 material. The dial sign is placed by the player, so its type is whatever they used.
+
+`chevron` is optional and covered below. Every other key falls back to a built-in when
+it is missing; that one does not, because it changes what a player has to build.
+
+### Unlit chevrons
+
+A chevron is a frame block that also carries a `:L` marker, so by default it is made of the
+same block as the rest of the ring and you cannot tell where the chevrons are until the gate
+dials. Give a palette a `chevron` material and those positions may be built from it instead:
+
+```yaml
+    chevron: REDSTONE_LAMP
+```
+
+**Either block is accepted there.** Building a chevron position out of the frame material
+still works and is still the same gate, so nothing already standing is affected and you can
+convert a gate one chevron at a time. Leave `chevron` out and behaviour is exactly as before.
+
+When the gate dials, a chevron built from the chevron material is shown as that same block
+**switched on** — a redstone lamp lights up rather than turning into glowstone. That needs a
+block with an off and an on state (`REDSTONE_LAMP`, or `COPPER_BULB` on Minecraft 1.21+);
+anything else, such as a `GOLD_BLOCK` chevron, lights as the palette's `light` material
+instead, since drawing it as itself would mean it never appeared to light at all.
+
+Shape authors who want to *require* the distinct block have a `[C]` cell, which is `[S]` built
+from the chevron material rather than the frame material. None of the shipped shapes use it: a
+`[C]` in `Standard` would make lamps mandatory and every obsidian Standard gate undetectable.
 
 A gate's palette is identified by the material of its **frame**, so every group must use a
 different `structure` material — build the Standard shape in obsidian and you get a

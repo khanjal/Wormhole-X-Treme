@@ -4,6 +4,54 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Chevrons you can see before they light
+
+A chevron was invisible while a gate sat idle. An `[S:L#7]` cell is a frame block that happens
+to be in a lighting wave, and detection required every frame block to be the one material the
+palette named -- so a chevron could only ever be more obsidian. Dialling drew glowstone over
+seven blocks that had looked like nothing in particular a moment earlier.
+
+Palettes gain an optional `chevron` material. Build those positions out of it instead of the
+frame material and the ring shows where its chevrons are while it is off:
+
+```yaml
+gate-material-groups:
+  Standard:
+    structure: OBSIDIAN
+    light: GLOWSTONE
+    chevron: REDSTONE_LAMP
+```
+
+Detection accepts **either** block there, never only the chevron one. Every gate standing in
+every world has frame material in those positions and has to go on being found, so this widens
+what counts as a gate rather than replacing it. Seven lamps, three lamps, or none: all of it is
+still a Standard gate, and you can convert one chevron at a time.
+
+A lit chevron is that same block switched on now, rather than a different block. A lamp that
+turns into glowstone for four seconds and back reads as the block being swapped, not lit. That
+only works for a block with an off and an on -- where there is no on state, a `GOLD_BLOCK`
+chevron say, it lights as `light` exactly as before, because gold drawn as gold would mean the
+chevron never appeared to light at all.
+
+I put the material in the shape file first, and that was the wrong place. A shape describes
+geometry and a palette describes what it is made of, so `CHEVRON_MATERIAL` in `Standard.shape`
+forced lamps on the same seven cells however the gate was built -- in lapis, in deepslate, in a
+palette added yesterday that had never heard of lamps. It is a palette key, and a shape may
+still name one to pin it against every palette.
+
+Alone among the palette materials it is not defaulted when the key is absent. The others are
+appearance and a built-in fallback costs nothing; this one changes what a player has to build,
+so a default would quietly widen what counts as a gate frame on every server that never asked
+for it.
+
+Shape authors who want to *require* the distinct block have a `[C]` cell -- `[S]` built from
+the chevron material. None of the shipped shapes use it, deliberately: a `[C]` in `Standard`
+would make lamps mandatory and every obsidian Standard gate in the world undetectable.
+
+There is no `/wormhole custom` override for this one, unlike the portal, iris and light
+materials. Those are appearance and can change under a standing gate; this says what the gate
+had to be built out of to be found in the first place.
+
 ### `HorizontalSignDial` could not be built at all
 
 Found reading the shape files while working out whether the DHD could become a type a gate
