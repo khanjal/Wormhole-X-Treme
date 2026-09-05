@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
  * have lamps at three chevrons and obsidian at the other four, and each has to light as
  * whatever it actually is.
  */
-public class LitChevronTest
+class LitChevronTest
 {
     /** Stands in for the gate's light material, already drawn lit. */
     private static final BlockData LIGHT = mock(BlockData.class);
@@ -33,7 +33,7 @@ public class LitChevronTest
      * The case the whole feature exists for: a lamp chevron lights by coming on.
      */
     @Test
-    public void aChevronBuiltFromTheChevronMaterialLightsAsThatSameFixture()
+    void aChevronBuiltFromTheChevronMaterialLightsAsThatSameFixture()
     {
         assertSame(FIXTURE_ON, StargateBlockSetup.litChevron(
             Material.REDSTONE_LAMP, Material.REDSTONE_LAMP, FIXTURE_ON, LIGHT));
@@ -48,7 +48,7 @@ public class LitChevronTest
      * drawn as glowstone rather than as an obsidian block that never visibly changes.
      */
     @Test
-    public void aChevronBuiltFromTheFrameMaterialStillLightsAsTheGatesLightMaterial()
+    void aChevronBuiltFromTheFrameMaterialStillLightsAsTheGatesLightMaterial()
     {
         assertSame(LIGHT, StargateBlockSetup.litChevron(
             Material.OBSIDIAN, Material.REDSTONE_LAMP, FIXTURE_ON, LIGHT));
@@ -62,7 +62,7 @@ public class LitChevronTest
      * lamps and never touching the rest.
      */
     @Test
-    public void aGateWithSomeOfEachLightsEachPositionAsWhateverIsThere()
+    void aGateWithSomeOfEachLightsEachPositionAsWhateverIsThere()
     {
         assertSame(FIXTURE_ON, StargateBlockSetup.litChevron(
             Material.REDSTONE_LAMP, Material.REDSTONE_LAMP, FIXTURE_ON, LIGHT));
@@ -81,7 +81,7 @@ public class LitChevronTest
      * the animation visible, which matters more than the fixture conceit.
      */
     @Test
-    public void aChevronMaterialWithNoLitStateFallsBackToTheLightMaterial()
+    void aChevronMaterialWithNoLitStateFallsBackToTheLightMaterial()
     {
         // fixtureOn is what litFormOf answers for a material that is not Lightable: null.
         assertSame(LIGHT, StargateBlockSetup.litChevron(
@@ -95,7 +95,7 @@ public class LitChevronTest
      * boring: every position draws the light material, with no per-block question asked.
      */
     @Test
-    public void aGateWithNoChevronMaterialLightsEverythingAsTheLightMaterial()
+    void aGateWithNoChevronMaterialLightsEverythingAsTheLightMaterial()
     {
         assertSame(LIGHT, StargateBlockSetup.litChevron(Material.OBSIDIAN, null, null, LIGHT));
         assertSame(LIGHT, StargateBlockSetup.litChevron(Material.REDSTONE_LAMP, null, null, LIGHT));

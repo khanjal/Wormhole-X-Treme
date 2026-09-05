@@ -33,26 +33,26 @@ import com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand;
  * {@code i} there like anywhere else -- which is why nobody has ever reported this. The
  * assertions below deliberately type in upper case, the half that breaks.
  */
-public class CommandLookupLocaleTest
+class CommandLookupLocaleTest
 {
     /** The locale to put back, since this is JVM-wide state. */
     private Locale before;
 
     @BeforeEach
-    public void speakTurkish()
+    void speakTurkish()
     {
         before = Locale.getDefault();
         Locale.setDefault(new Locale("tr", "TR"));
     }
 
     @AfterEach
-    public void speakWhateverWeDidBefore()
+    void speakWhateverWeDidBefore()
     {
         Locale.setDefault(before);
     }
 
     @Test
-    public void aSubcommandTypedInUpperCaseStillDispatchesOnATurkishServer()
+    void aSubcommandTypedInUpperCaseStillDispatchesOnATurkishServer()
     {
         // "ring" and "config" both carry an i, so both were unreachable in upper case --
         // two of the five names the plugin actually advertises.
@@ -65,7 +65,7 @@ public class CommandLookupLocaleTest
     }
 
     @Test
-    public void tabCompletionStillOffersTheCommandsWhoseNamesContainAnI()
+    void tabCompletionStillOffersTheCommandsWhoseNamesContainAnI()
     {
         // namesMatching folds the typed prefix but compares it against the unfolded name, so
         // a dotless i in the prefix matches nothing and the completion list comes back empty.
@@ -77,7 +77,7 @@ public class CommandLookupLocaleTest
     }
 
     @Test
-    public void aGateEditFieldTypedInUpperCaseIsStillRecognised()
+    void aGateEditFieldTypedInUpperCaseIsStillRecognised()
     {
         // /wormhole gate edit <gate> IRIS <material> -- the field name is looked up in a map
         // keyed by ASCII literals, so a folded "ırıs" answers "No such field: IRIS."

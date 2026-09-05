@@ -24,7 +24,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * or a row typed one cell short, would either fail to parse or silently stop lining up without
  * any error. These tests exist to catch both.
  */
-public class EvenGateShapeTest
+class EvenGateShapeTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
@@ -66,7 +66,7 @@ public class EvenGateShapeTest
     }
 
     @Test
-    public void evenAndEvenSignDialParseWithoutThrowing() throws Exception
+    void evenAndEvenSignDialParseWithoutThrowing() throws Exception
     {
         // Only a differing row *count* (height) or a missing :EP throws out of the
         // constructor -- a row with the wrong number of cells does not; Stargate3DShape derives
@@ -79,14 +79,14 @@ public class EvenGateShapeTest
     }
 
     @Test
-    public void evenAndEvenSignDialHaveEveryRowTheSameWidthAsLayerOneEstablished() throws Exception
+    void evenAndEvenSignDialHaveEveryRowTheSameWidthAsLayerOneEstablished() throws Exception
     {
         ShapeFileRowWidths.assertConsistent(SHAPE_DIR.resolve("Even.shape"));
         ShapeFileRowWidths.assertConsistent(SHAPE_DIR.resolve("EvenSignDial.shape"));
     }
 
     @Test
-    public void evenHasTheSameSevenLightsAndThreeWooshDepthAsStandardScaledUp() throws Exception
+    void evenHasTheSameSevenLightsAndThreeWooshDepthAsStandardScaledUp() throws Exception
     {
         // This shape was drawn as "Standard's ring, scaled up to 8-wide" -- same chevron
         // count, same three receding woosh layers -- just with the extra full-width rows an
@@ -100,7 +100,7 @@ public class EvenGateShapeTest
     }
 
     @Test
-    public void evenIsDialOnlyAndEvenSignDialAddsRedstoneDialingInstead() throws Exception
+    void evenIsDialOnlyAndEvenSignDialAddsRedstoneDialingInstead() throws Exception
     {
         // Mirrors the Standard / StandardSignDial split: the base shape trades an iris
         // switch for nothing else (dial-only, no :D), the SignDial variant trades the iris

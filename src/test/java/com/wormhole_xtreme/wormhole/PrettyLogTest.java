@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
  * <p>The two-argument overload is now the normal form. These tests cover the two ways that
  * change could go wrong.
  */
-public class PrettyLogTest
+class PrettyLogTest
 {
     /**
      * The short form logs the same line as the long form told not to include the version.
@@ -51,7 +51,7 @@ public class PrettyLogTest
      * fault is visible without a server.
      */
     @Test
-    public void theShortFormDelegatesWithTheVersionTurnedOff()
+    void theShortFormDelegatesWithTheVersionTurnedOff()
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         doCallRealMethod().when(plugin).prettyLog(any(Level.class), anyString());
@@ -69,7 +69,7 @@ public class PrettyLogTest
      * output has to be unchanged by that.
      */
     @Test
-    public void theTagCarriesTheNameAndTheVersionOnlyWhenAskedFor()
+    void theTagCarriesTheNameAndTheVersionOnlyWhenAskedFor()
     {
         assertEquals("[WormholeXTreme]", WormholeXTreme.prettyTag("WormholeXTreme", null),
             "an ordinary line is tagged with the plugin name alone");
@@ -88,7 +88,7 @@ public class PrettyLogTest
      * {@link WormholeXTreme}. Anything else is a call site that should have been shortened.
      */
     @Test
-    public void noCallSitePassesFalseForTheVersion() throws IOException
+    void noCallSitePassesFalseForTheVersion() throws IOException
     {
         // [^,] stops the first group at the level argument, and DOTALL lets it span lines,
         // since some of these calls wrap. No first argument in the tree contains a comma.

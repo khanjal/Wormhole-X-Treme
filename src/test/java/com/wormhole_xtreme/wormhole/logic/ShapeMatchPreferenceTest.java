@@ -35,12 +35,12 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * because of where the two names happened to hash, which a single custom shape on the server
  * would have been enough to change.
  */
-public class ShapeMatchPreferenceTest
+class ShapeMatchPreferenceTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -106,7 +106,7 @@ public class ShapeMatchPreferenceTest
      * was ignored, then overwritten.
      */
     @Test
-    public void aFoundDialSignBeatsAShapeThatNeverLooksForOne() throws Exception
+    void aFoundDialSignBeatsAShapeThatNeverLooksForOne() throws Exception
     {
         for (final String[] pair : shippedPairs())
         {
@@ -135,7 +135,7 @@ public class ShapeMatchPreferenceTest
      * resizes the registry's table.
      */
     @Test
-    public void aBuildWithNoSignStillResolvesTheSameWayEveryTime() throws Exception
+    void aBuildWithNoSignStillResolvesTheSameWayEveryTime() throws Exception
     {
         for (final String[] pair : shippedPairs())
         {
@@ -163,7 +163,7 @@ public class ShapeMatchPreferenceTest
      * only by accident of hashing.
      */
     @Test
-    public void theShapeThatAccountsForMoreOfTheFrameWins() throws Exception
+    void theShapeThatAccountsForMoreOfTheFrameWins() throws Exception
     {
         final Stargate3DShape plain = load("Minimal");
         final Stargate3DShape signDial = load("MinimalSignDial");
@@ -186,7 +186,7 @@ public class ShapeMatchPreferenceTest
      * shape holding a sign — where the flag is the first thing that separates them.
      */
     @Test
-    public void aRedstoneShapeStillOutranksItsPlainTwin() throws Exception
+    void aRedstoneShapeStillOutranksItsPlainTwin() throws Exception
     {
         final Stargate3DShape plain = load("Standard");
         final Stargate3DShape redstone = load("StandardSignDial");
@@ -208,7 +208,7 @@ public class ShapeMatchPreferenceTest
      * depends on how many other shapes happened to be compared along the way.
      */
     @Test
-    public void noShippedShapeBeatsAnEqualCopyOfItself() throws Exception
+    void noShippedShapeBeatsAnEqualCopyOfItself() throws Exception
     {
         int checked = 0;
         try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))

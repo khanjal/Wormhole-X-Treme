@@ -30,12 +30,12 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * destination end is inert: it is an exit, not an entrance. That matters practically — a
  * gate dialled out of a base must not become a door hostile mobs can walk back in through.
  */
-public class GateOneWayTest
+class GateOneWayTest
 {
     private World world;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
@@ -58,7 +58,7 @@ public class GateOneWayTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         GateSpatialIndex.clear();
     }
@@ -101,7 +101,7 @@ public class GateOneWayTest
     }
 
     @Test
-    public void aMobInTheDestinationGateIsNotSentBackUpTheWormhole()
+    void aMobInTheDestinationGateIsNotSentBackUpTheWormhole()
     {
         // origin --> destination. The destination is active but has no target of its own.
         final Stargate destination = gateAt("destination", 10, 64, 20);
@@ -119,7 +119,7 @@ public class GateOneWayTest
     }
 
     @Test
-    public void aMobInTheOriginGateIsSentThrough() throws Exception
+    void aMobInTheOriginGateIsSentThrough() throws Exception
     {
         // The mirror of the test above: with a target, the sweep does act, which is what
         // makes the previous test meaningful rather than vacuously green.
@@ -140,7 +140,7 @@ public class GateOneWayTest
     }
 
     @Test
-    public void anInactiveGateSendsNothingEitherWay() throws Exception
+    void anInactiveGateSendsNothingEitherWay() throws Exception
     {
         final Stargate destination = gateAt("destination", 99, 70, 99);
         final Stargate origin = gateAt("origin", 10, 64, 20);
@@ -160,7 +160,7 @@ public class GateOneWayTest
     }
 
     @Test
-    public void aSweptEntityLeavesPointingOutOfTheDestinationGate() throws Exception
+    void aSweptEntityLeavesPointingOutOfTheDestinationGate() throws Exception
     {
         // An arrow shot north into a gate used to arrive still travelling north, whichever
         // way the far gate faced — often straight back into its own frame.
@@ -193,7 +193,7 @@ public class GateOneWayTest
     }
 
     @Test
-    public void anEntityAtRestIsNotGivenANextTickReapply()
+    void anEntityAtRestIsNotGivenANextTickReapply()
     {
         // A dropped item sitting in the portal has no momentum to preserve, so it must not
         // cost a scheduled task each time it is swept.
@@ -222,7 +222,7 @@ public class GateOneWayTest
     }
 
     @Test
-    public void dialAssignsATargetToTheOriginOnly()
+    void dialAssignsATargetToTheOriginOnly()
     {
         // The property every other path relies on: only one end of a connection ever holds
         // a target, so only one end can send anything.

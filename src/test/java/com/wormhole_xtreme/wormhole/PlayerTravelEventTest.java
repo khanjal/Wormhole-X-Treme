@@ -41,7 +41,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * them. That exact shape of mistake, in the check that holds players out of the exit end of
  * a wormhole, did precisely that.
  */
-public class PlayerTravelEventTest
+class PlayerTravelEventTest
 {
     private final List<Event> raised = new ArrayList<Event>();
     private World world;
@@ -52,7 +52,7 @@ public class PlayerTravelEventTest
     private static final int BX = 10, BY = 64, BZ = 20;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
@@ -104,7 +104,7 @@ public class PlayerTravelEventTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         GateEvents.setDispatcherForTest(null);
         StargateManager.removeStargate(origin);
@@ -151,7 +151,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void travellingAnnouncesWhoIsGoingWhere()
+    void travellingAnnouncesWhoIsGoingWhere()
     {
         walkIn();
 
@@ -164,7 +164,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void anUncancelledTripGoesAhead()
+    void anUncancelledTripGoesAhead()
     {
         walkIn();
 
@@ -172,7 +172,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void cancellingStopsThePlayerBeingMoved()
+    void cancellingStopsThePlayerBeingMoved()
     {
         GateEvents.setDispatcherForTest(e ->
         {
@@ -189,7 +189,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void cancellingSomeoneWalkingInHoldsThemOutside()
+    void cancellingSomeoneWalkingInHoldsThemOutside()
     {
         GateEvents.setDispatcherForTest(e ->
         {
@@ -207,7 +207,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void cancellingSomeoneAlreadyInThePortalDoesNotTrapThem()
+    void cancellingSomeoneAlreadyInThePortalDoesNotTrapThem()
     {
         // The one that matters. Their move started on the portal block, so cancelling it
         // would put them back on the portal block, and every move after it too. They stop
@@ -230,7 +230,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void aCancelledTripCostsThePlayerNothing()
+    void aCancelledTripCostsThePlayerNothing()
     {
         // The event used to fire after the use cooldown had been spent and the fare taken,
         // so cancelling left the player poorer, on cooldown, and exactly where they were.
@@ -267,7 +267,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void anAllowedTripStillSpendsTheCooldown()
+    void anAllowedTripStillSpendsTheCooldown()
     {
         // The control: deferring the cooldown past the event must not have lost it.
         com.wormhole_xtreme.wormhole.config.ConfigTestSupport.loadDefaults();
@@ -290,7 +290,7 @@ public class PlayerTravelEventTest
     }
 
     @Test
-    public void aListenerThatThrowsDoesNotStrandTheTraveller()
+    void aListenerThatThrowsDoesNotStrandTheTraveller()
     {
         // Another plugin's listener is code this one does not control. A failure there is
         // not a decision to refuse travel, and least of all halfway into a wormhole.

@@ -17,10 +17,10 @@ import org.junit.jupiter.api.Test;
  * destination written before this field existed, and every place (which never gets one set on
  * it at all), quietly free forever regardless of the configured default.
  */
-public class BeamYamlManagerTest
+class BeamYamlManagerTest
 {
     @Test
-    public void aDestinationWithNoCostFieldReadsBackAsNullNotZero()
+    void aDestinationWithNoCostFieldReadsBackAsNullNotZero()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
             new BeamDestination("spawn", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, null));
@@ -32,7 +32,7 @@ public class BeamYamlManagerTest
     }
 
     @Test
-    public void aDestinationExplicitlySetFreeRoundTripsAsZeroNotNull()
+    void aDestinationExplicitlySetFreeRoundTripsAsZeroNotNull()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
             new BeamDestination("market", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, 0.0));
@@ -44,7 +44,7 @@ public class BeamYamlManagerTest
     }
 
     @Test
-    public void aDestinationWithAPositiveCostRoundTrips()
+    void aDestinationWithAPositiveCostRoundTrips()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
             new BeamDestination("arena", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, 25.0));
@@ -54,7 +54,7 @@ public class BeamYamlManagerTest
     }
 
     @Test
-    public void aMalformedCostFieldIsIgnoredRatherThanFailingTheWholeEntry()
+    void aMalformedCostFieldIsIgnoredRatherThanFailingTheWholeEntry()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
             new BeamDestination("spawn", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, 10.0));

@@ -20,7 +20,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * reproduces one of those mistakes from a minimal shape rather than pointing at a real shipped
  * file, so a fix to the file does not quietly stop testing the bug.
  */
-public class ShapeFileValidatorTest
+class ShapeFileValidatorTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
@@ -57,7 +57,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aMinimalWellFormedShapeHasNoProblems() throws Exception
+    void aMinimalWellFormedShapeHasNoProblems() throws Exception
     {
         final ShapeFileValidator.Result result = validate(minimalValidShape());
         assertTrue(result.isValid(), "unexpected problems: " + result.getProblems());
@@ -65,7 +65,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void everyShippedShapeIsStillValid() throws Exception
+    void everyShippedShapeIsStillValid() throws Exception
     {
         // The validator has to agree with the parser and the rest of the test suite about
         // what "fine" looks like -- a false positive here would make the command useless the
@@ -87,7 +87,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aRowOneCellShortOfTheDeclaredWidthIsCaughtRatherThanSilentlyMisaligningColumns() throws Exception
+    void aRowOneCellShortOfTheDeclaredWidthIsCaughtRatherThanSilentlyMisaligningColumns() throws Exception
     {
         final String[] lines = minimalValidShape();
         for (int i = 0; i < lines.length; i++)
@@ -104,7 +104,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aSkippedLayerNumberIsCaughtRatherThanLeavingASilentGap() throws Exception
+    void aSkippedLayerNumberIsCaughtRatherThanLeavingASilentGap() throws Exception
     {
         final String[] lines = {
             "Name=Test",
@@ -131,7 +131,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aSecondEntryPointIsCaughtRatherThanSilentlyOverwritingTheFirst() throws Exception
+    void aSecondEntryPointIsCaughtRatherThanSilentlyOverwritingTheFirst() throws Exception
     {
         final String[] lines = {
             "Name=Test",
@@ -152,7 +152,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aGapInLightOrderNumbersIsCaught() throws Exception
+    void aGapInLightOrderNumbersIsCaught() throws Exception
     {
         final String[] lines = {
             "Name=Test",
@@ -173,7 +173,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aMaterialThatDoesNotExistIsCaught() throws Exception
+    void aMaterialThatDoesNotExistIsCaught() throws Exception
     {
         final String[] lines = {
             "Name=Test",
@@ -195,7 +195,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void theLegacyStationaryWaterAliasIsAcceptedTheSameWayTheRealParserAcceptsIt() throws Exception
+    void theLegacyStationaryWaterAliasIsAcceptedTheSameWayTheRealParserAcceptsIt() throws Exception
     {
         // Not a made-up edge case: this is the exact false positive a real review caught.
         // Stargate3DShape resolves material names through parseMaterialName, which maps the
@@ -221,7 +221,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aVersion2FileWithNoEntryPointFailsToParseWithAReadableMessageInstead() throws Exception
+    void aVersion2FileWithNoEntryPointFailsToParseWithAReadableMessageInstead() throws Exception
     {
         // Stargate3DShape's own constructor refuses to finish without an :EP, throwing
         // IllegalArgumentException rather than returning a half-built shape -- this is what
@@ -245,7 +245,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aFileWithNoRecognisableGateShapeAtAllStillParsesAsAnEmptyLegacyShape() throws Exception
+    void aFileWithNoRecognisableGateShapeAtAllStillParsesAsAnEmptyLegacyShape() throws Exception
     {
         // Surprising, but real: a line that matches nothing StargateShapeFactory looks for
         // does not throw. With no "Version=2" it falls through to the legacy 2D constructor,
@@ -261,7 +261,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aRedstoneMarkerResolvingOntoTheFrameIsCaught() throws Exception
+    void aRedstoneMarkerResolvingOntoTheFrameIsCaught() throws Exception
     {
         // [S:RA] is the frame-attached form: the marker is the frame block itself, so the
         // redstone belongs one above it (StargateHelper.redstoneComponentY). Stacking a plain
@@ -286,7 +286,7 @@ public class ShapeFileValidatorTest
     }
 
     @Test
-    public void aRedstoneDialTriggerWithNoDialSignToReadIsCaught() throws Exception
+    void aRedstoneDialTriggerWithNoDialSignToReadIsCaught() throws Exception
     {
         // [RD] dials whatever the :D sign currently shows -- a shape offering redstone
         // dialling with no :D block for it to read is offering a control that can never do

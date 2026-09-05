@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * <p>These back the two hot paths the periodic entity sweep and the player move handler
  * run on, so the containment answers and the box extents both need pinning.
  */
-public class StargatePortalCacheTest
+class StargatePortalCacheTest
 {
     private static Stargate gateWithPortalRing(final World world)
     {
@@ -30,7 +30,7 @@ public class StargatePortalCacheTest
     }
 
     @Test
-    public void portalBlockLookupAnswersContainment()
+    void portalBlockLookupAnswersContainment()
     {
         final World world = mock(World.class);
         final Stargate gate = gateWithPortalRing(world);
@@ -43,7 +43,7 @@ public class StargatePortalCacheTest
     }
 
     @Test
-    public void boundingBoxEnclosesEveryPortalBlock()
+    void boundingBoxEnclosesEveryPortalBlock()
     {
         final World world = mock(World.class);
         final Stargate gate = gateWithPortalRing(world);
@@ -61,7 +61,7 @@ public class StargatePortalCacheTest
     }
 
     @Test
-    public void cachesRebuildWhenPortalBlocksChange()
+    void cachesRebuildWhenPortalBlocksChange()
     {
         final World world = mock(World.class);
         final Stargate gate = gateWithPortalRing(world);
@@ -77,7 +77,7 @@ public class StargatePortalCacheTest
     }
 
     @Test
-    public void gateWithNoPortalBlocksHasNoBounds()
+    void gateWithNoPortalBlocksHasNoBounds()
     {
         final World world = mock(World.class);
         final Stargate gate = new Stargate();
@@ -88,7 +88,7 @@ public class StargatePortalCacheTest
     }
 
     @Test
-    public void unsortedGateViewSeesRegisteredGates()
+    void unsortedGateViewSeesRegisteredGates()
     {
         final World world = mock(World.class);
         final Stargate gate = gateWithPortalRing(world);

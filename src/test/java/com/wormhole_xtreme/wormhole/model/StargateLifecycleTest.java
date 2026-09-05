@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Test;
  * through their observable side-effects on gate state flags only when the
  * code path can be reached without hitting those calls (e.g. task-id &le; 0).
  */
-public class StargateLifecycleTest
+class StargateLifecycleTest
 {
     private Stargate gate;
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         gate = new Stargate();
         gate.setGateName("TestGate");
@@ -30,7 +30,7 @@ public class StargateLifecycleTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void stopAfterShutdownTimerAlwaysClearsRecentlyActiveFlag()
+    void stopAfterShutdownTimerAlwaysClearsRecentlyActiveFlag()
     {
         // When task id <= 0, no scheduler call is made — only the flag is cleared.
         gate.setGateRecentlyActive(true);
@@ -43,7 +43,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void stopAfterShutdownTimerSetsTaskIdMinusOneWhenAlreadyNegative()
+    void stopAfterShutdownTimerSetsTaskIdMinusOneWhenAlreadyNegative()
     {
         gate.setGateAfterShutdownTaskId(-1);
 
@@ -58,7 +58,7 @@ public class StargateLifecycleTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void stopActivationTimerNoopWhenNoActiveTask()
+    void stopActivationTimerNoopWhenNoActiveTask()
     {
         // id <= 0 → the body of the if is never entered; no WormholeXTreme call made
         gate.setGateActivateTaskId(-1);
@@ -74,7 +74,7 @@ public class StargateLifecycleTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void setIrisStateTrueSetsGateIrisActiveFlag()
+    void setIrisStateTrueSetsGateIrisActiveFlag()
     {
         gate.setGateIrisActive(false);
         // No shape, no custom, no lever, empty portal blocks → safe to call
@@ -85,7 +85,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void setIrisStateFalseClearsGateIrisActiveFlag()
+    void setIrisStateFalseClearsGateIrisActiveFlag()
     {
         gate.setGateIrisActive(true);
         StargateLifecycle.setIrisState(gate, false);
@@ -95,7 +95,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void setIrisStateFalseOnActiveGateSelectsWaterByDefault()
+    void setIrisStateFalseOnActiveGateSelectsWaterByDefault()
     {
         // Without shape/custom config, portal material defaults to WATER when gate is active.
         // We verify indirectly: if fillGateInterior() would have been called with WATER,
@@ -111,7 +111,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void setIrisStateFalseOnInactiveGateSelectsAirByDefault()
+    void setIrisStateFalseOnInactiveGateSelectsAirByDefault()
     {
         gate.setGateActive(false);
         gate.setGateIrisActive(true);
@@ -127,7 +127,7 @@ public class StargateLifecycleTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void toggleIrisActiveFlipsFalseToTrue()
+    void toggleIrisActiveFlipsFalseToTrue()
     {
         gate.setGateIrisActive(false);
 
@@ -138,7 +138,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void toggleIrisActiveFlipsTrueToFalse()
+    void toggleIrisActiveFlipsTrueToFalse()
     {
         gate.setGateIrisActive(true);
 
@@ -149,7 +149,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void toggleIrisActiveSetsDefaultWhenRequested()
+    void toggleIrisActiveSetsDefaultWhenRequested()
     {
         gate.setGateIrisActive(false);
         gate.setGateIrisDefaultActive(false);
@@ -162,7 +162,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void toggleIrisActiveDoesNotChangeDefaultWhenNotRequested()
+    void toggleIrisActiveDoesNotChangeDefaultWhenNotRequested()
     {
         gate.setGateIrisActive(false);
         gate.setGateIrisDefaultActive(false);
@@ -179,7 +179,7 @@ public class StargateLifecycleTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void timeoutStargateWithNullPlayerDeactivatesLights()
+    void timeoutStargateWithNullPlayerDeactivatesLights()
     {
         // activateTaskId <= 0 → no WormholeXTreme logging call
         gate.setGateActivateTaskId(-1);
@@ -193,7 +193,7 @@ public class StargateLifecycleTest
     }
 
     @Test
-    public void timeoutStargateWithNullPlayerRestoresIrisWhenDefaultActive()
+    void timeoutStargateWithNullPlayerRestoresIrisWhenDefaultActive()
     {
         gate.setGateActivateTaskId(-1);
         gate.setGateLightsActive(false);
@@ -213,7 +213,7 @@ public class StargateLifecycleTest
     // -----------------------------------------------------------------------
 
     @Test
-    public void timeoutStargateDeactivatesTheGateThatActuallyTimedOutNotWhicheverIsCurrentlyMappedToThePlayer()
+    void timeoutStargateDeactivatesTheGateThatActuallyTimedOutNotWhicheverIsCurrentlyMappedToThePlayer()
     {
         // Reproduces a real bug: chevrons staying lit forever on a gate that timed
         // out, because the same player had since activated a second gate. The old

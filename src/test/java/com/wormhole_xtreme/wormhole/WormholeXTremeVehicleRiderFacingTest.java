@@ -25,7 +25,7 @@ import org.mockito.ArgumentCaptor;
  * the passenger to the arrival location, yaw and all. So the view aligned correctly exactly
  * when something had gone wrong, and not when everything worked.
  */
-public class WormholeXTremeVehicleRiderFacingTest
+class WormholeXTremeVehicleRiderFacingTest
 {
     private static Location arrivalFacing(final float yaw)
     {
@@ -37,7 +37,7 @@ public class WormholeXTremeVehicleRiderFacingTest
     }
 
     @Test
-    public void aRiderIsTurnedToFaceTheWayTheVehicleIsTravelling()
+    void aRiderIsTurnedToFaceTheWayTheVehicleIsTravelling()
     {
         final Player rider = mock(Player.class);
         final Location arrival = arrivalFacing(90f);
@@ -58,7 +58,7 @@ public class WormholeXTremeVehicleRiderFacingTest
      * by mutating it would quietly change where the vehicle itself was sent.
      */
     @Test
-    public void turningARiderDoesNotDisturbTheSharedArrivalLocation()
+    void turningARiderDoesNotDisturbTheSharedArrivalLocation()
     {
         final Player rider = mock(Player.class);
         final Location arrival = arrivalFacing(45f);
@@ -79,7 +79,7 @@ public class WormholeXTremeVehicleRiderFacingTest
      * would be a second, pointless move of an entity the vehicle is about to seat anyway.
      */
     @Test
-    public void aPassengerThatIsNotAPlayerIsNotMoved()
+    void aPassengerThatIsNotAPlayerIsNotMoved()
     {
         final Entity animal = mock(Entity.class);
 
@@ -89,7 +89,7 @@ public class WormholeXTremeVehicleRiderFacingTest
     }
 
     @Test
-    public void noArrivalLocationMeansNothingToFace()
+    void noArrivalLocationMeansNothingToFace()
     {
         final Player rider = mock(Player.class);
 

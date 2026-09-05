@@ -30,12 +30,12 @@ import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 /**
  * Tests for vehicle teleport dispatch/behavior (occupied vs unoccupied).
  */
-public class WormholeXTremeVehicleListenerEventTest
+class WormholeXTremeVehicleListenerEventTest
 {
     private BukkitScheduler mockScheduler;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         // Install a mock scheduler so scheduling calls don't NPE.
         mockScheduler = mock(BukkitScheduler.class);
@@ -55,7 +55,7 @@ public class WormholeXTremeVehicleListenerEventTest
     }
 
     @AfterEach
-    public void tearDown() throws Exception
+    void tearDown() throws Exception
     {
         // Clear any registry state we modified
         GateSpatialIndex.clear();
@@ -87,7 +87,7 @@ public class WormholeXTremeVehicleListenerEventTest
     }
 
     @Test
-    public void unoccupiedMinecartTeleportsAndReceivesVelocity() throws Exception
+    void unoccupiedMinecartTeleportsAndReceivesVelocity() throws Exception
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -141,7 +141,7 @@ public class WormholeXTremeVehicleListenerEventTest
     }
 
     @Test
-    public void occupiedBoatTriggersReattachAndResync() throws Exception
+    void occupiedBoatTriggersReattachAndResync() throws Exception
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");

@@ -54,7 +54,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * tick to undraw step 0, the shallowest wave, right behind the portal. It stayed lit as
  * woosh material for as long as the gate stayed open. The check is against {@code == 0} now.
  */
-public class StargateAnimatorTest
+class StargateAnimatorTest
 {
     /**
      * Points {@link WormholeXTreme#getScheduler()} at a Mockito no-op for the one test that
@@ -75,7 +75,7 @@ public class StargateAnimatorTest
     }
 
     @AfterEach
-    public void restoreRealScheduler() throws Exception
+    void restoreRealScheduler() throws Exception
     {
         // WormholeXTreme.scheduler is a shared static -- every other test in this JVM run
         // that touches it expects the plugin's normal null-until-onEnable default, not
@@ -84,7 +84,7 @@ public class StargateAnimatorTest
     }
 
     @Test
-    public void aFreshGatesAnimationStep3DStartsAtZeroNotOne()
+    void aFreshGatesAnimationStep3DStartsAtZeroNotOne()
     {
         // The kawoosh check and the wave index both read this as "nothing has happened yet"
         // only at 0, so a default of 1 silently skipped both on a gate's first opening.
@@ -96,7 +96,7 @@ public class StargateAnimatorTest
     }
 
     @Test
-    public void closingTheWooshResetsStep3DBackToZeroForTheNextOpening()
+    void closingTheWooshResetsStep3DBackToZeroForTheNextOpening()
     {
         // Reproduces the closing side of the bug directly: put the gate in the exact state
         // animateOpening is in on the tick its closing animation finishes, and confirm the
@@ -132,7 +132,7 @@ public class StargateAnimatorTest
     }
 
     @Test
-    public void stepOneIsNotTheLastRetractionStepAndMustStillTakeOneMoreTickDownToZero() throws Exception
+    void stepOneIsNotTheLastRetractionStepAndMustStillTakeOneMoreTickDownToZero() throws Exception
     {
         // Real bug: retraction's own terminal check read "gate.getGateAnimationStep3D() ==
         // 1" as "this was the last step" -- but that check runs *after* this tick's own
@@ -165,7 +165,7 @@ public class StargateAnimatorTest
     }
 
     @Test
-    public void animateOpeningDoesNothingOnceTheGateHasClosed()
+    void animateOpeningDoesNothingOnceTheGateHasClosed()
     {
         // Reproduces a stale scheduled continuation firing after the gate already closed.
         // Its own re-schedule keeps no task id to cancel, so it still runs even though
@@ -191,7 +191,7 @@ public class StargateAnimatorTest
     }
 
     @Test
-    public void closingUndrawsWhateverTheWooshLeftShowingAndResetsTheCounter()
+    void closingUndrawsWhateverTheWooshLeftShowingAndResetsTheCounter()
     {
         // Reproduces landing mid-woosh: some blocks already drawn and remembered (what a
         // real opening in progress leaves in getGateAnimatedBlocks()), the step counter

@@ -15,10 +15,10 @@ import org.junit.jupiter.api.Test;
  * inside the envelope. {@link BeamTiming#resolve} is where six independently-configurable
  * values get reconciled against each other so that no combination of them can produce this.
  */
-public class BeamTimingTest
+class BeamTimingTest
 {
     @Test
-    public void reasonableConfigurationPassesThroughUnchanged()
+    void reasonableConfigurationPassesThroughUnchanged()
     {
         final BeamTiming timing = BeamTiming.resolve(12, 6, 18, 12, 20, 8);
         assertEquals(12, timing.envelopTicks());
@@ -30,7 +30,7 @@ public class BeamTimingTest
     }
 
     @Test
-    public void aTeleportStepAtTheRiseLengthWouldNeverFireAndIsPulledInsideIt()
+    void aTeleportStepAtTheRiseLengthWouldNeverFireAndIsPulledInsideIt()
     {
         final BeamTiming timing = BeamTiming.resolve(12, 6, 18, 18, 20, 8);
         assertTrue(timing.teleportAtStep() < timing.riseTicks(),
@@ -40,7 +40,7 @@ public class BeamTimingTest
     }
 
     @Test
-    public void aTeleportStepPastTheRiseLengthIsAlsoPulledInsideIt()
+    void aTeleportStepPastTheRiseLengthIsAlsoPulledInsideIt()
     {
         final BeamTiming timing = BeamTiming.resolve(12, 6, 18, 500, 20, 8);
         assertEquals(17, timing.teleportAtStep(), "clamped to riseTicks - 1, the last tick "
@@ -48,14 +48,14 @@ public class BeamTimingTest
     }
 
     @Test
-    public void aTeleportStepOfZeroOrBelowIsRaisedToOne()
+    void aTeleportStepOfZeroOrBelowIsRaisedToOne()
     {
         assertEquals(1, BeamTiming.resolve(12, 6, 18, 0, 20, 8).teleportAtStep());
         assertEquals(1, BeamTiming.resolve(12, 6, 18, -5, 20, 8).teleportAtStep());
     }
 
     @Test
-    public void aVanishStepAtOrPastTheEnvelopeWouldNeverFireAndIsPulledInsideIt()
+    void aVanishStepAtOrPastTheEnvelopeWouldNeverFireAndIsPulledInsideIt()
     {
         final BeamTiming atLength = BeamTiming.resolve(12, 12, 18, 12, 20, 8);
         assertTrue(atLength.vanishAtStep() < atLength.envelopTicks(),
@@ -68,13 +68,13 @@ public class BeamTimingTest
     }
 
     @Test
-    public void aNegativeVanishStepIsRaisedToZero()
+    void aNegativeVanishStepIsRaisedToZero()
     {
         assertEquals(0, BeamTiming.resolve(12, -5, 18, 12, 20, 8).vanishAtStep());
     }
 
     @Test
-    public void anEnvelopeOrRiseBelowTwoTicksIsFlooredAtTwo()
+    void anEnvelopeOrRiseBelowTwoTicksIsFlooredAtTwo()
     {
         // The brightness/travel ramps divide by (ticks - 1); one tick would divide by zero.
         final BeamTiming zero = BeamTiming.resolve(0, 0, 0, 1, 20, 8);
@@ -87,7 +87,7 @@ public class BeamTimingTest
     }
 
     @Test
-    public void aDescendOrFadeOfZeroOrBelowIsFlooredAtOne()
+    void aDescendOrFadeOfZeroOrBelowIsFlooredAtOne()
     {
         final BeamTiming timing = BeamTiming.resolve(12, 6, 18, 12, 0, -3);
         assertEquals(1, timing.descendTicks());
@@ -95,7 +95,7 @@ public class BeamTimingTest
     }
 
     @Test
-    public void vanishAlwaysFiresStrictlyBeforeTheEnvelopeEndsAcrossAWideRangeOfInputs()
+    void vanishAlwaysFiresStrictlyBeforeTheEnvelopeEndsAcrossAWideRangeOfInputs()
     {
         for (int envelop = 2; envelop <= 40; envelop += 3)
         {
@@ -110,7 +110,7 @@ public class BeamTimingTest
     }
 
     @Test
-    public void teleportAlwaysFiresStrictlyBeforeTheRiseEndsAcrossAWideRangeOfInputs()
+    void teleportAlwaysFiresStrictlyBeforeTheRiseEndsAcrossAWideRangeOfInputs()
     {
         for (int rise = 2; rise <= 40; rise += 3)
         {

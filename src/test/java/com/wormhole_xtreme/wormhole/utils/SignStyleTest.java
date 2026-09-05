@@ -13,29 +13,29 @@ import org.junit.jupiter.api.Test;
  * to something sensible -- a typo must not put a stray control character on a sign, where
  * there is nothing anyone can do about it short of breaking the gate.
  */
-public class SignStyleTest
+class SignStyleTest
 {
     @Test
-    public void aColourNameResolvesToThatColour()
+    void aColourNameResolvesToThatColour()
     {
         assertEquals(ChatColor.AQUA, SignStyle.resolveColor("AQUA", ChatColor.WHITE));
     }
 
     @Test
-    public void theNameIsReadWhateverCaseAndSpacingItWasTypedIn()
+    void theNameIsReadWhateverCaseAndSpacingItWasTypedIn()
     {
         assertEquals(ChatColor.DARK_GRAY, SignStyle.resolveColor("  dark_gray ", ChatColor.WHITE),
             "an admin typing a setting by hand should not have to match case exactly");
     }
 
     @Test
-    public void anUnknownNameFallsBackRatherThanBreakingTheSign()
+    void anUnknownNameFallsBackRatherThanBreakingTheSign()
     {
         assertEquals(ChatColor.GREEN, SignStyle.resolveColor("chartreuse", ChatColor.GREEN));
     }
 
     @Test
-    public void anUnsetNameFallsBack()
+    void anUnsetNameFallsBack()
     {
         assertEquals(ChatColor.GRAY, SignStyle.resolveColor(null, ChatColor.GRAY));
         assertEquals(ChatColor.GRAY, SignStyle.resolveColor("   ", ChatColor.GRAY));
@@ -50,7 +50,7 @@ public class SignStyleTest
      * gives a readable sign instead of an unusable one.
      */
     @Test
-    public void aFormattingCodeThatIsNotAColourIsRefused()
+    void aFormattingCodeThatIsNotAColourIsRefused()
     {
         assertEquals(ChatColor.AQUA, SignStyle.resolveColor("MAGIC", ChatColor.AQUA),
             "MAGIC is a real ChatColor constant and would render a destination unreadable");
@@ -58,7 +58,7 @@ public class SignStyleTest
     }
 
     @Test
-    public void paintingPutsTheColourInFrontOfTheText()
+    void paintingPutsTheColourInFrontOfTheText()
     {
         assertEquals(ChatColor.AQUA + "Helios", SignStyle.paint(ChatColor.AQUA, "Helios"));
     }
@@ -71,7 +71,7 @@ public class SignStyleTest
      * matters because detection and the sign's own line handling both read these back.
      */
     @Test
-    public void ablankLineIsLeftBlankAndNotPaintedIntoAStrayCode()
+    void ablankLineIsLeftBlankAndNotPaintedIntoAStrayCode()
     {
         assertEquals("", SignStyle.paint(ChatColor.AQUA, ""));
         assertEquals("", SignStyle.paint(ChatColor.AQUA, null));
@@ -86,7 +86,7 @@ public class SignStyleTest
      * -- invisible characters in a name that has to be typed to dial it.
      */
     @Test
-    public void aStyledLineReadsBackAsThePlainNameItShows()
+    void aStyledLineReadsBackAsThePlainNameItShows()
     {
         assertEquals("-Helios-",
             SignStyle.stripFormatting(ChatColor.AQUA + "-Helios-"),
@@ -94,13 +94,13 @@ public class SignStyleTest
     }
 
     @Test
-    public void strippingAnAbsentLineGivesEmptyRatherThanNull()
+    void strippingAnAbsentLineGivesEmptyRatherThanNull()
     {
         assertEquals("", SignStyle.stripFormatting(null));
     }
 
     @Test
-    public void anUnstyledLineIsUnchangedByStripping()
+    void anUnstyledLineIsUnchangedByStripping()
     {
         assertEquals("Helios", SignStyle.stripFormatting("Helios"));
     }

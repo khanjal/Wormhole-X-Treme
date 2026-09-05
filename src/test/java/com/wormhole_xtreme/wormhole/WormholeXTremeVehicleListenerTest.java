@@ -14,10 +14,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for safe minecart spawn location selection.
  */
-public class WormholeXTremeVehicleListenerTest
+class WormholeXTremeVehicleListenerTest
 {
     @Test
-    public void prefersRailBelowOrSameHeight()
+    void prefersRailBelowOrSameHeight()
     {
         final World world = mock(World.class);
         final int bx = 10, bz = 20;
@@ -43,7 +43,7 @@ public class WormholeXTremeVehicleListenerTest
     }
 
     @Test
-    public void fallsBackToHighestBlock()
+    void fallsBackToHighestBlock()
     {
         final World world = mock(World.class);
         final int bx = 5, bz = 7;
@@ -58,7 +58,7 @@ public class WormholeXTremeVehicleListenerTest
     }
 
     @Test
-    public void forwardFullBlockOffsetsCorrectly()
+    void forwardFullBlockOffsetsCorrectly()
     {
         final World world = mock(World.class);
         final Location base = new Location(world, 10.5, 65.0, 20.5);
@@ -71,7 +71,7 @@ public class WormholeXTremeVehicleListenerTest
     }
 
     @Test
-    public void forwardNullFacingAddsOnlyUp()
+    void forwardNullFacingAddsOnlyUp()
     {
         final World world = mock(World.class);
         final Location base = new Location(world, 7.5, 50.0, 8.5);
@@ -84,7 +84,7 @@ public class WormholeXTremeVehicleListenerTest
     }
 
     @Test
-    public void computeExitVelocityPointsAwayFromGate()
+    void computeExitVelocityPointsAwayFromGate()
     {
         final Vector incoming = new Vector(2.0, 0.0, 0.0); // speed = 2
         final Vector out = WormholeXTremeVehicleListener.computeExitVelocity(BlockFace.NORTH, incoming, 5.0);
@@ -94,7 +94,7 @@ public class WormholeXTremeVehicleListenerTest
     }
 
     @Test
-    public void computeExitVelocityFallsBackToIncomingDirection()
+    void computeExitVelocityFallsBackToIncomingDirection()
     {
         final Vector incoming = new Vector(0.0, 0.0, 3.0); // speed = 3
         final Vector out = WormholeXTremeVehicleListener.computeExitVelocity(null, incoming, 4.0);

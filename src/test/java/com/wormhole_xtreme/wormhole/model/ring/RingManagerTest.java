@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  * overlap is refused absolutely, and separation is a comfort margin layered on top of a rule
  * that already holds.
  */
-public class RingManagerTest
+class RingManagerTest
 {
     private static final String WORLD = "world";
     private static final int REACH = 4;
@@ -37,25 +37,25 @@ public class RingManagerTest
     }
 
     @BeforeEach
-    public void clearBefore()
+    void clearBefore()
     {
         RingManager.clear();
     }
 
     @AfterEach
-    public void clearAfter()
+    void clearAfter()
     {
         RingManager.clear();
     }
 
     @Test
-    public void emptyGroundAcceptsARing()
+    void emptyGroundAcceptsARing()
     {
         assertNull(RingManager.checkPlacement(ringAt(0, 0), WORLD, SEPARATION));
     }
 
     @Test
-    public void aRingOnTopOfAnotherIsRefused()
+    void aRingOnTopOfAnotherIsRefused()
     {
         RingManager.addPair(pairAt("aaaa1111", 0, 0), REACH);
         assertEquals(RingManager.Refusal.OVERLAPS_RING,
@@ -63,7 +63,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void twoRingsSharingEvenOneColumnAreRefused()
+    void twoRingsSharingEvenOneColumnAreRefused()
     {
         // Two ODD rings six apart just touch: one ring's east edge lands on the other's
         // west edge. That is enough, because the blocks they share are ones both animations
@@ -74,7 +74,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void overlapIgnoresHeightBecauseTheProblemIsTheGroundNotTheGap()
+    void overlapIgnoresHeightBecauseTheProblemIsTheGroundNotTheGap()
     {
         // A ring directly above another still shares its columns. The animation of one runs
         // through where the other's passengers stand.
@@ -86,7 +86,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void clearOfOverlapButInsideTheSeparationIsRefusedSeparately()
+    void clearOfOverlapButInsideTheSeparationIsRefusedSeparately()
     {
         // Distinguishing these two matters for the message. "Too close" tells the player to
         // move along a bit; "overlaps" tells them it will never work there.
@@ -96,14 +96,14 @@ public class RingManagerTest
     }
 
     @Test
-    public void farEnoughApartIsAccepted()
+    void farEnoughApartIsAccepted()
     {
         RingManager.addPair(pairAt("aaaa1111", 0, 0), REACH);
         assertNull(RingManager.checkPlacement(ringAt(20, 20), WORLD, SEPARATION));
     }
 
     @Test
-    public void ringsInAnotherWorldDoNotObject()
+    void ringsInAnotherWorldDoNotObject()
     {
         // Coordinates repeat across worlds. A ring in the nether must not block one built at
         // the same numbers in the overworld.
@@ -112,7 +112,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void bothEndsOfAnExistingPairAreCheckedNotJustTheFirst()
+    void bothEndsOfAnExistingPairAreCheckedNotJustTheFirst()
     {
         // The far end of a pair is just as real as the near one, and is the end somebody is
         // more likely to forget about when building nearby.
@@ -122,7 +122,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void pairsAreCountedPerOwnerForTheQuota()
+    void pairsAreCountedPerOwnerForTheQuota()
     {
         final String mine = UUID.randomUUID().toString();
         final String theirs = UUID.randomUUID().toString();
@@ -143,7 +143,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void removingAPairFreesItsGroundAgain()
+    void removingAPairFreesItsGroundAgain()
     {
         final RingPair pair = pairAt("aaaa1111", 0, 0);
         RingManager.addPair(pair, REACH);
@@ -155,7 +155,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void aPendingEndIsHeldPerPlayerAndRemembersItsWorld()
+    void aPendingEndIsHeldPerPlayerAndRemembersItsWorld()
     {
         final UUID player = UUID.randomUUID();
         assertNull(RingManager.getPending(player));
@@ -171,7 +171,7 @@ public class RingManagerTest
     }
 
     @Test
-    public void generatedIdsAreShortAndDoNotCollideWithWhatExists()
+    void generatedIdsAreShortAndDoNotCollideWithWhatExists()
     {
         for (int i = 0; i < 200; i++)
         {

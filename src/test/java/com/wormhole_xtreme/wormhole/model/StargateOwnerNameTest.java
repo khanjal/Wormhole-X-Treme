@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  * saves -- so a sign that had been showing a correct name written at build time was replaced
  * with a UUID. Refresh only made it visible; any save of such a gate did it.
  */
-public class StargateOwnerNameTest
+class StargateOwnerNameTest
 {
     private static final String UUID_STR = "11111111-2222-3333-4444-555555555555";
 
@@ -29,14 +29,14 @@ public class StargateOwnerNameTest
      * because the read half could no longer tell it from a real name.
      */
     @Test
-    public void aGateWithNoResolvedNameWritesNoNameRatherThanTheId()
+    void aGateWithNoResolvedNameWritesNoNameRatherThanTheId()
     {
         assertEquals("", StargateYamlManager.ownerNameToSave(null),
             "an unresolved owner must not write its id into the name field");
     }
 
     @Test
-    public void aRealDisplayNameIsWrittenAsItIs()
+    void aRealDisplayNameIsWrittenAsItIs()
     {
         assertEquals("Notch", StargateYamlManager.ownerNameToSave("Notch"));
     }
@@ -49,20 +49,20 @@ public class StargateOwnerNameTest
      * the loader down the resolve-from-UUID path again, and the next save stores the answer.
      */
     @Test
-    public void aNameThatIsJustTheOwnerIdIsTreatedAsNoNameAtAll()
+    void aNameThatIsJustTheOwnerIdIsTreatedAsNoNameAtAll()
     {
         assertNull(StargateYamlManager.ownerNameFromSave(UUID_STR, UUID_STR),
             "a name equal to the owner id is what the bug wrote, not a name someone chose");
     }
 
     @Test
-    public void aRealNameInAFileIsUsed()
+    void aRealNameInAFileIsUsed()
     {
         assertEquals("Notch", StargateYamlManager.ownerNameFromSave("Notch", UUID_STR));
     }
 
     @Test
-    public void anAbsentOrEmptyNameIsNoName()
+    void anAbsentOrEmptyNameIsNoName()
     {
         assertNull(StargateYamlManager.ownerNameFromSave(null, UUID_STR));
         assertNull(StargateYamlManager.ownerNameFromSave("", UUID_STR));
@@ -78,7 +78,7 @@ public class StargateOwnerNameTest
      * this test is to special-case legacy gates, and nothing needs to.
      */
     @Test
-    public void aLegacyNameBasedOwnerIsStillHandledByTheCallersFallback()
+    void aLegacyNameBasedOwnerIsStillHandledByTheCallersFallback()
     {
         assertNull(StargateYamlManager.ownerNameFromSave("Notch", "Notch"),
             "the rule cannot tell this apart, and does not need to -- the caller resolves it");
@@ -91,7 +91,7 @@ public class StargateOwnerNameTest
      * the second and wrote the answer back onto the gate it rebuilt.
      */
     @Test
-    public void theStoredNameIsEmptyWhereTheDisplayedOneFallsBackToTheId()
+    void theStoredNameIsEmptyWhereTheDisplayedOneFallsBackToTheId()
     {
         final Stargate gate = new Stargate();
         gate.setGateOwner(UUID_STR);
@@ -103,7 +103,7 @@ public class StargateOwnerNameTest
     }
 
     @Test
-    public void aResolvedNameIsReturnedByBoth()
+    void aResolvedNameIsReturnedByBoth()
     {
         final Stargate gate = new Stargate();
         gate.setGateOwner(UUID_STR);

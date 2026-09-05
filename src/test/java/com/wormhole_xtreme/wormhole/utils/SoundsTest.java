@@ -21,10 +21,10 @@ import org.junit.jupiter.api.Test;
  * its natural end after the gate had already shut down: nothing was ever telling anyone to stop
  * hearing it.
  */
-public class SoundsTest
+class SoundsTest
 {
     @Test
-    public void everyPlayerInTheWorldIsToldToStopTheSound()
+    void everyPlayerInTheWorldIsToldToStopTheSound()
     {
         final Player p1 = mock(Player.class);
         final Player p2 = mock(Player.class);
@@ -38,7 +38,7 @@ public class SoundsTest
     }
 
     @Test
-    public void oneMisbehavingPlayerDoesNotStopTheRestFromBeingTold()
+    void oneMisbehavingPlayerDoesNotStopTheRestFromBeingTold()
     {
         // Decoration -- a client that throws on one player must not leave everyone else still
         // hearing a sound the gate that made it has already shut down.
@@ -55,13 +55,13 @@ public class SoundsTest
     }
 
     @Test
-    public void aNullWorldDoesNothingRatherThanThrowing()
+    void aNullWorldDoesNothingRatherThanThrowing()
     {
         assertDoesNotThrow(() -> Sounds.stopForEveryoneIn(null, "ambient.underwater.loop"));
     }
 
     @Test
-    public void anEmptySoundNameDoesNothing()
+    void anEmptySoundNameDoesNothing()
     {
         final Player p = mock(Player.class);
         final World world = mock(World.class);

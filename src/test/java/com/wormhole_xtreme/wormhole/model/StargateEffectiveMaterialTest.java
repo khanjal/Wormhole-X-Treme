@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
  * Tests the material resolution order on {@link Stargate}: an explicit per-gate override
  * wins, then the gate's material group, then the shape's own default.
  */
-public class StargateEffectiveMaterialTest
+class StargateEffectiveMaterialTest
 {
     @BeforeEach
-    public void loadGroups()
+    void loadGroups()
     {
         final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
         atlantis.put("structure", "LAPIS_BLOCK");
@@ -30,7 +30,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void shapeDefaultsApplyWhenThereIsNoGroupOrOverride()
+    void shapeDefaultsApplyWhenThereIsNoGroupOrOverride()
     {
         final Stargate gate = new Stargate();
         gate.setGateShape(new StargateShape());
@@ -43,7 +43,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void materialGroupOverridesShapeDefaults()
+    void materialGroupOverridesShapeDefaults()
     {
         final Stargate gate = new Stargate();
         gate.setGateShape(new StargateShape());
@@ -55,7 +55,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void perGateCustomOverridesTheMaterialGroup()
+    void perGateCustomOverridesTheMaterialGroup()
     {
         final Stargate gate = new Stargate();
         gate.setGateShape(new StargateShape());
@@ -69,7 +69,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void customFlagWithNoOverrideFallsThroughInsteadOfReturningNull()
+    void customFlagWithNoOverrideFallsThroughInsteadOfReturningNull()
     {
         // The old inline ternaries returned the custom field unconditionally, so a gate
         // flagged custom with an unset material yielded null and blew up downstream.
@@ -83,7 +83,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void shapeMaterialNamedInItsFileOutranksThePalette()
+    void shapeMaterialNamedInItsFileOutranksThePalette()
     {
         // Regression: Horizontal.shape asks for a GLASS iris — a horizontal gate is meant
         // to be seen through — but is framed in obsidian, so it resolves to the Standard
@@ -110,7 +110,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void paletteStillSuppliesWhatTheShapeLeavesUnsaid()
+    void paletteStillSuppliesWhatTheShapeLeavesUnsaid()
     {
         final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
         atlantis.put("structure", "LAPIS_BLOCK");
@@ -132,7 +132,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void frameMaterialFollowsThePaletteNotTheShapeDeclaration()
+    void frameMaterialFollowsThePaletteNotTheShapeDeclaration()
     {
         // Regression: a Standard-geometry gate built out of lapis resolves to the Atlantis
         // palette. Reporting the shape's declared OBSIDIAN would be a lie about what is
@@ -158,7 +158,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void oneGeometryRendersDifferentlyInEachPalette()
+    void oneGeometryRendersDifferentlyInEachPalette()
     {
         // The whole point of material groups, and only true since the sample shapes
         // stopped declaring materials: build one shape in obsidian and it is a Standard
@@ -200,7 +200,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void customModeAloneDoesNotOptAGateOutOfItsPalette()
+    void customModeAloneDoesNotOptAGateOutOfItsPalette()
     {
         // Regression: /wormhole custom true used to snapshot the shape's materials into
         // the gate. With shapes no longer declaring any, that snapshot captured the
@@ -230,7 +230,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void unsetTickOverridesFallBackToTheShape()
+    void unsetTickOverridesFallBackToTheShape()
     {
         final Stargate gate = new Stargate();
         gate.setGateShape(new StargateShape());
@@ -242,7 +242,7 @@ public class StargateEffectiveMaterialTest
     }
 
     @Test
-    public void gateWithNoShapeAtAllStillReturnsUsableMaterials()
+    void gateWithNoShapeAtAllStillReturnsUsableMaterials()
     {
         final Stargate gate = new Stargate();
         gate.setGateMaterialGroup(null);

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  * broken, which is not a report worth reading. This is pinned on its own because it needs no
  * live server to get right, and getting it wrong either hides real fixes or invents fake ones.
  */
-public class RegenerateCommandTest
+class RegenerateCommandTest
 {
     private static Location at(final World world, final int x, final int y, final int z)
     {
@@ -27,21 +27,21 @@ public class RegenerateCommandTest
     }
 
     @Test
-    public void theSamePositionInTheSameWorldIsNotAMove()
+    void theSamePositionInTheSameWorldIsNotAMove()
     {
         final World world = mock(World.class);
         assertFalse(RegenerateCommand.exitMoved(at(world, 5, 64, 5), at(world, 5, 64, 5)));
     }
 
     @Test
-    public void aDifferentBlockInTheSameWorldIsAMove()
+    void aDifferentBlockInTheSameWorldIsAMove()
     {
         final World world = mock(World.class);
         assertTrue(RegenerateCommand.exitMoved(at(world, 5, 64, 5), at(world, 6, 64, 5)));
     }
 
     @Test
-    public void theSameCoordinatesInADifferentWorldAreStillAMove()
+    void theSameCoordinatesInADifferentWorldAreStillAMove()
     {
         // Two gates a plugin migration or a world rename could plausibly put in this exact
         // situation -- coordinates that happen to match, in worlds that do not.
@@ -51,14 +51,14 @@ public class RegenerateCommandTest
     }
 
     @Test
-    public void goingFromNoExitToHavingOneIsAMove()
+    void goingFromNoExitToHavingOneIsAMove()
     {
         final World world = mock(World.class);
         assertTrue(RegenerateCommand.exitMoved(null, at(world, 5, 64, 5)));
     }
 
     @Test
-    public void goingFromAnExitToNoneIsAMove()
+    void goingFromAnExitToNoneIsAMove()
     {
         // Should not happen in practice -- recompute only ever produces null by failing
         // outright, at which point the caller does not compare at all -- but the comparison
@@ -68,7 +68,7 @@ public class RegenerateCommandTest
     }
 
     @Test
-    public void neverHavingHadAnExitIsNotAMove()
+    void neverHavingHadAnExitIsNotAMove()
     {
         assertFalse(RegenerateCommand.exitMoved(null, null));
     }

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  * alternation and the stack it builds, and getting any of it wrong produces an animation
  * that still runs and simply looks wrong.
  */
-public class RingAnimatorTest
+class RingAnimatorTest
 {
     /** These tests describe the sequential look; the concurrent one has its own test. */
     private static final RingStyle STYLE = RingStyle.SEQUENTIAL;
@@ -60,7 +60,7 @@ public class RingAnimatorTest
      * otherwise show up only as rings drawn through a ceiling the survey had approved.
      */
     @Test
-    public void theStackIsAsManyBlocksTallAsThereAreRingsInIt()
+    void theStackIsAsManyBlocksTallAsThereAreRingsInIt()
     {
         assertEquals(RingAnimator.RING_COUNT, RingAnimator.STACK_HEIGHT,
             "rings a block apart make a stack as tall as their number");
@@ -69,7 +69,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theFirstFrameIsOneRingSittingWhereTheTemplateWas()
+    void theFirstFrameIsOneRingSittingWhereTheTemplateWas()
     {
         final List<RingAnimator.Placement> frame = RingAnimator.deployFrame(ring(RingOrientation.FLOOR), STYLE, 0);
 
@@ -80,7 +80,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aCeilingRingStartsAsATopSlabInsteadOfABottomOne()
+    void aCeilingRingStartsAsATopSlabInsteadOfABottomOne()
     {
         final List<RingAnimator.Placement> frame = RingAnimator.deployFrame(ring(RingOrientation.CEILING), STYLE, 0);
         assertTrue(frame.get(0).isTop(), "a hung slab hangs in the upper half of its block");
@@ -88,7 +88,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void oneHalfStepChangesTheHalfWithoutChangingTheBlock()
+    void oneHalfStepChangesTheHalfWithoutChangingTheBlock()
     {
         // This is the whole trick. Between these two frames the leading ring has risen half
         // a block while staying in exactly the same block position.
@@ -102,7 +102,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void twoHalfStepsMoveOneBlockAndReturnToTheStartingHalf()
+    void twoHalfStepsMoveOneBlockAndReturnToTheStartingHalf()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final RingAnimator.Placement first = RingAnimator.deployFrame(floor, STYLE, 0).get(0);
@@ -113,7 +113,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aFloorRingRisesAndACeilingRingDescends()
+    void aFloorRingRisesAndACeilingRingDescends()
     {
         final RingAnimator.Placement up =
             RingAnimator.deployFrame(ring(RingOrientation.FLOOR), STYLE, 2).get(0);
@@ -128,7 +128,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aCeilingRingsStackFormsOnTheFloorAndNotUnderTheCeiling()
+    void aCeilingRingsStackFormsOnTheFloorAndNotUnderTheCeiling()
     {
         // The whole point of a ceiling ring knowing its drop. Hanging the stack from the
         // plane would leave a traveller in a tall room standing underneath the rings rather
@@ -152,7 +152,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aCeilingRingAndAFloorRingBuildTheSameStack()
+    void aCeilingRingAndAFloorRingBuildTheSameStack()
     {
         // Once each has landed there is nothing to tell them apart: same heights above the
         // ground, same halves. Only the journey differed.
@@ -167,7 +167,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aCeilingRingStartsWhereItsTemplateHung()
+    void aCeilingRingStartsWhereItsTemplateHung()
     {
         // Continuity: the first frame appears exactly where the player laid the slabs, as the
         // top half of the plane block, rather than a block away from it.
@@ -181,7 +181,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aTallerCeilingRingTakesLongerToDeploy()
+    void aTallerCeilingRingTakesLongerToDeploy()
     {
         // Its rings have further to fall, which is why the animator needs the ring and not
         // just the style.
@@ -195,7 +195,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theFirstRingReachesTheTopAloneBeforeTheSecondEvenAppears()
+    void theFirstRingReachesTheTopAloneBeforeTheSecondEvenAppears()
     {
         // The rings go out one at a time, not together. The leader flies all the way to the
         // furthest position and stops there, and only then does the next one emerge.
@@ -210,7 +210,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void eachRingWaitsForTheOneBeforeItToStop()
+    void eachRingWaitsForTheOneBeforeItToStop()
     {
         for (int index = 1; index < RingAnimator.RING_COUNT; index++)
         {
@@ -222,7 +222,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void ringsAppearOneMoreAtATimeAsTheSequenceRuns()
+    void ringsAppearOneMoreAtATimeAsTheSequenceRuns()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final int perRing = RingPattern.ODD.getPerimeter().size();
@@ -235,7 +235,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theFinishedStackIsEveryRingWithClearSpaceBetweenThem()
+    void theFinishedStackIsEveryRingWithClearSpaceBetweenThem()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> last =
@@ -246,7 +246,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void noTwoRingsEverShareABlockAndAHalf()
+    void noTwoRingsEverShareABlockAndAHalf()
     {
         // Two rings in the same place would be one ring that looks wrong and, worse, one
         // restore entry claimed twice.
@@ -268,7 +268,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void ringsThatHaveArrivedStopRatherThanCarryingOnUpward()
+    void ringsThatHaveArrivedStopRatherThanCarryingOnUpward()
     {
         // Trailing rings reach their place in the stack early and have to hold it. If they
         // kept rising the stack would never form, it would just be a column leaving.
@@ -289,7 +289,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theStackHangsHalfABlockClearOfTheFloor()
+    void theStackHangsHalfABlockClearOfTheFloor()
     {
         // The lowest ring lifts rather than resting where the template was, so the whole
         // stack floats. A bottom slab there would read as part of the floor.
@@ -305,7 +305,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void settledRingsLeaveHalfABlockOfAirBetweenThem()
+    void settledRingsLeaveHalfABlockOfAirBetweenThem()
     {
         // Half a block apart means one block centre to centre, because a slab is half a
         // block thick. Every neighbouring pair in the stack should be exactly that.
@@ -327,7 +327,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void retractIsDeployPlayedBackwards()
+    void retractIsDeployPlayedBackwards()
     {
         // Written as a reversal rather than a second sequence, so the two cannot drift apart
         // and leave a slab stranded on the way down.
@@ -341,7 +341,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theNearestRingGoesHomeFirstAndTheHighestGoesLast()
+    void theNearestRingGoesHomeFirstAndTheHighestGoesLast()
     {
         // The order they come back in, and the reason retract is written as a reversal: a
         // sequence that went out furthest-first returns nearest-first on its own.
@@ -372,7 +372,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theLastRingHomeIsTheOneThatFlewHighest()
+    void theLastRingHomeIsTheOneThatFlewHighest()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final List<RingAnimator.Placement> lastMoment =
@@ -383,7 +383,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void everyPlacementSitsOnTheRingsOwnPerimeter()
+    void everyPlacementSitsOnTheRingsOwnPerimeter()
     {
         // The travelling rings are copies of the perimeter and must never stray into the
         // interior, which is where the passengers are standing.
@@ -405,7 +405,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void thePadOpensAndTheLightSitsUnderTheOpening()
+    void thePadOpensAndTheLightSitsUnderTheOpening()
     {
         // Not a pattern painted on the floor. The surface itself is taken away and the light
         // shows from a block below it, so what a player sees is a lit recess the rings climb
@@ -427,7 +427,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theOpeningAndTheLightCoverTheSamePatternAsTheRings()
+    void theOpeningAndTheLightCoverTheSamePatternAsTheRings()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         final int perimeter = RingPattern.ODD.getPerimeter().size();
@@ -436,7 +436,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theRingsStillRiseFromThePlaneTheOpeningSitsBelow()
+    void theRingsStillRiseFromThePlaneTheOpeningSitsBelow()
     {
         // The opening and the light moved; the rings did not. They still start where the
         // template was, directly above the gap that has just appeared.
@@ -447,7 +447,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aFourBlockRoomIsDeepEnoughForACeilingRing()
+    void aFourBlockRoomIsDeepEnoughForACeilingRing()
     {
         // The top ring ends up level with the ceiling, which is fine: the half block under it
         // and every gap within the stack are still there. Anything shallower would need the
@@ -473,7 +473,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void concurrentKeepsSeveralRingsInFlightAtOnce()
+    void concurrentKeepsSeveralRingsInFlightAtOnce()
     {
         // The difference between the two styles, stated as the thing that actually differs:
         // concurrently there are several rings climbing at the same time, sequentially there
@@ -492,7 +492,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void concurrentIsShorterThanSequentialButBuildsTheSameStack()
+    void concurrentIsShorterThanSequentialButBuildsTheSameStack()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         assertTrue(RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.CONCURRENT)
@@ -507,7 +507,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void bothStylesBringTheNearestRingHomeFirst()
+    void bothStylesBringTheNearestRingHomeFirst()
     {
         final Ring floor = ring(RingOrientation.FLOOR);
         for (final RingStyle style : RingStyle.values())
@@ -536,7 +536,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void ringsClimbAWholeBlockApartAndFinishHalfABlockApart()
+    void ringsClimbAWholeBlockApartAndFinishHalfABlockApart()
     {
         // The shape of the whole animation. On the way up there is a clear block between
         // rings; in the finished stack there is half a block. Nothing compresses them — the
@@ -568,7 +568,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theGapsCloseFromTheTopDownAsEachRingArrives()
+    void theGapsCloseFromTheTopDownAsEachRingArrives()
     {
         // Because the leader arrives first and stops, the topmost gap is the first to
         // narrow, and the stack tightens downward from there rather than all at once.
@@ -583,7 +583,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void nothingEverRisesAboveWhereTheTopRingSettles()
+    void nothingEverRisesAboveWhereTheTopRingSettles()
     {
         // What the headroom requirement rests on. Rings stop when they arrive, so the
         // finished stack is also the highest anything ever gets.
@@ -603,7 +603,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theFlashTouchesEveryRingExactlyOnce()
+    void theFlashTouchesEveryRingExactlyOnce()
     {
         // The transport itself, given an animation rather than being an instant nobody sees.
         final Set<Integer> touched = new HashSet<Integer>();
@@ -616,7 +616,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theFlashAlwaysRunsTowardsThePad()
+    void theFlashAlwaysRunsTowardsThePad()
     {
         // Down a floor ring's stack and up a ceiling ring's, which is the same rule stated
         // twice: the light moves towards the pad, because the pad is where travellers are
@@ -640,7 +640,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void bothSweepsRunTheSameWay()
+    void bothSweepsRunTheSameWay()
     {
         // The arrival used to reverse. It does not any more: the light goes to the pad taking
         // travellers in and comes off the pad putting them out, which looks the same way round
@@ -652,7 +652,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theSettledStackIsWhatEveryFlashFrameIsDrawnOver()
+    void theSettledStackIsWhatEveryFlashFrameIsDrawnOver()
     {
         // The lit ring is drawn over the stack, not instead of it, so nothing appears to
         // move while the light passes through.
@@ -665,7 +665,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theTwoEndsOfAPairCanDeployAtDifferentSpeeds()
+    void theTwoEndsOfAPairCanDeployAtDifferentSpeeds()
     {
         // Style is per end, so a base and its outpost need not match. They still have to
         // finish together, which is arranged by waiting for the slower of the two.
@@ -674,7 +674,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aPlayerMayTypeEitherTheRealNameOrAFriendlierOne()
+    void aPlayerMayTypeEitherTheRealNameOrAFriendlierOne()
     {
         // The stored value stays CONCURRENT or SEQUENTIAL, because those describe what the
         // setting does — how many rings are in the air at once — which stays true whatever
@@ -689,7 +689,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void anythingElseIsRefusedRatherThanGuessedAt()
+    void anythingElseIsRefusedRatherThanGuessedAt()
     {
         assertNull(RingStyle.parse("sideways"));
         assertNull(RingStyle.parse(""));
@@ -697,7 +697,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theFriendlyNamesMatchWhichStyleIsActuallyQuicker()
+    void theFriendlyNamesMatchWhichStyleIsActuallyQuicker()
     {
         // If "fast" ever stopped being the shorter of the two, the alias would be a lie.
         assertTrue(RingAnimator.deployFrames(ANY_FLOOR_RING, RingStyle.parse("fast"))
@@ -705,7 +705,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void theCeilingStackIsLitFromItsFarEndToo()
+    void theCeilingStackIsLitFromItsFarEndToo()
     {
         // The rule is one thing said once: the light runs towards the pad. For a ceiling ring
         // that means upward, which used to need a mirror and a config value pointed the right
@@ -725,7 +725,7 @@ public class RingAnimatorTest
     }
 
     @Test
-    public void aDeeperCeilingRingStillLightsTowardsItsPad()
+    void aDeeperCeilingRingStillLightsTowardsItsPad()
     {
         // The drop changes where the stack sits, not which end of it the light starts at.
         final Ring hanging = ring(RingOrientation.CEILING);

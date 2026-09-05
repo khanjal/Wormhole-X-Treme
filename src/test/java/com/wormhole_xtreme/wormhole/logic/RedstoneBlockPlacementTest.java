@@ -30,12 +30,12 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * block and the gate watches a wall for a signal, or looks for a lever somewhere a frame
  * block always is. Nothing errors; the gate's redstone just silently never fires.
  */
-public class RedstoneBlockPlacementTest
+class RedstoneBlockPlacementTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -89,7 +89,7 @@ public class RedstoneBlockPlacementTest
      * someone wiring up redstone that never does anything.
      */
     @Test
-    public void everyShippedMarkerResolvesToAnEmptyCell() throws Exception
+    void everyShippedMarkerResolvesToAnEmptyCell() throws Exception
     {
         int markersChecked = 0;
 
@@ -131,7 +131,7 @@ public class RedstoneBlockPlacementTest
     }
 
     @Test
-    public void aBareMarkerKeepsItsOwnCellAndAFrameMarkerTakesTheOneAbove() throws Exception
+    void aBareMarkerKeepsItsOwnCellAndAFrameMarkerTakesTheOneAbove() throws Exception
     {
         // Both conventions pinned from one shape, so the branch stays covered no matter
         // which form the shipped shapes happen to use at any given time.
@@ -165,7 +165,7 @@ public class RedstoneBlockPlacementTest
      * what keeps it out of [RD]'s reach.
      */
     @Test
-    public void everyRedstoneDialMarkerHasAFrameBlockUnderIt() throws Exception
+    void everyRedstoneDialMarkerHasAFrameBlockUnderIt() throws Exception
     {
         int checked = 0;
         for (final String name : shippedShapeNames())
@@ -195,7 +195,7 @@ public class RedstoneBlockPlacementTest
     }
 
     @Test
-    public void theTwoInputMarkersAreNeverWithinReachOfEachOther() throws Exception
+    void theTwoInputMarkersAreNeverWithinReachOfEachOther() throws Exception
     {
         // A signal counts when it lands on a marked block or on anything touching it, and
         // the check for that is a 3x3x3 box. [RD] and [RS] are both inputs and both act on
@@ -260,7 +260,7 @@ public class RedstoneBlockPlacementTest
     }
 
     @Test
-    public void aRedstoneDialMarkerAlwaysHasADialSignToRead() throws Exception
+    void aRedstoneDialMarkerAlwaysHasADialSignToRead() throws Exception
     {
         // [RD] dials whatever the dial sign shows, so a shape offering redstone dialling
         // without a [D] block would have nothing to dial.
@@ -299,7 +299,7 @@ public class RedstoneBlockPlacementTest
      * it stays /dial-only and correctly carries no markers at all.
      */
     @Test
-    public void everyShapeWithADialSignCanBeRedstoneDialled() throws Exception
+    void everyShapeWithADialSignCanBeRedstoneDialled() throws Exception
     {
         int signDialShapes = 0;
         for (final String name : shippedShapeNames())

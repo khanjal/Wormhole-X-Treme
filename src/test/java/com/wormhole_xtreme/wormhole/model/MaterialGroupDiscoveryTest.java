@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests palette discovery from gate shapes.
  */
-public class MaterialGroupDiscoveryTest
+class MaterialGroupDiscoveryTest
 {
     private static StargateShape shape(final Material frame, final Material iris, final Material light)
     {
@@ -26,7 +26,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @BeforeEach
-    public void loadStandardOnly()
+    void loadStandardOnly()
     {
         final Map<String, Object> standard = new LinkedHashMap<String, Object>();
         standard.put("structure", "OBSIDIAN");
@@ -38,7 +38,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @Test
-    public void aLoneDiamondGateIsOfferedAsAPalette()
+    void aLoneDiamondGateIsOfferedAsAPalette()
     {
         // The motivating case: someone builds a diamond gate with gold chevrons.
         final List<StargateShape> shapes = new ArrayList<StargateShape>();
@@ -53,7 +53,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @Test
-    public void framesAlreadyClaimedByAConfiguredGroupAreLeftAlone()
+    void framesAlreadyClaimedByAConfiguredGroupAreLeftAlone()
     {
         final List<StargateShape> shapes = new ArrayList<StargateShape>();
         shapes.add(shape(Material.OBSIDIAN, Material.STONE, Material.GLOWSTONE));
@@ -62,7 +62,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @Test
-    public void shapesDisagreeingOnMaterialsYieldNoPalette()
+    void shapesDisagreeingOnMaterialsYieldNoPalette()
     {
         // This is the shipped situation: every stock shape is framed in obsidian but they
         // ask for three different irises, so no single obsidian palette exists. Guessing
@@ -75,7 +75,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @Test
-    public void shapesAgreeingOnMaterialsYieldOnePalette()
+    void shapesAgreeingOnMaterialsYieldOnePalette()
     {
         // Several shapes can share a palette, as long as they actually agree.
         final List<StargateShape> shapes = new ArrayList<StargateShape>();
@@ -89,7 +89,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @Test
-    public void suggestedNamesReadLikeNamesNotEnumConstants()
+    void suggestedNamesReadLikeNamesNotEnumConstants()
     {
         assertEquals("Diamond", MaterialGroupRegistry.suggestGroupName(Material.DIAMOND_BLOCK));
         assertEquals("PolishedBlackstone", MaterialGroupRegistry.suggestGroupName(Material.POLISHED_BLACKSTONE));
@@ -97,7 +97,7 @@ public class MaterialGroupDiscoveryTest
     }
 
     @Test
-    public void aDiscoveredGroupTakesEffectWithoutARestart()
+    void aDiscoveredGroupTakesEffectWithoutARestart()
     {
         final MaterialGroup diamond = new MaterialGroup("Diamond", Material.DIAMOND_BLOCK,
             Material.WATER, Material.GLASS, Material.GOLD_BLOCK, Material.OAK_WALL_SIGN);

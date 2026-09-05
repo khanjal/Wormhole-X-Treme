@@ -26,13 +26,13 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroup;
  * wrong could produce a duplicate top-level key, which SnakeYAML resolves by discarding
  * one copy — taking the admin's own groups with it. Every test re-parses the result.
  */
-public class MaterialGroupConfigWriteTest
+class MaterialGroupConfigWriteTest
 {
     @TempDir
     File tempDir;
 
     @BeforeEach
-    public void installPluginMock() throws Exception
+    void installPluginMock() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -56,7 +56,7 @@ public class MaterialGroupConfigWriteTest
     }
 
     @Test
-    public void groupIsInsertedIntoAnExistingSectionWithoutLosingTheOnesAlreadyThere() throws Exception
+    void groupIsInsertedIntoAnExistingSectionWithoutLosingTheOnesAlreadyThere() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
         Files.write(cfg.toPath(), java.util.Arrays.asList(
@@ -87,7 +87,7 @@ public class MaterialGroupConfigWriteTest
     }
 
     @Test
-    public void sectionIsCreatedWhenTheConfigHasNoneYet() throws Exception
+    void sectionIsCreatedWhenTheConfigHasNoneYet() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
         Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));
@@ -102,7 +102,7 @@ public class MaterialGroupConfigWriteTest
     }
 
     @Test
-    public void writingProducesExactlyOneTopLevelSectionKey() throws Exception
+    void writingProducesExactlyOneTopLevelSectionKey() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
         Files.write(cfg.toPath(), java.util.Arrays.asList(
@@ -124,7 +124,7 @@ public class MaterialGroupConfigWriteTest
     }
 
     @Test
-    public void nothingIsWrittenForAnEmptyGroupList() throws Exception
+    void nothingIsWrittenForAnEmptyGroupList() throws Exception
     {
         final File cfg = new File(tempDir, "config.yml");
         Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));

@@ -24,7 +24,7 @@ import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
  * withdrawn. These tests pin the fix -- economy inactive, in either sense, always means free,
  * regardless of what a destination or the global default says.
  */
-public class BeamTravelTest
+class BeamTravelTest
 {
     private static BeamDestination destinationWithCost(final Double cost)
     {
@@ -32,7 +32,7 @@ public class BeamTravelTest
     }
 
     @BeforeEach
-    public void clearConfig()
+    void clearConfig()
     {
         // Real config is a shared static map -- starting from a known-empty state, rather
         // than whatever an earlier test in the same JVM left behind, is what keeps these
@@ -42,14 +42,14 @@ public class BeamTravelTest
     }
 
     @AfterEach
-    public void tidyUp()
+    void tidyUp()
     {
         ConfigTestSupport.clear();
         EconomySupport.disableEconomy();
     }
 
     @Test
-    public void economyNeverConfiguredMeansFreeEvenWithADestinationOverride()
+    void economyNeverConfiguredMeansFreeEvenWithADestinationOverride()
     {
         // No loadDefaults() call at all: ECONOMY_ENABLED is absent, which
         // ConfigManager.isEconomyEnabled() already treats as false.
@@ -57,7 +57,7 @@ public class BeamTravelTest
     }
 
     @Test
-    public void economyExplicitlyDisabledMeansFreeEvenWithADestinationOverride()
+    void economyExplicitlyDisabledMeansFreeEvenWithADestinationOverride()
     {
         ConfigTestSupport.loadDefaults();
         ConfigManager.setConfigValue(ConfigKeys.ECONOMY_ENABLED, false);
@@ -65,7 +65,7 @@ public class BeamTravelTest
     }
 
     @Test
-    public void economyEnabledInConfigButNoVaultProviderAttachedStillMeansFree()
+    void economyEnabledInConfigButNoVaultProviderAttachedStillMeansFree()
     {
         // The exact scenario the missing check let through: ECONOMY_ENABLED is true, but
         // EconomySupport.isAvailable() is false (no Vault provider attached, the default

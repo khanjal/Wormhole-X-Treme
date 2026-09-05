@@ -8,16 +8,16 @@ import org.bukkit.World;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-public class GateSpatialIndexTest
+class GateSpatialIndexTest
 {
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         GateSpatialIndex.clear();
     }
 
     @Test
-    public void addAndCollectWithinRadiusIncludesNearbyLocation()
+    void addAndCollectWithinRadiusIncludesNearbyLocation()
     {
         final World w = mock(World.class);
         when(w.getName()).thenReturn("testworld");
@@ -36,7 +36,7 @@ public class GateSpatialIndexTest
     }
 
     @Test
-    public void removeAndClearWorkAsExpected()
+    void removeAndClearWorkAsExpected()
     {
         final World w = mock(World.class);
         when(w.getName()).thenReturn("w");

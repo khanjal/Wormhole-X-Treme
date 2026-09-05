@@ -27,10 +27,10 @@ import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
  *
  * <p>Both tests therefore assert on what was true at the moment of the write, not after it.
  */
-public class GateLeverWriteIsGuardedTest
+class GateLeverWriteIsGuardedTest
 {
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
@@ -74,7 +74,7 @@ public class GateLeverWriteIsGuardedTest
     }
 
     @Test
-    public void switchingTheDialLeverHappensInsideARedstoneWriteWindow()
+    void switchingTheDialLeverHappensInsideARedstoneWriteWindow()
     {
         final AtomicBoolean guarded = new AtomicBoolean(false);
         final Stargate gate = new Stargate();
@@ -89,7 +89,7 @@ public class GateLeverWriteIsGuardedTest
     }
 
     @Test
-    public void switchingTheGateActivatedOutputHappensInsideARedstoneWriteWindow()
+    void switchingTheGateActivatedOutputHappensInsideARedstoneWriteWindow()
     {
         final AtomicBoolean guarded = new AtomicBoolean(false);
         final Stargate gate = new Stargate();

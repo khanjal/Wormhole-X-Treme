@@ -9,10 +9,10 @@ import org.mockito.Mockito;
 /**
  * Unit tests for StargateManager activation mapping behavior.
  */
-public class StargateManagerTest
+class StargateManagerTest
 {
     @Test
-    public void addAndRemoveActivatedStargate()
+    void addAndRemoveActivatedStargate()
     {
         Player p = Mockito.mock(Player.class);
         Stargate s = Mockito.mock(Stargate.class);
@@ -23,7 +23,7 @@ public class StargateManagerTest
     }
 
     @Test
-    public void removeActivatorForStargate()
+    void removeActivatorForStargate()
     {
         Player p1 = Mockito.mock(Player.class);
         Player p2 = Mockito.mock(Player.class);

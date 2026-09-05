@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
  * loop around it -- asking the world for entities, teleporting them clear -- needs a live
  * server and is left to integration; this is the part that can be wrong.
  */
-public class IrisDoesNotEntombTest
+class IrisDoesNotEntombTest
 {
     /** Where the test gate's portal sits: a two-high opening at y=64 and y=65. */
     private static final int BX = 10;
@@ -34,7 +34,7 @@ public class IrisDoesNotEntombTest
     private Stargate gate;
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         world = mock(World.class);
         when(world.getName()).thenReturn("testworld");
@@ -47,14 +47,14 @@ public class IrisDoesNotEntombTest
     }
 
     @Test
-    public void someoneStandingInTheOpeningIsInTheIrisPath()
+    void someoneStandingInTheOpeningIsInTheIrisPath()
     {
         assertTrue(StargateBlockSetup.isInIrisPath(gate, new Location(world, BX, BY, BZ)),
             "A player standing in a portal block is exactly who the iris would be placed inside");
     }
 
     @Test
-    public void someoneWhoseHeadAloneIsInTheOpeningIsStillInTheIrisPath()
+    void someoneWhoseHeadAloneIsInTheOpeningIsStillInTheIrisPath()
     {
         // Feet on the block below the portal, head in the portal's lowest block. Checking
         // only the feet -- which is all the entity sweep needs, since it decides who
@@ -64,7 +64,7 @@ public class IrisDoesNotEntombTest
     }
 
     @Test
-    public void someoneStandingOnTopOfTheGateIsNotInTheIrisPath()
+    void someoneStandingOnTopOfTheGateIsNotInTheIrisPath()
     {
         // Feet at BY+2, head at BY+3: both clear of the two-block opening. Moving this
         // player would teleport bystanders off the gate frame every time an iris closed.
@@ -73,14 +73,14 @@ public class IrisDoesNotEntombTest
     }
 
     @Test
-    public void someoneBesideTheGateIsNotInTheIrisPath()
+    void someoneBesideTheGateIsNotInTheIrisPath()
     {
         assertFalse(StargateBlockSetup.isInIrisPath(gate, new Location(world, BX + 1, BY, BZ)),
             "The bounding box query is wider than the opening, so off-ring candidates must be rejected");
     }
 
     @Test
-    public void aGateWithNoPortalBlocksPutsNobodyInTheIrisPath()
+    void aGateWithNoPortalBlocksPutsNobodyInTheIrisPath()
     {
         final Stargate empty = new Stargate();
         empty.setGateWorld(world);
@@ -90,7 +90,7 @@ public class IrisDoesNotEntombTest
     }
 
     @Test
-    public void aMissingGateOrLocationIsNotInTheIrisPath()
+    void aMissingGateOrLocationIsNotInTheIrisPath()
     {
         // Reached through a Bukkit entity whose location can be anything; a null here should
         // mean "leave them alone", not take down the iris closure for every other entity.

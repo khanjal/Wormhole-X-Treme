@@ -29,22 +29,22 @@ import org.junit.jupiter.api.Test;
  * more quietly: a fragment copied out of the file matched nothing, and an empty list looks
  * like a server with no such settings rather than a name spelled the wrong way.
  */
-public class SettingNameSpellingTest
+class SettingNameSpellingTest
 {
     @BeforeEach
-    public void loadTheDefaults()
+    void loadTheDefaults()
     {
         ConfigTestSupport.loadDefaults();
     }
 
     @AfterEach
-    public void forgetThem()
+    void forgetThem()
     {
         ConfigTestSupport.clear();
     }
 
     @Test
-    public void everyKeyThisPluginWritesIntoConfigYmlIsAlsoAKeyItAccepts()
+    void everyKeyThisPluginWritesIntoConfigYmlIsAlsoAKeyItAccepts()
     {
         for (final Setting setting : DefaultSettings.config)
         {
@@ -57,7 +57,7 @@ public class SettingNameSpellingTest
     }
 
     @Test
-    public void bothSpellingsOfANameDescribeTheSameSetting()
+    void bothSpellingsOfANameDescribeTheSameSetting()
     {
         assertEquals(ConfigManager.describeSetting("GATE_SOUND_KAWOOSH"),
             ConfigManager.describeSetting("gate-sound-kawoosh"),
@@ -66,7 +66,7 @@ public class SettingNameSpellingTest
     }
 
     @Test
-    public void aFragmentCopiedOutOfConfigYmlNarrowsTheListTheSameWay()
+    void aFragmentCopiedOutOfConfigYmlNarrowsTheListTheSameWay()
     {
         final List<String> underscored = ConfigManager.settingNamesMatching("gate_sound");
         final List<String> hyphenated = ConfigManager.settingNamesMatching("gate-sound");
@@ -77,7 +77,7 @@ public class SettingNameSpellingTest
     }
 
     @Test
-    public void nothingTypedListsEverything()
+    void nothingTypedListsEverything()
     {
         assertEquals(ConfigManager.settingNames().size(),
             ConfigManager.settingNamesMatching("").size(),
@@ -85,7 +85,7 @@ public class SettingNameSpellingTest
     }
 
     @Test
-    public void aNameThatIsNotASettingIsStillNotASetting()
+    void aNameThatIsNotASettingIsStillNotASetting()
     {
         assertNull(ConfigManager.describeSetting("gate-sound-banana"),
             "accepting either spelling is not the same as accepting anything");

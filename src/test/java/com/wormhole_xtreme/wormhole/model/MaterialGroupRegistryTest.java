@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link MaterialGroupRegistry} loading and lookup.
  */
-public class MaterialGroupRegistryTest
+class MaterialGroupRegistryTest
 {
     private static Map<String, Object> group(final String structure, final String portal,
         final String iris, final String light)
@@ -25,7 +25,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void firstDeclaredGroupIsTheDefault()
+    void firstDeclaredGroupIsTheDefault()
     {
         final Map<String, Object> section = new LinkedHashMap<String, Object>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
@@ -38,7 +38,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void groupsAreFoundByTheirStructureMaterial()
+    void groupsAreFoundByTheirStructureMaterial()
     {
         final Map<String, Object> section = new LinkedHashMap<String, Object>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
@@ -57,7 +57,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void lookupByNameIsCaseInsensitive()
+    void lookupByNameIsCaseInsensitive()
     {
         final Map<String, Object> section = new LinkedHashMap<String, Object>();
         section.put("Atlantis", group("LAPIS_BLOCK", "WATER", "STONE", "GLOWSTONE"));
@@ -70,7 +70,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void duplicateStructureMaterialIsRejectedRatherThanShadowing()
+    void duplicateStructureMaterialIsRejectedRatherThanShadowing()
     {
         // The frame material is what identifies a palette, so two groups claiming the
         // same one would make detection ambiguous. The first declared keeps it.
@@ -86,7 +86,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void groupWithUnreadableStructureMaterialIsSkipped()
+    void groupWithUnreadableStructureMaterialIsSkipped()
     {
         final Map<String, Object> section = new LinkedHashMap<String, Object>();
         section.put("Good", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
@@ -99,7 +99,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void missingPortalIrisAndLightFallBackToDefaults()
+    void missingPortalIrisAndLightFallBackToDefaults()
     {
         final Map<String, Object> section = new LinkedHashMap<String, Object>();
         section.put("Sparse", group("LAPIS_BLOCK", null, null, null));
@@ -114,7 +114,7 @@ public class MaterialGroupRegistryTest
     }
 
     @Test
-    public void emptyConfigStillYieldsAWorkingDefaultGroup()
+    void emptyConfigStillYieldsAWorkingDefaultGroup()
     {
         // A server that has never touched this section must keep working.
         MaterialGroupRegistry.load(null);
@@ -133,7 +133,7 @@ public class MaterialGroupRegistryTest
      * the test below.
      */
     @Test
-    public void aPaletteCanNameTheMaterialItsUnlitChevronsAreBuiltFrom()
+    void aPaletteCanNameTheMaterialItsUnlitChevronsAreBuiltFrom()
     {
         final Map<String, Object> standard = group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE");
         standard.put("chevron", "REDSTONE_LAMP");
@@ -155,7 +155,7 @@ public class MaterialGroupRegistryTest
      * with nothing in the config to explain why an unfamiliar block now builds a gate.
      */
     @Test
-    public void aPaletteThatNamesNoChevronMaterialGetsNoneRatherThanADefault()
+    void aPaletteThatNamesNoChevronMaterialGetsNoneRatherThanADefault()
     {
         final Map<String, Object> section = new LinkedHashMap<String, Object>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
@@ -174,7 +174,7 @@ public class MaterialGroupRegistryTest
      * every gate built from it.
      */
     @Test
-    public void anUnreadableChevronMaterialDoesNotCostThePalette()
+    void anUnreadableChevronMaterialDoesNotCostThePalette()
     {
         final Map<String, Object> standard = group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE");
         standard.put("chevron", "NOT_A_REAL_BLOCK");

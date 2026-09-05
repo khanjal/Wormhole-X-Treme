@@ -6,10 +6,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ConfigManagerTest
+class ConfigManagerTest
 {
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         try
         {
@@ -25,7 +25,7 @@ public class ConfigManagerTest
         }
     }
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         // Reset storage backend setting to default by clearing the configurations map via reflection.
         // This keeps tests isolated; ConfigManager uses a private static map.

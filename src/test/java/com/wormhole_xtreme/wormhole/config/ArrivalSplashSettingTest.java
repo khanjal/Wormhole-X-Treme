@@ -12,13 +12,13 @@ import org.junit.jupiter.api.Test;
  * server does not agree. Everything else here draws something more solid, or equally solid.
  * So its length is worth holding to something short.
  */
-public class ArrivalSplashSettingTest
+class ArrivalSplashSettingTest
 {
     /** Long enough that a client would start acting on it. */
     private static final long TOO_LONG_TO_GO_UNNOTICED = 40L;
 
     @Test
-    public void theSplashIsShortEnoughNotToBeArguedWith()
+    void theSplashIsShortEnoughNotToBeArguedWith()
     {
         final long ticks = ConfigManager.getGateArrivalSplashTicks();
         assertTrue(ticks < TOO_LONG_TO_GO_UNNOTICED,
@@ -27,7 +27,7 @@ public class ArrivalSplashSettingTest
     }
 
     @Test
-    public void itCanBeTurnedOffButNeverInverted()
+    void itCanBeTurnedOffButNeverInverted()
     {
         // Zero is off. A negative would be scheduled as a delay, which Bukkit runs
         // immediately -- putting the block back on the same tick it was drawn, so the effect

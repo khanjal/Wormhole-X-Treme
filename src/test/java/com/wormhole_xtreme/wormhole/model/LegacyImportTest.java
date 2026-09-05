@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
  * the part that decides whether to try at all -- and the claim the whole feature rests on,
  * which is that this fork can still parse the binary format those databases hold.
  */
-public class LegacyImportTest
+class LegacyImportTest
 {
     @Test
-    public void theBinaryFormatEveryOldDatabaseHoldsIsStillReadable()
+    void theBinaryFormatEveryOldDatabaseHoldsIsStillReadable()
     {
         // The gates in one of those databases are binary blobs, not columns, and this fork
         // inherited the reader for them. That is the whole reason importing is a small job
@@ -32,7 +32,7 @@ public class LegacyImportTest
     }
 
     @Test
-    public void nothingIsOfferedWhenThereIsNoDatabase()
+    void nothingIsOfferedWhenThereIsNoDatabase()
     {
         // No server and no data folder in a unit test, so there is nothing to find. The
         // point is that it answers rather than throwing: this runs on every startup, and an
@@ -41,7 +41,7 @@ public class LegacyImportTest
     }
 
     @Test
-    public void anAbsentDriverIsReportedRatherThanThrown()
+    void anAbsentDriverIsReportedRatherThanThrown()
     {
         // The driver is deliberately not shipped -- thirteen megabytes of native libraries
         // for a one-time import most servers never run. Asking whether it is there must be a
@@ -51,7 +51,7 @@ public class LegacyImportTest
     }
 
     @Test
-    public void importingWithNothingToImportSaysSoInsteadOfFailing()
+    void importingWithNothingToImportSaysSoInsteadOfFailing()
     {
         final LegacyDatabaseImporter.Result result = LegacyDatabaseImporter.importGates();
         assertNotNull(result.getProblem(), "it should explain, not pretend it worked");
@@ -61,7 +61,7 @@ public class LegacyImportTest
     }
 
     @Test
-    public void anImportedGateGetsTheSamePortalSafetyCheckAsAnyOtherGate()
+    void anImportedGateGetsTheSamePortalSafetyCheckAsAnyOtherGate()
     {
         // StargateYamlManager.loadStargates() calls Stargate.normalizeGatePlayerTeleportLocation()
         // on every gate it reads from disk, specifically because an old enough gate can have

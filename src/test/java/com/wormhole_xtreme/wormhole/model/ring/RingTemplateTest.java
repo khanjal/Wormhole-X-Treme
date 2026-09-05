@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
  * hung under a ceiling is a top slab, which is a fact about the template rather than a
  * guess about its surroundings.
  */
-public class RingTemplateTest
+class RingTemplateTest
 {
     /** A probe backed by a map, so a test can lay out slabs without a server. */
     private static final class FakeWorld implements RingTemplate.BlockProbe
@@ -73,7 +73,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void aRingOfBottomSlabsIsAFloorRingAnchoredAtItsCentre()
+    void aRingOfBottomSlabsIsAFloorRingAnchoredAtItsCentre()
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 50, 64, 50, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
@@ -90,7 +90,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void theRingKeepsWhateverSlabThePlayerLaidItIn()
+    void theRingKeepsWhateverSlabThePlayerLaidItIn()
     {
         // The point of reading the material rather than defaulting it: a ring built in a
         // deepslate base rises in deepslate, with no command run.
@@ -105,7 +105,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void topSlabsMeanTheRingHangsFromACeiling()
+    void topSlabsMeanTheRingHangsFromACeiling()
     {
         // Slabs hung under a ceiling are top slabs. Reading the half means orientation is
         // something the template states rather than something inferred from surroundings.
@@ -120,7 +120,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void thePlayerCanStandAnywhereInsideTheRing()
+    void thePlayerCanStandAnywhereInsideTheRing()
     {
         // Nobody stands exactly on the centre block. Every interior square has to work as a
         // place to run the command from, and all of them must find the same anchor.
@@ -139,7 +139,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void theEvenPatternIsRecognisedAndAnchoredToACornerOfItsMiddleFour()
+    void theEvenPatternIsRecognisedAndAnchoredToACornerOfItsMiddleFour()
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.EVEN, 10, 64, 10, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
@@ -153,14 +153,14 @@ public class RingTemplateTest
     }
 
     @Test
-    public void barePlainGroundIsNotARing()
+    void barePlainGroundIsNotARing()
     {
         assertFalse(detect(new FakeWorld(), 0, 64, 0).isSuccess());
         assertEquals(RingTemplate.Failure.NO_RING_FOUND, detect(new FakeWorld(), 0, 64, 0).getFailure());
     }
 
     @Test
-    public void anIncompleteCircleIsNotARing()
+    void anIncompleteCircleIsNotARing()
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 64, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
@@ -171,7 +171,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void twoKindsOfSlabAreRefusedWithTheReasonWhy()
+    void twoKindsOfSlabAreRefusedWithTheReasonWhy()
     {
         // The specific message matters. Reporting "no ring found" for a ring the player can
         // plainly see would send them looking for the wrong problem.
@@ -186,7 +186,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void slabsFacingDifferentWaysAreRefusedWithTheReasonWhy()
+    void slabsFacingDifferentWaysAreRefusedWithTheReasonWhy()
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 64, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
@@ -199,7 +199,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void aFilledInCircleIsRefusedBecauseARingIsAnOutline()
+    void aFilledInCircleIsRefusedBecauseARingIsAnOutline()
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 64, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.BOTTOM);
@@ -215,7 +215,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void somethingElseInsideTheRingIsFineAsLongAsItIsNotTheRingSlab()
+    void somethingElseInsideTheRingIsFineAsLongAsItIsNotTheRingSlab()
     {
         // Only the ring's own slab is a problem inside the circle. A carpet, a rail or a
         // different slab someone is using as decoration is none of this feature's business.
@@ -227,7 +227,7 @@ public class RingTemplateTest
     }
 
     @Test
-    public void aCeilingRingBeyondTheSearchHeightIsNotFound()
+    void aCeilingRingBeyondTheSearchHeightIsNotFound()
     {
         final FakeWorld world = new FakeWorld();
         world.layRing(RingPattern.ODD, 0, 80, 0, Material.STONE_SLAB, RingTemplate.SlabHalf.TOP);

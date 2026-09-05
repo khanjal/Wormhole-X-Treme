@@ -33,7 +33,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * front bezel, the real portal ring, and a second lit ring -- with four woosh steps behind it,
  * proportionally deeper than {@code Grand}'s three for a ring this much narrower.
  */
-public class BigGateShapeTest
+class BigGateShapeTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
@@ -77,7 +77,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void allThreeParseAndHaveExactlyOneOfEachSingletonMarker() throws Exception
+    void allThreeParseAndHaveExactlyOneOfEachSingletonMarker() throws Exception
     {
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
@@ -92,7 +92,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void allThreeHaveEveryRowTheSameWidthAsLayerOneEstablished() throws Exception
+    void allThreeHaveEveryRowTheSameWidthAsLayerOneEstablished() throws Exception
     {
         // What actually would have caught Grand's original bug: three rows one cell short of
         // the width Layer#1 established, which parses fine and just shifts every column after
@@ -106,7 +106,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
+    void allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder() throws Exception
     {
         for (final String name : new String[] { "Large", "Grand", "Massive" })
         {
@@ -132,7 +132,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void allThreeWooshEveryStepWithNoGapOrDuplicateInTheOrder() throws Exception
+    void allThreeWooshEveryStepWithNoGapOrDuplicateInTheOrder() throws Exception
     {
         // The sibling of allThreeLightSevenChevronsWithNoGapOrDuplicateInTheOrder above --
         // written checking this specifically because a gate reported not animating at all
@@ -170,7 +170,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void grandsRingIsThreeLayersDeepWithNineWooshStepsBehindIt() throws Exception
+    void grandsRingIsThreeLayersDeepWithNineWooshStepsBehindIt() throws Exception
     {
         // Grand's ring repeats across Layer#1-#3 (a front bezel, the real portal ring, and a
         // second lit ring) before the woosh recession starts at Layer#4 -- unlike Standard,
@@ -190,7 +190,7 @@ public class BigGateShapeTest
     }
 
     @Test
-    public void massiveRecedesThirteenStepsWithNoGapAfterTheMissingLayerTwelveFix() throws Exception
+    void massiveRecedesThirteenStepsWithNoGapAfterTheMissingLayerTwelveFix() throws Exception
     {
         final Stargate3DShape massive = load("Massive");
         assertEquals(13, massive.getShapeWooshDepth());

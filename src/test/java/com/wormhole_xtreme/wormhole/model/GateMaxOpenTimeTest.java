@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
  * forms and deliberately not reset by re-dialling, so the ceiling is measured from the
  * start rather than from the most recent trigger.
  */
-public class GateMaxOpenTimeTest
+class GateMaxOpenTimeTest
 {
     @Test
-    public void aClosedGateHasNoOpenTime()
+    void aClosedGateHasNoOpenTime()
     {
         final Stargate gate = new Stargate();
 
@@ -24,7 +24,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void openingRecordsTheTime()
+    void openingRecordsTheTime()
     {
         final Stargate gate = new Stargate();
         gate.markGateOpened();
@@ -33,7 +33,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void reDiallingDoesNotRestartTheClock() throws Exception
+    void reDiallingDoesNotRestartTheClock() throws Exception
     {
         // The whole point: if this reset, anything re-triggering a gate on a schedule would
         // hold it open forever.
@@ -48,7 +48,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void closingStartsAFreshCeiling()
+    void closingStartsAFreshCeiling()
     {
         final Stargate gate = new Stargate();
         gate.markGateOpened();
@@ -61,7 +61,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void aZeroMaximumMeansNoLimit()
+    void aZeroMaximumMeansNoLimit()
     {
         final Stargate gate = new Stargate();
         gate.markGateOpened();
@@ -70,7 +70,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void aClosedGateHasNoLimitToReport()
+    void aClosedGateHasNoLimitToReport()
     {
         final Stargate gate = new Stargate();
 
@@ -78,7 +78,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void remainingTimeCountsDownFromWhenTheGateOpened()
+    void remainingTimeCountsDownFromWhenTheGateOpened()
     {
         final Stargate gate = new Stargate();
         gate.markGateOpened();
@@ -89,7 +89,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void theAllowanceCountsDownAsTheGateStaysOpen() throws Exception
+    void theAllowanceCountsDownAsTheGateStaysOpen() throws Exception
     {
         final Stargate gate = new Stargate();
         gate.markGateOpened();
@@ -102,7 +102,7 @@ public class GateMaxOpenTimeTest
     }
 
     @Test
-    public void anElapsedCeilingLeavesNothingLeft() throws Exception
+    void anElapsedCeilingLeavesNothingLeft() throws Exception
     {
         // What the dial path checks: once this goes to zero or below, the gate is closed
         // rather than having its shutdown timer extended again.

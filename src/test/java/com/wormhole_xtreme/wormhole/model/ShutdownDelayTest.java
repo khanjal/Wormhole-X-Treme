@@ -17,16 +17,16 @@ import org.junit.jupiter.api.Test;
  * the shutdown back rather than doing nothing. Doing nothing was safe by construction; this is
  * safe only because of the clamp below.
  */
-public class ShutdownDelayTest
+class ShutdownDelayTest
 {
     @Test
-    public void withNoMaximumTheConfiguredTimeoutIsUsedAsIs()
+    void withNoMaximumTheConfiguredTimeoutIsUsedAsIs()
     {
         assertEquals(600, StargateDialManager.shutdownDelayTicks(600, Long.MAX_VALUE));
     }
 
     @Test
-    public void theTimeoutWinsWhenThereIsPlentyOfMaximumLeft()
+    void theTimeoutWinsWhenThereIsPlentyOfMaximumLeft()
     {
         // 600 ticks is 30s; 200_000ms of maximum left is far more than that.
         assertEquals(600, StargateDialManager.shutdownDelayTicks(600, 200000L));
@@ -39,7 +39,7 @@ public class ShutdownDelayTest
      * extension can only ever reach as far as the maximum still allows.
      */
     @Test
-    public void theMaximumWinsWhenItIsTheTighterLimit()
+    void theMaximumWinsWhenItIsTheTighterLimit()
     {
         // 5000ms left is 100 ticks, less than the 600-tick timeout.
         assertEquals(100, StargateDialManager.shutdownDelayTicks(600, 5000L));
@@ -52,7 +52,7 @@ public class ShutdownDelayTest
      * more time, which is precisely what the limit exists to prevent.
      */
     @Test
-    public void aSpentMaximumSaysCloseNow()
+    void aSpentMaximumSaysCloseNow()
     {
         assertEquals(StargateDialManager.CLOSE_NOW, StargateDialManager.shutdownDelayTicks(600, 0L));
         assertEquals(StargateDialManager.CLOSE_NOW, StargateDialManager.shutdownDelayTicks(600, -1L));
@@ -66,7 +66,7 @@ public class ShutdownDelayTest
      * from its limit would have been granted an indefinite stay by rounding.
      */
     @Test
-    public void asliverOfMaximumStillSchedulesACloseRatherThanNoTimerAtAll()
+    void asliverOfMaximumStillSchedulesACloseRatherThanNoTimerAtAll()
     {
         assertEquals(1, StargateDialManager.shutdownDelayTicks(600, 30L),
             "rounding to 0 would mean 'never close', the opposite of what is left");
@@ -79,13 +79,13 @@ public class ShutdownDelayTest
      * still a real limit, so it has to supply the delay on its own rather than being ignored.
      */
     @Test
-    public void withNoTimeoutConfiguredTheMaximumSuppliesTheDelay()
+    void withNoTimeoutConfiguredTheMaximumSuppliesTheDelay()
     {
         assertEquals(100, StargateDialManager.shutdownDelayTicks(0, 5000L));
     }
 
     @Test
-    public void withNeitherLimitSetThereIsNoTimer()
+    void withNeitherLimitSetThereIsNoTimer()
     {
         assertEquals(0, StargateDialManager.shutdownDelayTicks(0, Long.MAX_VALUE));
     }

@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  * is looking at the shipped defaults. This checks them against whatever API the build is
  * compiled against, so raising the target version is what runs the test.
  */
-public class ShippedMaterialsExistTest
+class ShippedMaterialsExistTest
 {
     /** A run of capitals, digits and underscores: how a material name is written. */
     private static final Pattern CANDIDATE = Pattern.compile("\\b[A-Z][A-Z0-9_]{2,}\\b");
@@ -81,7 +81,7 @@ public class ShippedMaterialsExistTest
     }
 
     @Test
-    public void everyMaterialNamedInShippedFilesResolves() throws Exception
+    void everyMaterialNamedInShippedFilesResolves() throws Exception
     {
         final java.util.Set<String> unknown = new TreeSet<String>();
         final java.util.Set<String> checked = new TreeSet<String>();
@@ -125,7 +125,7 @@ public class ShippedMaterialsExistTest
     }
 
     @Test
-    public void theRingDefaultsNameMaterialsThatExist()
+    void theRingDefaultsNameMaterialsThatExist()
     {
         // Ring defaults live in DefaultSettings rather than in the shipped config.yml, so the
         // scan above never sees them. They are plain text resolved at runtime exactly like a
@@ -160,7 +160,7 @@ public class ShippedMaterialsExistTest
     }
 
     @Test
-    public void theMaterialsTheCodeFallsBackOnStillExist()
+    void theMaterialsTheCodeFallsBackOnStillExist()
     {
         // The built-in defaults, used when a shape and a palette both say nothing. These are
         // referenced as enum constants so the compiler does check them — this is here so

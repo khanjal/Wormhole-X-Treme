@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  * in the constant name ({@code ENTITY_PLAYER_SPLASH_HIGH_SPEED}) instead of the sound event's
  * own name, or leaving a stray space or capital in one.
  */
-public class ShippedSoundNamesTest
+class ShippedSoundNamesTest
 {
     /** A resource location: an optional namespace, then a dotted lowercase path. */
     private static final Pattern SOUND_NAME =
@@ -52,7 +52,7 @@ public class ShippedSoundNamesTest
     }
 
     @Test
-    public void everySoundThisPluginShipsIsNamedTheWayTheClientNamesOne()
+    void everySoundThisPluginShipsIsNamedTheWayTheClientNamesOne()
     {
         final List<Setting> sounds = shippedSoundSettings();
         assertTrue(sounds.size() >= 10,

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
  * older rules are pinned here too — this is the first time any of them has been checked
  * without a server.
  */
-public class RingSurveyTest
+class RingSurveyTest
 {
     /** How far a ceiling ring is allowed to look for its floor, as the shipped default does. */
     private static final int MAX_DROP = 10;
@@ -111,7 +111,7 @@ public class RingSurveyTest
      * have made the choice pointless.
      */
     @Test
-    public void aFloorRingWithTheStacksOwnHeightAboveItCanReceivePeople()
+    void aFloorRingWithTheStacksOwnHeightAboveItCanReceivePeople()
     {
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1).layer(ring, PLANE + Ring.STACK_HEIGHT);
@@ -126,7 +126,7 @@ public class RingSurveyTest
      * stack was drawn inside somebody's ceiling.
      */
     @Test
-    public void aFloorRingOneBlockShortOfTheStacksHeightWillNotFire()
+    void aFloorRingOneBlockShortOfTheStacksHeightWillNotFire()
     {
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1)
@@ -142,7 +142,7 @@ public class RingSurveyTest
      * the clearest case of the two questions giving different answers.
      */
     @Test
-    public void aFloorRingInATwoBlockCrawlspaceWillNotFire()
+    void aFloorRingInATwoBlockCrawlspaceWillNotFire()
     {
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1).layer(ring, PLANE + 2);
@@ -158,7 +158,7 @@ public class RingSurveyTest
      * was under.
      */
     @Test
-    public void aLowCeilingOverASingleColumnStopsTheWholeRing()
+    void aLowCeilingOverASingleColumnStopsTheWholeRing()
     {
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1);
@@ -176,7 +176,7 @@ public class RingSurveyTest
      * for a block dropped at head height would send them looking for the wrong thing.
      */
     @Test
-    public void somethingBuiltWhereAPersonWouldStandIsAnObstructionNotALowCeiling()
+    void somethingBuiltWhereAPersonWouldStandIsAnObstructionNotALowCeiling()
     {
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1);
@@ -193,7 +193,7 @@ public class RingSurveyTest
      * gap to fall out of.
      */
     @Test
-    public void aHoleUnderOneColumnMeansThereIsNoGround()
+    void aHoleUnderOneColumnMeansThereIsNoGround()
     {
         final Ring ring = floorRing();
         final Room room = new Room().layer(ring, PLANE - 1).layer(ring, PLANE + Ring.STACK_HEIGHT);
@@ -210,7 +210,7 @@ public class RingSurveyTest
      * reason — there is no layer up there to draw a ring in.
      */
     @Test
-    public void aFloorRingTooCloseToTheTopOfTheWorldWillNotFire()
+    void aFloorRingTooCloseToTheTopOfTheWorldWillNotFire()
     {
         final Ring ring = floorRing();
         final Room room = new Room().bounds(-64, PLANE + Ring.STACK_HEIGHT - 1)
@@ -227,7 +227,7 @@ public class RingSurveyTest
      * than about any one square.
      */
     @Test
-    public void aFloorRingOnTheBottomOfTheWorldHasNoGroundUnderIt()
+    void aFloorRingOnTheBottomOfTheWorldHasNoGroundUnderIt()
     {
         final Ring ring = floorRing();
         final Room room = new Room().bounds(PLANE, 320);
@@ -243,7 +243,7 @@ public class RingSurveyTest
      * right answer: either way there is no floor for the rings to fall to.
      */
     @Test
-    public void aCeilingRingOverTheVoidStopsAtTheBottomOfTheWorld()
+    void aCeilingRingOverTheVoidStopsAtTheBottomOfTheWorld()
     {
         final Ring ring = ring(RingOrientation.CEILING, PLANE);
         final Room room = new Room().bounds(PLANE - 2, 320);
@@ -261,7 +261,7 @@ public class RingSurveyTest
      * headroom check.
      */
     @Test
-    public void aCeilingRingFlushInItsOwnCeilingStillFires()
+    void aCeilingRingFlushInItsOwnCeilingStillFires()
     {
         final Ring ring = ring(RingOrientation.CEILING, PLANE);
         final Room room = new Room().layer(ring, PLANE - Ring.STACK_HEIGHT).layer(ring, PLANE);
@@ -271,7 +271,7 @@ public class RingSurveyTest
 
     /** A ceiling ring measures its drop and builds its stack up from the floor it found. */
     @Test
-    public void aCeilingRingRecordsHowFarBelowItsPlaneTheFloorIs()
+    void aCeilingRingRecordsHowFarBelowItsPlaneTheFloorIs()
     {
         final Ring ring = ring(RingOrientation.CEILING, PLANE);
         final Room room = new Room().layer(ring, PLANE - 6);
@@ -282,7 +282,7 @@ public class RingSurveyTest
 
     /** Too close to its own floor, and the stack has nowhere to form. */
     @Test
-    public void aCeilingRingTooCloseToItsFloorWillNotFire()
+    void aCeilingRingTooCloseToItsFloorWillNotFire()
     {
         final Ring ring = ring(RingOrientation.CEILING, PLANE);
         final Room room = new Room().layer(ring, PLANE - Ring.MIN_CEILING_DROP);
@@ -292,7 +292,7 @@ public class RingSurveyTest
 
     /** Over a shaft rather than a room: the rings would fall out of sight. */
     @Test
-    public void aCeilingRingWithNoFloorWithinReachWillNotFire()
+    void aCeilingRingWithNoFloorWithinReachWillNotFire()
     {
         final Ring ring = ring(RingOrientation.CEILING, PLANE);
         assertEquals(RingBlockage.CEILING_TOO_HIGH, survey(new Room(), ring),
@@ -301,7 +301,7 @@ public class RingSurveyTest
 
     /** Where a ceiling ring's travellers land is its floor, and that has to be clear too. */
     @Test
-    public void aCeilingRingWithSomethingBuiltOnItsFloorWillNotFire()
+    void aCeilingRingWithSomethingBuiltOnItsFloorWillNotFire()
     {
         final Ring ring = ring(RingOrientation.CEILING, PLANE);
         final Room room = new Room().layer(ring, PLANE - 6);

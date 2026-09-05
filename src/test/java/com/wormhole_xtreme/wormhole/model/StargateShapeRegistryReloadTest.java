@@ -17,7 +17,7 @@ import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
  * is the decision a reload actually needs, tested here against plain lines rather than a real
  * file on disk, the same split {@link ShapeFileValidator} itself is built around.
  */
-public class StargateShapeRegistryReloadTest
+class StargateShapeRegistryReloadTest
 {
     private static final String[] VALID_SHAPE = {
         "Name=ReloadableTest",
@@ -33,7 +33,7 @@ public class StargateShapeRegistryReloadTest
     };
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -43,13 +43,13 @@ public class StargateShapeRegistryReloadTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         StargateShapeRegistry.getStargateShapes().remove("ReloadableTest");
     }
 
     @Test
-    public void aValidShapeIsAddedToTheRegistry()
+    void aValidShapeIsAddedToTheRegistry()
     {
         final ShapeFileValidator.Result result = StargateShapeRegistry.replaceIfValid(VALID_SHAPE);
 
@@ -58,7 +58,7 @@ public class StargateShapeRegistryReloadTest
     }
 
     @Test
-    public void reloadingAgainReplacesTheEarlierInstanceRatherThanKeepingIt()
+    void reloadingAgainReplacesTheEarlierInstanceRatherThanKeepingIt()
     {
         // The behaviour a reload command exists for: unlike loadShapes()'s first-load rule,
         // an existing entry under the same name must not survive a second, different reload.
@@ -74,7 +74,7 @@ public class StargateShapeRegistryReloadTest
     }
 
     @Test
-    public void anInvalidReloadLeavesTheExistingEntryAloneRatherThanRemovingIt()
+    void anInvalidReloadLeavesTheExistingEntryAloneRatherThanRemovingIt()
     {
         StargateShapeRegistry.replaceIfValid(VALID_SHAPE);
         final StargateShape before = StargateShapeRegistry.getStargateShape("ReloadableTest");
@@ -89,7 +89,7 @@ public class StargateShapeRegistryReloadTest
     }
 
     @Test
-    public void aFileThatDoesNotExistReportsAProblemInsteadOfThrowing()
+    void aFileThatDoesNotExistReportsAProblemInsteadOfThrowing()
     {
         final ShapeFileValidator.Result result = StargateShapeRegistry.reloadShapeFile("ThisShapeDoesNotExist.shape");
 

@@ -29,12 +29,12 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * {@code HorizontalSignDial} always did — which is what made it an oversight rather than a
  * rule. The block was even still there in all three; only the marker was missing.
  */
-public class ShippedShapeIrisTest
+class ShippedShapeIrisTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -90,7 +90,7 @@ public class ShippedShapeIrisTest
      * new sign-dial shape copied from an existing one is exactly how it would come back.
      */
     @Test
-    public void noShapeLeavesItsIrisToAFallbackItHasAlsoTurnedOff() throws Exception
+    void noShapeLeavesItsIrisToAFallbackItHasAlsoTurnedOff() throws Exception
     {
         for (final String name : shippedShapeNames())
         {
@@ -113,7 +113,7 @@ public class ShippedShapeIrisTest
      * thing. It also means no shipped gate depends on the fallback guessing correctly.
      */
     @Test
-    public void everyShippedShapeSaysWhereItsIrisGoes() throws Exception
+    void everyShippedShapeSaysWhereItsIrisGoes() throws Exception
     {
         for (final String name : shippedShapeNames())
         {
@@ -131,7 +131,7 @@ public class ShippedShapeIrisTest
      * is placed against nothing.
      */
     @Test
-    public void everyIrisMarkerIsOnABlockTheLeverCanHangOn() throws Exception
+    void everyIrisMarkerIsOnABlockTheLeverCanHangOn() throws Exception
     {
         int checked = 0;
         for (final String name : shippedShapeNames())

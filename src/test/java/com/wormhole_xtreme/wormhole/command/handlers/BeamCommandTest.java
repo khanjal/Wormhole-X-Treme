@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Test;
  * same as the rest of this class always has been; this codebase has no precedent for mocking
  * Bukkit's static accessors.
  */
-public class BeamCommandTest
+class BeamCommandTest
 {
     private final BeamCommand command = new BeamCommand();
 
     @Test
-    public void parseCoordinateAcceptsAPlainNumber()
+    void parseCoordinateAcceptsAPlainNumber()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertEquals(12.5, command.parseCoordinate(sender, "12.5"), 1e-9);
@@ -27,14 +27,14 @@ public class BeamCommandTest
     }
 
     @Test
-    public void parseCoordinateAcceptsANegativeNumber()
+    void parseCoordinateAcceptsANegativeNumber()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertEquals(-64.0, command.parseCoordinate(sender, "-64"), 1e-9);
     }
 
     @Test
-    public void parseCoordinateRejectsNonsenseAndMessagesWhyRatherThanJustFailingSilently()
+    void parseCoordinateRejectsNonsenseAndMessagesWhyRatherThanJustFailingSilently()
     {
         final CommandSender sender = mock(CommandSender.class);
         assertNull(command.parseCoordinate(sender, "not-a-number"));
@@ -42,21 +42,21 @@ public class BeamCommandTest
     }
 
     @Test
-    public void describeDestinationNamesASinglePlayerToken()
+    void describeDestinationNamesASinglePlayerToken()
     {
         final String[] args = { "beam", "admin", "goto", "Notch" };
         assertEquals("Notch", BeamCommand.describeDestination(args, 3));
     }
 
     @Test
-    public void describeDestinationJoinsThreeCoordinateTokens()
+    void describeDestinationJoinsThreeCoordinateTokens()
     {
         final String[] args = { "beam", "admin", "goto", "100", "64", "-200" };
         assertEquals("100, 64, -200", BeamCommand.describeDestination(args, 3));
     }
 
     @Test
-    public void describeDestinationIgnoresATrailingWorldTokenPastTheCoordinates()
+    void describeDestinationIgnoresATrailingWorldTokenPastTheCoordinates()
     {
         // Only the x/y/z tokens are named -- the world (a fourth token) is where the
         // traveller ends up, not part of what identifies the spot for the chat message,
@@ -66,7 +66,7 @@ public class BeamCommandTest
     }
 
     @Test
-    public void resolveDestinationRefusesAnArgumentCountThatIsNeitherAPlayerNorCoordinates()
+    void resolveDestinationRefusesAnArgumentCountThatIsNeitherAPlayerNorCoordinates()
     {
         final CommandSender sender = mock(CommandSender.class);
         final String[] args = { "beam", "admin", "goto", "100", "64" };

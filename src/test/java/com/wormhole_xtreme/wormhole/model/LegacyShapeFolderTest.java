@@ -21,13 +21,13 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * server upgrading, finding its custom shapes gone, its gates undetectable, and no error
  * anywhere saying why.
  */
-public class LegacyShapeFolderTest
+class LegacyShapeFolderTest
 {
     @TempDir
     File gateShapes;
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
@@ -54,7 +54,7 @@ public class LegacyShapeFolderTest
     }
 
     @Test
-    public void aShapeInTheOldThreeDeeFolderIsMovedUp() throws Exception
+    void aShapeInTheOldThreeDeeFolderIsMovedUp() throws Exception
     {
         writeShape("3d", "Custom.shape", "Name=Custom");
 
@@ -67,7 +67,7 @@ public class LegacyShapeFolderTest
     }
 
     @Test
-    public void theOldTwoDeeFolderIsHandledToo() throws Exception
+    void theOldTwoDeeFolderIsHandledToo() throws Exception
     {
         writeShape("2d", "Flat.shape", "Name=Flat");
 
@@ -77,7 +77,7 @@ public class LegacyShapeFolderTest
     }
 
     @Test
-    public void aShapeAlreadyAtTheTopWins() throws Exception
+    void aShapeAlreadyAtTheTopWins() throws Exception
     {
         // The top-level copy is the one that has been loading. Overwriting it with an older
         // copy from a subfolder would quietly undo whatever its owner had changed.
@@ -93,7 +93,7 @@ public class LegacyShapeFolderTest
     }
 
     @Test
-    public void anythingThatIsNotAShapeIsLeftAlone() throws Exception
+    void anythingThatIsNotAShapeIsLeftAlone() throws Exception
     {
         writeShape("3d", "notes.txt", "just a note");
 
@@ -106,7 +106,7 @@ public class LegacyShapeFolderTest
     }
 
     @Test
-    public void noLegacyFoldersIsNotAProblem() throws Exception
+    void noLegacyFoldersIsNotAProblem() throws Exception
     {
         writeShape(null, "Standard.shape", "Name=Standard");
 
@@ -115,7 +115,7 @@ public class LegacyShapeFolderTest
     }
 
     @Test
-    public void runningItTwiceChangesNothingTheSecondTime() throws Exception
+    void runningItTwiceChangesNothingTheSecondTime() throws Exception
     {
         // It runs on every startup, so it has to be safe to run against an already-migrated
         // install rather than only against the one upgrade that needed it.

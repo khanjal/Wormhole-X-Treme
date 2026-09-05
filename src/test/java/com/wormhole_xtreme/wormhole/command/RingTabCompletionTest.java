@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  * <p>The material fields are the reason any of this exists: there are dozens of slabs and
  * hundreds of blocks, and nobody remembers how polished_deepslate is spelled.
  */
-public class RingTabCompletionTest
+class RingTabCompletionTest
 {
     private static List<String> complete(final String... args)
     {
@@ -26,7 +26,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theVerbsAreOffered()
+    void theVerbsAreOffered()
     {
         assertTrue(complete("ring", "").contains("create"));
         assertTrue(complete("ring", "e").contains("edit"));
@@ -34,7 +34,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theEditableFieldsAreOffered()
+    void theEditableFieldsAreOffered()
     {
         final List<String> fields = complete("ring", "edit", "");
         assertTrue(fields.contains("ring"));
@@ -45,7 +45,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theRingFieldOffersOnlySlabs()
+    void theRingFieldOffersOnlySlabs()
     {
         // Anything else is something the command is about to refuse, so offering it would be
         // offering a mistake.
@@ -60,7 +60,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theBuiltFieldOffersTheSameSlabsAsRing()
+    void theBuiltFieldOffersTheSameSlabsAsRing()
     {
         // built names the same kind of slab as ring -- what reset restores to rather than
         // what is currently worn -- so it shares the constraint and the list.
@@ -68,7 +68,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theLightFieldOffersOnlyBlocksThatLookLit()
+    void theLightFieldOffersOnlyBlocksThatLookLit()
     {
         // Narrowed twice over. None of these actually light anything — a ring is drawn to
         // clients and the server's light data is untouched — so the choice is purely how it
@@ -86,14 +86,14 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void lightsAreFilteredByWhatHasBeenTyped()
+    void lightsAreFilteredByWhatHasBeenTyped()
     {
         final List<String> typed = complete("ring", "edit", "light", "sea");
         assertEquals(java.util.Collections.singletonList("sea_lantern"), typed);
     }
 
     @Test
-    public void materialsAreFilteredByWhatHasBeenTyped()
+    void materialsAreFilteredByWhatHasBeenTyped()
     {
         final List<String> typed = complete("ring", "edit", "ring", "deepslate");
         assertFalse(typed.isEmpty());
@@ -104,7 +104,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theSameFieldWorksAfterAPairIdAsWithoutOne()
+    void theSameFieldWorksAfterAPairIdAsWithoutOne()
     {
         // The awkward part: edit takes an optional id, so both of these are valid and the
         // field sits at a different index in each.
@@ -115,7 +115,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void aWordThatIsNotAFieldIsTakenForAnIdAndTheFieldsFollow()
+    void aWordThatIsNotAFieldIsTakenForAnIdAndTheFieldsFollow()
     {
         final List<String> fields = complete("ring", "edit", "7f3a1c2e", "");
         assertTrue(fields.contains("ring"));
@@ -123,7 +123,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void accessAndStyleOfferTheirOwnWords()
+    void accessAndStyleOfferTheirOwnWords()
     {
         assertEquals(java.util.Arrays.asList("public", "private"),
             complete("ring", "edit", "access", ""));
@@ -134,7 +134,7 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void theTwoLightsAreOfferedSeparatelyAndBothOfferGlowingBlocks()
+    void theTwoLightsAreOfferedSeparatelyAndBothOfferGlowingBlocks()
     {
         // The pad light and the transport flash are two different moments, so they are two
         // fields — but they draw from the same set, since both want something that looks lit.
@@ -145,20 +145,20 @@ public class RingTabCompletionTest
     }
 
     @Test
-    public void resetIsOfferedAndTakesNoValue()
+    void resetIsOfferedAndTakesNoValue()
     {
         assertTrue(complete("ring", "edit", "").contains("reset"));
         assertTrue(complete("ring", "edit", "reset", "").isEmpty());
     }
 
     @Test
-    public void aNameIsWhateverThePlayerWants()
+    void aNameIsWhateverThePlayerWants()
     {
         assertTrue(complete("ring", "edit", "name", "").isEmpty());
     }
 
     @Test
-    public void nothingIsOfferedForVerbsThatTakeNoCompletableArgument()
+    void nothingIsOfferedForVerbsThatTakeNoCompletableArgument()
     {
         assertTrue(complete("ring", "list", "").isEmpty());
         assertTrue(complete("ring", "create", "").isEmpty());

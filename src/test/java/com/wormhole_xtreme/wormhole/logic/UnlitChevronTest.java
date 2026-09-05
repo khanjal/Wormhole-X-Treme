@@ -34,7 +34,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * accepting the frame material there, because every gate standing in every world today was
  * built that way and has to go on being found.
  */
-public class UnlitChevronTest
+class UnlitChevronTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
@@ -126,7 +126,7 @@ public class UnlitChevronTest
      * undetectable rather than merely differently coloured.
      */
     @Test
-    public void aChevronCellIsNotCountedAsAFrameBlock() throws Exception
+    void aChevronCellIsNotCountedAsAFrameBlock() throws Exception
     {
         final Stargate3DShape shape = load("Standard", "[S:L#1]", "[C:L#1]");
         assertEquals(1, chevronCells(shape).size(),
@@ -145,7 +145,7 @@ public class UnlitChevronTest
      * joined the dialling sequence would be the worse half of the feature.
      */
     @Test
-    public void aChevronCellCanStillCarryALightOrder() throws Exception
+    void aChevronCellCanStillCarryALightOrder() throws Exception
     {
         final Stargate3DShape shape = load("Standard", "[S:L#1]", "[C:L#1]");
         final Integer[] chevron = chevronCells(shape).get(0);
@@ -174,7 +174,7 @@ public class UnlitChevronTest
      * would quietly widen what counts as a gate for every shape that never asked for it.
      */
     @Test
-    public void aShapeThatNamesNoChevronMaterialHasNone() throws Exception
+    void aShapeThatNamesNoChevronMaterialHasNone() throws Exception
     {
         assertNull(load("Minimal").getShapeChevronMaterial(),
             "Minimal names no CHEVRON_MATERIAL, so it must not acquire one by default");
@@ -190,7 +190,7 @@ public class UnlitChevronTest
      * Standard's.
      */
     @Test
-    public void standardOffersUnlitChevronsWithoutBreakingObsidianOnes() throws Exception
+    void standardOffersUnlitChevronsWithoutBreakingObsidianOnes() throws Exception
     {
         final Stargate3DShape standard = load("Standard");
         assertNull(standard.getShapeChevronMaterial(),
@@ -210,7 +210,7 @@ public class UnlitChevronTest
      * something else, without a shape file per combination.
      */
     @Test
-    public void aPaletteSuppliesTheChevronMaterialWhenTheShapeDoesNot() throws Exception
+    void aPaletteSuppliesTheChevronMaterialWhenTheShapeDoesNot() throws Exception
     {
         final Stargate3DShape standard = load("Standard");
         final MaterialGroup palette = new MaterialGroup("Standard", Material.OBSIDIAN,
@@ -227,7 +227,7 @@ public class UnlitChevronTest
      * block means it, and a palette that never considered chevrons should not take it away.
      */
     @Test
-    public void aShapeThatNamesAChevronMaterialOutranksThePalette() throws Exception
+    void aShapeThatNamesAChevronMaterialOutranksThePalette() throws Exception
     {
         final Stargate3DShape pinned = load("Standard", null, null);
         pinned.setShapeChevronMaterial(Material.SEA_LANTERN);
@@ -245,7 +245,7 @@ public class UnlitChevronTest
      * relaxes its frame-material check when there is a second material to relax it towards.
      */
     @Test
-    public void neitherShapeNorPaletteNamingOneMeansNoChevronMaterial() throws Exception
+    void neitherShapeNorPaletteNamingOneMeansNoChevronMaterial() throws Exception
     {
         final MaterialGroup plain = new MaterialGroup("Standard", Material.OBSIDIAN,
             Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN);
@@ -262,7 +262,7 @@ public class UnlitChevronTest
      * A default dropped during an unrelated edit to that file would otherwise go unnoticed.
      */
     @Test
-    public void theShippedStandardPaletteOffersUnlitChevrons() throws Exception
+    void theShippedStandardPaletteOffersUnlitChevrons() throws Exception
     {
         final Object parsed = new org.yaml.snakeyaml.Yaml().load(new String(
             Files.readAllBytes(Paths.get("src/main/resources/config.yml")),
@@ -290,7 +290,7 @@ public class UnlitChevronTest
      * the chevron material and nobody able to say why.
      */
     @Test
-    public void everyLightMarkedCellOfEveryShippedShapeIsAlsoAFrameBlock() throws Exception
+    void everyLightMarkedCellOfEveryShippedShapeIsAlsoAFrameBlock() throws Exception
     {
         try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
         {
@@ -338,7 +338,7 @@ public class UnlitChevronTest
      * written. Neither throws; both need asserting from the outside.
      */
     @Test
-    public void aCellKeyTellsOneCellOfALayerFromAnother() throws Exception
+    void aCellKeyTellsOneCellOfALayerFromAnother() throws Exception
     {
         final Stargate3DShape standard = load("Standard");
         final StargateShapeLayer face = standard.getShapeLayers().get(1);

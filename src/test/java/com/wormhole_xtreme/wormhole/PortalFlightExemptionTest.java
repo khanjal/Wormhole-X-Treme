@@ -34,7 +34,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * <p>Nothing can make the server agree — the block genuinely is not water. Allowing flight
  * for as long as the player is inside the portal is what stops the disagreement being fatal.
  */
-public class PortalFlightExemptionTest
+class PortalFlightExemptionTest
 {
     private World world;
     private Player player;
@@ -72,7 +72,7 @@ public class PortalFlightExemptionTest
     }
 
     @BeforeEach
-    public void setUp() throws Exception
+    void setUp() throws Exception
     {
         clearFlightGrants();
         GateSpatialIndex.clear();
@@ -118,7 +118,7 @@ public class PortalFlightExemptionTest
     }
 
     @AfterEach
-    public void tearDown()
+    void tearDown()
     {
         StargateManager.removeStargate(origin);
         destination.setGateActive(false);
@@ -132,7 +132,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void aPlayerInThePortalIsAllowedToFly()
+    void aPlayerInThePortalIsAllowedToFly()
     {
         move(outside(), inside());
 
@@ -140,7 +140,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void aPlayerFloatingUpInsideThePortalKeepsTheExemption()
+    void aPlayerFloatingUpInsideThePortalKeepsTheExemption()
     {
         // The actual complaint: floating in the water and staying there. Each rise is
         // another move event, and none of them may take the exemption away while the
@@ -157,7 +157,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void leavingThePortalTakesTheExemptionBack()
+    void leavingThePortalTakesTheExemptionBack()
     {
         move(outside(), inside());
         when(player.getAllowFlight()).thenReturn(true);
@@ -169,7 +169,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void aPlayerWhoNeverEntersAPortalIsLeftAlone()
+    void aPlayerWhoNeverEntersAPortalIsLeftAlone()
     {
         move(outside(), outside());
 
@@ -177,7 +177,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void flightThePluginDidNotGrantIsNotTakenAway()
+    void flightThePluginDidNotGrantIsNotTakenAway()
     {
         // Someone in creative, or with flight from another plugin, walks through a gate.
         // Granting is skipped because they already have it, so leaving must not strip it —
@@ -191,7 +191,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void aCreativePlayerKeepsFlightEvenIfTheyWereGrantedIt()
+    void aCreativePlayerKeepsFlightEvenIfTheyWereGrantedIt()
     {
         // Belt and braces for a player who entered in survival and switched mode inside:
         // game mode is the authority on the way out, not what was recorded on the way in.
@@ -205,7 +205,7 @@ public class PortalFlightExemptionTest
     }
 
     @Test
-    public void aClosedGateGrantsNothing()
+    void aClosedGateGrantsNothing()
     {
         // The exemption follows the drawn portal. No portal, no client-side water, nothing
         // to float on, and no reason to hand out flight.

@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test;
  * invisible, which is the point -- the round-trip tests next to it can only fail on a host
  * that reproduces the conditions, and CI is not such a host.
  */
-public class PlatformCharsetIsNeverUsedTest
+class PlatformCharsetIsNeverUsedTest
 {
     /**
      * Forms that fall back to the platform charset when not given one.
@@ -95,7 +95,7 @@ public class PlatformCharsetIsNeverUsedTest
     }
 
     @Test
-    public void noFileIsReadOrWrittenInThePlatformCharset() throws IOException
+    void noFileIsReadOrWrittenInThePlatformCharset() throws IOException
     {
         final List<Path> sources = sources();
         assertTrue(!sources.isEmpty(), "no sources were read, so this proved nothing");
@@ -144,7 +144,7 @@ public class PlatformCharsetIsNeverUsedTest
      * the code that opened it, on the servers where that mattered.
      */
     @Test
-    public void bytesAreDecodedWithANamedCharset() throws IOException
+    void bytesAreDecodedWithANamedCharset() throws IOException
     {
         final List<String> offenders = new ArrayList<String>();
         for (final Path source : sources())

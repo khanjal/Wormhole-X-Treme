@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
  * the arrival point one of my own portal blocks? A gate that is already right is left alone
  * whatever wrote it, and a wrong one is fixed however it got that way.
  */
-public class GateArrivalPointTest
+class GateArrivalPointTest
 {
     private static final int BX = 10, BY = 64, BZ = 20;
 
@@ -39,7 +39,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void anArrivalPointInsideThePortalIsMovedOut()
+    void anArrivalPointInsideThePortalIsMovedOut()
     {
         final World world = mock(World.class);
         final Stargate gate = gateFacingSouth(world);
@@ -57,7 +57,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void anArrivalPointAlreadyOutsideIsLeftAlone()
+    void anArrivalPointAlreadyOutsideIsLeftAlone()
     {
         final World world = mock(World.class);
         final Stargate gate = gateFacingSouth(world);
@@ -69,7 +69,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void theDirectionTheTravellerFacesIsPreserved()
+    void theDirectionTheTravellerFacesIsPreserved()
     {
         // Arriving should still look out of the gate the way it always did; only the
         // standing position changes.
@@ -87,7 +87,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void aDeeperPortalIsSteppedAllTheWayOut()
+    void aDeeperPortalIsSteppedAllTheWayOut()
     {
         // A portal more than one block thick needs more than one step, and stopping after
         // one would leave the traveller still inside it.
@@ -105,7 +105,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void eachFacingStepsOutAlongItsOwnAxis()
+    void eachFacingStepsOutAlongItsOwnAxis()
     {
         for (final BlockFace facing : new BlockFace[] {
             BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST })
@@ -128,7 +128,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void aGateLyingFlatIsLeftUpwardNotSideways()
+    void aGateLyingFlatIsLeftUpwardNotSideways()
     {
         // A horizontal gate's portal is a floor, and its shape marks the exit as a portal
         // block on purpose. Stepping along a horizontal facing would slide the traveller
@@ -156,7 +156,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void aGateWithNoFacingOrNoArrivalPointIsNotTouched()
+    void aGateWithNoFacingOrNoArrivalPointIsNotTouched()
     {
         final World world = mock(World.class);
 
@@ -171,7 +171,7 @@ public class GateArrivalPointTest
     }
 
     @Test
-    public void aPortalTheFacingCannotEscapeGivesUpRatherThanWalkingAway()
+    void aPortalTheFacingCannotEscapeGivesUpRatherThanWalkingAway()
     {
         // Defensive: if stepping along the facing never leaves the portal, the traveller is
         // better off where they were than teleported somewhere arbitrarily far off.

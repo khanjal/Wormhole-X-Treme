@@ -9,7 +9,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
 
-public class WorldUtilsTest {
+class WorldUtilsTest {
 
     /**
      * A world whose only solid ground is the single block layer at {@code solidTop} -- every
@@ -29,7 +29,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void testIsSameBlock() {
+    void testIsSameBlock() {
         Block b1 = mock(Block.class);
         Block b2 = mock(Block.class);
 
@@ -48,7 +48,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void testIsAdjacent() {
+    void testIsAdjacent() {
         Block b1 = mock(Block.class);
         Block b2 = mock(Block.class);
 
@@ -76,7 +76,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void testIsIce() {
+    void testIsIce() {
         assertTrue(MaterialUtils.isIce(Material.ICE));
         assertTrue(MaterialUtils.isIce(Material.PACKED_ICE));
         assertTrue(MaterialUtils.isIce(Material.BLUE_ICE));
@@ -85,7 +85,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void findSafePlayerLocationDropsDownWhenTheGroundHasBeenDugOutSinceItWasStored() {
+    void findSafePlayerLocationDropsDownWhenTheGroundHasBeenDugOutSinceItWasStored() {
         // Stored while standable at y=64 (ground top was 63); the ground has since been dug
         // out down to a top of 61, so 64 is now open air with nothing underfoot for two more
         // blocks down.
@@ -102,7 +102,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void findSafePlayerLocationRisesUpWhenTheGroundHasBeenBuiltUpSinceItWasStored() {
+    void findSafePlayerLocationRisesUpWhenTheGroundHasBeenBuiltUpSinceItWasStored() {
         // Stored while standable at y=64 (ground top was 63); the ground has since been built
         // up to a top of 64, so the stored point is now buried inside solid block.
         final World world = worldWithGroundAt(64);
@@ -114,7 +114,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void findSafePlayerLocationFallsBackToTheStoredPointWhenNothingNearbyIsStandable() {
+    void findSafePlayerLocationFallsBackToTheStoredPointWhenNothingNearbyIsStandable() {
         // Solid everywhere the search reaches -- nothing to stand on at all, e.g. the point
         // has been entombed well beyond the +-3 search window.
         final World world = worldWithGroundAt(999);
@@ -128,7 +128,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void correctingAnAlreadyCorrectedLocationChangesNothingFurther() {
+    void correctingAnAlreadyCorrectedLocationChangesNothingFurther() {
         // The property that lets BeamAnimation.start own this correction for every beam it
         // runs, instead of each caller applying it just before calling in. Every call site
         // used to do it separately and identically, which made it a convention the next
@@ -158,7 +158,7 @@ public class WorldUtilsTest {
     }
 
     @Test
-    public void findSafePlayerLocationPassesThroughNullsUnchanged() {
+    void findSafePlayerLocationPassesThroughNullsUnchanged() {
         assertNull(WorldUtils.findSafePlayerLocation(null));
 
         final Location noWorld = new Location(null, 5, 64, 9);

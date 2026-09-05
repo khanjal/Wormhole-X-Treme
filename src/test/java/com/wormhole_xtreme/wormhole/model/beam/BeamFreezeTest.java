@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  * frozen tail of it -- these tests pin that the two states really are independent, and that
  * {@link BeamFreeze#clear} is the one thing that resets both together.
  */
-public class BeamFreezeTest
+class BeamFreezeTest
 {
     private static Player somePlayer()
     {
@@ -28,7 +28,7 @@ public class BeamFreezeTest
     }
 
     @Test
-    public void aPlayerWhoHasNeverBeamedIsNeitherActiveNorFrozen()
+    void aPlayerWhoHasNeverBeamedIsNeitherActiveNorFrozen()
     {
         final Player player = somePlayer();
         assertFalse(BeamFreeze.isActive(player));
@@ -36,7 +36,7 @@ public class BeamFreezeTest
     }
 
     @Test
-    public void markingActiveDoesNotAlsoFreeze()
+    void markingActiveDoesNotAlsoFreeze()
     {
         // This is the envelope: the sequence has started (the already-beaming guard must
         // now refuse a second one), but the traveller is still free to walk around.
@@ -54,7 +54,7 @@ public class BeamFreezeTest
     }
 
     @Test
-    public void freezingAPlayerWhoIsNotYetActiveStillFreezesThem()
+    void freezingAPlayerWhoIsNotYetActiveStillFreezesThem()
     {
         // BeamAnimation always calls markActive before freeze, but freeze itself does not
         // depend on it -- pinned separately so the two methods stay decoupled.
@@ -71,7 +71,7 @@ public class BeamFreezeTest
     }
 
     @Test
-    public void clearResetsBothStatesTogether()
+    void clearResetsBothStatesTogether()
     {
         final Player player = somePlayer();
         BeamFreeze.markActive(player);
@@ -85,7 +85,7 @@ public class BeamFreezeTest
     }
 
     @Test
-    public void twoDifferentPlayersDoNotShareEitherState()
+    void twoDifferentPlayersDoNotShareEitherState()
     {
         final Player first = somePlayer();
         final Player second = somePlayer();

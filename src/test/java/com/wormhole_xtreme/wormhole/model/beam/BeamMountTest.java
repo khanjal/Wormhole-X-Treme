@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test;
  * running server. That is the same split the ring subsystem draws between {@code RingCycle}
  * and {@code RingTransit}.
  */
-public class BeamMountTest
+class BeamMountTest
 {
     private static Player riderOf(final Entity vehicle)
     {
@@ -54,7 +54,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void aTravellerOnFootCapturesAnAbsentMountRatherThanNull()
+    void aTravellerOnFootCapturesAnAbsentMountRatherThanNull()
     {
         // BeamAnimation holds this field unconditionally and calls into it from all four of
         // its endings. If an unmounted traveller produced null instead, every one of those
@@ -67,7 +67,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void aPlayerWhoWillNotSayWhatTheyAreRidingIsTreatedAsRidingNothing()
+    void aPlayerWhoWillNotSayWhatTheyAreRidingIsTreatedAsRidingNothing()
     {
         // Not hypothetical padding: this runs inside a scheduled tick, and a throw here would
         // land in BeamAnimation's recover path and abort a beam that had no mount problem at
@@ -79,7 +79,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void theCapturedStackIsTheMountAndEverythingRidingIt()
+    void theCapturedStackIsTheMountAndEverythingRidingIt()
     {
         // The stack is what BeamVisibility hides and reveals. A mount with a second passenger
         // -- a friend on the same horse, a mob a player has leashed aboard -- would otherwise
@@ -97,7 +97,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void aMountSomebodyElseIsAlsoSittingOnIsLeftAlone()
+    void aMountSomebodyElseIsAlsoSittingOnIsLeftAlone()
     {
         // Boats and camels seat two. Carrying a shared mount re-seats its whole passenger
         // stack at the destination, so the second rider would be teleported wherever the
@@ -120,7 +120,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void aMountTheTravellerIsAloneOnIsStillCarried()
+    void aMountTheTravellerIsAloneOnIsStillCarried()
     {
         // The guard above keys off other passengers, not off there being any passengers --
         // the traveller is still aboard when capture() runs, since hold() has not dismounted
@@ -137,7 +137,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void holdingAMountDismountsTheRiderSoTheFreezeCanActuallyHoldThem()
+    void holdingAMountDismountsTheRiderSoTheFreezeCanActuallyHoldThem()
     {
         // BeamFreeze locks a traveller by reverting PlayerMoveEvent, and a rider does not
         // raise one -- their position comes from the vehicle. Without this dismount a frozen
@@ -152,7 +152,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void releasingGivesBackTheAiThatHoldingTookAway()
+    void releasingGivesBackTheAiThatHoldingTookAway()
     {
         final Horse horse = someHorse(true, Collections.<Entity>emptyList());
         final Player player = riderOf(horse);
@@ -165,7 +165,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void releasingTwiceOnlyGivesTheAiBackOnce()
+    void releasingTwiceOnlyGivesTheAiBackOnce()
     {
         // release() is reachable from more than one ending at a time -- carry() calls it on
         // the normal path, and recover() calls it again if a later tick in the same sequence
@@ -183,7 +183,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void releasingAMountWhoseAiWasAlreadyOffLeavesItOff()
+    void releasingAMountWhoseAiWasAlreadyOffLeavesItOff()
     {
         // An admin's or another plugin's deliberately AI-less mount: hold() never switched it
         // off, so release() must not switch it on. Restoring "whatever it was" rather than
@@ -200,7 +200,7 @@ public class BeamMountTest
     }
 
     @Test
-    public void anAbsentMountSurvivesEveryCallBeamAnimationMakesOnIt()
+    void anAbsentMountSurvivesEveryCallBeamAnimationMakesOnIt()
     {
         // The whole point of none(): a sequence that fails during the envelope, before the
         // vanish tick ever captured anything, still runs recover(), which calls straight

@@ -18,14 +18,14 @@ import org.junit.jupiter.api.Test;
  * <p>The sign is placed at {@code nameHolder.getRelative(gateFacing)} and
  * faces {@code gateFacing}, matching the original master approach.
  */
-public class StargateSignTest
+class StargateSignTest
 {
     private Stargate gate;
     private Block nameHolder;
     private Block signPlaceBlock;
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
         gate = new Stargate();
         nameHolder = mock(Block.class);
@@ -54,7 +54,7 @@ public class StargateSignTest
     // Create: sign placed one step in gateFacing direction (NORTH).
     // ------------------------------------------------------------------
     @Test
-    public void signFacesGateFacingNorth()
+    void signFacesGateFacingNorth()
     {
         gate.setGateFacing(BlockFace.NORTH);
         gate.setGateNameBlockHolder(nameHolder);
@@ -72,7 +72,7 @@ public class StargateSignTest
     // Create: sign placed one step in gateFacing direction (SOUTH).
     // ------------------------------------------------------------------
     @Test
-    public void signFacesGateFacingSouth()
+    void signFacesGateFacingSouth()
     {
         gate.setGateFacing(BlockFace.SOUTH);
         gate.setGateNameBlockHolder(nameHolder);
@@ -90,7 +90,7 @@ public class StargateSignTest
     // Create: sign placed one step in gateFacing direction (EAST).
     // ------------------------------------------------------------------
     @Test
-    public void signFacesGateFacingEast()
+    void signFacesGateFacingEast()
     {
         gate.setGateFacing(BlockFace.EAST);
         gate.setGateNameBlockHolder(nameHolder);
@@ -108,7 +108,7 @@ public class StargateSignTest
     // Destroy: sign at nameHolder.getRelative(gateFacing) is removed.
     // ------------------------------------------------------------------
     @Test
-    public void destroyRemovesSignAtGateFacingPosition()
+    void destroyRemovesSignAtGateFacingPosition()
     {
         gate.setGateFacing(BlockFace.WEST);
         gate.setGateNameBlockHolder(nameHolder);
@@ -127,7 +127,7 @@ public class StargateSignTest
     // Destroy no-op: block at sign position is not a wall sign.
     // ------------------------------------------------------------------
     @Test
-    public void destroyDoesNothingWhenSignBlockIsNotWallSign()
+    void destroyDoesNothingWhenSignBlockIsNotWallSign()
     {
         gate.setGateFacing(BlockFace.WEST);
         gate.setGateNameBlockHolder(nameHolder);
