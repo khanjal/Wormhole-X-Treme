@@ -187,7 +187,7 @@ Notes:
   narrowly (e.g. only to yourself), check that trusted builders who used to run
   `/wormhole portalmaterial`, `/wormhole custom`, or `/wormhole owner` freely still have it,
   since those commands now require it too.
-- Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed; cooldowns are handled centrally when enabled in `config.yml`.
+- Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed. One cooldown applies to everyone, set with `use-cooldown-seconds` in `config.yml` or `/wormhole cooldown <seconds>`, and switched on with `use-cooldown-enabled`.
 - The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
 
 ### Permission backend & auto-fallback
@@ -309,9 +309,14 @@ wrong and leaves whichever version already loaded in place.
 `list`, `build`, `complete`, `remove`, `regenerate`, `refresh`, `go`, `force`, `owner`,
 `idc`, `redstone`, `custom`, `portalmaterial`, `irismaterial`, `lightmaterial`,
 `wooshdepth`, `shutdown_timeout`, `activate_timeout`, `cooldown` and `restrict` all still
-dispatch exactly as they did. They are no longer suggested or listed, because the point of
-the restructure was a shorter list — but nothing in a command block, a script, or your
-fingers has broken.
+dispatch. They are no longer suggested or listed, because the point of the restructure was a
+shorter list — but nothing in a command block, a script, or your fingers has broken.
+
+Two of them answer differently now, because they used to answer dishonestly.
+`/wormhole cooldown` takes a plain number of seconds rather than a group name — the three
+groups were never registered as settings, so setting one reported success and changed
+nothing. `/wormhole restrict` reports that build restriction was removed rather than
+appearing to set it; gate building is governed by the `wormhole.build` permission.
 
 </details>
 
