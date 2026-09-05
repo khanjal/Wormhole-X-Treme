@@ -46,8 +46,6 @@ waves prints a note saying the depth will not change how the gate looks, and wha
 still control. The alternative was renaming the command, which would break anyone's existing
 scripts to fix a wording problem.
 
-## 1.4.0 (2026-09-05)
-
 ### Arrival ground correction is now the beam's job, not each caller's
 
 Every beam corrects its destination for terrain that has drifted since the point was
@@ -70,6 +68,8 @@ reading the function.
 The gate walk-through listener keeps its own separate call, deliberately -- it teleports
 directly and never runs a beam sequence at all, so there is nothing there to inherit the
 guarantee from.
+
+## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally
 
