@@ -44,10 +44,6 @@ public final class RingPermissions
      */
     public static boolean has(final Player player, final String node)
     {
-        if (player == null)
-        {
-            return false;
-        }
         return player.isOp() || player.hasPermission(node);
     }
 
