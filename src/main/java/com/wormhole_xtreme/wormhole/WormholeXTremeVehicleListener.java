@@ -221,6 +221,45 @@ class WormholeXTremeVehicleListener implements Listener
 
 
     /**
+     * Points a rider the way the vehicle is travelling, before they are re-seated.
+     *
+     * <p>The arrival location already carries a yaw worked out from the exit velocity, but
+     * it was only ever applied to the vehicle. A passenger's view direction is theirs, not
+     * the seat's: teleporting the cart does not turn the person in it, and neither does
+     * re-seating them. So a rider arrived still looking the way they had been looking when
+     * they entered, which on a gate turning a corner meant arriving facing sideways or
+     * backwards while the cart drove on ahead.
+     *
+     * <p>Only players have a view to correct. The vehicle teleport has already ejected its
+     * passengers when this runs, so there is no mount to disturb -- and it runs there, right
+     * after the vehicle moves, rather than in the reattach tick. A player teleport makes the
+     * client withhold the packets that follow until it acknowledges the move, and the mount
+     * packet is exactly what would be withheld, which is the failure the delay before
+     * reattaching already exists to avoid. Both moves now sit on the same side of that wait.
+     *
+     * @param child
+     *            the passenger about to be re-seated
+     * @param arrival
+     *            the vehicle's arrival location, carrying the travel-direction yaw
+     */
+    static void faceTravelDirection(final Entity child, final Location arrival)
+    {
+        if (!(child instanceof Player) || (arrival == null))
+        {
+            return;
+        }
+        try
+        {
+            child.teleport(arrival.clone());
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                "Could not face rider along travel direction: " + t.getMessage());
+        }
+    }
+
+    /**
      * Teleport an occupied minecart through a gate.
      * <p>
      * Teleports the vehicle (which ejects the passenger server-side), then schedules
@@ -244,6 +283,17 @@ class WormholeXTremeVehicleListener implements Listener
         try
         {
             veh.teleport(safeTarget);
+            // Face the riders now rather than in the reattach tick below. A player teleport
+            // makes the client withhold the packets that follow until it has acknowledged
+            // the move, and the mount packet is exactly what would be withheld -- the
+            // failure mode the delay before reattaching already exists to avoid. Doing it
+            // here puts both the vehicle move and the rider's turn on the same side of that
+            // wait. The vehicle teleport has already ejected them, so there is no mount to
+            // disturb yet.
+            for (final Entity rider : children)
+            {
+                faceTravelDirection(rider, safeTarget);
+            }
             final int[] attempts = new int[] { 0 };
             final int MAX_ATTEMPTS = 8;
             final boolean[] attached = new boolean[children.size()];
@@ -388,6 +438,17 @@ class WormholeXTremeVehicleListener implements Listener
         try
         {
             veh.teleport(safeTarget);
+            // Face the riders now rather than in the reattach tick below. A player teleport
+            // makes the client withhold the packets that follow until it has acknowledged
+            // the move, and the mount packet is exactly what would be withheld -- the
+            // failure mode the delay before reattaching already exists to avoid. Doing it
+            // here puts both the vehicle move and the rider's turn on the same side of that
+            // wait. The vehicle teleport has already ejected them, so there is no mount to
+            // disturb yet.
+            for (final Entity rider : children)
+            {
+                faceTravelDirection(rider, safeTarget);
+            }
             final int[] attempts = new int[] { 0 };
             final int MAX_ATTEMPTS = 12;
             final boolean[] attached = new boolean[children.size()];

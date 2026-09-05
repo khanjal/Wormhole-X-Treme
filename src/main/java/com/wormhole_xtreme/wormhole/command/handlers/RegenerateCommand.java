@@ -67,6 +67,7 @@ public class RegenerateCommand implements SubCommand
                     s.setupRedstone(true);
                 }
                 s.setupGateSign(true);
+                s.matchDialSignMaterial();
                 if (s.isGateSignPowered() && s.getGateDialSignBlock() != null)
                 {
                     StargateManager.refreshTeleportSign(s, true);

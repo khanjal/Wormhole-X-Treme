@@ -4,6 +4,250 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A gate's redstone wiring can be taken back up again
+
+Reported in testing: a redstone block sitting on top of a DHD could not be removed. The
+plugin answered a pickaxe with an instruction to remove the entire gate first.
+
+A gate's `[RD]`, `[RS]` and `[RA]` cells are indexed as gate blocks, and they have to be -- a
+redstone event arrives carrying only the block it fired on, and the index is how that finds
+the gate it belongs to. Protection is keyed off the same index, so being findable also meant
+being unbreakable.
+
+That is backwards for these three specifically. They are the one part of a gate the plugin
+expects a person to place, change and remove: it does not put the dust or the levers there,
+it only says where they go. Everything else the index covers is genuinely gate structure and
+still refuses a pickaxe with the same message as before.
+
+Breaking one leaves the gate's stored position alone, which is what makes this safe to allow.
+A signal landing near that cell later still works, because the check is against the position
+rather than against whatever is standing in it.
+
+### No sign colour ships as dark grey any more
+
+Reported in testing: the dark greys are too dark to read.
+
+`DARK_GRAY` is the dimmest colour Minecraft has that is not black, and sign text sits on wood
+rather than on a dark background -- so a line in it reads as almost absent on a light sign and
+genuinely absent on a dark one. It was the wrong instinct for "secondary text": the point of
+dimming the network, owner and unselected destinations is that they should sit behind the
+line that matters, not disappear.
+
+All three are `GRAY` now, which still steps back from the coloured lines without vanishing.
+Nothing in the shipped defaults uses `DARK_GRAY`.
+
+Worth knowing when reading a bug report about this: a colour already written into a server's
+`config.yml` is never overwritten by a changed default, so an install that ran an earlier
+build keeps whatever it was given first. `/wormhole config sign-color-owner GRAY` and its
+siblings change a running server immediately; changing the default only affects an install
+that has never seen the key.
+
+### Saving the config no longer destroys the rest of the file
+
+Found chasing a report that config edits reset on reboot. They did, and that was the smaller
+half of it.
+
+Every clean shutdown persists the running configuration. That meant regenerating `config.yml`
+from the flat setting list -- opening it truncating and writing back only the keys it knew
+about. Everything else in the file went with it on every single restart: the whole nested
+`gate-material-groups:` block, `permissions-support-disable` (skipped deliberately by the
+writer, and therefore deleted), and every comment an admin had written.
+
+Material-group discovery is what kept this from being obvious. It rebuilds groups from the
+gate shapes on the next startup, so a server running stock palettes saw its file churn and
+nothing worse. A group somebody had tuned by hand came back with discovered defaults instead
+of their own portal, iris, light and sign choices -- once per restart, indefinitely.
+
+Saving now edits the settings it owns in place and leaves every other line exactly as it found
+it: nested blocks, comments, blank lines, commented-out settings, and keys it does not
+recognise. A file that does not exist yet is still generated whole, which is the one case
+where writing the entire thing is right. `permissions-support-disable` is still never written,
+but that now means left alone rather than dropped.
+
+The rule that does the work is that only a key starting in column zero is a setting. A
+material group's own `sign:` entry is indented, so it can share a name with a top-level
+setting without being overwritten by it -- which would have silently repainted every gate in
+that palette. Removing that one condition fails
+`anIndentedKeyIsNotTreatedAsASettingOfTheSameName`, which is what it is there for.
+
+The tests run the real shipped `config.yml` through the same surgery a shutdown performs,
+rather than a synthetic sample, because the block being lost is defined in that file and its
+exact shape is what a hand-written example is most likely to get wrong.
+
+**This also explains why editing `config.yml` on a running server never stuck.** The edit
+changed the file, the shutdown rewrote the file from memory, and memory had never heard about
+it. Editing while the server is stopped works; so does `/wormhole config <name> <value>`,
+which changes the running value and writes it out immediately.
+
+### One redstone circuit is one trigger, not several
+
+Reported from in game: running dust past the button and up to the marker activated the gate
+twice in rapid succession.
+
+One circuit is not one event. Every dust block along a run fires its own `BlockRedstoneEvent`
+as the signal propagates, a tick or so apart, and since the change above a gate answers to any
+component touching its DHD as well as to its `[RD]` cell. So a single run legitimately powers
+several blocks the gate is listening to, and each rising edge read as a separate press. The
+synchronous "already open" guard does not catch it, because the events arrive in different
+ticks and each one is a genuine new edge.
+
+This was reachable before, in principle, with dust touching both the DHD and the marker.
+Widening what counts as a trigger is what made it the normal case rather than a corner one.
+
+A gate now ignores further triggers for 250ms after acting on one. Five ticks: longer than a
+signal takes to cross the few blocks around a DHD, far shorter than anyone can deliberately
+pulse a gate twice.
+
+### A signal on an open gate extends it now, up to the existing maximum
+
+Asked for while testing the above, and it is the third answer this has had. Originally a
+trigger on an open gate closed it, which made repeated triggers useless -- a second cart shut
+the wormhole the first one had opened. Then it did nothing at all, because re-dialling restarts
+the shutdown timer and a cart every few seconds would have held the gate open for ever.
+
+Doing nothing was safe by construction. Extending is safe for a different reason:
+`max_open_seconds` already exists, already defaults to 300, and is already measured from when
+the wormhole *first* opened rather than from the last dial. Nothing in the extension touches
+that timestamp, so a signal can buy more time and cannot buy unlimited time -- once the maximum
+is spent the gate closes on the next trigger regardless of how often it is poked.
+
+It is deliberately not a re-dial: no chunk reload, no animation, no target lookup, no rebuilt
+connection. It moves the shutdown task and nothing else. `redstone-extend-open-time: false`
+restores a trigger on an open gate doing nothing.
+
+The clamp that reconciles the shutdown timeout against the maximum was inline in the dial path
+and is now `shutdownDelayTicks`, shared by both callers and tested directly. Writing those
+tests turned up an edge the inline version had right by accident and would have been easy to
+lose: integer division turns a few milliseconds of remaining maximum into zero ticks, and zero
+means "no timer at all" everywhere else in this code -- so a gate a hair from its limit would
+have been granted an indefinite stay by rounding.
+
+### The sign colours were too loud
+
+Reported as neon green with a white border on the selected gate, and light blue with white
+around the gate name.
+
+The white border is the glow. Glowing text draws a bright outline around every character, and
+on top of an already-coloured line that reads as a halo -- it makes a sign carry further and
+harder to actually read, which is the opposite of the point. It is off by default now, and the
+colours carry the emphasis on their own.
+
+The colours themselves came down a step as well: `DARK_AQUA` for a gate's name, `DARK_GREEN`
+for the selected destination, and the two greys swapped so the dimmed lines sit further back.
+All six remain config keys, so a server that liked the brighter set can put it back without a
+new build -- and `sign-glowing-text: true` restores the glow for anyone whose gate room is dark
+enough to want it.
+
+### The dial sign is made to match the gate it belongs to
+
+Following directly from the correction above. The dial sign is the one sign this plugin does
+not place -- a player puts it on the `[D]` block in whatever wood they happened to be holding
+-- so a themed gate ended up with an oak dial sign hanging on a crimson frame, right beside a
+crimson name sign the plugin had placed itself.
+
+It is now converted to the gate's own sign material when the gate is completed or regenerated.
+`sign-dial-match-material: false` leaves a player's sign exactly as they placed it, for a
+server that would rather the plugin did not replace a block someone else put down.
+
+Changing a block's type wipes a sign's contents, so everything worth keeping is read first and
+written back after: the text on both faces, whether each face glows, and the way the sign is
+facing. The gate's cached sign state is replaced too -- it refers to the block as it was, and
+every later write to the dial sign goes through it, so leaving the old one in place would have
+aimed every destination update at a block that no longer existed.
+
+Waxed state is deliberately neither read nor preserved, and this is the version boundary worth
+recording rather than the feature. `Sign.isWaxed` and `setWaxed` do not exist before **1.20.4**
+-- confirmed by disassembling the actual class in each jar, absent at 1.20 and present from
+1.20.4 on. This project compiles against 1.20.4, so calling either would have compiled cleanly
+and thrown `NoSuchMethodError` on a 1.20 or 1.20.1 server, invisible until one ran it. It costs
+nothing to skip: the plugin rewrites the dial sign every time anyone clicks it, so a waxed dial
+sign could never have worked as a dial sign in the first place.
+
+Everything else the conversion touches was checked across the same range and is identical at
+both ends: `getSide`, `Side.BACK`, `SignSide.setGlowingText`, and `Directional`.
+
+### Signs are coloured now, and say which destination is selected
+
+Both signs the plugin writes were plain white text. On a gate's name sign that was merely
+plain; on a dial sign it was a real usability problem, because the destination you are about
+to dial looked identical to the two either side of it. `>Name<` was the only thing
+distinguishing the one a click would actually use.
+
+The selected destination is now coloured against dimmed neighbours, and the gate's own name
+is coloured on both signs. Glowing text was on by default here, on the reasoning that gate
+rooms are dark and underground; in-game testing said otherwise and it now ships off, along
+with softer colours -- see "The sign colours were too loud" above for what the defaults
+actually are and why they changed.
+
+Colours are named in config.yml rather than written as raw section-sign codes, following what
+`Sounds` already established: a name is something an admin can read back and check, and a name
+nobody recognises falls back to the default instead of putting a stray control character on a
+sign, where there is nothing to be done about it short of breaking the gate. `MAGIC` and the
+other non-colour formatting codes are refused for the same reason -- `ChatColor.valueOf` will
+happily return one, and a destination rendered in MAGIC cannot be read at all.
+
+The selected destination also keeps a pair of markers around it, now `»`/`«` rather than
+`>`/`<`. Colour carries the distinction for most people; the markers are what carry it for a
+colourblind player, or on a server that has turned the colours off.
+
+One thing had to be fixed to make any of this safe. Detection reads line 0 of the dial sign as
+the gate's name, and the plugin writes that same line itself once the gate is running -- so a
+gate re-detected after being styled would have taken the colour codes into its own name, giving
+it invisible characters in a name that has to be typed to dial it. Line 0 is now stripped of
+formatting when it is read back.
+
+### `SIGN_MATERIAL` never applied to the dial sign, whatever the README said
+
+Noticed while doing the above. The README's shape-key table said `SIGN_MATERIAL=` was "the
+wall-sign type used for the gate name sign and the dial sign". Only the first half is true:
+`getEffectiveSignMaterial()` has exactly one caller, and it places the name sign. The dial sign
+is put up by a player on the `[D]` block and detection accepts whatever wall sign is there.
+The comment in the shipped `config.yml` had it right all along; only the README was wrong.
+
+### A rider arrives facing where the cart is going
+
+Also from in-game testing: riding a minecart through a gate left the traveller looking
+whichever way they had been looking on the way in, rather than along the track they came out
+on.
+
+The arrival location has carried a yaw worked out from the exit velocity all along, but it was
+only ever applied to the vehicle. A passenger's view is theirs and not the seat's -- teleporting
+a cart does not turn the person in it, and neither does re-seating them.
+
+What made this easy to miss is that the code looked as though it handled it. The reattachment
+failure path teleports the passenger to the arrival location, yaw and all. So the view came out
+right exactly when `addPassenger` had failed, and wrong the rest of the time. Riders are now
+turned before being re-seated, on the path that actually runs, for boats as well as minecarts
+since both reattach the same way.
+
+### A gate's owner no longer turns into a UUID
+
+Reported after refreshing a gate: the name sign came back showing the owner's UUID instead of
+their name. Refresh was where it showed, and not where it happened.
+
+`Stargate.getGateOwnerName()` falls back to the raw owner id when no display name has been
+resolved, which is right for display -- an id beats showing nothing. The bug was that saving
+used that same getter. A gate whose owner the server had not seen yet wrote its UUID into the
+file's `OwnerName` field, and the next load then saw a non-empty name, took it for a real one,
+and never ran the resolve-from-UUID path again. The id was the name from then on.
+
+The sign made it look like refresh's doing. Signs are world state: the one on the gate had
+been showing a correct name written back when the gate was built, while the field behind it
+had been empty on every load since. Refresh rewrites the sign, so it was the first thing to
+show what was actually stored.
+
+Saving now writes the *stored* name and never the fallback, and loading treats a name equal to
+the owner id as no name at all -- which is what heals the files already written that way,
+rather than only stopping new ones. `refresh` copies the stored name too, for the same reason:
+it was reading the fallback and writing it onto the gate it rebuilt, moments before saving.
+
+The decision is two small functions, `ownerNameToSave` and `ownerNameFromSave`, so it could be
+tested without a running server -- nothing in this suite can call `Bukkit.getOfflinePlayer`.
+Worth knowing while reading them: a legacy gate whose owner genuinely *is* a player name trips
+the "name equals owner" rule and is read as having no name. That is correct and needs no
+special case -- the caller then fails to parse the owner as a UUID and sets the owner string as
+the name, which for those gates is the right answer.
+
 ### The DHD takes redstone from any component now, not only from dust
 
 Reported from in-game testing of the change above. Running dust to the block above the
