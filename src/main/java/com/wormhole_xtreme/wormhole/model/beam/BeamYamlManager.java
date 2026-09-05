@@ -253,7 +253,7 @@ public final class BeamYamlManager
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(level, false, message);
+                WormholeXTreme.getThisPlugin().prettyLog(level, message);
                 return;
             }
         }

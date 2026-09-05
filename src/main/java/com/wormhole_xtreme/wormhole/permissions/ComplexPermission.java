@@ -147,12 +147,12 @@ enum ComplexPermission
             }
             if (allowed)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player: " + player.getName() + "\" granted complex \"" + toString() + "\" permission" + (networkName != null
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player: " + player.getName() + "\" granted complex \"" + toString() + "\" permission" + (networkName != null
                     ? " on network \"" + networkName + "\""
                     : "") + ".");
                 return true;
             }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Player: " + player.getName() + "\" denied complex \"" + toString() + "\" permission" + (networkName != null
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player: " + player.getName() + "\" denied complex \"" + toString() + "\" permission" + (networkName != null
                 ? " on network \"" + networkName + "\""
                 : "") + ".");
         }

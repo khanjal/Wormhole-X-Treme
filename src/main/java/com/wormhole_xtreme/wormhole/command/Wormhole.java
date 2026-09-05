@@ -58,7 +58,7 @@ public class Wormhole implements CommandExecutor
         }
         catch (final Throwable t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Error executing /wormhole command: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole command: " + t.getMessage());
             if (CommandUtilities.playerCheck(sender))
             {
                 ((Player) sender).sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");

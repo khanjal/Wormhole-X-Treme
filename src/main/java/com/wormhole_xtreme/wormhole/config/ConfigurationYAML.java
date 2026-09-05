@@ -104,7 +104,7 @@ public class ConfigurationYAML
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to read config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml: " + e.getMessage());
         }
     }
 
@@ -222,13 +222,13 @@ public class ConfigurationYAML
             {
                 names.add(g.getName() + "=" + g.getStructureMaterial());
             }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
             return true;
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to add discovered material groups to config.yml: " + e.getMessage());
             return false;
         }
@@ -267,12 +267,12 @@ public class ConfigurationYAML
             }
             final List<String> names = new java.util.ArrayList<>();
             for (final Setting s : missing) { names.add(s.getName().name()); }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "config.yml was missing " + missing.size() + " key(s); added defaults: " + names.toString());
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to append missing config keys: " + e.getMessage());
         }
     }
@@ -307,7 +307,7 @@ public class ConfigurationYAML
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
         }
     }
 
@@ -450,7 +450,7 @@ public class ConfigurationYAML
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
         }
     }
 

@@ -79,7 +79,7 @@ public class Stargate3DShape extends StargateShape
             if (line.contains("Name="))
             {
                 setShapeName(line.split("=")[1]);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Begin parsing shape: \"" + getShapeName() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Begin parsing shape: \"" + getShapeName() + "\"");
             }
             else if (line.equals("GateShape="))
             {
@@ -109,12 +109,12 @@ public class Stargate3DShape extends StargateShape
                 // At this point we should know the height and width
                 if ((height <= 0) || (width <= 0))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
                     throw new IllegalArgumentException("Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
                 }
                 else
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Shape: \"" + getShapeName() + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Shape: \"" + getShapeName() + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
                 }
             }
             else if (line.startsWith("Layer"))
@@ -128,7 +128,7 @@ public class Stargate3DShape extends StargateShape
                 int line_index = 0;
                 while (fileLines[i].startsWith("[") || fileLines[i].startsWith("#"))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Layer=" + layer + " i=" + i + " line_index=" + line_index + " Line=" + fileLines[i]);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " line_index=" + line_index + " Line=" + fileLines[i]);
                     layerLines[line_index] = fileLines[i];
                     i++;
 
@@ -217,11 +217,11 @@ public class Stargate3DShape extends StargateShape
 
         if (getShapeEnterPosition().length != 3)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Shape: \"" + getShapeName() + "\" does not have an enterance/exit point for players to teleport in. This will cause errors.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Shape: \"" + getShapeName() + "\" does not have an enterance/exit point for players to teleport in. This will cause errors.");
             throw new IllegalArgumentException("Shape: \"" + getShapeName() + "\" does not have an enterance point for players to teleport in. This will cause errors.");
         }
 
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Finished parsing shape: \"" + getShapeName() + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Finished parsing shape: \"" + getShapeName() + "\"");
     }
 
     /**

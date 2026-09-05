@@ -72,7 +72,7 @@ final class GateInteractionHandler
                     direction = ((org.bukkit.block.data.Directional) clickedBlock.getBlockData()).getFacing();
                 }
 
-                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "+/wormhole complete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
+                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "+/wormhole complete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
 
                 com.wormhole_xtreme.wormhole.model.Stargate found = null;
                 try
@@ -98,7 +98,7 @@ final class GateInteractionHandler
                             catch (final RuntimeException e)
                             {
                                 // A throw here means a malformed shape, not a normal miss.
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                                     "Shape detection failed for face " + face + ": " + e.getMessage());
                             }
                         }
@@ -106,7 +106,7 @@ final class GateInteractionHandler
                 }
                 catch (final RuntimeException t)
                 {
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete interactive detection error: " + t.getMessage());
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "/wormhole complete interactive detection error: " + t.getMessage());
                 }
 
                 if (found != null)
@@ -140,7 +140,7 @@ final class GateInteractionHandler
                     // Diagnostic: iterate shapes and facings to report why detection failed
                     try
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: running detailed detection diagnostics for player=" + player.getName());
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: running detailed detection diagnostics for player=" + player.getName());
                         final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
                         for (final org.bukkit.block.BlockFace face : faces)
                         {
@@ -149,11 +149,11 @@ final class GateInteractionHandler
                                 final org.bukkit.block.BlockFace opposite = com.wormhole_xtreme.wormhole.utils.WorldUtils.getInverseDirection(face);
                                 final org.bukkit.block.Block holding = clickedBlock.getRelative(opposite);
                                 final org.bukkit.block.Block below = holding.getRelative(org.bukkit.block.BlockFace.DOWN);
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
+                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
                             }
                             catch (final RuntimeException ignore) {}
                         }
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "+/wormhole complete diag: end diagnostics");
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: end diagnostics");
                     }
                     // Diagnostics only: a failure here costs a log line, nothing more.
                     catch (final RuntimeException ignore) {}
@@ -165,7 +165,7 @@ final class GateInteractionHandler
         {
             // This block completes a gate the player asked for, charges them, and messages
             // them. Failing silently would leave them staring at an unbuilt gate.
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Interactive /wormhole complete failed for " + player.getName() + ": " + e.getMessage());
         }
 
@@ -234,7 +234,7 @@ final class GateInteractionHandler
             com.wormhole_xtreme.wormhole.model.StargateDBManager.saveStargate(fresh);
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                 + "Gate '" + oldName + "' refreshed successfully.");
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Gate '" + oldName + "' refreshed by " + player.getName()
                 + " facing=" + (detectedFacing != null ? detectedFacing.toString() : "null")
                 + " tpLoc=" + (fresh.getGatePlayerTeleportLocation() != null ? fresh.getGatePlayerTeleportLocation().toString() : "null"));
@@ -305,7 +305,7 @@ final class GateInteractionHandler
             }
             else
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, false, "Attempting to find any gate shapes!");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
                 newGate = StargateHelper.checkStargate(clickedBlock, direction);
             }
 
@@ -359,7 +359,7 @@ final class GateInteractionHandler
 
                 if (!foundNearby)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
                 }
             }
         }
@@ -472,7 +472,7 @@ final class GateInteractionHandler
                 else
                 {
                     final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, msg);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, msg);
                     player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                     return false;
                 }
@@ -505,7 +505,7 @@ final class GateInteractionHandler
 
         if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
             if (buttonLeverHit(player, clickedBlock, null))
             {
                 return true;
@@ -676,7 +676,7 @@ final class GateInteractionHandler
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Permission denied on nearby/gate-detection: player='" + player.getName()
                 + "' nearbyBlock='" + candidate.getLocation().toString() + "'");
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());

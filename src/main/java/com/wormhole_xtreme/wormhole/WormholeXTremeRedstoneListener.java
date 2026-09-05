@@ -213,7 +213,7 @@ class WormholeXTremeRedstoneListener implements Listener
                     final long now = System.currentTimeMillis();
                     if (isRepeatTrigger(lastTrigger.get(gateKey), now, TRIGGER_WINDOW_MS))
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                             "Ignoring repeat redstone trigger on gate " + gateKey
                                 + " within " + TRIGGER_WINDOW_MS + "ms of the last one.");
                         return;
@@ -240,7 +240,7 @@ class WormholeXTremeRedstoneListener implements Listener
                         }
                         else
                         {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                                 "Redstone trigger on already-open gate " + stargate.getGateName() + "; leaving it open.");
                         }
                     }

@@ -144,16 +144,16 @@ public class StargateYamlManager
             {
                 if (WormholeXTreme.getThisPlugin() != null)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to load gate from " + f.getName() + ": " + e.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to load gate from " + f.getName() + ": " + e.getMessage());
                 }
             }
         }
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, loaded + " Wormholes loaded from YAML directory: " + GATES_DIR.getAbsolutePath());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, loaded + " Wormholes loaded from YAML directory: " + GATES_DIR.getAbsolutePath());
             if (movedExits > 0)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, movedExits + " gates had their arrival point moved out of the portal. Travellers were appearing inside the ring on those.");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, movedExits + " gates had their arrival point moved out of the portal. Travellers were appearing inside the ring on those.");
             }
         }
     }
@@ -215,7 +215,7 @@ public class StargateYamlManager
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to write YAML gate file " + outFile.getName() + ": " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to write YAML gate file " + outFile.getName() + ": " + e.getMessage());
             }
         }
         // FINE rather than INFO: this fires once per gate, and onDisable() calls it for
@@ -225,7 +225,7 @@ public class StargateYamlManager
         // above stays at INFO because "N loaded" is one line regardless of gate count.
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "Saved gate to YAML: " + outFile.getAbsolutePath());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Saved gate to YAML: " + outFile.getAbsolutePath());
         }
     }
 
@@ -272,7 +272,7 @@ public class StargateYamlManager
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to read Owner from YAML for " + gateName + ": " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to read Owner from YAML for " + gateName + ": " + e.getMessage());
             }
         }
         return null;

@@ -75,11 +75,13 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
 ### Logging
 Use the plugin's own logger, not `System.out`:
 ```java
-WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "message");
-WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "message");
-WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, "verbose/debug message");
+WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "message");
+WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "message");
+WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "verbose/debug message");
 ```
 `Level.FINE` is for verbose diagnostics (only visible when debug logging is enabled). `Level.INFO` for normal operational events. `Level.WARNING` for unexpected conditions.
+
+There is a three-argument overload, `prettyLog(Level, boolean, String)`, whose boolean puts the plugin version in the tag. It is for lifecycle lines only — the nine callers are all in `WormholeXTreme` itself. **Do not call it with `false`**; that is the two-argument form written the long way, and `PrettyLogTest` fails on it.
 
 ### Bukkit Scheduler
 ```java

@@ -830,6 +830,42 @@ directory. `getGatesDir()` resolves through `JavaPlugin.getDataFolder()`, which 
 cannot be stubbed, and the only other way to redirect it is reflecting into a private Bukkit
 field -- someone else's implementation detail, and not something a test should depend on.
 
+### 263 log calls no longer carry a boolean that means nothing
+
+`prettyLog(Level, boolean, String)` was the only way to log. The boolean decides whether the
+plugin version goes in the tag, which is wanted on a startup banner and essentially nowhere
+else -- so 263 of the 273 calls in the plugin passed a literal `false`:
+
+```java
+WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to load gate...");
+```
+
+At a call site that `false` says nothing. It has no name attached to it, it sits directly
+beside the argument that actually matters, and after the three-hundredth one everybody reads
+straight past both. There is now a two-argument `prettyLog(Level, String)`, and the nine calls
+that really do want the version -- all of them lifecycle lines in `WormholeXTreme` itself --
+keep the longer form, where the `true` now reads as the deliberate choice it always was.
+
+The version lookup moved inside the branch that uses it. It had been read on every line logged
+and thrown away on 263 of them.
+
+The rewrite was mechanical, which is exactly how it went wrong: the script that dropped
+`false` from 267 call sites also found the one inside the new overload and dropped it there,
+turning the delegation into `prettyLog(severity, message)` calling itself. Infinite recursion
+on the first line the plugin would ever have logged.
+
+Nothing caught it. It compiled, and all 660 tests passed, because every test mocks
+`WormholeXTreme` and a mocked method has no body to recurse in -- the fault was invisible to
+the entire suite and would have surfaced as a `StackOverflowError` at startup on a real
+server. It was found by reading the generated diff rather than by any check.
+
+So there is a test for it now. `PrettyLogTest` calls the real two-argument body on a mock so
+the delegation actually runs, and it fails with `StackOverflowError` against the broken
+version -- verified by putting the bug back. A second test pins the tag shapes through a new
+`prettyTag(name, version)` seam, since `JavaPlugin`'s name and version accessors are `final`
+and cannot be stubbed. A third reads the sources and fails if any call passes `false` again,
+allowing exactly one: the delegation itself.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally

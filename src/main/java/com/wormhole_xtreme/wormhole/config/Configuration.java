@@ -49,11 +49,11 @@ public class Configuration
             try
             {
                 ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false, "Created default config.yml at: " + yamlFile.getPath());
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
             }
             catch (final Throwable t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Failed to write default config.yml: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml: " + t.getMessage());
             }
         }
     }
@@ -74,7 +74,7 @@ public class Configuration
             }
             catch (final Exception e)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to create new file: " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create new file: " + e.getMessage());
             }
             final BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(options, StandardCharsets.UTF_8));
 
@@ -96,7 +96,7 @@ public class Configuration
         }
         catch (final Exception exception)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Failed to write configuration file: " + exception.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write configuration file: " + exception.getMessage());
         }
     }
 
@@ -112,7 +112,7 @@ public class Configuration
         }
         catch (final Throwable t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Failed to persist config.yml: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to persist config.yml: " + t.getMessage());
         }
     }
 

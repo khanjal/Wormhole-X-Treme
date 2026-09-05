@@ -35,23 +35,23 @@ public final class EconomySupport
             if (rsp != null)
             {
                 economy = rsp.getProvider();
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                     "Attached to Vault economy provider: " + economy.getClass().getSimpleName());
             }
             else
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                     "Economy enabled in config but no Vault economy provider found. Economy features disabled.");
             }
         }
         catch (final ClassNotFoundException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Vault not found. Economy features disabled.");
         }
         catch (final Throwable t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to attach to Vault economy: " + t.getMessage());
         }
     }
@@ -106,7 +106,7 @@ public final class EconomySupport
         }
         catch (final Throwable t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Economy charge failed for " + player.getName() + ": " + t.getMessage());
             return false;
         }

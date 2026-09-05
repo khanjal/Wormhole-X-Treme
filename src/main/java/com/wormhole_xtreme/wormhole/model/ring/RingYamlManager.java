@@ -595,7 +595,7 @@ public final class RingYamlManager
     {
         if (WormholeXTreme.getThisPlugin() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(level, false, message);
+            WormholeXTreme.getThisPlugin().prettyLog(level, message);
         }
     }
 }

@@ -34,7 +34,7 @@ public final class CommandHandlerUtils
         }
         else
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, stargate.getGateName() + " has no valid shape file. Unable to enable custom.");
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, stargate.getGateName() + " has no valid shape file. Unable to enable custom.");
         }
     }
 

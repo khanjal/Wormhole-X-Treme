@@ -143,7 +143,7 @@ public class StargateShapeLayer
                         }
 
                         getLayerLightPositions().get(light_iteration).add(point);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Light Material Position (Order:" + light_iteration + " Position:" + Arrays.toString(point) + ")");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Light Material Position (Order:" + light_iteration + " Position:" + Arrays.toString(point) + ")");
                     }
                     else if (mod.contains("W") || mod.contains("w"))
                     {
@@ -161,25 +161,25 @@ public class StargateShapeLayer
                         }
 
                         getLayerWooshPositions().get(w_iteration).add(point);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Woosh Position (Order:" + w_iteration + " Position:" + Arrays.toString(point) + ")");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Woosh Position (Order:" + w_iteration + " Position:" + Arrays.toString(point) + ")");
                     }
                 }
                 j++;
             }
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Sign Position: \"" + Arrays.toString(getLayerNameSignPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Player Exit Position: \"" + Arrays.toString(getLayerPlayerExitPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Minecart Exit Position: \"" + Arrays.toString(getLayerMinecartExitPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Activation Position: \"" + Arrays.toString(getLayerActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Iris Activation Position: \"" + Arrays.toString(getLayerIrisActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Dial Sign Position: \"" + Arrays.toString(getLayerDialSignPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Redstone Dial Activation Position: \"" + Arrays.toString(getLayerRedstoneDialActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Redstone Sign Activation Position: \"" + Arrays.toString(getLayerRedstoneSignActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Redstone Gate Activated Position: \"" + Arrays.toString(getLayerRedstoneGateActivatedPosition()) + "\"");
-        //WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Portal Positions: \"" + Arrays.deepToString((int[][])this.waterPositions) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Sign Position: \"" + Arrays.toString(getLayerNameSignPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Player Exit Position: \"" + Arrays.toString(getLayerPlayerExitPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Minecart Exit Position: \"" + Arrays.toString(getLayerMinecartExitPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Activation Position: \"" + Arrays.toString(getLayerActivationPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Iris Activation Position: \"" + Arrays.toString(getLayerIrisActivationPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Dial Sign Position: \"" + Arrays.toString(getLayerDialSignPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Dial Activation Position: \"" + Arrays.toString(getLayerRedstoneDialActivationPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Sign Activation Position: \"" + Arrays.toString(getLayerRedstoneSignActivationPosition()) + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Gate Activated Position: \"" + Arrays.toString(getLayerRedstoneGateActivatedPosition()) + "\"");
+        //WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Portal Positions: \"" + Arrays.deepToString((int[][])this.waterPositions) + "\"");
 
-        // WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Light Material Positions: \"" + lightPositions.toString() + "\"");
-        //WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Stargate Material Positions: \"" + Arrays.deepToString((int[][])this.stargatePositions) + "\"");
+        // WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Light Material Positions: \"" + lightPositions.toString() + "\"");
+        //WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Material Positions: \"" + Arrays.deepToString((int[][])this.stargatePositions) + "\"");
     }
 
     /**

@@ -72,12 +72,12 @@ class StargateDialManager
             synchronized (gate.getGateNetwork().getNetworkGateLock())
             {
                 final java.util.List<Stargate> netList = gate.getGateNetwork().getNetworkGateList();
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false,
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO,
                     "SignDial: gate=" + gate.getGateName() + " network=" + gate.getGateNetwork().getNetworkName()
                     + " networkSize=" + netList.size());
                 for (final Stargate s : netList)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO,
                         "SignDial:   peer=" + s.getGateName() + " signPowered=" + s.isGateSignPowered());
                     if (!s.getGateName().equals(gate.getGateName()))
                     {
@@ -90,13 +90,13 @@ class StargateDialManager
         {
             // No named network — public pool: all other gates that also have no network.
             final java.util.ArrayList<Stargate> allGates = StargateManager.getAllGates();
-            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
                 "SignDial: gate=" + gate.getGateName() + " network=none(public) allGatesSize=" + allGates.size());
             for (final Stargate s : allGates)
             {
                 if (s.getGateNetwork() == null && !s.getGateName().equals(gate.getGateName()))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
                         "SignDial:   peer=" + s.getGateName() + " signPowered=" + s.isGateSignPowered());
                     others.add(s);
                 }
@@ -359,7 +359,7 @@ class StargateDialManager
 
         if (delay == CLOSE_NOW)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" is at its maximum open time; not extending.");
             return false;
         }
@@ -377,7 +377,7 @@ class StargateDialManager
         gate.setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), delay));
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
             "Wormhole \"" + gate.getGateName() + "\" open time extended by " + delay + " ticks.");
         return true;
     }
@@ -411,7 +411,7 @@ class StargateDialManager
             gate.remainingOpenMillis(ConfigManager.getMaxOpenSeconds()));
         if (timeout == CLOSE_NOW)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" reached its maximum open time; closing.");
             gate.shutdownStargate(true);
             return;
@@ -422,12 +422,12 @@ class StargateDialManager
             gate.setGateShutdownTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
                 WormholeXTreme.getThisPlugin(),
                 new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), timeout));
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Wormhole \"" + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" created.");
             if (gate.getGateShutdownTaskId() == -1)
             {
                 gate.shutdownStargate(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
                     "Failed to schdule wormhole shutdown timeout: " + timeout
                     + " Received task id of -1. Wormhole forced closed NOW.");
             }
@@ -454,7 +454,7 @@ class StargateDialManager
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "No wormhole. No visual events.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "No wormhole. No visual events.");
         }
     }
 
@@ -480,7 +480,7 @@ class StargateDialManager
         // Prevent dialing a target that currently has an active iris (standard protection)
         if ((target != null) && target.isGateIrisActive() && !force)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Dial prevented: target '" + target.getGateName() + "' iris active.");
             return false;
         }
@@ -491,13 +491,13 @@ class StargateDialManager
         {
             if (target.isGateActive())
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Dial prevented: target '" + target.getGateName() + "' already active.");
                 return false;
             }
             if (target.getGateTarget() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Dial prevented: target '" + target.getGateName() + "' already has a target.");
                 return false;
             }
@@ -508,7 +508,7 @@ class StargateDialManager
                 {
                     if ((s != null) && (s != gate) && (s.getGateTarget() != null) && (s.getGateTarget() == target) && s.isGateActive())
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                             "Dial prevented: target '" + target.getGateName() + "' is already targeted by '" + s.getGateName() + "'.");
                         return false;
                     }
@@ -527,7 +527,7 @@ class StargateDialManager
             // If local activation failed, abort and leave state clean.
             if (!gate.isGateActive())
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                     "Dial aborted: local activation failed for gate '" + gate.getGateName() + "'.");
                 return false;
             }
@@ -549,7 +549,7 @@ class StargateDialManager
                 {
                     final Location destLoc = target.getGatePlayerTeleportLocation();
                     WorldUtils.forceLoadDestinationChunks(destLoc);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                         "Pre-loaded destination chunks for gate: " + target.getGateName());
                 }
                 catch (final Throwable ignore) {}
@@ -558,13 +558,13 @@ class StargateDialManager
             else if (gate.isGateActive() && !target.isGateActive())
             {
                 gate.shutdownStargate(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                     "Far wormhole failed to open. Closing local wormhole for safety sake.");
             }
             else if (!gate.isGateActive() && target.isGateActive())
             {
                 target.shutdownStargate(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                     "Local wormhole failed to open. Closing far end wormhole for safety sake.");
             }
         }

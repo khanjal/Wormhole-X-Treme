@@ -108,7 +108,7 @@ public class WormholeXTremePlayerListenerMountTest
 
         // Track teleport and addPassenger invocations and simulate successful addPassenger
         final java.util.concurrent.atomic.AtomicInteger teleports = new java.util.concurrent.atomic.AtomicInteger(0);
-        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "[TEST-DEBUG] mount.teleport called"); return null; }).when(mount).teleport(any(Location.class));
+        doAnswer(inv -> { teleports.incrementAndGet(); WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "[TEST-DEBUG] mount.teleport called"); return null; }).when(mount).teleport(any(Location.class));
         final java.util.concurrent.atomic.AtomicInteger adds = new java.util.concurrent.atomic.AtomicInteger(0);
         doAnswer(inv -> { adds.incrementAndGet(); return true; }).when(mount).addPassenger(any());
 
@@ -134,7 +134,7 @@ public class WormholeXTremePlayerListenerMountTest
         listener.onPlayerMove(ev2);
 
         // Assert: mount was teleported and both riders were reattached
-        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false, "[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
+        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "[TEST-DEBUG] teleports=" + teleports.get() + " adds=" + adds.get());
         // JUnit assertions rather than the `assert` keyword, which only evaluates when the
         // JVM runs with -ea and would otherwise let this test pass without checking anything.
         org.junit.jupiter.api.Assertions.assertTrue(teleports.get() > 0, "the mount should have been teleported");

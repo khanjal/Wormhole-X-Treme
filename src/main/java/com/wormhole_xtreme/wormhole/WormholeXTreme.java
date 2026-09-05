@@ -149,7 +149,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 final Class<?> type = Class.forName(candidate);
                 pm.registerEvents((org.bukkit.event.Listener) type.getDeclaredConstructor().newInstance(), plugin);
-                plugin.prettyLog(Level.FINE, false, "Dismount handling registered via " + candidate);
+                plugin.prettyLog(Level.FINE, "Dismount handling registered via " + candidate);
                 return;
             }
             catch (final NoClassDefFoundError notOnThisServer)
@@ -158,11 +158,11 @@ public class WormholeXTreme extends JavaPlugin
             }
             catch (final ReflectiveOperationException | RuntimeException e)
             {
-                plugin.prettyLog(Level.FINE, false,
+                plugin.prettyLog(Level.FINE,
                     "Could not register " + candidate + ": " + e.getMessage());
             }
         }
-        plugin.prettyLog(Level.WARNING, false,
+        plugin.prettyLog(Level.WARNING,
             "No dismount event found on this server; riders will be able to dismount inside an open gate.");
     }
 
@@ -188,7 +188,7 @@ public class WormholeXTreme extends JavaPlugin
     private static void setPrettyLogLevel(final Level level)
     {
         getLog().setLevel(level);
-        getThisPlugin().prettyLog(Level.CONFIG, false, "Logging set to: " + level);
+        getThisPlugin().prettyLog(Level.CONFIG, "Logging set to: " + level);
     }
 
     /**
@@ -240,7 +240,7 @@ public class WormholeXTreme extends JavaPlugin
                 }
                 if (!gates.isEmpty())
                 {
-                    prettyLog(Level.INFO, false, "Saved " + gates.size() + " gate"
+                    prettyLog(Level.INFO, "Saved " + gates.size() + " gate"
                         + (gates.size() == 1 ? "" : "s") + " to disk.");
                 }
 
@@ -257,7 +257,7 @@ public class WormholeXTreme extends JavaPlugin
                 }
                 catch (final Exception e)
                 {
-                    prettyLog(Level.WARNING, false, "Failed to save transport rings: " + e.getMessage());
+                    prettyLog(Level.WARNING, "Failed to save transport rings: " + e.getMessage());
                 }
 
                 try
@@ -266,7 +266,7 @@ public class WormholeXTreme extends JavaPlugin
                 }
                 catch (final Exception e)
                 {
-                    prettyLog(Level.WARNING, false, "Failed to save beam destinations: " + e.getMessage());
+                    prettyLog(Level.WARNING, "Failed to save beam destinations: " + e.getMessage());
                 }
 
                 StargateDBManager.shutdown();
@@ -278,13 +278,13 @@ public class WormholeXTreme extends JavaPlugin
                 {
                     // EconomySupport class may be absent in some deployments; do not let that
                     // prevent the plugin from completing shutdown.
-                    prettyLog(Level.FINE, false, "Economy support unavailable during shutdown: " + t.getMessage());
+                    prettyLog(Level.FINE, "Economy support unavailable during shutdown: " + t.getMessage());
                 }
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
             catch (final Exception e)
             {
-                    prettyLog(Level.SEVERE, false, "Caught exception while shutting down: " + e.getMessage());
+                    prettyLog(Level.SEVERE, "Caught exception while shutting down: " + e.getMessage());
             }
     }
 
@@ -324,13 +324,13 @@ public class WormholeXTreme extends JavaPlugin
                 try {
                     EconomySupport.enableEconomy();
                 } catch (final Throwable t) {
-                    prettyLog(Level.WARNING, false, "Failed to enable economy support: " + t.getMessage());
+                    prettyLog(Level.WARNING, "Failed to enable economy support: " + t.getMessage());
                 }
             }
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, false, "Caught Exception while trying to load support plugins." + e.getMessage());
+            prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins." + e.getMessage());
         }
         registerEvents(true);
         // Load stargates.
@@ -341,7 +341,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, false, "Failed to load stored gates: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load stored gates: " + e.getMessage());
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         // Rings load after gates so that a ring overlapping gate blocks is refused against
@@ -357,7 +357,7 @@ public class WormholeXTreme extends JavaPlugin
         // A ring subsystem that cannot load must not stop the gates from working.
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, false, "Failed to load transport rings: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load transport rings: " + e.getMessage());
         }
         // A beam subsystem that cannot load must not stop gates or rings from working.
         try
@@ -368,7 +368,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, false, "Failed to load beam destinations: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load beam destinations: " + e.getMessage());
         }
         registerEvents(false);
         registerCommands();
@@ -475,20 +475,65 @@ public class WormholeXTreme extends JavaPlugin
         catch (final RuntimeException ignore) {}
     }
 
+    /**
+     * Logs a line tagged with the plugin name.
+     *
+     * <p>This is the form to use. The three-argument overload below puts the plugin version in
+     * the tag as well, which belongs on a startup banner and almost nowhere else -- so 263 of
+     * the 273 calls in this plugin passed a bare {@code false} to say "not that one". A boolean
+     * literal with no name attached tells a reader nothing, and having it on almost every call
+     * taught everyone to skim past the argument sitting next to it.
+     *
+     * @param severity
+     *            the level to log at
+     * @param message
+     *            the line to log, without the plugin tag
+     */
+    public void prettyLog(final Level severity, final String message)
+    {
+        prettyLog(severity, false, message);
+    }
+
+    /**
+     * Logs a line tagged with the plugin name, and with its version when asked.
+     *
+     * <p>Prefer {@link #prettyLog(Level, String)}. Reach for this one only where the version is
+     * genuinely part of the message -- the startup banner, or a line someone will paste into a
+     * bug report. The nine callers left in this class are all lifecycle lines.
+     *
+     * @param severity
+     *            the level to log at
+     * @param version
+     *            whether to put the plugin version in the tag
+     * @param message
+     *            the line to log, without the plugin tag
+     */
     public void prettyLog(final Level severity, final boolean version, final String message)
     {
-        final String prettyName = ("[" + getThisPlugin().getName() + "]");
-        final String prettyVersion = ("[v" + getThisPlugin().getDescription().getVersion() + "]");
-        String prettyLogLine = prettyName;
-        if (version)
-        {
-            prettyLogLine += prettyVersion;
-            getLog().log(severity, prettyLogLine + " " + message);
-        }
-        else
-        {
-            getLog().log(severity, prettyLogLine + " " + message);
-        }
+        // The version is looked up only in the branch that wants it. It used to be read on
+        // every line logged and discarded on almost all of them.
+        final String pluginVersion = version ? getThisPlugin().getDescription().getVersion() : null;
+        getLog().log(severity, prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+    }
+
+    /**
+     * The bracketed prefix every logged line carries.
+     *
+     * <p>Its own method, taking plain strings, because the alternative for testing it is a live
+     * server: the name and version come off {@code JavaPlugin}, whose accessors are
+     * {@code final} and so cannot be stubbed. Pulled out when the version lookup moved into the
+     * branch that uses it, so that change had something to be checked by.
+     *
+     * @param pluginName
+     *            the plugin's name
+     * @param pluginVersion
+     *            the version to include, or null to leave it out
+     * @return the prefix, without the trailing space that separates it from the message
+     */
+    static String prettyTag(final String pluginName, final String pluginVersion)
+    {
+        final String named = "[" + pluginName + "]";
+        return pluginVersion == null ? named : named + "[v" + pluginVersion + "]";
     }
 
 }

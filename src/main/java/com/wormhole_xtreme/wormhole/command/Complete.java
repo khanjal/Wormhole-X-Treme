@@ -120,7 +120,7 @@ public class Complete implements CommandExecutor, TabCompleter
                         else
                         {
                             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
-                            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "/wormhole complete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
+                            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "/wormhole complete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
                         }
                     }
                     else
@@ -176,7 +176,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 }
                 catch (final Exception e)
                 {
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, false, "Error executing /wormhole complete: " + e.getMessage());
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wormhole complete: " + e.getMessage());
                     final Player player = (Player) sender;
                     player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
                     return true;

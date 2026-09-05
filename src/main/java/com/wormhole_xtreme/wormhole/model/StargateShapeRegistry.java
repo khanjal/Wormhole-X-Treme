@@ -93,20 +93,20 @@ public final class StargateShapeRegistry
                 final File moved = new File(directory, shape.getName());
                 if (moved.exists())
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                         "Ignoring " + legacy + File.separator + shape.getName()
                         + ": a shape of that name is already in use.");
                     continue;
                 }
                 if (shape.renameTo(moved))
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                         "Moved gate shape " + shape.getName() + " out of " + legacy
                         + File.separator + "; shapes are read from one folder now.");
                 }
                 else
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                         "Could not move gate shape " + shape.getName() + " out of " + legacy
                         + File.separator + "; it will not be loaded until it is moved by hand.");
                 }
@@ -132,12 +132,12 @@ public final class StargateShapeRegistry
             }
             catch (final SecurityException e)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
                     "Not allowed to create " + directory.getPath() + ": " + e.getMessage());
             }
             if (!created && !directory.isDirectory())
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false,
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
                     "Could not create " + directory.getPath() + "; no gate shapes will be loaded.");
                 return;
             }
@@ -171,7 +171,7 @@ public final class StargateShapeRegistry
                 {
                     if (is == null)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Default shape resource not found in JAR: " + shape);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Default shape resource not found in JAR: " + shape);
                         continue;
                     }
                     try (final BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
@@ -183,11 +183,11 @@ public final class StargateShapeRegistry
                             bw.write("\n");
                         }
                     }
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Restored default shape: " + shape);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Restored default shape: " + shape);
                 }
                 catch (final IOException e)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to create default shape file: " + e.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create default shape file: " + e.getMessage());
                 }
             }
         }
@@ -197,7 +197,7 @@ public final class StargateShapeRegistry
         {
             if (fi.getName().contains(".shape"))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Loading shape file: \"" + fi.getName() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Loading shape file: \"" + fi.getName() + "\"");
                 BufferedReader bufferedReader = null;
                 try
                 {
@@ -213,7 +213,7 @@ public final class StargateShapeRegistry
 
                     if (getStargateShapes().containsKey(shape.getShapeName()))
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "Shape File: " + fi.getName() + " contains shape name: " + shape.getShapeName() + " which already exists. This shape will be unavailable.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Shape File: " + fi.getName() + " contains shape name: " + shape.getShapeName() + " which already exists. This shape will be unavailable.");
                     }
                     else
                     {
@@ -222,11 +222,11 @@ public final class StargateShapeRegistry
                 }
                 catch (final FileNotFoundException e)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to read shape file: " + e.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());
                 }
                 catch (final IOException e)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, false, "Unable to read shape file: " + e.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());
                 }
                 finally
                 {
@@ -239,10 +239,10 @@ public final class StargateShapeRegistry
                     }
                     catch (final IOException e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, false, e.getMessage());
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, e.getMessage());
                     }
                 }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, false, "Completed loading shape file: \"" + fi.getName() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Completed loading shape file: \"" + fi.getName() + "\"");
             }
         }
 
@@ -338,7 +338,7 @@ public final class StargateShapeRegistry
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Unable to read " + fileName + ": " + e.getMessage());
             return null;
         }
@@ -387,7 +387,7 @@ public final class StargateShapeRegistry
             {
                 names.add(g.getName() + "=" + g.getStructureMaterial());
             }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false,
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Gate shapes imply material groups not in config.yml: " + names
                 + ". Auto-discovery is off, so they were not added; those shapes keep their own materials.");
             return;

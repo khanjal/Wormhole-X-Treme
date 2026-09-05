@@ -33,7 +33,7 @@ public class PermissionsSupport
                 final org.bukkit.plugin.RegisteredServiceProvider<?> rsp = WormholeXTreme.getThisPlugin().getServer().getServicesManager().getRegistration(permClass);
                 if (rsp != null) {
                     providerFound = true;
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Vault provider detected; permission checks will use Vault/Bukkit provider.");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Vault provider detected; permission checks will use Vault/Bukkit provider.");
                 }
             } catch (final Throwable ignore) {}
 
@@ -42,17 +42,17 @@ public class PermissionsSupport
                 if (ConfigManager.getPermissionsAutoFallback())
                 {
                     ConfigManager.setPermissionsSupportDisable(true);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, false, "No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set PERMISSIONS_AUTO_FALLBACK=false.");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "No Vault/LuckPerms provider detected; enabling simple permission fallback. Players may use gates; advanced actions require OP. Install Vault/LuckPerms to restore node-based permissions or set PERMISSIONS_AUTO_FALLBACK=false.");
                 }
                 else
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "No Vault/LuckPerms provider detected; permission checks will rely on server built-in permission handling (player.hasPermission()).");
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "No Vault/LuckPerms provider detected; permission checks will rely on server built-in permission handling (player.hasPermission()).");
                 }
             }
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, false, "Permission Plugin support disabled via configuration (config.yml).");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Permission Plugin support disabled via configuration (config.yml).");
         }
     }
 
