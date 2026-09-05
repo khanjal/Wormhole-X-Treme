@@ -38,8 +38,10 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * /wormhole beam admin cost &lt;name&gt; &lt;amt&gt;  set what a public destination costs to use
  * /wormhole beam admin cost &lt;name&gt; default clear the override; use the configured default
  * /wormhole beam admin goto &lt;player&gt;      beam yourself to a player
+ * /wormhole beam admin goto &lt;destination&gt;  beam yourself to a public destination
  * /wormhole beam admin goto &lt;x&gt; &lt;y&gt; &lt;z&gt; [world]   beam yourself to raw coordinates
  * /wormhole beam admin send &lt;target&gt; &lt;player&gt;             beam a player to another player
+ * /wormhole beam admin send &lt;target&gt; &lt;destination&gt;        beam a player to a public destination
  * /wormhole beam admin send &lt;target&gt; &lt;x&gt; &lt;y&gt; &lt;z&gt; [world]  beam a player to raw coordinates
  * /wormhole beam place list                list your own places
  * /wormhole beam place set &lt;name&gt;         save your current location as a place
@@ -156,8 +158,8 @@ public class BeamCommand implements SubCommand
         if (args.length < 3)
         {
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                + "/wormhole beam admin set|remove|cost <name>, goto <player>|<x> <y> <z> [world], "
-                + "send <player> <player>|<x> <y> <z> [world]");
+                + "/wormhole beam admin set|remove|cost <name>, goto <player|destination>|<x> <y> <z> [world], "
+                + "send <player> <player|destination>|<x> <y> <z> [world]");
             return true;
         }
         final String action = args[2].toLowerCase();
@@ -304,7 +306,7 @@ public class BeamCommand implements SubCommand
         if (args.length < 4)
         {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                + "/wormhole beam admin goto <player>|<x> <y> <z> [world]");
+                + "/wormhole beam admin goto <player|destination>|<x> <y> <z> [world]");
             return true;
         }
         final Location destination = resolveDestination(player, args, 3,
@@ -341,7 +343,7 @@ public class BeamCommand implements SubCommand
         if (args.length < 5)
         {
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                + "/wormhole beam admin send <player> <player>|<x> <y> <z> [world]");
+                + "/wormhole beam admin send <player> <player|destination>|<x> <y> <z> [world]");
             return true;
         }
         final Player target = Bukkit.getPlayerExact(args[3]);
@@ -397,13 +399,38 @@ public class BeamCommand implements SubCommand
         if (remaining == 1)
         {
             final Player target = Bukkit.getPlayerExact(args[start]);
-            if (target == null)
+            if (target != null)
+            {
+                return target.getLocation();
+            }
+            // Not an online player, so try the public destination list before giving up --
+            // "send someone to spawn" is the obvious thing to reach for, and having to look
+            // up spawn's coordinates by hand to express it was a gap rather than a decision.
+            //
+            // Public destinations only, deliberately: a private place belongs to whoever set
+            // it, and for "send" that would be the target rather than the sender, so a name
+            // could silently mean something the sender cannot see and never chose. An admin
+            // move should not be routed through another player's private list. Players reach
+            // their own places through "beam to", which checks them first by design.
+            final BeamDestination destination = BeamManager.getPublicDestination(args[start]);
+            if (destination == null)
             {
                 sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                    + "No online player named \"" + args[start] + "\".");
+                    + "No online player or public beam destination named \"" + args[start] + "\".");
                 return null;
             }
-            return target.getLocation();
+            final Location located = destination.toLocation();
+            if (located == null)
+            {
+                // The destination outlived the world it was recorded in, or that world just
+                // isn't loaded right now. Saying so beats "no such destination", which would
+                // send someone looking for a typo in a name that is actually fine.
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    + "Beam destination \"" + destination.getName() + "\" is in world \""
+                    + destination.getWorldName() + "\", which is not loaded.");
+                return null;
+            }
+            return located;
         }
         if ((remaining == 3) || (remaining == 4))
         {
@@ -432,7 +459,7 @@ public class BeamCommand implements SubCommand
             return new Location(world, x, y, z, defaultYaw, defaultPitch);
         }
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-            + "Expected a player name, or <x> <y> <z> [world].");
+            + "Expected a player name, a public destination name, or <x> <y> <z> [world].");
         return null;
     }
 

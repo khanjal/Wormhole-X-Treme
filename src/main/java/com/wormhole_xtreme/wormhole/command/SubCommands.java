@@ -511,16 +511,20 @@ public final class SubCommands
             if (args.length == 4)
             {
                 if ("remove".equals(action) || "cost".equals(action)) return publicBeamNames(args[3]);
-                // goto's only argument, and send's first (the player being moved), can both
-                // be a player name -- coordinates would not match a name prefix anyway, so
-                // offering names here does no harm on the numeric path.
-                if ("goto".equals(action) || "send".equals(action)) return playerNames(args[3]);
+                // goto's only argument is a destination: a player, a public destination name,
+                // or the first of three coordinates -- coordinates would not match a name
+                // prefix anyway, so offering names here does no harm on the numeric path.
+                if ("goto".equals(action)) return playerOrDestinationNames(args[3]);
+                // send's first argument is different in kind: the player being *moved*, who
+                // has to be an actual online player. A destination name would be meaningless
+                // in this slot, so only players are offered.
+                if ("send".equals(action)) return playerNames(args[3]);
             }
             if (args.length == 5)
             {
                 if ("cost".equals(action)) return prefixed(args[4], "default");
-                // send's destination, one token in: might be a player name.
-                if ("send".equals(action)) return playerNames(args[4]);
+                // send's destination, one token in -- same shape as goto's above.
+                if ("send".equals(action)) return playerOrDestinationNames(args[4]);
             }
             // The trailing [world] slot after a full set of raw coordinates -- goto's sits
             // one token earlier than send's, since send has an extra token (the player being
@@ -556,6 +560,49 @@ public final class SubCommands
         {
             final String name = player.getName();
             if (name.toLowerCase().startsWith(p))
+            {
+                out.add(name);
+            }
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /**
+     * Online player names and public destination names together, for the one argument slot
+     * that genuinely accepts either: {@code goto}'s destination, and {@code send}'s.
+     *
+     * <p>Deliberately not the slot naming the player {@code send} is moving -- that one has
+     * to be a real online player, and offering destination names there would suggest a
+     * command that does not exist.
+     *
+     * <p>A public destination sharing a name with an online player is offered once, not
+     * twice: the resolver checks players first, so the completion would be describing two
+     * different outcomes with one identical string. Sorted together so the list does not
+     * betray which kind a given name is -- by the time it matters, the resolver has already
+     * decided.
+     *
+     * @param typed what has been typed so far
+     * @return the matching names, players and public destinations combined
+     */
+    private static List<String> playerOrDestinationNames(final String typed)
+    {
+        final List<String> out = playerNames(typed);
+        for (final String name : publicBeamNames(typed))
+        {
+            boolean already = false;
+            for (final String existing : out)
+            {
+                // Case-insensitively: the destination list is keyed lowercase, so "Spawn" and
+                // "spawn" are one destination, and a player differing only in case from one
+                // would still resolve to the player either way.
+                if (existing.equalsIgnoreCase(name))
+                {
+                    already = true;
+                    break;
+                }
+            }
+            if (!already)
             {
                 out.add(name);
             }

@@ -85,14 +85,28 @@ Two new `beam admin` actions, both gated behind a new `wormhole.beam.admin.telep
 list and instantly relocating any player are different orders of power, and holding the
 first shouldn't automatically hand out the second.
 
-- `/wormhole beam admin goto <player>` or `<x> <y> <z> [world]` -- beams the sender to a
-  player or raw coordinates. Player-only: there's nowhere for console or a command block to
-  beam *from*.
-- `/wormhole beam admin send <target> <player>` or `<target> <x> <y> <z> [world]` -- beams
-  a named, online player to another player or raw coordinates. The one place this command
-  accepts console or a command block as the sender, since neither is the one being moved;
-  whoever sent it gets told whether it worked, since the target's own "Beaming to X..."
-  messages don't reach them.
+- `/wormhole beam admin goto <player|destination>` or `<x> <y> <z> [world]` -- beams the
+  sender to a player, a public beam destination, or raw coordinates. Player-only: there's
+  nowhere for console or a command block to beam *from*.
+- `/wormhole beam admin send <target> <player|destination>` or `<target> <x> <y> <z>
+  [world]` -- beams a named, online player to another player, a public beam destination, or
+  raw coordinates. The one place this command accepts console or a command block as the
+  sender, since neither is the one being moved; whoever sent it gets told whether it worked,
+  since the target's own "Beaming to X..." messages don't reach them.
+
+Destination names were not accepted at first -- both actions took a player or raw
+coordinates and nothing else, so "send someone to spawn" meant looking spawn's coordinates
+up by hand to say it. That was a gap rather than a decision, and it showed up the moment
+anyone asked the obvious question. A name that isn't an online player now falls through to
+the public destination list before erroring, and the failure message names both things it
+looked for rather than only mentioning players.
+
+Public destinations only, deliberately. A private place belongs to whoever set it, which
+for `send` is the *target*, not the sender -- so a bare name could silently mean something
+the sender can't see and never chose. An admin move shouldn't route through another
+player's private list. Players still reach their own places through `beam to`, which checks
+them first by design. `send`'s *first* argument stays players-only too: that slot names who
+is being moved, and a destination there would be meaningless.
 
 Both run the full `BeamAnimation` sequence on the traveller -- same glow, rise, descend and
 fade as any other beam trip, and the same terrain-drift correction described below. Neither
@@ -110,9 +124,12 @@ message on a mismatch.
 
 Tab completion covers both new actions the same way every other beam command already does,
 driven from the same `SubCommands` registry: `goto`/`send` themselves, online player names
-for the target and destination slots, and now loaded world names for the trailing
-`[world]` slot on raw coordinates -- the one piece of `goto`/`send`'s arguments that is
-both completable and had nothing offered for it at first.
+and public destination names together in the slots that accept either, players alone in the
+slot naming who `send` is moving, and loaded world names for the trailing `[world]` slot on
+raw coordinates -- the one piece of `goto`/`send`'s arguments that is both completable and
+had nothing offered for it at first. A destination sharing a name with an online player is
+offered once rather than twice, since the resolver checks players first and the two would
+otherwise be one string describing two different outcomes.
 
 ### Beam and gate arrivals correct for terrain that has drifted since they were set
 
