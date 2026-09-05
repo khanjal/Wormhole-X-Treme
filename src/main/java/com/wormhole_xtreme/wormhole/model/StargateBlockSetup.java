@@ -880,6 +880,83 @@ class StargateBlockSetup
     }
 
     /**
+     * Shows nearby clients one wave of a gate's chevrons lit.
+     *
+     * <p>Separate from {@link #drawBlocks} because a chevron is not necessarily drawn as the
+     * gate's light material. Where the player built one out of the chevron material and that
+     * material is a light with an off and an on, the better thing to show is that same fixture
+     * switched on -- a redstone lamp lighting up, rather than a redstone lamp being replaced
+     * by glowstone for the duration of the call.
+     *
+     * <p>Decided per position rather than once for the wave, because detection accepts either
+     * material at a chevron cell: a gate can quite legitimately have lamps at three chevrons
+     * and obsidian at the other four, and each should light as whatever it actually is.
+     *
+     * @param gate
+     *            the gate whose chevrons these are
+     * @param blocks
+     *            the positions to light
+     */
+    static void drawLights(final Stargate gate, final List<Location> blocks)
+    {
+        if ((blocks == null) || blocks.isEmpty())
+        {
+            return;
+        }
+        final List<Player> recipients = nearby(gate);
+        if (recipients.isEmpty())
+        {
+            return;
+        }
+        // Both resolved once for the wave: createBlockData() needs a live server and this
+        // runs once per chevron step, so there is no reason to pay for it per block.
+        final BlockData lightData = MaterialUtils.drawnAs(gate.getEffectiveLightMaterial());
+        final Material chevronMaterial = gate.getEffectiveChevronMaterial();
+        final BlockData fixtureOn = MaterialUtils.litFormOf(chevronMaterial);
+
+        for (final Location bc : blocks)
+        {
+            final Block real = gate.getGateWorld()
+                .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
+            final BlockData data = litChevron(real.getType(), chevronMaterial, fixtureOn, lightData);
+            for (final Player p : recipients)
+            {
+                p.sendBlockChange(real.getLocation(), data);
+            }
+        }
+    }
+
+    /**
+     * What one chevron position should be shown as while it is lit.
+     *
+     * <p>Split out from {@link #drawLights} so the choice can be tested without a live server:
+     * everything either side of it needs {@code createBlockData()}, which does not work off a
+     * running Bukkit instance.
+     *
+     * @param standing
+     *            the material actually built at that position
+     * @param chevronMaterial
+     *            what an unlit chevron of this gate is built from, may be null
+     * @param fixtureOn
+     *            the chevron material switched on, or null if it has no lit state
+     * @param lightData
+     *            the gate's light material, used for everything else
+     * @return what to draw there
+     */
+    static BlockData litChevron(final Material standing, final Material chevronMaterial,
+        final BlockData fixtureOn, final BlockData lightData)
+    {
+        // fixtureOn being null covers both "this gate has no chevron material" and "it has one
+        // but the block cannot be switched on" -- a gold-block chevron drawn as itself would
+        // simply never appear to light, so those fall back to the light material.
+        if ((fixtureOn != null) && (standing == chevronMaterial))
+        {
+            return fixtureOn;
+        }
+        return lightData;
+    }
+
+    /**
      * Puts a set of drawn blocks back to whatever is really there.
      *
      * <p>Read from the world rather than remembered, which is the whole advantage of drawing:
@@ -959,7 +1036,7 @@ class StargateBlockSetup
             // dialled would otherwise find a lit wormhole in an unlit frame.
             if (gate.isGateLightsActive())
             {
-                sendLights(player, gate, MaterialUtils.drawnAs(gate.getEffectiveLightMaterial()));
+                sendLights(player, gate, true);
             }
             stillOpen.add(gate.getGateName());
         }
@@ -1007,26 +1084,35 @@ class StargateBlockSetup
                 .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
             player.sendBlockChange(real.getLocation(), real.getBlockData());
         }
-        sendLights(player, gate, null);
+        sendLights(player, gate, false);
     }
 
     /**
      * Sends one player every light block of a gate.
+     *
+     * <p>Lighting here uses the same per-position rule as {@link #drawLights}, and has to:
+     * this is the path that catches somebody arriving at a gate that dialled while they were
+     * out of range, so a lamp chevron the animation switched on must not come back to a later
+     * arrival as glowstone.
      *
      * @param player
      *            the player to send to
      * @param gate
      *            the gate whose chevrons these are
      * @param lit
-     *            what to show, or null to show whatever is really there
+     *            true to show the chevrons lit, false to show whatever is really there
      */
-    private static void sendLights(final Player player, final Stargate gate, final BlockData lit)
+    private static void sendLights(final Player player, final Stargate gate, final boolean lit)
     {
         final List<java.util.ArrayList<Location>> groups = gate.getGateLightBlocks();
         if (groups == null)
         {
             return;
         }
+        final BlockData lightData = lit ? MaterialUtils.drawnAs(gate.getEffectiveLightMaterial()) : null;
+        final Material chevronMaterial = lit ? gate.getEffectiveChevronMaterial() : null;
+        final BlockData fixtureOn = lit ? MaterialUtils.litFormOf(chevronMaterial) : null;
+
         for (final java.util.ArrayList<Location> group : groups)
         {
             if (group == null)
@@ -1038,7 +1124,8 @@ class StargateBlockSetup
                 final Block real = gate.getGateWorld()
                     .getBlockAt(bc.getBlockX(), bc.getBlockY(), bc.getBlockZ());
                 player.sendBlockChange(real.getLocation(),
-                    (lit != null) ? lit : real.getBlockData());
+                    lit ? litChevron(real.getType(), chevronMaterial, fixtureOn, lightData)
+                        : real.getBlockData());
             }
         }
     }

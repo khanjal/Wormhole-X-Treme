@@ -156,8 +156,12 @@ public final class MaterialGroupRegistry
                 final Material iris = defaulted(parseMaterial(groupName, "iris", values.get("iris")), Material.STONE);
                 final Material light = defaulted(parseMaterial(groupName, "light", values.get("light")), Material.GLOWSTONE);
                 final Material sign = defaulted(parseMaterial(groupName, "sign", values.get("sign")), Material.OAK_WALL_SIGN);
+                // Left null when absent rather than defaulted like the rest. A default here
+                // would silently widen what detection accepts as a gate frame for every
+                // server that has never asked for distinct chevrons.
+                final Material chevron = parseMaterial(groupName, "chevron", values.get("chevron"));
 
-                final MaterialGroup group = new MaterialGroup(groupName, structure, portal, iris, light, sign);
+                final MaterialGroup group = new MaterialGroup(groupName, structure, portal, iris, light, sign, chevron);
                 byName.put(groupName.toLowerCase(Locale.ROOT), group);
                 byMaterial.put(structure, group);
                 if (first == null)
@@ -226,7 +230,7 @@ public final class MaterialGroupRegistry
             }
             final MaterialGroup candidate = new MaterialGroup(suggestGroupName(frame), frame,
                 shape.getShapePortalMaterial(), shape.getShapeIrisMaterial(), shape.getShapeLightMaterial(),
-                shape.getShapeSignMaterial());
+                shape.getShapeSignMaterial(), shape.getShapeChevronMaterial());
             if (!containsSameMaterials(seen, candidate))
             {
                 seen.add(candidate);
@@ -257,7 +261,8 @@ public final class MaterialGroupRegistry
             if (g.getPortalMaterial() == candidate.getPortalMaterial()
                 && g.getIrisMaterial() == candidate.getIrisMaterial()
                 && g.getLightMaterial() == candidate.getLightMaterial()
-                && g.getSignMaterial() == candidate.getSignMaterial())
+                && g.getSignMaterial() == candidate.getSignMaterial()
+                && g.getChevronMaterial() == candidate.getChevronMaterial())
             {
                 return true;
             }

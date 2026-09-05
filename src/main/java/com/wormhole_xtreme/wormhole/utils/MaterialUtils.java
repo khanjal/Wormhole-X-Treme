@@ -40,6 +40,34 @@ public final class MaterialUtils {
     }
 
     /**
+     * The same block switched on, where that means anything.
+     *
+     * <p>A redstone lamp built into a gate frame is a chevron waiting to light: it stands
+     * there dark, and switching it on is a better thing to show than replacing it with a
+     * different block entirely. That only works for a material with an off and an on --
+     * {@link org.bukkit.block.data.Lightable} -- so this answers null for everything else,
+     * which is the caller's cue to fall back to the gate's light material.
+     *
+     * <p>Deliberately not folded into {@link #drawnAs}: that one is called on the woosh's hot
+     * path and always has an answer, whereas this one asks a question that can come back no.
+     *
+     * @param material
+     *            the material standing there, may be null
+     * @return its lit block data, or null if this material has no lit state
+     */
+    public static org.bukkit.block.data.BlockData litFormOf(final Material material) {
+        if (material == null) {
+            return null;
+        }
+        final org.bukkit.block.data.BlockData data = material.createBlockData();
+        if (data instanceof org.bukkit.block.data.Lightable) {
+            ((org.bukkit.block.data.Lightable) data).setLit(true);
+            return data;
+        }
+        return null;
+    }
+
+    /**
      * Whether the registry can answer what is a block.
      *
      * <p>From 1.20.6 on, {@link Material#isBlock()} goes through the server's registry, which
