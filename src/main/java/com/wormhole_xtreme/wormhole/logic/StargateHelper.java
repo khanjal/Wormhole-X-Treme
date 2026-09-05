@@ -176,7 +176,15 @@ public final class StargateHelper
     /**
      * Attempts to find a valid stargate whose activation button/lever is
      * {@code clickedBlock} facing {@code direction}.  Iterates every loaded
-     * 3-D shape and returns the first match, or {@code null} if none match.
+     * 3-D shape and returns the best match, or {@code null} if none match.
+     *
+     * <p>More than one shape routinely matches the same build. Detection only reads frame
+     * and portal cells, and a sign-dial shape puts its DHD in cells the plain twin marks
+     * {@code [I]} -- so anything built as {@code StandardSignDial} satisfies {@code Standard}
+     * as well, and {@code Horizontal} and {@code HorizontalSignDial} are byte-identical once
+     * markers are stripped. Which one wins is decided by {@link #beatsBestMatch}, which used
+     * to weigh only {@code REDSTONE_ACTIVATED} and fall back below that to whatever order a
+     * {@code ConcurrentHashMap} happened to hand back.
      */
     public static Stargate checkStargate(final Block clickedBlock, final BlockFace direction)
     {
@@ -184,30 +192,71 @@ public final class StargateHelper
         {
             return null;
         }
-        // Scan all shapes and pick the most specific match: prefer shapes that declare
-        // REDSTONE_ACTIVATED=TRUE over plain shapes with identical structure layouts.
-        // No shipped shape pair needs this any more -- every sign-dial shape carries its
-        // own [RD] rather than having a separate redstone twin -- but a server's custom
-        // shapes can still be written that way, so the preference stays.
         Stargate best = null;
-        boolean bestIsRedstone = false;
+        Stargate3DShape bestShape = null;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())
         {
             if (shape instanceof Stargate3DShape)
             {
-                final Stargate result = check3DShape(clickedBlock, direction, (Stargate3DShape) shape);
-                if (result != null)
+                final Stargate3DShape shape3D = (Stargate3DShape) shape;
+                final Stargate result = check3DShape(clickedBlock, direction, shape3D);
+                if ((result != null) && beatsBestMatch(result, shape3D, best, bestShape))
                 {
-                    final boolean isRedstone = ((Stargate3DShape) shape).isShapeRedstoneActivated();
-                    if (best == null || (!bestIsRedstone && isRedstone))
-                    {
-                        best = result;
-                        bestIsRedstone = isRedstone;
-                    }
+                    best = result;
+                    bestShape = shape3D;
                 }
             }
         }
         return best;
+    }
+
+    /**
+     * Ranks one matching shape against the best match so far, most significant test first.
+     *
+     * <ol>
+     *   <li><b>A dial sign was actually found.</b> Only a shape carrying {@code :D} looks for
+     *       one, and finding one is proof the player built a sign gate. Without this,
+     *       {@code HorizontalSignDial} could never be detected at all: its frame is identical
+     *       to {@code Horizontal}'s, {@code Horizontal} comes back first from the registry,
+     *       and the player's dial sign was then overwritten by the name sign {@code Horizontal}
+     *       puts on that same cell.</li>
+     *   <li><b>{@code REDSTONE_ACTIVATED=TRUE}.</b> No shipped pair needs this any more, but a
+     *       server's custom shapes can still be written as redstone twins, so it stays.</li>
+     *   <li><b>More frame blocks.</b> The shape that accounts for more of what is actually
+     *       built is the more specific description of it. This is what settles
+     *       {@code MinimalSignDial} against {@code Minimal}, which previously agreed only
+     *       because of where the two names happened to hash.</li>
+     *   <li><b>Shape name.</b> Nothing left to tell them apart, so decide by something stable.
+     *       Shapes are held in a {@code ConcurrentHashMap} keyed by name: iteration order is
+     *       arbitrary, and adding a twelfth shape resizes the table and reshuffles all of it.
+     *       A server should not get a different gate for adding an unrelated custom shape.</li>
+     * </ol>
+     *
+     * @return true if {@code candidate} should replace {@code best}
+     */
+    static boolean beatsBestMatch(final Stargate candidate, final Stargate3DShape candidateShape,
+        final Stargate best, final Stargate3DShape bestShape)
+    {
+        if (best == null)
+        {
+            return true;
+        }
+        if (candidate.isGateSignPowered() != best.isGateSignPowered())
+        {
+            return candidate.isGateSignPowered();
+        }
+        if (candidateShape.isShapeRedstoneActivated() != bestShape.isShapeRedstoneActivated())
+        {
+            return candidateShape.isShapeRedstoneActivated();
+        }
+        final int candidateBlocks = candidate.getGateStructureBlocks().size();
+        final int bestBlocks = best.getGateStructureBlocks().size();
+        if (candidateBlocks != bestBlocks)
+        {
+            return candidateBlocks > bestBlocks;
+        }
+        return String.valueOf(candidateShape.getShapeName())
+            .compareTo(String.valueOf(bestShape.getShapeName())) < 0;
     }
 
     /**
