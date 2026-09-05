@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.4.0 (2026-09-04)
+## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally
 
