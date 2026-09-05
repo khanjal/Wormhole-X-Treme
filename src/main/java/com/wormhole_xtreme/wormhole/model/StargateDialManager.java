@@ -7,7 +7,12 @@ import java.util.logging.Level;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.ChatColor;
 import org.bukkit.block.sign.Side;
+import org.bukkit.block.sign.SignSide;
+
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -109,14 +114,20 @@ class StargateDialManager
             }
         });
 
+        final SignSide face = gate.getGateDialSign().getSide(Side.FRONT);
+        final ChatColor nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.AQUA);
+        final ChatColor selectedColor = SignStyle.resolveColor(ConfigManager.getSignColorSelected(), ChatColor.GREEN);
+        final ChatColor neighbourColor = SignStyle.resolveColor(ConfigManager.getSignColorNeighbour(), ChatColor.DARK_GRAY);
+        face.setGlowingText(ConfigManager.isSignGlowingText());
+
         // Line 0: always this gate's name.
-        gate.getGateDialSign().getSide(Side.FRONT).setLine(0, "-" + gate.getGateName() + "-");
+        face.setLine(0, SignStyle.paint(nameColor, "-" + gate.getGateName() + "-"));
 
         if (others.isEmpty())
         {
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, "");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, "No Other Gates");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, "");
+            face.setLine(1, "");
+            face.setLine(2, SignStyle.paint(neighbourColor, "No Other Gates"));
+            face.setLine(3, "");
             gate.getGateDialSign().update(true, false);
             gate.setGateDialSignTarget(null);
             return;
@@ -145,20 +156,38 @@ class StargateDialManager
         if (others.size() == 1)
         {
             // Only one other gate: no prev/next context needed.
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, "");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, ">" + current.getGateName() + "<");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, "");
+            face.setLine(1, "");
+            face.setLine(2, SignStyle.paint(selectedColor, selected(current)));
+            face.setLine(3, "");
         }
         else
         {
             final int prevIdx = (idx - 1 + others.size()) % others.size();
             final int nextIdx = (idx + 1) % others.size();
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, others.get(prevIdx).getGateName());
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, ">" + current.getGateName() + "<");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, others.get(nextIdx).getGateName());
+            face.setLine(1, SignStyle.paint(neighbourColor, others.get(prevIdx).getGateName()));
+            face.setLine(2, SignStyle.paint(selectedColor, selected(current)));
+            face.setLine(3, SignStyle.paint(neighbourColor, others.get(nextIdx).getGateName()));
         }
 
         gate.getGateDialSign().update(true, false);
+    }
+
+
+    /**
+     * Wraps the selected destination in markers, so it reads as chosen even in monochrome.
+     *
+     * <p>Colour carries this on its own for most people, and for the rest -- a colourblind
+     * player, or anyone who has turned the colours off in config -- the markers are what say
+     * which of the three names is the one a click will dial. Written as escapes so this file
+     * stays plain ASCII whatever editor opens it.
+     *
+     * @param destination
+     *            the gate currently selected
+     * @return the line text, without colour
+     */
+    private static String selected(final Stargate destination)
+    {
+        return "»" + destination.getGateName() + "«";
     }
 
     /**
@@ -178,10 +207,16 @@ class StargateDialManager
             }
             gate.setGateDialSign((Sign) bState);
             gate.setGateDialSignIndex(-1);
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(0, gate.getGateName());
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(1, gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(2, "");
-            gate.getGateDialSign().getSide(Side.FRONT).setLine(3, "");
+            final SignSide idle = gate.getGateDialSign().getSide(Side.FRONT);
+            idle.setGlowingText(ConfigManager.isSignGlowingText());
+            idle.setLine(0, SignStyle.paint(
+                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.AQUA),
+                gate.getGateName()));
+            idle.setLine(1, SignStyle.paint(
+                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                gate.getGateNetwork() != null ? gate.getGateNetwork().getNetworkName() : "Public"));
+            idle.setLine(2, "");
+            idle.setLine(3, "");
             gate.getGateDialSign().update(true, false);
         }
     }

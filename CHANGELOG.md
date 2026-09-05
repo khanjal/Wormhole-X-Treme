@@ -4,6 +4,43 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Signs are coloured now, and say which destination is selected
+
+Both signs the plugin writes were plain white text. On a gate's name sign that was merely
+plain; on a dial sign it was a real usability problem, because the destination you are about
+to dial looked identical to the two either side of it. `>Name<` was the only thing
+distinguishing the one a click would actually use.
+
+The selected destination is now coloured (green by default) against dimmed neighbours, and
+the gate's own name reads in aqua on both signs. Glowing text is on by default -- gate rooms
+are usually dark and underground, and it is the single largest readability gain available
+here -- with `sign-glowing-text: false` for anyone who wants the vanilla look back.
+
+Colours are named in config.yml rather than written as raw section-sign codes, following what
+`Sounds` already established: a name is something an admin can read back and check, and a name
+nobody recognises falls back to the default instead of putting a stray control character on a
+sign, where there is nothing to be done about it short of breaking the gate. `MAGIC` and the
+other non-colour formatting codes are refused for the same reason -- `ChatColor.valueOf` will
+happily return one, and a destination rendered in MAGIC cannot be read at all.
+
+The selected destination also keeps a pair of markers around it, now `»`/`«` rather than
+`>`/`<`. Colour carries the distinction for most people; the markers are what carry it for a
+colourblind player, or on a server that has turned the colours off.
+
+One thing had to be fixed to make any of this safe. Detection reads line 0 of the dial sign as
+the gate's name, and the plugin writes that same line itself once the gate is running -- so a
+gate re-detected after being styled would have taken the colour codes into its own name, giving
+it invisible characters in a name that has to be typed to dial it. Line 0 is now stripped of
+formatting when it is read back.
+
+### `SIGN_MATERIAL` never applied to the dial sign, whatever the README said
+
+Noticed while doing the above. The README's shape-key table said `SIGN_MATERIAL=` was "the
+wall-sign type used for the gate name sign and the dial sign". Only the first half is true:
+`getEffectiveSignMaterial()` has exactly one caller, and it places the name sign. The dial sign
+is put up by a player on the `[D]` block and detection accepts whatever wall sign is there.
+The comment in the shipped `config.yml` had it right all along; only the README was wrong.
+
 ### A rider arrives facing where the cart is going
 
 Also from in-game testing: riding a minecart through a gate left the traveller looking

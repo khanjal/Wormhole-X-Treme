@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -18,7 +19,9 @@ import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
+import com.wormhole_xtreme.wormhole.utils.SignStyle;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
@@ -162,17 +165,27 @@ class StargateBlockSetup
             placeBlock.setBlockData(signData, false);
 
             final Sign sign = (Sign) placeBlock.getState();
-            sign.getSide(Side.FRONT).setLine(0, "-" + gate.getGateName() + "-");
+            final org.bukkit.block.sign.SignSide front = sign.getSide(Side.FRONT);
+            // Colour codes do not count toward a sign's visible width, so the owner is still
+            // truncated on the text alone -- painting it cannot push it off the sign.
+            front.setLine(0, SignStyle.paint(
+                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.AQUA),
+                "-" + gate.getGateName() + "-"));
             if (gate.getGateNetwork() != null)
             {
-                sign.getSide(Side.FRONT).setLine(1, "N:" + gate.getGateNetwork().getNetworkName());
+                front.setLine(1, SignStyle.paint(
+                    SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                    "N:" + gate.getGateNetwork().getNetworkName()));
             }
             if (gate.getGateOwner() != null)
             {
                 final String ownerDisplay = gate.getGateOwnerName();
-                sign.getSide(Side.FRONT).setLine(2, "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
-                    ? ownerDisplay.substring(0, 13) : ownerDisplay));
+                front.setLine(2, SignStyle.paint(
+                    SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColor.DARK_GRAY),
+                    "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
+                        ? ownerDisplay.substring(0, 13) : ownerDisplay)));
             }
+            front.setGlowingText(ConfigManager.isSignGlowingText());
             sign.update(true, false);
             // NOTE: gateDialSignBlock/gateDialSign are set during shape detection
             // (check3DShape) from the [D] marker — the player-placed sign on the
