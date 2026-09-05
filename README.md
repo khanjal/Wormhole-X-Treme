@@ -343,6 +343,13 @@ silently lose a custom shape.
 
 Default shapes are extracted from the jar on first run only — they will **not** overwrite user-customized files.
 
+`MinimalSignDialRedstone` is no longer shipped. Its reason for existing was that
+`MinimalSignDial` could not be dialled by redstone; now every sign-dial shape can, so a
+separate redstone-flavoured file has nothing left to offer. Because defaults are only ever
+written when missing, an existing server keeps the copy already in its folder and any gate
+built from it keeps working — nothing is deleted from an install. New installs simply do not
+get it.
+
 ### Shape material parameters
 
 Shapes describe geometry. Appearance comes from the gate's [material group](#material-groups),
@@ -508,68 +515,60 @@ An iris closes over the portal to block travel. When a remote gate's iris is act
 
 ## Redstone activation
 
-Two redstone activation modes are supported and controlled by blocks registered to the gate at build time.
-
-### Redstone sign dial (sign gate)
-
-A gate with a redstone sign dial cycles through available network targets via a redstone pulse on the `gateRedstoneSignActivationBlock`. Each pulse advances the dial sign to the next target. A sustained high signal does not repeatedly cycle — only transitions trigger a step.
+Redstone activation is controlled by blocks registered to the gate at build time.
 
 ### Redstone direct dial
 
 A gate can be activated directly by a redstone signal on the `gateRedstoneDialActivationBlock`. When the signal goes high the gate dials its current sign target; when the signal drops the gate shuts down (if `shutdown_timeout` is `0`). Enable this mode per gate with `/wormhole redstone <gate> true`.
 
-Both modes work via `BlockRedstoneEvent` and are fully compatible with all Bukkit-based servers.
+### Redstone sign cycling (custom shapes only)
+
+A shape can also mark an `[RS]` block, which advances the dial sign to the next network target on each pulse. **No shipped shape carries one.** Redstone dialling exists so a sign can be left preset on a destination and fired by a pulse, and an input that moves the sign works against that — so the shipped shapes give redstone the trigger and leave choosing the destination to whoever clicks the sign.
+
+The support stays for custom shapes. If you add an `[RS]`, keep it more than a block from `[RD]`: a signal counts anywhere within a block of a marker, so placing them together gives one pulse two meanings — cycle the destination, then dial whatever it just landed on. The plugin drops an `[RS]` that lands adjacent to `[RD]` rather than letting that happen.
+
+Both work via `BlockRedstoneEvent` and are fully compatible with all Bukkit-based servers.
 
 A signal counts when it lands **on** the activation block or on any redstone component **touching** it — dust, a repeater, a comparator, a lever, a button, a pressure plate, an observer, a redstone block or torch, or a detector/powered/activator rail. You do not have to place dust exactly on the activation block.
 
 ### Building a redstone gate
 
-A redstone gate is a **sign gate with redstone inputs**. Redstone does not choose a
+A redstone gate is a **sign gate with a redstone input**. Redstone does not choose a
 destination — the dial sign does, exactly as if a player were clicking it. Redstone just
-presses the buttons. A shape without a `[D]` dial sign block cannot be redstone-dialled.
+presses the button.
 
-Two shapes take redstone: `MinimalSignDialRedstone` and `StandardSignDial`. The minimal one
-is covered first because it carries the full set of markers; if you already have a Standard
-gate built, skip to [Redstone on a Standard gate](#redstone-on-a-standard-gate).
+Every sign gate takes redstone. A gate becomes redstone-dialable the moment its shape has an
+`[RD]` block, and all four shipped sign-dial shapes carry one: `StandardSignDial`,
+`EvenSignDial`, `MinimalSignDial` and `HorizontalSignDial`. There is no separate
+redstone-flavoured shape to know to pick at build time — build the sign gate whose size and
+layout you want, then wire it up.
 
-`MinimalSignDialRedstone.shape` is not laid out like `MinimalSignDial` — it is a block
-taller and the pillars are further apart — so building the plain sign-dial gate will not
-give you a redstone one.
+The shapes with no `[D]` dial sign — `Standard`, `Minimal`, `Horizontal`, `Even`, `Large`,
+`Grand` and `Massive` — carry no markers, deliberately. With no sign to leave preset there
+would be nothing for a pulse to dial, so those stay `/dial`-only.
 
-```
-Layer 1 — the ring              Layer 2 — behind it, the DHD side
-   y=5   .  .  .                   y=5   .  .  .
-   y=4   .  ~  .                   y=4   A  .  D
-   y=3   .  ~  .                   y=3   #  .  #
-   y=2   .  e  .                   y=2   R  m  C
-   y=1   .  V  .                   y=1   #  .  #
-   y=0   .  #  .                   y=0   .  .  .
+Each shape marks two cells:
 
-   #  gate frame block            ~  portal, leave empty
-   .  leave empty                 e  player exit    m  minecart exit
-   A  activation lever or button  D  dial sign
-   R  [RD]  dial          -> redstone dust
-   C  [RS]  next target   -> redstone dust
-   V  [RA]  gate is open  -> lever
-```
+- **`[RD]`, the dial trigger** — run redstone dust to it. A pulse dials whatever the dial
+  sign is currently showing. On every shipped shape this is the block **directly above the
+  activation block** (the one the button or lever is mounted on).
+- **`[RA]`, the gate-is-open output** — put a lever here. The plugin switches it on itself
+  when the gate opens, so it can drive doors, lamps or anything else that should react.
 
-`R`, `C` and `V` are not frame blocks — do not build gate material at them. Each sits
-directly on top of a frame block, which is why the shape file says they belong "on top of a
-[S] block".
+Neither is a frame block: do not build gate material at them. That is also why an already
+built sign gate does not need rebuilding for any of this — the cells were empty before and
+are empty now. Place the dust and the lever, then run `/wormhole redstone <gate> true`.
 
-The two pillars are mirror images, so if `R` and `C` end up swapped the gate will cycle
-targets when you meant to dial. Swap the dust to the other side if that happens.
-
-Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign
-is showing, so with no target selected a pulse does nothing.
+Put the dial sign up and pick a destination before testing: `[RD]` dials whatever the sign is
+showing, so with no target selected a pulse does nothing.
 
 A signal counts when it lands on the marked block **or on any redstone component touching
 it**, so you can run dust up to it rather than having to land exactly on the cell.
 
-### Redstone on a Standard gate
+### Where the markers are on each shape
 
-`StandardSignDial` also takes redstone, on the DHD side (layer 4), next to the activation
-block and dial sign:
+On `StandardSignDial` and `EvenSignDial` the DHD sits on its own layer behind the ring, and
+the two markers are placed like this:
 
 ```
    y=2   .  .  R          #  gate frame block   .  leave empty
@@ -579,19 +578,21 @@ block and dial sign:
 ```
 
 `R` goes on top of the activation block; `V` hangs on the side of the pillar below it.
-Neither is a frame block, so an existing Standard gate does not need rebuilding — place the
-dust and the lever and run `/wormhole redstone <gate> true`.
 
-There is no `[RS]` cycle block on this shape. The only free block top left is the one right
-beside `[RD]`, and a signal counts anywhere within a block of a marker, so a single pulse
-would cycle the destination and then dial whatever it landed on. Use
-`MinimalSignDialRedstone` if you want redstone target cycling as well as redstone dialling;
-on a Standard gate, click the sign to choose the destination and let redstone do the
-dialling.
+`MinimalSignDial` has the same two-block DHD pillar in a much smaller footprint. `[RD]` sits
+on top of the activation block exactly as above; `[RA]` goes on the ground row at the foot of
+that pillar, directly below it, next to the minecart exit — three blocks clear of `[RD]`
+rather than the two the larger shapes leave.
 
-`[RA]` is deliberately two blocks below `[RD]` rather than beside it. The plugin switches
-that lever on itself when the gate opens, so keeping it out of range stops the gate's own
-output from feeding back into its dial input.
+`HorizontalSignDial` lies flat, and its DHD is a single row of three blocks — activation,
+dial sign, iris — with open space above. Both markers go in the row directly above that one:
+`[RD]` on top of the activation block, `[RA]` on top of the iris block, two clear blocks
+apart.
+
+`[RA]` is always kept out of `[RD]`'s reach rather than placed beside it. The plugin switches
+that lever on itself when the gate opens, and a signal counts anywhere within a block of a
+marker, so putting the two together would feed the gate's own output straight back into its
+dial input.
 
 ### Driving a gate with a minecart
 

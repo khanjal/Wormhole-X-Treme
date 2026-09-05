@@ -90,12 +90,12 @@ public class WormholeXTremeRedstoneListenerTest
     @Test
     public void theSignCycleBlockIsIgnoredWhileTheGateIsOpen()
     {
-        // The [RA] lever is the gate's own output, switched on the moment the gate opens,
-        // and in MinimalSignDialRedstone it sits diagonally next to [RD] and [RS] on the
-        // neighbouring layer. Since a signal counts anywhere within a block of a marker,
-        // opening the gate necessarily lands a signal on both inputs. This guard is the
-        // only reason that is harmless: without it a gate would advance its own dial sign
-        // every single time it opened.
+        // The [RA] lever is the gate's own output, switched on the moment the gate opens.
+        // A shape that puts it within a block of [RD] and [RS] -- easily done, since a
+        // signal counts anywhere within a block of a marker and consecutive layers are
+        // neighbours in the world -- lands a signal on both inputs every time the gate
+        // opens. This guard is the only reason that is harmless: without it such a gate
+        // would advance its own dial sign every single time it opened.
         final World world = mock(World.class);
         final int cx = 400, cy = 64, cz = 500;
 

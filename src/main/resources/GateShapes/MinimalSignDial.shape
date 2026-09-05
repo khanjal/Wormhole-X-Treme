@@ -58,10 +58,10 @@ Layer#1=
 [S:L#1:EP][I][I]
 
 Layer#2=
-[I][I][I]
+[I][RD][I]
 [I][S:A][S:D]
 [I][S][S]
-[I:EM][I][I]
+[I:EM][RA][I]
 
 # Number of ticks to wait before activating each # of the woosh. 1 tick = ~50ms
 WOOSH_TICKS = 3;

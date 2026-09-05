@@ -185,8 +185,10 @@ public final class StargateHelper
             return null;
         }
         // Scan all shapes and pick the most specific match: prefer shapes that declare
-        // REDSTONE_ACTIVATED=TRUE over plain shapes with identical structure layouts,
-        // so StandardSignDialRedstone wins over StandardSignDial for the same frame.
+        // REDSTONE_ACTIVATED=TRUE over plain shapes with identical structure layouts.
+        // No shipped shape pair needs this any more -- every sign-dial shape carries its
+        // own [RD] rather than having a separate redstone twin -- but a server's custom
+        // shapes can still be written that way, so the preference stays.
         Stargate best = null;
         boolean bestIsRedstone = false;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())

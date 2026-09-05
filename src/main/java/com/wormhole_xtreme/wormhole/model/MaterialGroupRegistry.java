@@ -271,7 +271,7 @@ public final class MaterialGroupRegistry
      *
      * <p>Named after the material rather than the shape that revealed it, because the
      * group belongs to the material — several shapes may end up sharing it, and naming it
-     * "MinimalSignDialRedstone" would be actively misleading.
+     * "MinimalSignDial" would be actively misleading.
      *
      * @param frame
      *            the frame material

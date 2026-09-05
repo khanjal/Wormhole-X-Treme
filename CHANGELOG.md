@@ -4,6 +4,50 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Every sign gate takes redstone, not just the one with "Redstone" in its name
+
+Whether a sign gate could be dialled by redstone depended on which of two similarly-named
+files an admin happened to build from. `MinimalSignDial` could not; `MinimalSignDialRedstone`
+could. Nothing said so at build time, the two are not even the same footprint -- the redstone
+one is a block taller with the pillars further apart -- and the only way to find out you had
+built the wrong one was to wire it up and watch nothing happen.
+
+That was never a real choice about the gate. Redstone capability is not a property a shape
+opts into: `StargateHelper` turns it on the moment a shape's geometry has an `[RD]` block, and
+an admin who wants a sign that can only be clicked already has `/wormhole redstone <gate>
+false` per gate. The shape file was offering a decision that belonged somewhere else, and
+offering it as a permanent, unlabelled consequence of which file you picked.
+
+So the rule is now uniform: a shape with a `[D]` dial sign carries `[RD]` and `[RA]`.
+`StandardSignDial` and `EvenSignDial` already did. `MinimalSignDial` and `HorizontalSignDial`
+have gained them, and since both markers land on cells those shapes left empty, no existing
+gate needs rebuilding -- place the dust and the lever on a gate you already have. The seven
+shapes with no dial sign keep no markers at all, which is the same rule read the other way:
+with no sign to leave preset, a pulse would have nothing to dial.
+
+`[RS]`, the sign-cycling input, is gone from the shipped shapes entirely. The point of
+redstone dialling is a sign left preset on a destination and a pulse that fires it, and an
+input that moves the sign works against that. The parser and listener still handle `[RS]` for
+custom shapes, and `StargateHelper` still drops one that lands adjacent to `[RD]`.
+
+I first talked myself out of `[RA]` on `MinimalSignDial`, having convinced myself its
+footprint had nowhere to put a lever that was not either on a frame block or within reach of
+`[RD]`. That was wrong, and the existing shapes said so: `StandardSignDial` and `EvenSignDial`
+both hang `[RA]` off the ground row beside the DHD pillar with nothing beneath it. Minimal has
+that cell too.
+
+`MinimalSignDialRedstone` is retired -- the gap it existed to fill is closed, and its name now
+describes a distinction that no longer exists. It is dropped from the jar and from the list of
+defaults, not deleted from anyone's server: defaults are only ever written when missing, so an
+existing install keeps its copy and gates built from it keep working. Only new installs stop
+seeing it.
+
+One thing deliberately left alone. `REDSTONE_ACTIVATED=TRUE` looks like the switch for all of
+this and is not -- `[RD]` is. What the flag still does is stop `StargateBlockSetup` from
+auto-placing the iris lever, so setting it on `MinimalSignDial` for the sake of tidiness would
+have quietly taken that shape's iris away for a reason having nothing to do with redstone.
+Both shapes keep `REDSTONE_ACTIVATED=FALSE` and get their redstone from the marker.
+
 ### The woosh had two implementations; now it has one
 
 `StargateAnimator.animateOpening` carried two entirely separate woosh animations, chosen
