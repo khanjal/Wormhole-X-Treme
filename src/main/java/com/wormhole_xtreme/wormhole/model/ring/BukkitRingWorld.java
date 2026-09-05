@@ -231,7 +231,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
             maxY = Math.max(maxY, block[1]);
             maxZ = Math.max(maxZ, block[2]);
         }
-        return new BoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+        return new BoundingBox(minX, minY, minZ, (double) maxX + 1, (double) maxY + 1, (double) maxZ + 1);
     }
 
     /**

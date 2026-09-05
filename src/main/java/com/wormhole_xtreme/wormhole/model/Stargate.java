@@ -421,7 +421,7 @@ public class Stargate
         // Block centres, so a traveller lands in the middle of the block rather than on its
         // corner, and at its floor rather than inside it.
         final double x = Math.round((double) sumX / counted) + 0.5 + stepX;
-        final double y = lowest + stepY;
+        final double y = (double) lowest + stepY;
         final double z = Math.round((double) sumZ / counted) + 0.5 + stepZ;
         final Location fixed = new Location(gateWorld, x, y, z);
         try

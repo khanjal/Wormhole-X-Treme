@@ -200,9 +200,9 @@ class StargateAnimator
             // world themselves, so the round trip through a live World bought nothing and
             // put a server behind a calculation that is really just arithmetic.
             wave.add(new Location(gate.getGateWorld(),
-                portal.getBlockX() + (facing.getModX() * out),
-                portal.getBlockY() + (facing.getModY() * out),
-                portal.getBlockZ() + (facing.getModZ() * out)));
+                (double) portal.getBlockX() + (facing.getModX() * out),
+                (double) portal.getBlockY() + (facing.getModY() * out),
+                (double) portal.getBlockZ() + (facing.getModZ() * out)));
         }
         return wave;
     }

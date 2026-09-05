@@ -70,7 +70,10 @@ public class Configuration
         {
             try
             {
-                options.createNewFile();
+                if (!options.exists() && !options.createNewFile())
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create " + options.getPath());
+                }
             }
             catch (final Exception e)
             {

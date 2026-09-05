@@ -4,6 +4,39 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A dead null check made seven permission calls look like crashes
+
+`WXPermissions.checkWXPermissions` opened with `if (player == null) return false;`. No caller
+can reach it with null -- all thirty-nine pass a player from an `instanceof` cast, an event, or
+a local derived from one -- so the guard never fired.
+
+It was not harmless. Sonar reads it as proof the parameter is nullable, and every caller then
+looks like a crash, because they all do the same thing:
+
+```java
+if (WXPermissions.checkWXPermissions(player, ...)) { ... }
+else { player.sendMessage(...); }
+```
+
+If the player could be null, the guard returns false, the `else` runs, and the message throws.
+Seven `javabugs:S2259` reports across `Build`, `Compass`, `Dial`, `RingCommand`, `BeamCommand`
+and `GateInteractionHandler` all traced back to this one line. Removing it clears every one of
+them, and behaviour is unchanged because the branch was unreachable.
+
+### A gate file that would not delete said nothing
+
+`removeStargate` called `delete()` and ignored the result, so a gate whose file could not be
+removed came back on the next load with nothing logged. Same for `createNewFile` when writing
+the config.
+
+### Integer arithmetic widened to double after the fact
+
+Ten places computed block coordinates in `int` and let the result widen -- `maxX + 1` into a
+`BoundingBox`, `anchorX - other.anchorX` into a `long` distance. None can overflow at
+Minecraft's coordinate limits, so this is tidying rather than a fix; the casts just put the
+widening before the arithmetic instead of after.
+
+
 ### A hand-edited config line without a colon could end the parse
 
 `getValueFromSetting` split each line on `:` and read `[1]` without checking there was one.
