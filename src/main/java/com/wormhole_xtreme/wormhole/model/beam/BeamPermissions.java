@@ -43,10 +43,6 @@ public final class BeamPermissions
      */
     public static boolean has(final CommandSender sender, final String node)
     {
-        if (sender == null)
-        {
-            return false;
-        }
         return sender.isOp() || sender.hasPermission(node);
     }
 }
