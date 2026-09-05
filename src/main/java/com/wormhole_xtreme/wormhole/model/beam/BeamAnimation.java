@@ -53,11 +53,17 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  * {@link BeamVisibility}, frozen by {@link BeamFreeze}, from the vanish tick on) through the
  * tail of the rise.
  *
- * <p>{@link BeamVisibility} rather than {@code PotionEffectType.INVISIBILITY}, which is what
- * this used to be and does not do the job: invisibility hides a body and leaves held items,
- * armour and shields rendering where they were, so a traveller carrying anything left a
- * person-shaped set of equipment standing in the column instead of dissolving into it. That
- * class has the details.
+ * {@link BeamVisibility} does that with {@code hideEntity} rather than
+ * {@code PotionEffectType.INVISIBILITY}, which is what this used to be and does not do the
+ * job on its own: invisibility hides a body and leaves held items, armour and shields
+ * rendering where they were, so a traveller carrying anything left a person-shaped set of
+ * equipment standing in the column instead of dissolving into it.
+ *
+ * <p>Invisibility is still stacked on top, for a different audience. Hiding is
+ * observer-relative and never reaches the traveller's own camera -- a client always renders
+ * its own player -- so without it a traveller in third person watches themselves stand solid
+ * in the column while everyone else sees an empty beam. It is a partial answer, since their
+ * own equipment keeps rendering for them regardless; {@link BeamVisibility} has the trade.
  *
  * <p>What the traveller was riding is {@link BeamMount}'s problem, and it is a real one:
  * Bukkit dismounts a rider before teleporting them, so a beam that did nothing about it would
@@ -217,10 +223,11 @@ public final class BeamAnimation
      * timed out on its own. Adding an effect to the sequence now means adding it here, which
      * both endings read.
      *
-     * <p>Invisibility used to be on this list and is deliberately not any more. Hiding the
-     * traveller is {@link BeamVisibility}'s job now, and stripping the effect here would have
-     * meant a beam cancelling an invisibility potion the traveller had drunk themselves --
-     * something the sequence never applied and has no business taking away.
+     * <p>Invisibility is deliberately not on this list, even though a beam does apply it.
+     * Everything here is removed unconditionally, and invisibility is the one effect a
+     * traveller might already have had from a potion of their own -- removing it that way is
+     * exactly how a beam used to cancel one. {@link BeamVisibility} applies and removes it
+     * instead, under a guard that only ever takes back what it actually gave.
      *
      * <p>Deliberately not pinned by a unit test, and not for lack of trying: naming any
      * {@link PotionEffectType} constant from a test fails with
@@ -261,6 +268,8 @@ public final class BeamAnimation
         private final String destinationName;
         private final Runnable onDepart;
         private final BeamTiming timing;
+        /** Hiding and revealing, per sequence because it tracks what it applied. */
+        private final BeamVisibility visibility;
         /** What they were riding, settled at the vanish tick; never null, possibly absent. */
         private BeamMount mount;
         private int tick;
@@ -289,6 +298,7 @@ public final class BeamAnimation
                 ConfigManager.getBeamDescendTicks(),
                 ConfigManager.getBeamFadeTicks());
 
+            this.visibility = BeamVisibility.of(player);
             // Not captured here: the traveller is free to mount or dismount right through
             // the envelope, so what they are riding is not settled until the vanish tick.
             this.mount = BeamMount.none();
@@ -369,12 +379,20 @@ public final class BeamAnimation
                 mount.hold(player);
                 BeamFreeze.freeze(player);
 
-                // The traveller and their mount both leave everyone else's screen here, in
-                // one call rather than as an invisibility effect: invisibility would have
-                // left whatever they were holding, wearing and riding rendered exactly where
-                // it was. Removed explicitly at the deposit, and by recover() if this
-                // sequence never gets that far.
-                BeamVisibility.hide(player, mount.stack());
+                // The traveller and their mount both leave everyone else's screen here --
+                // hideEntity rather than an invisibility effect, which would have left
+                // whatever they were holding, wearing and riding rendered exactly where it
+                // was. Invisibility goes on too, but only for the traveller's own camera,
+                // which hiding cannot reach. Both are undone explicitly at the deposit, and
+                // by recover() if this sequence never gets that far.
+                //
+                // The duration is a ceiling, not the timing: the remainder of the envelope
+                // plus the full rise and descent over-estimates when it is needed until,
+                // which is fine, since explicit removal at the deposit is what the sequence
+                // actually depends on and this only guards against that removal being late.
+                visibility.hide(mount.stack(),
+                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks()
+                        + timing.descendTicks());
             }
 
             if (frame.isRiseActive())
@@ -433,7 +451,7 @@ public final class BeamAnimation
                     // rather than popping in after it -- the same tick their sight comes
                     // back, so what they can see and what everyone else can see resolve
                     // together.
-                    BeamVisibility.show(player, mount.stack());
+                    visibility.show(mount.stack());
                 }
 
                 if (frame.isFadeActive())
@@ -469,7 +487,7 @@ public final class BeamAnimation
             mount.release();
             try
             {
-                BeamVisibility.show(player, mount.stack());
+                visibility.show(mount.stack());
             }
             catch (final RuntimeException ignored) { /* best effort, same as everything else here */ }
         }

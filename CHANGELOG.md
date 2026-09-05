@@ -25,10 +25,22 @@ Hiding is per-observer, so this walks the online players and skips the traveller
 who still needs to see where they are going. That is the same observer-relative property the
 sequence already leaned on -- just through an API that covers what a player is carrying.
 
-One thing fell out of the swap. `INVISIBILITY` was on the list of effects the arrival tick
-strips, and that list does not check which of them the sequence actually applied. A beam was
-therefore cancelling an invisibility potion the traveller had drunk themselves. It is off the
-list now.
+Invisibility is applied on top of it all the same, and I had dropped it entirely first. That
+was wrong, and play-testing in third person caught it: hiding never reaches the traveller's
+own camera, because a client always renders its own player. So the traveller watched
+themselves stand solid in the column while everyone else correctly saw an empty beam.
+
+The effect is the only thing that reaches their own view, and it is a partial answer by
+nature -- their own equipment keeps rendering for them regardless, so an armoured traveller
+sees their kit without a body in it. That is the trade, taken deliberately, for the
+unarmoured case looking right. Nobody else is affected either way; `hideEntity` has already
+removed them from every other client.
+
+One thing did fall out of the swap. `INVISIBILITY` was on the list of effects the arrival tick
+strips, and that list is removed wholesale without checking which entries the sequence
+actually applied -- so a beam was cancelling an invisibility potion the traveller had drunk
+themselves. It is off that list now. The effect is applied only when the traveller does not
+already have it, and removed only when the sequence was the one that applied it.
 
 ### Beaming takes your mount with you
 
