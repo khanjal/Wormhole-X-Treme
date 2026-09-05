@@ -60,6 +60,8 @@ import com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager;
  * of these has no location of its own to beam <em>from</em> in the first place -- only
  * {@code send}, never a bare {@code goto}, makes sense for either.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class BeamCommand implements SubCommand
 {
     @Override

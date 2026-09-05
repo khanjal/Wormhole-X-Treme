@@ -17,6 +17,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * geometry from scratch (preserving name, owner, IDC, and network) and
  * re-saves the corrected data without touching any blocks.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class Refresh implements CommandExecutor
 {
     private static final ConcurrentHashMap<Player, Boolean> pendingRefresh = new ConcurrentHashMap<>();

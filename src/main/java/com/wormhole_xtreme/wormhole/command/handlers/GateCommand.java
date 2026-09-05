@@ -32,6 +32,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * what these commands <em>do</em> has changed. The old flat names still work too -- they are
  * registered as hidden entries -- so nothing in a command block or a script breaks.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class GateCommand implements SubCommand
 {
     /** The verbs, in the order they are offered. */

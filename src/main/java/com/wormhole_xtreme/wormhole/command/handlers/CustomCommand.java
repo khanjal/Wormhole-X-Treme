@@ -17,6 +17,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 /**
  * Handler for '/wormhole custom'
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class CustomCommand implements SubCommand
 {
 

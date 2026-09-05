@@ -26,6 +26,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * shape over before it is worth loading at all, or confirming a fix landed without disturbing
  * whatever a gate is already standing on.
  */
+// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
+@SuppressWarnings("java:S3516")
 public class GateShapesCommand implements SubCommand
 {
     @Override
