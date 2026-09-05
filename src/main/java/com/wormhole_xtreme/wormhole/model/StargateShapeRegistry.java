@@ -399,6 +399,8 @@ public final class StargateShapeRegistry
     }
 
     /** Frame materials any loaded shape declares. Replaced wholesale on load. */
+    // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
+    @SuppressWarnings("java:S3077")
     private static volatile java.util.Set<org.bukkit.Material> knownStructureMaterials = java.util.Collections.emptySet();
 
     /**
