@@ -37,7 +37,17 @@ public final class MaterialGroup
     private final Material signMaterial;
 
     /**
-     * Instantiates a new material group.
+     * Material an unlit chevron is built from, or null if this palette has none.
+     *
+     * <p>The only optional material here, and the only one that is not purely a styling
+     * choice: it changes what a player has to build for the gate to be found at all. A
+     * palette that names one widens what detection accepts at a chevron position rather
+     * than replacing it, so gates built before it was set are unaffected either way.
+     */
+    private final Material chevronMaterial;
+
+    /**
+     * Instantiates a new material group with no distinct chevrons.
      *
      * @param name
      *            the group name
@@ -55,12 +65,38 @@ public final class MaterialGroup
     public MaterialGroup(final String name, final Material structureMaterial, final Material portalMaterial,
         final Material irisMaterial, final Material lightMaterial, final Material signMaterial)
     {
+        this(name, structureMaterial, portalMaterial, irisMaterial, lightMaterial, signMaterial, null);
+    }
+
+    /**
+     * Instantiates a new material group.
+     *
+     * @param name
+     *            the group name
+     * @param structureMaterial
+     *            the frame material, which identifies this group during detection
+     * @param portalMaterial
+     *            the open-wormhole material
+     * @param irisMaterial
+     *            the engaged-iris material
+     * @param lightMaterial
+     *            the active-light material
+     * @param signMaterial
+     *            the wall-sign material for the gate name sign
+     * @param chevronMaterial
+     *            the unlit-chevron material, or null if this palette has no distinct chevrons
+     */
+    public MaterialGroup(final String name, final Material structureMaterial, final Material portalMaterial,
+        final Material irisMaterial, final Material lightMaterial, final Material signMaterial,
+        final Material chevronMaterial)
+    {
         this.name = name;
         this.structureMaterial = structureMaterial;
         this.portalMaterial = portalMaterial;
         this.irisMaterial = irisMaterial;
         this.lightMaterial = lightMaterial;
         this.signMaterial = signMaterial;
+        this.chevronMaterial = chevronMaterial;
     }
 
     /**
@@ -123,6 +159,16 @@ public final class MaterialGroup
     public Material getSignMaterial()
     {
         return signMaterial;
+    }
+
+    /**
+     * Gets the material an unlit chevron is built from.
+     *
+     * @return the chevron material, or null if this palette has no distinct chevrons
+     */
+    public Material getChevronMaterial()
+    {
+        return chevronMaterial;
     }
 
     @Override

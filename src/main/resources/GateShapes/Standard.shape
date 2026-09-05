@@ -12,9 +12,11 @@ Version=2
 #    [I] = Ignored
 #    [S] = Stargate Material
 #    [P] = Air blocks that will turn into the portal material when activated.
-#    [C] = Chevron Material. Like [S], but must be built from CHEVRON_MATERIAL rather
-#          than the gate material, so the chevrons can be seen before they light.
-#          If no CHEVRON_MATERIAL is set, [C] means exactly the same as [S].
+#    [C] = Chevron Material. Like [S], but must be built from the chevron material
+#          rather than the gate material, so the chevrons can be seen before they
+#          light. The chevron material comes from the gate's palette (the `chevron`
+#          key in config.yml), or from CHEVRON_MATERIAL below to pin it to this shape.
+#          Where neither names one, [C] means exactly the same as [S].
 
 #    Extra parameters:
 #   --- These parameters are 1 of each per gate ---
@@ -37,8 +39,8 @@ Version=2
 #    :L = Blocks that will light when gate is activated
 #       Optionally you may add a #number after L to indicate the order it lights.
 #       Defaults to 1 if there is no #
-#       When CHEVRON_MATERIAL is set, an [S:L] cell may be built from EITHER the gate
-#       material or the chevron material, so gates built before you set it keep working.
+#       Where a chevron material is set, an [S:L] cell may be built from EITHER the gate
+#       material or the chevron material, so gates built before it was set keep working.
 #       Use [C:L] instead if you want to require the chevron material.
 #    :W = Blocks that will woosh when gate is activated
 #       Optionally you may add a #number after W to indicate the order it wooshes in.
@@ -54,11 +56,6 @@ Version=2
 #           This block requires a :D block for targetting. This block should be on top of a [S] block.
 #    [RA] = Redstone gate Activated block. This block will provide redstone charge when the gate is activated.
 #           This block should be on top of a [S] block.
-
-# Unlit chevrons. Build the seven [S:L#n] positions from this instead of obsidian and
-# they show as dark lamps until the gate dials. Obsidian still works there, so this
-# breaks no gate that is already standing.
-CHEVRON_MATERIAL=REDSTONE_LAMP
 
 GateShape=
 

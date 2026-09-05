@@ -604,6 +604,52 @@ public class Stargate
     }
 
     /**
+     * Works out what an unlit chevron is built from, without needing a gate to ask.
+     *
+     * <p>Detection needs this before there is a {@code Stargate} to ask: the material is part
+     * of what decides whether the thing in front of the player is a gate at all. So the rule
+     * lives here as a function of the two things that can carry it, and
+     * {@link #getEffectiveChevronMaterial()} is that same rule asked about a built gate.
+     * Keeping one copy matters more here than for the other materials -- if detection and the
+     * runtime ever disagreed about this one, a gate would be found and then rendered as
+     * something a player could not have built.
+     *
+     * <p>Null is a real answer and the common one: it means chevrons are ordinary frame
+     * blocks, which is what every gate built before this existed relies on.
+     *
+     * @param shape
+     *            the shape being matched, may be null
+     * @param group
+     *            the palette the frame resolved to, may be null
+     * @return the chevron material, or null if neither names one
+     */
+    public static Material resolveChevronMaterial(final StargateShape shape, final MaterialGroup group)
+    {
+        // A shape that names one means it, the same way an explicit iris outranks the
+        // palette: geometry authored around lamp chevrons should not lose them to a palette
+        // that never considered chevrons at all.
+        if ((shape != null) && (shape.getShapeChevronMaterial() != null))
+        {
+            return shape.getShapeChevronMaterial();
+        }
+        return group != null ? group.getChevronMaterial() : null;
+    }
+
+    /**
+     * Gets the material an unlit chevron of this gate is built from.
+     *
+     * <p>There is no per-gate override for this one yet, unlike the portal, iris and light
+     * materials: those are appearance and can be changed under a standing gate, whereas this
+     * says what the gate had to be built out of to be found.
+     *
+     * @return the chevron material, or null if this gate has no distinct chevrons
+     */
+    public Material getEffectiveChevronMaterial()
+    {
+        return resolveChevronMaterial(gateShape, getGateMaterialGroup());
+    }
+
+    /**
      * Gets the wall-sign material for this gate's name sign.
      *
      * <p>There is no per-gate override for this one, so resolution is shape-then-palette.

@@ -13,6 +13,9 @@ import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 
@@ -178,22 +181,104 @@ public class UnlitChevronTest
     }
 
     /**
-     * Standard offers unlit chevrons without requiring them.
+     * Standard offers unlit chevrons without requiring them, and without pinning them.
      *
      * <p>Its seven chevrons stay written {@code [S:L#n]}, so they remain frame blocks and an
-     * obsidian gate built years ago still parses, still detects, and still dials. Naming a
-     * chevron material only adds a second material detection will accept in those positions.
+     * obsidian gate built years ago still parses, still detects, and still dials. It also
+     * names no chevron material of its own: a shape describes geometry, and the same geometry
+     * built in the Atlantis palette should get Atlantis's chevrons rather than obsidian
+     * Standard's.
      */
     @Test
     public void standardOffersUnlitChevronsWithoutBreakingObsidianOnes() throws Exception
     {
         final Stargate3DShape standard = load("Standard");
-        assertEquals(Material.REDSTONE_LAMP, standard.getShapeChevronMaterial(),
-            "Standard should name a chevron material so the feature can be tried without "
-                + "hand-editing a shape file");
+        assertNull(standard.getShapeChevronMaterial(),
+            "Standard should take its chevron material from the palette -- pinning one in the "
+                + "shape would force the same block on every palette the shape is built in");
         assertTrue(chevronCells(standard).isEmpty(),
             "Standard must use no [C] cells -- a [C] would make the chevron material "
                 + "mandatory and every obsidian Standard gate in the world undetectable");
+    }
+
+    /**
+     * The palette is where a chevron material normally comes from.
+     *
+     * <p>Detection has to answer this before there is a gate to ask, so the rule lives as a
+     * function of the shape and the palette the frame resolved to. Getting it from the palette
+     * is what lets one shape be built in obsidian with lamp chevrons and in lapis with
+     * something else, without a shape file per combination.
+     */
+    @Test
+    public void aPaletteSuppliesTheChevronMaterialWhenTheShapeDoesNot() throws Exception
+    {
+        final Stargate3DShape standard = load("Standard");
+        final MaterialGroup palette = new MaterialGroup("Standard", Material.OBSIDIAN,
+            Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
+            Material.REDSTONE_LAMP);
+
+        assertEquals(Material.REDSTONE_LAMP, Stargate.resolveChevronMaterial(standard, palette));
+    }
+
+    /**
+     * A shape that names a chevron material outranks the palette.
+     *
+     * <p>Same precedence the other materials already use: a shape authored around a particular
+     * block means it, and a palette that never considered chevrons should not take it away.
+     */
+    @Test
+    public void aShapeThatNamesAChevronMaterialOutranksThePalette() throws Exception
+    {
+        final Stargate3DShape pinned = load("Standard", null, null);
+        pinned.setShapeChevronMaterial(Material.SEA_LANTERN);
+        final MaterialGroup palette = new MaterialGroup("Standard", Material.OBSIDIAN,
+            Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
+            Material.REDSTONE_LAMP);
+
+        assertEquals(Material.SEA_LANTERN, Stargate.resolveChevronMaterial(pinned, palette));
+    }
+
+    /**
+     * With neither naming one, there is no chevron material at all.
+     *
+     * <p>The ordinary case, and the one that keeps every existing gate safe: detection only
+     * relaxes its frame-material check when there is a second material to relax it towards.
+     */
+    @Test
+    public void neitherShapeNorPaletteNamingOneMeansNoChevronMaterial() throws Exception
+    {
+        final MaterialGroup plain = new MaterialGroup("Standard", Material.OBSIDIAN,
+            Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN);
+
+        assertNull(Stargate.resolveChevronMaterial(load("Standard"), plain));
+        assertNull(Stargate.resolveChevronMaterial(null, null));
+    }
+
+    /**
+     * The shipped Standard palette offers unlit chevrons out of the box.
+     *
+     * <p>Read from the real {@code config.yml} rather than a fixture, because the point is
+     * that somebody installing this can build a lamp-chevron gate without editing anything.
+     * A default dropped during an unrelated edit to that file would otherwise go unnoticed.
+     */
+    @Test
+    public void theShippedStandardPaletteOffersUnlitChevrons() throws Exception
+    {
+        final Object parsed = new org.yaml.snakeyaml.Yaml().load(new String(
+            Files.readAllBytes(Paths.get("src/main/resources/config.yml")),
+            java.nio.charset.StandardCharsets.UTF_8));
+        @SuppressWarnings("unchecked")
+        final java.util.Map<String, Object> root = (java.util.Map<String, Object>) parsed;
+        @SuppressWarnings("unchecked")
+        final java.util.Map<String, Object> section =
+            (java.util.Map<String, Object>) root.get("gate-material-groups");
+
+        MaterialGroupRegistry.load(section);
+
+        assertEquals(Material.REDSTONE_LAMP,
+            MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN).getChevronMaterial(),
+            "the shipped Standard palette should let an obsidian gate be built with lamp "
+                + "chevrons without the server owner editing any file");
     }
 
     /**

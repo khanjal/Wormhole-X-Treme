@@ -484,10 +484,14 @@ public final class StargateHelper
             return null; // frame is not built from any palette this shape accepts
         }
 
-        // What an unlit chevron is built from, if this shape has them at all. Null is the
-        // ordinary case and means the shape never named one: [S:L#n] then accepts only the
-        // frame material, exactly as before, and a [C] cell means the same as [S].
-        final org.bukkit.Material chevronMat = shape.getShapeChevronMaterial();
+        // Resolved once and reused: the palette decides the chevron material as well as the
+        // portal, iris and light ones, and populating the gate below needs the same lookup.
+        final MaterialGroup group = MaterialGroupRegistry.getGroupByStructureMaterial(structMat);
+
+        // What an unlit chevron is built from, if this gate has them at all. Null is the
+        // ordinary case and means neither shape nor palette named one: [S:L#n] then accepts
+        // only the frame material, exactly as before, and a [C] cell means the same as [S].
+        final org.bukkit.Material chevronMat = Stargate.resolveChevronMaterial(shape, group);
 
         // Verify every structure (S) block has the expected material,
         // AND every portal (P) block is NOT the structure material.
@@ -553,7 +557,7 @@ public final class StargateHelper
         final Stargate gate = new Stargate();
         // Record which palette matched so the gate's portal, iris and light materials
         // come from it rather than from the shape's own defaults.
-        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroupByStructureMaterial(structMat));
+        gate.setGateMaterialGroup(group);
         gate.setGateShape(shape);
         gate.setGateFacing(facing);
         gate.setGateWorld(world);
