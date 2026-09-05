@@ -4,6 +4,48 @@ All notable changes to this project are documented in this file.
 
 ## 1.4.0 (2026-09-04)
 
+### The woosh had two implementations; now it has one
+
+`StargateAnimator.animateOpening` carried two entirely separate woosh animations, chosen
+between by whether the gate had any authored woosh blocks. A shape with `:W#N` markers
+replayed them through one state machine counting `gateAnimationStep3D`. A shape without them
+ran a second one counting `gateAnimationStep2D`, deriving its waves by extruding the portal
+face outward a step at a time, on its own hardcoded 4/8/3-tick delays.
+
+That split was fork lineage, not design -- 3D gate support arrived as a separate branch and
+the older animation was kept beside it rather than replaced. The cost was real and already
+paid: the off-by-one that left a wave drawn inside the gate on every opening (fixed just
+below) existed in one of the two and not the other, so no amount of care spent on the second
+could ever have surfaced it.
+
+Both now run through the same state machine. Two small functions are all that remains of the
+difference: `wooshWaveCount` answers how many waves a gate has, and `wooshWave` answers what
+is in one -- read from the shape when it authors them, derived by the identical outward
+extrusion when it does not. `gateAnimationStep2D` and its accessors are gone.
+
+Derived waves are computed on demand rather than stored at detection time. That was the
+tempting version, and it would have meant persisting them: gate woosh locations are written
+to disk once when a gate is detected, so a stored version would have grown every save file
+and needed a re-detect before a depth change took effect. Deriving keeps it out of the save
+format entirely and makes a changed depth apply on the very next opening.
+
+One behaviour change worth naming: gates that took the old 2D path now honour
+`getEffectiveWooshTicks()` like every other gate, instead of the hardcoded delays that path
+used. Every shipped shape authors its own waves, so no stock gate is affected.
+
+### `/wormhole wooshdepth` now says when it cannot change what you are looking at
+
+Following directly from the above. The setting only ever fed the derived-wave path, and
+every shipped shape authors its own waves -- so on an ordinary gate, setting a depth changed
+no visuals whatsoever. It was not doing nothing (it still governs how far block and entity
+protection reaches from the gate), but it was not doing the thing its name promises either,
+and nothing said so.
+
+It now tells you: setting or reading the depth on a gate whose shape defines its own woosh
+waves prints a note saying the depth will not change how the gate looks, and what it does
+still control. The alternative was renaming the command, which would break anyone's existing
+scripts to fix a wording problem.
+
 ### Fix: a failed beam left the traveller in the dark, literally
 
 Caught reviewing the beam work before merging it, and a drift between two places that were

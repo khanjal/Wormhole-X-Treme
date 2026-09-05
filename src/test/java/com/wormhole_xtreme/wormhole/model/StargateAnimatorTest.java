@@ -19,7 +19,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * after {@code /dial}": {@code gateAnimationStep3D} defaulted to 1 instead of 0, and the
  * "closing finished" branch in {@link StargateAnimator#animateOpening} never reset it back to
  * 0 either -- it only reset {@code isGateAnimationRemoving}, leaving the step counter at 1. The
- * kawoosh sound only fires when {@code step2D == 0 && step3D == 0}
+ * kawoosh sound only fires when {@code step3D == 0}
  * ({@link StargateAnimator#animateOpening}'s very first check), so with the counter stuck at 1
  * that condition was never true -- not on a gate's first-ever opening (the bad default), and
  * not on any opening after its first close either (the missing reset). The same counter also
@@ -36,10 +36,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * reschedules its own continuation with a raw {@code scheduleSyncDelayedTask} call that
  * nothing tracks a task id for. A gate that closes -- its own lever, a partner gate shutting
  * down, an idle timeout -- while the woosh is still mid-flight leaves whatever it had drawn
- * so far (the woosh material, one block out from the portal on a 2D gate's very first step)
+ * so far (the woosh material, the wave nearest the portal on the very first step)
  * showing to anyone nearby, and the already-scheduled continuation still fires afterward
  * regardless. {@link StargateAnimator#lightStargate}'s closing branch now undraws whatever is
- * left in {@code getGateAnimatedBlocks()} and resets both step counters unconditionally, the
+ * left in {@code getGateAnimatedBlocks()} and resets the step counter unconditionally, the
  * same way it already unconditionally undraws every chevron light block regardless of which
  * ones were actually lit; {@link StargateAnimator#animateOpening} now also returns
  * immediately on an inactive gate, so a continuation that fires after this reset reads the
@@ -86,13 +86,13 @@ public class StargateAnimatorTest
     @Test
     public void aFreshGatesAnimationStep3DStartsAtZeroNotOne()
     {
-        // The kawoosh check and the woosh-depth index both read this as "nothing has happened
-        // yet" only at 0 -- the 2D step counter right beside it already defaults to 0, and this
-        // one should too.
+        // The kawoosh check and the wave index both read this as "nothing has happened yet"
+        // only at 0, so a default of 1 silently skipped both on a gate's first opening.
         final Stargate gate = new Stargate();
 
         assertEquals(0, gate.getGateAnimationStep3D(),
-            "a gate that has never opened should read as step 0, matching gateAnimationStep2D's own default");
+            "a gate that has never opened should read as step 0 -- both the kawoosh trigger and the "
+                + "wave index read 0 as 'nothing has happened yet'");
     }
 
     @Test
@@ -169,10 +169,14 @@ public class StargateAnimatorTest
     {
         // Reproduces a stale scheduled continuation firing after the gate already closed.
         // Its own re-schedule keeps no task id to cancel, so it still runs even though
-        // closing (see closingUndrawsWhateverTheWooshLeftShowingAndResetsBothCounters below)
-        // already reset the counters to zero and marked the gate inactive. Without checking
-        // isGateActive() first, step2D == 0 reads as "nothing has happened yet" and the 2D
-        // path starts a brand new opening -- kawoosh included -- on a gate that closed.
+        // closing (see closingUndrawsWhateverTheWooshLeftShowingAndResetsTheCounter below)
+        // already reset the counter to zero and marked the gate inactive. Without checking
+        // isGateActive() first, step 0 reads as "nothing has happened yet" and a brand new
+        // opening starts -- kawoosh included -- on a gate that has already closed.
+        //
+        // A woosh depth with no authored waves is the case that used to take the separate
+        // 2D animation path; it now derives its waves through the same state machine as
+        // every other gate, so this one test covers what used to need two.
         final Stargate gate = new Stargate();
         gate.setGateActive(false);
         gate.setGateCustom(true);
@@ -180,22 +184,23 @@ public class StargateAnimatorTest
 
         StargateAnimator.animateOpening(gate);
 
-        assertEquals(0, gate.getGateAnimationStep2D(),
+        assertEquals(0, gate.getGateAnimationStep3D(),
             "an inactive gate must not start a fresh opening, even with a nonzero woosh depth configured");
+        assertFalse(gate.isGateAnimationRemoving(),
+            "nor may it begin retracting an opening it never started");
     }
 
     @Test
-    public void closingUndrawsWhateverTheWooshLeftShowingAndResetsBothCounters()
+    public void closingUndrawsWhateverTheWooshLeftShowingAndResetsTheCounter()
     {
         // Reproduces landing mid-woosh: some blocks already drawn and remembered (what a
-        // real opening in progress leaves in getGateAnimatedBlocks()), both step counters
-        // non-zero, partway through the 3D path's own retraction. Nothing about this state
-        // is "the tail of a normal opening settling into place" -- an external close has
-        // interrupted it, and closingTheWooshResetsStep3DBackToZeroForTheNextOpening above
-        // already covers the normal-completion case.
+        // real opening in progress leaves in getGateAnimatedBlocks()), the step counter
+        // non-zero, partway through the retraction. Nothing about this state is "the tail
+        // of a normal opening settling into place" -- an external close has interrupted it,
+        // and closingTheWooshResetsStep3DBackToZeroForTheNextOpening above already covers
+        // the normal-completion case.
         final Stargate gate = new Stargate();
         gate.getGateAnimatedBlocks().add(mock(Block.class));
-        gate.setGateAnimationStep2D(2);
         gate.setGateAnimationStep3D(1);
         gate.setGateAnimationRemoving(true);
 
@@ -204,7 +209,6 @@ public class StargateAnimatorTest
         assertTrue(gate.getGateAnimatedBlocks().isEmpty(),
             "closing must undraw and forget whatever the woosh left showing, not just whatever "
                 + "its own retraction already knew to look for");
-        assertEquals(0, gate.getGateAnimationStep2D());
         assertEquals(0, gate.getGateAnimationStep3D());
         assertFalse(gate.isGateAnimationRemoving());
     }
