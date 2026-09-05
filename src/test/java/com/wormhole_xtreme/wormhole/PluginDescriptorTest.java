@@ -48,7 +48,7 @@ class PluginDescriptorTest
         assertNotNull(version, "plugin.yml must declare a version");
         assertFalse(version.contains("${"),
             "the version should have been substituted at build time, but plugin.yml still says " + version);
-        assertTrue(version.matches("\\d+\\.\\d+\\.\\d+.*"),
+        assertTrue(version.matches("\\d++\\.\\d++\\.\\d++.*"),
             "expected a version number, got " + version);
     }
 

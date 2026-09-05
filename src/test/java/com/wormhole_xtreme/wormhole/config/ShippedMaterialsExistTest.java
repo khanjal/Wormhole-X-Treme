@@ -52,7 +52,7 @@ class ShippedMaterialsExistTest
      * changed. Matching the key says what is actually true -- the value on this line was never
      * meant to be a material.
      */
-    private static final Pattern COLOUR_SETTING = Pattern.compile("^sign-color-[a-z-]+\s*:");
+    private static final Pattern COLOUR_SETTING = Pattern.compile("^sign-color-[a-z-]++\s*+:");
 
     private static List<Path> shippedResources() throws IOException
     {

@@ -29,6 +29,8 @@ public final class GateEvents
      * cannot dispatch without a server, so tests substitute the delivery step and assert on
      * what arrives. Null means deliver through Bukkit, which is what production does.
      */
+    // A function reference, not a container: volatile is the whole synchronisation it needs.
+    @SuppressWarnings("java:S3077")
     private static volatile java.util.function.Consumer<Event> dispatcher = null;
 
     /** Static helpers only. */
