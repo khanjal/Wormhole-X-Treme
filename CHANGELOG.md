@@ -4,6 +4,43 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Saving the config no longer destroys the rest of the file
+
+Found chasing a report that config edits reset on reboot. They did, and that was the smaller
+half of it.
+
+Every clean shutdown persists the running configuration. That meant regenerating `config.yml`
+from the flat setting list -- opening it truncating and writing back only the keys it knew
+about. Everything else in the file went with it on every single restart: the whole nested
+`gate-material-groups:` block, `permissions-support-disable` (skipped deliberately by the
+writer, and therefore deleted), and every comment an admin had written.
+
+Material-group discovery is what kept this from being obvious. It rebuilds groups from the
+gate shapes on the next startup, so a server running stock palettes saw its file churn and
+nothing worse. A group somebody had tuned by hand came back with discovered defaults instead
+of their own portal, iris, light and sign choices -- once per restart, indefinitely.
+
+Saving now edits the settings it owns in place and leaves every other line exactly as it found
+it: nested blocks, comments, blank lines, commented-out settings, and keys it does not
+recognise. A file that does not exist yet is still generated whole, which is the one case
+where writing the entire thing is right. `permissions-support-disable` is still never written,
+but that now means left alone rather than dropped.
+
+The rule that does the work is that only a key starting in column zero is a setting. A
+material group's own `sign:` entry is indented, so it can share a name with a top-level
+setting without being overwritten by it -- which would have silently repainted every gate in
+that palette. Removing that one condition fails
+`anIndentedKeyIsNotTreatedAsASettingOfTheSameName`, which is what it is there for.
+
+The tests run the real shipped `config.yml` through the same surgery a shutdown performs,
+rather than a synthetic sample, because the block being lost is defined in that file and its
+exact shape is what a hand-written example is most likely to get wrong.
+
+**This also explains why editing `config.yml` on a running server never stuck.** The edit
+changed the file, the shutdown rewrote the file from memory, and memory had never heard about
+it. Editing while the server is stopped works; so does `/wormhole config <name> <value>`,
+which changes the running value and writes it out immediately.
+
 ### One redstone circuit is one trigger, not several
 
 Reported from in game: running dust past the button and up to the marker activated the gate
