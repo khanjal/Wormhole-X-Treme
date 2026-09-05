@@ -159,7 +159,7 @@ class WormholeXTremeRedstoneListener implements Listener
             // Fallback: find a nearby indexed gate if the block itself isn't indexed
             return StargateManager.findNearestGateByBlock(block.getLocation(), GATE_SEARCH_RADIUS, GATE_SEARCH_RADIUS);
         }
-        catch (final Throwable ignore)
+        catch (final RuntimeException ignore)
         {
             return null;
         }

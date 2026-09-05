@@ -39,6 +39,13 @@ rule about *which block* may trigger could ever have recognised it.
 The 250ms repeat window did not catch this. It is measured per gate and both dials were the
 same gate, but the first one was a player's click, which never touches that window.
 
+Both of the redstone listener's own guards now catch `RuntimeException` rather than
+`Throwable` -- the lever write inside that window, and the fallback gate lookup beside it.
+Swallowing `Throwable` meant a `NoClassDefFoundError` from a Bukkit version that had moved the
+block-data API would have read exactly like a lever that would not take the write: silence,
+and a gate whose light was wrong. The `finally` still clears the write window either way, so
+an error getting out cannot leave the listener deaf to real redstone.
+
 ### A sign gate ignored its sign until you cycled it by hand
 
 After a restart -- or the first time a gate's chunk loaded -- pressing the DHD on a sign gate

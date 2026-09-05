@@ -1239,7 +1239,12 @@ class StargateBlockSetup
                     llp.setPowered(gate.isGateActive());
                     gate.getGateDialLeverBlock().setBlockData(llp);
                 }
-                catch (final Throwable ignore) {}
+                catch (final RuntimeException ignore)
+                {
+                    // A lever that refuses the write leaves the gate's light wrong, which is
+                    // cosmetic. Errors are left to propagate; the finally still clears the
+                    // guard either way, so a failure here cannot wedge the redstone listener.
+                }
                 finally
                 {
                     GateRedstoneWrite.end();
