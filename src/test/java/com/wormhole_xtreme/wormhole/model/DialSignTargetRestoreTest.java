@@ -168,4 +168,63 @@ public class DialSignTargetRestoreTest
         assertNotNull(gate.getGateDialSignTarget());
         assertEquals("bravo", gate.getGateDialSignTarget().getGateName(), "7 of three peers wraps to index 1");
     }
+
+    /**
+     * A gate on a named network cycles that network's gates, not the public pool.
+     *
+     * <p>The two pools are built by separate branches, and only the public one carries the
+     * gates every other test here uses. Without this, a change to the network branch -- the one
+     * a server with organised networks actually runs -- would break with nothing to catch it.
+     */
+    @Test
+    public void aNetworkedGateResolvesAgainstItsOwnNetwork()
+    {
+        final Stargate networked = new Stargate();
+        networked.setGateName("hub");
+        networked.setGateSignPowered(true);
+        networked.setGateDialSignBlock(signBlock());
+        StargateManager.addGateToNetwork(networked, "milkyway");
+        networked.setGateNetwork(StargateManager.getStargateNetwork("milkyway"));
+        StargateManager.registerStargate(networked);
+
+        final Stargate onNet = new Stargate();
+        onNet.setGateName("abydos");
+        StargateManager.addGateToNetwork(onNet, "milkyway");
+        onNet.setGateNetwork(StargateManager.getStargateNetwork("milkyway"));
+        StargateManager.registerStargate(onNet);
+
+        networked.setGateDialSignIndex(0);
+        networked.refreshDialSignTarget();
+
+        // alpha/bravo/charlie are networkless and sort ahead of abydos on name, so answering
+        // any of them would mean the public pool leaked into a named network's sign.
+        assertNotNull(networked.getGateDialSignTarget());
+        assertEquals("abydos", networked.getGateDialSignTarget().getGateName());
+    }
+
+    /**
+     * A gate with nothing to dial says so, rather than keeping a stale destination.
+     *
+     * <p>The last peer can be removed while a gate is unloaded. Leaving the old destination in
+     * place would have the gate keep dialling a gate that is no longer there.
+     */
+    @Test
+    public void aGateWithNoPeersSelectsNothing()
+    {
+        gate.setGateDialSignIndex(1);
+        gate.refreshDialSignTarget();
+        assertNotNull(gate.getGateDialSignTarget(), "precondition: it has a destination to lose");
+
+        for (final Stargate s : StargateManager.getAllGates())
+        {
+            if (!"home".equals(s.getGateName()))
+            {
+                StargateManager.removeStargate(s);
+            }
+        }
+
+        gate.refreshDialSignTarget();
+
+        assertNull(gate.getGateDialSignTarget());
+    }
 }

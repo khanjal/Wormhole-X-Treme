@@ -85,23 +85,21 @@ class StargateDialManager
      * @param step {@code 1} for the next destination, {@code -1} for the previous,
      *             {@code 0} to re-resolve the one already selected
      */
-    private static void updateDialSign(final Stargate gate, final int step)
+    /**
+     * The destinations this gate's sign can cycle through, in the order it cycles them.
+     *
+     * <p>Named-network gates see only peers on the same network. Networkless gates form the
+     * implicit public pool -- they see every other networkless gate. Sorted by name so the
+     * order a click walks is the same one a saved index is read against.
+     *
+     * @param gate the gate whose sign is being written
+     * @return the peers, never null, possibly empty
+     */
+    private static List<Stargate> dialPeers(final Stargate gate)
     {
-        // Fetch the sign block state first.
-        final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
-        if (!(bState instanceof Sign))
-        {
-            return;
-        }
-        gate.setGateDialSign((Sign) bState);
-
-        // Build a filtered list of OTHER gates reachable from this gate.
-        // Named-network gates see only peers on the same network.
-        // Networkless gates form the implicit public pool — they see all other networkless gates.
         final List<Stargate> others = new ArrayList<Stargate>();
-        final boolean hasNetwork = gate.getGateNetwork() != null;
 
-        if (hasNetwork)
+        if (gate.getGateNetwork() != null)
         {
             synchronized (gate.getGateNetwork().getNetworkGateLock())
             {
@@ -122,7 +120,6 @@ class StargateDialManager
         }
         else
         {
-            // No named network — public pool: all other gates that also have no network.
             final java.util.ArrayList<Stargate> allGates = StargateManager.getAllGates();
             WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, false,
                 "SignDial: gate=" + gate.getGateName() + " network=none(public) allGatesSize=" + allGates.size());
@@ -137,7 +134,6 @@ class StargateDialManager
             }
         }
 
-        // Sort peers alphabetically so cycling order is predictable.
         java.util.Collections.sort(others, new java.util.Comparator<Stargate>()
         {
             @Override
@@ -146,6 +142,20 @@ class StargateDialManager
                 return a.getGateName().compareToIgnoreCase(b.getGateName());
             }
         });
+        return others;
+    }
+
+    private static void updateDialSign(final Stargate gate, final int step)
+    {
+        // Fetch the sign block state first.
+        final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
+        if (!(bState instanceof Sign))
+        {
+            return;
+        }
+        gate.setGateDialSign((Sign) bState);
+
+        final List<Stargate> others = dialPeers(gate);
 
         final SignSide face = gate.getGateDialSign().getSide(Side.FRONT);
         final ChatColor nameColor = SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA);

@@ -522,6 +522,78 @@ public class WormholeXTremeRedstoneListenerTest
     }
 
     /**
+     * A redstone-triggered gate dials its sign's selection after a restart.
+     *
+     * <p>The other half of the reload bug. A gate opened by redstone has nobody to tell that
+     * nothing happened, so a gate wired into a circuit simply stopped working after a restart
+     * and stayed that way until somebody walked to it and clicked the sign by hand.
+     *
+     * <p>The saved index is resolved here rather than being treated as no destination at all.
+     */
+    @Test
+    public void aRedstoneTriggerAfterAReloadDialsTheSignsSavedSelection()
+    {
+        final World world = mock(World.class);
+        final int dx = 900, dy = 64, dz = 1000;
+
+        final Stargate gate = spy(new Stargate());
+        gate.setGateWorld(world);
+        gate.setGateName("reloadedRedstoneGate");
+
+        final Block button = mock(Block.class);
+        when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getX()).thenReturn(dx);
+        when(button.getY()).thenReturn(dy);
+        when(button.getZ()).thenReturn(dz);
+        when(button.getType()).thenReturn(Material.STONE_BUTTON);
+
+        final Block dust = mock(Block.class);
+        when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getX()).thenReturn(dx + 1);
+        when(dust.getY()).thenReturn(dy);
+        when(dust.getZ()).thenReturn(dz);
+        when(dust.getType()).thenReturn(Material.REDSTONE_WIRE);
+
+        gate.setGateDialLeverBlock(button);
+        gate.setGateDialSignBlock(signBlock());
+        gate.setGateRedstonePowered(true);
+        gate.setGateSignPowered(true);
+        gate.setGateActive(false);
+        // Exactly how a gate comes back from disk: the index survived, the gate it names did not.
+        gate.setGateDialSignIndex(0);
+
+        final Stargate peer = new Stargate();
+        peer.setGateName("elsewhere");
+        StargateManager.registerStargate(peer);
+        StargateManager.registerStargate(gate);
+        doReturn(true).when(gate).dialStargate(any(Stargate.class), anyBoolean());
+
+        try
+        {
+            assertNull(gate.getGateDialSignTarget(), "a freshly loaded gate has no destination object");
+            new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
+            verify(gate).dialStargate(eq(peer), eq(false));
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+            StargateManager.removeStargate(peer);
+        }
+    }
+
+    /** A wall sign block whose state reads back the way the sign code expects. */
+    private static Block signBlock()
+    {
+        final Block block = mock(Block.class);
+        final org.bukkit.block.Sign state = mock(org.bukkit.block.Sign.class);
+        when(block.getType()).thenReturn(Material.OAK_WALL_SIGN);
+        when(block.getState()).thenReturn(state);
+        when(state.getSide(org.bukkit.block.sign.Side.FRONT))
+            .thenReturn(mock(org.bukkit.block.sign.SignSide.class));
+        return block;
+    }
+
+    /**
      * A second dust block in the same run does not dial the gate a second time.
      *
      * <p>Reported from in game: running redstone past the button and up to the marker
