@@ -6,7 +6,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
-import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 
 /**
  * WormholeXtreme Runnable thread for updating stargates.
@@ -40,11 +39,10 @@ public class StargateUpdateRunnable implements Runnable
         /** Action to iterate over lighting up blocks during activation. */
         LIGHTUP,
 
-        COOLDOWN_REMOVE,
         DIAL_SIGN_RESET;
     }
 
-    /** The stargate. */
+    /** The gate being updated. Never null -- every action here works a gate. */
     private final Stargate stargate;
 
     /** The player. */
@@ -55,11 +53,6 @@ public class StargateUpdateRunnable implements Runnable
 
     /** Direction for DIAL_SIGN_CLICK: {@code true} = forward (right-click), {@code false} = backward (left-click). */
     private final boolean forward;
-
-    public StargateUpdateRunnable(final Player player, final ActionToTake action)
-    {
-        this(null, player, action, true);
-    }
 
     /**
      * Instantiates a new stargate update runnable.
@@ -112,9 +105,8 @@ public class StargateUpdateRunnable implements Runnable
     @Override
     public void run()
     {
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Run Action \"" + action.toString() + (stargate != null
-            ? "\" Stargate \"" + stargate.getGateName()
-            : "") + "\"");
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+            "Run Action \"" + action + "\" Stargate \"" + stargate.getGateName() + "\"");
         switch (action)
         {
             case SHUTDOWN :
@@ -149,9 +141,6 @@ public class StargateUpdateRunnable implements Runnable
                 break;
             case LIGHTUP :
                 stargate.lightStargate(true);
-                break;
-            case COOLDOWN_REMOVE :
-                StargateRestrictions.removePlayerUseCooldown(player);
                 break;
             default :
                 break;

@@ -546,8 +546,10 @@ public class RingCommand implements SubCommand
             player.sendMessage("Stand in a ring, or name a pair by its id.");
             return true;
         }
+        // "edit" with no field at all still has to reach the usage line, not index past the end.
+        final boolean noField = args.length <= fieldAt;
         final boolean noValue = args.length <= (fieldAt + 1);
-        if (noValue && !"reset".equalsIgnoreCase(args[fieldAt]))
+        if (noField || (noValue && !"reset".equalsIgnoreCase(args[fieldAt])))
         {
             player.sendMessage("Usage: /wormhole ring edit [id] "
                 + "<ring|light|flash|built|name|access|style|reset> [value]");

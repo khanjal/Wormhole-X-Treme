@@ -130,9 +130,15 @@ class ConfigurationFlatFile
                     s = s.trim();
                     if (s.contains("Setting:"))
                     {
+                        // A line can contain "Setting:" and still have nothing after the
+                        // colon, and so can the value line below it. Both used to be indexed
+                        // straight at [1].
                         final String key[] = s.split(":");
-                        key[1] = key[1].trim();
-                        final ConfigKeys key_value = ConfigKeys.valueOf(key[1]);
+                        if (key.length < 2)
+                        {
+                            continue;
+                        }
+                        final ConfigKeys key_value = ConfigKeys.valueOf(key[1].trim());
                         if (key_value == name)
                         {
                             //Next line
@@ -140,7 +146,7 @@ class ConfigurationFlatFile
                             {
                                 final String val[] = s.split(":");
                                 bufferedReader.close();
-                                return val[1].trim();
+                                return val.length < 2 ? defaultVal.trim() : val[1].trim();
                             }
                         }
                     }

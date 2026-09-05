@@ -76,23 +76,22 @@ public class Configuration
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create new file: " + e.getMessage());
             }
-            final BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(options, StandardCharsets.UTF_8));
-
-            ConfigurationFlatFile.createNewHeader(bufferedwriter, desc.getName() + " " + desc.getVersion(), desc.getName() + " Config Settings", true);
-
-            final Set<ConfigKeys> keys = ConfigManager.getConfigurations().keySet();
-            final ArrayList<ConfigKeys> list = new ArrayList<ConfigKeys>(keys);
-            Collections.sort(list);
-            for (final ConfigKeys key : list)
+            try (BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(options, StandardCharsets.UTF_8)))
             {
-                final Setting s = ConfigManager.getConfigurations().get(key);
-                if (s != null)
-                {
-                    ConfigurationFlatFile.createNewSetting(bufferedwriter, s.getName(), s.getValue().toString(), s.getDescription());
-                }
+                ConfigurationFlatFile.createNewHeader(bufferedwriter, desc.getName() + " " + desc.getVersion(), desc.getName() + " Config Settings", true);
 
+                final Set<ConfigKeys> keys = ConfigManager.getConfigurations().keySet();
+                final ArrayList<ConfigKeys> list = new ArrayList<ConfigKeys>(keys);
+                Collections.sort(list);
+                for (final ConfigKeys key : list)
+                {
+                    final Setting s = ConfigManager.getConfigurations().get(key);
+                    if (s != null)
+                    {
+                        ConfigurationFlatFile.createNewSetting(bufferedwriter, s.getName(), s.getValue().toString(), s.getDescription());
+                    }
+                }
             }
-            bufferedwriter.close();
         }
         catch (final Exception exception)
         {
