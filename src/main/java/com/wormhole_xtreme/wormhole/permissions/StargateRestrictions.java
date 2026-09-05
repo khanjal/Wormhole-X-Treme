@@ -37,8 +37,7 @@ public class StargateRestrictions
         {
             return;
         }
-        // Apply a single cooldown duration for all players when enabled. Default seconds come from ConfigManager compatibility fallback.
-        final long cooldownSeconds = ConfigManager.getUseCooldownGroupOne();
+        final long cooldownSeconds = ConfigManager.getUseCooldownSeconds();
         getPlayerUseCooldownStart().put(player, System.nanoTime());
         // scheduleSyncDelayedTask expects an int/ticks on some platforms; cast explicitly to avoid lossy-conversion errors
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), (int) (cooldownSeconds * 20L));
@@ -58,7 +57,7 @@ public class StargateRestrictions
             final long startTime = getPlayerUseCooldownStart().get(player);
             final long currentTime = System.nanoTime();
             final long elapsedTime = (currentTime - startTime) / 1000000000;
-            final long cooldown = ConfigManager.getUseCooldownGroupOne();
+            final long cooldown = ConfigManager.getUseCooldownSeconds();
             return (cooldown >= elapsedTime) ? cooldown - elapsedTime : removePlayerUseCooldown(player);
         }
         return -1;
@@ -157,20 +156,6 @@ public class StargateRestrictions
                 getPlayerRecentArrival().remove(p);
             }
         }
-    }
-
-    /**
-     * Checks if is player build restricted.
-     * 
-     * @param player
-     *            the player
-     * @return true, if is player build restricted
-     */
-    public static boolean isPlayerBuildRestricted(final Player player)
-    {
-        // Build restriction feature removed: always allow builds. Permissions should
-        // be managed via Vault / LuckPerms.
-        return false;
     }
 
     /**
