@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A hand-edited config line without a colon could end the parse
+
+`getValueFromSetting` split each line on `:` and read `[1]` without checking there was one.
+A truncated `Setting:` line, or a value line somebody had wrapped, threw
+`ArrayIndexOutOfBoundsException`.
+
+The surrounding `catch (Exception)` hid it, but not harmlessly: the reader is closed before
+the value is read, so the caught exception left the loop calling `readLine` on a closed
+stream, and the `IOException` from that came out of the method. A malformed line took the
+whole file's remaining settings with it.
+
+Both reads are guarded now -- a truncated setting line is stepped over, an unreadable value
+falls back to the default the caller passed.
+
+### `/wormhole ring edit` with nothing after it crashed
+
+Typing the verb alone while standing in a ring read `args[2]` when only two arguments existed.
+The usage line it was supposed to print was one statement further down.
+
+### A scheduled gate update can no longer be built without a gate
+
+`StargateUpdateRunnable` had a constructor taking only a player, which passed `null` for the
+gate. Five of its six actions dereference that gate immediately, so the object was safe only
+because its single caller happened to pass the sixth -- `COOLDOWN_REMOVE`, which is not a gate
+update at all and only cleared a cooldown.
+
+That action has moved to the one line of scheduling it needed, and the constructor is gone. The
+gate field is now never null, and the null check the log line carried went with it.
+
+
 ### Beaming hid the traveller and left their gear standing in the column
 
 Reported from play-testing: the beam swallows you, but not the sword in your hand.

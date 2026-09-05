@@ -3,8 +3,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
-import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 
 /**
@@ -40,7 +38,7 @@ public class StargateRestrictions
         final long cooldownSeconds = ConfigManager.getUseCooldownSeconds();
         getPlayerUseCooldownStart().put(player, System.nanoTime());
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new StargateUpdateRunnable(player, ActionToTake.COOLDOWN_REMOVE), cooldownTicks(cooldownSeconds));
+            () -> removePlayerUseCooldown(player), cooldownTicks(cooldownSeconds));
     }
 
     /**
