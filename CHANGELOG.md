@@ -238,12 +238,20 @@ have been the wrong repair. Those three now parse the argument as typed, and the
 echo the result report the value that was actually set rather than a re-folded copy of the
 input.
 
-One thing genuinely changes behaviour rather than restoring it. Gate and beam destination
-names are player text, not identifiers, and are keyed in memory by their folded form. Those
-now fold against `Locale.ROOT` too, so a name resolves the same way whatever locale the
-server starts in. Both halves already used the same fold, so nothing breaks within a single
-run either way; what this fixes is a server whose locale changes between runs, where the
-names written to disk under one fold would no longer be found under the other.
+Beam destination names went the same way, and this one fixes nothing -- it is the only part
+of the sweep that is consistency alone. Those names are player text rather than identifiers,
+and are keyed in memory by their folded form, so the first reading of this was that a server
+whose locale changed between runs would stop finding names written under the old fold.
+
+Checking rather than assuming showed there is no such failure. `BeamYamlManager` persists
+`destination.getName()`, the name as the player wrote it; the folded form is only ever a map
+key, rebuilt from that stored name every time the file is read. Both halves of every lookup
+are therefore folded by the same code in the same run, and nothing on disk is keyed at all.
+The same is true of gate names, which were already folding against `Locale.ROOT` before this.
+
+`Locale.ROOT` is still the right thing to write there -- it is what the other sixty-six now
+say, and a reader should not have to work out which folds are load-bearing -- but it changes
+no behaviour, and the entry above claimed a fix it does not make.
 
 Six tests, all confirmed failing against the old code first, split by what they guard:
 `CommandLookupLocaleTest` for finding a command, `IdentifierParsingLocaleTest` for reading an
