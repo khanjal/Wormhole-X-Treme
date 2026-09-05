@@ -362,7 +362,19 @@ public class ConfigurationYAML
         }
     }
 
-    private static String kebabKeyName(final String constantName)
+    /**
+     * The key one setting is written under in config.yml.
+     *
+     * <p>Package-private rather than private so a test can walk every key this plugin
+     * writes and check the config command accepts it back; the two spellings drifting apart
+     * is exactly the bug that made this worth pinning. See
+     * {@link ConfigManager#settingKey(String)} for the other half.
+     *
+     * @param constantName
+     *            the enum constant's name
+     * @return the key as it appears in the file
+     */
+    static String kebabKeyName(final String constantName)
     {
         return constantName.toLowerCase(Locale.ROOT).replace('_', '-');
     }

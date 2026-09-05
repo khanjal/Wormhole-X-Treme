@@ -1366,10 +1366,10 @@ public class ConfigManager
     /**
      * Every setting there is, by name.
      *
-     * <p>The names are the keys as they appear in {@code config.yml}, which are the enum
-     * constants themselves -- the file writes {@code Setting: RING_SOUND_OPEN} rather than a
-     * prettified form, so there is nothing to translate between what a player types and what
-     * is stored.
+     * <p>The names are the enum constants: what the command echoes back, and what tab
+     * completion offers. {@code config.yml} writes the same settings in kebab case, so the
+     * file and this list disagree on punctuation -- {@link #settingKey(String)} is what makes
+     * either spelling work.
      *
      * @return the setting names, sorted
      */
@@ -1448,18 +1448,77 @@ public class ConfigManager
      */
     private static Setting settingNamed(final String name)
     {
-        if (name == null)
+        final String key = settingKey(name);
+        if (key == null)
         {
             return null;
         }
         try
         {
-            return getConfigurations().get(ConfigKeys.valueOf(name.trim().toUpperCase(Locale.ROOT)));
+            return getConfigurations().get(ConfigKeys.valueOf(key));
         }
         catch (final IllegalArgumentException notASetting)
         {
             return null;
         }
+    }
+
+    /**
+     * The enum form of a setting name, however it was spelled.
+     *
+     * <p>{@code config.yml} writes its keys in kebab case -- {@code gate-sound-kawoosh} --
+     * while the settings themselves are enum constants with underscores. The name a server
+     * owner reads out of the file was therefore not a name this command accepted: typing the
+     * key exactly as it appears there answered "No setting called gate-sound-kawoosh.",
+     * which reads as the setting no longer existing rather than as the wrong punctuation
+     * between two words that are otherwise identical.
+     *
+     * <p>Folded against {@link Locale#ROOT} rather than the server's own locale, for the
+     * reason the rest of this path already is: a Turkish JVM upper-cases {@code i} to a
+     * dotted capital I, and most of the names here have an {@code i} in them.
+     *
+     * <p>Only a null name comes back null. Blank text comes back blank and is left to fail
+     * the lookup like any other name that is not a setting, rather than being given a second
+     * meaning here.
+     *
+     * @param typed
+     *            the name as typed, in either spelling, or null
+     * @return the same name in enum form, or null if {@code typed} was null
+     */
+    static String settingKey(final String typed)
+    {
+        if (typed == null)
+        {
+            return null;
+        }
+        return typed.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+    }
+
+    /**
+     * The settings whose names contain what was typed.
+     *
+     * <p>What {@code /wormhole config <partial>} lists: somebody hunting for the ring
+     * cooldown is better served by the settings with RING in the name than by being told
+     * that RING does not exist. The fragment is folded the same way a whole name is, so
+     * {@code gate-sound} copied out of config.yml finds what {@code gate_sound} finds.
+     *
+     * @param needle
+     *            the text to look for, empty for everything
+     * @return the matching names, sorted
+     */
+    public static java.util.List<String> settingNamesMatching(final String needle)
+    {
+        final String wanted = (needle == null) || (needle.trim().length() == 0)
+            ? "" : settingKey(needle);
+        final java.util.List<String> found = new java.util.ArrayList<String>();
+        for (final String name : settingNames())
+        {
+            if (name.contains(wanted))
+            {
+                found.add(name);
+            }
+        }
+        return found;
     }
 
     /**

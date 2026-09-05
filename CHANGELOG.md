@@ -261,6 +261,34 @@ sequentially here, so swapping JVM-wide state is safe as long as it is restored.
 
 569 tests pass.
 
+### `/wormhole config` now takes the setting name as config.yml spells it
+
+`config.yml` writes `gate-sound-kawoosh`. The settings are enum constants, so the command
+wanted `gate_sound_kawoosh` and handed whatever was typed straight to `ConfigKeys.valueOf`.
+Copying the key out of the file therefore got you:
+
+```
+> /wormhole config gate-sound-kawoosh entity.player.splash.high_speed
+No setting called gate-sound-kawoosh.
+```
+
+Which reads as the setting having been removed, when the only difference is punctuation
+between two words that nobody has reason to think is load-bearing. The file is the one place
+a server owner is guaranteed to have seen the name, so it is the spelling they will type.
+
+`settingKey` now folds a dash to an underscore before the lookup, and both spellings reach the
+same setting. The search behind `/wormhole config <partial>` folds its fragment the same way
+-- it had the same gap and failed more quietly, since an empty list reads as a server with no
+such settings rather than as a name spelled the wrong way -- and tab completion takes a
+hyphenated prefix, completing it to the underscored name the command echoes back.
+
+The test walks every key this plugin writes into `config.yml` and asks the command for each
+one, so the two spellings cannot drift apart again without something going red. Three of its
+five assertions failed against the old code, on every hyphenated name.
+
+Accepting either spelling is not accepting anything: `gate-sound-banana` is still not a
+setting, and there is a test for that too.
+
 ## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally

@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -81,29 +80,21 @@ public class ConfigCommand implements SubCommand
      */
     private static boolean listMatching(final CommandSender sender, final String needle)
     {
-        final List<String> names = ConfigManager.settingNames();
-        final StringBuilder found = new StringBuilder();
-        int count = 0;
-        for (final String name : names)
-        {
-            if (name.toUpperCase(Locale.ROOT).contains(needle.toUpperCase(Locale.ROOT)))
-            {
-                count++;
-                if (count <= TOO_MANY_TO_LIST)
-                {
-                    found.append(found.length() == 0 ? "" : ", ").append(name);
-                }
-            }
-        }
-        if (count == 0)
+        final List<String> names = ConfigManager.settingNamesMatching(needle);
+        if (names.isEmpty())
         {
             sender.sendMessage("No setting matches \"" + needle + "\".");
             return true;
         }
-        sender.sendMessage(found.toString());
-        if (count > TOO_MANY_TO_LIST)
+        final StringBuilder found = new StringBuilder();
+        for (int i = 0; (i < names.size()) && (i < TOO_MANY_TO_LIST); i++)
         {
-            sender.sendMessage("...and " + (count - TOO_MANY_TO_LIST)
+            found.append(found.length() == 0 ? "" : ", ").append(names.get(i));
+        }
+        sender.sendMessage(found.toString());
+        if (names.size() > TOO_MANY_TO_LIST)
+        {
+            sender.sendMessage("...and " + (names.size() - TOO_MANY_TO_LIST)
                 + " more. Type part of a name to narrow it down.");
         }
         sender.sendMessage("/wormhole config <name> shows one, "

@@ -238,6 +238,10 @@ thing that is neither.
 setting, not just the four that used to have commands of their own, and takes effect
 immediately — there is nothing to reload and no restart.
 
+Name a setting either way round: `gate-sound-kawoosh`, exactly as `config.yml` spells it, or
+`gate_sound_kawoosh`, which is what the command and tab completion show you. Searching and
+completion take either spelling too, so a key pasted out of the file does what you expect.
+
 A setting with a fixed set of valid values is checked before it is written, and a bad value is
 refused with the options named rather than accepted and quietly ignored later. That covers the
 ring style and access modes, the ring material, light and flash materials, and the log level.
