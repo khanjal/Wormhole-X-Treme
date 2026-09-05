@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.4.0 (2026-09-05)
+## 1.4.1 (2026-09-05)
 
 ### The woosh had two implementations; now it has one
 
@@ -45,6 +45,8 @@ It now tells you: setting or reading the depth on a gate whose shape defines its
 waves prints a note saying the depth will not change how the gate looks, and what it does
 still control. The alternative was renaming the command, which would break anyone's existing
 scripts to fix a wording problem.
+
+## 1.4.0 (2026-09-05)
 
 ### Fix: a failed beam left the traveller in the dark, literally
 
