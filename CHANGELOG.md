@@ -229,7 +229,7 @@ for anyone holding `wormhole.go`. Fixed by looking the gate up first and passing
 the permission check, whose `GO` case now consults `NETWORK_USE` the same way `DIALER`
 does.
 
-### Fix: an interrupted woosh could leave water (or any portal material) stuck one block outside a gate
+### Fix: the woosh could leave water (or any portal material) stuck outside a gate, or an extra layer inside it
 
 Reported directly: "gates are leaving water one block from the gate," visible only to the
 player who had just gone through, and only sometimes -- both details that point at a
@@ -255,7 +255,19 @@ unconditionally, the same way it already unconditionally undraws every chevron l
 regardless of which ones were actually lit -- closing reverts whatever was left showing,
 not just whatever it expected to find. `animateOpening` now also returns immediately on an
 inactive gate, so a stale continuation firing after that reset reads the gate as closed
-rather than as a fresh start. Two new `StargateAnimatorTest` cases pin each half directly.
+rather than as a fresh start.
+
+A third, related bug turned up while confirming the second fix in-game: "the event horizon
+is still showing an additional layer... in the gate," on *every* completed opening, not
+just an interrupted one. The 3D woosh path's own retraction ended one tick early --
+`step3D == 1` was read as the last step, but that check runs after the tick's own undraw of
+`getGateWooshBlocks().get(step3D)`, so ending at step 1 meant the undraw *for* step 1 had
+already happened, and the method settled without ever taking a further tick to undraw step
+0: the shallowest wave, sitting directly behind the portal. It stayed lit as woosh material
+for as long as the gate stayed open. The check is against `step3D == 0` now, so the last
+step is genuinely the last one undrawn, not one short of it.
+
+Three new `StargateAnimatorTest` cases pin all three directly.
 
 ### A Milky Way material group, and depth made proportional to size
 

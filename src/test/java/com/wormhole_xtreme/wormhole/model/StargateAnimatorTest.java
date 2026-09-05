@@ -3,8 +3,14 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
+
 import org.bukkit.block.Block;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 
 /**
  * The woosh animation's own step counter, {@code gateAnimationStep3D}.
@@ -38,9 +44,45 @@ import org.junit.jupiter.api.Test;
  * ones were actually lit; {@link StargateAnimator#animateOpening} now also returns
  * immediately on an inactive gate, so a continuation that fires after this reset reads the
  * gate as closed rather than as "nothing has happened yet, start a fresh opening."
+ *
+ * <p>A third, related real bug turned up while confirming the second one's fix: reported as
+ * "the event horizon is still showing an additional layer... in the gate," on every
+ * completed opening, not just an interrupted one. Retraction's own terminal check read
+ * {@code step3D == 1} as the last step, but that check runs after the tick's own undraw of
+ * {@code getGateWooshBlocks().get(step3D)} -- so ending at step 1 meant the undraw for step
+ * 1 had already happened, and the method settled immediately without ever taking a further
+ * tick to undraw step 0, the shallowest wave, right behind the portal. It stayed lit as
+ * woosh material for as long as the gate stayed open. The check is against {@code == 0} now.
  */
 public class StargateAnimatorTest
 {
+    /**
+     * Points {@link WormholeXTreme#getScheduler()} at a Mockito no-op for the one test that
+     * needs the "continue, do not settle yet" branch to actually run to completion instead
+     * of settling early -- that branch's only externally-visible action past the counters
+     * themselves is scheduling the next tick, so proving it was taken at all means letting
+     * that scheduling call happen against something that will not throw for lacking a live
+     * server. {@code scheduler} is a private static field on {@link WormholeXTreme}, the
+     * same shape {@code BigGateShapeTest} already reaches into for {@code thisPlugin}.
+     *
+     * @return the field, left accessible, for the test to reset in its own {@code finally}
+     */
+    private static Field schedulerField() throws Exception
+    {
+        final Field f = WormholeXTreme.class.getDeclaredField("scheduler");
+        f.setAccessible(true);
+        return f;
+    }
+
+    @AfterEach
+    public void restoreRealScheduler() throws Exception
+    {
+        // WormholeXTreme.scheduler is a shared static -- every other test in this JVM run
+        // that touches it expects the plugin's normal null-until-onEnable default, not
+        // whatever mock the one test above it happened to leave behind.
+        schedulerField().set(null, null);
+    }
+
     @Test
     public void aFreshGatesAnimationStep3DStartsAtZeroNotOne()
     {
@@ -59,6 +101,14 @@ public class StargateAnimatorTest
         // Reproduces the closing side of the bug directly: put the gate in the exact state
         // animateOpening is in on the tick its closing animation finishes, and confirm the
         // step counter is actually zeroed rather than left at 1.
+        //
+        // Step 0, not 1: retraction undraws getGateWooshBlocks().get(step3D) *before*
+        // deciding whether this was the last step, so the true last step is whichever index
+        // that undraw call was just made for -- index 0, the shallowest wave, right behind
+        // the portal. Ending on step 1 (this test's original setup, before that was found to
+        // be its own bug -- see wave1NeverUndrawnBecauseRetractionEndedOneStepTooEarly below)
+        // skipped undrawing index 0 on every single completed opening, not just an
+        // interrupted one.
         final Stargate gate = new Stargate();
         // This is the tail of a gate's own opening sequence settling into place, not an
         // externally-triggered close -- the gate has been active since before the woosh
@@ -67,12 +117,11 @@ public class StargateAnimatorTest
         // continuation replaying itself after a real close), so this must be set for the
         // method to do anything at all.
         gate.setGateActive(true);
-        // Two entries so index 1 is a legal get() -- both null so the block-undrawing branch,
-        // which needs a live World, is never reached; this test only cares about the counter.
-        gate.getGateWooshBlocks().add(null);
+        // One entry, at index 0 -- null so the block-undrawing branch, which needs a live
+        // World, is never reached; this test only cares about the counter.
         gate.getGateWooshBlocks().add(null);
         gate.setGateAnimationRemoving(true);
-        gate.setGateAnimationStep3D(1);
+        gate.setGateAnimationStep3D(0);
 
         StargateAnimator.animateOpening(gate);
 
@@ -80,6 +129,39 @@ public class StargateAnimatorTest
         assertEquals(0, gate.getGateAnimationStep3D(),
             "step3D must return to 0 once closing finishes, or the next opening's kawoosh "
                 + "check fails and its first woosh-depth index is off by one");
+    }
+
+    @Test
+    public void stepOneIsNotTheLastRetractionStepAndMustStillTakeOneMoreTickDownToZero() throws Exception
+    {
+        // Real bug: retraction's own terminal check read "gate.getGateAnimationStep3D() ==
+        // 1" as "this was the last step" -- but that check runs *after* this tick's own
+        // undraw of getGateWooshBlocks().get(step3D), so ending at step 1 means the undraw
+        // for step 1 already ran, and the method settled immediately afterward without ever
+        // taking a further tick for step 0. Every completed opening left wave #1 (index 0,
+        // the shallowest layer, directly behind the portal) drawn as woosh material forever,
+        // reported as "the event horizon has an extra layer... in the gate" -- not something
+        // the already-fixed interrupted-close cleanup could touch, since this happened on
+        // every normal, uninterrupted opening too.
+        //
+        // Reproduces the tick right before the true last step. A correct implementation
+        // must not settle here -- it still has index 0 left to undraw -- so it decrements to
+        // 0 and schedules one more tick rather than clearing isGateAnimationRemoving early.
+        schedulerField().set(null, mock(BukkitScheduler.class));
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        gate.getGateWooshBlocks().add(null);
+        gate.getGateWooshBlocks().add(null);
+        gate.setGateAnimationRemoving(true);
+        gate.setGateAnimationStep3D(1);
+
+        StargateAnimator.animateOpening(gate);
+
+        assertTrue(gate.isGateAnimationRemoving(),
+            "step 1 must not be treated as the last retraction step -- index 0 is still owed an "
+                + "undraw, so retraction must still be in progress after this tick, not settled");
+        assertEquals(0, gate.getGateAnimationStep3D(),
+            "must have stepped down to 0, ready to undraw the shallowest wave on the next tick");
     }
 
     @Test
