@@ -248,12 +248,11 @@ class WormholeXTremeBlockListener implements Listener
     @EventHandler
     public void onBlockFromTo(final BlockFromToEvent event)
     {
-        if ( !event.isCancelled())
+        if ( !event.isCancelled()
+            && (StargateManager.isBlockInGate(event.getToBlock())
+                || StargateManager.isBlockInGate(event.getBlock())))
         {
-            if (StargateManager.isBlockInGate(event.getToBlock()) || StargateManager.isBlockInGate(event.getBlock()))
-            {
-                event.setCancelled(true);
-            }
+            event.setCancelled(true);
         }
     }
 

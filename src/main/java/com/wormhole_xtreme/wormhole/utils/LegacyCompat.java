@@ -19,11 +19,9 @@ public final class LegacyCompat {
         switch (id) {
             case 0:
                 return Material.AIR;
-            case 8:
-            case 9:
+            case 8, 9:
                 return Material.WATER;
-            case 10:
-            case 11:
+            case 10, 11:
                 return Material.LAVA;
             case 55:
                 return Material.REDSTONE_WIRE;

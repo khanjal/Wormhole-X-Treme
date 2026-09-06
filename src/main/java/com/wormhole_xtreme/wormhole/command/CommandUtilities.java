@@ -212,12 +212,9 @@ public class CommandUtilities
      */
     static String getGateNetwork(final Stargate stargate)
     {
-        if (stargate != null)
+        if ((stargate != null) && (stargate.getGateNetwork() != null))
         {
-            if (stargate.getGateNetwork() != null)
-            {
-                return stargate.getGateNetwork().getNetworkName();
-            }
+            return stargate.getGateNetwork().getNetworkName();
         }
         return "Public";
     }
@@ -243,14 +240,7 @@ public class CommandUtilities
      */
     public static boolean playerCheck(final CommandSender sender)
     {
-        if (sender instanceof Player)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return sender instanceof Player;
     }
 
     /**

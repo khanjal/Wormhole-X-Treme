@@ -132,11 +132,9 @@ enum ComplexPermission
 
             switch (this)
             {
-                case NETWORK_USE :
-                case NETWORK_BUILD :
-                    allowed = networkName != null
-                        ? player.hasPermission(complexPermissionNode + networkName)
-                        : false;
+                case NETWORK_USE, NETWORK_BUILD:
+                    allowed = (networkName != null)
+                        && player.hasPermission(complexPermissionNode + networkName);
                     break;
                 case REMOVE_OWN :
                     allowed = ((stargate != null) && (stargate.getGateOwner() != null) && stargate.isOwner(player) && player.hasPermission(complexPermissionNode));
