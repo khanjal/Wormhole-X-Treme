@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -9,6 +11,9 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
+import java.lang.reflect.Field;
+
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +40,8 @@ class StargateSignTest
     // ------------------------------------------------------------------
     // Helper: configure signPlaceBlock to handle setType / getBlockData / getState.
     // ------------------------------------------------------------------
+    private SignSide frontSide;
+
     private Directional stubSignBlock()
     {
         final Directional signData = mock(Directional.class);
@@ -46,6 +53,7 @@ class StargateSignTest
         when(signPlaceBlock.getState()).thenReturn(signState);
         when(signPlaceBlock.getLocation()).thenReturn(loc);
         when(signState.getSide(Side.FRONT)).thenReturn(signSide);
+        frontSide = signSide;
 
         return signData;
     }
@@ -66,6 +74,109 @@ class StargateSignTest
 
         verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN, false);
         verify(signData).setFacing(BlockFace.NORTH);
+    }
+
+    /**
+     * The placement log names every block it looked at, and survives ones it cannot read.
+     *
+     * <p>The diagnostics are the bulk of this code and had no coverage at all: with no plugin
+     * installed the logging returns before it starts, so every other test here skipped it.
+     * A neighbour that throws is the case the guards exist for, so one of the six does.
+     */
+    @Test
+    void thePlacementLogNamesEveryNeighbourEvenUnreadableOnes() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
+        f.setAccessible(true);
+        f.set(null, plugin);
+        try
+        {
+            gate.setGateFacing(BlockFace.NORTH);
+            gate.setGateNameBlockHolder(nameHolder);
+            gate.setGateName("Alpha");
+            when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+            when(nameHolder.getRelative(BlockFace.EAST)).thenThrow(new IllegalStateException("unloaded"));
+            when(signPlaceBlock.getType()).thenReturn(Material.OAK_WALL_SIGN);
+            stubSignBlock();
+
+            gate.setupGateSign(true);
+
+            final org.mockito.ArgumentCaptor<String> logged =
+                org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(plugin).prettyLog(any(), logged.capture());
+            final String line = logged.getValue();
+
+            org.junit.jupiter.api.Assertions.assertTrue(line.startsWith("Sign placement: Gate=Alpha"), line);
+            for (final String key : new String[] { "NameHolderLoc=", "GateFacing=NORTH",
+                "PlaceBlock=", "PlaceBlockType=OAK_WALL_SIGN",
+                "NORTH=[", "EAST=[", "SOUTH=[", "WEST=[", "UP=[", "DOWN=[" })
+            {
+                org.junit.jupiter.api.Assertions.assertTrue(line.contains(key),
+                    "missing " + key + " in: " + line);
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(line.contains("EAST=[null@null]"),
+                "a neighbour that cannot be read is reported as null, not thrown: " + line);
+        }
+        finally
+        {
+            f.set(null, null);
+        }
+    }
+
+    /** The top line is the gate's own name, wrapped in dashes. */
+    @Test
+    void theTopLineIsTheGateNameInDashes()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        gate.setGateName("Alpha");
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        verify(frontSide).setLine(eq(0), contains("-Alpha-"));
+    }
+
+    /**
+     * A long owner name is cut to thirteen characters.
+     *
+     * <p>Colour codes do not count toward a sign's visible width, so the truncation is on the
+     * text alone. Worth pinning because the limit is a bare number in the middle of the line
+     * that builds it, and nothing else would notice if it moved.
+     */
+    @Test
+    void aLongOwnerNameIsCutToThirteenCharacters()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        gate.setGateName("Alpha");
+        gate.setGateOwner("AVeryLongOwnerNameIndeed");
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        // Thirteen characters exactly: the line carries the 13-character prefix and not the
+        // 14-character one, so widening or narrowing the limit fails this either way.
+        verify(frontSide).setLine(eq(2), contains("O:AVeryLongOwne"));
+        verify(frontSide, never()).setLine(eq(2), contains("AVeryLongOwner"));
+    }
+
+    /** A gate on no network gets no network line, rather than an empty one. */
+    @Test
+    void aGateWithNoNetworkGetsNoNetworkLine()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        gate.setGateName("Alpha");
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        verify(frontSide, never()).setLine(eq(1), any());
     }
 
     // ------------------------------------------------------------------

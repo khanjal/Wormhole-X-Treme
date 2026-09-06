@@ -63,7 +63,7 @@ public class OwnerCommand implements SubCommand
                                 }
                             }
                         }
-                        catch (final Throwable ignore) { /* a failure here must not break the command */ }
+                        catch (final RuntimeException ignore) { /* a failure here must not break the command */ }
 
                         if (offline != null && (offline.hasPlayedBefore() || offline.isOnline()))
                         {

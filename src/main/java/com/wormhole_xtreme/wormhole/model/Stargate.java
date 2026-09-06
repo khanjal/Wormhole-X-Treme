@@ -518,7 +518,7 @@ public class Stargate
             final Material frame = gateWorld.getBlockAt(first.getBlockX(), first.getBlockY(), first.getBlockZ()).getType();
             return MaterialGroupRegistry.getGroupByStructureMaterial(frame);
         }
-        catch (final Throwable ignore)
+        catch (final RuntimeException ignore)
         {
             return null;
         }

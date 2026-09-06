@@ -271,7 +271,7 @@ public class WorldUtils
                         w.loadChunk(cx + dx, cz + dz);
                     }
                 }
-                catch (final Throwable ignore) { /* pre-loading is an optimisation, not a requirement */ }
+                catch (final RuntimeException ignore) { /* pre-loading is an optimisation, not a requirement */ }
             }
         }
     }

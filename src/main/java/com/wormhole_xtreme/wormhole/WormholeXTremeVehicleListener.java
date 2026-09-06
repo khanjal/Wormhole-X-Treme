@@ -251,7 +251,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             child.teleport(arrival.clone());
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not face rider along travel direction: " + t.getMessage());
@@ -314,7 +314,7 @@ class WormholeXTremeVehicleListener implements Listener
             }
             scheduleReattach(veh, parents, children, safeTarget, exitSpeed, kind);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to teleport occupied " + kind.noun + ", falling back to respawn: " + t.getMessage());
@@ -363,7 +363,7 @@ class WormholeXTremeVehicleListener implements Listener
                         settle(veh, exitSpeed, kind);
                     }
                 }
-                catch (final Throwable t)
+                catch (final RuntimeException t)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                         "Exception during " + kind.noun + " passenger reattach: " + t.getMessage());
@@ -406,7 +406,7 @@ class WormholeXTremeVehicleListener implements Listener
                     remaining++;
                 }
             }
-            catch (final Throwable t)
+            catch (final RuntimeException t)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
                 remaining++;
@@ -425,7 +425,7 @@ class WormholeXTremeVehicleListener implements Listener
                 return true;
             }
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
         }
@@ -444,7 +444,7 @@ class WormholeXTremeVehicleListener implements Listener
             child.teleport(parent.getLocation());
             return parent.addPassenger(child);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage());
         }
@@ -459,7 +459,7 @@ class WormholeXTremeVehicleListener implements Listener
             veh.setVelocity(exitSpeed);
             veh.setFireTicks(0);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set " + kind.noun + " state: " + t.getMessage());
         }
@@ -498,7 +498,7 @@ class WormholeXTremeVehicleListener implements Listener
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported " + veh.getUniqueId()
                     + " to force client update (attempt " + attempt + ")");
             }
-            catch (final Throwable tt)
+            catch (final RuntimeException tt)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleport failed: " + tt.getMessage());
             }
@@ -540,19 +540,19 @@ class WormholeXTremeVehicleListener implements Listener
                     {
                         seat.addPassenger(child);
                     }
-                    catch (final Throwable tt)
+                    catch (final RuntimeException tt)
                     {
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage());
                     }
                 }
-                catch (final Throwable tt)
+                catch (final RuntimeException tt)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
                 }
             }
             newveh.setVelocity(exitSpeed);
         }
-        catch (final Throwable tt)
+        catch (final RuntimeException tt)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Fallback respawn also failed: " + tt.getMessage());
         }
@@ -774,82 +774,50 @@ class WormholeXTremeVehicleListener implements Listener
      * @return true if the vehicle was sent
      */
     private static boolean dispatchVehicleTeleport(final Stargate st, final Vehicle veh,
-                                                   final Vector v, Location target,
+                                                   final Vector v, final Location target,
                                                    final List<Entity> passengers)
     {
         final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
-        if (st.getGateTarget().isGateIrisActive())
+        final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
+        // set yaw from exit velocity so clients face travel direction
+        try
         {
-            target = st.getGateMinecartTeleportLocation() != null
-                ? st.getGateMinecartTeleportLocation()
-                : st.getGatePlayerTeleportLocation();
-            final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
-            // set yaw from exit velocity so clients face travel direction
-            try
+            if (safeTarget != null)
             {
-                if (safeTarget != null)
-                {
-                    final double dx = new_speed.getX();
-                    final double dz = new_speed.getZ();
-                    final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
-                        ? (float) Math.toDegrees(Math.atan2(-dx, dz))
-                        : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
-                    safeTarget.setYaw(yaw);
-                    safeTarget.setPitch(0f);
-                }
+                final double dx = new_speed.getX();
+                final double dz = new_speed.getZ();
+                final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                    ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                    : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
+                safeTarget.setYaw(yaw);
+                safeTarget.setPitch(0f);
             }
-            catch (final Throwable ignore) { /* arrival facing is cosmetic */ }
-            if (veh != null)
-            {
-                final UUID vid = veh.getUniqueId();
-                markVehicleRecentlyTeleported(vid);
-            }
-            veh.teleport(safeTarget);
-            veh.setVelocity(new_speed);
         }
-        else
+        catch (final RuntimeException ignore) { /* arrival facing is cosmetic */ }
+        if (veh != null)
         {
-            final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
-            // set yaw from exit velocity so clients face travel direction
-            try
+            final UUID vid = veh.getUniqueId();
+            markVehicleRecentlyTeleported(vid);
+            if (!passengers.isEmpty())
             {
-                if (safeTarget != null)
+                // Mark all player passengers so PlayerListener does not solo-teleport them
+                // when they are ejected by veh.teleport() on the source side.
+                for (final Entity psg : passengers)
                 {
-                    final double dx = new_speed.getX();
-                    final double dz = new_speed.getZ();
-                    final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
-                        ? (float) Math.toDegrees(Math.atan2(-dx, dz))
-                        : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
-                    safeTarget.setYaw(yaw);
-                    safeTarget.setPitch(0f);
-                }
-            }
-            catch (final Throwable ignore) { /* arrival facing is cosmetic */ }
-            if (veh != null)
-            {
-                final UUID vid = veh.getUniqueId();
-                markVehicleRecentlyTeleported(vid);
-                if (!passengers.isEmpty())
-                {
-                    // Mark all player passengers so PlayerListener does not solo-teleport them
-                    // when they are ejected by veh.teleport() on the source side.
-                    for (final Entity psg : passengers)
+                    if (psg instanceof Player)
                     {
-                        if (psg instanceof Player)
-                        {
-                            markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
-                        }
+                        markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
                     }
-                    // Occupied vehicle: dispatch to type-specific handler.
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
-                    teleportOccupiedVehicle(veh, safeTarget, new_speed);
                 }
-                else
-                {
-                    // Unoccupied vehicle: teleport directly and apply exit velocity.
-                    veh.teleport(safeTarget);
-                    veh.setVelocity(new_speed);
-                }
+                // Occupied vehicle: dispatch to type-specific handler.
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
+                teleportOccupiedVehicle(veh, safeTarget, new_speed);
+            }
+            else
+            {
+                // Unoccupied vehicle: teleport directly and apply exit velocity.
+                veh.teleport(safeTarget);
+                veh.setVelocity(new_speed);
             }
         }
 

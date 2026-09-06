@@ -302,9 +302,9 @@ public class Ring
         {
             return org.bukkit.Tag.SLABS;
         }
-        // Catching Throwable because a registry that is not ready fails in class
-        // initialisation, which surfaces as an Error rather than an exception.
-        catch (final Throwable ignored)
+        // LinkageError as well: a registry that is not ready fails in class
+        // initialisation, which surfaces as an ExceptionInInitializerError.
+        catch (final Exception | LinkageError ignored)
         {
             return null;
         }

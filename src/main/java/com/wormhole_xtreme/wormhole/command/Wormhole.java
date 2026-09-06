@@ -72,7 +72,7 @@ public class Wormhole implements CommandExecutor
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands: " + valid);
             return true;
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole command: " + t.getMessage());
             if (CommandUtilities.playerCheck(sender))

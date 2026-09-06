@@ -48,8 +48,8 @@ public final class LegacyCompat {
             b.setType(m, applyPhysics);
             // apply data mapping where possible
             setData(b, data);
-        } catch (final Throwable t) {
-            try { b.setType(m); } catch (final Throwable t2) { /* ignore */ }
+        } catch (final Exception | LinkageError t) {
+            try { b.setType(m); } catch (final Exception | LinkageError t2) { /* ignore */ }
         }
     }
 
@@ -77,11 +77,11 @@ public final class LegacyCompat {
                         default: break;
                     }
                 }
-                try { d.setFacing(face); b.setBlockData(d); } catch (final Throwable ignore) { /* best effort */ }
+                try { d.setFacing(face); b.setBlockData(d); } catch (final Exception | LinkageError ignore) { /* best effort */ }
             }
             if (bd instanceof Powerable p) {
                 p.setPowered((data & 0x8) == 0x8);
-                try { b.setBlockData(p); } catch (final Throwable ignore) { /* best effort */ }
+                try { b.setBlockData(p); } catch (final Exception | LinkageError ignore) { /* best effort */ }
             }
             // Redstone wire: try reflection to set power if present
             try {
@@ -94,8 +94,8 @@ public final class LegacyCompat {
                     b.setBlockData(bd);
                     return;
                 }
-            } catch (final Throwable ignore) { /* best effort */ }
-        } catch (final Throwable t) {
+            } catch (final Exception | LinkageError ignore) { /* best effort */ }
+        } catch (final Exception | LinkageError t) {
             // ignore mapping errors
         }
     }
@@ -133,8 +133,8 @@ public final class LegacyCompat {
                     final Object val = getPower.invoke(bd);
                     if (val instanceof Integer i) return i.byteValue();
                 }
-            } catch (final Throwable ignore) { /* best effort */ }
-        } catch (final Throwable t) {
+            } catch (final Exception | LinkageError ignore) { /* best effort */ }
+        } catch (final Exception | LinkageError t) {
             // ignore
         }
         return 0;

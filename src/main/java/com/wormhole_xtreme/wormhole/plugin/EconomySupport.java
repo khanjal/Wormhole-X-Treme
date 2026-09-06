@@ -49,7 +49,7 @@ public final class EconomySupport
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Vault not found. Economy features disabled.");
         }
-        catch (final Throwable t)
+        catch (final Exception | LinkageError t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to attach to Vault economy: " + t.getMessage());
@@ -81,7 +81,7 @@ public final class EconomySupport
                 economy.getClass().getMethod("has", org.bukkit.OfflinePlayer.class, double.class);
             return (Boolean) hasMethod.invoke(economy, player, amount);
         }
-        catch (final Throwable t)
+        catch (final Exception | LinkageError t)
         {
             return true;
         }
@@ -104,7 +104,7 @@ public final class EconomySupport
             final java.lang.reflect.Method successMethod = result.getClass().getMethod("transactionSuccess");
             return (Boolean) successMethod.invoke(result);
         }
-        catch (final Throwable t)
+        catch (final Exception | LinkageError t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Economy charge failed for " + player.getName() + ": " + t.getMessage());
@@ -131,7 +131,7 @@ public final class EconomySupport
                 return (String) m.invoke(economy);
             }
         }
-        catch (final Throwable t)
+        catch (final Exception | LinkageError t)
         {
             return "";
         }
