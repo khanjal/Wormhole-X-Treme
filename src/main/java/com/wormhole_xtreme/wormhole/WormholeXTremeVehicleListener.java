@@ -152,10 +152,8 @@ class WormholeXTremeVehicleListener implements Listener
     static void markVehicleRecentlyTeleported(final UUID vehicleId)
     {
         recentlyTeleported.add(vehicleId);
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
-        {
-            recentlyTeleported.remove(vehicleId);
-        }, 20L);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            () -> recentlyTeleported.remove(vehicleId), 20L);
     }
 
 
@@ -163,10 +161,8 @@ class WormholeXTremeVehicleListener implements Listener
     {
         if (playerId == null) { return; }
         recentlyTeleportedPlayersByVehicle.add(playerId);
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
-        {
-            recentlyTeleportedPlayersByVehicle.remove(playerId);
-        }, 10L);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            () -> recentlyTeleportedPlayersByVehicle.remove(playerId), 10L);
     }
 
 

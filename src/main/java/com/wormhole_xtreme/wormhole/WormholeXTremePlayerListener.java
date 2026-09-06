@@ -1132,10 +1132,7 @@ class WormholeXTremePlayerListener implements Listener
             {
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
                     WormholeXTreme.getThisPlugin(),
-                    () ->
-                    {
-                        StargateManager.refreshPortalVisuals(player);
-                    },
+                    () -> StargateManager.refreshPortalVisuals(player),
                     delay);
             }
             catch (final RuntimeException ignore)
