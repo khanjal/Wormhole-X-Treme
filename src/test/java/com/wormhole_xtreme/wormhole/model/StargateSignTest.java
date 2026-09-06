@@ -11,6 +11,9 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
+import java.lang.reflect.Field;
+
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -71,6 +74,54 @@ class StargateSignTest
 
         verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN, false);
         verify(signData).setFacing(BlockFace.NORTH);
+    }
+
+    /**
+     * The placement log names every block it looked at, and survives ones it cannot read.
+     *
+     * <p>The diagnostics are the bulk of this code and had no coverage at all: with no plugin
+     * installed the logging returns before it starts, so every other test here skipped it.
+     * A neighbour that throws is the case the guards exist for, so one of the six does.
+     */
+    @Test
+    void thePlacementLogNamesEveryNeighbourEvenUnreadableOnes() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
+        f.setAccessible(true);
+        f.set(null, plugin);
+        try
+        {
+            gate.setGateFacing(BlockFace.NORTH);
+            gate.setGateNameBlockHolder(nameHolder);
+            gate.setGateName("Alpha");
+            when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+            when(nameHolder.getRelative(BlockFace.EAST)).thenThrow(new IllegalStateException("unloaded"));
+            when(signPlaceBlock.getType()).thenReturn(Material.OAK_WALL_SIGN);
+            stubSignBlock();
+
+            gate.setupGateSign(true);
+
+            final org.mockito.ArgumentCaptor<String> logged =
+                org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(plugin).prettyLog(any(), logged.capture());
+            final String line = logged.getValue();
+
+            org.junit.jupiter.api.Assertions.assertTrue(line.startsWith("Sign placement: Gate=Alpha"), line);
+            for (final String key : new String[] { "NameHolderLoc=", "GateFacing=NORTH",
+                "PlaceBlock=", "PlaceBlockType=OAK_WALL_SIGN",
+                "NORTH=[", "EAST=[", "SOUTH=[", "WEST=[", "UP=[", "DOWN=[" })
+            {
+                org.junit.jupiter.api.Assertions.assertTrue(line.contains(key),
+                    "missing " + key + " in: " + line);
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(line.contains("EAST=[null@null]"),
+                "a neighbour that cannot be read is reported as null, not thrown: " + line);
+        }
+        finally
+        {
+            f.set(null, null);
+        }
     }
 
     /** The top line is the gate's own name, wrapped in dashes. */

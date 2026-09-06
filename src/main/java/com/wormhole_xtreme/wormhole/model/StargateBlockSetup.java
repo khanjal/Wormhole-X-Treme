@@ -83,99 +83,64 @@ class StargateBlockSetup
     private static void logSignPlacement(final Stargate gate, final Block nameSign,
                                          final BlockFace toward, final Block placeBlock)
     {
-        final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
-        if (_plugin_for_log == null)
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if (plugin == null)
         {
             return;
         }
         final StringBuilder dbg = new StringBuilder(256);
         dbg.append("Sign placement: Gate=").append(gate.getGateName());
+        dbg.append(" NameHolderLoc=").append(describe(nameSign::getLocation));
+        dbg.append(" GateFacing=").append(describe(() -> toward));
+        dbg.append(" PlaceBlock=").append(describe(placeBlock::getLocation));
+        dbg.append(" PlaceBlockType=").append(describe(placeBlock::getType));
 
+        for (final BlockFace f : new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH,
+            BlockFace.WEST, BlockFace.UP, BlockFace.DOWN })
+        {
+            dbg.append(' ').append(f)
+                .append("=[").append(describe(() -> nameSign.getRelative(f).getType()))
+                .append('@').append(describe(() -> nameSign.getRelative(f).getLocation()))
+                .append(']');
+        }
+        dbg.append(describeHolderFacing(nameSign));
+        plugin.prettyLog(Level.INFO, dbg.toString());
+    }
+
+    /**
+     * A value for the log, or {@code "null"} when it is absent or cannot be read.
+     *
+     * <p>Every read in the placement log wants the same thing, and guarding each one inline is
+     * what made the method unreadable.
+     */
+    private static String describe(final java.util.function.Supplier<Object> read)
+    {
         try
         {
-            final org.bukkit.Location nhLoc = nameSign.getLocation();
-            dbg.append(" NameHolderLoc=").append(nhLoc != null ? nhLoc.toString() : "null");
+            final Object value = read.get();
+            return value != null ? value.toString() : "null";
         }
-        catch (final Exception e)
+        catch (final RuntimeException unreadable)
         {
-            dbg.append(" NameHolderLoc=null");
+            return "null";
         }
+    }
 
-        dbg.append(" GateFacing=").append(toward != null ? toward.toString() : "null");
-
+    /** The name holder's own facing, or nothing at all when it has none or cannot be read. */
+    private static String describeHolderFacing(final Block nameSign)
+    {
         try
         {
-            final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
-            dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
-        }
-        catch (final Exception e)
-        {
-            dbg.append(" PlaceBlock=null");
-        }
-
-        Material pbType = null;
-        try
-        {
-            pbType = placeBlock != null ? placeBlock.getType() : null;
-        }
-        catch (final RuntimeException t)
-        {
-            pbType = null;
-        }
-        dbg.append(" PlaceBlockType=").append(pbType != null ? pbType.toString() : "null");
-
-        final BlockFace[] facesToCheck = new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST,
-            BlockFace.UP, BlockFace.DOWN };
-        for (final BlockFace f : facesToCheck)
-        {
-            Block n = null;
-            try
+            if (nameSign.getBlockData() instanceof Directional d)
             {
-                n = nameSign.getRelative(f);
-            }
-            catch (final Exception e)
-            {
-                n = null;
-            }
-            String nType = "null";
-            String nLoc = "null";
-            if (n != null)
-            {
-                try
-                {
-                    final Material t = n.getType();
-                    nType = t != null ? t.toString() : "null";
-                }
-                catch (final Exception e)
-                {
-                    nType = "null";
-                }
-                try
-                {
-                    final org.bukkit.Location nl = n.getLocation();
-                    nLoc = nl != null ? nl.toString() : "null";
-                }
-                catch (final Exception e)
-                {
-                    nLoc = "null";
-                }
-            }
-            dbg.append(' ').append(f.toString()).append("=[").append(nType).append("@").append(nLoc).append("]");
-        }
-
-        try
-        {
-            final org.bukkit.block.data.BlockData bd = nameSign.getBlockData();
-            if (bd instanceof Directional d)
-            {
-                dbg.append(" NameHolderFacing=").append(d.getFacing() != null ? d.getFacing().toString() : "null");
+                return " NameHolderFacing=" + describe(d::getFacing);
             }
         }
-        catch (final Exception e)
+        catch (final RuntimeException unreadable)
         {
-            // ignore
+            // a holder that will not report its facing is the sort of thing this log is for
         }
-        _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
+        return "";
     }
 
     /** Records where a sign was when it is taken down. */
