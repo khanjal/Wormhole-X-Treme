@@ -604,7 +604,7 @@ public final class StargateHelper
                 // An [S:L#n] cell is a chevron, and a shape with a chevron material lets one
                 // be built from that instead, so the gate shows where its chevrons are before
                 // any of them light. Both materials are accepted rather than only the chevron
-                // one: every gate standing in every frame.world() today has frame material in those
+                // one: every gate standing in every world today has frame material in those
                 // positions, and re-detection has to go on finding them.
                 if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
                 {
@@ -665,194 +665,222 @@ public final class StargateHelper
                 continue;
             }
 
-            // Structure blocks
-            for (final Integer[] pos : layer.getLayerBlockPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                gate.getGateStructureBlocks().add(cell.getLocation());
-            }
-
-            // Chevron blocks are frame for every purpose except which material they have to
-            // be: protected from breaking, indexed for lookup, and cleared when the gate is
-            // removed. Only the verification above cares about the difference.
-            for (final Integer[] pos : layer.getLayerChevronPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                gate.getGateStructureBlocks().add(cell.getLocation());
-            }
-
-            // Portal blocks
-            for (final Integer[] pos : layer.getLayerPortalPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                gate.getGatePortalBlocks().add(cell.getLocation());
-            }
-
-            // Light blocks — shape uses 1-based wave indices; runtime lighting expects
-            // a placeholder at index 0 and real waves starting at index 1.
-            final ArrayList<ArrayList<Integer[]>> lightWaves = layer.getLayerLightPositions();
-            if (lightWaves != null)
-            {
-                for (int waveIdx = 1; waveIdx < lightWaves.size(); waveIdx++)
-                {
-                    final ArrayList<Integer[]> wavePositions = lightWaves.get(waveIdx);
-                    if (wavePositions == null)
-                    {
-                        continue;
-                    }
-                    final int gateWaveIdx = waveIdx; // keep index 1..N so index 0 stays as placeholder
-                    while (gate.getGateLightBlocks().size() <= gateWaveIdx)
-                    {
-                        gate.getGateLightBlocks().add(null);
-                    }
-                    if (gate.getGateLightBlocks().get(gateWaveIdx) == null)
-                    {
-                        gate.getGateLightBlocks().set(gateWaveIdx, new ArrayList<Location>());
-                    }
-                    for (final Integer[] pos : wavePositions)
-                    {
-                        final Block cell = frame.blockAt(layerIdx, pos);
-                        gate.getGateLightBlocks().get(gateWaveIdx).add(cell.getLocation());
-                    }
-                }
-            }
-
-            // Woosh blocks — same 1-based → 0-based shift.
-            final ArrayList<ArrayList<Integer[]>> wooshWaves = layer.getLayerWooshPositions();
-            if (wooshWaves != null)
-            {
-                for (int waveIdx = 1; waveIdx < wooshWaves.size(); waveIdx++)
-                {
-                    final ArrayList<Integer[]> wavePositions = wooshWaves.get(waveIdx);
-                    if (wavePositions == null)
-                    {
-                        continue;
-                    }
-                    final int gateWaveIdx = waveIdx - 1;
-                    while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
-                    {
-                        gate.getGateWooshBlocks().add(new ArrayList<Location>());
-                    }
-                    for (final Integer[] pos : wavePositions)
-                    {
-                        final Block cell = frame.blockAt(layerIdx, pos);
-                        gate.getGateWooshBlocks().get(gateWaveIdx).add(cell.getLocation());
-                    }
-                }
-            }
-
-            // Name sign holder (N)
-            final int[] nPos = layer.getLayerNameSignPosition();
-            if (nPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, nPos);
-                gate.setGateNameBlockHolder(cell);
-            }
-
-            // Player teleport exit (EP)
-            final int[] epPos = layer.getLayerPlayerExitPosition();
-            if (epPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, epPos);
-                // EP is the block the player's feet land on. Add 1.0 Y so feet are on
-                // top of it, offset one block in the -frame.facing() direction to place the
-                // player just outside the portal water, and face them in the gate's
-                // frame.facing() direction with pitch zeroed.
-                // Move one block in the gate's frame.facing() direction (outwards)
-                // so the player appears just outside the portal rather than
-                // being placed inside it. Use frame.facing()'s mod components directly.
-                final Location tpLoc = new Location(frame.world(), cell.getX() + 0.5 + frame.facing().getModX(), cell.getY() + 1.0, cell.getZ() + 0.5 + frame.facing().getModZ());
-                try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final Throwable ignore) { /* best effort */ }
-                try { tpLoc.setPitch(0f); } catch (final Throwable ignore) { /* best effort */ }
-                gate.setGatePlayerTeleportLocation(tpLoc);
-            }
-
-            // Minecart teleport exit (EM)
-            final int[] emPos = layer.getLayerMinecartExitPosition();
-            if (emPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, emPos);
-                // Use a half-block Y offset so minecarts spawn above the ground and do not sink into blocks.
-                gate.setGateMinecartTeleportLocation(new Location(frame.world(), cell.getX() + 0.5, cell.getY() + 0.5, cell.getZ() + 0.5));
-            }
-
-            // Dial-sign holder (D) — the sign sits on the gate-frame.facing() face of this block.
-            final int[] dPos = layer.getLayerDialSignPosition();
-            if (dPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, dPos);
-                final Block signBlock = cell.getRelative(frame.facing());
-                if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(signBlock.getType()))
-                {
-                    try
-                    {
-                        final Sign signState = (Sign) signBlock.getState();
-                        gate.setGateDialSignBlock(signBlock);
-                        gate.setGateDialSign(signState);
-                        // Read the name the player wrote on line 0 of the sign.
-                        // Stripped, because the plugin writes this same line itself once the
-                        // gate is running. Re-detecting a styled sign would otherwise take the
-                        // colour codes into the gate's name -- invisible characters in a name
-                        // that has to be typed to dial it.
-                        final String line0 = signState.getSide(Side.FRONT).getLine(0);
-                        final String signName = com.wormhole_xtreme.wormhole.utils.SignStyle
-                            .stripFormatting(line0).trim();
-                        if (!signName.isEmpty())
-                        {
-                            gate.setGateName(signName);
-                        }
-                        hasDialSign = true;
-                    }
-                    catch (final Exception e)
-                    {
-                        // Sign state not available — treat as no sign.
-                    }
-                }
-            }
-
-            // Iris activation holder (IA) — iris lever is on the gate-frame.facing() face.
-            final int[] iaPos = layer.getLayerIrisActivationPosition();
-            if (iaPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, iaPos);
-                gate.setGateIrisLeverBlock(cell.getRelative(frame.facing()));
-            }
-
-            // Redstone dial activation (RD)
-            final int[] rdPos = layer.getLayerRedstoneDialActivationPosition();
-            if (rdPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, rdPos);
-                gate.setGateRedstoneDialActivationBlock(
-                    frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, rdPos, cell.getY()), cell.getZ()));
-                gate.setGateRedstonePowered(true);
-            }
-
-            // Redstone sign activation (RS)
-            final int[] rsPos = layer.getLayerRedstoneSignActivationPosition();
-            if (rsPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, rsPos);
-                gate.setGateRedstoneSignActivationBlock(
-                    frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, rsPos, cell.getY()), cell.getZ()));
-            }
-
-            // Redstone gate-activated output (RA)
-            final int[] raPos = layer.getLayerRedstoneGateActivatedPosition();
-            if (raPos.length >= 3)
-            {
-                final Block cell = frame.blockAt(layerIdx, raPos);
-                // Matters most here: the gate-activated output only fires when this block
-                // is a lever, so getting the height wrong means the lever a player placed
-                // is never found or toggled.
-                gate.setGateRedstoneGateActivatedBlock(
-                    frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, raPos, cell.getY()), cell.getZ()));
-            }
+            recordFrameAndPortalBlocks(gate, frame, layer, layerIdx);
+            recordAnimationWaves(gate, frame, layer, layerIdx);
+            hasDialSign |= recordMarkers(gate, frame, layer, layerIdx);
         }
 
 
         gate.setGateSignPowered(hasDialSign);
         return gate;
+    }
+
+    /** Records the frame, its chevrons and the portal interior. */
+    private static void recordFrameAndPortalBlocks(final Stargate gate, final GateFrame frame,
+                                                   final StargateShapeLayer layer, final int layerIdx)
+    {
+                // Structure blocks
+                for (final Integer[] pos : layer.getLayerBlockPositions())
+                {
+                    final Block cell = frame.blockAt(layerIdx, pos);
+                    gate.getGateStructureBlocks().add(cell.getLocation());
+                }
+
+                // Chevron blocks are frame for every purpose except which material they have to
+                // be: protected from breaking, indexed for lookup, and cleared when the gate is
+                // removed. Only the verification above cares about the difference.
+                for (final Integer[] pos : layer.getLayerChevronPositions())
+                {
+                    final Block cell = frame.blockAt(layerIdx, pos);
+                    gate.getGateStructureBlocks().add(cell.getLocation());
+                }
+
+                // Portal blocks
+                for (final Integer[] pos : layer.getLayerPortalPositions())
+                {
+                    final Block cell = frame.blockAt(layerIdx, pos);
+                    gate.getGatePortalBlocks().add(cell.getLocation());
+                }
+
+    }
+
+    /** Records the lighting and woosh waves, shifting the shape's 1-based indices. */
+    private static void recordAnimationWaves(final Stargate gate, final GateFrame frame,
+                                             final StargateShapeLayer layer, final int layerIdx)
+    {
+                // Light blocks — shape uses 1-based wave indices; runtime lighting expects
+                // a placeholder at index 0 and real waves starting at index 1.
+                final ArrayList<ArrayList<Integer[]>> lightWaves = layer.getLayerLightPositions();
+                if (lightWaves != null)
+                {
+                    for (int waveIdx = 1; waveIdx < lightWaves.size(); waveIdx++)
+                    {
+                        final ArrayList<Integer[]> wavePositions = lightWaves.get(waveIdx);
+                        if (wavePositions == null)
+                        {
+                            continue;
+                        }
+                        final int gateWaveIdx = waveIdx; // keep index 1..N so index 0 stays as placeholder
+                        while (gate.getGateLightBlocks().size() <= gateWaveIdx)
+                        {
+                            gate.getGateLightBlocks().add(null);
+                        }
+                        if (gate.getGateLightBlocks().get(gateWaveIdx) == null)
+                        {
+                            gate.getGateLightBlocks().set(gateWaveIdx, new ArrayList<Location>());
+                        }
+                        for (final Integer[] pos : wavePositions)
+                        {
+                            final Block cell = frame.blockAt(layerIdx, pos);
+                            gate.getGateLightBlocks().get(gateWaveIdx).add(cell.getLocation());
+                        }
+                    }
+                }
+
+                // Woosh blocks — same 1-based → 0-based shift.
+                final ArrayList<ArrayList<Integer[]>> wooshWaves = layer.getLayerWooshPositions();
+                if (wooshWaves != null)
+                {
+                    for (int waveIdx = 1; waveIdx < wooshWaves.size(); waveIdx++)
+                    {
+                        final ArrayList<Integer[]> wavePositions = wooshWaves.get(waveIdx);
+                        if (wavePositions == null)
+                        {
+                            continue;
+                        }
+                        final int gateWaveIdx = waveIdx - 1;
+                        while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
+                        {
+                            gate.getGateWooshBlocks().add(new ArrayList<Location>());
+                        }
+                        for (final Integer[] pos : wavePositions)
+                        {
+                            final Block cell = frame.blockAt(layerIdx, pos);
+                            gate.getGateWooshBlocks().get(gateWaveIdx).add(cell.getLocation());
+                        }
+                    }
+                }
+
+    }
+
+    /**
+     * Records the single-cell markers: the name holder, both exits, the dial sign and the
+     * iris lever.
+     *
+     * @return true if this layer carried a dial sign, which is what makes a gate sign-powered
+     */
+    private static boolean recordMarkers(final Stargate gate, final GateFrame frame,
+                                         final StargateShapeLayer layer, final int layerIdx)
+    {
+        boolean foundDialSign = false;
+                // Name sign holder (N)
+                final int[] nPos = layer.getLayerNameSignPosition();
+                if (nPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, nPos);
+                    gate.setGateNameBlockHolder(cell);
+                }
+
+                // Player teleport exit (EP)
+                final int[] epPos = layer.getLayerPlayerExitPosition();
+                if (epPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, epPos);
+                    // EP is the block the player's feet land on. Add 1.0 Y so feet are on
+                    // top of it, offset one block in the -facing direction to place the
+                    // player just outside the portal water, and face them in the gate's
+                    // facing direction with pitch zeroed.
+                    // Move one block in the gate's facing direction (outwards)
+                    // so the player appears just outside the portal rather than
+                    // being placed inside it. Use facing's mod components directly.
+                    final Location tpLoc = new Location(frame.world(), cell.getX() + 0.5 + frame.facing().getModX(), cell.getY() + 1.0, cell.getZ() + 0.5 + frame.facing().getModZ());
+                    try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final Throwable ignore) { /* best effort */ }
+                    try { tpLoc.setPitch(0f); } catch (final Throwable ignore) { /* best effort */ }
+                    gate.setGatePlayerTeleportLocation(tpLoc);
+                }
+
+                // Minecart teleport exit (EM)
+                final int[] emPos = layer.getLayerMinecartExitPosition();
+                if (emPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, emPos);
+                    // Use a half-block Y offset so minecarts spawn above the ground and do not sink into blocks.
+                    gate.setGateMinecartTeleportLocation(new Location(frame.world(), cell.getX() + 0.5, cell.getY() + 0.5, cell.getZ() + 0.5));
+                }
+
+                // Dial-sign holder (D) — the sign sits on the gate-facing face of this block.
+                final int[] dPos = layer.getLayerDialSignPosition();
+                if (dPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, dPos);
+                    final Block signBlock = cell.getRelative(frame.facing());
+                    if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(signBlock.getType()))
+                    {
+                        try
+                        {
+                            final Sign signState = (Sign) signBlock.getState();
+                            gate.setGateDialSignBlock(signBlock);
+                            gate.setGateDialSign(signState);
+                            // Read the name the player wrote on line 0 of the sign.
+                            // Stripped, because the plugin writes this same line itself once the
+                            // gate is running. Re-detecting a styled sign would otherwise take the
+                            // colour codes into the gate's name -- invisible characters in a name
+                            // that has to be typed to dial it.
+                            final String line0 = signState.getSide(Side.FRONT).getLine(0);
+                            final String signName = com.wormhole_xtreme.wormhole.utils.SignStyle
+                                .stripFormatting(line0).trim();
+                            if (!signName.isEmpty())
+                            {
+                                gate.setGateName(signName);
+                            }
+                            foundDialSign = true;
+                        }
+                        catch (final Exception e)
+                        {
+                            // Sign state not available — treat as no sign.
+                        }
+                    }
+                }
+
+                // Iris activation holder (IA) — iris lever is on the gate-facing face.
+                final int[] iaPos = layer.getLayerIrisActivationPosition();
+                if (iaPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, iaPos);
+                    gate.setGateIrisLeverBlock(cell.getRelative(frame.facing()));
+                }
+
+                // Redstone dial activation (RD)
+                final int[] rdPos = layer.getLayerRedstoneDialActivationPosition();
+                if (rdPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, rdPos);
+                    gate.setGateRedstoneDialActivationBlock(
+                        frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, rdPos, cell.getY()), cell.getZ()));
+                    gate.setGateRedstonePowered(true);
+                }
+
+                // Redstone sign activation (RS)
+                final int[] rsPos = layer.getLayerRedstoneSignActivationPosition();
+                if (rsPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, rsPos);
+                    gate.setGateRedstoneSignActivationBlock(
+                        frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, rsPos, cell.getY()), cell.getZ()));
+                }
+
+                // Redstone gate-activated output (RA)
+                final int[] raPos = layer.getLayerRedstoneGateActivatedPosition();
+                if (raPos.length >= 3)
+                {
+                    final Block cell = frame.blockAt(layerIdx, raPos);
+                    // Matters most here: the gate-activated output only fires when this block
+                    // is a lever, so getting the height wrong means the lever a player placed
+                    // is never found or toggled.
+                    gate.setGateRedstoneGateActivatedBlock(
+                        frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, raPos, cell.getY()), cell.getZ()));
+                }
+        return foundDialSign;
     }
 
     /** Settles where the redstone markers go, once the gate itself is known. */

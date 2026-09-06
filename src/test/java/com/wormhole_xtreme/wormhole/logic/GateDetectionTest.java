@@ -1,6 +1,9 @@
 package com.wormhole_xtreme.wormhole.logic;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -97,8 +100,26 @@ class GateDetectionTest
 
     private static Stargate3DShape shape(final String name) throws Exception
     {
+        return shape(name, null, null);
+    }
+
+    /**
+     * Parses a shipped shape, optionally rewriting one cell on the way in.
+     *
+     * <p>Editing a real shape beats hand-rolling one: the parser rejects a shape missing the
+     * cells a gate needs, and a fixture built just far enough to parse would not prove
+     * anything about a gate.
+     */
+    private static Stargate3DShape shape(final String name, final String from, final String to)
+        throws Exception
+    {
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
-        return new Stargate3DShape(lines.toArray(new String[0]));
+        final List<String> out = new ArrayList<String>();
+        for (final String line : lines)
+        {
+            out.add((from == null) || line.trim().startsWith("#") ? line : line.replace(from, to));
+        }
+        return new Stargate3DShape(out.toArray(new String[0]));
     }
 
     /**
@@ -232,5 +253,143 @@ class GateDetectionTest
 
         assertNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
             "a dirt ring is not a Standard gate");
+    }
+
+    /**
+     * Every frame and chevron cell the shape names is recorded as a structure block.
+     *
+     * <p>Uses a Standard with its lighting cells rewritten to {@code [C]}, because no shipped
+     * shape declares one and the chevron half of this would otherwise assert nothing. With no
+     * chevron material named, {@code [C]} means the same as {@code [S]}, so the gate still
+     * builds out of plain frame material.
+     */
+    @Test
+    void everyFrameCellIsRecordedOnTheGate() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard", "[S:L#1]", "[C:L#1]");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        int expected = 0;
+        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        for (int i = 1; i < layers.size(); i++)
+        {
+            if (layers.get(i) != null)
+            {
+                expected += layers.get(i).getLayerBlockPositions().size();
+                expected += layers.get(i).getLayerChevronPositions().size();
+            }
+        }
+        assertEquals(expected, found.getGateStructureBlocks().size(),
+            "a chevron cell is a frame block for every purpose except its material");
+    }
+
+    /** The portal interior is recorded too, and it is what the wormhole is drawn over. */
+    @Test
+    void everyPortalCellIsRecordedOnTheGate() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        int expected = 0;
+        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        for (int i = 1; i < layers.size(); i++)
+        {
+            if (layers.get(i) != null)
+            {
+                expected += layers.get(i).getLayerPortalPositions().size();
+            }
+        }
+        assertEquals(expected, found.getGatePortalBlocks().size());
+    }
+
+    /**
+     * The lighting waves survive the 1-based to 0-based shift: the shape numbers its waves
+     * from one, and the runtime expects a placeholder at index zero.
+     */
+    @Test
+    void theLightingWavesAreRecordedInOrder() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        assertFalse(found.getGateLightBlocks().isEmpty(), "a Standard gate lights up, so it has waves");
+        int lit = 0;
+        for (final java.util.ArrayList<Location> wave : found.getGateLightBlocks())
+        {
+            if (wave != null)
+            {
+                lit += wave.size();
+            }
+        }
+        assertTrue(lit > 0, "the waves should hold the cells the shape marked for lighting");
+    }
+
+    /**
+     * EP is the block a traveller's feet land on, and they are put one block outside it along
+     * the gate's facing so they do not arrive inside the portal.
+     */
+    @Test
+    void theArrivalPointSitsOutsideThePortal() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        final Location arrival = found.getGatePlayerTeleportLocation();
+        assertNotNull(arrival, "a Standard gate names an EP cell");
+
+        // Find the EP cell the shape declared and check the arrival sits one step out from it.
+        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        final BlockFace right = WorldUtils.getPerpendicularRightDirection(BlockFace.SOUTH);
+        boolean checked = false;
+        for (int i = 1; i < layers.size() && !checked; i++)
+        {
+            final StargateShapeLayer layer = layers.get(i);
+            if (layer == null)
+            {
+                continue;
+            }
+            final int[] ep = layer.getLayerPlayerExitPosition();
+            if (ep.length < 3)
+            {
+                continue;
+            }
+            final int cx = 0 + ((i - 1) * BlockFace.SOUTH.getModX()) + (ep[2] * right.getModX());
+            final int cy = 64 + ep[1];
+            final int cz = 0 + ((i - 1) * BlockFace.SOUTH.getModZ()) + (ep[2] * right.getModZ());
+
+            assertEquals(cx + 0.5 + BlockFace.SOUTH.getModX(), arrival.getX(), 1e-9);
+            assertEquals(cy + 1.0, arrival.getY(), 1e-9, "feet stand on top of the EP block");
+            assertEquals(cz + 0.5 + BlockFace.SOUTH.getModZ(), arrival.getZ(), 1e-9);
+            checked = true;
+        }
+        assertTrue(checked, "the Standard shape should declare an EP cell for this to mean anything");
+    }
+
+    /** The gate remembers the basics it was detected with. */
+    @Test
+    void theDetectedGateRemembersItsShapeFacingAndDial() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.EAST, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.EAST, s);
+        assertNotNull(found);
+
+        assertEquals(BlockFace.EAST, found.getGateFacing());
+        assertEquals(s, found.getGateShape());
+        assertEquals(clicked, found.getGateDialLeverBlock());
+        assertNotNull(found.getGateNameBlockHolder(), "a Standard gate names an N cell");
     }
 }

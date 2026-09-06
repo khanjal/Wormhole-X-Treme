@@ -119,6 +119,44 @@ public final class GateSerializer
 
         if (s.getLoadedVersion() == 3)
         {
+            return readVersion3(s, byteBuff, w);
+        }
+        else if (s.getLoadedVersion() == 4)
+        {
+            return readVersion4(s, byteBuff, w);
+        }
+        else if (s.getLoadedVersion() == 5)
+        {
+            return readVersion5(s, byteBuff, w);
+        }
+        else if (s.getLoadedVersion() == 6)
+        {
+            return readVersion6(s, byteBuff, w);
+        }
+        else if (s.getLoadedVersion() == 7)
+        {
+            return readVersion7(s, byteBuff, w);
+        }
+        else if (s.getLoadedVersion() == 8 || s.getLoadedVersion() == 9)
+        {
+            return readVersion8Or9(s, byteBuff, w);
+        }
+        return null;
+    }
+
+    /**
+     * Reads a save-version 3 gate out of the buffer.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @return the gate
+     */
+    private static Stargate readVersion3(final Stargate s, final ByteBuffer byteBuff, final World w)
+    {
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
             byteBuff.get(blocArray);
@@ -192,9 +230,21 @@ public final class GateSerializer
             }
 
             return s;
-        }
-        else if (s.getLoadedVersion() == 4)
-        {
+    }
+
+    /**
+     * Reads a save-version 4 gate out of the buffer.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @return the gate
+     */
+    private static Stargate readVersion4(final Stargate s, final ByteBuffer byteBuff, final World w)
+    {
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
 
@@ -269,9 +319,21 @@ public final class GateSerializer
             }
 
             return s;
-        }
-        else if (s.getLoadedVersion() == 5)
-        {
+    }
+
+    /**
+     * Reads a save-version 5 gate out of the buffer.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @return the gate
+     */
+    private static Stargate readVersion5(final Stargate s, final ByteBuffer byteBuff, final World w)
+    {
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
 
@@ -363,9 +425,21 @@ public final class GateSerializer
             }
 
             return s;
-        }
-        else if (s.getLoadedVersion() == 6)
-        {
+    }
+
+    /**
+     * Reads a save-version 6 gate out of the buffer.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @return the gate
+     */
+    private static Stargate readVersion6(final Stargate s, final ByteBuffer byteBuff, final World w)
+    {
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
 
@@ -495,9 +569,21 @@ public final class GateSerializer
             }
 
             return s;
-        }
-        else if (s.getLoadedVersion() == 7)
-        {
+    }
+
+    /**
+     * Reads a save-version 7 gate out of the buffer.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @return the gate
+     */
+    private static Stargate readVersion7(final Stargate s, final ByteBuffer byteBuff, final World w)
+    {
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
 
@@ -629,11 +715,21 @@ public final class GateSerializer
             }
 
             return s;
-        }
-        // v8 and v9 share a layout; they differ only in how the four custom materials
-        // are encoded. See readCustomMaterial for why v9 exists.
-        else if (s.getLoadedVersion() == 8 || s.getLoadedVersion() == 9)
-        {
+    }
+
+    /**
+     * Reads a save-version 8 and 9 gate out of the buffer.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @return the gate
+     */
+    private static Stargate readVersion8Or9(final Stargate s, final ByteBuffer byteBuff, final World w)
+    {
             final boolean materialsByName = s.getLoadedVersion() >= 9;
             final byte[] locArray = new byte[32];
             final byte[] blocArray = new byte[12];
@@ -790,8 +886,6 @@ public final class GateSerializer
             }
 
             return s;
-        }
-        return null;
     }
 
     public static byte[] stargatetoBinary(final Stargate s)
