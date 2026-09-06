@@ -99,11 +99,9 @@ public class Complete implements CommandExecutor, TabCompleter
         {
             final String token = args[i];
             i++;
-            if ((token == null) || token.isEmpty())
-            {
-                continue;
-            }
-            final int eqPos = token.indexOf('=');
+            // A null, an empty token and one without an equals sign are all the same thing
+            // here: not a key=value pair, so not for us.
+            final int eqPos = (token == null) ? -1 : token.indexOf('=');
             if (eqPos < 0)
             {
                 continue;
