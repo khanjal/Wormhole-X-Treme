@@ -46,13 +46,13 @@ public class Complete implements CommandExecutor, TabCompleter
      *            the args
      * @return true, if successful
      */
-    private static boolean doComplete(final Player player, final String[] args)
+    private static void doComplete(final Player player, final String[] args)
     {
         final String name = args[0].trim().replace("\n", "").replace("\r", "");
         if (name.length() >= 12)
         {
             player.sendMessage(ConfigManager.MessageStrings.constructNameTooLong.toString() + "\"" + name + "\"");
-            return true;
+            return;
         }
 
         final String[] options = parseOptions(args);
@@ -62,22 +62,21 @@ public class Complete implements CommandExecutor, TabCompleter
         if (!WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
         {
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            return true;
+            return;
         }
         if (StargateManager.getStargate(name) != null)
         {
             player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
-            return true;
+            return;
         }
 
         final String incompleteName = StargateManager.getIncompleteStargateName(player);
         if (incompleteName == null)
         {
             awaitDhdClick(player, name, idc, network);
-            return true;
+            return;
         }
         finishBuiltGate(player, name, idc, network, incompleteName);
-        return true;
     }
 
     /**
@@ -93,9 +92,13 @@ public class Complete implements CommandExecutor, TabCompleter
     {
         String idc = "";
         String network = "";
-        for (int i = 1; i < args.length; i++)
+        // Walked with an explicit cursor: a key whose value was typed after the equals sign
+        // consumes the argument that follows it, so the loop has to be able to skip one.
+        int i = 1;
+        while (i < args.length)
         {
             final String token = args[i];
+            i++;
             if ((token == null) || token.isEmpty())
             {
                 continue;
@@ -107,9 +110,9 @@ public class Complete implements CommandExecutor, TabCompleter
             }
             final String key = token.substring(0, eqPos).trim();
             String value = token.substring(eqPos + 1).trim();
-            if (value.isEmpty() && ((i + 1) < args.length) && !args[i + 1].contains("="))
+            if (value.isEmpty() && (i < args.length) && !args[i].contains("="))
             {
-                value = args[i + 1].trim();
+                value = args[i].trim();
                 i++;
             }
             if ("idc".equalsIgnoreCase(key))
@@ -190,7 +193,8 @@ public class Complete implements CommandExecutor, TabCompleter
             {
                 try
                 {
-                    return doComplete((Player) sender, arguments);
+                    doComplete((Player) sender, arguments);
+                    return true;
                 }
                 catch (final Exception e)
                 {
