@@ -108,7 +108,7 @@ public class Dial implements CommandExecutor
                                 }
                             }
                         }
-                        catch (final Throwable ignore) {}
+                        catch (final Throwable ignore) { /* a failure here must not break the command */ }
 
                         if (targetInUse)
                         {

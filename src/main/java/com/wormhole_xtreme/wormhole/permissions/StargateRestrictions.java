@@ -147,11 +147,11 @@ public class StargateRestrictions
                 @Override
                 public void run()
                 {
-                    try { removePlayerRecentArrival(player); } catch (final Throwable ignore) {}
+                    try { removePlayerRecentArrival(player); } catch (final Throwable ignore) { /* best effort */ }
                 }
             }, timeoutTicks);
         }
-        catch (final Throwable ignore) {}
+        catch (final Throwable ignore) { /* the cooldown still expires on its own */ }
     }
 
     public static boolean isPlayerRecentArrivalFrom(final Player player, final Stargate gate)

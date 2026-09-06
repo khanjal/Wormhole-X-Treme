@@ -37,7 +37,7 @@ class WormholeXTremeRedstoneListenerTest
             f.setAccessible(true);
             f.set(null, pluginMock);
         }
-        catch (final Throwable ignore) {}
+        catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
     }
 
     @AfterEach

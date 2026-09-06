@@ -316,7 +316,7 @@ public class StargateManager
                 {
                     StargateDialManager.teleportSignClicked(complete, true);
                 }
-                catch (final Throwable ignore) {}
+                catch (final Throwable ignore) { /* a sign that will not cycle is not worth failing the load */ }
             }
 
             return true;

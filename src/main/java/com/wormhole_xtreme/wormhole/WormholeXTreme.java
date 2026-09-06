@@ -472,7 +472,7 @@ public class WormholeXTreme extends JavaPlugin
             getLog().info("");
         }
         // Decoration only: a console that will not take it must not stop the plugin.
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* best effort */ }
     }
 
     /**

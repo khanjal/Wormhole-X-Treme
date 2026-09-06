@@ -324,7 +324,7 @@ class WormholeXTremeVehicleListener implements Listener
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
-                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) {}
+                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) { /* best effort */ }
                                     try { child.teleport(parent.getLocation()); added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage()); }
                                 }
                                 if (added)
@@ -479,7 +479,7 @@ class WormholeXTremeVehicleListener implements Listener
                                 try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage()); }
                                 if (!added)
                                 {
-                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) {}
+                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) { /* best effort */ }
                                     try { child.teleport(parent.getLocation()); added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage()); }
                                 }
                                 if (added)
@@ -524,7 +524,7 @@ class WormholeXTremeVehicleListener implements Listener
                                             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
                                         }
                                     }
-                                    catch (final Throwable ignore) {}
+                                    catch (final Throwable ignore) { /* the boat re-sync is cosmetic */ }
                                 }
                             }, 3L);
                         }
@@ -853,7 +853,7 @@ class WormholeXTremeVehicleListener implements Listener
                     safeTarget.setPitch(0f);
                 }
             }
-            catch (final Throwable ignore) {}
+            catch (final Throwable ignore) { /* arrival facing is cosmetic */ }
             if (veh != null)
             {
                 final UUID vid = veh.getUniqueId();
@@ -879,7 +879,7 @@ class WormholeXTremeVehicleListener implements Listener
                     safeTarget.setPitch(0f);
                 }
             }
-            catch (final Throwable ignore) {}
+            catch (final Throwable ignore) { /* arrival facing is cosmetic */ }
             if (veh != null)
             {
                 final UUID vid = veh.getUniqueId();
