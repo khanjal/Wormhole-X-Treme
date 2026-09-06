@@ -1,10 +1,10 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 /**
  * Unit tests for StargateManager activation mapping behavior.
@@ -14,8 +14,8 @@ class StargateManagerTest
     @Test
     void addAndRemoveActivatedStargate()
     {
-        Player p = Mockito.mock(Player.class);
-        Stargate s = Mockito.mock(Stargate.class);
+        Player p = mock(Player.class);
+        Stargate s = mock(Stargate.class);
 
         StargateManager.addActivatedStargate(p, s);
         Stargate retrieved = StargateManager.removeActivatedStargate(p);
@@ -25,10 +25,10 @@ class StargateManagerTest
     @Test
     void removeActivatorForStargate()
     {
-        Player p1 = Mockito.mock(Player.class);
-        Player p2 = Mockito.mock(Player.class);
-        Stargate s1 = Mockito.mock(Stargate.class);
-        Stargate s2 = Mockito.mock(Stargate.class);
+        Player p1 = mock(Player.class);
+        Player p2 = mock(Player.class);
+        Stargate s1 = mock(Stargate.class);
+        Stargate s2 = mock(Stargate.class);
 
         // add two activations
         StargateManager.addActivatedStargate(p1, s1);

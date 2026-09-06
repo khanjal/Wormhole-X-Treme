@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class GateSerializerTest
 {
     @Test
-    void roundtripSerializeAndParseProducesConsistentMinimalGate() throws Exception
+    void roundtripSerializeAndParseProducesConsistentMinimalGate()
     {
         final World w = mock(World.class);
         when(w.getName()).thenReturn("gw");

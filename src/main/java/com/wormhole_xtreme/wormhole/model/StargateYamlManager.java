@@ -25,6 +25,11 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class StargateYamlManager
 {
+    /** Static helpers only; never instantiated. */
+    private StargateYamlManager()
+    {
+    }
+
     public static File getGatesDir()
     {
         try

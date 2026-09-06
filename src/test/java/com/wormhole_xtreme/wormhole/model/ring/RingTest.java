@@ -67,8 +67,8 @@ class RingTest
         assertFalse(Ring.glowingMaterials().contains(Material.TORCH),
             "a torch cannot be drawn inside a floor");
         assertFalse(Ring.glowingMaterials().contains(Material.DIRT));
-        assertThrows(UnsupportedOperationException.class,
-            () -> Ring.glowingMaterials().add(Material.DIRT));
+        final java.util.List<Material> glowing = Ring.glowingMaterials();
+        assertThrows(UnsupportedOperationException.class, () -> glowing.add(Material.DIRT));
     }
 
     @Test

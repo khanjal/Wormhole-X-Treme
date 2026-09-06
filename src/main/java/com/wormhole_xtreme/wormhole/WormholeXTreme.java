@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.Location;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import com.wormhole_xtreme.wormhole.command.Dial;
@@ -418,17 +417,6 @@ public class WormholeXTreme extends JavaPlugin
         prettyLog(Level.INFO, true, "Load Completed.");
     }
 
-    /**
-     * prettyLog: A quick and dirty way to make log output clean, unified, and with versioning as needed.
-     * 
-     * @param severity
-     *            Level of severity in the form of INFO, WARNING, SEVERE, etc.
-     * @param version
-     *            true causes version display in log entries.
-     * @param message
-     *            to prettyLog.
-     * 
-     */
     /**
      * Checks whether a message at this level would actually be emitted.
      *

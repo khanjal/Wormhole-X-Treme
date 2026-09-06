@@ -13,7 +13,6 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Vehicle;
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;

@@ -7,6 +7,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
  */
 class DefaultSettings
 {
+    /** Static helpers only; never instantiated. */
+    private DefaultSettings()
+    {
+    }
+
 
     /**
      * The config-file section every setting below belongs to.

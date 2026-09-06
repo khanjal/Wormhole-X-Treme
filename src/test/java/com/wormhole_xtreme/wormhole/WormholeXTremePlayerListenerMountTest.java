@@ -53,7 +53,7 @@ class WormholeXTremePlayerListenerMountTest
     }
 
     @AfterEach
-    void tearDown() throws Exception
+    void tearDown()
     {
         GateSpatialIndex.clear();
     }

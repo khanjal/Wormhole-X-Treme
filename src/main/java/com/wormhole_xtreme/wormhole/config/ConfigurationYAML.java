@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 
 /**
@@ -23,6 +22,11 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
  */
 public class ConfigurationYAML
 {
+    /** Static helpers only; never instantiated. */
+    private ConfigurationYAML()
+    {
+    }
+
 
     protected static void loadConfiguration(final String pluginName)
     {

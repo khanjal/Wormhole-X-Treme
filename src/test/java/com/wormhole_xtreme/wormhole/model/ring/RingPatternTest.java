@@ -178,9 +178,9 @@ class RingPatternTest
     {
         // These are shared out of a static enum table. A caller that could edit one would
         // reshape every ring on the server at once.
-        assertThrows(UnsupportedOperationException.class,
-            () -> RingPattern.ODD.getPerimeter().clear());
-        assertThrows(UnsupportedOperationException.class,
-            () -> RingPattern.EVEN.getInterior().clear());
+        final java.util.List<RingPattern.Offset> perimeter = RingPattern.ODD.getPerimeter();
+        final java.util.List<RingPattern.Offset> interior = RingPattern.EVEN.getInterior();
+        assertThrows(UnsupportedOperationException.class, () -> perimeter.clear());
+        assertThrows(UnsupportedOperationException.class, () -> interior.clear());
     }
 }

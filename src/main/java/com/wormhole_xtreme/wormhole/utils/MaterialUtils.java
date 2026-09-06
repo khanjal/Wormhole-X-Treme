@@ -6,15 +6,6 @@ public final class MaterialUtils {
     private MaterialUtils() {}
 
     /**
-     * Returns true for any button material — every wood type plus stone and polished
-     * blackstone. These, and levers, are what a gate's DHD can be.
-     *
-     * <p>Matched by name rather than enumerated so a new wood type in a future Minecraft
-     * release works without a code change, which is the convention the rest of this class
-     * already follows. LEGACY_* constants are pre-1.13 compatibility entries and are not
-     * real placeable blocks, so they are excluded.
-     */
-    /**
      * Block data for showing a material to a client, switched on if it can be.
      *
      * <p>A redstone lamp and a copper bulb are lights that are <em>off</em> by default. Drawing
@@ -116,6 +107,15 @@ public final class MaterialUtils {
         return !blockCheckWorks || m.isBlock();
     }
 
+    /**
+     * Returns true for any button material — every wood type plus stone and polished
+     * blackstone. These, and levers, are what a gate's DHD can be.
+     *
+     * <p>Matched by name rather than enumerated so a new wood type in a future Minecraft
+     * release works without a code change, which is the convention the rest of this class
+     * already follows. LEGACY_* constants are pre-1.13 compatibility entries and are not
+     * real placeable blocks, so they are excluded.
+     */
     public static boolean isButton(final Material m) {
         if (m == null) return false;
         final String name = m.name();

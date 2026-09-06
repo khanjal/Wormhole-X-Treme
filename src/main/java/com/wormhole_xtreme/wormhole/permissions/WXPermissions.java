@@ -11,6 +11,11 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  */
 public class WXPermissions
 {
+    /** Static helpers only; never instantiated. */
+    private WXPermissions()
+    {
+    }
+
 
     /**
      * The Enum PermissionType.

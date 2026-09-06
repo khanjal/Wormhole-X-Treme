@@ -20,6 +20,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
  */
 public class Configuration
 {
+    /** Static helpers only; never instantiated. */
+    private Configuration()
+    {
+    }
+
 
     /** The options. */
     private static File options = null;
