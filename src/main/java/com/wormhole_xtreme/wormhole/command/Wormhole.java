@@ -21,6 +21,20 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 public class Wormhole implements CommandExecutor
 {
 
+    /**
+     * Whether the sender may reach the admin and configuration subcommands. Console and
+     * command blocks always may, as they always have.
+     *
+     * @param sender
+     *            the command sender
+     * @return true if they hold {@code wormhole.config}, or are not a player
+     */
+    private static boolean hasConfigPermission(final CommandSender sender)
+    {
+        return !CommandUtilities.playerCheck(sender)
+            || WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG);
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.command.CommandExecutor#onCommand(org.bukkit.command.CommandSender, org.bukkit.command.Command, java.lang.String, java.lang.String[])
      */
@@ -29,31 +43,33 @@ public class Wormhole implements CommandExecutor
     {
         try
         {
-            if (CommandUtilities.playerCheck(sender)
-                ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG)
-                : true)
-            {
-                final String[] a = CommandUtilities.commandEscaper(args);
-                if (a.length == 0)
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: " + SubCommands.nameList());
-                    return true;
-                }
+            final String[] a = CommandUtilities.commandEscaper(args);
+            final SubCommands.Entry entry = a.length == 0 ? null : SubCommands.find(a[0]);
+            final boolean mayConfigure = hasConfigPermission(sender);
 
-                final SubCommands.Entry entry = SubCommands.find(a[0]);
-                if (entry != null)
+            // The config gate is applied here, per subcommand, rather than once before
+            // dispatch: beaming and rings carry their own nodes, and gating the whole command
+            // on wormhole.config made those nodes unreachable for anyone but an operator.
+            if (entry != null)
+            {
+                if (mayConfigure || entry.checksOwnPermissions())
                 {
                     return entry.run(sender, a);
                 }
-
-                sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands: " + SubCommands.nameList());
-            }
-            else
-            {
                 sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                return true;
             }
+
+            final String valid = SubCommands.nameList(!mayConfigure);
+            if (a.length == 0)
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: " + valid);
+                return true;
+            }
+
+            sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands: " + valid);
             return true;
         }
         catch (final Throwable t)

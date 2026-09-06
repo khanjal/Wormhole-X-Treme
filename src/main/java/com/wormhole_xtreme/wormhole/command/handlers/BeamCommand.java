@@ -133,6 +133,13 @@ public class BeamCommand implements SubCommand
 
     private boolean listPublic(final Player player)
     {
+        // Behind USE, not ungated: a player who cannot travel to any of these has no use for
+        // the list, and the node is meant to cover the whole player-facing beam surface.
+        if (!BeamPermissions.has(player, BeamPermissions.USE))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return true;
+        }
         final StringBuilder names = new StringBuilder();
         for (final BeamDestination destination : BeamManager.getAllPublicDestinations())
         {
