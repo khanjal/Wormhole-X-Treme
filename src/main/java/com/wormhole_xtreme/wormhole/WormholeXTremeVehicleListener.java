@@ -15,7 +15,6 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
@@ -438,7 +437,7 @@ class WormholeXTremeVehicleListener implements Listener
                 return true;
             }
         }
-        catch (final Throwable ignore) { /* best effort */ }
+        catch (final RuntimeException ignore) { /* best effort */ }
         // A passenger too far from its parent is refused, so close the gap and retry.
         try
         {
@@ -482,7 +481,7 @@ class WormholeXTremeVehicleListener implements Listener
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
                     }
                 }
-                catch (final Throwable ignore) { /* the re-sync is cosmetic */ }
+                catch (final RuntimeException ignore) { /* the re-sync is cosmetic */ }
             }
         }, 3L);
     }
@@ -522,10 +521,10 @@ class WormholeXTremeVehicleListener implements Listener
         try
         {
             final Vehicle newveh = (Vehicle) safeTarget.getWorld().spawnEntity(safeTarget, veh.getType());
-            if ((veh instanceof Minecart) && (newveh instanceof Minecart))
+            if ((veh instanceof Minecart oldCart) && (newveh instanceof Minecart newCart))
             {
                 WormholeXTreme.getThisPlugin().getServer().getPluginManager()
-                    .callEvent(new StargateMinecartTeleportEvent((Minecart) veh, (Minecart) newveh));
+                    .callEvent(new StargateMinecartTeleportEvent(oldCart, newCart));
             }
             markVehicleRecentlyTeleported(newveh.getUniqueId());
             // In order, so a parent is aboard before its own passenger is.
