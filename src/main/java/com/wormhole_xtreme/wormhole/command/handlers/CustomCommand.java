@@ -202,7 +202,7 @@ public class CustomCommand implements SubCommand
         final StringBuilder sb = new StringBuilder();
         for (final Stargate g : gates)
         {
-            if (sb.length() > 0)
+            if (!sb.isEmpty())
             {
                 sb.append(", ");
             }

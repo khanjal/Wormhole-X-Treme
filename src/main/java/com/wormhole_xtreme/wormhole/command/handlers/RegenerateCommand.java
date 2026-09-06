@@ -58,7 +58,7 @@ public class RegenerateCommand implements SubCommand
                         + "Arrival point recomputed for " + s.getGateName() + ".");
                 }
                 s.toggleDialLeverState(true);
-                if ((s.getGateIrisDeactivationCode() != null) && (s.getGateIrisDeactivationCode().length() > 0))
+                if ((s.getGateIrisDeactivationCode() != null) && (!s.getGateIrisDeactivationCode().isEmpty()))
                 {
                     s.setupIrisLever(true);
                 }

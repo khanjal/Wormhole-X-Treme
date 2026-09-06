@@ -91,7 +91,7 @@ public class ConfigCommand implements SubCommand
         final StringBuilder found = new StringBuilder();
         for (int i = 0; (i < names.size()) && (i < TOO_MANY_TO_LIST); i++)
         {
-            found.append(found.length() == 0 ? "" : ", ").append(names.get(i));
+            found.append(found.isEmpty() ? "" : ", ").append(names.get(i));
         }
         sender.sendMessage(found.toString());
         if (names.size() > TOO_MANY_TO_LIST)

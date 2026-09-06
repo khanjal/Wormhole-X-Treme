@@ -38,9 +38,8 @@ public class WXRemove implements CommandExecutor
 
                 if (s != null)
                 {
-                    if (CommandUtilities.playerCheck(sender)
-                        ? WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE)
-                        : true)
+                    if (!CommandUtilities.playerCheck(sender)
+                        || WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE))
                     {
                         boolean destroy = false;
                         if ((a.length == 2) && a[1].equalsIgnoreCase("-all"))
