@@ -8,7 +8,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -115,47 +114,81 @@ public final class StargateShapeRegistry
 
     public static void loadShapes()
     {
-        final File directory = shapeDirectory();
+        loadShapes(shapeDirectory());
+    }
 
-        if (!directory.isDirectory())
+    /**
+     * Loads every shape in a given directory, restoring the shipped ones if they are missing.
+     *
+     * <p>Split out from {@link #loadShapes()} so a test can point it somewhere other than the
+     * live plugin folder: {@link #shapeDirectory()} is a fixed path relative to the working
+     * directory, and running the real one under test would write into the project.
+     *
+     * @param directory
+     *            the folder to load from, created if it is not there
+     */
+    static void loadShapes(final File directory)
+    {
+        if (!ensureDirectory(directory))
         {
-            // mkdirs rather than mkdir: this is two levels below plugins/ and on a first
-            // run neither level need exist yet. And the result is checked, because failing
-            // to create a directory returns false rather than throwing - so the old catch
-            // could never fire, and the failure carried on to listFiles() returning null
-            // and shapes silently not loading.
-            boolean created = false;
-            try
-            {
-                created = directory.mkdirs();
-            }
-            catch (final SecurityException e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
-                    "Not allowed to create " + directory.getPath() + ": " + e.getMessage());
-            }
-            if (!created && !directory.isDirectory())
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
-                    "Could not create " + directory.getPath() + "; no gate shapes will be loaded.");
-                return;
-            }
+            return;
         }
-
         liftShapesOutOfLegacySubdirectories(directory);
+        restoreMissingDefaults(directory);
+        readShapesIn(directory);
 
-        final FilenameFilter filenameFilter = new FilenameFilter()
+        if (getStargateShapes().isEmpty())
         {
-            @Override
-            public boolean accept(final File dir, final String name)
-            {
-                return !name.startsWith(".") && name.endsWith(".shape");
-            }
-        };
+            getStargateShapes().put("Standard", new StargateShape());
+        }
+        rebuildKnownStructureMaterials();
+        reportShapesWithoutMaterialGroup();
+    }
 
-        // Geometry only. Palette variants used to live here as near-identical copies
-        // (StandardAtlantis, StandardUniverse); they are material groups in config.yml now,
-        // which keeps detection cost independent of how many palettes a server offers.
+    /**
+     * Makes sure the shapes folder is there.
+     *
+     * <p>mkdirs rather than mkdir: this is two levels below plugins/ and on a first run
+     * neither level need exist yet. The result is checked, because failing to create a
+     * directory returns false rather than throwing -- the old catch could never fire, and the
+     * failure carried on to listFiles() returning null and shapes silently not loading.
+     *
+     * @return true if there is a directory to work with
+     */
+    private static boolean ensureDirectory(final File directory)
+    {
+        if (directory.isDirectory())
+        {
+            return true;
+        }
+        boolean created = false;
+        try
+        {
+            created = directory.mkdirs();
+        }
+        catch (final SecurityException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
+                "Not allowed to create " + directory.getPath() + ": " + e.getMessage());
+        }
+        if (!created && !directory.isDirectory())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
+                "Could not create " + directory.getPath() + "; no gate shapes will be loaded.");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Writes out any shipped shape the folder does not already have.
+     *
+     * <p>Geometry only. Palette variants used to live here as near-identical copies
+     * (StandardAtlantis, StandardUniverse); they are material groups in config.yml now, which
+     * keeps detection cost independent of how many palettes a server offers.
+     */
+    private static void restoreMissingDefaults(final File directory)
+    {
         final String[] defaultShapeNames = {"Standard.shape", "StandardSignDial.shape", "Minimal.shape",
             "MinimalSignDial.shape",
             "Horizontal.shape", "HorizontalSignDial.shape",
@@ -166,89 +199,89 @@ public final class StargateShapeRegistry
             final File defaultShapeFile = new File(directory, shape);
             if (!defaultShapeFile.exists())
             {
-                try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/" + shape))
-                {
-                    if (is == null)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Default shape resource not found in JAR: " + shape);
-                        continue;
-                    }
-                    try (final BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                         final BufferedWriter bw = new BufferedWriter(new FileWriter(defaultShapeFile, StandardCharsets.UTF_8)))
-                    {
-                        for (String s = ""; (s = br.readLine()) != null;)
-                        {
-                            bw.write(s);
-                            bw.write("\n");
-                        }
-                    }
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Restored default shape: " + shape);
-                }
-                catch (final IOException e)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create default shape file: " + e.getMessage());
-                }
+                restoreDefault(shape, defaultShapeFile);
             }
         }
+    }
 
-        final File[] shapeFiles = directory.listFiles(filenameFilter);
+    /** Copies one shipped shape out of the jar. */
+    private static void restoreDefault(final String shape, final File defaultShapeFile)
+    {
+        try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/" + shape))
+        {
+            if (is == null)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Default shape resource not found in JAR: " + shape);
+                return;
+            }
+            try (final BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                 final BufferedWriter bw = new BufferedWriter(new FileWriter(defaultShapeFile, StandardCharsets.UTF_8)))
+            {
+                for (String s = ""; (s = br.readLine()) != null;)
+                {
+                    bw.write(s);
+                    bw.write("\n");
+                }
+            }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Restored default shape: " + shape);
+        }
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create default shape file: " + e.getMessage());
+        }
+    }
+
+    /** Reads every shape file in the folder, registering each under the name it declares. */
+    private static void readShapesIn(final File directory)
+    {
+        final File[] shapeFiles = directory.listFiles(
+            (dir, name) -> !name.startsWith(".") && name.endsWith(".shape"));
+        if (shapeFiles == null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
+                "Could not read " + directory.getPath() + "; no gate shapes will be loaded.");
+            return;
+        }
         for (final File fi : shapeFiles)
         {
-            if (fi.getName().contains(".shape"))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Loading shape file: \"" + fi.getName() + "\"");
-                BufferedReader bufferedReader = null;
-                try
-                {
-                    final ArrayList<String> fileLines = new ArrayList<String>();
-                    bufferedReader = new BufferedReader(new FileReader(fi, StandardCharsets.UTF_8));
-                    for (String s = ""; (s = bufferedReader.readLine()) != null;)
-                    {
-                        fileLines.add(s);
-                    }
-                    bufferedReader.close();
-
-                    final StargateShape shape = StargateShapeFactory.createShapeFromFile(fileLines.toArray(new String[fileLines.size()]));
-
-                    if (getStargateShapes().containsKey(shape.getShapeName()))
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Shape File: " + fi.getName() + " contains shape name: " + shape.getShapeName() + " which already exists. This shape will be unavailable.");
-                    }
-                    else
-                    {
-                        getStargateShapes().put(shape.getShapeName(), shape);
-                    }
-                }
-                // FileNotFoundException is an IOException and was handled identically.
-                catch (final IOException e)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());
-                }
-                finally
-                {
-                    try
-                    {
-                        if (bufferedReader != null)
-                        {
-                            bufferedReader.close();
-                        }
-                    }
-                    catch (final IOException e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, e.getMessage());
-                    }
-                }
-                WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Completed loading shape file: \"" + fi.getName() + "\"");
-            }
+            registerShapeFile(fi);
         }
+    }
 
-        if (getStargateShapes().size() == 0)
+    /**
+     * Reads one shape file and registers what it declares.
+     *
+     * <p>Per file, and catching more than IOException: the whole folder is read on startup,
+     * and a malformed grid throws IllegalArgumentException. One operator's typo used to leave
+     * the server with no gate shapes at all, the shipped ones included.
+     */
+    private static void registerShapeFile(final File fi)
+    {
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Loading shape file: \"" + fi.getName() + "\"");
+        try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(fi, StandardCharsets.UTF_8)))
         {
-            getStargateShapes().put("Standard", new StargateShape());
+            final ArrayList<String> fileLines = new ArrayList<String>();
+            for (String s = ""; (s = bufferedReader.readLine()) != null;)
+            {
+                fileLines.add(s);
+            }
+            final StargateShape shape = StargateShapeFactory.createShapeFromFile(fileLines.toArray(new String[fileLines.size()]));
+            if (getStargateShapes().containsKey(shape.getShapeName()))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Shape File: " + fi.getName() + " contains shape name: " + shape.getShapeName() + " which already exists. This shape will be unavailable.");
+                return;
+            }
+            getStargateShapes().put(shape.getShapeName(), shape);
         }
-
-        rebuildKnownStructureMaterials();
-        reportShapesWithoutMaterialGroup();
+        catch (final IOException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
+                "Unable to parse shape file " + fi.getName() + ", skipping it: " + e.getMessage());
+        }
     }
 
     /**
