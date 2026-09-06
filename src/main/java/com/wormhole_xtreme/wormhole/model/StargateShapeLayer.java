@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -73,124 +74,127 @@ public class StargateShapeLayer
      */
     protected StargateShapeLayer(final String[] layerLines, final int height, final int width)
     {
-        // 1. scan all lines for lines beginning with [  - that is the height of the gate
+        final Pattern marker = Pattern.compile("\\[(.+?)\\]");
         for (int i = 0; i < layerLines.length; i++)
         {
-            final Matcher m = Pattern.compile("\\[(.+?)\\]").matcher(layerLines[i]);
+            final Matcher m = marker.matcher(layerLines[i]);
             int j = 0;
             while (m.find())
             {
                 final Integer[] point = {0, (height - 1 - i), (width - 1 - j)};
-
                 for (final String mod : m.group(1).split(":"))
                 {
-                    if (mod.equalsIgnoreCase("S"))
-                    {
-                        getLayerBlockPositions().add(point);
-                    }
-                    else if (mod.equalsIgnoreCase("P"))
-                    {
-                        getLayerPortalPositions().add(point);
-                    }
-                    else if (mod.equalsIgnoreCase("C"))
-                    {
-                        getLayerChevronPositions().add(point);
-                    }
-                    else if (mod.equalsIgnoreCase("N") || mod.equalsIgnoreCase("EP") || mod.equalsIgnoreCase("EM") || mod.equalsIgnoreCase("A") || mod.equalsIgnoreCase("D") || mod.equalsIgnoreCase("IA") || mod.equalsIgnoreCase("RA") || mod.equalsIgnoreCase("RD") || mod.equalsIgnoreCase("RS"))
-                    {
-                        final int[] pointI = new int[3];
-                        for (int k = 0; k < 3; k++)
-                        {
-                            pointI[k] = point[k];
-                        }
-
-                        if (mod.equalsIgnoreCase("N"))
-                        {
-                            setLayerNameSignPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("EP"))
-                        {
-                            setLayerPlayerExitPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("EM"))
-                        {
-                            setLayerMinecartExitPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("A"))
-                        {
-                            setLayerActivationPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("D"))
-                        {
-                            setLayerDialSignPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("IA"))
-                        {
-                            setLayerIrisActivationPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("RA"))
-                        {
-                            setLayerRedstoneGateActivatedPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("RD"))
-                        {
-                            setLayerRedstoneDialActivationPosition(pointI);
-                        }
-                        if (mod.equalsIgnoreCase("RS"))
-                        {
-                            setLayerRedstoneSignActivationPosition(pointI);
-                        }
-                    }
-                    else if (mod.contains("L") || mod.contains("l"))
-                    {
-                        final int light_iteration = mod.contains("#") ? Integer.parseInt(mod.split("#")[1]) : 1;
-
-                        while (getLayerLightPositions().size() <= light_iteration)
-                        {
-                            getLayerLightPositions().add(null);
-                        }
-
-                        if (getLayerLightPositions().get(light_iteration) == null)
-                        {
-                            final ArrayList<Integer[]> new_it = new ArrayList<Integer[]>();
-                            getLayerLightPositions().set(light_iteration, new_it);
-                        }
-
-                        getLayerLightPositions().get(light_iteration).add(point);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Light Material Position (Order:" + light_iteration + " Position:" + Arrays.toString(point) + ")");
-                    }
-                    else if (mod.contains("W") || mod.contains("w"))
-                    {
-                        final int w_iteration = mod.contains("#") ? Integer.parseInt(mod.split("#")[1]) : 1;
-
-                        while (getLayerWooshPositions().size() <= w_iteration)
-                        {
-                            getLayerWooshPositions().add(null);
-                        }
-
-                        if (getLayerWooshPositions().get(w_iteration) == null)
-                        {
-                            final ArrayList<Integer[]> new_it = new ArrayList<Integer[]>();
-                            getLayerWooshPositions().set(w_iteration, new_it);
-                        }
-
-                        getLayerWooshPositions().get(w_iteration).add(point);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Woosh Position (Order:" + w_iteration + " Position:" + Arrays.toString(point) + ")");
-                    }
+                    recordMarker(mod, point);
                 }
                 j++;
             }
         }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Sign Position: \"" + Arrays.toString(getLayerNameSignPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Player Exit Position: \"" + Arrays.toString(getLayerPlayerExitPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Minecart Exit Position: \"" + Arrays.toString(getLayerMinecartExitPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Activation Position: \"" + Arrays.toString(getLayerActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Iris Activation Position: \"" + Arrays.toString(getLayerIrisActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Dial Sign Position: \"" + Arrays.toString(getLayerDialSignPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Dial Activation Position: \"" + Arrays.toString(getLayerRedstoneDialActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Sign Activation Position: \"" + Arrays.toString(getLayerRedstoneSignActivationPosition()) + "\"");
-        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Redstone Gate Activated Position: \"" + Arrays.toString(getLayerRedstoneGateActivatedPosition()) + "\"");
+        logParsedPositions();
+    }
 
+    /**
+     * Applies one marker to this layer.
+     *
+     * <p>A block can carry several, which is why this is called per colon-separated part
+     * rather than once per bracket.
+     */
+    private void recordMarker(final String mod, final Integer[] point)
+    {
+        if (mod.equalsIgnoreCase("S"))
+        {
+            getLayerBlockPositions().add(point);
+            return;
+        }
+        if (mod.equalsIgnoreCase("P"))
+        {
+            getLayerPortalPositions().add(point);
+            return;
+        }
+        if (mod.equalsIgnoreCase("C"))
+        {
+            getLayerChevronPositions().add(point);
+            return;
+        }
+        if (recordSinglePosition(mod, point))
+        {
+            return;
+        }
+        if (mod.contains("L") || mod.contains("l"))
+        {
+            addToWave(getLayerLightPositions(), mod, point, "Light Material Position");
+            return;
+        }
+        if (mod.contains("W") || mod.contains("w"))
+        {
+            addToWave(getLayerWooshPositions(), mod, point, "Woosh Position");
+        }
+    }
+
+    /**
+     * Records a marker that names one block rather than collecting many.
+     *
+     * @return true if the marker was one of these
+     */
+    private boolean recordSinglePosition(final String mod, final Integer[] point)
+    {
+        final int[] p = {point[0], point[1], point[2]};
+        switch (mod.toUpperCase(Locale.ROOT))
+        {
+            case "N": setLayerNameSignPosition(p); return true;
+            case "EP": setLayerPlayerExitPosition(p); return true;
+            case "EM": setLayerMinecartExitPosition(p); return true;
+            case "A": setLayerActivationPosition(p); return true;
+            case "D": setLayerDialSignPosition(p); return true;
+            case "IA": setLayerIrisActivationPosition(p); return true;
+            case "RA": setLayerRedstoneGateActivatedPosition(p); return true;
+            case "RD": setLayerRedstoneDialActivationPosition(p); return true;
+            case "RS": setLayerRedstoneSignActivationPosition(p); return true;
+            default: return false;
+        }
+    }
+
+    /**
+     * Adds a block to one wave of an animation, padding the list up to that wave.
+     *
+     * <p>The number indexes the list directly, so wave 3 on its own leaves 0, 1 and 2 empty
+     * rather than shifting everything down. Lights and wooshes differ only in which list they
+     * fill and what they are called in the log.
+     */
+    private static void addToWave(final ArrayList<ArrayList<Integer[]>> waves, final String mod,
+                                  final Integer[] point, final String label)
+    {
+        final int order = mod.contains("#") ? Integer.parseInt(mod.split("#")[1]) : 1;
+        while (waves.size() <= order)
+        {
+            waves.add(null);
+        }
+        if (waves.get(order) == null)
+        {
+            waves.set(order, new ArrayList<Integer[]>());
+        }
+        waves.get(order).add(point);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG,
+            label + " (Order:" + order + " Position:" + Arrays.toString(point) + ")");
+    }
+
+    /** Reports the single-block positions this layer ended up with. */
+    private void logParsedPositions()
+    {
+        log("Stargate Sign Position", getLayerNameSignPosition());
+        log("Stargate Player Exit Position", getLayerPlayerExitPosition());
+        log("Stargate Minecart Exit Position", getLayerMinecartExitPosition());
+        log("Stargate Activation Position", getLayerActivationPosition());
+        log("Stargate Iris Activation Position", getLayerIrisActivationPosition());
+        log("Stargate Dial Sign Position", getLayerDialSignPosition());
+        log("Stargate Redstone Dial Activation Position", getLayerRedstoneDialActivationPosition());
+        log("Stargate Redstone Sign Activation Position", getLayerRedstoneSignActivationPosition());
+        log("Stargate Redstone Gate Activated Position", getLayerRedstoneGateActivatedPosition());
+    }
+
+    private static void log(final String what, final int[] position)
+    {
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG,
+            what + ": \"" + Arrays.toString(position) + "\"");
     }
 
     /**
