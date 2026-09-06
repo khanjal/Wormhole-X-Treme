@@ -787,7 +787,7 @@ class WormholeXTremeVehicleListener implements Listener
             // set yaw from exit velocity so clients face travel direction
             try
             {
-                if (safeTarget != null && new_speed != null)
+                if (safeTarget != null)
                 {
                     final double dx = new_speed.getX();
                     final double dz = new_speed.getZ();
@@ -813,7 +813,7 @@ class WormholeXTremeVehicleListener implements Listener
             // set yaw from exit velocity so clients face travel direction
             try
             {
-                if (safeTarget != null && new_speed != null)
+                if (safeTarget != null)
                 {
                     final double dx = new_speed.getX();
                     final double dz = new_speed.getZ();
