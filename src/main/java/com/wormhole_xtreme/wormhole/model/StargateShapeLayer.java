@@ -84,7 +84,7 @@ public class StargateShapeLayer
                 final Integer[] point = {0, (height - 1 - i), (width - 1 - j)};
                 for (final String mod : m.group(1).split(":"))
                 {
-                    record(mod, point);
+                    recordMarker(mod, point);
                 }
                 j++;
             }
@@ -98,7 +98,7 @@ public class StargateShapeLayer
      * <p>A block can carry several, which is why this is called per colon-separated part
      * rather than once per bracket.
      */
-    private void record(final String mod, final Integer[] point)
+    private void recordMarker(final String mod, final Integer[] point)
     {
         if (mod.equalsIgnoreCase("S"))
         {
