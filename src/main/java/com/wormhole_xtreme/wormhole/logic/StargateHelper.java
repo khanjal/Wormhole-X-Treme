@@ -666,7 +666,7 @@ public final class StargateHelper
             }
 
             recordFrameAndPortalBlocks(gate, frame, layer, layerIdx);
-            recordAnimationWaves(gate, frame, layer, layerIdx, shape);
+            recordAnimationWaves(gate, frame, layer, layerIdx);
             hasDialSign |= recordMarkers(gate, frame, layer, layerIdx);
         }
 
@@ -706,8 +706,7 @@ public final class StargateHelper
 
     /** Records the lighting and woosh waves, shifting the shape's 1-based indices. */
     private static void recordAnimationWaves(final Stargate gate, final GateFrame frame,
-                                             final StargateShapeLayer layer, final int layerIdx,
-                                             final Stargate3DShape shape)
+                                             final StargateShapeLayer layer, final int layerIdx)
     {
                 // Light blocks — shape uses 1-based wave indices; runtime lighting expects
                 // a placeholder at index 0 and real waves starting at index 1.
