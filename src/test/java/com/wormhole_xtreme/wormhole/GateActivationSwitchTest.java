@@ -83,7 +83,8 @@ class GateActivationSwitchTest
         final Sign state = mock(Sign.class);
         when(block.getType()).thenReturn(Material.OAK_WALL_SIGN);
         when(block.getState()).thenReturn(state);
-        when(state.getSide(Side.FRONT)).thenReturn(mock(SignSide.class));
+        final SignSide front = mock(SignSide.class);
+        when(state.getSide(Side.FRONT)).thenReturn(front);
         return block;
     }
 
@@ -223,7 +224,7 @@ class GateActivationSwitchTest
 
         assertTrue(GateInteractionHandler.handleGateActivationSwitch(gate, player));
 
-        verify(gate).dialStargate(eq(peer), eq(false));
+        verify(gate).dialStargate(peer, false);
         verify(gate, never()).startActivationTimer(any(Player.class));
     }
 

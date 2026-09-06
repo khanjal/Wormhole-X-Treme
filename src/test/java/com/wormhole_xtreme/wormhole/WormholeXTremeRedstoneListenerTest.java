@@ -210,7 +210,7 @@ class WormholeXTremeRedstoneListenerTest
         doReturn(target).when(gate).getGateDialSignTarget();
 
         // Stub dialStargate so it doesn't actually run dial logic
-        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+        doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
 
@@ -219,7 +219,7 @@ class WormholeXTremeRedstoneListenerTest
         final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
         listener.onBlockRedstoneChange(ev);
 
-        verify(gate, atLeastOnce()).dialStargate(eq(target), eq(false));
+        verify(gate, atLeastOnce()).dialStargate(target, false);
 
         StargateManager.removeStargate(gate);
     }
@@ -261,7 +261,7 @@ class WormholeXTremeRedstoneListenerTest
         final Stargate target = new Stargate();
         target.setGateName("targetGate");
         doReturn(target).when(gate).getGateDialSignTarget();
-        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+        doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
         new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, 0, 15));
@@ -349,7 +349,7 @@ class WormholeXTremeRedstoneListenerTest
         final Stargate target = new Stargate();
         target.setGateName("targetGate");
         doReturn(target).when(gate).getGateDialSignTarget();
-        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+        doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
         new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(source, 0, 15));
@@ -464,7 +464,7 @@ class WormholeXTremeRedstoneListenerTest
         final Stargate target = new Stargate();
         target.setGateName("targetGate");
         doReturn(target).when(gate).getGateDialSignTarget();
-        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+        doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
         setScheduler(mock(org.bukkit.scheduler.BukkitScheduler.class));
@@ -482,7 +482,7 @@ class WormholeXTremeRedstoneListenerTest
             WormholeXTremeRedstoneListener.clearTriggerHistory();
             gate.setGateActive(false);
             new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
-            verify(gate).dialStargate(eq(target), eq(false));
+            verify(gate).dialStargate(target, false);
         }
         finally
         {
@@ -572,7 +572,7 @@ class WormholeXTremeRedstoneListenerTest
         {
             assertNull(gate.getGateDialSignTarget(), "a freshly loaded gate has no destination object");
             new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(dust, 0, 15));
-            verify(gate).dialStargate(eq(peer), eq(false));
+            verify(gate).dialStargate(peer, false);
         }
         finally
         {
@@ -588,8 +588,8 @@ class WormholeXTremeRedstoneListenerTest
         final org.bukkit.block.Sign state = mock(org.bukkit.block.Sign.class);
         when(block.getType()).thenReturn(Material.OAK_WALL_SIGN);
         when(block.getState()).thenReturn(state);
-        when(state.getSide(org.bukkit.block.sign.Side.FRONT))
-            .thenReturn(mock(org.bukkit.block.sign.SignSide.class));
+        final org.bukkit.block.sign.SignSide front = mock(org.bukkit.block.sign.SignSide.class);
+        when(state.getSide(org.bukkit.block.sign.Side.FRONT)).thenReturn(front);
         return block;
     }
 
@@ -645,7 +645,7 @@ class WormholeXTremeRedstoneListenerTest
         final Stargate target = new Stargate();
         target.setGateName("targetGate");
         doReturn(target).when(gate).getGateDialSignTarget();
-        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+        doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
         final WormholeXTremeRedstoneListener listener = new WormholeXTremeRedstoneListener();
@@ -800,13 +800,13 @@ class WormholeXTremeRedstoneListenerTest
         final Stargate target = new Stargate();
         target.setGateName("targetGate");
         doReturn(target).when(gate).getGateDialSignTarget();
-        doReturn(true).when(gate).dialStargate(eq(target), eq(false));
+        doReturn(true).when(gate).dialStargate(target, false);
 
         StargateManager.registerStargate(gate);
         try
         {
             new WormholeXTremeRedstoneListener().onBlockRedstoneChange(new BlockRedstoneEvent(monitored, 0, 15));
-            verify(gate).dialStargate(eq(target), eq(false));
+            verify(gate).dialStargate(target, false);
         }
         finally
         {

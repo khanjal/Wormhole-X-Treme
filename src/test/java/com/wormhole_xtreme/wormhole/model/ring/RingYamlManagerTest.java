@@ -63,7 +63,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void aPairComesBackExactlyAsItWentIn() throws IOException
+    void aPairComesBackExactlyAsItWentIn()
     {
         RingManager.addPair(pair("7f3a1c2e", 10, 10), REACH);
         RingYamlManager.saveWorld(directory, WORLD);
@@ -90,7 +90,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void eachEndKeepsItsOwnMaterials() throws IOException
+    void eachEndKeepsItsOwnMaterials()
     {
         // Per-end materials are the point of storing them on the end rather than the pair.
         // A round trip that quietly copied one end's materials over the other would undo it.
@@ -107,7 +107,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void theSlabAnEndWasLaidInSurvivesBeingRecoloured() throws IOException
+    void theSlabAnEndWasLaidInSurvivesBeingRecoloured()
     {
         // What reset goes back to, so it has to outlive the material it is meant to restore.
         final RingPair pair = pair("beef0001", 0, 0);
@@ -150,7 +150,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void aLoadedPairIsIndexedSoItWorksWithoutBeingRebuilt() throws IOException
+    void aLoadedPairIsIndexedSoItWorksWithoutBeingRebuilt()
     {
         // Loading has to put rings back in the index, not just in the registry. A pair that
         // loads but is not indexed is a ring that exists in a listing and does nothing when
@@ -164,7 +164,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void everyPairInAWorldSharesOneFile() throws IOException
+    void everyPairInAWorldSharesOneFile()
     {
         RingManager.addPair(pair("aaaaaaaa", 0, 0), REACH);
         RingManager.addPair(pair("bbbbbbbb", 500, 500), REACH);
@@ -258,7 +258,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void removingTheLastPairLeavesNoFileBehind() throws IOException
+    void removingTheLastPairLeavesNoFileBehind()
     {
         final RingPair only = pair("dddd4444", 0, 0);
         RingManager.addPair(only, REACH);
@@ -274,7 +274,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void eachEndKeepsItsOwnName() throws IOException
+    void eachEndKeepsItsOwnName()
     {
         // The name is per end because the useful thing to say is where somebody is going,
         // and that is a different answer depending on which end they walked into.
@@ -290,7 +290,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void theTwoLightsAreStoredSeparately() throws IOException
+    void theTwoLightsAreStoredSeparately()
     {
         final RingPair pair = pair("lite0001", 900, 900);
         pair.getEndA().setFlashMaterial(Material.SEA_LANTERN);
@@ -343,7 +343,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void aHalfBuiltPairSurvivesARestart() throws IOException
+    void aHalfBuiltPairSurvivesARestart()
     {
         // The first end costs the player their slabs the moment it registers, so losing it to
         // a restart would take the slabs with it and leave nothing to show for them.
@@ -369,7 +369,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void finishingOrCancellingLeavesNoPendingFile() throws IOException
+    void finishingOrCancellingLeavesNoPendingFile()
     {
         final java.util.UUID builder = java.util.UUID.randomUUID();
         RingManager.setPending(builder, new Ring(0, 64, 0, RingPattern.ODD, RingOrientation.FLOOR,
@@ -384,7 +384,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void thePendingFileIsNotMistakenForAWorld() throws IOException
+    void thePendingFileIsNotMistakenForAWorld()
     {
         // It lives in the same folder and ends in .yml, so the world scan has to know better
         // than to try loading it as a world's worth of pairs.
@@ -406,7 +406,7 @@ class RingYamlManagerTest
     }
 
     @Test
-    void pairsAreFoundByWorldAfterLoading() throws IOException
+    void pairsAreFoundByWorldAfterLoading()
     {
         RingManager.addPair(pair("eeee5555", 0, 0), REACH);
         RingYamlManager.saveWorld(directory, WORLD);

@@ -13,6 +13,11 @@ import org.bukkit.block.Block;
  */
 public class DataUtils
 {
+    /** Static helpers only; never instantiated. */
+    private DataUtils()
+    {
+    }
+
 
     /**
      * Block from bytes.

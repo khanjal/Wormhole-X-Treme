@@ -17,6 +17,11 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class WorldUtils
 {
+    /** Static helpers only; never instantiated. */
+    private WorldUtils()
+    {
+    }
+
 
     /**
      * Gets the degrees from block face.
@@ -205,9 +210,6 @@ public class WorldUtils
     }
 
     /**
-     * Returns true if two blocks are within a 1-block radius (inclusive) of each other.
-     */
-    /**
      * Checks whether two locations sit in different blocks.
      *
      * <p>Movement events fire many times per block travelled — a walking player or a
@@ -231,6 +233,9 @@ public class WorldUtils
             || from.getBlockZ() != to.getBlockZ();
     }
 
+    /**
+     * Returns true if two blocks are within a 1-block radius (inclusive) of each other.
+     */
     public static boolean isAdjacent(final Block b1, final Block b2)
     {
         if ((b1 == null) || (b2 == null))

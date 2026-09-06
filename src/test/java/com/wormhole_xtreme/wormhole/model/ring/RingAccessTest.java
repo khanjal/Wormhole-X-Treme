@@ -120,11 +120,12 @@ class RingAccessTest
     @Test
     void theAllowListCannotBeEditedThroughItsGetter()
     {
-        assertThrows(UnsupportedOperationException.class, () -> pair().getAllowed().add(STRANGER));
+        final java.util.Set<String> allowed = pair().getAllowed();
+        assertThrows(UnsupportedOperationException.class, () -> allowed.add(STRANGER));
     }
 
     @Test
-    void accessAndTheAllowListSurviveARoundTrip() throws IOException
+    void accessAndTheAllowListSurviveARoundTrip()
     {
         final RingPair pair = pair();
         pair.setAccess(RingAccess.PUBLIC);

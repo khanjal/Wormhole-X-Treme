@@ -103,10 +103,9 @@ public class StargateShape
     /** The shape light ticks. */
     private int shapeLightTicks = 3;
 
+    /** Defaults come from the field initialisers; the parsers overwrite what a file names. */
     public StargateShape()
     {
-//        setShapeWooshDepth(3);
-//        setShapeWooshDepthSquared(9);
     }
 
     /** One [X] marker in a shape row. */
@@ -497,11 +496,6 @@ public class StargateShape
         return shapeSignPosition.clone();
     }
 
-    /**
-     * Gets the shape structure material.
-     * 
-     * @return the shape structure material
-     */
     /** @return true if the shape file named a portal material outright */
     public boolean hasExplicitPortalMaterial() { return explicitPortalMaterial; }
 
@@ -557,6 +551,11 @@ public class StargateShape
         }
     }
 
+    /**
+     * Gets the shape structure material.
+     * 
+     * @return the shape structure material
+     */
     public Material getShapeStructureMaterial()
     {
         return shapeStructureMaterial;

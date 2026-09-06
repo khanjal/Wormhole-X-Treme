@@ -16,6 +16,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  */
 public class PermissionsSupport
 {
+    /** Static helpers only; never instantiated. */
+    private PermissionsSupport()
+    {
+    }
+
 
     /**
      * Setup permissions (informational only).

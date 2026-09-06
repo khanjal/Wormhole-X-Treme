@@ -57,7 +57,7 @@ class WormholeXTremeVehicleListenerEventTest
     }
 
     @AfterEach
-    void tearDown() throws Exception
+    void tearDown()
     {
         // Clear any registry state we modified
         GateSpatialIndex.clear();

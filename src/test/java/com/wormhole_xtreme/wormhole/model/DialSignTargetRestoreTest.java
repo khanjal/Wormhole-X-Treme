@@ -80,7 +80,8 @@ class DialSignTargetRestoreTest
         final Sign state = mock(Sign.class);
         when(block.getType()).thenReturn(Material.OAK_WALL_SIGN);
         when(block.getState()).thenReturn(state);
-        when(state.getSide(Side.FRONT)).thenReturn(mock(SignSide.class));
+        final SignSide front = mock(SignSide.class);
+        when(state.getSide(Side.FRONT)).thenReturn(front);
         return block;
     }
 
@@ -245,7 +246,8 @@ class DialSignTargetRestoreTest
     {
         final Block broken = mock(Block.class);
         when(broken.getType()).thenReturn(Material.AIR);
-        when(broken.getState()).thenReturn(mock(org.bukkit.block.BlockState.class));
+        final org.bukkit.block.BlockState brokenState = mock(org.bukkit.block.BlockState.class);
+        when(broken.getState()).thenReturn(brokenState);
         gate.setGateDialSignBlock(broken);
         gate.setGateDialSignIndex(1);
 

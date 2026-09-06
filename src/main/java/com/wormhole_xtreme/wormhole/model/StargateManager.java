@@ -22,6 +22,11 @@ import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
  */
 public class StargateManager
 {
+    /** Static helpers only; never instantiated. */
+    private StargateManager()
+    {
+    }
+
     // A list of all blocks contained by all stargates. Makes for easy indexing when a player is trying
     // to enter a gate or if water is trying to flow out, also will contain the stone buttons used to activate.
     /** The all_gate_blocks. */
@@ -68,7 +73,6 @@ public class StargateManager
      */
     public static void addActivatedStargate(final Player p, final Stargate s)
     {
-        // s.ActivateStargate();
         getActivatedStargates().put(p, s);
     }
 
@@ -853,8 +857,6 @@ public class StargateManager
     public static Stargate removeActivatedStargate(final Player p)
     {
         final Stargate s = getActivatedStargates().remove(p);
-        //	if ( s != null )
-        //		s.DeActivateStargate();
         return s;
     }
 
@@ -984,7 +986,6 @@ public class StargateManager
                         {
                             s2.setGateDialSignIndex(0);
                             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(s2, ActionToTake.DIAL_SIGN_CLICK));
-                            // s2.teleportSignClicked();
                         }
                     }
                 }

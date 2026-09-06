@@ -19,6 +19,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
  */
 class ConfigurationFlatFile
 {
+    /** Static helpers only; never instantiated. */
+    private ConfigurationFlatFile()
+    {
+    }
+
 
     /**
      * Creates the new header.

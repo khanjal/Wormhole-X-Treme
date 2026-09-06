@@ -137,8 +137,9 @@ class WormholeXTremeVehicleRiderFacingTest
         final Player rider = mock(Player.class);
         when(rider.teleport(any(Location.class))).thenThrow(new NoSuchMethodError("teleport"));
 
+        final Location arrival = arrivalFacing(90f);
         assertThrows(NoSuchMethodError.class,
-            () -> WormholeXTremeVehicleListener.faceTravelDirection(rider, arrivalFacing(90f)),
+            () -> WormholeXTremeVehicleListener.faceTravelDirection(rider, arrival),
             "an Error must reach the server, not be logged as a cosmetic failure");
     }
 }

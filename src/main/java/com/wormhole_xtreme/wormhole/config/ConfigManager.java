@@ -65,7 +65,6 @@ public class ConfigManager
         RING_SETTLE_TICKS,
         /** Ticks each ring stays lit as the transport flash runs through the stack. */
         RING_FLASH_TICKS,
-        /** Which way the transport flash runs: TOP_DOWN or BOTTOM_UP. */
         /** Whether a ring briefly shows its outline to somebody it has turned away. */
         RING_OUTLINE_ON_REFUSAL,
         /** How long that outline stays up, in ticks. */
@@ -384,12 +383,6 @@ public class ConfigManager
     }
 
     /**
-     * Get Timeout Shutdown setting from ConfigKeys.
-     * Return default value if key is missing or broken.
-     * 
-     * @return Timeout in seconds.
-     */
-    /**
      * The longest a wormhole may stay open, however often it is re-dialled.
      *
      * <p>Dialling restarts the shutdown timer, so anything re-dialling on a schedule — a
@@ -405,6 +398,12 @@ public class ConfigManager
         return (s != null) ? s.getIntValue() : 300;
     }
 
+    /**
+     * Get Timeout Shutdown setting from ConfigKeys.
+     * Return default value if key is missing or broken.
+     * 
+     * @return Timeout in seconds.
+     */
     public static int getTimeoutShutdown()
     {
         Setting ts;
@@ -721,15 +720,6 @@ public class ConfigManager
         return (s != null) ? s.getIntValue() : fallback;
     }
 
-    /**
-     * Reads a material setting by name, falling back when it is missing or unknown.
-     *
-     * @param key
-     *            which setting
-     * @param fallback
-     *            what to use when it cannot be read
-     * @return the material
-     */
     /**
      * Whether gates make any noise at all.
      *
@@ -1091,24 +1081,6 @@ public class ConfigManager
     }
 
     /**
-     * Reads a sound name.
-     *
-     * <p>Kept as text rather than resolved to a {@code Sound}, and played through the
-     * overload that takes a name. Two reasons: the sound type has been moving toward a
-     * registry-backed one across recent versions, which is exactly the kind of thing that
-     * cannot be asked about before a server has started; and a name passes straight through
-     * to the client, so a server with a resource pack can name its own sounds here.
-     *
-     * <p>An unknown name is silent rather than an error, which is what the client does with
-     * one anyway.
-     *
-     * @param key
-     *            the setting to read
-     * @param fallback
-     *            the sound to use when it is unset
-     * @return the sound name, trimmed; empty means play nothing
-     */
-    /**
      * Whether the plugin's own sign text glows.
      *
      * @return true if signs the plugin writes should use glowing text
@@ -1187,6 +1159,24 @@ public class ConfigManager
         return colorSetting(ConfigKeys.SIGN_COLOR_NEIGHBOUR);
     }
 
+    /**
+     * Reads a sound name.
+     *
+     * <p>Kept as text rather than resolved to a {@code Sound}, and played through the
+     * overload that takes a name. Two reasons: the sound type has been moving toward a
+     * registry-backed one across recent versions, which is exactly the kind of thing that
+     * cannot be asked about before a server has started; and a name passes straight through
+     * to the client, so a server with a resource pack can name its own sounds here.
+     *
+     * <p>An unknown name is silent rather than an error, which is what the client does with
+     * one anyway.
+     *
+     * @param key
+     *            the setting to read
+     * @param fallback
+     *            the sound to use when it is unset
+     * @return the sound name, trimmed; empty means play nothing
+     */
     private static String soundSetting(final ConfigKeys key, final String fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);
@@ -1198,6 +1188,15 @@ public class ConfigManager
         return "none".equalsIgnoreCase(name) ? "" : name;
     }
 
+    /**
+     * Reads a material setting by name, falling back when it is missing or unknown.
+     *
+     * @param key
+     *            which setting
+     * @param fallback
+     *            what to use when it cannot be read
+     * @return the material
+     */
     private static Material materialSetting(final ConfigKeys key, final Material fallback)
     {
         final Setting s = ConfigManager.getConfigurations().get(key);

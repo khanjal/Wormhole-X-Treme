@@ -8,6 +8,11 @@ import com.wormhole_xtreme.wormhole.model.StargateShape;
  */
 public class StargateShapeFactory
 {
+    /** Static helpers only; never instantiated. */
+    private StargateShapeFactory()
+    {
+    }
+
 
     /**
      * Creates a new StargateShape object.
@@ -46,7 +51,6 @@ public class StargateShapeFactory
         {
             if (line.startsWith("Version=2"))
             {
-                //	if ( line.split("=")[1].equals("2") )
                 return create3DShape(fileLines);
             }
         }

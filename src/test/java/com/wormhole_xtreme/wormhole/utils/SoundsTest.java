@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import org.bukkit.SoundCategory;
 import org.bukkit.World;

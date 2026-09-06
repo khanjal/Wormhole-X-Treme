@@ -12,6 +12,11 @@ import org.bukkit.Server;
  */
 public class StargateDBManager
 {
+    /** Static helpers only; never instantiated. */
+    private StargateDBManager()
+    {
+    }
+
     /**
      * Loads every stored gate and registers it.
      *

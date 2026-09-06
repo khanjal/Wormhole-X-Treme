@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
@@ -19,7 +18,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 public class Complete implements CommandExecutor, TabCompleter
 {
-    // Pending completions: player -> {name, idc, network}
+    /** Completions a player has been asked to confirm, holding their name, idc and network. */
     private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, String[]> pendingCompletions = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void addPendingCompletion(final org.bukkit.entity.Player p, final String name, final String idc, final String network)

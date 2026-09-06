@@ -16,6 +16,11 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 public class CommandUtilities
 {
+    /** Static helpers only; never instantiated. */
+    private CommandUtilities()
+    {
+    }
+
 
     /**
      * Close gate.

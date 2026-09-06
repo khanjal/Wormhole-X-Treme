@@ -12,6 +12,11 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  */
 public class StargateRestrictions
 {
+    /** Static helpers only; never instantiated. */
+    private StargateRestrictions()
+    {
+    }
+
 
     /** The Constant playerUseCooldownStart. */
     private static final ConcurrentHashMap<Player, Long> playerUseCooldownStart = new ConcurrentHashMap<Player, Long>();
@@ -19,10 +24,6 @@ public class StargateRestrictions
     /** Recently-arrived players map: player -> (gateId, timestamp) */
     private static final ConcurrentHashMap<Player, RecentArrival> playerRecentArrival = new ConcurrentHashMap<Player, RecentArrival>();
     
-    /** The Constant playerUseCooldownGroup. */
-    // Removed as per new cooldown logic
-    // private static final ConcurrentHashMap<Player, RestrictionGroup> playerUseCooldownGroup = new ConcurrentHashMap<Player, RestrictionGroup>();
-
     /**
      * Adds the player use cooldown.
      * 
@@ -214,7 +215,6 @@ public class StargateRestrictions
         {
             getPlayerUseCooldownStart().remove(player);
         }
-        // playerUseCooldownGroup removed
         return 0;
     }
 }
