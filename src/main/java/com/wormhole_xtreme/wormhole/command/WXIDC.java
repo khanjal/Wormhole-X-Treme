@@ -44,12 +44,14 @@ public class WXIDC implements CommandExecutor
     /** Reports or changes one gate's iris deactivation code. */
     private static void handleIdc(final CommandSender sender, final String[] a)
     {
-        if (!StargateManager.isStargate(a[0]))
+        // Asked for once and checked, rather than isStargate followed by getStargate: the
+        // registry is a concurrent map, so between two lookups the answer can change.
+        final Stargate s = StargateManager.getStargate(a[0]);
+        if (s == null)
         {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Stargate: " + a[0]);
             return;
         }
-        final Stargate s = StargateManager.getStargate(a[0]);
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))
         {
             // Nothing to unlock, so a code set here would never be asked for.
