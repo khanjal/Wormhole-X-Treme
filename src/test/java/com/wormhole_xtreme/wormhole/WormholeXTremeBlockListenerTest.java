@@ -159,4 +159,58 @@ class WormholeXTremeBlockListenerTest
 
         StargateManager.removeStargate(gate);
     }
+
+    /**
+     * An iris lever that is actually there stays protected.
+     *
+     * <p>The placeholder cases above are allowed because no lever was ever placed. Once one
+     * is, breaking it would leave the gate holding a lever block that is not there, and the
+     * player could take the iris off a gate they cannot otherwise touch.
+     */
+    @Test
+    void breakingARealIrisLeverIsStillRefused()
+    {
+        final World world = mock(World.class);
+        final int dx = 10, dy = 66, dz = 20;
+
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateName("gateWithIris");
+
+        final Block dial = mock(Block.class);
+        when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getX()).thenReturn(dx);
+        when(dial.getY()).thenReturn(dy);
+        when(dial.getZ()).thenReturn(dz);
+
+        // The block under the dial is the iris position, and this time it holds a lever.
+        final Block belowDial = mock(Block.class);
+        when(belowDial.getLocation()).thenReturn(new Location(world, dx, dy - 1, dz));
+        when(belowDial.getX()).thenReturn(dx);
+        when(belowDial.getY()).thenReturn(dy - 1);
+        when(belowDial.getZ()).thenReturn(dz);
+        when(belowDial.getType()).thenReturn(org.bukkit.Material.LEVER);
+        when(dial.getRelative(BlockFace.DOWN)).thenReturn(belowDial);
+
+        gate.setGateDialLeverBlock(dial);
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateIrisLeverBlock(belowDial);
+
+        StargateManager.registerStargate(gate);
+        StargateManager.addBlockIndex(belowDial, gate);
+        try
+        {
+            final Player player = mock(Player.class);
+            final BlockBreakEvent ev = new BlockBreakEvent(belowDial, player);
+
+            new WormholeXTremeBlockListener().onBlockBreak(ev);
+
+            assertTrue(ev.isCancelled(),
+                "a lever that is really there is part of the gate and stays protected");
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+        }
+    }
 }
