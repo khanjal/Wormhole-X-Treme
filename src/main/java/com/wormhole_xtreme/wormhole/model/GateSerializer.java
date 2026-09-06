@@ -5,6 +5,7 @@ package com.wormhole_xtreme.wormhole.model;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -1061,7 +1062,7 @@ public final class GateSerializer
     }
 
     /** How many blocks, then that many of them. */
-    private static void writeBlockRun(final ByteBuffer dataArr, final ArrayList<Location> blocks)
+    private static void writeBlockRun(final ByteBuffer dataArr, final List<Location> blocks)
     {
         dataArr.putInt(blocks.size());
         for (final Location block : blocks)
@@ -1076,10 +1077,10 @@ public final class GateSerializer
      * <p>A wave with nothing in it writes a count of zero rather than being skipped, so the
      * wave numbers still line up when the reader walks them back.
      */
-    private static void writeWaves(final ByteBuffer dataArr, final ArrayList<ArrayList<Location>> waves)
+    private static void writeWaves(final ByteBuffer dataArr, final List<List<Location>> waves)
     {
         dataArr.putInt(waves.size());
-        for (final ArrayList<Location> wave : waves)
+        for (final List<Location> wave : waves)
         {
             if (wave == null)
             {

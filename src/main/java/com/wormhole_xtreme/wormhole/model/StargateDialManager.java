@@ -113,7 +113,7 @@ class StargateDialManager
         }
         else
         {
-            final java.util.ArrayList<Stargate> allGates = StargateManager.getAllGates();
+            final java.util.List<Stargate> allGates = StargateManager.getAllGates();
             WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE,
                 "SignDial: gate=" + gate.getGateName() + " network=none(public) allGatesSize=" + allGates.size());
             for (final Stargate s : allGates)

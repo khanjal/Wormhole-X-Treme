@@ -132,7 +132,7 @@ class GateDetectionTest
     private Block build(final Stargate3DShape s, final BlockFace facing, final int ox, final int oy, final int oz)
     {
         final BlockFace right = WorldUtils.getPerpendicularRightDirection(facing);
-        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
         final Material struct = s.getShapeStructureMaterial();
 
         for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
@@ -217,7 +217,7 @@ class GateDetectionTest
         final Stargate3DShape s = shape("Standard");
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
         final BlockFace right = WorldUtils.getPerpendicularRightDirection(BlockFace.SOUTH);
-        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
 
         // Fill the portal interior with the frame material: the outline still matches, but
         // this is a solid room rather than a gate, and that is the false positive the portal
@@ -273,7 +273,7 @@ class GateDetectionTest
         assertNotNull(found);
 
         int expected = 0;
-        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
         for (int i = 1; i < layers.size(); i++)
         {
             if (layers.get(i) != null)
@@ -297,7 +297,7 @@ class GateDetectionTest
         assertNotNull(found);
 
         int expected = 0;
-        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
         for (int i = 1; i < layers.size(); i++)
         {
             if (layers.get(i) != null)
@@ -323,7 +323,7 @@ class GateDetectionTest
 
         assertFalse(found.getGateLightBlocks().isEmpty(), "a Standard gate lights up, so it has waves");
         int lit = 0;
-        for (final java.util.ArrayList<Location> wave : found.getGateLightBlocks())
+        for (final java.util.List<Location> wave : found.getGateLightBlocks())
         {
             if (wave != null)
             {
@@ -382,7 +382,7 @@ class GateDetectionTest
         assertEquals(0f, arrival.getPitch(), 0.001f, "a traveller arrives looking level");
 
         // Find the EP cell the shape declared and check the arrival sits one step out from it.
-        final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
         final BlockFace right = WorldUtils.getPerpendicularRightDirection(BlockFace.SOUTH);
         boolean checked = false;
         for (int i = 1; i < layers.size() && !checked; i++)

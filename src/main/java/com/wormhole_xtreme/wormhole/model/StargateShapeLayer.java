@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -16,7 +17,7 @@ public class StargateShapeLayer
 {
 
     /** The block positions. */
-    private ArrayList<Integer[]> layerBlockPositions = new ArrayList<Integer[]>();
+    private List<Integer[]> layerBlockPositions = new ArrayList<Integer[]>();
 
     /**
      * The chevron positions -- cells written {@code [C]} rather than {@code [S]}.
@@ -26,7 +27,7 @@ public class StargateShapeLayer
      * belongs to by reading the first frame block it finds. A chevron in that list would
      * have a gate fronted with lamps resolve to the lamp palette, or to no palette at all.
      */
-    private ArrayList<Integer[]> layerChevronPositions = new ArrayList<Integer[]>();
+    private List<Integer[]> layerChevronPositions = new ArrayList<Integer[]>();
 
     /** The sign position. */
     private int[] layerNameSignPosition = null;
@@ -54,13 +55,13 @@ public class StargateShapeLayer
     private int[] layerRedstoneGateActivatedPosition = null;
 
     /** The light_positions. */
-    private ArrayList<ArrayList<Integer[]>> layerLightPositions = new ArrayList<ArrayList<Integer[]>>();
+    private List<List<Integer[]>> layerLightPositions = new ArrayList<List<Integer[]>>();
 
     /** The positions of woosh. First array is the order to activate them. Inner array is list of points */
-    private ArrayList<ArrayList<Integer[]>> layerWooshPositions = new ArrayList<ArrayList<Integer[]>>();
+    private List<List<Integer[]>> layerWooshPositions = new ArrayList<List<Integer[]>>();
 
     /** The water_positions. */
-    private ArrayList<Integer[]> layerPortalPositions = new ArrayList<Integer[]>();
+    private List<Integer[]> layerPortalPositions = new ArrayList<Integer[]>();
 
     /**
      * Instantiates a new stargate shape layer.
@@ -160,7 +161,7 @@ public class StargateShapeLayer
      * rather than shifting everything down. Lights and wooshes differ only in which list they
      * fill and what they are called in the log.
      */
-    private static void addToWave(final ArrayList<ArrayList<Integer[]>> waves, final String mod,
+    private static void addToWave(final List<List<Integer[]>> waves, final String mod,
                                   final Integer[] point, final String label)
     {
         final int order = mod.contains("#") ? Integer.parseInt(mod.split("#")[1]) : 1;
@@ -214,7 +215,7 @@ public class StargateShapeLayer
      * 
      * @return the layer block positions
      */
-    public ArrayList<Integer[]> getLayerBlockPositions()
+    public List<Integer[]> getLayerBlockPositions()
     {
         return layerBlockPositions;
     }
@@ -224,7 +225,7 @@ public class StargateShapeLayer
      *
      * @return the layer chevron positions
      */
-    public ArrayList<Integer[]> getLayerChevronPositions()
+    public List<Integer[]> getLayerChevronPositions()
     {
         return layerChevronPositions;
     }
@@ -258,7 +259,7 @@ public class StargateShapeLayer
      * 
      * @return the layer light positions
      */
-    public ArrayList<ArrayList<Integer[]>> getLayerLightPositions()
+    public List<List<Integer[]>> getLayerLightPositions()
     {
         return layerLightPositions;
     }
@@ -304,7 +305,7 @@ public class StargateShapeLayer
      * 
      * @return the layer portal positions
      */
-    public ArrayList<Integer[]> getLayerPortalPositions()
+    public List<Integer[]> getLayerPortalPositions()
     {
         return layerPortalPositions;
     }
@@ -350,7 +351,7 @@ public class StargateShapeLayer
      * 
      * @return the layer woosh positions
      */
-    public ArrayList<ArrayList<Integer[]>> getLayerWooshPositions()
+    public List<List<Integer[]>> getLayerWooshPositions()
     {
         return layerWooshPositions;
     }
@@ -372,7 +373,7 @@ public class StargateShapeLayer
      * @param layerBlockPositions
      *            the new layer block positions
      */
-    public void setLayerBlockPositions(final ArrayList<Integer[]> layerBlockPositions)
+    public void setLayerBlockPositions(final List<Integer[]> layerBlockPositions)
     {
         this.layerBlockPositions = layerBlockPositions;
     }
@@ -405,7 +406,7 @@ public class StargateShapeLayer
      * @param layerLightPositions
      *            the new layer light positions
      */
-    public void setLayerLightPositions(final ArrayList<ArrayList<Integer[]>> layerLightPositions)
+    public void setLayerLightPositions(final List<List<Integer[]>> layerLightPositions)
     {
         this.layerLightPositions = layerLightPositions;
     }
@@ -449,7 +450,7 @@ public class StargateShapeLayer
      * @param layerPortalPositions
      *            the new layer portal positions
      */
-    public void setLayerPortalPositions(final ArrayList<Integer[]> layerPortalPositions)
+    public void setLayerPortalPositions(final List<Integer[]> layerPortalPositions)
     {
         this.layerPortalPositions = layerPortalPositions;
     }
@@ -493,7 +494,7 @@ public class StargateShapeLayer
      * @param layerWooshPositions
      *            the new layer woosh positions
      */
-    public void setLayerWooshPositions(final ArrayList<ArrayList<Integer[]>> layerWooshPositions)
+    public void setLayerWooshPositions(final List<List<Integer[]>> layerWooshPositions)
     {
         this.layerWooshPositions = layerWooshPositions;
     }

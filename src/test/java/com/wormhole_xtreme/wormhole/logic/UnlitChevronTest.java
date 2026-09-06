@@ -157,7 +157,7 @@ class UnlitChevronTest
             {
                 continue;
             }
-            final ArrayList<Integer[]> wave = layer.getLayerLightPositions().get(1);
+            final List<Integer[]> wave = layer.getLayerLightPositions().get(1);
             if ((wave != null) && containsCell(wave, chevron))
             {
                 lit = true;
@@ -308,7 +308,7 @@ class UnlitChevronTest
                     {
                         continue;
                     }
-                    for (final ArrayList<Integer[]> wave : layer.getLayerLightPositions())
+                    for (final List<Integer[]> wave : layer.getLayerLightPositions())
                     {
                         if (wave == null)
                         {
@@ -352,7 +352,7 @@ class UnlitChevronTest
         for (final Integer[] pos : face.getLayerBlockPositions())
         {
             boolean isChevron = false;
-            for (final ArrayList<Integer[]> wave : face.getLayerLightPositions())
+            for (final List<Integer[]> wave : face.getLayerLightPositions())
             {
                 if ((wave != null) && containsCell(wave, pos))
                 {

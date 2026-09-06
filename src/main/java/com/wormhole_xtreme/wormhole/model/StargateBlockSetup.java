@@ -1104,7 +1104,7 @@ class StargateBlockSetup
      */
     private static void sendLights(final Player player, final Stargate gate, final boolean lit)
     {
-        final List<java.util.ArrayList<Location>> groups = gate.getGateLightBlocks();
+        final List<java.util.List<Location>> groups = gate.getGateLightBlocks();
         if (groups == null)
         {
             return;
@@ -1113,7 +1113,7 @@ class StargateBlockSetup
         final Material chevronMaterial = lit ? gate.getEffectiveChevronMaterial() : null;
         final BlockData fixtureOn = lit ? MaterialUtils.litFormOf(chevronMaterial) : null;
 
-        for (final java.util.ArrayList<Location> group : groups)
+        for (final java.util.List<Location> group : groups)
         {
             if (group == null)
             {

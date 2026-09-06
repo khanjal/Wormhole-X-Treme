@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,7 +18,7 @@ public class Stargate3DShape extends StargateShape
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
      */
-    private final ArrayList<StargateShapeLayer> shapeLayers = new ArrayList<StargateShapeLayer>();
+    private final List<StargateShapeLayer> shapeLayers = new ArrayList<StargateShapeLayer>();
 
     /** The activation_layer. */
     private int shapeActivationLayer = -1;
@@ -297,7 +298,7 @@ public class Stargate3DShape extends StargateShape
      * 
      * @return the shape layers
      */
-    public ArrayList<StargateShapeLayer> getShapeLayers()
+    public List<StargateShapeLayer> getShapeLayers()
     {
         return shapeLayers;
     }

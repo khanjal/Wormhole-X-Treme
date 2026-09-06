@@ -392,7 +392,7 @@ public final class StargateHelper
      */
     private static org.bukkit.Material resolveStructureMaterial(final GateFrame frame,
                                                                  final Stargate3DShape shape,
-                                                                 final ArrayList<StargateShapeLayer> shapeLayers)
+                                                                 final List<StargateShapeLayer> shapeLayers)
     {
         final org.bukkit.Material shapeMaterial = shape.getShapeStructureMaterial();
         for (int layerIdx = 1; layerIdx < shapeLayers.size(); layerIdx++)
@@ -437,12 +437,12 @@ public final class StargateHelper
     static java.util.Set<Long> lightCells(final StargateShapeLayer layer)
     {
         final java.util.Set<Long> cells = new java.util.HashSet<Long>();
-        final ArrayList<ArrayList<Integer[]>> waves = layer.getLayerLightPositions();
+        final List<List<Integer[]>> waves = layer.getLayerLightPositions();
         if (waves == null)
         {
             return cells;
         }
-        for (final ArrayList<Integer[]> wave : waves)
+        for (final List<Integer[]> wave : waves)
         {
             if (wave == null)
             {
@@ -500,7 +500,7 @@ public final class StargateHelper
         {
             return null;
         }
-        final ArrayList<StargateShapeLayer> shapeLayers = shape.getShapeLayers();
+        final List<StargateShapeLayer> shapeLayers = shape.getShapeLayers();
         if (shapeLayers == null || shapeLayers.size() <= activationLayerIdx)
         {
             return null;
@@ -575,7 +575,7 @@ public final class StargateHelper
      * @return true if every frame, chevron and portal cell is what the shape asks for
      */
     private static boolean frameMatchesShape(final GateFrame frame,
-                                            final ArrayList<StargateShapeLayer> shapeLayers,
+                                            final List<StargateShapeLayer> shapeLayers,
                                             final int numLayers,
                                             final org.bukkit.Material structMat,
                                             final org.bukkit.Material chevronMat)
@@ -641,7 +641,7 @@ public final class StargateHelper
     private static Stargate populateGate(final GateFrame frame,
                                          final Block clickedBlock,
                                          final Stargate3DShape shape,
-                                         final ArrayList<StargateShapeLayer> shapeLayers,
+                                         final List<StargateShapeLayer> shapeLayers,
                                          final int numLayers,
                                          final MaterialGroup group)
     {
@@ -710,12 +710,12 @@ public final class StargateHelper
     {
                 // Light blocks — shape uses 1-based wave indices; runtime lighting expects
                 // a placeholder at index 0 and real waves starting at index 1.
-                final ArrayList<ArrayList<Integer[]>> lightWaves = layer.getLayerLightPositions();
+                final List<List<Integer[]>> lightWaves = layer.getLayerLightPositions();
                 if (lightWaves != null)
                 {
                     for (int waveIdx = 1; waveIdx < lightWaves.size(); waveIdx++)
                     {
-                        final ArrayList<Integer[]> wavePositions = lightWaves.get(waveIdx);
+                        final List<Integer[]> wavePositions = lightWaves.get(waveIdx);
                         if (wavePositions == null)
                         {
                             continue;
@@ -738,12 +738,12 @@ public final class StargateHelper
                 }
 
                 // Woosh blocks — same 1-based → 0-based shift.
-                final ArrayList<ArrayList<Integer[]>> wooshWaves = layer.getLayerWooshPositions();
+                final List<List<Integer[]>> wooshWaves = layer.getLayerWooshPositions();
                 if (wooshWaves != null)
                 {
                     for (int waveIdx = 1; waveIdx < wooshWaves.size(); waveIdx++)
                     {
-                        final ArrayList<Integer[]> wavePositions = wooshWaves.get(waveIdx);
+                        final List<Integer[]> wavePositions = wooshWaves.get(waveIdx);
                         if (wavePositions == null)
                         {
                             continue;
