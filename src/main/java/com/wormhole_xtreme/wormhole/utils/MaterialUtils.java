@@ -87,9 +87,9 @@ public final class MaterialUtils {
             Material.STONE.isBlock();
             return true;
         }
-        // Throwable rather than Exception: a registry that is not ready fails in class
-        // initialisation, which arrives as an Error.
-        catch (final Throwable ignored) {
+        // LinkageError as well as Exception: a registry that is not ready fails in class
+        // initialisation, which arrives as an ExceptionInInitializerError.
+        catch (final Exception | LinkageError ignored) {
             return false;
         }
     }

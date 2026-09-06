@@ -35,7 +35,7 @@ public class PermissionsSupport
                     providerFound = true;
                     WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Vault provider detected; permission checks will use Vault/Bukkit provider.");
                 }
-            } catch (final Throwable ignore) { /* best effort */ }
+            } catch (final Exception | LinkageError ignore) { /* best effort */ }
 
             if (!providerFound)
             {

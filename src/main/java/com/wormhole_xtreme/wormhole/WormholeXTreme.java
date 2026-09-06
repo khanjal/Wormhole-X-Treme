@@ -274,7 +274,7 @@ public class WormholeXTreme extends JavaPlugin
                 {
                     EconomySupport.disableEconomy();
                 }
-                catch (final Throwable t)
+                catch (final Exception | LinkageError t)
                 {
                     // EconomySupport class may be absent in some deployments; do not let that
                     // prevent the plugin from completing shutdown.
@@ -323,7 +323,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 try {
                     EconomySupport.enableEconomy();
-                } catch (final Throwable t) {
+                } catch (final Exception | LinkageError t) {
                     prettyLog(Level.WARNING, "Failed to enable economy support: " + t.getMessage());
                 }
             }
