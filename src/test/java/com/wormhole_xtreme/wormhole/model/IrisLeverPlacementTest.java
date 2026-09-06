@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
@@ -146,7 +148,7 @@ class IrisLeverPlacementTest
      * starts at a button that is not there.
      */
     @Test
-    void aRedstoneActivatedShapeGetsNoDerivedLever() throws Exception
+    void aRedstoneActivatedShapeGetsNoDerivedLever()
     {
         final Block irisBlock = blockAt(10, 64, 20);
         final Stargate gate = gateWithButton(irisBlock);
@@ -173,6 +175,6 @@ class IrisLeverPlacementTest
 
         StargateBlockSetup.setupIrisLever(gate, false);
 
-        org.mockito.Mockito.verify(notALever, org.mockito.Mockito.never()).setType(Material.AIR);
+        verify(notALever, never()).setType(Material.AIR);
     }
 }
