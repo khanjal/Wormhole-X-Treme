@@ -48,76 +48,78 @@ public final class StargateHelper
         {
             return null;
         }
-
-        final List<Location> structure = gate.getGateStructureBlocks();
-        if (structure == null || structure.isEmpty())
+        final List<Location> frame = frameBlocksExcludingDhd(gate.getGateStructureBlocks(), dhd);
+        if (frame.isEmpty())
         {
             return null;
         }
 
-        // Accumulate excluding any structure entry equal to the DHD coordinates
-        double sumX = 0.0, sumZ = 0.0;
-        int count = 0;
-        for (final Location loc : structure)
+        double sumX = 0.0;
+        double sumZ = 0.0;
+        for (final Location loc : frame)
         {
-            if (loc == null)
-            {
-                continue;
-            }
-            final int lx = loc.getBlockX();
-            final int ly = loc.getBlockY();
-            final int lz = loc.getBlockZ();
-            if (lx == dhd.getX() && ly == dhd.getY() && lz == dhd.getZ())
-            {
-                continue; // exclude DHD coordinate
-            }
-            sumX += lx;
-            sumZ += lz;
-            count++;
+            sumX += loc.getBlockX();
+            sumZ += loc.getBlockZ();
         }
+        final double meanX = sumX / frame.size();
+        final double meanZ = sumZ / frame.size();
 
-        if (count == 0)
+        double varX = 0.0;
+        double varZ = 0.0;
+        for (final Location loc : frame)
         {
-            return null;
-        }
-
-        final double meanX = sumX / count;
-        final double meanZ = sumZ / count;
-
-        double varX = 0.0, varZ = 0.0;
-        for (final Location loc : structure)
-        {
-            if (loc == null) continue;
-            final int lx = loc.getBlockX();
-            final int ly = loc.getBlockY();
-            final int lz = loc.getBlockZ();
-            if (lx == dhd.getX() && ly == dhd.getY() && lz == dhd.getZ()) continue;
-            final double dx = lx - meanX;
-            final double dz = lz - meanZ;
+            final double dx = loc.getBlockX() - meanX;
+            final double dz = loc.getBlockZ() - meanZ;
             varX += dx * dx;
             varZ += dz * dz;
         }
+        // Population variance: only the relative magnitudes are compared.
+        varX = varX / frame.size();
+        varZ = varZ / frame.size();
 
-        // Use population variance (divide by count). For comparison only relative magnitudes matter.
-        varX = varX / count;
-        varZ = varZ / count;
-
-        final double eps = 1e-9;
-        if (Math.abs(varX - varZ) < eps)
+        if (Math.abs(varX - varZ) < 1e-9)
         {
             return null; // indeterminate
         }
-
         if (varX > varZ)
         {
-            // Frame spread mainly along X → gate faces NORTH/SOUTH depending on DHD Z
+            // Spread mainly along X, so the gate faces north or south, whichever side the DHD is on.
             return dhd.getZ() > meanZ ? BlockFace.SOUTH : BlockFace.NORTH;
         }
-        else
+        // Spread mainly along Z, so east or west.
+        return dhd.getX() > meanX ? BlockFace.EAST : BlockFace.WEST;
+    }
+
+    /**
+     * The gate's frame blocks with nulls and the DHD's own cell removed.
+     *
+     * <p>The DHD sits in the structure list but is off to one side of the ring, so leaving it
+     * in would drag the mean towards it and skew the spread the facing is read from.
+     *
+     * @param structure
+     *            the gate's structure blocks, possibly null
+     * @param dhd
+     *            the dial lever block to exclude
+     * @return the frame blocks to measure, never null
+     */
+    private static List<Location> frameBlocksExcludingDhd(final List<Location> structure, final Block dhd)
+    {
+        final List<Location> frame = new ArrayList<Location>();
+        if (structure == null)
         {
-            // Frame spread mainly along Z → gate faces EAST/WEST depending on DHD X
-            return dhd.getX() > meanX ? BlockFace.EAST : BlockFace.WEST;
+            return frame;
         }
+        for (final Location loc : structure)
+        {
+            if ((loc != null)
+                && !((loc.getBlockX() == dhd.getX())
+                    && (loc.getBlockY() == dhd.getY())
+                    && (loc.getBlockZ() == dhd.getZ())))
+            {
+                frame.add(loc);
+            }
+        }
+        return frame;
     }
 
     // ---------------------------------------------------------------------
@@ -139,9 +141,9 @@ public final class StargateHelper
         return StargateShapeRegistry.isStargateShape(name);
     }
 
-    public static Stargate parseVersionedData(final byte[] gate_data, final World w, final String name, final StargateNetwork network)
+    public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)
     {
-        return GateSerializer.parseVersionedData(gate_data, w, name, network);
+        return GateSerializer.parseVersionedData(gateData, w, name, network);
     }
 
     public static byte[] stargatetoBinary(final Stargate s)
@@ -276,25 +278,6 @@ public final class StargateHelper
     }
 
     /**
-     * Core V2 (3-D) shape detection.
-     *
-     * <p>Coordinate system (per StargateShapeLayer):
-     * <ul>
-     *   <li>{@code L} – layer index (1-based; increases away from the player)
-     *   <li>{@code R} – row from the bottom (0 = ground row)
-     *   <li>{@code C} – column from the right (when looking at the gate face)
-     * </ul>
-     *
-     * <p>Given gate-facing direction {@code F} and its perpendicular-right
-     * direction {@code RIGHT}:
-     * <pre>
-     *   wx = ox + (L-1)*F.modX  + C*RIGHT.modX
-     *   wy = oy + R
-     *   wz = oz + (L-1)*F.modZ  + C*RIGHT.modZ
-     * </pre>
-     * where the origin is derived from the activation-holder position.
-     */
-    /**
      * Works out the world height a redstone marker's component belongs at.
      *
      * <p>The shapes use two conventions and both are valid. Written bare, as {@code [RA]},
@@ -425,6 +408,25 @@ public final class StargateHelper
         return Long.valueOf(((long) pos[1].intValue() << 32) ^ (pos[2].intValue() & 0xffffffffL));
     }
 
+    /**
+     * Core V2 (3-D) shape detection.
+     *
+     * <p>Coordinate system (per StargateShapeLayer):
+     * <ul>
+     *   <li>{@code L} – layer index (1-based; increases away from the player)
+     *   <li>{@code R} – row from the bottom (0 = ground row)
+     *   <li>{@code C} – column from the right (when looking at the gate face)
+     * </ul>
+     *
+     * <p>Given gate-facing direction {@code F} and its perpendicular-right
+     * direction {@code RIGHT}:
+     * <pre>
+     *   wx = ox + (L-1)*F.modX  + C*RIGHT.modX
+     *   wy = oy + R
+     *   wz = oz + (L-1)*F.modZ  + C*RIGHT.modZ
+     * </pre>
+     * where the origin is derived from the activation-holder position.
+     */
     private static Stargate check3DShape(final Block clickedBlock,
                                           final BlockFace facing,
                                           final Stargate3DShape shape)
@@ -785,12 +787,11 @@ public final class StargateHelper
 
         // Prevent RD/RS from being side-by-side: if both assigned and adjacent,
         // prefer the dial activation (RD) and drop the sign-cycler (RS).
-        if ((gate.getGateRedstoneDialActivationBlock() != null) && (gate.getGateRedstoneSignActivationBlock() != null))
+        if ((gate.getGateRedstoneDialActivationBlock() != null)
+            && (gate.getGateRedstoneSignActivationBlock() != null)
+            && WorldUtils.isAdjacent(gate.getGateRedstoneDialActivationBlock(), gate.getGateRedstoneSignActivationBlock()))
         {
-            if (WorldUtils.isAdjacent(gate.getGateRedstoneDialActivationBlock(), gate.getGateRedstoneSignActivationBlock()))
-            {
-                gate.setGateRedstoneSignActivationBlock(null);
-            }
+            gate.setGateRedstoneSignActivationBlock(null);
         }
 
         // If the shape is redstone-enabled and defines a redstone-activated output (RA)
@@ -898,8 +899,4 @@ public final class StargateHelper
         return gate;
     }
 
-    public static void debugShapeMatch(final Block buttonBlock, final BlockFace facing, final StargateShape shape)
-    {
-        // Intentionally no-op
-    }
 }
