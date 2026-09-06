@@ -578,14 +578,7 @@ public class StargateManager
             gates.add(keys.nextElement());
         }
 
-        java.util.Collections.sort(gates, new java.util.Comparator<Stargate>()
-        {
-            @Override
-            public int compare(final Stargate a, final Stargate b)
-            {
-                return a.getGateName().compareToIgnoreCase(b.getGateName());
-            }
-        });
+        java.util.Collections.sort(gates, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
 
         return gates;
     }

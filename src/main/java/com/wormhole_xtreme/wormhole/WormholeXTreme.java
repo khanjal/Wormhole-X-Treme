@@ -385,13 +385,9 @@ public class WormholeXTreme extends JavaPlugin
         // An open wormhole hums. One sweep over the open gates rather than a task per gate:
         // the work is the same and there is nothing per-gate to cancel or leak.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
-                {
-                    com.wormhole_xtreme.wormhole.model.GateSounds.tickAmbient();
-                }
+                com.wormhole_xtreme.wormhole.model.GateSounds.tickAmbient();
             }, 20L, ConfigManager.getGateSoundAmbientTicks());
         // Said after gates have loaded, so it can tell an empty server from a full one.
         com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();

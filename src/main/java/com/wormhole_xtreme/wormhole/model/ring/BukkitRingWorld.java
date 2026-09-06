@@ -372,32 +372,28 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
             return;
         }
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                for (int i = 0; i < children.size(); i++)
                 {
-                    for (int i = 0; i < children.size(); i++)
+                    final Entity parent = parents.get(i);
+                    final Entity child = children.get(i);
+                    try
                     {
-                        final Entity parent = parents.get(i);
-                        final Entity child = children.get(i);
-                        try
+                        if (parent.isValid() && child.isValid()
+                            && !parent.getPassengers().contains(child))
                         {
-                            if (parent.isValid() && child.isValid()
-                                && !parent.getPassengers().contains(child))
-                            {
-                                // Close any gap first: a seat is refused when the two are
-                                // far enough apart, which they may still be after a teleport.
-                                child.teleport(parent.getLocation());
-                                parent.addPassenger(child);
-                            }
+                            // Close any gap first: a seat is refused when the two are
+                            // far enough apart, which they may still be after a teleport.
+                            child.teleport(parent.getLocation());
+                            parent.addPassenger(child);
                         }
-                        // Cosmetic settling. Somebody standing beside their camel is a worse
-                        // outcome than a stack trace, but not a reason to abandon the rest.
-                        catch (final RuntimeException e)
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "Could not re-seat a ring passenger: " + e.getMessage());
-                        }
+                    }
+                    // Cosmetic settling. Somebody standing beside their camel is a worse
+                    // outcome than a stack trace, but not a reason to abandon the rest.
+                    catch (final RuntimeException e)
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "Could not re-seat a ring passenger: " + e.getMessage());
                     }
                 }
             }, 1L);

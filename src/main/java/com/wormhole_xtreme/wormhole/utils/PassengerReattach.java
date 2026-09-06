@@ -244,22 +244,18 @@ public final class PassengerReattach
         private void resyncBoat()
         {
             final Location resyncLoc = ridden.getLocation();
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
+                    if (ridden.isValid())
                     {
-                        if (ridden.isValid())
-                        {
-                            ridden.teleport(resyncLoc);
-                        }
+                        ridden.teleport(resyncLoc);
                     }
-                    catch (final RuntimeException ignore)
-                    {
-                        // best effort
-                    }
+                }
+                catch (final RuntimeException ignore)
+                {
+                    // best effort
                 }
             }, 3L);
         }

@@ -144,19 +144,15 @@ public final class RingTransit
         RingMessages.counting(cycle.everyoneInside(), seconds);
         final int step = Math.min(20, remaining);
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
-                    {
-                        countDown(cycle, world, armedBy, remaining - step);
-                    }
-                    catch (final RuntimeException e)
-                    {
-                        recover(cycle, world, e);
-                    }
+                    countDown(cycle, world, armedBy, remaining - step);
+                }
+                catch (final RuntimeException e)
+                {
+                    recover(cycle, world, e);
                 }
             }, step);
     }
@@ -240,32 +236,28 @@ public final class RingTransit
     private static void step(final RingCycle cycle, final World world)
     {
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
+                    if (cycle.advanceFrame())
                     {
-                        if (cycle.advanceFrame())
-                        {
-                            RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(),
-                                cycle.getPair().getPhase() == RingPhase.RETRACT);
-                            step(cycle, world);
-                        }
-                        else if (cycle.getPair().getPhase() == RingPhase.RETRACT)
-                        {
-                            lingerThenClose(cycle, world);
-                        }
-                        else
-                        {
-                            settleThenSwap(cycle, world);
-                        }
+                        RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(),
+                            cycle.getPair().getPhase() == RingPhase.RETRACT);
+                        step(cycle, world);
                     }
-                    catch (final RuntimeException e)
+                    else if (cycle.getPair().getPhase() == RingPhase.RETRACT)
                     {
-                        recover(cycle, world, e);
+                        lingerThenClose(cycle, world);
                     }
+                    else
+                    {
+                        settleThenSwap(cycle, world);
+                    }
+                }
+                catch (final RuntimeException e)
+                {
+                    recover(cycle, world, e);
                 }
             }, ConfigManager.getRingDeployTicks());
     }
@@ -287,19 +279,15 @@ public final class RingTransit
     {
         cycle.beginHold();
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
-                    {
-                        runFlash(cycle, world, 0);
-                    }
-                    catch (final RuntimeException e)
-                    {
-                        recover(cycle, world, e);
-                    }
+                    runFlash(cycle, world, 0);
+                }
+                catch (final RuntimeException e)
+                {
+                    recover(cycle, world, e);
                 }
             }, ConfigManager.getRingSettleTicks());
     }
@@ -402,26 +390,22 @@ public final class RingTransit
         final boolean arriving)
     {
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
+                    if (arriving)
                     {
-                        if (arriving)
-                        {
-                            runArrival(cycle, world, step + 1);
-                        }
-                        else
-                        {
-                            runFlash(cycle, world, step + 1);
-                        }
+                        runArrival(cycle, world, step + 1);
                     }
-                    catch (final RuntimeException e)
+                    else
                     {
-                        recover(cycle, world, e);
+                        runFlash(cycle, world, step + 1);
                     }
+                }
+                catch (final RuntimeException e)
+                {
+                    recover(cycle, world, e);
                 }
             }, ConfigManager.getRingFlashTicks());
     }
@@ -440,22 +424,18 @@ public final class RingTransit
         cycle.drawSettled();
         cycle.beginHold();
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
-                    {
-                        cycle.beginRetract();
-                        // Same reason as the deploy: frame zero is already on screen.
-                        RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(), true);
-                        step(cycle, world);
-                    }
-                    catch (final RuntimeException e)
-                    {
-                        recover(cycle, world, e);
-                    }
+                    cycle.beginRetract();
+                    // Same reason as the deploy: frame zero is already on screen.
+                    RingSounds.ringMoved(world, cycle.getPair(), cycle.getFrame(), true);
+                    step(cycle, world);
+                }
+                catch (final RuntimeException e)
+                {
+                    recover(cycle, world, e);
                 }
             }, ConfigManager.getRingHoldTicks());
     }
@@ -479,27 +459,23 @@ public final class RingTransit
         cycle.clearRings();
         RingSounds.closed(world, cycle.getPair());
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                try
                 {
-                    try
-                    {
-                        // No cooldown when nobody went. The wait exists so an arrival
-                        // cannot immediately re-fire the ring it landed in, and a cycle that
-                        // carried nobody has no arrival to guard against — making somebody
-                        // wait a minute to retry a trip that never happened is just a
-                        // punishment for having stepped out.
-                        cycle.finish((cycle.getCarried() == 0) ? 0L
-                            : (System.currentTimeMillis()
-                                + (ConfigManager.getRingCooldownTicks() * 50L)));
-                        finished(cycle, world);
-                    }
-                    catch (final RuntimeException e)
-                    {
-                        recover(cycle, world, e);
-                    }
+                    // No cooldown when nobody went. The wait exists so an arrival
+                    // cannot immediately re-fire the ring it landed in, and a cycle that
+                    // carried nobody has no arrival to guard against — making somebody
+                    // wait a minute to retry a trip that never happened is just a
+                    // punishment for having stepped out.
+                    cycle.finish((cycle.getCarried() == 0) ? 0L
+                        : (System.currentTimeMillis()
+                            + (ConfigManager.getRingCooldownTicks() * 50L)));
+                    finished(cycle, world);
+                }
+                catch (final RuntimeException e)
+                {
+                    recover(cycle, world, e);
                 }
             }, ConfigManager.getRingLightsLingerTicks());
     }

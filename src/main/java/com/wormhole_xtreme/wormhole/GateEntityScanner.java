@@ -406,15 +406,11 @@ public final class GateEntityScanner implements Runnable
         applyVelocity(moved, exit);
         if (exit.lengthSquared() > MOVING_THRESHOLD_SQUARED)
         {
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
             {
-                @Override
-                public void run()
+                if (moved.isValid())
                 {
-                    if (moved.isValid())
-                    {
-                        applyVelocity(moved, exit);
-                    }
+                    applyVelocity(moved, exit);
                 }
             }, 1L);
         }

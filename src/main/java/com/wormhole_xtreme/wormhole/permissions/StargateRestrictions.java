@@ -143,13 +143,9 @@ public class StargateRestrictions
         final int timeoutTicks = 60;
         try
         {
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
             {
-                @Override
-                public void run()
-                {
-                    try { removePlayerRecentArrival(player); } catch (final RuntimeException ignore) { /* best effort */ }
-                }
+                try { removePlayerRecentArrival(player); } catch (final RuntimeException ignore) { /* best effort */ }
             }, timeoutTicks);
         }
         catch (final RuntimeException ignore) { /* the cooldown still expires on its own */ }

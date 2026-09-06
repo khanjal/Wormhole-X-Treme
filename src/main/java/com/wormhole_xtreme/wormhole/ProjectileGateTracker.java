@@ -117,49 +117,45 @@ class ProjectileGateTracker implements Listener
      */
     static Runnable createTicker()
     {
-        return new Runnable()
+        return () ->
         {
-            @Override
-            public void run()
+            tick++;
+            if ((tick % GATE_CHECK_INTERVAL) == 0)
             {
-                tick++;
-                if ((tick % GATE_CHECK_INTERVAL) == 0)
+                refreshAnyGateOpen();
+            }
+            if (tracked.isEmpty())
+            {
+                return;
+            }
+            final Iterator<Map.Entry<Projectile, Tracked>> it = tracked.entrySet().iterator();
+            while (it.hasNext())
+            {
+                final Map.Entry<Projectile, Tracked> entry = it.next();
+                final Projectile projectile = entry.getKey();
+                final Tracked state = entry.getValue();
+                try
                 {
-                    refreshAnyGateOpen();
-                }
-                if (tracked.isEmpty())
-                {
-                    return;
-                }
-                final Iterator<Map.Entry<Projectile, Tracked>> it = tracked.entrySet().iterator();
-                while (it.hasNext())
-                {
-                    final Map.Entry<Projectile, Tracked> entry = it.next();
-                    final Projectile projectile = entry.getKey();
-                    final Tracked state = entry.getValue();
-                    try
-                    {
-                        if (!projectile.isValid() || (tick > state.expiresAtTick))
-                        {
-                            it.remove();
-                            continue;
-                        }
-                        final Location from = state.previous;
-                        final Location to = projectile.getLocation();
-                        state.previous = to;
-                        if (sendThroughGateOnPath(from, to, projectile))
-                        {
-                            // The original is consumed on the way through; the replacement
-                            // is tracked in its place so it can cross another gate.
-                            it.remove();
-                        }
-                    }
-                    catch (final RuntimeException e)
+                    if (!projectile.isValid() || (tick > state.expiresAtTick))
                     {
                         it.remove();
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                            "Projectile gate tracking failed: " + e.getMessage());
+                        continue;
                     }
+                    final Location from = state.previous;
+                    final Location to = projectile.getLocation();
+                    state.previous = to;
+                    if (sendThroughGateOnPath(from, to, projectile))
+                    {
+                        // The original is consumed on the way through; the replacement
+                        // is tracked in its place so it can cross another gate.
+                        it.remove();
+                    }
+                }
+                catch (final RuntimeException e)
+                {
+                    it.remove();
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                        "Projectile gate tracking failed: " + e.getMessage());
                 }
             }
         };
