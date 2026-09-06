@@ -213,4 +213,57 @@ class WormholeXTremeBlockListenerTest
             StargateManager.removeStargate(gate);
         }
     }
+
+    /**
+     * A recorded iris position with no lever on it is still just a block.
+     *
+     * <p>Shape detection assigns the position whether or not anybody placed a lever, so the
+     * gate holds one either way. Trusting the record rather than looking at the block would
+     * protect a piece of somebody's floor for ever.
+     */
+    @Test
+    void aRecordedIrisPositionWithNoLeverOnItIsBreakable()
+    {
+        final World world = mock(World.class);
+        final int dx = 10, dy = 66, dz = 20;
+
+        final Stargate gate = new Stargate();
+        gate.setGateWorld(world);
+        gate.setGateName("gatePlaceholder");
+
+        final Block dial = mock(Block.class);
+        when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getX()).thenReturn(dx);
+        when(dial.getY()).thenReturn(dy);
+        when(dial.getZ()).thenReturn(dz);
+
+        final Block belowDial = mock(Block.class);
+        when(belowDial.getLocation()).thenReturn(new Location(world, dx, dy - 1, dz));
+        when(belowDial.getX()).thenReturn(dx);
+        when(belowDial.getY()).thenReturn(dy - 1);
+        when(belowDial.getZ()).thenReturn(dz);
+        // Recorded as the iris position, but nobody ever placed a lever on it.
+        when(belowDial.getType()).thenReturn(org.bukkit.Material.DIRT);
+        when(dial.getRelative(BlockFace.DOWN)).thenReturn(belowDial);
+
+        gate.setGateDialLeverBlock(dial);
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateIrisLeverBlock(belowDial);
+
+        StargateManager.registerStargate(gate);
+        StargateManager.addBlockIndex(belowDial, gate);
+        try
+        {
+            final BlockBreakEvent ev = new BlockBreakEvent(belowDial, mock(Player.class));
+
+            new WormholeXTremeBlockListener().onBlockBreak(ev);
+
+            assertFalse(ev.isCancelled(),
+                "the position is recorded but empty, so the block is the player's to break");
+        }
+        finally
+        {
+            StargateManager.removeStargate(gate);
+        }
+    }
 }

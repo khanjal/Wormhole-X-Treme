@@ -78,84 +78,109 @@ class WormholeXTremeBlockListener implements Listener
         // Redstone wiring is the admin's to change, even though it is indexed as gate blocks.
         if (isRemovableGateWiring(stargate, block))
         {
-            return false; // allow break
+            return false;
         }
-        // Allow breaking the block directly under the dial button/lever if it is NOT the iris control block.
+        if (isUnusedIrisSpot(stargate, block))
+        {
+            return false;
+        }
+        refuseBreak(player, stargate);
+        return true;
+    }
+
+    /**
+     * Whether this block is only where an iris lever would go, rather than where one is.
+     *
+     * <p>Shape detection assigns an iris position whether or not a lever was ever placed
+     * there, so the block under the DHD button is usually just a block. Once a lever is
+     * really there it is part of the gate and stays protected -- otherwise a player could
+     * take the iris off a gate they cannot otherwise touch.
+     */
+    private static boolean isUnusedIrisSpot(final Stargate stargate, final Block block)
+    {
         try
         {
-            if (stargate != null && stargate.getGateDialLeverBlock() != null)
+            if ((stargate == null) || (stargate.getGateDialLeverBlock() == null))
             {
-                final Block dial = stargate.getGateDialLeverBlock();
-                final Block belowDial = dial.getRelative(BlockFace.DOWN);
+                return false;
+            }
+            final Block irisBlock = placedIrisLever(stargate);
+            if (WorldUtils.isSameBlock(irisBlock, block))
+            {
+                // A lever that is really there is part of the gate.
+                return false;
+            }
+            final Block dial = stargate.getGateDialLeverBlock();
+            return WorldUtils.isSameBlock(dial.getRelative(BlockFace.DOWN), block)
+                || WorldUtils.isSameBlock(irisLeverSpot(stargate, dial), block);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // on failure fall through to the protective default
+            return false;
+        }
+    }
 
-                // Determine whether the gate's iris lever is actually present (a placed LEVER),
-                // because model-only placeholders are assigned during shape detection.
-                Block irisBlock = null;
-                boolean irisPresent = false;
-                try
-                {
-                    irisBlock = stargate.getGateIrisLeverBlock();
-                    if (irisBlock != null && irisBlock.getType() == Material.LEVER)
-                    {
-                        irisPresent = true;
-                    }
-                }
-                catch (final RuntimeException ignore) { /* an unreadable iris lever just means no iris */ }
-
-                if ((belowDial != null) && WorldUtils.isSameBlock(belowDial, block))
-                {
-                    // If the block under the dial is the iris control block AND an actual
-                    // lever is present there, keep protection. Otherwise allow the break.
-                    if (!irisPresent || !WorldUtils.isSameBlock(irisBlock, block))
-                    {
-                        return false; // allow break
-                    }
-                }
-
-                // Also allow breaking the block that would host the iris lever when
-                // an iris lever is not actually present (the "iris placeholder").
-                try
-                {
-                    BlockFace buttonFacing = stargate.getGateFacing(); // fallback
-                    final org.bukkit.block.data.BlockData bd = dial.getBlockData();
-                    if (bd instanceof Directional buttonData)
-                    {
-                        buttonFacing = buttonData.getFacing();
-                    }
-                    final Block backing = dial.getRelative(WorldUtils.getInverseDirection(buttonFacing));
-                    final Block dhdBase = backing.getRelative(BlockFace.DOWN);
-                    final Block irisCandidate = dhdBase.getRelative(stargate.getGateFacing());
-                    if ((irisCandidate != null) && WorldUtils.isSameBlock(irisCandidate, block))
-                    {
-                        if (!irisPresent || !WorldUtils.isSameBlock(irisBlock, block))
-                        {
-                            return false; // allow break
-                        }
-                    }
-                }
-                catch (final RuntimeException ignore) { /* on failure fall through to the protective default below */ }
+    /**
+     * The gate's iris lever, but only if a lever is actually there.
+     *
+     * <p>The gate records the position from shape detection regardless, so the block has to
+     * be asked what it is rather than trusted to be a lever.
+     */
+    private static Block placedIrisLever(final Stargate stargate)
+    {
+        try
+        {
+            final Block irisBlock = stargate.getGateIrisLeverBlock();
+            if ((irisBlock != null) && (irisBlock.getType() == Material.LEVER))
+            {
+                return irisBlock;
             }
         }
-        catch (final RuntimeException ignore) { /* on failure fall through to the protective default below */ }
+        catch (final RuntimeException ignore)
+        {
+            // an unreadable iris lever just means no iris
+        }
+        return null;
+    }
 
-        // Require gate removal via command before manual block destruction.
-        if (player != null)
+    /**
+     * Where an iris lever would hang, worked back from the DHD button.
+     *
+     * <p>The same walk setupIrisLever makes: back from the face the button points out of,
+     * down to the base of the column, then forward along the gate's facing.
+     */
+    private static Block irisLeverSpot(final Stargate stargate, final Block dial)
+    {
+        BlockFace buttonFacing = stargate.getGateFacing();
+        if (dial.getBlockData() instanceof Directional buttonData)
         {
-            try
-            {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
-                    + "This block is part of the registered gate '" + (stargate != null ? stargate.getGateName() : "unknown") + "'.");
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
-                    + "Run '/wormhole remove " + (stargate != null ? stargate.getGateName() : "unknown") + "' to remove the gate first (use -all to also destroy blocks).");
-            }
-            catch (final RuntimeException ignore) { /* the break is already refused; only the explanation is missing */ }
+            buttonFacing = buttonData.getFacing();
         }
-        else
+        final Block backing = dial.getRelative(WorldUtils.getInverseDirection(buttonFacing));
+        return backing.getRelative(BlockFace.DOWN).getRelative(stargate.getGateFacing());
+    }
+
+    /** Tells whoever broke it that the gate has to be removed by command first. */
+    private static void refuseBreak(final Player player, final Stargate stargate)
+    {
+        final String name = (stargate != null) ? stargate.getGateName() : "unknown";
+        if (player == null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked non-player block break on registered gate: " + (stargate != null ? stargate.getGateName() : "unknown") );
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked non-player block break on registered gate: " + name);
+            return;
         }
-        // Return true to signal that the break should be cancelled.
-        return true;
+        try
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                + "This block is part of the registered gate '" + name + "'.");
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                + "Run '/wormhole remove " + name + "' to remove the gate first (use -all to also destroy blocks).");
+        }
+        catch (final RuntimeException ignore)
+        {
+            // the break is already refused; only the explanation is missing
+        }
     }
 
     /* (non-Javadoc)
