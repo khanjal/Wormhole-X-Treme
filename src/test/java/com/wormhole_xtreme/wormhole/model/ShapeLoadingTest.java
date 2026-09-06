@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -92,7 +93,7 @@ class ShapeLoadingTest
 
         StargateShapeRegistry.loadShapes(shapesDir());
 
-        assertTrue(standard.length() == writtenAt, "the operator's own file is left alone");
+        assertEquals(writtenAt, standard.length(), "the operator's own file is left alone");
         assertNotNull(StargateShapeRegistry.getStargateShape("NotTheShippedOne"),
             "and it is the one that gets loaded");
     }
