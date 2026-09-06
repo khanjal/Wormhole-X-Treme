@@ -152,14 +152,8 @@ class WormholeXTremeVehicleListener implements Listener
     static void markVehicleRecentlyTeleported(final UUID vehicleId)
     {
         recentlyTeleported.add(vehicleId);
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                recentlyTeleported.remove(vehicleId);
-            }
-        }, 20L);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            () -> recentlyTeleported.remove(vehicleId), 20L);
     }
 
 
@@ -167,14 +161,8 @@ class WormholeXTremeVehicleListener implements Listener
     {
         if (playerId == null) { return; }
         recentlyTeleportedPlayersByVehicle.add(playerId);
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                recentlyTeleportedPlayersByVehicle.remove(playerId);
-            }
-        }, 10L);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+            () -> recentlyTeleportedPlayersByVehicle.remove(playerId), 10L);
     }
 
 
@@ -333,41 +321,37 @@ class WormholeXTremeVehicleListener implements Listener
         final int[] attempts = new int[] { 0 };
         final boolean[] attached = new boolean[children.size()];
         final Runnable[] taskHolder = new Runnable[1];
-        taskHolder[0] = new Runnable()
+        taskHolder[0] = () ->
         {
-            @Override
-            public void run()
+            attempts[0]++;
+            try
             {
-                attempts[0]++;
-                try
+                if (!veh.isValid())
                 {
-                    if (!veh.isValid())
-                    {
-                        return;
-                    }
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, kind.noun + " reattach attempt "
-                        + attempts[0] + " -> vehicle " + veh.getUniqueId() + " (passengers=" + children.size() + ")");
-                    final int remaining = attachAll(parents, children, attached);
-                    if (remaining == 0)
-                    {
-                        settle(veh, exitSpeed, kind);
-                    }
-                    else if (attempts[0] < kind.maxAttempts)
-                    {
-                        retryLater(veh, safeTarget, attempts[0], taskHolder[0]);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to attach all passengers to "
-                            + kind.noun + " " + veh.getUniqueId() + " after " + attempts[0] + " attempts");
-                        settle(veh, exitSpeed, kind);
-                    }
+                    return;
                 }
-                catch (final RuntimeException t)
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, kind.noun + " reattach attempt "
+                    + attempts[0] + " -> vehicle " + veh.getUniqueId() + " (passengers=" + children.size() + ")");
+                final int remaining = attachAll(parents, children, attached);
+                if (remaining == 0)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                        "Exception during " + kind.noun + " passenger reattach: " + t.getMessage());
+                    settle(veh, exitSpeed, kind);
                 }
+                else if (attempts[0] < kind.maxAttempts)
+                {
+                    retryLater(veh, safeTarget, attempts[0], taskHolder[0]);
+                }
+                else
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to attach all passengers to "
+                        + kind.noun + " " + veh.getUniqueId() + " after " + attempts[0] + " attempts");
+                    settle(veh, exitSpeed, kind);
+                }
+            }
+            catch (final RuntimeException t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Exception during " + kind.noun + " passenger reattach: " + t.getMessage());
             }
         };
         // Delay 5 ticks so the client finishes its teleport acknowledgment before
@@ -468,21 +452,17 @@ class WormholeXTremeVehicleListener implements Listener
             return;
         }
         final Location resyncLoc = veh.getLocation();
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
         {
-            @Override
-            public void run()
+            try
             {
-                try
+                if (veh.isValid())
                 {
-                    if (veh.isValid())
-                    {
-                        veh.teleport(resyncLoc);
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
-                    }
+                    veh.teleport(resyncLoc);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
                 }
-                catch (final RuntimeException ignore) { /* the re-sync is cosmetic */ }
             }
+            catch (final RuntimeException ignore) { /* the re-sync is cosmetic */ }
         }, 3L);
     }
 

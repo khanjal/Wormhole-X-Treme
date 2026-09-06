@@ -105,37 +105,33 @@ public final class RingOutline
             return;
         }
         WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                if (!player.isOnline())
                 {
-                    if (!player.isOnline())
+                    return;
+                }
+                if (pair.isMidCycle())
+                {
+                    // A cycle started while this was showing and is drawing these blocks
+                    // itself now. Sending the real ones back would put its lights out;
+                    // it will clear up after itself when it finishes.
+                    return;
+                }
+                try
+                {
+                    for (final int[] block : blocks)
                     {
-                        return;
+                        player.sendBlockChange(
+                            new Location(world, block[0], block[1], block[2]),
+                            world.getBlockAt(block[0], block[1], block[2]).getBlockData());
                     }
-                    if (pair.isMidCycle())
-                    {
-                        // A cycle started while this was showing and is drawing these blocks
-                        // itself now. Sending the real ones back would put its lights out;
-                        // it will clear up after itself when it finishes.
-                        return;
-                    }
-                    try
-                    {
-                        for (final int[] block : blocks)
-                        {
-                            player.sendBlockChange(
-                                new Location(world, block[0], block[1], block[2]),
-                                world.getBlockAt(block[0], block[1], block[2]).getBlockData());
-                        }
-                    }
-                    // A player who has changed world, or a chunk that has gone, will be sent
-                    // the real blocks by the client's own refresh anyway.
-                    catch (final RuntimeException ignored)
-                    {
-                        // deliberately silent
-                    }
+                }
+                // A player who has changed world, or a chunk that has gone, will be sent
+                // the real blocks by the client's own refresh anyway.
+                catch (final RuntimeException ignored)
+                {
+                    // deliberately silent
                 }
             }, ConfigManager.getRingOutlineTicks());
     }

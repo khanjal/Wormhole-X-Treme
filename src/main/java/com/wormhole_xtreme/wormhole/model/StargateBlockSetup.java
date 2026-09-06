@@ -770,40 +770,36 @@ class StargateBlockSetup
         final long delay)
     {
         WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(),
-            new Runnable()
+            () ->
             {
-                @Override
-                public void run()
+                if (!player.isOnline())
                 {
-                    if (!player.isOnline())
+                    return;
+                }
+                try
+                {
+                    if (water)
                     {
+                        // Only while they are still in it. Somebody who has walked on is
+                        // no longer surfacing, and redrawing would put water behind them.
+                        if (player.getEyeLocation().getBlock().getLocation().equals(at))
+                        {
+                            player.sendBlockChange(at, Material.WATER.createBlockData());
+                        }
                         return;
                     }
-                    try
-                    {
-                        if (water)
-                        {
-                            // Only while they are still in it. Somebody who has walked on is
-                            // no longer surfacing, and redrawing would put water behind them.
-                            if (player.getEyeLocation().getBlock().getLocation().equals(at))
-                            {
-                                player.sendBlockChange(at, Material.WATER.createBlockData());
-                            }
-                            return;
-                        }
-                        // Read again rather than remember: somebody may have put something
-                        // there in the meantime, and the real block is always the right
-                        // answer. A chunk arriving later than this shows the truth anyway,
-                        // so the failure that is left over is a splash nobody saw rather
-                        // than water nobody can clear.
-                        final Block now = at.getWorld().getBlockAt(at.getBlockX(),
-                            at.getBlockY(), at.getBlockZ());
-                        player.sendBlockChange(at, now.getBlockData());
-                    }
-                    catch (final RuntimeException ignore)
-                    {
-                        // As above.
-                    }
+                    // Read again rather than remember: somebody may have put something
+                    // there in the meantime, and the real block is always the right
+                    // answer. A chunk arriving later than this shows the truth anyway,
+                    // so the failure that is left over is a splash nobody saw rather
+                    // than water nobody can clear.
+                    final Block now = at.getWorld().getBlockAt(at.getBlockX(),
+                        at.getBlockY(), at.getBlockZ());
+                    player.sendBlockChange(at, now.getBlockData());
+                }
+                catch (final RuntimeException ignore)
+                {
+                    // As above.
                 }
             }, Math.max(1L, delay));
     }

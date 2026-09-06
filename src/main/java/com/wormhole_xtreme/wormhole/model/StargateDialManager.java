@@ -127,14 +127,7 @@ class StargateDialManager
             }
         }
 
-        java.util.Collections.sort(others, new java.util.Comparator<Stargate>()
-        {
-            @Override
-            public int compare(final Stargate a, final Stargate b)
-            {
-                return a.getGateName().compareToIgnoreCase(b.getGateName());
-            }
-        });
+        java.util.Collections.sort(others, (a, b) -> a.getGateName().compareToIgnoreCase(b.getGateName()));
         return others;
     }
 

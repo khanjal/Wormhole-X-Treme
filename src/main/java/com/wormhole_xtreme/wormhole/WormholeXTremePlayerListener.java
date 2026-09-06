@@ -737,28 +737,24 @@ class WormholeXTremePlayerListener implements Listener
     {
         try
         {
-            Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), new Runnable()
+            Bukkit.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), () ->
             {
-                @Override
-                public void run()
+                if ((player == null) || (target == null))
                 {
-                    if ((player == null) || (target == null))
-                    {
-                        return;
-                    }
-                    // Each call is independently best-effort: none of them failing is
-                    // worth aborting the others.
-                    try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) { /* best effort */ }
-                    try { player.setFallDistance(0); } catch (final RuntimeException ignore) { /* best effort */ }
-                    if (!skipTeleport)
-                    {
-                        try { player.teleport(target); } catch (final RuntimeException ignore) { /* best effort */ }
-                    }
-                    // A moment of water, as though they had just surfaced out of the event
-                    // horizon. Sent here rather than at teleport time so it lands after the
-                    // client has been put where it is going.
-                    StargateManager.splashArrival(player);
+                    return;
                 }
+                // Each call is independently best-effort: none of them failing is
+                // worth aborting the others.
+                try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) { /* best effort */ }
+                try { player.setFallDistance(0); } catch (final RuntimeException ignore) { /* best effort */ }
+                if (!skipTeleport)
+                {
+                    try { player.teleport(target); } catch (final RuntimeException ignore) { /* best effort */ }
+                }
+                // A moment of water, as though they had just surfaced out of the event
+                // horizon. Sent here rather than at teleport time so it lands after the
+                // client has been put where it is going.
+                StargateManager.splashArrival(player);
             }, 1L);
         }
         catch (final RuntimeException ignore) { /* the arrival already happened; only the follow-up tick is lost */ }
@@ -1136,14 +1132,7 @@ class WormholeXTremePlayerListener implements Listener
             {
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(
                     WormholeXTreme.getThisPlugin(),
-                    new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            StargateManager.refreshPortalVisuals(player);
-                        }
-                    },
+                    () -> StargateManager.refreshPortalVisuals(player),
                     delay);
             }
             catch (final RuntimeException ignore)

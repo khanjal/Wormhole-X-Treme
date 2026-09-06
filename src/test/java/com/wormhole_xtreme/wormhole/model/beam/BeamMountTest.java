@@ -206,15 +206,11 @@ class BeamMountTest
         // vanish tick ever captured anything, still runs recover(), which calls straight
         // through to these. None of them may throw on a mount that is not there.
         final BeamMount mount = BeamMount.none();
-        assertDoesNotThrow(new org.junit.jupiter.api.function.Executable()
+        assertDoesNotThrow(() ->
         {
-            @Override
-            public void execute()
-            {
-                mount.hold(mock(Player.class));
-                mount.release();
-                mount.stack();
-            }
+            mount.hold(mock(Player.class));
+            mount.release();
+            mount.stack();
         }, "recover() calls these before a mount has ever been captured");
     }
 }
