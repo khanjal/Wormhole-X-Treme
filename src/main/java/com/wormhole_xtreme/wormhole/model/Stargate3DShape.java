@@ -67,9 +67,13 @@ public class Stargate3DShape extends StargateShape
         int height = 0;
         int width = 0;
         int wooshDepth = 0;
-        for (int i = 0; i < fileLines.length; i++)
+        // Walked with an explicit cursor rather than a for loop: a layer consumes the rows
+        // that follow it, so the parser has to be able to move the cursor itself.
+        int i = 0;
+        while (i < fileLines.length)
         {
             final String line = fileLines[i];
+            i++;
 
             if (line.startsWith("#"))
             {
@@ -83,39 +87,9 @@ public class Stargate3DShape extends StargateShape
             }
             else if (line.equals("GateShape="))
             {
-                int index = i;
-                // Find start of first line
-                while ( !fileLines[index].startsWith("["))
-                {
-                    index++;
-                }
-
-                while (fileLines[index].startsWith("["))
-                {
-                    if (width <= 0)
-                    {
-                        final Pattern p = Pattern.compile("(\\[.*?\\])");
-                        final Matcher m = p.matcher(fileLines[index]);
-                        while (m.find())
-                        {
-                            width++;
-                        }
-                    }
-
-                    height++;
-                    index++;
-                }
-
-                // At this point we should know the height and width
-                if ((height <= 0) || (width <= 0))
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
-                    throw new IllegalArgumentException("Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
-                }
-                else
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Shape: \"" + getShapeName() + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
-                }
+                final int[] grid = measureGrid(fileLines, i - 1);
+                height = grid[0];
+                width = grid[1];
             }
             else if (line.startsWith("Layer"))
             {
@@ -123,95 +97,22 @@ public class Stargate3DShape extends StargateShape
                 final int layer = Integer.valueOf(line.trim().split("[#=]")[1]);
 
                 // 2. add each line that starts with [ to a new string[]
-                i++;
-                final String[] layerLines = new String[height];
-                int line_index = 0;
-                while (fileLines[i].startsWith("[") || fileLines[i].startsWith("#"))
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " line_index=" + line_index + " Line=" + fileLines[i]);
-                    layerLines[line_index] = fileLines[i];
-                    i++;
-
-                    if (fileLines[i].startsWith("#"))
-                    {
-                        continue;
-                    }
-
-                    line_index++;
-                }
+                final int[] cursor = {i};
+                final String[] layerLines = readLayerLines(fileLines, cursor, height, layer);
+                // Past the line that ended the layer, not onto it: the original for loop's
+                // own increment skipped that line, and shape files rely on it being blank.
+                i = cursor[0] + 1;
 
                 // 3. call constructor
                 final StargateShapeLayer ssl = new StargateShapeLayer(layerLines, height, width);
-                // bad hack to make sure list is big enough :(
-                while (getShapeLayers().size() <= layer)
-                {
-                    getShapeLayers().add(null);
-                }
-                getShapeLayers().set(layer, ssl);
-
-                if (ssl.getLayerActivationPosition().length > 0)
-                {
-                    setShapeActivationLayer(layer);
-                }
-                if (ssl.getLayerDialSignPosition().length > 0)
-                {
-                    setShapeSignLayer(layer);
-                }
-                if ((ssl.getLayerPlayerExitPosition() != null) && (ssl.getLayerPlayerExitPosition().length == 3))
-                {
-                    // This is only so we know it has been set or not and can warn players
-                    setShapeEnterPosition(ssl.getLayerPlayerExitPosition());
-                }
-                if (ssl.getLayerWooshPositions().size() > 0)
+                if (recordLayer(layer, ssl))
                 {
                     wooshDepth++;
                 }
             }
-            else if (line.contains("PORTAL_MATERIAL=") && (line.split("=").length > 1))
+            else
             {
-                final Material m = parseMaterialName(line.split("=")[1]);
-                if (m != null) setShapePortalMaterial(m);
-            }
-            else if (line.contains("IRIS_MATERIAL=") && (line.split("=").length > 1))
-            {
-                final Material m = parseMaterialName(line.split("=")[1]);
-                if (m != null) setShapeIrisMaterial(m);
-            }
-            else if (line.contains("STARGATE_MATERIAL=") && (line.split("=").length > 1))
-            {
-                final Material m = parseMaterialName(line.split("=")[1]);
-                if (m != null) setShapeStructureMaterial(m);
-            }
-            else if (line.contains("ACTIVE_MATERIAL=") && (line.split("=").length > 1))
-            {
-                final Material m = parseMaterialName(line.split("=")[1]);
-                if (m != null) setShapeLightMaterial(m);
-            }
-            else if (line.contains("CHEVRON_MATERIAL=") && (line.split("=").length > 1))
-            {
-                final Material m = parseMaterialName(line.split("=")[1]);
-                if (m != null) setShapeChevronMaterial(m);
-            }
-            else if (line.contains("SIGN_MATERIAL=") && (line.split("=").length > 1))
-            {
-                final Material m = parseMaterialName(line.split("=")[1]);
-                if (m != null) setShapeSignMaterial(m);
-            }
-            else if (line.contains("LIGHT_TICKS=") && (line.split("=").length > 1))
-            {
-                setShapeLightTicks(Integer.valueOf(line.split("=")[1]));
-            }
-            else if (line.contains("WOOSH_TICKS=") && (line.split("=").length > 1))
-            {
-                setShapeWooshTicks(Integer.valueOf(line.split("=")[1]));
-            }
-            else if (line.startsWith("REDSTONE_ACTIVATED=") && (line.split("=").length > 1))
-            {
-                setShapeRedstoneActivated(Boolean.valueOf(line.split("=")[1]));
-            }
-            else if (line.startsWith("MATERIAL_GROUPS=") && (line.split("=").length > 1))
-            {
-                setShapeMaterialGroups(line.split("=")[1]);
+                applySetting(line);
             }
         }
 
@@ -227,6 +128,183 @@ public class Stargate3DShape extends StargateShape
         }
 
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Finished parsing shape: \"" + getShapeName() + "\"");
+    }
+
+    /**
+     * Collects the rows of one layer, passing over comment lines mixed in among them.
+     *
+     * @param cursor
+     *            the first row on the way in, the line after the layer on the way out
+     * @return the layer's rows, one per row of the grid
+     */
+    private String[] readLayerLines(final String[] fileLines, final int[] cursor, final int height,
+        final int layer)
+    {
+        final String[] layerLines = new String[height];
+        int lineIndex = 0;
+        int i = cursor[0];
+        while (fileLines[i].startsWith("[") || fileLines[i].startsWith("#"))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " line_index=" + lineIndex + " Line=" + fileLines[i]);
+            layerLines[lineIndex] = fileLines[i];
+            i++;
+
+            if ( !fileLines[i].startsWith("#"))
+            {
+                lineIndex++;
+            }
+        }
+        cursor[0] = i;
+        return layerLines;
+    }
+
+    /**
+     * Measures the block grid that follows a {@code GateShape=} line.
+     *
+     * <p>Width is the number of markers on the first row, height the number of rows. Both are
+     * needed before any layer can be read, which is why this runs ahead of the layers rather
+     * than being inferred from them.
+     *
+     * @param fileLines
+     *            the whole shape file
+     * @param from
+     *            the index of the GateShape line
+     * @return the height and the width, in that order
+     */
+    private int[] measureGrid(final String[] fileLines, final int from)
+    {
+        int index = from;
+        while ( !fileLines[index].startsWith("["))
+        {
+            index++;
+        }
+
+        int height = 0;
+        int width = 0;
+        final Pattern p = Pattern.compile("(\\[.*?\\])");
+        while (fileLines[index].startsWith("["))
+        {
+            if (width <= 0)
+            {
+                final Matcher m = p.matcher(fileLines[index]);
+                while (m.find())
+                {
+                    width++;
+                }
+            }
+            height++;
+            index++;
+        }
+
+        if ((height <= 0) || (width <= 0))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
+            throw new IllegalArgumentException("Unable to parse custom gate due to incorrect height or width: \"" + getShapeName() + "\"");
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Shape: \"" + getShapeName() + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
+        return new int[] {height, width};
+    }
+
+    /**
+     * Files a parsed layer and notes what it contributes to the shape as a whole.
+     *
+     * @return true if the layer carries woosh positions, which is what gives a shape its depth
+     */
+    private boolean recordLayer(final int layer, final StargateShapeLayer ssl)
+    {
+        // bad hack to make sure list is big enough :(
+        while (getShapeLayers().size() <= layer)
+        {
+            getShapeLayers().add(null);
+        }
+        getShapeLayers().set(layer, ssl);
+
+        if (ssl.getLayerActivationPosition().length > 0)
+        {
+            setShapeActivationLayer(layer);
+        }
+        if (ssl.getLayerDialSignPosition().length > 0)
+        {
+            setShapeSignLayer(layer);
+        }
+        if ((ssl.getLayerPlayerExitPosition() != null) && (ssl.getLayerPlayerExitPosition().length == 3))
+        {
+            // Only so we know it has been set or not and can warn players
+            setShapeEnterPosition(ssl.getLayerPlayerExitPosition());
+        }
+        return !ssl.getLayerWooshPositions().isEmpty();
+    }
+
+    /**
+     * Applies one {@code KEY=value} line from a shape file.
+     *
+     * <p>Anything the file says that is not the name, the grid or a layer ends up here.
+     * An unrecognised line is ignored, which is what lets a shape file carry comments and
+     * settings written for a later version of the plugin.
+     */
+    private void applySetting(final String line)
+    {
+        if (applyMaterialSetting(line))
+        {
+            return;
+        }
+        if (line.contains("LIGHT_TICKS=") && (line.split("=").length > 1))
+        {
+            setShapeLightTicks(Integer.valueOf(line.split("=")[1]));
+        }
+        if (line.contains("WOOSH_TICKS=") && (line.split("=").length > 1))
+        {
+            setShapeWooshTicks(Integer.valueOf(line.split("=")[1]));
+        }
+        if (line.startsWith("REDSTONE_ACTIVATED=") && (line.split("=").length > 1))
+        {
+            setShapeRedstoneActivated(Boolean.valueOf(line.split("=")[1]));
+        }
+        if (line.startsWith("MATERIAL_GROUPS=") && (line.split("=").length > 1))
+        {
+            setShapeMaterialGroups(line.split("=")[1]);
+        }
+    }
+
+    /** The material keys a shape file may carry, each against the setting it fills. */
+    private static final java.util.Map<String, java.util.function.BiConsumer<Stargate3DShape, Material>> MATERIAL_KEYS =
+        java.util.Map.of(
+            "PORTAL_MATERIAL=", StargateShape::setShapePortalMaterial,
+            "IRIS_MATERIAL=", StargateShape::setShapeIrisMaterial,
+            "STARGATE_MATERIAL=", StargateShape::setShapeStructureMaterial,
+            "ACTIVE_MATERIAL=", StargateShape::setShapeLightMaterial,
+            "CHEVRON_MATERIAL=", StargateShape::setShapeChevronMaterial,
+            "SIGN_MATERIAL=", StargateShape::setShapeSignMaterial);
+
+    /**
+     * Applies a {@code *_MATERIAL=} line, if that is what this line is.
+     *
+     * <p>A name the server does not know leaves the setting alone rather than failing the
+     * load: shapes outlive the versions they were written for, and the palette in config is
+     * the fallback.
+     *
+     * @return true if the line named one of these settings
+     */
+    private boolean applyMaterialSetting(final String line)
+    {
+        if (line.split("=").length <= 1)
+        {
+            return false;
+        }
+        for (final java.util.Map.Entry<String, java.util.function.BiConsumer<Stargate3DShape, Material>> key
+            : MATERIAL_KEYS.entrySet())
+        {
+            if (line.contains(key.getKey()))
+            {
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null)
+                {
+                    key.getValue().accept(this, m);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
