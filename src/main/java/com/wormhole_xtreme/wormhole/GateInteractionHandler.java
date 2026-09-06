@@ -237,6 +237,11 @@ final class GateInteractionHandler
         player.sendMessage(header + "Type \'\u00A7F/wormhole complete \u00A7B" + name + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
     }
 
+    /** The facings tried when nothing says which way the gate is built. */
+    private static final BlockFace[] ALL_FACINGS = new BlockFace[] {
+        BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
+        BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
+
     /**
      * Answers a click that an interactive {@code /wormhole complete} was waiting for.
      *
@@ -246,11 +251,6 @@ final class GateInteractionHandler
      *
      * @return true if the click was spent on a pending completion
      */
-    /** The facings tried when nothing says which way the gate is built. */
-    private static final BlockFace[] ALL_FACINGS = new BlockFace[] {
-        BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
-        BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
-
     private static boolean handlePendingCompletion(final Player player, final Block clickedBlock,
                                                    final BlockFace direction)
     {
@@ -261,7 +261,7 @@ final class GateInteractionHandler
         }
         try
         {
-            com.wormhole_xtreme.wormhole.model.Stargate found = detectAnyFacing(clickedBlock, resolveFacing(clickedBlock, direction));
+            com.wormhole_xtreme.wormhole.model.Stargate found = detectAnyFacing(clickedBlock, resolveClickDirection(clickedBlock, direction));
             if (found == null)
             {
                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
@@ -282,20 +282,6 @@ final class GateInteractionHandler
             com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
         }
         return true;
-    }
-
-    /** The facing to try first: the caller's, or the clicked block's own. */
-    private static BlockFace resolveFacing(final Block clickedBlock, final BlockFace direction)
-    {
-        if (direction != null)
-        {
-            return direction;
-        }
-        if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
-        {
-            return clicked.getFacing();
-        }
-        return null;
     }
 
     /**
