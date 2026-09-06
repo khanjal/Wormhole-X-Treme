@@ -16,7 +16,8 @@ on:
     inputs:
       max_issues:
         description: "How many issues to investigate in this run"
-        default: "3"
+        type: number
+        default: 3
 
 # Two sweeps draining the same queue would comment on the same issue twice.
 concurrency:
@@ -74,7 +75,10 @@ jobs:
           # Passing a token means the Claude GitHub App does not have to be installed; comments
           # then arrive from github-actions[bot], which is honest about what wrote them.
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          prompt: "/triage-sweep REPO: ${{ github.repository }} MAX_ISSUES: ${{ inputs.max_issues || '3' }}"
+          # github.event.inputs rather than the inputs context: the latter is documented as
+          # available only on workflow_dispatch and workflow_call, and this step also runs on
+          # a schedule, where the property lookup safely yields nothing and the default stands.
+          prompt: "/triage-sweep REPO: ${{ github.repository }} MAX_ISSUES: ${{ github.event.inputs.max_issues || '3' }}"
           # Issue bodies are untrusted text going into an agent, so the tool list is the real
           # containment: read-only over the tree, and only the three gh subcommands the sweep
           # needs. The label swap goes through a script that can touch nothing else.
