@@ -54,7 +54,7 @@ class EvenGateShapeTest
             {
                 continue;
             }
-            for (final java.util.ArrayList<Integer[]> forOneOrder : layer.getLayerLightPositions())
+            for (final java.util.List<Integer[]> forOneOrder : layer.getLayerLightPositions())
             {
                 if (forOneOrder != null)
                 {

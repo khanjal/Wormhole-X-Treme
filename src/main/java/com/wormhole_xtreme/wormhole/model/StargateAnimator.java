@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
@@ -73,7 +74,7 @@ class StargateAnimator
         }
 
         final int step = gate.getGateAnimationStep3D();
-        final ArrayList<Location> wave = wooshWave(gate, step);
+        final List<Location> wave = wooshWave(gate, step);
 
         if (!gate.isGateAnimationRemoving())
         {
@@ -176,7 +177,7 @@ class StargateAnimator
      * @param index which wave, 0 being the one nearest the portal
      * @return the wave's locations, or null if the shape authored this index as empty
      */
-    static ArrayList<Location> wooshWave(final Stargate gate, final int index)
+    static List<Location> wooshWave(final Stargate gate, final int index)
     {
         if ((gate.getGateWooshBlocks() != null) && !gate.getGateWooshBlocks().isEmpty())
         {

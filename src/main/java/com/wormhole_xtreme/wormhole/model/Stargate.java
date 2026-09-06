@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -84,7 +85,7 @@ public class Stargate
     /** Block that toggle the activation state of the gate if nearby redstone is activated. */
     private Block gateRedstoneDialActivationBlock;
     /** Blocks to monitor for redstone input when auto-placing is disabled. */
-    private final ArrayList<Block> gateRedstoneDialMonitorBlocks = new ArrayList<Block>();
+    private final List<Block> gateRedstoneDialMonitorBlocks = new ArrayList<Block>();
     /** Block that will toggle sign target when redstone nearby is activated. */
     private Block gateRedstoneSignActivationBlock;
     /** The gate redstone gate activated block. */
@@ -166,13 +167,13 @@ public class Stargate
     /** The current_lighting_iteration. */
     private int gateLightingCurrentIteration = 0;
     /** List of all blocks contained in this stargate, including buttons and levers. */
-    private final ArrayList<Location> gateStructureBlocks = new ArrayList<Location>();
+    private final List<Location> gateStructureBlocks = new ArrayList<Location>();
     /** List of all blocks that that are part of the "portal". */
-    private final ArrayList<Location> gatePortalBlocks = new ArrayList<Location>();
+    private final List<Location> gatePortalBlocks = new ArrayList<Location>();
     /** List of all blocks that turn on when gate is active. */
-    private final ArrayList<ArrayList<Location>> gateLightBlocks = new ArrayList<ArrayList<Location>>();
+    private final List<List<Location>> gateLightBlocks = new ArrayList<List<Location>>();
     /** List of all blocks that woosh in order when gate is active. */
-    private final ArrayList<ArrayList<Location>> gateWooshBlocks = new ArrayList<ArrayList<Location>>();
+    private final List<List<Location>> gateWooshBlocks = new ArrayList<List<Location>>();
     /** The Animated blocks. */
     private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<Block>();
     /** The gate_order. */
@@ -1112,7 +1113,7 @@ public class Stargate
      * 
      * @return the gate light blocks
      */
-    public ArrayList<ArrayList<Location>> getGateLightBlocks()
+    public List<List<Location>> getGateLightBlocks()
     {
         return gateLightBlocks;
     }
@@ -1249,7 +1250,7 @@ public class Stargate
      * 
      * @return the gate portal blocks
      */
-    public ArrayList<Location> getGatePortalBlocks()
+    public List<Location> getGatePortalBlocks()
     {
         return gatePortalBlocks;
     }
@@ -1271,7 +1272,7 @@ public class Stargate
      *
      * @return modifiable list of monitor blocks (may be empty)
      */
-    public ArrayList<Block> getGateRedstoneDialMonitorBlocks()
+    public List<Block> getGateRedstoneDialMonitorBlocks()
     {
         return gateRedstoneDialMonitorBlocks;
     }
@@ -1331,7 +1332,7 @@ public class Stargate
      * 
      * @return the gate structure blocks
      */
-    public ArrayList<Location> getGateStructureBlocks()
+    public List<Location> getGateStructureBlocks()
     {
         return gateStructureBlocks;
     }
@@ -1371,7 +1372,7 @@ public class Stargate
      * 
      * @return the gate woosh blocks
      */
-    public ArrayList<ArrayList<Location>> getGateWooshBlocks()
+    public List<List<Location>> getGateWooshBlocks()
     {
         return gateWooshBlocks;
     }

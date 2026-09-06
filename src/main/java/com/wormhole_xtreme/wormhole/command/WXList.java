@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -103,7 +104,7 @@ public class WXList implements CommandExecutor
      * <p>A single message past the client's limit is truncated rather than wrapped, so the
      * names off the end would simply not be shown.
      */
-    private static void sendGateNames(final CommandSender sender, final ArrayList<Stargate> gates)
+    private static void sendGateNames(final CommandSender sender, final List<Stargate> gates)
     {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < gates.size(); i++)

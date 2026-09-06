@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -99,7 +100,7 @@ class WooshWaveTest
         // starts a block off from where it used to.
         final Stargate gate = gateWithPortal(BlockFace.NORTH, at(10, 64, 20), at(11, 64, 20));
 
-        final ArrayList<Location> wave = StargateAnimator.wooshWave(gate, 0);
+        final List<Location> wave = StargateAnimator.wooshWave(gate, 0);
 
         assertEquals(2, wave.size(), "one derived block per portal block, not more or fewer");
         assertEquals(19, wave.get(0).getBlockZ(), "NORTH is -Z, so one block out is z - 1");

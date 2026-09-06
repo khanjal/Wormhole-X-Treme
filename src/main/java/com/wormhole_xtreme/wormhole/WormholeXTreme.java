@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.plugin.PluginManager;
@@ -222,7 +223,7 @@ public class WormholeXTreme extends JavaPlugin
             {
                 // Persist current runtime configuration to YAML on shutdown
                 com.wormhole_xtreme.wormhole.config.Configuration.persistCurrentConfiguration(getThisPlugin().getName());
-                final ArrayList<Stargate> gates = StargateManager.getAllGates();
+                final List<Stargate> gates = StargateManager.getAllGates();
                 // Every gate is rewritten unconditionally, changed or not -- a clean
                 // shutdown is the one moment it costs nothing to guarantee disk matches
                 // memory, in case an earlier write failed partway through. The per-gate

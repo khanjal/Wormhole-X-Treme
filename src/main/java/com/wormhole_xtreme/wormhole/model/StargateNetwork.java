@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -16,10 +17,10 @@ public class StargateNetwork
     private String networkName;
 
     /** The gate list. */
-    private final ArrayList<Stargate> networkGateList = new ArrayList<Stargate>();
+    private final List<Stargate> networkGateList = new ArrayList<Stargate>();
 
     /** The sign gate list. */
-    private final ArrayList<Stargate> networkSignGateList = new ArrayList<Stargate>();
+    private final List<Stargate> networkSignGateList = new ArrayList<Stargate>();
 
     /** The gate lock. */
     private Object networkGateLock = new Object();
@@ -29,7 +30,7 @@ public class StargateNetwork
      * 
      * @return the network gate list
      */
-    public ArrayList<Stargate> getNetworkGateList()
+    public List<Stargate> getNetworkGateList()
     {
         return networkGateList;
     }
@@ -59,7 +60,7 @@ public class StargateNetwork
      * 
      * @return the network sign gate list
      */
-    public ArrayList<Stargate> getNetworkSignGateList()
+    public List<Stargate> getNetworkSignGateList()
     {
         return networkSignGateList;
     }

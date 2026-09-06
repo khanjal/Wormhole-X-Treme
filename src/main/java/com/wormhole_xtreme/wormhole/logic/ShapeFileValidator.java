@@ -278,7 +278,7 @@ public final class ShapeFileValidator
         return problems;
     }
 
-    private static void collectPresentOrders(final List<ArrayList<Integer[]>> positions, final Set<Integer> into)
+    private static void collectPresentOrders(final List<List<Integer[]>> positions, final Set<Integer> into)
     {
         for (int order = 0; order < positions.size(); order++)
         {

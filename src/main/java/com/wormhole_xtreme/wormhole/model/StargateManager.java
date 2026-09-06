@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
@@ -340,7 +341,7 @@ public class StargateManager
         double distance = Double.MAX_VALUE;
         if ((stargate != null) && (self != null))
         {
-            final ArrayList<Location> gateblocks = stargate.getGateStructureBlocks();
+            final List<Location> gateblocks = stargate.getGateStructureBlocks();
             for (final Location l : gateblocks)
             {
                 final double blockdistance = getSquaredDistance(self, l);
@@ -365,7 +366,7 @@ public class StargateManager
         Stargate stargate = null;
         if (self != null)
         {
-            final ArrayList<Stargate> gates = StargateManager.getAllGates();
+            final List<Stargate> gates = StargateManager.getAllGates();
             double man = Double.MAX_VALUE;
             for (final Stargate s : gates)
             {
@@ -564,7 +565,7 @@ public class StargateManager
      *
      * @return the array list
      */
-    public static ArrayList<Stargate> getAllGates()
+    public static List<Stargate> getAllGates()
     {
         final ArrayList<Stargate> gates = new ArrayList<Stargate>();
 

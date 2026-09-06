@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.logging.Level;
@@ -365,7 +366,7 @@ public class StargateShape
         return new int[] {point[0], point[1], point[2]};
     }
 
-    private static int[][] toPoints(final ArrayList<Integer[]> points)
+    private static int[][] toPoints(final List<Integer[]> points)
     {
         final int[][] out = new int[points.size()][3];
         for (int i = 0; i < points.size(); i++)

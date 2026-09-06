@@ -69,7 +69,7 @@ class ShapeMatchPreferenceTest
         gate.setGateShape(shape);
         gate.setGateSignPowered(dialSignFound);
 
-        final ArrayList<StargateShapeLayer> layers = shape.getShapeLayers();
+        final List<StargateShapeLayer> layers = shape.getShapeLayers();
         for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
         {
             final StargateShapeLayer layer = layers.get(layerIdx);
