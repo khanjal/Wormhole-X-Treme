@@ -48,6 +48,7 @@ public final class SubCommands
         private final boolean dropSubcommandArg;
         private final ArgCompleter completer;
         private boolean hidden;
+        private boolean checksOwnPermissions;
 
         Entry(final String name, final List<String> aliases, final String usage,
             final SubCommand handler, final boolean dropSubcommandArg, final ArgCompleter completer)
@@ -74,6 +75,18 @@ public final class SubCommands
          * @return true if it is a legacy name
          */
         public boolean isHidden() { return hidden; }
+
+        /**
+         * Whether this subcommand checks its own permissions, so {@code /wormhole} must not
+         * apply the blanket {@code wormhole.config} gate before dispatching to it.
+         *
+         * <p>These are the player-facing subcommands: each has its own node, and each
+         * verifies it -- per verb, and per gate or ring where ownership matters -- which the
+         * one gate up front could only ever be coarser than.
+         *
+         * @return true if the handler does its own checking
+         */
+        public boolean checksOwnPermissions() { return checksOwnPermissions; }
 
         public List<String> getAliases() { return aliases; }
 
@@ -247,6 +260,8 @@ public final class SubCommands
             "owner", "idc", "redstone", "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict");
+
+        selfPermissioned("beam", "ring", "go", "list", "compass");
     }
 
     /**
@@ -336,6 +351,27 @@ public final class SubCommands
         }
     }
 
+    /**
+     * Marks the named subcommands as doing their own permission checking.
+     *
+     * <p>Written as an explicit opt-in list rather than inferred: forgetting to mark a new
+     * subcommand leaves it behind {@code wormhole.config}, which is the safe way to be wrong.
+     *
+     * @param names
+     *            the self-permissioned names
+     */
+    private static void selfPermissioned(final String... names)
+    {
+        for (final String name : names)
+        {
+            final Entry e = BY_NAME.get(name);
+            if (e != null)
+            {
+                e.checksOwnPermissions = true;
+            }
+        }
+    }
+
     private static void register(final String name, final List<String> aliases, final String usage,
         final Object handler, final boolean dropSubcommandArg, final ArgCompleter completer)
     {
@@ -403,13 +439,24 @@ public final class SubCommands
         return out;
     }
 
-    /** @return a comma-separated list of subcommand names, for the help message */
-    public static String nameList()
+    /**
+     * The help message's command list, optionally narrowed to the subcommands that carry
+     * their own nodes -- everything a player without {@code wormhole.config} is not refused
+     * by the dispatcher for. It is a filter on the registry, not on the sender: whether they
+     * hold {@code wormhole.beam.use} is the beam handler's question, asked when they run it.
+     * Listing the admin subcommands to someone the dispatcher will refuse outright is noise,
+     * and tells them the server's layout besides.
+     *
+     * @param selfPermissionedOnly
+     *            true to list only the subcommands that check their own permissions
+     * @return a comma-separated list of subcommand names
+     */
+    public static String nameList(final boolean selfPermissionedOnly)
     {
         final StringBuilder sb = new StringBuilder();
         for (final Entry e : ORDERED)
         {
-            if (e.isHidden())
+            if (e.isHidden() || (selfPermissionedOnly && !e.checksOwnPermissions()))
             {
                 continue;
             }

@@ -4,6 +4,54 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Every feature node under /wormhole was unreachable without wormhole.config
+
+Reported from a live server: a player had `wormhole.beam.use` set true on their group and true
+again on the user, LuckPerms confirmed both, and beaming still refused them.
+
+The node was never consulted. `/wormhole` checked one permission up front, before it looked at
+which subcommand had been typed:
+
+```java
+if (CommandUtilities.playerCheck(sender)
+    ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG)
+    : true)
+```
+
+`PermissionType.CONFIG` is `wormhole.config`, which defaults to op. So every node underneath --
+`wormhole.beam.use`, `wormhole.beam.place`, the four `wormhole.ring.*`, `wormhole.go`,
+`wormhole.list`, `wormhole.use.compass` -- was decorative for anyone who was not already an
+operator, and the refusal they got was the generic "you lack the permissions" that reads as
+though the beam node itself had failed. The only workaround was granting `wormhole.config`,
+which also carries gate editing, regeneration, import and ownership transfer.
+
+Rings hid the shape of it. Ring *travel* fires from the player listener when somebody stands on
+a ring, never through a command, so `wormhole.ring.use` worked while `/wormhole ring list` did
+not -- which made it look like a beam problem rather than a dispatcher one.
+
+The gate now runs per subcommand. `beam`, `ring`, `go`, `list` and `compass` each check their
+own nodes already -- per verb, and per gate or ring where ownership matters, which the single
+check up front could only ever be coarser than -- so they are marked in the registry as
+self-permissioned and dispatch without it. Everything else still requires `wormhole.config`.
+The marking is an explicit opt-in list rather than anything inferred: forgetting to mark a new
+subcommand leaves it behind `wormhole.config`, which is the safe way to be wrong.
+
+Two smaller things came out of it. `/wormhole` with no arguments used to answer a non-operator
+with a flat refusal, so a player who had been granted `wormhole.beam.use` had no way to find
+out that `/wormhole beam` was the command it applied to; it now lists the subcommands the
+dispatcher will not refuse them. That is a filter on the registry, not on the player -- whether
+they hold `wormhole.beam.use` is still the beam handler's question, asked when they run it, so
+`beam` is listed to somebody who may yet be refused by it. Naming it as "what they can run",
+which is how I first wrote both the Javadoc and the test, was the Copilot review's catch.
+
+And `beam list` turned out to check nothing at all -- it was only ever unreachable
+because of the gate in front of it -- so it is behind `wormhole.beam.use` now with the rest of
+the player-facing beam surface.
+
+The `wormhole.beam.*` and `wormhole.ring.*` nodes were documented in `plugin.yml` and, for
+rings, in the rings section of the README, but never in the README's own Permissions list.
+Both families are there now, with their defaults.
+
 ### A minecart's own kind survives a failed vehicle teleport
 
 Only reachable through the fallback that runs when the ordinary teleport throws, so nobody is

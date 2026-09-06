@@ -194,7 +194,35 @@ The plugin uses permission nodes for feature access. Permissions are intended to
 - `wormhole.network.use.<networkName>` — prefix for network-specific use rights (e.g. `wormhole.network.use.staff`).
 - `wormhole.network.build.<networkName>` — prefix for network-specific build rights.
 
+Transport rings (also listed, with the same defaults, under [Ring permissions](#ring-permissions)):
+
+- `wormhole.ring.build` — allow building and pairing rings. Default: op.
+- `wormhole.ring.use` — allow travelling by a ring you are permitted on. Default: true.
+- `wormhole.ring.admin` — allow using and managing any pair, whoever owns it. Default: op.
+- `wormhole.ring.unlimited` — allow owning more pairs than the configured quota. Default: op.
+
+Beaming:
+
+- `wormhole.beam.use` — allow beaming to a public destination or one of your own places
+  (`/wormhole beam to <name>`, `/wormhole beam list`). Default: true.
+- `wormhole.beam.place` — allow creating and managing your own private places
+  (`/wormhole beam place set|list|remove`). Default: true.
+- `wormhole.beam.admin` — allow managing public destinations and anyone's places
+  (`/wormhole beam admin set|remove|cost`), and bypass the beam cooldown and cost. Default: op.
+- `wormhole.beam.admin.teleport` — allow beaming yourself or another player straight to a
+  player or to raw coordinates (`/wormhole beam admin goto|send`), from a player, the console
+  or a command block. Default: op. Deliberately not implied by `wormhole.beam.admin`: curating
+  the destination list and relocating any player at will are different orders of power.
+
 Notes:
+- The player-facing subcommands — `beam`, `ring`, `go`, `list` and `compass` — answer to the
+  nodes above on their own. Everything else under `/wormhole` still requires `wormhole.config`.
+  **If you are upgrading from a release before this one**, `/wormhole` checked `wormhole.config`
+  once up front, before it looked at which subcommand had been typed, which made every node in
+  this section unreachable for anyone but an operator: a player granted `wormhole.beam.use` was
+  refused at the door, in wording that read as though the beam node had not applied. If you
+  worked around that by handing out `wormhole.config`, you can take it back now — it also
+  carries gate editing, regeneration, import and ownership transfer.
 - `wormhole.config` covers the settings command *and* gate management. If you have granted it
   narrowly (e.g. only to yourself), check that trusted builders who used to run
   `/wormhole portalmaterial`, `/wormhole custom`, or `/wormhole owner` freely still have it,
