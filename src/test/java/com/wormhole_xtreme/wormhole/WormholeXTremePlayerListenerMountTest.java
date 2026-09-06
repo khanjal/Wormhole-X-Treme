@@ -220,4 +220,65 @@ class WormholeXTremePlayerListenerMountTest
 
         StargateManager.removeBlockIndex(portal);
     }
+
+    /**
+     * A mount that will not teleport must not strand its rider on the departure side: the
+     * player goes through alone instead. This is the branch the teleport path folds into an
+     * early return, so it is worth pinning separately.
+     */
+    @Test
+    void aRiderWhoseMountCannotMoveStillGoesThrough() throws Exception
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        final int bx = 60, by = 64, bz = 70;
+        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
+
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getWorld()).thenReturn(world);
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.WATER);
+
+        final Stargate src = new Stargate();
+        src.setGateName("srcStuckMount");
+        src.setGateActive(true);
+
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 500.5, 70.0, 600.5));
+        target.setGateFacing(BlockFace.NORTH);
+        final Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
+        gateTargetField.setAccessible(true);
+        gateTargetField.set(src, target);
+
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        final Pig mount = mock(Pig.class);
+        final Player rider = mock(Player.class);
+        when(mount.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(mount.isValid()).thenReturn(true);
+        when(mount.getType()).thenReturn(EntityType.PIG);
+        when(rider.getVehicle()).thenReturn((Entity) mount);
+        when(rider.isValid()).thenReturn(true);
+        when(rider.getName()).thenReturn("stranded");
+
+        // The mount refuses to move.
+        doThrow(new IllegalStateException("mount will not move")).when(mount).teleport(any(Location.class));
+
+        doAnswer(inv -> {
+            final Runnable r = inv.getArgument(1, Runnable.class);
+            try { r.run(); } catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
+            return 1;
+        }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 1.5);
+        final WormholeXTremePlayerListener listener = new WormholeXTremePlayerListener();
+        listener.onPlayerMove(new PlayerMoveEvent(rider, fromLoc, toLoc));
+
+        verify(rider, atLeastOnce()).teleport(any(Location.class));
+
+        StargateManager.removeBlockIndex(ch);
+    }
 }
