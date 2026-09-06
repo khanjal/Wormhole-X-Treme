@@ -794,8 +794,8 @@ public final class StargateHelper
                     // so the player appears just outside the portal rather than
                     // being placed inside it. Use facing's mod components directly.
                     final Location tpLoc = new Location(frame.world(), cell.getX() + 0.5 + frame.facing().getModX(), cell.getY() + 1.0, cell.getZ() + 0.5 + frame.facing().getModZ());
-                    try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final Throwable ignore) { /* best effort */ }
-                    try { tpLoc.setPitch(0f); } catch (final Throwable ignore) { /* best effort */ }
+                    try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final RuntimeException ignore) { /* best effort */ }
+                    tpLoc.setPitch(0f);
                     gate.setGatePlayerTeleportLocation(tpLoc);
                 }
 
@@ -972,7 +972,7 @@ public final class StargateHelper
                     gate.setGateRedstonePowered(true);
                 }
             }
-            catch (final Throwable ignore) { /* redstone wiring is optional; a gate without it still works */ }
+            catch (final RuntimeException ignore) { /* redstone wiring is optional; a gate without it still works */ }
         }
 
         // Instead of forcing placement of redstone dust in front of the activation
@@ -996,7 +996,7 @@ public final class StargateHelper
                 gate.getGateRedstoneDialMonitorBlocks().add(rightBlock);
             }
         }
-        catch (final Throwable ignore) { /* monitor blocks are optional */ }
+        catch (final RuntimeException ignore) { /* monitor blocks are optional */ }
 
     }
 
