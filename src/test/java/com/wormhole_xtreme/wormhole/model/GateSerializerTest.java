@@ -226,7 +226,7 @@ class GateSerializerTest
      * which on a built gate means the wrong blocks lighting in the wrong order.
      */
     @Test
-    void anEmptyWaveKeepsItsPlaceInTheNumbering() throws Exception
+    void anEmptyWaveKeepsItsPlaceInTheNumbering()
     {
         final World w = mockWorld();
         final Stargate s1 = minimalGate(w);
