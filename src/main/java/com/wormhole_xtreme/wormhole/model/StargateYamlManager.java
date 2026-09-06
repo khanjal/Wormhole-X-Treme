@@ -61,14 +61,13 @@ public class StargateYamlManager
      */
     static void loadStargates(final Server server, final File gatesDir)
     {
-        final File GATES_DIR = gatesDir;
-        if (!GATES_DIR.exists())
+        if (!gatesDir.exists())
         {
-            GATES_DIR.mkdirs();
+            gatesDir.mkdirs();
             return;
         }
 
-        final File[] files = GATES_DIR.listFiles((d, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml") || name.toLowerCase(Locale.ROOT).endsWith(".yaml"));
+        final File[] files = gatesDir.listFiles((d, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml") || name.toLowerCase(Locale.ROOT).endsWith(".yaml"));
         if (files == null)
         {
             return;
@@ -78,85 +77,24 @@ public class StargateYamlManager
         int movedExits = 0;
         for (final File f : files)
         {
+            // Per file: the gates directory is read on startup, and one corrupted file
+            // taking the whole load down would lose every gate on the server.
             try (FileInputStream in = new FileInputStream(f))
             {
-                final Object obj = yaml.load(in);
-                if (obj instanceof Map)
+                final Stargate s = readGate(in, yaml, server);
+                if (s == null)
                 {
-                    @SuppressWarnings("unchecked")
-                    final Map<String, Object> map = (Map<String, Object>) obj;
-                    final String name = (String) map.getOrDefault("Name", "");
-                    final String ownerUuid = (String) map.getOrDefault("OwnerUUID", "");
-                    final String ownerName = (String) map.getOrDefault("OwnerName", "");
-                    // Fall back to legacy 'Owner' field (name-based) if OwnerUUID is absent
-                    final String legacyOwner = (String) map.getOrDefault("Owner", "");
-                    final String owner;
-                    if ((ownerUuid != null) && !ownerUuid.isEmpty())
-                    {
-                        owner = ownerUuid;
-                    }
-                    else
-                    {
-                        owner = legacyOwner;
-                    }
-                    final String gateDataB64 = (String) map.get("GateData");
-                    final String worldName = (String) map.getOrDefault("WorldName", "");
-                    final String network = (String) map.getOrDefault("Network", "");
-
-                    if (gateDataB64 != null)
-                    {
-                        final byte[] data = Base64.getDecoder().decode(gateDataB64);
-                        final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(worldName), name, null);
-                        if (s != null)
-                        {
-                            if ((owner != null) && !owner.isEmpty())
-                            {
-                                s.setGateOwner(owner);
-                                // Resolve display name. A name equal to the owner id is not
-                                // a name -- it is what the save bug above wrote -- so it is
-                                // treated as absent and resolved again below. That is what
-                                // heals a file already carrying a UUID as its OwnerName.
-                                final String savedName = ownerNameFromSave(ownerName, owner);
-                                if (savedName != null)
-                                {
-                                    s.setGateOwnerName(savedName);
-                                }
-                                else
-                                {
-                                    // Try to resolve name from UUID (works for players who have joined at least once)
-                                    try
-                                    {
-                                        final UUID uuid = UUID.fromString(owner);
-                                        final String resolved = Bukkit.getOfflinePlayer(uuid).getName();
-                                        if (resolved != null)
-                                        {
-                                            s.setGateOwnerName(resolved);
-                                        }
-                                    }
-                                    catch (final IllegalArgumentException ignored)
-                                    {
-                                        // Legacy name-based owner: name == owner string
-                                        s.setGateOwnerName(owner);
-                                    }
-                                }
-                            }
-                            if ((network != null) && !network.isEmpty())
-                            {
-                                StargateManager.addGateToNetwork(s, network);
-                                s.setGateNetwork(StargateManager.getStargateNetwork(network));
-                            }
-                            // Gates written before the arrival point was moved clear of the
-                            // ring still land travellers inside the portal, and loading
-                            // restores what was stored rather than recomputing it.
-                            if (s.normalizeGatePlayerTeleportLocation())
-                            {
-                                movedExits++;
-                            }
-                            StargateManager.addStargate(s);
-                            loaded++;
-                        }
-                    }
+                    continue;
                 }
+                // Gates written before the arrival point was moved clear of the ring still
+                // land travellers inside the portal, and loading restores what was stored
+                // rather than recomputing it.
+                if (s.normalizeGatePlayerTeleportLocation())
+                {
+                    movedExits++;
+                }
+                StargateManager.addStargate(s);
+                loaded++;
             }
             catch (final Exception e)
             {
@@ -166,15 +104,118 @@ public class StargateYamlManager
                 }
             }
         }
-        if (WormholeXTreme.getThisPlugin() != null)
+        reportLoad(loaded, movedExits, gatesDir);
+    }
+
+    /**
+     * Builds one gate from an open gate file.
+     *
+     * @return the gate, or null if the file describes none
+     */
+    private static Stargate readGate(final FileInputStream in, final Yaml yaml, final Server server)
+    {
+        final Object obj = yaml.load(in);
+        if (!(obj instanceof Map))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, loaded + " Wormholes loaded from YAML directory: " + GATES_DIR.getAbsolutePath());
-            if (movedExits > 0)
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> map = (Map<String, Object>) obj;
+        final String gateDataB64 = (String) map.get("GateData");
+        if (gateDataB64 == null)
+        {
+            return null;
+        }
+        final String name = (String) map.getOrDefault("Name", "");
+        final String worldName = (String) map.getOrDefault("WorldName", "");
+        final byte[] data = Base64.getDecoder().decode(gateDataB64);
+        final Stargate s = GateSerializer.parseVersionedData(data, server.getWorld(worldName), name, null);
+        if (s == null)
+        {
+            return null;
+        }
+        applyOwner(s, ownerIdFrom(map), (String) map.getOrDefault("OwnerName", ""));
+        applyNetwork(s, (String) map.getOrDefault("Network", ""));
+        return s;
+    }
+
+    /**
+     * Who owns the gate, by whichever field the file carries.
+     *
+     * <p>OwnerUUID is what is written now. A file old enough to predate it names the owner
+     * in Owner instead, as a plain player name.
+     */
+    private static String ownerIdFrom(final Map<String, Object> map)
+    {
+        final String ownerUuid = (String) map.getOrDefault("OwnerUUID", "");
+        if ((ownerUuid != null) && !ownerUuid.isEmpty())
+        {
+            return ownerUuid;
+        }
+        return (String) map.getOrDefault("Owner", "");
+    }
+
+    /**
+     * Sets the owner and works out what to display for them.
+     *
+     * <p>A stored name equal to the owner id is not a name -- it is what an old save bug
+     * wrote -- so it is treated as absent and resolved again, which is what heals a file
+     * already carrying a UUID as its OwnerName.
+     */
+    private static void applyOwner(final Stargate s, final String owner, final String ownerName)
+    {
+        if ((owner == null) || owner.isEmpty())
+        {
+            return;
+        }
+        s.setGateOwner(owner);
+        final String savedName = ownerNameFromSave(ownerName, owner);
+        if (savedName != null)
+        {
+            s.setGateOwnerName(savedName);
+            return;
+        }
+        try
+        {
+            // Resolves for anyone who has joined the server at least once.
+            final String resolved = Bukkit.getOfflinePlayer(UUID.fromString(owner)).getName();
+            if (resolved != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, movedExits + " gates had their arrival point moved out of the portal. Travellers were appearing inside the ring on those.");
+                s.setGateOwnerName(resolved);
             }
         }
+        catch (final IllegalArgumentException notAUuid)
+        {
+            // Legacy name-based owner: the owner string is the name.
+            s.setGateOwnerName(owner);
+        }
     }
+
+    /** Puts the gate on its network, registering the network if this is the first gate on it. */
+    private static void applyNetwork(final Stargate s, final String network)
+    {
+        if ((network == null) || network.isEmpty())
+        {
+            return;
+        }
+        StargateManager.addGateToNetwork(s, network);
+        s.setGateNetwork(StargateManager.getStargateNetwork(network));
+    }
+
+    /** One line for the load, and one more only if any gate needed its arrival point moved. */
+    private static void reportLoad(final int loaded, final int movedExits, final File gatesDir)
+    {
+        if (WormholeXTreme.getThisPlugin() == null)
+        {
+            return;
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, loaded + " Wormholes loaded from YAML directory: " + gatesDir.getAbsolutePath());
+        if (movedExits > 0)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, movedExits + " gates had their arrival point moved out of the portal. Travellers were appearing inside the ring on those.");
+        }
+    }
+
 
     public static void saveStargate(final Stargate s)
     {
