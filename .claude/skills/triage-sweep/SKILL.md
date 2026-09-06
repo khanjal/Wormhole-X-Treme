@@ -1,6 +1,6 @@
 ---
 name: triage-sweep
-description: Run a preliminary, advisory investigation on this repository's (khanjal/Wormhole-X-Treme) issues that are labelled needs-investigation — classify each one, find the code most likely involved, name the information a maintainer would still need, link probable duplicates, post one comment, and swap the label to triaged. Invoked as `/triage-sweep` by the Claude Triage Sweep workflow; it is also safe to run by hand to see what the sweep would say.
+description: Run a preliminary, advisory investigation on this repository's (khanjal/Wormhole-X-Treme) issues that are labelled needs-investigation — classify each one, find the code most likely involved, name the information a maintainer would still need, link probable duplicates, post one comment, and swap the label to triaged. Invoked as `/triage-sweep` by the Claude Triage Sweep workflow. Running it by hand does the same thing rather than rehearsing it: it posts real comments and swaps real labels.
 allowed-tools: Bash(gh issue list:*), Bash(gh issue view:*), Bash(gh issue comment:*), Bash(.github/scripts/triage-label.sh:*), Read, Grep, Glob
 ---
 
