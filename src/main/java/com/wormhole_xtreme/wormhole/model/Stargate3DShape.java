@@ -1,7 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,30 +14,6 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class Stargate3DShape extends StargateShape
 {
-    /**
-     * Resolves a material name the same way a shape file's {@code PORTAL_MATERIAL} /
-     * {@code IRIS_MATERIAL} / {@code STARGATE_MATERIAL} / {@code ACTIVE_MATERIAL} /
-     * {@code SIGN_MATERIAL} lines are resolved when the file is actually loaded --
-     * including the legacy {@code STATIONARY_WATER}/{@code STATIONARY_LAVA} aliases pre-1.13
-     * shape files still use. Public so {@code ShapeFileValidator} checks a name against
-     * exactly what this parser accepts rather than a stricter reading of its own that would
-     * reject a shape the game loads fine.
-     *
-     * @param name the material name as written in the shape file
-     * @return the resolved material, or null if nothing matches
-     */
-    public static Material parseMaterialName(final String name) {
-        if (name == null) return null;
-        final String n = name.trim().toUpperCase(Locale.ROOT);
-        switch (n) {
-            case "STATIONARY_WATER":
-                return Material.WATER;
-            case "STATIONARY_LAVA":
-                return Material.LAVA;
-            default:
-                try { return Material.valueOf(n); } catch (final IllegalArgumentException e) { return null; }
-        }
-    }
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
      */
