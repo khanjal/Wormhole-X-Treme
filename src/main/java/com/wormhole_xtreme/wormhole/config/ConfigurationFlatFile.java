@@ -144,15 +144,12 @@ class ConfigurationFlatFile
                             continue;
                         }
                         final ConfigKeys keyValue = ConfigKeys.valueOf(key[1].trim());
-                        if (keyValue == name)
+                        // The value is on the line after the key.
+                        if ((keyValue == name) && ((s = bufferedReader.readLine()) != null))
                         {
-                            //Next line
-                            if ((s = bufferedReader.readLine()) != null)
-                            {
-                                final String val[] = s.split(":");
-                                bufferedReader.close();
-                                return val.length < 2 ? defaultVal.trim() : val[1].trim();
-                            }
+                            final String[] val = s.split(":");
+                            bufferedReader.close();
+                            return val.length < 2 ? defaultVal.trim() : val[1].trim();
                         }
                     }
                 }

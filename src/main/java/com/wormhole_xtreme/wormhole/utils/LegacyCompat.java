@@ -118,8 +118,8 @@ public final class LegacyCompat {
                     }
                 }
                 // include powered bit if applicable
-                if (bd instanceof Powerable p) {
-                    if (p.isPowered()) base |= 0x8;
+                if ((bd instanceof Powerable p) && p.isPowered()) {
+                    base |= 0x8;
                 }
                 return base;
             }

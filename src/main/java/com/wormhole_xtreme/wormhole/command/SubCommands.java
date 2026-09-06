@@ -207,9 +207,17 @@ public final class SubCommands
             final String name = kind.command();
             register(name, aliases(), "/wormhole " + name + " <gate> <material>",
                 new com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand(kind), false, args ->
-                    args.length == 2 ? gateNames(args[1])
-                        : args.length == 3 ? prefixed(args[2], kind.allowedNames().toArray(new String[0]))
-                        : none());
+                {
+                    if (args.length == 2)
+                    {
+                        return gateNames(args[1]);
+                    }
+                    if (args.length == 3)
+                    {
+                        return prefixed(args[2], kind.allowedNames().toArray(new String[0]));
+                    }
+                    return none();
+                });
         }
         register("wooshdepth", aliases(), "/wormhole wooshdepth <gate> <depth>",
             new com.wormhole_xtreme.wormhole.command.handlers.WooshDepthCommand(), false, GATE_THEN_VALUE);
@@ -249,12 +257,18 @@ public final class SubCommands
             SubCommands::completeGate);
         register("config", aliases("set"), "/wormhole config <setting> [value]",
             new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, args ->
-                args.length == 2 ? prefixed(
-                    // Completing what is in config.yml: gate-sound- has to reach
-                    // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
-                    args[1] == null ? null : args[1].replace('-', '_'),
+            {
+                if (args.length != 2)
+                {
+                    return none();
+                }
+                // Completing what is in config.yml: gate-sound- has to reach
+                // GATE_SOUND_KAWOOSH, or the file's own spelling completes to nothing.
+                final String typed = (args[1] == null) ? null : args[1].replace('-', '_');
+                return prefixed(typed,
                     com.wormhole_xtreme.wormhole.config.ConfigManager.settingNames()
-                        .toArray(new String[0])) : none());
+                        .toArray(new String[0]));
+            });
 
         hide("list", "build", "complete", "remove", "regenerate", "refresh", "go", "force",
             "owner", "idc", "redstone", "custom", "portalmaterial", "irismaterial",

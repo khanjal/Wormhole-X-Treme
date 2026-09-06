@@ -248,13 +248,9 @@ class WormholeXTremePlayerListener implements Listener
     private static boolean holdBackCancelledTraveller(final PlayerMoveEvent event, final Stargate stargate)
     {
         final Location from = event.getFrom();
-        if (stargate.isGatePortalBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ()))
-        {
-            // Already in the portal: refusing this move, and every following one, is what
-            // would trap them. They simply do not travel.
-            return false;
-        }
-        return true;
+        // Somebody already in the portal does not travel: refusing this move, and every
+        // following one, is what would trap them.
+        return !stargate.isGatePortalBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ());
     }
 
 
