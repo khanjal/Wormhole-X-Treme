@@ -20,15 +20,13 @@ class LegacyImportTest
     {
         // The gates in one of those databases are binary blobs, not columns, and this fork
         // inherited the reader for them. That is the whole reason importing is a small job
-        // rather than a reverse-engineering exercise -- so if this reader ever loses its
-        // older cases, the import quietly stops working for the servers most likely to want
-        // it.
+        // rather than a reverse-engineering exercise.
+        //
+        // This used to assert, through reflection, that parseVersionedData existed -- which
+        // it would have gone on doing with every old layout deleted. LegacySaveVersionTest
+        // now builds a version 3 gate and parses it, so the claim in this test's name is
+        // actually checked somewhere.
         assertNotNull(GateSerializer.class);
-        final java.lang.reflect.Method parse = java.util.Arrays
-            .stream(GateSerializer.class.getMethods())
-            .filter(m -> "parseVersionedData".equals(m.getName()))
-            .findFirst().orElse(null);
-        assertNotNull(parse, "the versioned binary reader is what the import depends on");
     }
 
     @Test
