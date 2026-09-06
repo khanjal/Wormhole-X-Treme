@@ -84,7 +84,7 @@ class StargateBlockSetup
                                          final BlockFace toward, final Block placeBlock)
     {
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-        if (plugin == null)
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE))
         {
             return;
         }
@@ -104,7 +104,7 @@ class StargateBlockSetup
                 .append(']');
         }
         dbg.append(describeHolderFacing(nameSign));
-        plugin.prettyLog(Level.INFO, dbg.toString());
+        plugin.prettyLog(Level.FINE, dbg.toString());
     }
 
     /**
@@ -146,8 +146,8 @@ class StargateBlockSetup
     /** Records where a sign was when it is taken down. */
     private static void logSignRemoval(final Stargate gate, final Block placeBlock)
     {
-        final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
-        if (_plugin_for_log == null)
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE))
         {
             return;
         }
@@ -162,7 +162,7 @@ class StargateBlockSetup
         {
             dbg.append(" PlaceBlock=null");
         }
-        _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
+        plugin.prettyLog(Level.FINE, dbg.toString());
     }
 
     /** Places the sign and writes the gate's name, network and owner onto its front. */
@@ -426,7 +426,7 @@ class StargateBlockSetup
     private static void logIrisLeverPlacement(final Stargate gate)
     {
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-        if (plugin == null)
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE))
         {
             return;
         }
@@ -437,7 +437,7 @@ class StargateBlockSetup
         dbg.append(" IrisBlock=").append(describe(iris::getLocation));
         dbg.append(" IrisBlockType=").append(describe(iris::getType));
         dbg.append(" GateFacing=").append(describe(gate::getGateFacing));
-        plugin.prettyLog(Level.INFO, dbg.toString());
+        plugin.prettyLog(Level.FINE, dbg.toString());
     }
 
     /** Hangs the lever on the wall, facing the way the gate faces. */

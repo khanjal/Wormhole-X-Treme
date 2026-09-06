@@ -87,6 +87,7 @@ class StargateSignTest
     void thePlacementLogNamesEveryNeighbourEvenUnreadableOnes() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
         final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
         f.setAccessible(true);
         f.set(null, plugin);
@@ -117,6 +118,39 @@ class StargateSignTest
             }
             org.junit.jupiter.api.Assertions.assertTrue(line.contains("EAST=[null@null]"),
                 "a neighbour that cannot be read is reported as null, not thrown: " + line);
+        }
+        finally
+        {
+            f.set(null, null);
+        }
+    }
+
+    /**
+     * With FINE off, the placement log is not merely silent -- it is not built.
+     *
+     * <p>It reads six neighbours and puts together twenty-odd strings, once per sign placed.
+     * That used to happen on every gate at INFO, which meant always.
+     */
+    @Test
+    void withFineOffThePlacementLogIsNotBuiltAtAll() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(false);
+        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
+        f.setAccessible(true);
+        f.set(null, plugin);
+        try
+        {
+            gate.setGateFacing(BlockFace.NORTH);
+            gate.setGateNameBlockHolder(nameHolder);
+            gate.setGateName("Alpha");
+            when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+            stubSignBlock();
+
+            gate.setupGateSign(true);
+
+            verify(plugin, never()).prettyLog(any(), any());
+            verify(nameHolder, never()).getRelative(BlockFace.EAST);
         }
         finally
         {
