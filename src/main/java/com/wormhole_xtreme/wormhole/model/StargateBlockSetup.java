@@ -351,106 +351,120 @@ class StargateBlockSetup
      */
     static void setupIrisLever(final Stargate gate, final boolean create)
     {
-        if ((gate.getGateIrisLeverBlock() == null)
-            && (gate.getGateShape() != null)
-            && !((gate.getGateShape() instanceof Stargate3DShape shape) && shape.isShapeRedstoneActivated()))
+        if (gate.getGateIrisLeverBlock() == null)
         {
-            final Block button = gate.getGateDialLeverBlock();
-            if (button != null)
-            {
-                // The button is a wall-mounted button on one face of the DHD column.
-                // Its Directional facing tells us WHICH direction the button face points,
-                // so inverse(buttonFacing) is the direction toward the DHD column backing block.
-                //
-                // Algorithm (mirrors how the sign uses nameHolder → nameHolder.getRelative(gateFacing)):
-                //   backing  = button.getRelative(inverse(buttonFacing))   — DHD column top
-                //   dhdBase  = backing.getRelative(DOWN)                   — DHD column base
-                //   irisBlock = dhdBase.getRelative(gateFacing)            — front face of DHD base
-                //
-                // gateFacing (not buttonFacing) is used for the final step so the lever
-                // faces toward the player standing in front of the gate.
-                BlockFace buttonFacing = gate.getGateFacing(); // fallback if block data unavailable
-                final org.bukkit.block.data.BlockData bd = button.getBlockData();
-                if (bd instanceof Directional buttonData)
-                {
-                    buttonFacing = buttonData.getFacing();
-                }
-                final Block backing = button.getRelative(WorldUtils.getInverseDirection(buttonFacing));
-                final Block dhdBase = backing.getRelative(BlockFace.DOWN);
-                final Block irisBlock = dhdBase.getRelative(gate.getGateFacing());
-                // Do not claim the iris position if it is already occupied by an RD or RS
-                // redstone-activation block (e.g. StandardSignDialRedstone places [S:RD]
-                // directly below [S:A], which is exactly where this algorithm lands).
-                final Block rdBlock = gate.getGateRedstoneDialActivationBlock();
-                final Block rsBlock = gate.getGateRedstoneSignActivationBlock();
-                final boolean collidesRd = (rdBlock != null) && WorldUtils.isSameBlock(rdBlock, irisBlock);
-                final boolean collidesRs = (rsBlock != null) && WorldUtils.isSameBlock(rsBlock, irisBlock);
-                if (!collidesRd && !collidesRs)
-                {
-                    gate.setGateIrisLeverBlock(irisBlock);
-                }
-            }
+            gate.setGateIrisLeverBlock(deriveIrisLeverBlock(gate));
         }
-        if (gate.getGateIrisLeverBlock() != null)
+        if (gate.getGateIrisLeverBlock() == null)
         {
-            if (create)
-            {
-                final Block iris = gate.getGateIrisLeverBlock();
-                final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
-                if (_plugin_for_log != null)
-                {
-                    final StringBuilder dbg = new StringBuilder(128);
-                    dbg.append("Iris lever placement: Gate=").append(gate.getGateName());
-                    try
-                    {
-                        final org.bukkit.Location dialLoc = gate.getGateDialLeverBlock() != null ? gate.getGateDialLeverBlock().getLocation() : null;
-                        dbg.append(" DialLever=").append(dialLoc != null ? dialLoc.toString() : "null");
-                    }
-                    catch (final Exception e)
-                    {
-                        dbg.append(" DialLever=null");
-                    }
-                    try
-                    {
-                        final org.bukkit.Location irisLoc = iris != null ? iris.getLocation() : null;
-                        dbg.append(" IrisBlock=").append(irisLoc != null ? irisLoc.toString() : "null");
-                    }
-                    catch (final Exception e)
-                    {
-                        dbg.append(" IrisBlock=null");
-                    }
-                    Material irisType = null;
-                    try
-                    {
-                        irisType = iris != null ? iris.getType() : null;
-                    }
-                    catch (final RuntimeException t)
-                    {
-                        irisType = null;
-                    }
-                    dbg.append(" IrisBlockType=").append(irisType != null ? irisType.toString() : "null");
-                    dbg.append(" GateFacing=").append(gate.getGateFacing() != null ? gate.getGateFacing().toString() : "null");
-                    _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
-                }
-
-                gate.getGateStructureBlocks().add(gate.getGateIrisLeverBlock().getLocation());
-                gate.getGateIrisLeverBlock().setType(Material.LEVER);
-                final org.bukkit.block.data.type.Switch irisSwitch =
-                    (org.bukkit.block.data.type.Switch) gate.getGateIrisLeverBlock().getBlockData();
-                irisSwitch.setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
-                irisSwitch.setFacing(gate.getGateFacing());
-                gate.getGateIrisLeverBlock().setBlockData(irisSwitch);
-            }
-            else
-            {
-                if (gate.getGateIrisLeverBlock().getType() == Material.LEVER)
-                {
-                    gate.getGateStructureBlocks().remove(gate.getGateIrisLeverBlock().getLocation());
-                    gate.getGateIrisLeverBlock().setType(Material.AIR);
-                }
-            }
+            return;
+        }
+        if (create)
+        {
+            logIrisLeverPlacement(gate);
+            placeIrisLever(gate);
+        }
+        else
+        {
+            removeIrisLever(gate);
         }
     }
+
+    /**
+     * Works out where the iris lever hangs when the shape has not marked it.
+     *
+     * <p>The button is wall-mounted on one face of the DHD column, and its facing says which
+     * way that face points. So: back one step from it to the column, down one to the base,
+     * then forward along the gate's own facing, which is what puts the lever where somebody
+     * standing at the gate can reach it.
+     *
+     * @return the block, or null if there is nothing to derive from or the spot is taken
+     */
+    private static Block deriveIrisLeverBlock(final Stargate gate)
+    {
+        if (gate.getGateShape() == null)
+        {
+            return null;
+        }
+        // A redstone-dialled gate has no DHD button for the walk below to start from.
+        if ((gate.getGateShape() instanceof Stargate3DShape shape) && shape.isShapeRedstoneActivated())
+        {
+            return null;
+        }
+        final Block button = gate.getGateDialLeverBlock();
+        if (button == null)
+        {
+            return null;
+        }
+
+        BlockFace buttonFacing = gate.getGateFacing();
+        if (button.getBlockData() instanceof Directional buttonData)
+        {
+            buttonFacing = buttonData.getFacing();
+        }
+        final Block backing = button.getRelative(WorldUtils.getInverseDirection(buttonFacing));
+        final Block dhdBase = backing.getRelative(BlockFace.DOWN);
+        final Block irisBlock = dhdBase.getRelative(gate.getGateFacing());
+
+        // StandardSignDialRedstone puts [S:RD] directly below [S:A], which is exactly where
+        // this walk lands. Taking it would put a lever on the block that dials the gate.
+        if (isTakenByRedstone(gate, irisBlock))
+        {
+            return null;
+        }
+        return irisBlock;
+    }
+
+    /** Whether a redstone activation block already holds this position. */
+    private static boolean isTakenByRedstone(final Stargate gate, final Block irisBlock)
+    {
+        return WorldUtils.isSameBlock(gate.getGateRedstoneDialActivationBlock(), irisBlock)
+            || WorldUtils.isSameBlock(gate.getGateRedstoneSignActivationBlock(), irisBlock);
+    }
+
+    /** Records what was around the DHD when the iris lever went up. */
+    private static void logIrisLeverPlacement(final Stargate gate)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if (plugin == null)
+        {
+            return;
+        }
+        final Block iris = gate.getGateIrisLeverBlock();
+        final StringBuilder dbg = new StringBuilder(128);
+        dbg.append("Iris lever placement: Gate=").append(gate.getGateName());
+        dbg.append(" DialLever=").append(describe(() -> gate.getGateDialLeverBlock().getLocation()));
+        dbg.append(" IrisBlock=").append(describe(iris::getLocation));
+        dbg.append(" IrisBlockType=").append(describe(iris::getType));
+        dbg.append(" GateFacing=").append(describe(gate::getGateFacing));
+        plugin.prettyLog(Level.INFO, dbg.toString());
+    }
+
+    /** Hangs the lever on the wall, facing the way the gate faces. */
+    private static void placeIrisLever(final Stargate gate)
+    {
+        final Block iris = gate.getGateIrisLeverBlock();
+        gate.getGateStructureBlocks().add(iris.getLocation());
+        iris.setType(Material.LEVER);
+        final org.bukkit.block.data.type.Switch irisSwitch =
+            (org.bukkit.block.data.type.Switch) iris.getBlockData();
+        irisSwitch.setAttachedFace(org.bukkit.block.data.FaceAttachable.AttachedFace.WALL);
+        irisSwitch.setFacing(gate.getGateFacing());
+        iris.setBlockData(irisSwitch);
+    }
+
+    /** Takes the lever down, but only if what is there is a lever. */
+    private static void removeIrisLever(final Stargate gate)
+    {
+        final Block iris = gate.getGateIrisLeverBlock();
+        if (iris.getType() != Material.LEVER)
+        {
+            return;
+        }
+        gate.getGateStructureBlocks().remove(iris.getLocation());
+        iris.setType(Material.AIR);
+    }
+
 
     // -----------------------------------------------------------------------
     // Redstone wiring
