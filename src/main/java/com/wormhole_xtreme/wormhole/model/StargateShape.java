@@ -103,23 +103,14 @@ public class StargateShape
     /** The shape light ticks. */
     private int shapeLightTicks = 3;
 
-    /**
-     * Instantiates a new stargate shape.
-     */
     public StargateShape()
     {
 //        setShapeWooshDepth(3);
 //        setShapeWooshDepthSquared(9);
     }
 
-    /**
-     * Instantiates a new stargate shape.
-     * 
-     * @param file_data
-     *            the file_data
-     */
     /** One [X] marker in a shape row. */
-    private static final Pattern MARKER = Pattern.compile("(\\[.*?\\])");
+    private static final Pattern MARKER = Pattern.compile("(\\[[^\\]]*+\\])");
 
     /** The material keys a shape file may carry, each against the setting it fills. */
     private static final java.util.Map<String, java.util.function.BiConsumer<StargateShape, Material>> MATERIAL_KEYS =
@@ -135,6 +126,9 @@ public class StargateShape
     private static final java.util.Map<String, Integer> BUTTON_AXES =
         java.util.Map.of("BUTTON_RIGHT", 0, "BUTTON_UP", 1, "BUTTON_AWAY", 2);
 
+    /**
+     * Instantiates a new stargate shape.
+     */
     public StargateShape(final String[] file_data)
     {
         setShapeSignPosition(new int[]{});
@@ -155,12 +149,12 @@ public class StargateShape
             }
             else if (line.equals("GateShape="))
             {
-                final int[] grid = measureGrid(file_data, i + 1);
-                parseGrid(file_data, i + 1, grid, blockPositions, portalPositions, lightPositions);
+                final int[] grid = measureLegacyGrid(file_data, i + 1);
+                parseLegacyGrid(file_data, i + 1, grid, blockPositions, portalPositions, lightPositions);
             }
             else
             {
-                applySetting(line);
+                applyLegacySetting(line);
             }
         }
 
@@ -193,7 +187,7 @@ public class StargateShape
      *            the first row of the grid
      * @return the height and the width, in that order
      */
-    private int[] measureGrid(final String[] fileData, final int from)
+    private int[] measureLegacyGrid(final String[] fileData, final int from)
     {
         int height = 0;
         int width = 0;
@@ -229,7 +223,7 @@ public class StargateShape
      * block that is also {@code O}, and is recorded as that block's number rather than as
      * coordinates.
      */
-    private void parseGrid(final String[] fileData, final int from, final int[] grid,
+    private void parseLegacyGrid(final String[] fileData, final int from, final int[] grid,
         final ArrayList<Integer[]> blockPositions, final ArrayList<Integer[]> portalPositions,
         final ArrayList<Integer> lightPositions)
     {
@@ -243,34 +237,51 @@ public class StargateShape
             int j = 0;
             while (m.find())
             {
-                final String block = m.group(0);
                 final Integer[] point = {0, (height - 1 - (index - from)), (width - 1 - j)};
-                if (block.contains("O"))
-                {
-                    numBlocks++;
-                    blockPositions.add(point);
-                }
-                else if (block.contains("P"))
-                {
-                    portalPositions.add(point);
-                }
-
-                if (block.contains("S"))
-                {
-                    setShapeSignPosition(toPoint(point));
-                }
-                if (block.contains("E"))
-                {
-                    setShapeEnterPosition(toPoint(point));
-                }
-                if (block.contains("L") && block.contains("O"))
-                {
-                    lightPositions.add(numBlocks - 1);
-                }
+                numBlocks = recordLegacyMarker(m.group(0), point, numBlocks,
+                    blockPositions, portalPositions, lightPositions);
                 j++;
             }
             index++;
         }
+    }
+
+    /**
+     * Records one marker of a version one grid.
+     *
+     * <p>A light is stored as the number of the structure block it sits on rather than as
+     * coordinates, so the running count has to come back out with it.
+     *
+     * @return the structure-block count after this marker
+     */
+    private int recordLegacyMarker(final String block, final Integer[] point, final int numBlocks,
+        final ArrayList<Integer[]> blockPositions, final ArrayList<Integer[]> portalPositions,
+        final ArrayList<Integer> lightPositions)
+    {
+        int blocks = numBlocks;
+        if (block.contains("O"))
+        {
+            blocks++;
+            blockPositions.add(point);
+        }
+        else if (block.contains("P"))
+        {
+            portalPositions.add(point);
+        }
+
+        if (block.contains("S"))
+        {
+            setShapeSignPosition(toPoint(point));
+        }
+        if (block.contains("E"))
+        {
+            setShapeEnterPosition(toPoint(point));
+        }
+        if (block.contains("L") && block.contains("O"))
+        {
+            lightPositions.add(blocks - 1);
+        }
+        return blocks;
     }
 
     /**
@@ -279,7 +290,7 @@ public class StargateShape
      * <p>An unrecognised line is ignored, which is what lets a shape file carry comments and
      * keys written for a later version of the plugin.
      */
-    private void applySetting(final String line)
+    private void applyLegacySetting(final String line)
     {
         for (final java.util.Map.Entry<String, Integer> axis : BUTTON_AXES.entrySet())
         {
