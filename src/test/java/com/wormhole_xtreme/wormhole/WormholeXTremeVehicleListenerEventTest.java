@@ -86,6 +86,70 @@ class WormholeXTremeVehicleListenerEventTest
         throw new IllegalStateException("no boat entity type found on this API");
     }
 
+    /**
+     * A closed far iris sends the vehicle to the source gate's own exit, not the far one's.
+     *
+     * <p>Handled in {@code admitVehiclePassengers}, which teleports the vehicle and refuses
+     * the trip, so the dispatch below it never sees an active iris. That is worth a test
+     * because dispatchVehicleTeleport used to carry its own copy of this branch, and only
+     * mutating it revealed the copy could not run.
+     *
+     * <p>The location comes from the source gate while the facing used to step it clear
+     * comes from the target, which reads like a mistake and is what ships today.
+     */
+    @Test
+    void aClosedFarIrisPutsTheVehicleOutAtTheSourceGate() throws Exception
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        final int bx = 10, by = 64, bz = 20;
+        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
+
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
+
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
+        target.setGateFacing(BlockFace.NORTH);
+        target.setGateIrisActive(true);
+
+        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
+        gateTargetField.setAccessible(true);
+        gateTargetField.set(src, target);
+
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>emptyList());
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
+
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
+
+        final org.mockito.ArgumentCaptor<Location> sent =
+            org.mockito.ArgumentCaptor.forClass(Location.class);
+        verify(cart, atLeastOnce()).teleport(sent.capture());
+        final Location arrival = sent.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals(5.5, arrival.getX(), 0.001,
+            "a shut far iris returns the cart to the source gate, not the far one");
+        org.junit.jupiter.api.Assertions.assertEquals(200.5,
+            target.getGatePlayerTeleportLocation().getZ(), 0.001,
+            "the far gate's own arrival point is untouched");
+
+        StargateManager.removeBlockIndex(ch);
+    }
+
     @Test
     void unoccupiedMinecartTeleportsAndReceivesVelocity() throws Exception
     {
