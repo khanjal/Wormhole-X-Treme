@@ -439,12 +439,6 @@ public final class SubCommands
         return out;
     }
 
-    /** @return a comma-separated list of subcommand names, for the help message */
-    public static String nameList()
-    {
-        return nameList(false);
-    }
-
     /**
      * The help message's command list, optionally narrowed to what a player without
      * {@code wormhole.config} can actually run -- listing the admin subcommands to someone

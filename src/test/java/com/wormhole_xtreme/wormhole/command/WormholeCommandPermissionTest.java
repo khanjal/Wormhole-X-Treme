@@ -92,6 +92,32 @@ class WormholeCommandPermissionTest
     }
 
     @Test
+    void theConsoleStillReachesAnAdminSubcommand()
+    {
+        // Console and command blocks have never been asked for wormhole.config -- they hold
+        // no permissions to check -- and moving the gate must not have started asking.
+        final org.bukkit.command.CommandSender console = mock(org.bukkit.command.CommandSender.class);
+
+        command.onCommand(console, null, "wormhole", new String[] { "restrict" });
+
+        verify(console, never()).sendMessage(contains("You lack the permissions"));
+        verify(console, atLeastOnce()).sendMessage(anyString());
+    }
+
+    @Test
+    void beamListAnswersToTheBeamNodeRatherThanToNothingAtAll()
+    {
+        // It checked nothing of its own, which went unnoticed while the wormhole.config gate
+        // in front of it meant no ordinary player could reach it either way.
+        final com.wormhole_xtreme.wormhole.command.handlers.BeamCommand beam =
+            new com.wormhole_xtreme.wormhole.command.handlers.BeamCommand();
+
+        beam.execute(player, new String[] { "beam", "list" });
+
+        verify(player).sendMessage(contains("You lack the permissions"));
+    }
+
+    @Test
     void theListOfferedToANonAdminLeavesOutTheAdminSubcommands()
     {
         final String offered = SubCommands.nameList(true);
