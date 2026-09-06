@@ -48,6 +48,9 @@ public class WXPermissions
         /** The COMPASS permission. */
         COMPASS;
     }
+    /** The network a gate is on when it names none of its own, and the one open to all. */
+    private static final String PUBLIC_NETWORK = "Public";
+
     /**
      * Check wx permissions.
      * 
@@ -91,9 +94,6 @@ public class WXPermissions
      *            the permissiontype
      * @return true, if successful
      */
-    /** The network a gate is on when it names none of its own, and the one open to all. */
-    private static final String PUBLIC_NETWORK = "Public";
-
     private static boolean checkWXPermissions(final Player player, final Stargate stargate, final String network, final PermissionType permissiontype)
     {
         // An operator may do anything with a gate, with or without a permissions plugin
