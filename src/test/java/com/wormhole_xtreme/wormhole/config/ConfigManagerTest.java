@@ -27,8 +27,7 @@ class ConfigManagerTest
     @AfterEach
     void tearDown()
     {
-        // Reset storage backend setting to default by clearing the configurations map via reflection.
-        // This keeps tests isolated; ConfigManager uses a private static map.
+        // ConfigManager keeps its settings in a private static map; clear it so tests stay isolated.
         try
         {
             final java.lang.reflect.Field f = ConfigManager.class.getDeclaredField("configurations");
@@ -43,4 +42,35 @@ class ConfigManagerTest
         }
     }
 
+    /**
+     * A setting nobody has configured reads back as the default written into the getter.
+     * That fallback is what keeps a half-written config.yml working.
+     */
+    @Test
+    void aMissingSettingFallsBackToItsDefault()
+    {
+        assertEquals(30, ConfigManager.getTimeoutActivate(), "activation timeout default");
+        assertEquals(300, ConfigManager.getMaxOpenSeconds(), "max open seconds default");
+    }
+
+    /** A configured setting is read back rather than the default. */
+    @Test
+    void aConfiguredSettingIsReadBackInsteadOfTheDefault()
+    {
+        ConfigManager.getConfigurations().put(ConfigManager.ConfigKeys.TIMEOUT_ACTIVATE,
+            new Setting(ConfigManager.ConfigKeys.TIMEOUT_ACTIVATE, 45, "test", "WormholeXTreme"));
+
+        assertEquals(45, ConfigManager.getTimeoutActivate());
+    }
+
+    /** The one setting with a public setter round-trips through its own getter. */
+    @Test
+    void permissionsSupportDisableRoundTrips()
+    {
+        ConfigManager.setPermissionsSupportDisable(true);
+        assertEquals(true, ConfigManager.getPermissionsSupportDisable());
+
+        ConfigManager.setPermissionsSupportDisable(false);
+        assertEquals(false, ConfigManager.getPermissionsSupportDisable());
+    }
 }
