@@ -262,7 +262,7 @@ public class CommandUtilities
         {
             return callable.call();
         }
-        catch (final Throwable t)
+        catch (final Exception t)
         {
             com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing command: " + t.getMessage());
             if (playerCheck(sender))

@@ -60,14 +60,14 @@ public final class GateEntityScanner implements Runnable
                 {
                     sweepGate(gate);
                 }
-                catch (final Throwable t)
+                catch (final RuntimeException t)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                         "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null") + ": " + t.getMessage());
                 }
             }
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Entity scan aborted: " + t.getMessage());
         }
@@ -124,7 +124,7 @@ public final class GateEntityScanner implements Runnable
                 }
                 sendThrough(entity, arrival, target.getGateFacing());
             }
-            catch (final Throwable t)
+            catch (final RuntimeException t)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate: " + t.getMessage());
             }
@@ -439,7 +439,7 @@ public final class GateEntityScanner implements Runnable
             {
                 parents.get(i).addPassenger(children.get(i));
             }
-            catch (final Throwable t)
+            catch (final RuntimeException t)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to re-seat passenger after gate sweep: " + t.getMessage());
             }
