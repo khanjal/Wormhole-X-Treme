@@ -31,60 +31,77 @@ public class WXIDC implements CommandExecutor
             public Boolean call() throws Exception
             {
                 final String[] a = CommandUtilities.commandEscaper(args);
-                if (a.length >= 1)
+                if (a.length < 1)
                 {
-
-                    if (StargateManager.isStargate(a[0]))
-                    {
-                        final Stargate s = StargateManager.getStargate(a[0]);
-                        if ( !s.isGateSignPowered() && (s.getGateIrisLeverBlock() != null))
-                        {
-                            if (CommandUtilities.playerCheck(sender)
-                                ? (WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG) || s.isOwner((Player) sender))
-                                : true)
-                            {
-                                // 2. if args other than name - do a set                
-                                if (a.length >= 2)
-                                {
-                                    if (a[1].equals("-clear"))
-                                    {
-                                        // Remove from big list of all blocks
-                                        StargateManager.removeBlockIndex(s.getGateIrisLeverBlock());
-                                        // Set code to "" and then remove it from stargates block list
-                                        s.setIrisDeactivationCode("");
-                                    }
-                                    else
-                                    {
-                                        // Set code
-                                        s.setIrisDeactivationCode(a[1]);
-                                        // Make sure that block is in index
-                                        StargateManager.addBlockIndex(s.getGateIrisLeverBlock(), s);
-                                    }
-                                }
-
-                                // 3. always display current value at end.
-                                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
-                            }
-                            else
-                            {
-                                sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                            }
-                        }
-                        else
-                        {
-                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
-                        }
-                    }
-                    else
-                    {
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Stargate: " + a[0]);
-
-                    }
-                    return true;
+                    return false;
                 }
-                return false;
+                handleIdc(sender, a);
+                return true;
             }
         });
+    }
+
+    /** Reports or changes one gate's iris deactivation code. */
+    private static void handleIdc(final CommandSender sender, final String[] a)
+    {
+        if (!StargateManager.isStargate(a[0]))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Stargate: " + a[0]);
+            return;
+        }
+        final Stargate s = StargateManager.getStargate(a[0]);
+        if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))
+        {
+            // Nothing to unlock, so a code set here would never be asked for.
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
+            return;
+        }
+        if (!mayChangeCode(sender, s))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return;
+        }
+        if (a.length >= 2)
+        {
+            setCode(s, a[1]);
+        }
+        // Always shown, whether or not anything was changed.
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
+    }
+
+    /**
+     * Whether this sender may change the code.
+     *
+     * <p>The gate's own owner, or an admin holding the config node. The console is neither
+     * and may do it anyway, having no player to be an owner of anything.
+     */
+    private static boolean mayChangeCode(final CommandSender sender, final Stargate s)
+    {
+        if (!CommandUtilities.playerCheck(sender))
+        {
+            return true;
+        }
+        final Player player = (Player) sender;
+        return WXPermissions.checkWXPermissions(player, PermissionType.CONFIG) || s.isOwner(player);
+    }
+
+    /**
+     * Sets the code, or clears it when asked to.
+     *
+     * <p>{@code -clear} is an instruction rather than a code: storing it literally would
+     * leave a gate whose iris opens for anyone who typed the word.
+     */
+    private static void setCode(final Stargate s, final String value)
+    {
+        if ("-clear".equals(value))
+        {
+            StargateManager.removeBlockIndex(s.getGateIrisLeverBlock());
+            s.setIrisDeactivationCode("");
+            return;
+        }
+        s.setIrisDeactivationCode(value);
+        // The lever has to be findable again, since a code makes it meaningful.
+        StargateManager.addBlockIndex(s.getGateIrisLeverBlock(), s);
     }
 
 }
