@@ -37,55 +37,6 @@ public final class PassengerReattach
     private PassengerReattach() {}
 
     /**
-     * Seats {@code passenger} on {@code parent}, retrying once via a position sync.
-     *
-     * <p>Private on purpose: it re-seats once, with no retry and no backoff, which is only
-     * ever correct as a step inside {@link #schedule}. Exposed, it would read like the
-     * obvious way to seat a passenger and quietly drop the guarantees that actually make
-     * re-seating stick.
-     *
-     * @param parent
-     *            the entity to ride
-     * @param passenger
-     *            the entity to seat
-     * @return true if the passenger ends up aboard
-     */
-    private static boolean attachPassenger(final Entity parent, final Entity passenger)
-    {
-        try
-        {
-            if (parent.addPassenger(passenger))
-            {
-                return true;
-            }
-        }
-        catch (final RuntimeException t)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
-        }
-        // An earlier attempt may already have succeeded without reporting it.
-        try
-        {
-            if (parent.getPassengers().contains(passenger))
-            {
-                return true;
-            }
-        }
-        catch (final RuntimeException ignore) { /* an unreadable passenger list just means retry */ }
-        // A passenger too far from its parent is refused, so close the gap and retry.
-        try
-        {
-            passenger.teleport(parent.getLocation());
-            return parent.addPassenger(passenger);
-        }
-        catch (final RuntimeException t)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after position sync failed: " + t.getMessage());
-        }
-        return false;
-    }
-
-    /**
      * Re-seats every passenger of {@code ridden} after it has been teleported, then applies
      * its exit velocity once the whole stack is aboard.
      *
@@ -176,6 +127,55 @@ public final class PassengerReattach
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach: " + t.getMessage());
             }
+        }
+
+        /**
+         * Seats {@code passenger} on {@code parent}, retrying once via a position sync.
+         *
+         * <p>Private on purpose: it re-seats once, with no retry and no backoff, which is only
+         * ever correct as a step inside {@link #schedule}. Exposed, it would read like the
+         * obvious way to seat a passenger and quietly drop the guarantees that actually make
+         * re-seating stick.
+         *
+         * @param parent
+         *            the entity to ride
+         * @param passenger
+         *            the entity to seat
+         * @return true if the passenger ends up aboard
+         */
+        private static boolean attachPassenger(final Entity parent, final Entity passenger)
+        {
+            try
+            {
+                if (parent.addPassenger(passenger))
+                {
+                    return true;
+                }
+            }
+            catch (final RuntimeException t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
+            }
+            // An earlier attempt may already have succeeded without reporting it.
+            try
+            {
+                if (parent.getPassengers().contains(passenger))
+                {
+                    return true;
+                }
+            }
+            catch (final RuntimeException ignore) { /* an unreadable passenger list just means retry */ }
+            // A passenger too far from its parent is refused, so close the gap and retry.
+            try
+            {
+                passenger.teleport(parent.getLocation());
+                return parent.addPassenger(passenger);
+            }
+            catch (final RuntimeException t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after position sync failed: " + t.getMessage());
+            }
+            return false;
         }
 
         /**
