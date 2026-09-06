@@ -67,9 +67,9 @@ final class GateInteractionHandler
                 String network = pending[2];
 
                 // Determine facing if not provided
-                if (direction == null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional)
+                if (direction == null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
                 {
-                    direction = ((org.bukkit.block.data.Directional) clickedBlock.getBlockData()).getFacing();
+                    direction = clicked.getFacing();
                 }
 
                 com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "+/wormhole complete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
@@ -285,9 +285,9 @@ final class GateInteractionHandler
         {
             if (direction == null)
             {
-                if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional)
+                if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
                 {
-                    direction = ((org.bukkit.block.data.Directional) clickedBlock.getBlockData()).getFacing();
+                    direction = clicked.getFacing();
                 }
 
                 if (direction == null)
@@ -714,9 +714,9 @@ final class GateInteractionHandler
     private static BlockFace[] probeFaces(final Block candidate)
     {
         final org.bukkit.block.data.BlockData data = candidate.getBlockData();
-        if (data instanceof org.bukkit.block.data.Directional)
+        if (data instanceof org.bukkit.block.data.Directional directional)
         {
-            final BlockFace facing = ((org.bukkit.block.data.Directional) data).getFacing();
+            final BlockFace facing = directional.getFacing();
             if (facing != null)
             {
                 return new BlockFace[] { facing };

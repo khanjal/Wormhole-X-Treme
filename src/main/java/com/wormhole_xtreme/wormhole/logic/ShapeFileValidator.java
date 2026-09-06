@@ -123,9 +123,8 @@ public final class ShapeFileValidator
             problems.add("no :EP block -- there is nowhere for a player to arrive");
         }
 
-        if (shape instanceof Stargate3DShape)
+        if (shape instanceof Stargate3DShape shape3d)
         {
-            final Stargate3DShape shape3d = (Stargate3DShape) shape;
             problems.addAll(checkLayerGaps(shape3d));
             problems.addAll(checkOrderSequencing(shape3d));
             problems.addAll(checkRedstonePlacement(shape3d));

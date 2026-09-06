@@ -65,17 +65,17 @@ public class ConfigurationYAML
                     if (value != null)
                     {
                         Setting s = null;
-                        if (value instanceof Boolean)
+                        if (value instanceof Boolean flag)
                         {
-                            s = new Setting(element.getName(), (Boolean) value, element.getDescription(), "WormholeXTreme");
+                            s = new Setting(element.getName(), flag, element.getDescription(), "WormholeXTreme");
                         }
-                        else if (value instanceof Integer)
+                        else if (value instanceof Integer whole)
                         {
-                            s = new Setting(element.getName(), (Integer) value, element.getDescription(), "WormholeXTreme");
+                            s = new Setting(element.getName(), whole, element.getDescription(), "WormholeXTreme");
                         }
-                        else if (value instanceof Number)
+                        else if (value instanceof Number number)
                         {
-                            s = new Setting(element.getName(), ((Number) value).doubleValue(), element.getDescription(), "WormholeXTreme");
+                            s = new Setting(element.getName(), number.doubleValue(), element.getDescription(), "WormholeXTreme");
                         }
                         else
                         {

@@ -68,12 +68,12 @@ public final class RingMessages
     {
         for (final RingPassenger passenger : passengers)
         {
-            if (passenger instanceof BukkitRingPassenger)
+            if (passenger instanceof BukkitRingPassenger bukkitPassenger)
             {
-                final org.bukkit.entity.Entity entity = ((BukkitRingPassenger) passenger).getEntity();
-                if (entity instanceof Player)
+                final org.bukkit.entity.Entity entity = bukkitPassenger.getEntity();
+                if (entity instanceof Player player)
                 {
-                    status((Player) entity, message);
+                    status(player, message);
                 }
             }
         }

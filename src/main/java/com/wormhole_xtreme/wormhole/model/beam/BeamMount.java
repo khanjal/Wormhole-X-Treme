@@ -186,9 +186,8 @@ final class BeamMount
         {
             // Still worth stopping the mount below even if the dismount was refused.
         }
-        if (mount instanceof LivingEntity)
+        if (mount instanceof LivingEntity living)
         {
-            final LivingEntity living = (LivingEntity) mount;
             try
             {
                 if (living.hasAI())

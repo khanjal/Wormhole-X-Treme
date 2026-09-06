@@ -58,8 +58,7 @@ public final class LegacyCompat {
             final Material m = b.getType();
             final BlockData bd = b.getBlockData();
             // Generic Directional + Powerable handling for levers/buttons/signs
-            if (bd instanceof Directional) {
-                final Directional d = (Directional) bd;
+            if (bd instanceof Directional d) {
                 BlockFace face = d.getFacing();
                 if (m == Material.OAK_WALL_SIGN || m == Material.SPRUCE_WALL_SIGN || m == Material.BIRCH_WALL_SIGN || m == Material.ACACIA_WALL_SIGN || m == Material.JUNGLE_WALL_SIGN || m == Material.DARK_OAK_WALL_SIGN || m == Material.CRIMSON_SIGN || m == Material.WARPED_SIGN) {
                     switch (data) {
@@ -80,8 +79,7 @@ public final class LegacyCompat {
                 }
                 try { d.setFacing(face); b.setBlockData(d); } catch (final Throwable ignore) {}
             }
-            if (bd instanceof Powerable) {
-                final Powerable p = (Powerable) bd;
+            if (bd instanceof Powerable p) {
                 p.setPowered((data & 0x8) == 0x8);
                 try { b.setBlockData(p); } catch (final Throwable ignore) {}
             }
@@ -106,8 +104,7 @@ public final class LegacyCompat {
         try {
             final Material m = b.getType();
             final BlockData bd = b.getBlockData();
-            if (bd instanceof Directional) {
-                final Directional d = (Directional) bd;
+            if (bd instanceof Directional d) {
                 final BlockFace face = d.getFacing();
                 byte base = 0;
                 if (face == BlockFace.SOUTH) base = 1;
@@ -123,8 +120,7 @@ public final class LegacyCompat {
                     }
                 }
                 // include powered bit if applicable
-                if (bd instanceof Powerable) {
-                    final Powerable p = (Powerable) bd;
+                if (bd instanceof Powerable p) {
                     if (p.isPowered()) base |= 0x8;
                 }
                 return base;
@@ -135,7 +131,7 @@ public final class LegacyCompat {
                 if (cls.getSimpleName().toLowerCase(Locale.ROOT).contains("redstone")) {
                     final java.lang.reflect.Method getPower = cls.getMethod("getPower");
                     final Object val = getPower.invoke(bd);
-                    if (val instanceof Integer) return ((Integer) val).byteValue();
+                    if (val instanceof Integer i) return i.byteValue();
                 }
             } catch (final Throwable ignore) {}
         } catch (final Throwable t) {

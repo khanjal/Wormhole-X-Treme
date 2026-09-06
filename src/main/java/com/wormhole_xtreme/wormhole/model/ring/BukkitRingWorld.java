@@ -144,9 +144,9 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         final boolean top)
     {
         final BlockData data = com.wormhole_xtreme.wormhole.utils.MaterialUtils.drawnAs(material);
-        if (data instanceof Slab)
+        if (data instanceof Slab slab)
         {
-            ((Slab) data).setType(top ? Slab.Type.TOP : Slab.Type.BOTTOM);
+            slab.setType(top ? Slab.Type.TOP : Slab.Type.BOTTOM);
         }
         // A ring material is validated as a slab wherever one is set, so the cast above
         // should always hold. Showing it as a plain block if it somehow does not still
@@ -318,9 +318,9 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         // unlike a gate a ring has no direction of its own to face them in.
         arrival.setYaw(entity.getLocation().getYaw());
         arrival.setPitch(entity.getLocation().getPitch());
-        if (entity instanceof Player)
+        if (entity instanceof Player traveller)
         {
-            ((Player) entity).setNoDamageTicks(5);
+            traveller.setNoDamageTicks(5);
         }
         // Teleporting an entity throws off whatever is riding it, so the stack is noted
         // first and put back once everything has landed.
@@ -336,15 +336,15 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         reseat(parents, children);
 
         // After the teleport, so it lands on a client that is already looking at the far end.
-        if (entity instanceof Player)
+        if (entity instanceof Player traveller)
         {
-            RingMessages.arrived((Player) entity, destination.getName());
+            RingMessages.arrived(traveller, destination.getName());
         }
         for (final Entity child : children)
         {
-            if (child instanceof Player)
+            if (child instanceof Player rider)
             {
-                RingMessages.arrived((Player) child, destination.getName());
+                RingMessages.arrived(rider, destination.getName());
             }
         }
     }

@@ -80,8 +80,8 @@ public class Compass implements CommandExecutor
             return false;
         }
         final org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-        return !(meta instanceof org.bukkit.inventory.meta.CompassMeta)
-            || !((org.bukkit.inventory.meta.CompassMeta) meta).hasLodestone();
+        return !(meta instanceof org.bukkit.inventory.meta.CompassMeta compass)
+            || !compass.hasLodestone();
     }
 
     /**

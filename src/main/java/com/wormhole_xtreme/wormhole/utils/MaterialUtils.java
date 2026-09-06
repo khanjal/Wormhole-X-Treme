@@ -33,8 +33,8 @@ public final class MaterialUtils {
      */
     public static org.bukkit.block.data.BlockData drawnAs(final Material material) {
         final org.bukkit.block.data.BlockData data = material.createBlockData();
-        if (data instanceof org.bukkit.block.data.Lightable) {
-            ((org.bukkit.block.data.Lightable) data).setLit(true);
+        if (data instanceof org.bukkit.block.data.Lightable lightable) {
+            lightable.setLit(true);
         }
         return data;
     }
@@ -60,8 +60,8 @@ public final class MaterialUtils {
             return null;
         }
         final org.bukkit.block.data.BlockData data = material.createBlockData();
-        if (data instanceof org.bukkit.block.data.Lightable) {
-            ((org.bukkit.block.data.Lightable) data).setLit(true);
+        if (data instanceof org.bukkit.block.data.Lightable lightable) {
+            lightable.setLit(true);
             return data;
         }
         return null;

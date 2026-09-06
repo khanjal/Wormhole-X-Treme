@@ -33,8 +33,8 @@ public class ConfigCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        if ((sender instanceof Player)
-            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG))
+        if ((sender instanceof Player player)
+            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;

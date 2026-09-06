@@ -30,8 +30,8 @@ public class CustomCommand implements SubCommand
         // reassign any gate on the server. wormhole.config is what an admin already needs
         // for /wormhole config, so it is reused here rather than inventing a second
         // admin-only node that would mean the same thing.
-        if ((sender instanceof Player)
-            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG))
+        if ((sender instanceof Player player)
+            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;
