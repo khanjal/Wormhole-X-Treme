@@ -37,71 +37,81 @@ public class CustomCommand implements SubCommand
             return true;
         }
 
-        if ((args.length == 2) || (args.length == 3))
+        if ((args.length != 2) && (args.length != 3))
         {
-            if (args[1].equalsIgnoreCase("-clean"))
-            {
-                return cleanSnapshottedOverrides(sender, (args.length == 3) && "confirm".equalsIgnoreCase(args[2]));
-            }
-            else if (args[1].equalsIgnoreCase("-all") && (args.length == 3) && com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
-            {
-                for (final Stargate stargate : StargateManager.getAllGates())
-                {
-                    CommandHandlerUtils.setGateCustomAll(stargate, args[2].equalsIgnoreCase("true")
-                        ? true
-                        : false);
-                }
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "All stargates with valid shapes have been set to custom mode: " + args[2]);
-                return true;
-            }
-            else if (StargateManager.isStargate(args[1]))
-            {
-                final Stargate stargate = StargateManager.getStargate(args[1]);
-                if (args.length == 3)
-                {
-                    if (com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
-                    {
-                        if (stargate.getGateShape() != null)
-                        {
-                            CommandHandlerUtils.setGateCustomAll(stargate, args[2].equalsIgnoreCase("true")
-                                ? true
-                                : false);
-                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate is custom: " + stargate.isGateCustom());
-                        }
-                        else
-                        {
-                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate shape to base custom data off of!");
-                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Make sure the proper shape file is available!");
-                        }
-                    }
-                    else
-                    {
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid boolean option: " + args[2]);
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid boolean options are: true and false");
-                    }
-                }
-                else
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate is custom: " + stargate.isGateCustom());
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid boolean options are: true and false");
-                }
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid boolean options are: true and false");
-            }
-            return true;
-        }
-        else
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid boolean options are: true and false");
+            sendUsage(sender);
             return false;
         }
 
+        if (args[1].equalsIgnoreCase("-clean"))
+        {
+            return cleanSnapshottedOverrides(sender, (args.length == 3) && "confirm".equalsIgnoreCase(args[2]));
+        }
+        if (args[1].equalsIgnoreCase("-all") && (args.length == 3) && com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
+        {
+            setEveryGateCustom(sender, args[2]);
+            return true;
+        }
+        if (!StargateManager.isStargate(args[1]))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            sendUsage(sender);
+            return true;
+        }
+
+        final Stargate stargate = StargateManager.getStargate(args[1]);
+        if (args.length == 2)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate is custom: " + stargate.isGateCustom());
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid boolean options are: true and false");
+            return true;
+        }
+        setOneGateCustom(sender, stargate, args[2]);
+        return true;
+    }
+
+    /** Turns custom mode on or off for every gate that has a shape to base it on. */
+    private static void setEveryGateCustom(final CommandSender sender, final String value)
+    {
+        for (final Stargate stargate : StargateManager.getAllGates())
+        {
+            CommandHandlerUtils.setGateCustomAll(stargate, Boolean.parseBoolean(value));
+        }
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "All stargates with valid shapes have been set to custom mode: " + value);
+    }
+
+    /**
+     * Turns custom mode on or off for one gate.
+     *
+     * <p>Refused without a shape, since custom mode copies from it: the gate would otherwise
+     * be left claiming to be custom with nothing behind it. And a word that is neither true
+     * nor false is refused rather than read as false, which would quietly turn the mode off
+     * for an admin who mistyped the word they meant to turn it on with.
+     */
+    private static void setOneGateCustom(final CommandSender sender, final Stargate stargate,
+        final String value)
+    {
+        if (!com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(value))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid boolean option: " + value);
+            sendUsage(sender);
+            return;
+        }
+        if (stargate.getGateShape() == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate shape to base custom data off of!");
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Make sure the proper shape file is available!");
+            return;
+        }
+        CommandHandlerUtils.setGateCustomAll(stargate, Boolean.parseBoolean(value));
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate is custom: " + stargate.isGateCustom());
+    }
+
+    /** The two lines that told the caller how to use this, written once. */
+    private static void sendUsage(final CommandSender sender)
+    {
+        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
+        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid boolean options are: true and false");
     }
 
 
