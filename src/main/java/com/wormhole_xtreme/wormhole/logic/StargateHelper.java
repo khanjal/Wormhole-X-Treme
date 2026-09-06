@@ -81,11 +81,13 @@ public final class StargateHelper
         {
             return null; // indeterminate
         }
-        return (varX > varZ)
+        if (varX > varZ)
+        {
             // Spread mainly along X, so the gate faces north or south, whichever side the DHD is on.
-            ? (dhd.getZ() > meanZ ? BlockFace.SOUTH : BlockFace.NORTH)
-            // Spread mainly along Z, so east or west.
-            : (dhd.getX() > meanX ? BlockFace.EAST : BlockFace.WEST);
+            return dhd.getZ() > meanZ ? BlockFace.SOUTH : BlockFace.NORTH;
+        }
+        // Spread mainly along Z, so east or west.
+        return dhd.getX() > meanX ? BlockFace.EAST : BlockFace.WEST;
     }
 
     /**
