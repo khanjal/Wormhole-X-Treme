@@ -67,9 +67,13 @@ public class Stargate3DShape extends StargateShape
         int height = 0;
         int width = 0;
         int wooshDepth = 0;
-        for (int i = 0; i < fileLines.length; i++)
+        // Walked with an explicit cursor rather than a for loop: a layer consumes the rows
+        // that follow it, so the parser has to be able to move the cursor itself.
+        int i = 0;
+        while (i < fileLines.length)
         {
             final String line = fileLines[i];
+            i++;
 
             if (line.startsWith("#"))
             {
@@ -83,7 +87,7 @@ public class Stargate3DShape extends StargateShape
             }
             else if (line.equals("GateShape="))
             {
-                final int[] grid = measureGrid(fileLines, i);
+                final int[] grid = measureGrid(fileLines, i - 1);
                 height = grid[0];
                 width = grid[1];
             }
@@ -93,9 +97,11 @@ public class Stargate3DShape extends StargateShape
                 final int layer = Integer.valueOf(line.trim().split("[#=]")[1]);
 
                 // 2. add each line that starts with [ to a new string[]
-                final int[] cursor = {i + 1};
+                final int[] cursor = {i};
                 final String[] layerLines = readLayerLines(fileLines, cursor, height, layer);
-                i = cursor[0];
+                // Past the line that ended the layer, not onto it: the original for loop's
+                // own increment skipped that line, and shape files rely on it being blank.
+                i = cursor[0] + 1;
 
                 // 3. call constructor
                 final StargateShapeLayer ssl = new StargateShapeLayer(layerLines, height, width);
