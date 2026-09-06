@@ -251,7 +251,7 @@ class WormholeXTremeVehicleListener implements Listener
         {
             child.teleport(arrival.clone());
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                 "Could not face rider along travel direction: " + t.getMessage());
@@ -314,7 +314,7 @@ class WormholeXTremeVehicleListener implements Listener
             }
             scheduleReattach(veh, parents, children, safeTarget, exitSpeed, kind);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Failed to teleport occupied " + kind.noun + ", falling back to respawn: " + t.getMessage());
@@ -363,7 +363,7 @@ class WormholeXTremeVehicleListener implements Listener
                         settle(veh, exitSpeed, kind);
                     }
                 }
-                catch (final Throwable t)
+                catch (final RuntimeException t)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                         "Exception during " + kind.noun + " passenger reattach: " + t.getMessage());
@@ -406,7 +406,7 @@ class WormholeXTremeVehicleListener implements Listener
                     remaining++;
                 }
             }
-            catch (final Throwable t)
+            catch (final RuntimeException t)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
                 remaining++;
@@ -425,7 +425,7 @@ class WormholeXTremeVehicleListener implements Listener
                 return true;
             }
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
         }
@@ -444,7 +444,7 @@ class WormholeXTremeVehicleListener implements Listener
             child.teleport(parent.getLocation());
             return parent.addPassenger(child);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage());
         }
@@ -459,7 +459,7 @@ class WormholeXTremeVehicleListener implements Listener
             veh.setVelocity(exitSpeed);
             veh.setFireTicks(0);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set " + kind.noun + " state: " + t.getMessage());
         }
@@ -498,7 +498,7 @@ class WormholeXTremeVehicleListener implements Listener
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported " + veh.getUniqueId()
                     + " to force client update (attempt " + attempt + ")");
             }
-            catch (final Throwable tt)
+            catch (final RuntimeException tt)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleport failed: " + tt.getMessage());
             }
@@ -540,19 +540,19 @@ class WormholeXTremeVehicleListener implements Listener
                     {
                         seat.addPassenger(child);
                     }
-                    catch (final Throwable tt)
+                    catch (final RuntimeException tt)
                     {
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage());
                     }
                 }
-                catch (final Throwable tt)
+                catch (final RuntimeException tt)
                 {
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
                 }
             }
             newveh.setVelocity(exitSpeed);
         }
-        catch (final Throwable tt)
+        catch (final RuntimeException tt)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Fallback respawn also failed: " + tt.getMessage());
         }
@@ -798,7 +798,7 @@ class WormholeXTremeVehicleListener implements Listener
                     safeTarget.setPitch(0f);
                 }
             }
-            catch (final Throwable ignore) { /* arrival facing is cosmetic */ }
+            catch (final RuntimeException ignore) { /* arrival facing is cosmetic */ }
             if (veh != null)
             {
                 final UUID vid = veh.getUniqueId();
@@ -824,7 +824,7 @@ class WormholeXTremeVehicleListener implements Listener
                     safeTarget.setPitch(0f);
                 }
             }
-            catch (final Throwable ignore) { /* arrival facing is cosmetic */ }
+            catch (final RuntimeException ignore) { /* arrival facing is cosmetic */ }
             if (veh != null)
             {
                 final UUID vid = veh.getUniqueId();
