@@ -16,150 +16,153 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * The Class Dial.
- * 
+ *
  * @author alron
  */
 public class Dial implements CommandExecutor
 {
 
     /**
-     * Do dial.
-     * 
+     * Connects the activated gate to the gate the player named.
+     *
+     * <p>Every way this can fail sends its own message and puts the activated gate out again,
+     * so each refusal is a guard of its own rather than a level of nesting.
+     *
      * @param player
      *            the player
      * @param args
-     *            the args
+     *            the gate name, and optionally the IDC for a closed remote iris
      * @return true, if successful
      */
     private static boolean doDial(final Player player, final String[] args)
     {
         final Stargate start = StargateManager.removeActivatedStargate(player);
-        if (start != null)
-        {
-            if (WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
-            {
-                final String startnetwork = CommandUtilities.getGateNetwork(start);
-                if ( !start.getGateName().equals(args[0]))
-                {
-                    final Stargate target = StargateManager.getStargate(args[0]);
-                    // No target
-                    if (target == null)
-                    {
-                        CommandUtilities.closeGate(start, false);
-                        player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
-                        return true;
-                    }
-                    final String targetnetwork = CommandUtilities.getGateNetwork(target);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Dial Target - Gate: \"" + target.getGateName() + "\" Network: \"" + targetnetwork + "\"");
-                    // Not on same network
-                    if ( !startnetwork.equals(targetnetwork))
-                    {
-                        CommandUtilities.closeGate(start, false);
-                        player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString() + " Not on same network.");
-                        return true;
-                    }
-                    if (start.isGateIrisActive())
-                    {
-                        start.toggleIrisActive(false);
-                    }
-                    if ( !target.getGateIrisDeactivationCode().equals("") && target.isGateIrisActive())
-                    {
-                        if ((args.length >= 2) && target.getGateIrisDeactivationCode().equals(args[1]))
-                        {
-                            if (target.isGateIrisActive())
-                            {
-                                target.toggleIrisActive(false);
-                                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC accepted. Iris has been deactivated.");
-                            }
-                        }
-                    }
-
-                    // If target still has an active iris (no valid IDC provided), block the dial attempt.
-                    if (target.isGateIrisActive())
-                    {
-                        CommandUtilities.closeGate(start, false);
-                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is active; provide the IDC to unlock.");
-                        return true;
-                    }
-
-                    if (start.dialStargate(target, false))
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
-                    }
-                    else
-                    {
-                        // Attempt recovery only when the target isn't legitimately in use.
-                        boolean targetInUse = false;
-                        try
-                        {
-                            if (target.isGateActive() || (target.getGateTarget() != null))
-                            {
-                                targetInUse = true;
-                            }
-                            else
-                            {
-                                for (final Stargate s : StargateManager.getAllGates())
-                                {
-                                    if ((s != null) && (s != start) && (s.getGateTarget() != null) && (s.getGateTarget() == target) && s.isGateActive())
-                                    {
-                                        targetInUse = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        catch (final Throwable ignore) { /* a failure here must not break the command */ }
-
-                        if (targetInUse)
-                        {
-                            // Target is actively connected; don't attempt force-recovery.
-                            CommandUtilities.closeGate(start, false);
-                            player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
-                        }
-                        else
-                        {
-                            // Attempt recovery: remove stale activator mapping and retry with force.
-                            if (WormholeXTreme.getThisPlugin() != null)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
-                            }
-                            StargateManager.removeActivatorForStargate(target);
-                            if (start.dialStargate(target, true))
-                            {
-                                if (WormholeXTreme.getThisPlugin() != null)
-                                {
-                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Dial recovery succeeded for target " + target.getGateName());
-                                }
-                                player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
-                            }
-                            else
-                            {
-                                if (WormholeXTreme.getThisPlugin() != null)
-                                {
-                                    WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Dial recovery failed for target " + target.getGateName());
-                                }
-                                CommandUtilities.closeGate(start, false);
-                                player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
-                            }
-                        }
-                        }
-                    }
-                else
-                {
-                    CommandUtilities.closeGate(start, false);
-                    player.sendMessage(ConfigManager.MessageStrings.targetIsSelf.toString());
-                }
-            }
-            else
-            {
-                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            }
-        }
-        else
+        if (start == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.gateNotActive.toString());
+            return true;
         }
+        if ( !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return true;
+        }
+        final String startnetwork = CommandUtilities.getGateNetwork(start);
+        if (start.getGateName().equals(args[0]))
+        {
+            CommandUtilities.closeGate(start, false);
+            player.sendMessage(ConfigManager.MessageStrings.targetIsSelf.toString());
+            return true;
+        }
+        final Stargate target = StargateManager.getStargate(args[0]);
+        if (target == null)
+        {
+            CommandUtilities.closeGate(start, false);
+            player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            return true;
+        }
+        final String targetnetwork = CommandUtilities.getGateNetwork(target);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Dial Target - Gate: \"" + target.getGateName() + "\" Network: \"" + targetnetwork + "\"");
+        if ( !startnetwork.equals(targetnetwork))
+        {
+            CommandUtilities.closeGate(start, false);
+            player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString() + " Not on same network.");
+            return true;
+        }
+        if (start.isGateIrisActive())
+        {
+            start.toggleIrisActive(false);
+        }
+        openRemoteIrisIfIdcMatches(player, target, args);
+        if (target.isGateIrisActive())
+        {
+            CommandUtilities.closeGate(start, false);
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is active; provide the IDC to unlock.");
+            return true;
+        }
+
+        if (start.dialStargate(target, false))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+            return true;
+        }
+        recoverFailedDial(player, start, target);
         return true;
+    }
+
+    /**
+     * Opens the target's iris when the player supplied the code that unlocks it.
+     *
+     * <p>A wrong code is not reported here: the dial is stopped by the iris still being
+     * active, which is what the player is told.
+     */
+    private static void openRemoteIrisIfIdcMatches(final Player player, final Stargate target, final String[] args)
+    {
+        if ( !target.getGateIrisDeactivationCode().equals("") && target.isGateIrisActive()
+            && (args.length >= 2) && target.getGateIrisDeactivationCode().equals(args[1]))
+        {
+            target.toggleIrisActive(false);
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC accepted. Iris has been deactivated.");
+        }
+    }
+
+    /**
+     * Handles a dial the gate refused, retrying with force when nothing is really using the
+     * target.
+     *
+     * <p>The usual cause is an activator mapping left behind by a gate that never finished
+     * closing. Forcing past a target that is genuinely connected would cut someone else off,
+     * so that case is reported instead.
+     */
+    private static void recoverFailedDial(final Player player, final Stargate start, final Stargate target)
+    {
+        if (isTargetInUse(start, target))
+        {
+            CommandUtilities.closeGate(start, false);
+            player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+            return;
+        }
+
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Dial recovery: removing stale activator for target " + target.getGateName() + " and retrying with force");
+        StargateManager.removeActivatorForStargate(target);
+        if (start.dialStargate(target, true))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Dial recovery succeeded for target " + target.getGateName());
+            player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+            return;
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Dial recovery failed for target " + target.getGateName());
+        CommandUtilities.closeGate(start, false);
+        player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+    }
+
+    /**
+     * Whether the target is connected to anything, or anything is connected to it.
+     *
+     * <p>The sweep reads a live collection, so it treats its own failure as "not in use" and
+     * lets the recovery go ahead rather than failing the command.
+     */
+    private static boolean isTargetInUse(final Stargate start, final Stargate target)
+    {
+        try
+        {
+            if (target.isGateActive() || (target.getGateTarget() != null))
+            {
+                return true;
+            }
+            for (final Stargate s : StargateManager.getAllGates())
+            {
+                if ((s != null) && (s != start) && (s.getGateTarget() == target) && s.isGateActive())
+                {
+                    return true;
+                }
+            }
+        }
+        catch (final RuntimeException ignore)
+        {
+            // a failure here must not break the command
+        }
+        return false;
     }
 
     /* (non-Javadoc)
