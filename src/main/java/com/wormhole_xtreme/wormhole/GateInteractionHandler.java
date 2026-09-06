@@ -331,26 +331,8 @@ final class GateInteractionHandler
         final String[] pending)
     {
         com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
-        final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
-            ? ConfigManager.getEconomyBuildCost()
-            : 0.0;
-        if ((buildCost > 0) && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-            return;
-        }
-        if (!com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, pending[0], pending[1], pending[2]))
-        {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed after interactive detection. Check server log.");
-            return;
-        }
-        player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-        if (buildCost > 0)
-        {
-            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-        }
+        com.wormhole_xtreme.wormhole.command.Complete.completeAndCharge(player, pending[0], pending[1], pending[2],
+            "Construction Failed after interactive detection. Check server log.", null);
     }
 
     /** Reports what is around the clicked block when detection found nothing. */
