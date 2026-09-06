@@ -106,4 +106,77 @@ class CompleteCommandTest
         Complete.removePendingCompletion(player);
     }
 
+
+    /** A player who may build, with no gate of their own part-built. */
+    private static Player builder()
+    {
+        final Player p = mock(Player.class);
+        when(p.isOp()).thenReturn(true);
+        when(p.getName()).thenReturn("builder");
+        when(p.getUniqueId()).thenReturn(UUID.randomUUID());
+        StargateManager.removeIncompleteStargate(p);
+        Complete.removePendingCompletion(p);
+        return p;
+    }
+
+    /**
+     * A name of twelve characters or more is refused.
+     *
+     * <p>The limit is what fits a sign, and it is checked before anything else so a name that
+     * cannot be shown never reaches a half-built gate.
+     */
+    @Test
+    void aNameTooLongForASignIsRefused()
+    {
+        final Player player = builder();
+
+        new Complete().onCommand(player, null, "wormhole", new String[] {"TwelveCharsX"});
+
+        verify(player).sendMessage(contains("TwelveCharsX"));
+        assertNull(Complete.getPendingCompletion(player),
+            "a refused name must not leave a completion waiting");
+    }
+
+    /** A name somebody else already used is refused rather than quietly taking it over. */
+    @Test
+    void aNameAlreadyInUseIsRefused()
+    {
+        final Player player = builder();
+        final Stargate taken = new Stargate();
+        taken.setGateName("Taken");
+        StargateManager.registerStargate(taken);
+        try
+        {
+            new Complete().onCommand(player, null, "wormhole", new String[] {"Taken"});
+
+            assertNull(Complete.getPendingCompletion(player),
+                "a name already in use must not start a completion");
+        }
+        finally
+        {
+            StargateManager.removeStargate(taken);
+        }
+    }
+
+    /**
+     * With nothing part-built, the command waits for a click rather than failing.
+     *
+     * <p>This is the interactive path: the player names the gate first and then clicks the
+     * DHD, which is how a gate built without {@code /wormhole build} gets completed.
+     */
+    @Test
+    void withNothingPartBuiltTheCommandWaitsForAClick()
+    {
+        final Player player = builder();
+
+        new Complete().onCommand(player, null, "wormhole", new String[] {"Fresh", "net=Private"});
+
+        final String[] pending = Complete.getPendingCompletion(player);
+        assertNotNull(pending, "the command should be waiting for the DHD click");
+        assertEquals("Fresh", pending[0]);
+        assertEquals("Private", pending[2], "the network given on the command line is kept");
+        verify(player).sendMessage(contains("click the DHD"));
+
+        Complete.removePendingCompletion(player);
+    }
 }
