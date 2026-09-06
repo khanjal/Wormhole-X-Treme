@@ -39,7 +39,7 @@ public class GateShapesCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -76,7 +76,7 @@ public class GateShapesCommand implements SubCommand
         if (name == null)
         {
             StargateShapeRegistry.reloadAllShapes();
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Reloaded every shape in the GateShapes directory.");
             return true;
         }
@@ -98,12 +98,12 @@ public class GateShapesCommand implements SubCommand
     {
         if (result.isValid())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + fileName(name) + ": OK" + (wasReload ? " -- loaded as \"" + result.getShapeName() + "\"." : "."));
             return true;
         }
 
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + fileName(name) + ": " + result.getProblems().size() + " problem"
             + (result.getProblems().size() == 1 ? "" : "s") + " found"
             + (wasReload ? " -- the previously loaded version is unchanged." : "."));

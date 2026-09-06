@@ -78,7 +78,7 @@ public class Go implements CommandExecutor
             return true;
         }
 
-        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "No gate or beam destination named: " + args[0]);
         return true;
     }

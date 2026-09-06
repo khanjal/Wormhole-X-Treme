@@ -49,18 +49,18 @@ public class WXIDC implements CommandExecutor
         final Stargate s = StargateManager.getStargate(a[0]);
         if (s == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Stargate: " + a[0]);
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid Stargate: " + a[0]);
             return;
         }
         if (s.isGateSignPowered() || (s.getGateIrisLeverBlock() == null))
         {
             // Nothing to unlock, so a code set here would never be asked for.
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Iris not available for sign powered stargates or gates without an iris activation block.");
             return;
         }
         if (!mayChangeCode(sender, s))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
         if (a.length >= 2)
@@ -68,7 +68,7 @@ public class WXIDC implements CommandExecutor
             setCode(s, a[1]);
         }
         // Always shown, whether or not anything was changed.
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "IDC for gate: " + s.getGateName() + " is:" + s.getGateIrisDeactivationCode());
     }
 
     /**

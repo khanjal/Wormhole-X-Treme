@@ -31,7 +31,7 @@ public class RegenerateCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -54,7 +54,7 @@ public class RegenerateCommand implements SubCommand
                 // where the fix belongs.
                 if (s.recomputeGatePlayerTeleportLocation())
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                    sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                         + "Arrival point recomputed for " + s.getGateName() + ".");
                 }
                 s.toggleDialLeverState(true);
@@ -72,16 +72,16 @@ public class RegenerateCommand implements SubCommand
                 {
                     StargateManager.refreshTeleportSign(s, true);
                 }
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Regenerating Gate: " + s.getGateName());
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Regenerating Gate: " + s.getGateName());
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + args[1] + "\"");
+                sender.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_INVALID.toString() + "\"" + args[1] + "\"");
             }
         }
         else
         {
-            sender.sendMessage(ConfigManager.MessageStrings.gateNotSpecified.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
             return false;
         }
         return true;
@@ -127,7 +127,7 @@ public class RegenerateCommand implements SubCommand
                 StargateDBManager.saveStargate(gate);
             }
         }
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Checked " + checked + " gate" + (checked == 1 ? "" : "s") + ". "
             + moved + " arrival point" + (moved == 1 ? "" : "s") + " " + (moved == 1 ? "was" : "were")
             + " out of place and " + (moved == 1 ? "has" : "have") + " been recomputed.");

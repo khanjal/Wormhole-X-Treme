@@ -138,7 +138,7 @@ public class GateCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         final com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.Result result =

@@ -31,7 +31,7 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * message strings, with nothing keeping the two in step.
  *
  * <p>They had already drifted. The iris variant printed its valid-material line under
- * {@code normalHeader} in two of the four places the other two used {@code errorHeader}, so the
+ * {@code NORMAL_HEADER} in two of the four places the other two used {@code ERROR_HEADER}, so the
  * same advice arrived in a different colour depending on which command you had typed and how
  * you had got it wrong. That is the failure mode copying a file produces: not a dramatic bug,
  * just a slow loss of the property that the three behave alike.
@@ -176,7 +176,7 @@ public class MaterialCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -188,7 +188,7 @@ public class MaterialCommand implements SubCommand
 
         if (!StargateManager.isStargate(args[1]))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
             usage(sender);
             return true;
         }
@@ -196,30 +196,30 @@ public class MaterialCommand implements SubCommand
         final Stargate stargate = StargateManager.getStargate(args[1]);
         if (!stargate.isGateCustom())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");
             return true;
         }
 
         if (args.length == 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + args[1] + " " + kind.noun + " material is currently: " + kind.getter.apply(stargate));
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + validMaterials());
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + validMaterials());
             return true;
         }
 
         final Material material = parse(args[2]);
         if ((material == null) || !kind.allowed.contains(material))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "Invalid " + kind.noun + " material: " + args[2]);
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + validMaterials());
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + validMaterials());
             return true;
         }
 
         kind.setter.accept(stargate, material);
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + args[1] + " " + kind.noun + " material set to: " + kind.getter.apply(stargate));
         return true;
     }
@@ -265,9 +265,9 @@ public class MaterialCommand implements SubCommand
      */
     private void usage(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "Command: /wormhole " + kind.command + " <gate> [material]");
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + validMaterials());
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + validMaterials());
     }
 
 }

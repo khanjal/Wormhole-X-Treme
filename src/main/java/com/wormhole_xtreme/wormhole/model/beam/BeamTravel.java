@@ -62,13 +62,13 @@ public final class BeamTravel
 
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         final Location stored = destination.toLocation();
         if (stored == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "That destination's world is not currently loaded.");
             return true;
         }
@@ -79,11 +79,11 @@ public final class BeamTravel
 
         if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled() && BeamCooldown.isActive(player))
         {
-            // Not ConfigManager.MessageStrings.playerUseCooldownRestricted -- its wording
+            // Not ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED -- its wording
             // names a stargate specifically, which would be wrong here.
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "You must wait longer before beaming again.");
-            player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString()
+            player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString()
                 + BeamCooldown.remainingSeconds(player));
             return true;
         }
@@ -91,9 +91,9 @@ public final class BeamTravel
         final double useCost = bypassesLimits ? 0.0 : resolveCost(destination);
         if ((useCost > 0) && !EconomySupport.canAfford(player, useCost))
         {
-            // Not ConfigManager.MessageStrings.economyInsufficientFunds -- same reason: its
+            // Not ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS -- same reason: its
             // wording says "this gate."
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "Insufficient funds to beam -- costs " + useCost + " "
                 + EconomySupport.currencyName(useCost) + ".");
             return true;
@@ -105,7 +105,7 @@ public final class BeamTravel
             // genuine surprise. A hard confirm-before-travelling step felt like more
             // friction than gate travel has ever needed for the same kind of cost, so this
             // is the middle ground -- seen, not gated on.
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "This will cost " + useCost + " " + EconomySupport.currencyName(useCost) + ".");
         }
 
@@ -117,7 +117,7 @@ public final class BeamTravel
             if (useCost > 0)
             {
                 EconomySupport.charge(player, useCost);
-                player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
+                player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
                     + useCost + " " + EconomySupport.currencyName(useCost));
             }
             if (!bypassesLimits && ConfigManager.isBeamUseCooldownEnabled())

@@ -157,7 +157,7 @@ public final class BeamAnimation
             // isActive, not isFrozen: the envelope runs before the traveller is frozen at
             // all, and a second beam must not be allowed to start on top of it during that
             // window either.
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "You're already beaming somewhere.");
             return false;
         }
@@ -347,7 +347,7 @@ public final class BeamAnimation
             {
                 BeamFreeze.markActive(player);
                 BeamSounds.playCharge(origin);
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                     + "Beaming to " + destinationName + "...");
             }
 
@@ -462,7 +462,7 @@ public final class BeamAnimation
                 if (frame.isFinished())
                 {
                     BeamFreeze.clear(player);
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                         + "Beamed to " + destinationName + ".");
                     return;
                 }
@@ -517,7 +517,7 @@ public final class BeamAnimation
             BeamFreeze.clear(player);
             try
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "Something went wrong mid-beam; you have been freed rather than left stuck.");
             }
             catch (final RuntimeException ignored) { /* the freeze is already cleared either way */ }

@@ -39,7 +39,7 @@ class WormholeXTremeVehicleListener implements Listener
 {
 
     /** The nospeed. */
-    private final static Vector nospeed = new Vector();
+    private static final Vector nospeed = new Vector();
 
     /** Vehicles recently teleported — short cooldown to avoid immediate re-trigger. */
     private static final Set<UUID> recentlyTeleported = ConcurrentHashMap.newKeySet();
@@ -691,13 +691,13 @@ class WormholeXTremeVehicleListener implements Listener
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
         if (!mayWorkTheGate(st, p))
         {
-            p.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            p.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return false;
         }
         if (st.getGateTarget().isGateIrisActive())
         {
             // The one thing the empty-cart path above cannot do: there is nobody to tell.
-            p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+            p.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is locked!");
             bounceOffClosedIris(st, veh);
             return false;
         }
@@ -760,8 +760,8 @@ class WormholeXTremeVehicleListener implements Listener
         }
         if (StargateRestrictions.isPlayerUseCooldown(p))
         {
-            p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
-            p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
+            p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
+            p.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
             return false;
         }
         pendingRestrictions.add(p);
@@ -791,15 +791,15 @@ class WormholeXTremeVehicleListener implements Listener
                                                    final Vector v, final Location target,
                                                    final List<Entity> passengers)
     {
-        final Vector new_speed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
+        final Vector newSpeed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
         final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
         // set yaw from exit velocity so clients face travel direction
         try
         {
             if (safeTarget != null)
             {
-                final double dx = new_speed.getX();
-                final double dz = new_speed.getZ();
+                final double dx = newSpeed.getX();
+                final double dz = newSpeed.getZ();
                 final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
                     ? (float) Math.toDegrees(Math.atan2(-dx, dz))
                     : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
@@ -825,13 +825,13 @@ class WormholeXTremeVehicleListener implements Listener
                 }
                 // Occupied vehicle: dispatch to type-specific handler.
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
-                teleportOccupiedVehicle(veh, safeTarget, new_speed);
+                teleportOccupiedVehicle(veh, safeTarget, newSpeed);
             }
             else
             {
                 // Unoccupied vehicle: teleport directly and apply exit velocity.
                 veh.teleport(safeTarget);
-                veh.setVelocity(new_speed);
+                veh.setVelocity(newSpeed);
             }
         }
 

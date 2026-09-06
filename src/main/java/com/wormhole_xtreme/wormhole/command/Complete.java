@@ -50,7 +50,7 @@ public class Complete implements CommandExecutor, TabCompleter
         final String name = args[0].trim().replace("\n", "").replace("\r", "");
         if (name.length() >= 12)
         {
-            player.sendMessage(ConfigManager.MessageStrings.constructNameTooLong.toString() + "\"" + name + "\"");
+            player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_TOO_LONG.toString() + "\"" + name + "\"");
             return;
         }
 
@@ -60,12 +60,12 @@ public class Complete implements CommandExecutor, TabCompleter
 
         if (!WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
         if (StargateManager.getStargate(name) != null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
+            player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_TAKEN.toString() + "\"" + name + "\"");
             return;
         }
 
@@ -134,7 +134,7 @@ public class Complete implements CommandExecutor, TabCompleter
         final String network)
     {
         addPendingCompletion(player, name, idc, network);
-        final String header = ConfigManager.MessageStrings.normalHeader.toString();
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         player.sendMessage(header + "Please click the DHD lever/button to complete the gate.");
         player.sendMessage(header + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
         player.sendMessage(header + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
@@ -171,23 +171,23 @@ public class Complete implements CommandExecutor, TabCompleter
             : 0.0;
         if ((buildCost > 0) && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
         {
-            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
             return false;
         }
         if (!StargateManager.completeStargate(player, name, idc, network))
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + onRefused);
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + onRefused);
             if (refusedLog != null)
             {
                 com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, refusedLog);
             }
             return false;
         }
-        player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+        player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_SUCCESS.toString());
         if (buildCost > 0)
         {
             com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_BUILD_CHARGED.toString()
                 + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
         }
         return true;
@@ -207,8 +207,8 @@ public class Complete implements CommandExecutor, TabCompleter
                 if (CommandUtilities.playerCheck(sender))
                 {
                     final Player player = (Player) sender;
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Example: /wormhole complete MyGate idc=1234 net=Private (alias: '/wx complete').");
+                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
+                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Example: /wormhole complete MyGate idc=1234 net=Private (alias: '/wx complete').");
                 }
                 return true;
             }
@@ -223,7 +223,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 {
                     com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wormhole complete: " + e.getMessage());
                     final Player player = (Player) sender;
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
+                    player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
                     return true;
                 }
             }

@@ -295,9 +295,9 @@ public class StargateYamlManager
 
     public static void removeStargate(final Stargate s)
     {
-        final File GATES_DIR = getGatesDir();
+        final File gatesDir = getGatesDir();
         final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
-        final File outFile = new File(GATES_DIR, fileName);
+        final File outFile = new File(gatesDir, fileName);
         // getGatesDir above tolerates a null plugin, so this cannot assume one either.
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
         if (outFile.exists() && !outFile.delete() && (plugin != null))
@@ -313,9 +313,9 @@ public class StargateYamlManager
      */
     public static String readOwnerFromYaml(final String gateName)
     {
-        final File GATES_DIR = getGatesDir();
+        final File gatesDir = getGatesDir();
         final String fileName = gateName.replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
-        final File inFile = new File(GATES_DIR, fileName);
+        final File inFile = new File(gatesDir, fileName);
         if (!inFile.exists())
         {
             return null;

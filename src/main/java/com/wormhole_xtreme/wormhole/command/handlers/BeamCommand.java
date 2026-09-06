@@ -69,7 +69,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam to <name>, beam list, beam admin set|remove|cost|goto|send, "
                 + "beam place [list|set <name>|remove <name>]");
             return true;
@@ -85,7 +85,7 @@ public class BeamCommand implements SubCommand
 
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Beaming is a player-only command.");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Beaming is a player-only command.");
             return true;
         }
         final Player player = (Player) sender;
@@ -94,7 +94,7 @@ public class BeamCommand implements SubCommand
         {
             if (args.length < 3)
             {
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "/wormhole beam to <name>");
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "/wormhole beam to <name>");
                 return true;
             }
             return travelTo(player, args[2]);
@@ -107,7 +107,7 @@ public class BeamCommand implements SubCommand
         {
             return place(player, args);
         }
-        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "Unknown beam command. Try /wormhole beam to <name>.");
         return true;
     }
@@ -125,7 +125,7 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamTravel.travelTo(player, name))
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "No destination named \"" + name + "\" among your places or the public list.");
         }
         return true;
@@ -137,7 +137,7 @@ public class BeamCommand implements SubCommand
         // the list, and the node is meant to cover the whole player-facing beam surface.
         if (!BeamPermissions.has(player, BeamPermissions.USE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         final StringBuilder names = new StringBuilder();
@@ -158,7 +158,7 @@ public class BeamCommand implements SubCommand
                 names.append(cost <= 0 ? " (free)" : " (" + cost + ")");
             }
         }
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + (names.length() == 0 ? "No public beam destinations are set." : "Beam destinations: " + names));
         return true;
     }
@@ -167,7 +167,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam admin set|remove|cost <name>, goto <player|destination>|<x> <y> <z> [world], "
                 + "send <player> <player|destination>|<x> <y> <z> [world]");
             return true;
@@ -188,19 +188,19 @@ public class BeamCommand implements SubCommand
         // admin actions a non-player sender can reach.
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "/wormhole beam admin set|remove|cost is player-only.");
             return true;
         }
         final Player player = (Player) sender;
         if (!BeamPermissions.has(player, BeamPermissions.ADMIN))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam admin set|remove|cost <name>");
             return true;
         }
@@ -209,7 +209,7 @@ public class BeamCommand implements SubCommand
         {
             BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
             BeamYamlManager.saveAll();
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Public beam destination \"" + name + "\" set to your current location.");
             return true;
         }
@@ -220,7 +220,7 @@ public class BeamCommand implements SubCommand
             {
                 BeamYamlManager.saveAll();
             }
-            player.sendMessage((removed ? ConfigManager.MessageStrings.normalHeader : ConfigManager.MessageStrings.errorHeader).toString()
+            player.sendMessage((removed ? ConfigManager.MessageStrings.NORMAL_HEADER : ConfigManager.MessageStrings.ERROR_HEADER).toString()
                 + (removed ? "Removed public beam destination \"" + name + "\"." : "No public beam destination named \"" + name + "\"."));
             return true;
         }
@@ -228,7 +228,7 @@ public class BeamCommand implements SubCommand
         {
             return setCost(player, args, name);
         }
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "/wormhole beam admin set|remove|cost <name>");
         return true;
     }
@@ -245,14 +245,14 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 5)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam admin cost <name> <amount|default>");
             return true;
         }
         final BeamDestination existing = BeamManager.getPublicDestination(name);
         if (existing == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "No public beam destination named \"" + name + "\".");
             return true;
         }
@@ -270,19 +270,19 @@ public class BeamCommand implements SubCommand
             }
             catch (final NumberFormatException e)
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "\"" + raw + "\" is not a number, or \"default\".");
                 return true;
             }
             if (newCost < 0)
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Cost cannot be negative.");
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Cost cannot be negative.");
                 return true;
             }
         }
         BeamManager.setPublicDestination(existing.withCost(newCost));
         BeamYamlManager.saveAll();
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + (newCost == null
                 ? "\"" + name + "\" now uses the configured default beam cost."
                 : "\"" + name + "\" now costs " + newCost + " to beam to."));
@@ -302,7 +302,7 @@ public class BeamCommand implements SubCommand
     {
         if (!(sender instanceof Player))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "goto moves you -- there's nowhere for console or a command block to beam from. "
                 + "Use send to move a player instead.");
             return true;
@@ -310,12 +310,12 @@ public class BeamCommand implements SubCommand
         final Player player = (Player) sender;
         if (!BeamPermissions.has(player, BeamPermissions.ADMIN_TELEPORT))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam admin goto <player|destination>|<x> <y> <z> [world]");
             return true;
         }
@@ -347,19 +347,19 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamPermissions.has(sender, BeamPermissions.ADMIN_TELEPORT))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         if (args.length < 5)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam admin send <player> <player|destination>|<x> <y> <z> [world]");
             return true;
         }
         final Player target = Bukkit.getPlayerExact(args[3]);
         if (target == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "No online player named \"" + args[3] + "\".");
             return true;
         }
@@ -375,7 +375,7 @@ public class BeamCommand implements SubCommand
         // The target already hears BeamAnimation's own messages; this is for whoever sent
         // them, who is very often not the same person (console, a command block, or a
         // different admin) and would otherwise have no idea whether it worked.
-        sender.sendMessage((started ? ConfigManager.MessageStrings.normalHeader : ConfigManager.MessageStrings.errorHeader).toString()
+        sender.sendMessage((started ? ConfigManager.MessageStrings.NORMAL_HEADER : ConfigManager.MessageStrings.ERROR_HEADER).toString()
             + (started
                 ? "Beaming " + target.getName() + " to " + label + "."
                 : target.getName() + " is already beaming somewhere."));
@@ -425,7 +425,7 @@ public class BeamCommand implements SubCommand
             final BeamDestination destination = BeamManager.getPublicDestination(args[start]);
             if (destination == null)
             {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "No online player or public beam destination named \"" + args[start] + "\".");
                 return null;
             }
@@ -435,7 +435,7 @@ public class BeamCommand implements SubCommand
                 // The destination outlived the world it was recorded in, or that world just
                 // isn't loaded right now. Saying so beats "no such destination", which would
                 // send someone looking for a typo in a name that is actually fine.
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "Beam destination \"" + destination.getName() + "\" is in world \""
                     + destination.getWorldName() + "\", which is not loaded.");
                 return null;
@@ -457,7 +457,7 @@ public class BeamCommand implements SubCommand
                 world = Bukkit.getWorld(args[start + 3]);
                 if (world == null)
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                         + "No world named \"" + args[start + 3] + "\".");
                     return null;
                 }
@@ -468,7 +468,7 @@ public class BeamCommand implements SubCommand
             }
             return new Location(world, x, y, z, defaultYaw, defaultPitch);
         }
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Expected a player name, a public destination name, or <x> <y> <z> [world].");
         return null;
     }
@@ -481,7 +481,7 @@ public class BeamCommand implements SubCommand
         }
         catch (final NumberFormatException e)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "\"" + raw + "\" is not a valid coordinate.");
             return null;
         }
@@ -507,7 +507,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "/wormhole beam place list|set <name>|remove <name>");
             return true;
         }
@@ -527,7 +527,7 @@ public class BeamCommand implements SubCommand
         // Travel used to be reachable here too ("beam place <name>"), but that meant the same
         // destination could be reached two different ways depending on whether it was public
         // or private. "to" is the one place travel happens now, whatever the destination is.
-        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "Unknown. Try /wormhole beam place list|set <name>|remove <name>, "
             + "or /wormhole beam to <name> to travel.");
         return true;
@@ -544,7 +544,7 @@ public class BeamCommand implements SubCommand
             }
             names.append(place.getName());
         }
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + (names.length() == 0 ? "You have no places set." : "Your places: " + names));
         return true;
     }
@@ -553,18 +553,18 @@ public class BeamCommand implements SubCommand
     {
         if (!BeamPermissions.has(player, BeamPermissions.PLACE))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "/wormhole beam place set <name>");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "/wormhole beam place set <name>");
             return true;
         }
         final String name = args[3];
         BeamManager.setPlace(player.getUniqueId(), BeamDestination.fromLocation(name, player.getLocation()));
         BeamYamlManager.saveAll();
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Place \"" + name + "\" set to your current location.");
         return true;
     }
@@ -573,7 +573,7 @@ public class BeamCommand implements SubCommand
     {
         if (args.length < 4)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "/wormhole beam place remove <name>");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "/wormhole beam place remove <name>");
             return true;
         }
         final String name = args[3];
@@ -582,7 +582,7 @@ public class BeamCommand implements SubCommand
         {
             BeamYamlManager.saveAll();
         }
-        player.sendMessage((removed ? ConfigManager.MessageStrings.normalHeader : ConfigManager.MessageStrings.errorHeader).toString()
+        player.sendMessage((removed ? ConfigManager.MessageStrings.NORMAL_HEADER : ConfigManager.MessageStrings.ERROR_HEADER).toString()
             + (removed ? "Removed place \"" + name + "\"." : "You have no place named \"" + name + "\"."));
         return true;
     }

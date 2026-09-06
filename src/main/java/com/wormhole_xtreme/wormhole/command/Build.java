@@ -38,16 +38,16 @@ public class Build implements CommandExecutor
                 if (StargateHelper.isStargateShape(args[0]))
                 {
                     StargateManager.addPlayerBuilderShape(player, StargateHelper.getStargateShape(args[0]));
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + args[0]);
+                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + args[0]);
                 }
                 else
                 {
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid shape: " + args[0]);
+                    player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shape: " + args[0]);
                 }
             }
             else
             {
-                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             }
             return true;
         }

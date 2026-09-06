@@ -128,7 +128,7 @@ final class GateInteractionHandler
         }
         else
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
         }
     }
 
@@ -166,7 +166,7 @@ final class GateInteractionHandler
                 newGate.resetTeleportSign();
             }
             StargateManager.removeIncompleteStargate(player);
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -223,7 +223,7 @@ final class GateInteractionHandler
      */
     private static void announceValidDesign(final Player player, final Stargate newGate)
     {
-        final String header = ConfigManager.MessageStrings.normalHeader.toString();
+        final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         if (!newGate.isGateSignPowered())
         {
             player.sendMessage(header + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
@@ -263,7 +263,7 @@ final class GateInteractionHandler
             com.wormhole_xtreme.wormhole.model.Stargate found = detectAnyFacing(clickedBlock, resolveClickDirection(clickedBlock, direction));
             if (found == null)
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
                 logDetectionDiagnostics(player, clickedBlock);
                 return true;
             }
@@ -277,7 +277,7 @@ final class GateInteractionHandler
             // a DHD that answered with silence.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Interactive /wormhole complete failed for " + player.getName() + ": " + e.getMessage());
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Completing the gate failed. Check server logs.");
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Completing the gate failed. Check server logs.");
             com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
         }
         return true;
@@ -376,7 +376,7 @@ final class GateInteractionHandler
             final Stargate existing = StargateManager.getGateFromBlock(clickedBlock);
             if (existing == null)
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "No registered gate found at that block. Build or complete the gate first.");
                 return true;
             }
@@ -410,7 +410,7 @@ final class GateInteractionHandler
             }
             if (fresh == null)
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                     + "Gate geometry detection failed. Make sure all structure blocks are intact.");
                 return true;
             }
@@ -432,7 +432,7 @@ final class GateInteractionHandler
             }
             com.wormhole_xtreme.wormhole.model.StargateManager.registerStargate(fresh);
             com.wormhole_xtreme.wormhole.model.StargateDBManager.saveStargate(fresh);
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Gate '" + oldName + "' refreshed successfully.");
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Gate '" + oldName + "' refreshed by " + player.getName()
@@ -486,7 +486,7 @@ final class GateInteractionHandler
         {
             //Shutdown stargate
             stargate.shutdownStargate(true);
-            player.sendMessage(ConfigManager.MessageStrings.gateShutdown.toString());
+            player.sendMessage(ConfigManager.MessageStrings.GATE_SHUTDOWN.toString());
             return true;
         }
 
@@ -494,7 +494,7 @@ final class GateInteractionHandler
         if ((s2 != null) && (stargate.getGateId() == s2.getGateId()))
         {
             clearActivation(stargate);
-            player.sendMessage(ConfigManager.MessageStrings.gateDeactivated.toString());
+            player.sendMessage(ConfigManager.MessageStrings.GATE_DEACTIVATED.toString());
             return true;
         }
 
@@ -505,7 +505,7 @@ final class GateInteractionHandler
             return true;
         }
 
-        player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
+        player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
         return false;
     }
 
@@ -553,21 +553,21 @@ final class GateInteractionHandler
 
         if (activator == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated.");
             return;
         }
 
         try
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated (was activated by: " + activator.getName() + ").");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated (was activated by: " + activator.getName() + ").");
             if (activator.isOnline())
             {
-                activator.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Your pending gate activation was force-cleared by: " + player.getName());
+                activator.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Your pending gate activation was force-cleared by: " + player.getName());
             }
         }
         catch (final Exception e)
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate deactivated.");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate deactivated.");
         }
     }
 
@@ -587,7 +587,7 @@ final class GateInteractionHandler
         {
             final String msg = "Permission denied for sign usage: player='" + player.getName() + "' gate='" + stargate.getGateName() + "' owner='" + stargate.getGateOwner() + "'";
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, msg);
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return false;
         }
 
@@ -604,16 +604,16 @@ final class GateInteractionHandler
         final Stargate target = stargate.getGateDialSignTarget();
         if (target == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
             return false;
         }
 
         if (stargate.dialStargate(target, false))
         {
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargates connected!");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Stargates connected!");
             return true;
         }
-        player.sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
+        player.sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
         return false;
     }
 
@@ -629,9 +629,9 @@ final class GateInteractionHandler
     static boolean activateForDialling(final Stargate stargate, final Player player)
     {
         //Activate Stargate
-        player.sendMessage(ConfigManager.MessageStrings.gateActivated.toString());
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons Locked! \u00A73:: \u00A7B<required> \u00A76[optional]");
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
+        player.sendMessage(ConfigManager.MessageStrings.GATE_ACTIVATED.toString());
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Chevrons Locked! \u00A73:: \u00A7B<required> \u00A76[optional]");
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Type \'\u00A7F/dial \u00A7B<gatename> \u00A76[idc]\u00A77\'");
         StargateManager.addActivatedStargate(player, stargate);
         stargate.startActivationTimer(player);
         stargate.lightStargate(true);
@@ -672,7 +672,7 @@ final class GateInteractionHandler
                 }
                 else
                 {
-                    player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                    player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
                 }
                 // Always cancel the interact event for a registered gate sign block
                 // so the sign editor never opens regardless of tryClickTeleportSign outcome.
@@ -818,7 +818,7 @@ final class GateInteractionHandler
         if (WXPermissions.checkWXPermissions(player, nearbyGate, PermissionType.BUILD))
         {
             StargateManager.addIncompleteStargate(player, nearbyGate);
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Valid Stargate Design detected via nearby click! Type '/wormhole complete <name>' to complete.");
         }
         else
@@ -826,7 +826,7 @@ final class GateInteractionHandler
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Permission denied on nearby/gate-detection: player='" + player.getName()
                 + "' nearbyBlock='" + candidate.getLocation().toString() + "'");
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
         }
     }
 }

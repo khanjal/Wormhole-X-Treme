@@ -26,7 +26,7 @@ public class TimeoutsCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -45,26 +45,26 @@ public class TimeoutsCommand implements SubCommand
                     if ((timeout >= 10) && (timeout <= 60))
                     {
                         ConfigManager.setTimeoutActivate(timeout);
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "activate_timeout set to: " + ConfigManager.getTimeoutActivate());
+                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "activate_timeout set to: " + ConfigManager.getTimeoutActivate());
                     }
                     else
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid activate_timeout: " + args[1]);
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid timeout is between 10 and 60 seconds.");
+                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid activate_timeout: " + args[1]);
+                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid timeout is between 10 and 60 seconds.");
                         return false;
                     }
                 }
                 catch (final NumberFormatException e)
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid activate_timeout: " + args[1]);
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid timeout is between 10 and 60 seconds.");
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid activate_timeout: " + args[1]);
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid timeout is between 10 and 60 seconds.");
                     return false;
                 }
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Current activate_timeout is: " + ConfigManager.getTimeoutActivate());
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid timeout is between 10 and 60 seconds.");
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Current activate_timeout is: " + ConfigManager.getTimeoutActivate());
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid timeout is between 10 and 60 seconds.");
             }
             return true;
         }
@@ -80,26 +80,26 @@ public class TimeoutsCommand implements SubCommand
                     if ((timeout > -1) && (timeout <= 60))
                     {
                         ConfigManager.setTimeoutShutdown(timeout);
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "shutdown_timeout set to: " + ConfigManager.getTimeoutShutdown());
+                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "shutdown_timeout set to: " + ConfigManager.getTimeoutShutdown());
                     }
                     else
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid shutdown_timeout: " + args[1]);
-                        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid timeout is between 0 and 60 seconds.");
+                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shutdown_timeout: " + args[1]);
+                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid timeout is between 0 and 60 seconds.");
                         return false;
                     }
                 }
                 catch (final NumberFormatException e)
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid shutdown_timeout: " + args[1]);
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid timeout is between 0 and 60 seconds.");
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shutdown_timeout: " + args[1]);
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid timeout is between 0 and 60 seconds.");
                     return false;
                 }
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Current shutdown_timeout is: " + ConfigManager.getTimeoutShutdown());
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid timeout is between 0 and 60 seconds.");
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Current shutdown_timeout is: " + ConfigManager.getTimeoutShutdown());
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid timeout is between 0 and 60 seconds.");
             }
             return true;
         }

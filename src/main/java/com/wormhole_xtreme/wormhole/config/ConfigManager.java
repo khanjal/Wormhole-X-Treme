@@ -161,76 +161,76 @@ public class ConfigManager
     {
 
         /** The error header. */
-        errorHeader("\u00A73:: \u00A75error \u00A73:: \u00A77"),
+        ERROR_HEADER("\u00A73:: \u00A75error \u00A73:: \u00A77"),
 
         /** The normal header. */
-        normalHeader("\u00A73:: \u00A77"),
+        NORMAL_HEADER("\u00A73:: \u00A77"),
 
         /** The permission no. */
-        permissionNo(errorHeader + "You lack the permissions to do this."),
+        PERMISSION_NO(ERROR_HEADER + "You lack the permissions to do this."),
 
         /** The target is self. */
-        targetIsSelf(errorHeader + "Can't dial own gate without solar flare"),
+        TARGET_IS_SELF(ERROR_HEADER + "Can't dial own gate without solar flare"),
 
         /** The target invalid. */
-        targetInvalid(errorHeader + "Invalid gate target."),
+        TARGET_INVALID(ERROR_HEADER + "Invalid gate target."),
 
         /** The target is active. */
-        targetIsActive(errorHeader + "Target gate is currently active."),
+        TARGET_IS_ACTIVE(ERROR_HEADER + "Target gate is currently active."),
 
         /** The gate not active. */
-        gateNotActive(errorHeader + "No gate activated to dial."),
+        GATE_NOT_ACTIVE(ERROR_HEADER + "No gate activated to dial."),
 
         /** The gate remove active. */
-        gateRemoveActive(errorHeader + "Gate remotely activated."),
+        GATE_REMOVE_ACTIVE(ERROR_HEADER + "Gate remotely activated."),
 
         /** The gate shutdown. */
-        gateShutdown(normalHeader + "Gate successfully shutdown."),
+        GATE_SHUTDOWN(NORMAL_HEADER + "Gate successfully shutdown."),
 
         /** The gate activated. */
-        gateActivated(normalHeader + "Gate successfully activated."),
+        GATE_ACTIVATED(NORMAL_HEADER + "Gate successfully activated."),
 
         /** The gate deactivated. */
-        gateDeactivated(normalHeader + "Gate successfully deactivated."),
+        GATE_DEACTIVATED(NORMAL_HEADER + "Gate successfully deactivated."),
 
         /** The gate dialed. */
-        gateConnected(normalHeader + "Stargates connected."),
+        GATE_CONNECTED(NORMAL_HEADER + "Stargates connected."),
 
         /** The construct success. */
-        constructSuccess(normalHeader + "Gate successfully constructed."),
+        CONSTRUCT_SUCCESS(NORMAL_HEADER + "Gate successfully constructed."),
 
         /** The construct name invalid. */
-        constructNameInvalid(errorHeader + "Gate name invalid: "),
+        CONSTRUCT_NAME_INVALID(ERROR_HEADER + "Gate name invalid: "),
 
         /** The construct name too long. */
-        constructNameTooLong(errorHeader + "Gate name too long: "),
+        CONSTRUCT_NAME_TOO_LONG(ERROR_HEADER + "Gate name too long: "),
 
         /** The construct name taken. */
-        constructNameTaken(errorHeader + "Gate name already taken: "),
+        CONSTRUCT_NAME_TAKEN(ERROR_HEADER + "Gate name already taken: "),
 
         /** The request invalid. */
-        requestInvalid(errorHeader + "Invalid Request"),
+        REQUEST_INVALID(ERROR_HEADER + "Invalid Request"),
 
         /** The gate not specified. */
-        gateNotSpecified(errorHeader + "No gate name specified."),
+        GATE_NOT_SPECIFIED(ERROR_HEADER + "No gate name specified."),
 
         /** The player use cooldown restricted. */
-        playerUseCooldownRestricted(errorHeader + "You must wait longer before using a stargate."),
+        PLAYER_USE_COOLDOWN_RESTRICTED(ERROR_HEADER + "You must wait longer before using a stargate."),
 
         /** The player use cooldown wait time. */
-        playerUseCooldownWaitTime(errorHeader + "Current Wait (in seconds): "),
+        PLAYER_USE_COOLDOWN_WAIT_TIME(ERROR_HEADER + "Current Wait (in seconds): "),
 
         /** Player recently arrived at gate. */
-        playerRecentArrival(errorHeader + "You can't enter an incoming wormhole"),
+        PLAYER_RECENT_ARRIVAL(ERROR_HEADER + "You can't enter an incoming wormhole"),
 
         /** Insufficient funds message. */
-        economyInsufficientFunds(errorHeader + "Insufficient funds to use this gate."),
+        ECONOMY_INSUFFICIENT_FUNDS(ERROR_HEADER + "Insufficient funds to use this gate."),
 
         /** Charged for gate use message (prefix; amount and currency appended at runtime). */
-        economyCharged(normalHeader + "Charged "),
+        ECONOMY_CHARGED(NORMAL_HEADER + "Charged "),
 
         /** Charged for gate build message (prefix; amount and currency appended at runtime). */
-        economyBuildCharged(normalHeader + "Gate build cost charged: ");
+        ECONOMY_BUILD_CHARGED(NORMAL_HEADER + "Gate build cost charged: ");
 
         /** The m. */
         private final String m;

@@ -30,33 +30,33 @@ public class OwnerCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
         if (args.length < 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.gateNotSpecified.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
             return false;
         }
 
         final Stargate s = StargateManager.getStargate(args[1]);
         if (s == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + args[1] + "\"");
+            sender.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_INVALID.toString() + "\"" + args[1] + "\"");
             return true;
         }
 
         if (args.length == 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwnerName());
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwnerName());
             return true;
         }
         if (args.length == 3)
         {
             assignOwner(s, args[2]);
             s.setupGateSign(true);
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
         }
         return true;
     }

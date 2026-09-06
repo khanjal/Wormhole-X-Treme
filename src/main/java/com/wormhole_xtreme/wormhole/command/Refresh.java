@@ -49,11 +49,11 @@ public class Refresh implements CommandExecutor
         final Player player = (Player) sender;
         if (!WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         addPendingRefresh(player);
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Refresh mode active. Click the DHD lever/button of the gate to refresh.");
         return true;
     }

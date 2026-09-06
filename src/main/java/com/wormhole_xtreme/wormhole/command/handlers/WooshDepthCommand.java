@@ -28,7 +28,7 @@ public class WooshDepthCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -48,45 +48,45 @@ public class WooshDepthCommand implements SubCommand
                             {
                                 stargate.setGateCustomWooshDepth(wooshDepth);
                                 stargate.setGateCustomWooshDepthSquared(wooshDepth * wooshDepth);
-                                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " woosh depth set to: " + stargate.getGateCustomWooshDepth());
+                                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + args[1] + " woosh depth set to: " + stargate.getGateCustomWooshDepth());
                                 warnIfShapeOwnsTheWaves(sender, stargate);
                             }
                             else
                             {
-                                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid woosh depth: " + args[2]);
-                                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid depth: 0 - 5");
+                                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid woosh depth: " + args[2]);
+                                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid depth: 0 - 5");
                             }
                         }
                         catch (final NumberFormatException e)
                         {
-                            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid woosh depth: " + args[2]);
-                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid depth: 0 - 5");
+                            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid woosh depth: " + args[2]);
+                            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid depth: 0 - 5");
                         }
                     }
                     else
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " woosh depth is currently: " + stargate.getGateCustomWooshDepth());
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid depth: 0 - 5");
+                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + args[1] + " woosh depth is currently: " + stargate.getGateCustomWooshDepth());
+                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid depth: 0 - 5");
                         warnIfShapeOwnsTheWaves(sender, stargate);
                     }
                 }
                 else
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");
                 }
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole wooshdepth [stargate] <depth>");
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid depth: 0 - 5");
+                sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole wooshdepth [stargate] <depth>");
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid depth: 0 - 5");
             }
             return true;
         }
         else
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole wooshdepth [stargate] <depth>");
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid depth: 0 - 5");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole wooshdepth [stargate] <depth>");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid depth: 0 - 5");
             return false;
         }
     }
@@ -108,7 +108,7 @@ public class WooshDepthCommand implements SubCommand
     {
         if ((stargate.getGateWooshBlocks() != null) && !stargate.getGateWooshBlocks().isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Note: this gate's shape defines its own woosh waves, so depth will not change "
                 + "how it looks -- it still sets how far protection reaches from the gate.");
         }

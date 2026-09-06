@@ -112,9 +112,12 @@ class WormholeXTremePlayerListener implements Listener
 
         // Default to the mount's own block and the one above it, covering the common
         // case when no bounding box is available.
-        int minX = ml.getBlockX(), maxX = minX;
-        int minY = ml.getBlockY(), maxY = minY + 1;
-        int minZ = ml.getBlockZ(), maxZ = minZ;
+        int minX = ml.getBlockX();
+        int maxX = minX;
+        int minY = ml.getBlockY();
+        int maxY = minY + 1;
+        int minZ = ml.getBlockZ();
+        int maxZ = minZ;
         final org.bukkit.util.BoundingBox box = mount.getBoundingBox();
         if (box != null)
         {
@@ -216,7 +219,7 @@ class WormholeXTremePlayerListener implements Listener
         if ((last == null) || !last.gateName.equals(gateName)
             || ((now - last.atMillis) > GATE_REFUSAL_REMINDER_MILLIS))
         {
-            player.sendMessage(ConfigManager.MessageStrings.playerRecentArrival.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PLAYER_RECENT_ARRIVAL.toString());
         }
         recentGateRefusals.put(id, new RecentGateRefusal(gateName, now));
         return true;
@@ -441,7 +444,7 @@ class WormholeXTremePlayerListener implements Listener
 
         if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return false;
         }
 
@@ -455,8 +458,8 @@ class WormholeXTremePlayerListener implements Listener
         {
             if (StargateRestrictions.isPlayerUseCooldown(player))
             {
-                player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
-                player.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
+                player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
+                player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
                 return false;
             }
             // Not applied here: the cooldown is set once the traveller has actually
@@ -476,7 +479,7 @@ class WormholeXTremePlayerListener implements Listener
             {
                 if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
                 {
-                    player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+                    player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
                     return false;
                 }
                 pendingUseCost = useCost;
@@ -485,7 +488,7 @@ class WormholeXTremePlayerListener implements Listener
 
         if (stargate.getGateTarget().isGateIrisActive())
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is locked!");
             player.setNoDamageTicks(5);
             event.setFrom(stargate.getGatePlayerTeleportLocation());
             event.setTo(stargate.getGatePlayerTeleportLocation());
@@ -500,7 +503,7 @@ class WormholeXTremePlayerListener implements Listener
             final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
             if (targetWorld != null && !gateBlockFinal.getWorld().equals(targetWorld))
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Cross-world travel is disabled on this server.");
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Cross-world travel is disabled on this server.");
                 player.setNoDamageTicks(5);
                 return false;
             }
@@ -520,7 +523,7 @@ class WormholeXTremePlayerListener implements Listener
         if (pendingUseCost > 0)
         {
             com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, pendingUseCost);
-            player.sendMessage(ConfigManager.MessageStrings.economyCharged.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
                 + pendingUseCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(pendingUseCost));
         }
         return performGateTeleport(event, player, stargate, target, safeTarget);

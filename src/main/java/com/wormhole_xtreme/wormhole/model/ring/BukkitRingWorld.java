@@ -220,8 +220,12 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
      */
     private static BoundingBox boundsOf(final List<int[]> blocks)
     {
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
         for (final int[] block : blocks)
         {
             minX = Math.min(minX, block[0]);
