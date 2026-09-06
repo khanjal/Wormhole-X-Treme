@@ -719,10 +719,8 @@ class WormholeXTremeVehicleListener implements Listener
         final Location safeIrisTarget = (irisTarget != null)
             ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
             : irisTarget;
-        if (veh != null)
-        {
-            markVehicleRecentlyTeleported(veh.getUniqueId());
-        }
+        // Marked before the move so it does not read as another trip through the gate.
+        markVehicleRecentlyTeleported(veh.getUniqueId());
         veh.teleport(safeIrisTarget);
         if (ConfigManager.getTimeoutShutdown() == 0)
         {
