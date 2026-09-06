@@ -179,4 +179,32 @@ class CompleteCommandTest
 
         Complete.removePendingCompletion(player);
     }
+
+    /**
+     * A gate that will not complete names the half-built one it found.
+     *
+     * <p>This message and the one the interactive click path sends are the only thing that
+     * differs between the two completion routes, so it is worth holding still before they
+     * are merged.
+     */
+    @Test
+    void aRefusedCompletionNamesTheHalfBuiltGate()
+    {
+        final Player player = builder();
+        final Stargate halfBuilt = new Stargate();
+        halfBuilt.setGateName("Partial");
+        StargateManager.addIncompleteStargate(player, halfBuilt);
+        try (org.mockito.MockedStatic<StargateManager> mgr =
+            org.mockito.Mockito.mockStatic(StargateManager.class, org.mockito.Mockito.CALLS_REAL_METHODS))
+        {
+            mgr.when(() -> StargateManager.completeStargate(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+
+            new Complete().onCommand(player, null, "wormhole", new String[] {"Fresh"});
+        }
+
+        verify(player).sendMessage(contains("found incomplete: \"Partial\""));
+        StargateManager.removeIncompleteStargate(player);
+    }
 }

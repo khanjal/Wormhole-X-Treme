@@ -145,19 +145,44 @@ public class Complete implements CommandExecutor, TabCompleter
     private static void finishBuiltGate(final Player player, final String name, final String idc,
         final String network, final String incompleteName)
     {
+        completeAndCharge(player, name, idc, network,
+            "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.",
+            "/wormhole complete failed for player " + player.getName() + " - incomplete gate exists: " + incompleteName);
+    }
+
+    /**
+     * Completes a gate the player has named, charging for it if the server does.
+     *
+     * <p>Shared with the interactive route in GateInteractionHandler, which reaches this same
+     * point from a click on the DHD rather than from the command line. The two differ only in
+     * what they can say when the gate will not complete: this one can name the half-built gate
+     * it found, and the click cannot, because the click is what found the gate.
+     *
+     * @param onRefused
+     *            what to tell the player if the gate will not complete
+     * @param refusedLog
+     *            what to log alongside it, or null to log nothing
+     * @return true if the gate was completed
+     */
+    public static boolean completeAndCharge(final Player player, final String name, final String idc,
+        final String network, final String onRefused, final String refusedLog)
+    {
         final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
             ? ConfigManager.getEconomyBuildCost()
             : 0.0;
         if ((buildCost > 0) && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
         {
             player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-            return;
+            return false;
         }
         if (!StargateManager.completeStargate(player, name, idc, network))
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "/wormhole complete failed for player " + player.getName() + " - incomplete gate exists: " + incompleteName);
-            return;
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + onRefused);
+            if (refusedLog != null)
+            {
+                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, refusedLog);
+            }
+            return false;
         }
         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
         if (buildCost > 0)
@@ -166,6 +191,7 @@ public class Complete implements CommandExecutor, TabCompleter
             player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
                 + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
         }
+        return true;
     }
 
     /* (non-Javadoc)
