@@ -46,107 +46,126 @@ public class Complete implements CommandExecutor, TabCompleter
      *            the args
      * @return true, if successful
      */
-    private static boolean doComplete(final Player player, final String[] args)
+    private static void doComplete(final Player player, final String[] args)
     {
         final String name = args[0].trim().replace("\n", "").replace("\r", "");
-
-        if (name.length() < 12)
-        {
-            String idc = "";
-            String network = "";
-
-            // Robust parsing for optional key=value arguments. Accepts:
-            // - idc=1234
-            // - idc= 1234 (user typed a space-separated value)
-            // - idc=    (empty value)
-            for (int i = 1; i < args.length; i++)
-            {
-                final String token = args[i];
-                if (token == null || token.isEmpty())
-                {
-                    continue;
-                }
-
-                final int eqPos = token.indexOf('=');
-                if (eqPos < 0)
-                {
-                    // Not a key=value token — skip it (user probably mistyped)
-                    continue;
-                }
-
-                final String key = token.substring(0, eqPos).trim();
-                String value = token.substring(eqPos + 1).trim();
-
-                // Support the common mistake: "idc= 1234" where value is the
-                // next whitespace-separated token.
-                if (value.isEmpty() && (i + 1) < args.length && !args[i + 1].contains("="))
-                {
-                    value = args[i + 1].trim();
-                    i++; // consume the value token
-                }
-
-                if ("idc".equalsIgnoreCase(key))
-                {
-                    idc = value;
-                }
-                else if ("net".equalsIgnoreCase(key))
-                {
-                    network = value;
-                }
-            }
-            if (WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
-            {
-                if (StargateManager.getStargate(name) == null)
-                {
-                    // If player already has an incomplete stargate registered, attempt immediate completion.
-                    final String incompleteName = com.wormhole_xtreme.wormhole.model.StargateManager.getIncompleteStargateName(player);
-                    if (incompleteName != null)
-                    {
-                        final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
-                        if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                        }
-                        else if (StargateManager.completeStargate(player, name, idc, network))
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                            if (buildCost > 0)
-                            {
-                                com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                                player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                    + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                            }
-                        }
-                        else
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
-                            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "/wormhole complete failed for player " + player.getName() + " — incomplete gate exists: " + incompleteName);
-                        }
-                    }
-                    else
-                    {
-                        // Enter interactive completion mode: wait for the player to click the DHD lever/button.
-                        addPendingCompletion(player, name, idc, network);
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Please click the DHD lever/button to complete the gate.");
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
-                    }
-                }
-                else
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
-                }
-            }
-            else
-            {
-                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            }
-        }
-        else
+        if (name.length() >= 12)
         {
             player.sendMessage(ConfigManager.MessageStrings.constructNameTooLong.toString() + "\"" + name + "\"");
+            return;
         }
-        return true;
+
+        final String[] options = parseOptions(args);
+        final String idc = options[0];
+        final String network = options[1];
+
+        if (!WXPermissions.checkWXPermissions(player, network, PermissionType.BUILD))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return;
+        }
+        if (StargateManager.getStargate(name) != null)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
+            return;
+        }
+
+        final String incompleteName = StargateManager.getIncompleteStargateName(player);
+        if (incompleteName == null)
+        {
+            awaitDhdClick(player, name, idc, network);
+            return;
+        }
+        finishBuiltGate(player, name, idc, network, incompleteName);
+    }
+
+    /**
+     * Reads the optional {@code idc=} and {@code net=} arguments.
+     *
+     * <p>Tolerates a space after the equals, which is the common way to mistype these:
+     * {@code idc= 1234} arrives as two arguments and means what {@code idc=1234} means.
+     * Anything that is not a key=value pair is passed over rather than refused.
+     *
+     * @return the IDC and the network, in that order, each empty if not given
+     */
+    private static String[] parseOptions(final String[] args)
+    {
+        String idc = "";
+        String network = "";
+        // Walked with an explicit cursor: a key whose value was typed after the equals sign
+        // consumes the argument that follows it, so the loop has to be able to skip one.
+        int i = 1;
+        while (i < args.length)
+        {
+            final String token = args[i];
+            i++;
+            // A null, an empty token and one without an equals sign are all the same thing
+            // here: not a key=value pair, so not for us.
+            final int eqPos = (token == null) ? -1 : token.indexOf('=');
+            if (eqPos < 0)
+            {
+                continue;
+            }
+            final String key = token.substring(0, eqPos).trim();
+            String value = token.substring(eqPos + 1).trim();
+            if (value.isEmpty() && (i < args.length) && !args[i].contains("="))
+            {
+                value = args[i].trim();
+                i++;
+            }
+            if ("idc".equalsIgnoreCase(key))
+            {
+                idc = value;
+            }
+            else if ("net".equalsIgnoreCase(key))
+            {
+                network = value;
+            }
+        }
+        return new String[] {idc, network};
+    }
+
+    /**
+     * Waits for the player to click the DHD, having nothing part-built to finish.
+     *
+     * <p>This is how a gate built without {@code /wormhole build} gets completed: the name
+     * comes first and the click says which gate it belongs to.
+     */
+    private static void awaitDhdClick(final Player player, final String name, final String idc,
+        final String network)
+    {
+        addPendingCompletion(player, name, idc, network);
+        final String header = ConfigManager.MessageStrings.normalHeader.toString();
+        player.sendMessage(header + "Please click the DHD lever/button to complete the gate.");
+        player.sendMessage(header + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
+        player.sendMessage(header + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
+    }
+
+    /** Finishes the gate this player already has part-built, charging for it if the server does. */
+    private static void finishBuiltGate(final Player player, final String name, final String idc,
+        final String network, final String incompleteName)
+    {
+        final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+            ? ConfigManager.getEconomyBuildCost()
+            : 0.0;
+        if ((buildCost > 0) && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+            return;
+        }
+        if (!StargateManager.completeStargate(player, name, idc, network))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!? (found incomplete: \"" + incompleteName + "\") Check server logs for details.");
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "/wormhole complete failed for player " + player.getName() + " - incomplete gate exists: " + incompleteName);
+            return;
+        }
+        player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+        if (buildCost > 0)
+        {
+            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
+        }
     }
 
     /* (non-Javadoc)
@@ -172,7 +191,8 @@ public class Complete implements CommandExecutor, TabCompleter
             {
                 try
                 {
-                    return doComplete((Player) sender, arguments);
+                    doComplete((Player) sender, arguments);
+                    return true;
                 }
                 catch (final Exception e)
                 {
