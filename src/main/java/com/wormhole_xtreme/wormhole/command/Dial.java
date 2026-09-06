@@ -32,34 +32,33 @@ public class Dial implements CommandExecutor
      *            the player
      * @param args
      *            the gate name, and optionally the IDC for a closed remote iris
-     * @return true, if successful
      */
-    private static boolean doDial(final Player player, final String[] args)
+    private static void doDial(final Player player, final String[] args)
     {
         final Stargate start = StargateManager.removeActivatedStargate(player);
         if (start == null)
         {
             player.sendMessage(ConfigManager.MessageStrings.gateNotActive.toString());
-            return true;
+            return;
         }
         if ( !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            return true;
+            return;
         }
         final String startnetwork = CommandUtilities.getGateNetwork(start);
         if (start.getGateName().equals(args[0]))
         {
             CommandUtilities.closeGate(start, false);
             player.sendMessage(ConfigManager.MessageStrings.targetIsSelf.toString());
-            return true;
+            return;
         }
         final Stargate target = StargateManager.getStargate(args[0]);
         if (target == null)
         {
             CommandUtilities.closeGate(start, false);
             player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
-            return true;
+            return;
         }
         final String targetnetwork = CommandUtilities.getGateNetwork(target);
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Dial Target - Gate: \"" + target.getGateName() + "\" Network: \"" + targetnetwork + "\"");
@@ -67,7 +66,7 @@ public class Dial implements CommandExecutor
         {
             CommandUtilities.closeGate(start, false);
             player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString() + " Not on same network.");
-            return true;
+            return;
         }
         if (start.isGateIrisActive())
         {
@@ -78,16 +77,15 @@ public class Dial implements CommandExecutor
         {
             CommandUtilities.closeGate(start, false);
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is active; provide the IDC to unlock.");
-            return true;
+            return;
         }
 
         if (start.dialStargate(target, false))
         {
             player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
-            return true;
+            return;
         }
         recoverFailedDial(player, start, target);
-        return true;
     }
 
     /**
@@ -179,9 +177,11 @@ public class Dial implements CommandExecutor
                 final String[] arguments = CommandUtilities.commandEscaper(args);
                 if ((arguments.length < 3) && (arguments.length > 0))
                 {
-                    return CommandUtilities.playerCheck(sender)
-                        ? doDial((Player) sender, arguments)
-                        : true;
+                    if (CommandUtilities.playerCheck(sender))
+                    {
+                        doDial((Player) sender, arguments);
+                    }
+                    return true;
                 }
                 return false;
             }
