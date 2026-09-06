@@ -333,6 +333,35 @@ class GateDetectionTest
         assertTrue(lit > 0, "the waves should hold the cells the shape marked for lighting");
     }
 
+
+    /**
+     * A redstone-dialled gate gets blocks to watch for a power change.
+     *
+     * <p>Nothing places redstone dust for the player. The gate records the block below its
+     * DHD holder and the two in front of that, and the listener treats power arriving at any
+     * of them as a dial. A gate with none recorded cannot be dialled by redstone at all,
+     * which is the whole point of the shape.
+     */
+    @Test
+    void aRedstoneShapeRecordsBlocksToWatch() throws Exception
+    {
+        final Stargate3DShape s = shape("StandardSignDial");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        assertEquals(3, found.getGateRedstoneDialMonitorBlocks().size(),
+            "the block below the holder, and the two in front of it");
+        final Block holder = found.getGateDialLeverBlock();
+        assertNotNull(holder, "the monitors are worked out from the holder");
+        for (final Block m : found.getGateRedstoneDialMonitorBlocks())
+        {
+            assertTrue(m.getY() < holder.getY(),
+                "every monitor sits below the holder, where a player would run dust");
+        }
+    }
+
     /**
      * EP is the block a traveller's feet land on, and they are put one block outside it along
      * the gate's facing so they do not arrive inside the portal.
