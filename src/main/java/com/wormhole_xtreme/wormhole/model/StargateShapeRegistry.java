@@ -115,7 +115,21 @@ public final class StargateShapeRegistry
 
     public static void loadShapes()
     {
-        final File directory = shapeDirectory();
+        loadShapes(shapeDirectory());
+    }
+
+    /**
+     * Loads every shape in a given directory, restoring the shipped ones if they are missing.
+     *
+     * <p>Split out from {@link #loadShapes()} so a test can point it somewhere other than the
+     * live plugin folder: {@link #shapeDirectory()} is a fixed path relative to the working
+     * directory, and running the real one under test would write into the project.
+     *
+     * @param directory
+     *            the folder to load from, created if it is not there
+     */
+    static void loadShapes(final File directory)
+    {
 
         if (!directory.isDirectory())
         {
