@@ -115,7 +115,7 @@ class WormholeXTremePlayerListenerMountTest
         // Execute delayed runnables immediately so reattach tasks run synchronously in the test.
         doAnswer(inv -> {
             final Runnable r = inv.getArgument(1, Runnable.class);
-            try { r.run(); } catch (final Throwable ignore) {}
+            try { r.run(); } catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
             return 1;
         }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
 
@@ -205,7 +205,7 @@ class WormholeXTremePlayerListenerMountTest
 
         doAnswer(inv -> {
             final Runnable r = inv.getArgument(1, Runnable.class);
-            try { r.run(); } catch (final Throwable ignore) {}
+            try { r.run(); } catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
             return 1;
         }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
 

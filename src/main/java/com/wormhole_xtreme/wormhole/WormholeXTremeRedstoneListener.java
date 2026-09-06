@@ -249,7 +249,7 @@ class WormholeXTremeRedstoneListener implements Listener
                 }
             }
         }
-        catch (final Throwable ignore) {}
+        catch (final Throwable ignore) { /* an unreadable block is not a redstone source */ }
         return false;
     }
 
@@ -410,6 +410,6 @@ class WormholeXTremeRedstoneListener implements Listener
                     1L);
             }
         }
-        catch (final Throwable ignore) {}
+        catch (final Throwable ignore) { /* a missed sign cycle is not worth breaking the event */ }
     }
 }

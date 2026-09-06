@@ -156,14 +156,14 @@ class WormholeXTremePlayerListener implements Listener
     private static void teleportPlayerAlone(final Player player, final Location safeTarget)
     {
         // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-        try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final RuntimeException ignore) {}
+        try { WorldUtils.forceLoadDestinationChunks(safeTarget); } catch (final RuntimeException ignore) { /* best effort */ }
         player.teleport(safeTarget);
         try
         {
             player.setVelocity(new Vector(0, 0, 0));
             player.setFallDistance(0);
         }
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* settling the arrival is cosmetic */ }
     }
 
     /**
@@ -291,7 +291,7 @@ class WormholeXTremePlayerListener implements Listener
                     + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
             }
             // Diagnostics only, and on the move path, so never let it disturb the event.
-            catch (final RuntimeException ignore) {}
+            catch (final RuntimeException ignore) { /* best effort */ }
         }
         Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
@@ -370,7 +370,7 @@ class WormholeXTremePlayerListener implements Listener
                 }
             }
         }
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* treat an unreadable gate as not incoming */ }
 
         if (incomingActive)
         {
@@ -438,7 +438,7 @@ class WormholeXTremePlayerListener implements Listener
 
         // Refill the player's air while they stand in the portal so a water-material
         // gate does not drown them. Cosmetic, so a failure is not worth reporting.
-        try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) {}
+        try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) { /* best effort */ }
 
         if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
         {
@@ -605,13 +605,13 @@ class WormholeXTremePlayerListener implements Listener
                         riddenTarget.setPitch(0f);
                     }
                 }
-                catch (final RuntimeException ignore) {}
+                catch (final RuntimeException ignore) { /* exit facing is cosmetic */ }
 
                 // Safety net: ensure destination chunk is loaded even if it unloaded since dial time.
-                try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) {}
+                try { WorldUtils.forceLoadDestinationChunks(riddenTarget); } catch (final RuntimeException ignore) { /* best effort */ }
                 // Mark before the teleport so a VehicleMoveEvent in the same tick is
                 // suppressed and does not double-process this entry, zeroing the exit velocity.
-                try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) {}
+                try { WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(ridden.getUniqueId()); } catch (final RuntimeException ignore) { /* best effort */ }
 
                 boolean riddenTeleported = false;
                 try
@@ -696,11 +696,11 @@ class WormholeXTremePlayerListener implements Listener
                     }
                     // Settling the player after arrival. Each call is independently
                     // best-effort: none of them failing is worth aborting the others.
-                    try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) {}
-                    try { player.setFallDistance(0); } catch (final RuntimeException ignore) {}
+                    try { player.setVelocity(new Vector(0, 0, 0)); } catch (final RuntimeException ignore) { /* best effort */ }
+                    try { player.setFallDistance(0); } catch (final RuntimeException ignore) { /* best effort */ }
                     if (!skipTeleport)
                     {
-                        try { player.teleport(finalTarget); } catch (final RuntimeException ignore) {}
+                        try { player.teleport(finalTarget); } catch (final RuntimeException ignore) { /* best effort */ }
                     }
                     // A moment of water, as though they had just surfaced out of the event
                     // horizon. Sent here rather than at teleport time so it lands after the
@@ -709,7 +709,7 @@ class WormholeXTremePlayerListener implements Listener
                 }
             }, 1L);
         }
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* the arrival already happened; only the follow-up tick is lost */ }
         if (target != stargate.getGatePlayerTeleportLocation())
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
@@ -1031,7 +1031,7 @@ class WormholeXTremePlayerListener implements Listener
             }
         }
         // On the move path, so a failure here must never disturb the event.
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* best effort */ }
     }
 
     /**
@@ -1052,7 +1052,7 @@ class WormholeXTremePlayerListener implements Listener
             player.setFlying(false);
             player.setAllowFlight(false);
         }
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* clearing granted flight is best effort */ }
     }
 
     /**

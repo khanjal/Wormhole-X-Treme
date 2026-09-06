@@ -502,7 +502,7 @@ class StargateBlockSetup
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RD placement; target occupied: " + current);
                     }
                 }
-                catch (final Throwable ignore) {}
+                catch (final Throwable ignore) { /* placing the marker is best effort */ }
             }
             else
             {
@@ -537,7 +537,7 @@ class StargateBlockSetup
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RA lever placement; target occupied: " + current);
                     }
                 }
-                catch (final Throwable ignore) {}
+                catch (final Throwable ignore) { /* placing the marker is best effort */ }
             }
             else
             {
@@ -571,7 +571,7 @@ class StargateBlockSetup
                         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RS placement; target occupied: " + current);
                     }
                 }
-                catch (final Throwable ignore) {}
+                catch (final Throwable ignore) { /* placing the marker is best effort */ }
             }
             else
             {

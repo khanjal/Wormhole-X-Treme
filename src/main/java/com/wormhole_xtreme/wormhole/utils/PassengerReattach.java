@@ -71,7 +71,7 @@ public final class PassengerReattach
                 return true;
             }
         }
-        catch (final RuntimeException ignore) {}
+        catch (final RuntimeException ignore) { /* an unreadable passenger list just means retry */ }
         // A passenger too far from its parent is refused, so close the gap and retry.
         try
         {
@@ -164,7 +164,7 @@ public final class PassengerReattach
                             ridden.setVelocity(exitVelocity != null ? exitVelocity : new Vector(0, 0, 0));
                             ridden.setFireTicks(0);
                         }
-                        catch (final RuntimeException ignore) {}
+                        catch (final RuntimeException ignore) { /* velocity and fire state are cosmetic */ }
                         if (ridden instanceof Boat)
                         {
                             final Location resyncLoc = ridden.getLocation();
@@ -173,7 +173,7 @@ public final class PassengerReattach
                                 @Override
                                 public void run()
                                 {
-                                    try { if (ridden.isValid()) { ridden.teleport(resyncLoc); } } catch (final RuntimeException ignore) {}
+                                    try { if (ridden.isValid()) { ridden.teleport(resyncLoc); } } catch (final RuntimeException ignore) { /* best effort */ }
                                 }
                             }, 3L);
                         }

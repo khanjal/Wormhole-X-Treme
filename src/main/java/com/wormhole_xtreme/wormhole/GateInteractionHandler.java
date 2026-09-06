@@ -151,12 +151,12 @@ final class GateInteractionHandler
                                 final org.bukkit.block.Block below = holding.getRelative(org.bukkit.block.BlockFace.DOWN);
                                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
                             }
-                            catch (final RuntimeException ignore) {}
+                            catch (final RuntimeException ignore) { /* diagnostics only */ }
                         }
                         WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: end diagnostics");
                     }
                     // Diagnostics only: a failure here costs a log line, nothing more.
-                    catch (final RuntimeException ignore) {}
+                    catch (final RuntimeException ignore) { /* best effort */ }
                     return true;
                 }
             }

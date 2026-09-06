@@ -77,11 +77,11 @@ public final class LegacyCompat {
                         default: break;
                     }
                 }
-                try { d.setFacing(face); b.setBlockData(d); } catch (final Throwable ignore) {}
+                try { d.setFacing(face); b.setBlockData(d); } catch (final Throwable ignore) { /* best effort */ }
             }
             if (bd instanceof Powerable p) {
                 p.setPowered((data & 0x8) == 0x8);
-                try { b.setBlockData(p); } catch (final Throwable ignore) {}
+                try { b.setBlockData(p); } catch (final Throwable ignore) { /* best effort */ }
             }
             // Redstone wire: try reflection to set power if present
             try {
@@ -94,7 +94,7 @@ public final class LegacyCompat {
                     b.setBlockData(bd);
                     return;
                 }
-            } catch (final Throwable ignore) {}
+            } catch (final Throwable ignore) { /* best effort */ }
         } catch (final Throwable t) {
             // ignore mapping errors
         }
@@ -133,7 +133,7 @@ public final class LegacyCompat {
                     final Object val = getPower.invoke(bd);
                     if (val instanceof Integer i) return i.byteValue();
                 }
-            } catch (final Throwable ignore) {}
+            } catch (final Throwable ignore) { /* best effort */ }
         } catch (final Throwable t) {
             // ignore
         }

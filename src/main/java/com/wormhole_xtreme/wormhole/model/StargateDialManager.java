@@ -564,7 +564,7 @@ class StargateDialManager
                     }
                 }
             }
-            catch (final Throwable ignore) {}
+            catch (final Throwable ignore) { /* treat an unreadable gate as not dialable */ }
         }
 
         if (!target.isGateLightsActive() || force)
@@ -590,7 +590,7 @@ class StargateDialManager
             {
                 target.dialStargate();
             }
-            catch (final Throwable ignore) {}
+            catch (final Throwable ignore) { /* the far end failing to dial does not undo this one */ }
 
             if (gate.isGateActive() && target.isGateActive())
             {
@@ -602,7 +602,7 @@ class StargateDialManager
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                         "Pre-loaded destination chunks for gate: " + target.getGateName());
                 }
-                catch (final Throwable ignore) {}
+                catch (final Throwable ignore) { /* pre-loading is an optimisation, not a requirement */ }
                 return true;
             }
             else if (gate.isGateActive() && !target.isGateActive())
