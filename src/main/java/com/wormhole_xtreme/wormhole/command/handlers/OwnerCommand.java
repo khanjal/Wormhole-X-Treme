@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -33,68 +34,103 @@ public class OwnerCommand implements SubCommand
             return true;
         }
 
-        if (args.length >= 2)
-        {
-            final Stargate s = StargateManager.getStargate(args[1]);
-            if (s != null)
-            {
-                if (args.length == 3)
-                {
-                    final String newOwnerName = args[2];
-                    Player onlineTarget = Bukkit.getPlayerExact(newOwnerName);
-                    if (onlineTarget != null)
-                    {
-                        s.setGateOwner(onlineTarget.getUniqueId().toString());
-                        s.setGateOwnerName(onlineTarget.getName());
-                    }
-                    else
-                    {
-                        org.bukkit.OfflinePlayer offline = null;
-                        try
-                        {
-                            for (final org.bukkit.OfflinePlayer op : Bukkit.getOfflinePlayers())
-                            {
-                                if (op == null) continue;
-                                final String oname = op.getName();
-                                if (oname != null && oname.equalsIgnoreCase(newOwnerName))
-                                {
-                                    offline = op;
-                                    break;
-                                }
-                            }
-                        }
-                        catch (final RuntimeException ignore) { /* a failure here must not break the command */ }
-
-                        if (offline != null && (offline.hasPlayedBefore() || offline.isOnline()))
-                        {
-                            s.setGateOwner(offline.getUniqueId().toString());
-                            s.setGateOwnerName(offline.getName() != null ? offline.getName() : newOwnerName);
-                        }
-                        else
-                        {
-                            s.setGateOwner(newOwnerName);
-                            s.setGateOwnerName(newOwnerName);
-                        }
-                    }
-                    s.setupGateSign(true);
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
-                }
-                else if (args.length == 2)
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwnerName());
-                }
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + args[1] + "\"");
-            }
-        }
-        else
+        if (args.length < 2)
         {
             sender.sendMessage(ConfigManager.MessageStrings.gateNotSpecified.toString());
             return false;
         }
+
+        final Stargate s = StargateManager.getStargate(args[1]);
+        if (s == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + args[1] + "\"");
+            return true;
+        }
+
+        if (args.length == 2)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Owned by: " + s.getGateOwnerName());
+            return true;
+        }
+        if (args.length == 3)
+        {
+            assignOwner(s, args[2]);
+            s.setupGateSign(true);
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate: " + s.getGateName() + " Now owned by: " + s.getGateOwnerName());
+        }
         return true;
     }
 
+    /**
+     * Records who owns the gate now.
+     *
+     * <p>Ownership is stored as a UUID wherever one can be found, so it survives the owner
+     * renaming themselves. A name the server has never seen has no UUID to store, and is
+     * kept as written rather than refused -- an admin naming an owner before that player
+     * first joins is a reasonable thing to do.
+     */
+    private static void assignOwner(final Stargate s, final String newOwnerName)
+    {
+        final Player online = Bukkit.getPlayerExact(newOwnerName);
+        if (online != null)
+        {
+            s.setGateOwner(online.getUniqueId().toString());
+            s.setGateOwnerName(online.getName());
+            return;
+        }
+
+        final OfflinePlayer known = findKnownPlayer(newOwnerName, offlinePlayers());
+        if (known != null)
+        {
+            s.setGateOwner(known.getUniqueId().toString());
+            s.setGateOwnerName(known.getName() != null ? known.getName() : newOwnerName);
+            return;
+        }
+
+        s.setGateOwner(newOwnerName);
+        s.setGateOwnerName(newOwnerName);
+    }
+
+    /** The server's roster, or an empty one if it will not give it up. */
+    private static OfflinePlayer[] offlinePlayers()
+    {
+        try
+        {
+            return Bukkit.getOfflinePlayers();
+        }
+        catch (final RuntimeException ignore)
+        {
+            // a failure here must not break the command
+            return new OfflinePlayer[0];
+        }
+    }
+
+    /**
+     * The player of that name the server already knows about.
+     *
+     * <p>Takes the roster rather than asking Bukkit for it, so the matching can be tested
+     * without a server: this project's Mockito cannot mock statics.
+     *
+     * @param name
+     *            the name as the admin typed it, matched without regard to case
+     * @param roster
+     *            the offline players to search
+     * @return the player, or null if nobody matches or the match has never played
+     */
+    static OfflinePlayer findKnownPlayer(final String name, final OfflinePlayer[] roster)
+    {
+        for (final OfflinePlayer op : roster)
+        {
+            if (op == null)
+            {
+                continue;
+            }
+            final String oname = op.getName();
+            if ((oname != null) && oname.equalsIgnoreCase(name))
+            {
+                return (op.hasPlayedBefore() || op.isOnline()) ? op : null;
+            }
+        }
+        return null;
+    }
 }

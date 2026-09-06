@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -12,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.util.UUID;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,4 +125,59 @@ class OwnerCommandTest
         assertEquals("Ada", s.getGateOwner(), "asking must not reassign");
     }
 
+
+    /**
+     * The roster is matched without regard to case.
+     *
+     * <p>An admin typing a name from memory should not have to get the capitalisation right,
+     * and the name stored is the server's spelling rather than theirs.
+     */
+    @Test
+    void aKnownPlayerIsFoundWhateverTheCase()
+    {
+        final OfflinePlayer grace = known("Grace", true);
+
+        final OfflinePlayer found = OwnerCommand.findKnownPlayer("grace", new OfflinePlayer[] {grace});
+
+        assertSame(grace, found);
+        assertEquals("Grace", found.getName(), "the server's spelling, not the admin's");
+    }
+
+    /**
+     * A name that matches somebody who has never played is not a match.
+     *
+     * <p>Bukkit hands back an OfflinePlayer for any name asked about, played or not, so the
+     * name matching alone would accept anything.
+     */
+    @Test
+    void aPlayerWhoHasNeverPlayedIsNotAMatch()
+    {
+        final OfflinePlayer neverSeen = known("Stranger", false);
+
+        assertNull(OwnerCommand.findKnownPlayer("Stranger", new OfflinePlayer[] {neverSeen}));
+    }
+
+    /** A roster with nobody of that name in it finds nobody. */
+    @Test
+    void anUnknownNameFindsNobody()
+    {
+        assertNull(OwnerCommand.findKnownPlayer("Nobody", new OfflinePlayer[] {known("Grace", true)}));
+    }
+
+    /** A null in the roster is stepped over rather than thrown on. */
+    @Test
+    void aNullInTheRosterIsSteppedOver()
+    {
+        final OfflinePlayer grace = known("Grace", true);
+
+        assertSame(grace, OwnerCommand.findKnownPlayer("Grace", new OfflinePlayer[] {null, grace}));
+    }
+
+    private static OfflinePlayer known(final String name, final boolean hasPlayed)
+    {
+        final OfflinePlayer op = mock(OfflinePlayer.class);
+        when(op.getName()).thenReturn(name);
+        when(op.hasPlayedBefore()).thenReturn(hasPlayed);
+        return op;
+    }
 }
