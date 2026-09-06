@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A minecart's own kind survives a failed vehicle teleport
+
+Only reachable through the fallback that runs when the ordinary teleport throws, so nobody is
+likely to have hit it, but it was wrong: the minecart path respawned the replacement as
+`Minecart.class`, so a chest, hopper or furnace minecart came back a plain one.
+
+The boat path next to it already asked the vehicle for its own type, with a comment saying
+why -- a birch boat should come back a birch boat, and `EntityType.BOAT` stopped existing in
+1.21.3 when boats were split per wood. The two paths were near-copies of each other and only
+one had learned that. They are one path now, so both have.
+
+
 ### A dead null check made seven permission calls look like crashes
 
 `WXPermissions.checkWXPermissions` opened with `if (player == null) return false;`. No caller

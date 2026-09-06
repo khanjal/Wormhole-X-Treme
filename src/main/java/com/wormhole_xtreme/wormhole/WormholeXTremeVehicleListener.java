@@ -15,7 +15,6 @@ import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
@@ -259,179 +258,45 @@ class WormholeXTremeVehicleListener implements Listener
         }
     }
 
-    /**
-     * Teleport an occupied minecart through a gate.
-     * <p>
-     * Teleports the vehicle (which ejects the passenger server-side), then schedules
-     * reattachment with exponential backoff. Sets exit velocity after successful reattach.
-     * Does NOT issue a re-sync teleport — that would zero the cart's velocity.
-     *
-     * @param veh        the minecart to teleport
-     * @param passenger  the entity riding the minecart
-     * @param safeTarget the destination location
-     * @param exitSpeed  the velocity to apply after reattachment
-     */
-    private static void teleportOccupiedMinecart(
-        final Vehicle veh,
-        final List<Entity> passengers,
-        final Location safeTarget,
-        final Vector exitSpeed)
+    /** What differs between a minecart and a boat when an occupied one goes through a gate. */
+    private enum VehicleKind
     {
-        final List<Entity> parents = new ArrayList<Entity>();
-        final List<Entity> children = new ArrayList<Entity>();
-        collectPassengerPairs(veh, parents, children);
-        try
+        /** No re-sync teleport: it would zero the cart's velocity. */
+        MINECART("minecart", 8, false),
+        /** Paper needs a re-sync so it resends EntityTeleport and SetPassengers once water physics settle. */
+        BOAT("boat", 12, true);
+
+        private final String noun;
+        private final int maxAttempts;
+        private final boolean resync;
+
+        VehicleKind(final String noun, final int maxAttempts, final boolean resync)
         {
-            veh.teleport(safeTarget);
-            // Face the riders now rather than in the reattach tick below. A player teleport
-            // makes the client withhold the packets that follow until it has acknowledged
-            // the move, and the mount packet is exactly what would be withheld -- the
-            // failure mode the delay before reattaching already exists to avoid. Doing it
-            // here puts both the vehicle move and the rider's turn on the same side of that
-            // wait. The vehicle teleport has already ejected them, so there is no mount to
-            // disturb yet.
-            for (final Entity rider : children)
-            {
-                faceTravelDirection(rider, safeTarget);
-            }
-            final int[] attempts = new int[] { 0 };
-            final int MAX_ATTEMPTS = 8;
-            final boolean[] attached = new boolean[children.size()];
-            final Runnable[] taskHolder = new Runnable[1];
-            taskHolder[0] = new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    attempts[0]++;
-                    try
-                    {
-                        if (!veh.isValid())
-                        {
-                            return;
-                        }
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart reattach attempt " + attempts[0] + " -> vehicle " + veh.getUniqueId() + " (passengers=" + children.size() + ")");
-                        int remaining = 0;
-                        for (int i = 0; i < children.size(); i++)
-                        {
-                            if (attached[i]) continue;
-                            final Entity parent = parents.get(i);
-                            final Entity child = children.get(i);
-                            try
-                            {
-                                if (!child.isValid()) { continue; }
-                                boolean added = false;
-                                try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage()); }
-                                if (!added)
-                                {
-                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) { /* best effort */ }
-                                    try { child.teleport(parent.getLocation()); added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage()); }
-                                }
-                                if (added)
-                                {
-                                    attached[i] = true;
-                                }
-                                else
-                                {
-                                    remaining++;
-                                }
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
-                                remaining++;
-                            }
-                        }
-                        if (remaining == 0)
-                        {
-                            try { veh.setVelocity(exitSpeed); veh.setFireTicks(0); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set minecart state: " + t.getMessage()); }
-                        }
-                        else if (attempts[0] < MAX_ATTEMPTS)
-                        {
-                            if (attempts[0] == 2 || attempts[0] == 5)
-                            {
-                                try { veh.teleport(safeTarget); WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported minecart " + veh.getUniqueId() + " to force client update (attempt " + attempts[0] + ")"); } catch (final Throwable tt) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleport failed: " + tt.getMessage()); }
-                            }
-                            final long backoff = Math.min(1L << Math.max(0, attempts[0] - 1), 20L);
-                            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], backoff);
-                        }
-                        else
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to attach all passengers to minecart " + veh.getUniqueId() + " after " + attempts[0] + " attempts");
-                            try { veh.setVelocity(exitSpeed); veh.setFireTicks(0); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set minecart state: " + t.getMessage()); }
-                        }
-                    }
-                    catch (final Throwable t)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during minecart passenger reattach: " + t.getMessage());
-                    }
-                }
-            };
-            // Delay 5 ticks so the client finishes its teleport acknowledgment before
-            // we send the SetPassengers packet.
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 5L);
+            this.noun = noun;
+            this.maxAttempts = maxAttempts;
+            this.resync = resync;
         }
-        catch (final Throwable t)
+
+        static VehicleKind of(final Vehicle veh)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to teleport occupied minecart, falling back to respawn: " + t.getMessage());
-            try
-            {
-                final Vehicle newveh = safeTarget.getWorld().spawn(safeTarget, Minecart.class);
-                final Event teleportevent = new StargateMinecartTeleportEvent((Minecart) veh, (Minecart) newveh);
-                WormholeXTreme.getThisPlugin().getServer().getPluginManager().callEvent(teleportevent);
-                final UUID nid = newveh.getUniqueId();
-                markVehicleRecentlyTeleported(nid);
-                // Attach pairs in order so parents are attached before children
-                for (int i = 0; i < children.size(); i++)
-                {
-                    final Entity parent = parents.get(i);
-                    final Entity child = children.get(i);
-                    try
-                    {
-                        child.teleport(safeTarget);
-                        if (parent.equals(veh))
-                        {
-                            try { newveh.addPassenger(child); } catch (final Throwable tt) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage()); }
-                        }
-                        else
-                        {
-                            try { parent.addPassenger(child); } catch (final Throwable tt) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage()); }
-                        }
-                    }
-                    catch (final Throwable tt)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
-                    }
-                }
-                newveh.setVelocity(exitSpeed);
-            }
-            catch (final Throwable tt)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Fallback respawn also failed: " + tt.getMessage());
-            }
+            return veh instanceof Boat ? BOAT : MINECART;
         }
     }
 
-
     /**
-     * Teleport an occupied boat through a gate.
-     * <p>
-     * Teleports the vehicle (which ejects the passenger server-side), then schedules
-     * reattachment with exponential backoff. Sets exit velocity after successful reattach,
-     * then issues a client re-sync teleport 3 ticks later so Paper resends EntityTeleport
-     * and SetPassengers after water-physics settle.
+     * Teleport an occupied vehicle through a gate.
      *
-     * @param veh        the boat to teleport
-     * @param passenger  the entity riding the boat
+     * <p>Teleports the vehicle, which ejects its passengers server-side, then re-seats them
+     * with exponential backoff and applies the exit velocity once the whole stack is aboard.
+     *
+     * @param veh        the vehicle to teleport
      * @param safeTarget the destination location
      * @param exitSpeed  the velocity to apply after reattachment
      */
-    private static void teleportOccupiedBoat(
-        final Vehicle veh,
-        final List<Entity> passengers,
-        final Location safeTarget,
+    private static void teleportOccupiedVehicle(final Vehicle veh, final Location safeTarget,
         final Vector exitSpeed)
     {
+        final VehicleKind kind = VehicleKind.of(veh);
         final List<Entity> parents = new ArrayList<Entity>();
         final List<Entity> children = new ArrayList<Entity>();
         collectPassengerPairs(veh, parents, children);
@@ -441,175 +306,255 @@ class WormholeXTremeVehicleListener implements Listener
             // Face the riders now rather than in the reattach tick below. A player teleport
             // makes the client withhold the packets that follow until it has acknowledged
             // the move, and the mount packet is exactly what would be withheld -- the
-            // failure mode the delay before reattaching already exists to avoid. Doing it
-            // here puts both the vehicle move and the rider's turn on the same side of that
-            // wait. The vehicle teleport has already ejected them, so there is no mount to
-            // disturb yet.
+            // failure mode the delay before reattaching already exists to avoid. The vehicle
+            // teleport has already ejected them, so there is no mount to disturb yet.
             for (final Entity rider : children)
             {
                 faceTravelDirection(rider, safeTarget);
             }
-            final int[] attempts = new int[] { 0 };
-            final int MAX_ATTEMPTS = 12;
-            final boolean[] attached = new boolean[children.size()];
-            final Runnable[] taskHolder = new Runnable[1];
-            taskHolder[0] = new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    attempts[0]++;
-                    try
-                    {
-                        if (!veh.isValid())
-                        {
-                            return;
-                        }
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat reattach attempt " + attempts[0] + " -> vehicle " + veh.getUniqueId() + " (passengers=" + children.size() + ")");
-                        int remaining = 0;
-                        for (int i = 0; i < children.size(); i++)
-                        {
-                            if (attached[i]) continue;
-                            final Entity parent = parents.get(i);
-                            final Entity child = children.get(i);
-                            try
-                            {
-                                if (!child.isValid()) { continue; }
-                                boolean added = false;
-                                try { added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage()); }
-                                if (!added)
-                                {
-                                    try { if (parent.getPassengers().contains(child)) { attached[i] = true; continue; } } catch (final Throwable ignore) { /* best effort */ }
-                                    try { child.teleport(parent.getLocation()); added = parent.addPassenger(child); } catch (final Throwable t) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage()); }
-                                }
-                                if (added)
-                                {
-                                    attached[i] = true;
-                                }
-                                else
-                                {
-                                    remaining++;
-                                }
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
-                                remaining++;
-                            }
-                        }
-                        if (remaining == 0)
-                        {
-                            try
-                            {
-                                veh.setVelocity(exitSpeed);
-                                veh.setFireTicks(0);
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set boat state: " + t.getMessage());
-                            }
-                            // Boats need a client re-sync teleport so Paper resends
-                            // EntityTeleport + SetPassengers after water-physics settle.
-                            final Location resyncLoc = veh.getLocation();
-                            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                            {
-                                @Override
-                                public void run()
-                                {
-                                    try
-                                    {
-                                        if (veh.isValid())
-                                        {
-                                            veh.teleport(resyncLoc);
-                                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
-                                        }
-                                    }
-                                    catch (final Throwable ignore) { /* the boat re-sync is cosmetic */ }
-                                }
-                            }, 3L);
-                        }
-                        else if (attempts[0] < MAX_ATTEMPTS)
-                        {
-                            if (attempts[0] == 2 || attempts[0] == 5)
-                            {
-                                try
-                                {
-                                    veh.teleport(safeTarget);
-                                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported boat " + veh.getUniqueId() + " to force client update (attempt " + attempts[0] + ")");
-                                }
-                                catch (final Throwable tt)
-                                {
-                                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleport failed: " + tt.getMessage());
-                                }
-                            }
-                            final long backoff = Math.min(1L << Math.max(0, attempts[0] - 1), 20L);
-                            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], backoff);
-                        }
-                        else
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to attach all passengers to boat " + veh.getUniqueId() + " after " + attempts[0] + " attempts");
-                            try
-                            {
-                                veh.setVelocity(exitSpeed);
-                                veh.setFireTicks(0);
-                            }
-                            catch (final Throwable t)
-                            {
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set boat state: " + t.getMessage());
-                            }
-                        }
-                    }
-                    catch (final Throwable t)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during boat passenger reattach: " + t.getMessage());
-                    }
-                }
-            };
-            // Delay 5 ticks so the client finishes its teleport acknowledgment before
-            // we send the SetPassengers packet.
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 5L);
+            scheduleReattach(veh, parents, children, safeTarget, exitSpeed, kind);
         }
         catch (final Throwable t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to teleport occupied boat, falling back to respawn: " + t.getMessage());
-            try
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Failed to teleport occupied " + kind.noun + ", falling back to respawn: " + t.getMessage());
+            respawnAndReattach(veh, parents, children, safeTarget, exitSpeed);
+        }
+    }
+
+    /**
+     * Re-seats the passengers a tick or two after the vehicle has moved, retrying with
+     * backoff until they are all aboard or {@code kind} runs out of attempts.
+     */
+    private static void scheduleReattach(final Vehicle veh, final List<Entity> parents,
+        final List<Entity> children, final Location safeTarget, final Vector exitSpeed,
+        final VehicleKind kind)
+    {
+        final int[] attempts = new int[] { 0 };
+        final boolean[] attached = new boolean[children.size()];
+        final Runnable[] taskHolder = new Runnable[1];
+        taskHolder[0] = new Runnable()
+        {
+            @Override
+            public void run()
             {
-                // The boat's own type, not a hardcoded EntityType.BOAT. Two reasons: a
-                // birch boat should come back a birch boat rather than an oak one, and
-                // EntityType.BOAT stopped existing in 1.21.3 when boats were split per wood
-                // type. Asking the boat what it is works on either side of that change.
-                final org.bukkit.entity.Entity ent = safeTarget.getWorld().spawnEntity(safeTarget, veh.getType());
-                final Vehicle newveh = (Vehicle) ent;
-                final UUID nid = newveh.getUniqueId();
-                markVehicleRecentlyTeleported(nid);
-                // Attach pairs in order so parents are attached before children
-                for (int i = 0; i < children.size(); i++)
+                attempts[0]++;
+                try
                 {
-                    final Entity parent = parents.get(i);
-                    final Entity child = children.get(i);
-                    try
+                    if (!veh.isValid())
                     {
-                        child.teleport(safeTarget);
-                        if (parent.equals(veh))
-                        {
-                            try { newveh.addPassenger(child); } catch (final Throwable tt) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage()); }
-                        }
-                        else
-                        {
-                            try { parent.addPassenger(child); } catch (final Throwable tt) { WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage()); }
-                        }
+                        return;
                     }
-                    catch (final Throwable tt)
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, kind.noun + " reattach attempt "
+                        + attempts[0] + " -> vehicle " + veh.getUniqueId() + " (passengers=" + children.size() + ")");
+                    final int remaining = attachAll(parents, children, attached);
+                    if (remaining == 0)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
+                        settle(veh, exitSpeed, kind);
+                    }
+                    else if (attempts[0] < kind.maxAttempts)
+                    {
+                        retryLater(veh, safeTarget, attempts[0], taskHolder[0]);
+                    }
+                    else
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to attach all passengers to "
+                            + kind.noun + " " + veh.getUniqueId() + " after " + attempts[0] + " attempts");
+                        settle(veh, exitSpeed, kind);
                     }
                 }
-                newveh.setVelocity(exitSpeed);
+                catch (final Throwable t)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                        "Exception during " + kind.noun + " passenger reattach: " + t.getMessage());
+                }
+            }
+        };
+        // Delay 5 ticks so the client finishes its teleport acknowledgment before
+        // we send the SetPassengers packet.
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 5L);
+    }
+
+    /**
+     * Seats every passenger not already aboard.
+     *
+     * @return how many are still not seated
+     */
+    private static int attachAll(final List<Entity> parents, final List<Entity> children,
+        final boolean[] attached)
+    {
+        int remaining = 0;
+        for (int i = 0; i < children.size(); i++)
+        {
+            if (attached[i])
+            {
+                continue;
+            }
+            final Entity child = children.get(i);
+            try
+            {
+                if (!child.isValid())
+                {
+                    continue;
+                }
+                if (attachOne(parents.get(i), child))
+                {
+                    attached[i] = true;
+                }
+                else
+                {
+                    remaining++;
+                }
+            }
+            catch (final Throwable t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
+                remaining++;
+            }
+        }
+        return remaining;
+    }
+
+    /** Seats one passenger, retrying once with a position sync if the first attempt is refused. */
+    private static boolean attachOne(final Entity parent, final Entity child)
+    {
+        try
+        {
+            if (parent.addPassenger(child))
+            {
+                return true;
+            }
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
+        }
+        // An earlier attempt may already have succeeded without reporting it.
+        try
+        {
+            if (parent.getPassengers().contains(child))
+            {
+                return true;
+            }
+        }
+        catch (final RuntimeException ignore) { /* best effort */ }
+        // A passenger too far from its parent is refused, so close the gap and retry.
+        try
+        {
+            child.teleport(parent.getLocation());
+            return parent.addPassenger(child);
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after teleport failed: " + t.getMessage());
+        }
+        return false;
+    }
+
+    /** Applies the exit velocity, and for a boat the client re-sync that follows it. */
+    private static void settle(final Vehicle veh, final Vector exitSpeed, final VehicleKind kind)
+    {
+        try
+        {
+            veh.setVelocity(exitSpeed);
+            veh.setFireTicks(0);
+        }
+        catch (final Throwable t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to set " + kind.noun + " state: " + t.getMessage());
+        }
+        if (!kind.resync)
+        {
+            return;
+        }
+        final Location resyncLoc = veh.getLocation();
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                try
+                {
+                    if (veh.isValid())
+                    {
+                        veh.teleport(resyncLoc);
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Boat re-sync teleport: " + veh.getUniqueId());
+                    }
+                }
+                catch (final RuntimeException ignore) { /* the re-sync is cosmetic */ }
+            }
+        }, 3L);
+    }
+
+    /** Queues the next attempt, nudging the client with a re-teleport on the 2nd and 5th. */
+    private static void retryLater(final Vehicle veh, final Location safeTarget, final int attempt,
+        final Runnable task)
+    {
+        if (attempt == 2 || attempt == 5)
+        {
+            try
+            {
+                veh.teleport(safeTarget);
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleported " + veh.getUniqueId()
+                    + " to force client update (attempt " + attempt + ")");
             }
             catch (final Throwable tt)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Fallback respawn also failed: " + tt.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Re-teleport failed: " + tt.getMessage());
             }
+        }
+        final long backoff = Math.min(1L << Math.max(0, attempt - 1), 20L);
+        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), task, backoff);
+    }
+
+    /**
+     * Last resort when the vehicle itself would not move: spawn a replacement at the
+     * destination and put everyone back in it.
+     *
+     * <p>The replacement is spawned as the vehicle's own type rather than a hardcoded one. A
+     * birch boat should come back a birch boat, a chest minecart a chest minecart, and
+     * {@code EntityType.BOAT} stopped existing in 1.21.3 when boats were split per wood type.
+     */
+    private static void respawnAndReattach(final Vehicle veh, final List<Entity> parents,
+        final List<Entity> children, final Location safeTarget, final Vector exitSpeed)
+    {
+        try
+        {
+            final Vehicle newveh = (Vehicle) safeTarget.getWorld().spawnEntity(safeTarget, veh.getType());
+            if ((veh instanceof Minecart oldCart) && (newveh instanceof Minecart newCart))
+            {
+                WormholeXTreme.getThisPlugin().getServer().getPluginManager()
+                    .callEvent(new StargateMinecartTeleportEvent(oldCart, newCart));
+            }
+            markVehicleRecentlyTeleported(newveh.getUniqueId());
+            // In order, so a parent is aboard before its own passenger is.
+            for (int i = 0; i < children.size(); i++)
+            {
+                final Entity parent = parents.get(i);
+                final Entity child = children.get(i);
+                try
+                {
+                    child.teleport(safeTarget);
+                    final Entity seat = parent.equals(veh) ? newveh : parent;
+                    try
+                    {
+                        seat.addPassenger(child);
+                    }
+                    catch (final Throwable tt)
+                    {
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage());
+                    }
+                }
+                catch (final Throwable tt)
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
+                }
+            }
+            newveh.setVelocity(exitSpeed);
+        }
+        catch (final Throwable tt)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Fallback respawn also failed: " + tt.getMessage());
         }
     }
 
@@ -897,14 +842,7 @@ class WormholeXTremeVehicleListener implements Listener
                     }
                     // Occupied vehicle: dispatch to type-specific handler.
                     WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
-                    if (veh instanceof Boat)
-                    {
-                        teleportOccupiedBoat(veh, passengers, safeTarget, new_speed);
-                    }
-                    else
-                    {
-                        teleportOccupiedMinecart(veh, passengers, safeTarget, new_speed);
-                    }
+                    teleportOccupiedVehicle(veh, safeTarget, new_speed);
                 }
                 else
                 {

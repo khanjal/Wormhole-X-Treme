@@ -216,4 +216,69 @@ class WormholeXTremeVehicleListenerEventTest
         // Cleanup
         StargateManager.removeBlockIndex(ch);
     }
+
+    /**
+     * A minecart reattaches its rider but is never given the boat's re-sync teleport, which
+     * would zero the cart's velocity. This is the one behavioural difference between the two
+     * vehicle kinds now that they share a teleport path.
+     */
+    @Test
+    void occupiedMinecartReattachesButIsNeverResynced() throws Exception
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        final int bx = 30, by = 66, bz = 40;
+        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
+
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
+
+        final Stargate src = new Stargate();
+        src.setGateName("srcCart");
+        src.setGateActive(true);
+
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 300.5, 90.0, 400.5));
+        target.setGateFacing(BlockFace.SOUTH);
+        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
+        gateTargetField.setAccessible(true);
+        gateTargetField.set(src, target);
+
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        final Minecart cart = mock(Minecart.class);
+        final Player rider = mock(Player.class);
+        when(cart.getPassengers()).thenReturn(Collections.<org.bukkit.entity.Entity>singletonList(rider));
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.isValid()).thenReturn(true);
+        when(cart.getType()).thenReturn(EntityType.MINECART);
+        when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
+        when(rider.isValid()).thenReturn(true);
+        when(cart.addPassenger(rider)).thenReturn(true);
+
+        doAnswer(inv -> {
+            final Runnable r = inv.getArgument(1, Runnable.class);
+            final Long delay = inv.getArgument(2, Long.class);
+            if (delay == 5L || delay == 3L || delay == 2L)
+            {
+                r.run();
+            }
+            return 1;
+        }).when(mockScheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
+
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        final WormholeXTremeVehicleListener listener = new WormholeXTremeVehicleListener();
+        listener.onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
+
+        verify(cart, atLeastOnce()).teleport(any(Location.class));
+        verify(cart, atLeastOnce()).setVelocity(any(Vector.class));
+        verify(mockScheduler, never()).scheduleSyncDelayedTask(any(), any(Runnable.class), eq(3L));
+
+        StargateManager.removeBlockIndex(ch);
+    }
 }
