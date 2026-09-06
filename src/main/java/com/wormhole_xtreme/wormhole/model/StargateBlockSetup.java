@@ -64,158 +64,150 @@ class StargateBlockSetup
 
         if (create)
         {
-            final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
-            if (_plugin_for_log != null)
-            {
-                final StringBuilder dbg = new StringBuilder(256);
-                dbg.append("Sign placement: Gate=").append(gate.getGateName());
-
-                try
-                {
-                    final org.bukkit.Location nhLoc = nameSign.getLocation();
-                    dbg.append(" NameHolderLoc=").append(nhLoc != null ? nhLoc.toString() : "null");
-                }
-                catch (final Exception e)
-                {
-                    dbg.append(" NameHolderLoc=null");
-                }
-
-                dbg.append(" GateFacing=").append(toward != null ? toward.toString() : "null");
-
-                try
-                {
-                    final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
-                    dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
-                }
-                catch (final Exception e)
-                {
-                    dbg.append(" PlaceBlock=null");
-                }
-
-                Material pbType = null;
-                try
-                {
-                    pbType = placeBlock != null ? placeBlock.getType() : null;
-                }
-                catch (final RuntimeException t)
-                {
-                    pbType = null;
-                }
-                dbg.append(" PlaceBlockType=").append(pbType != null ? pbType.toString() : "null");
-
-                final BlockFace[] facesToCheck = new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST,
-                    BlockFace.UP, BlockFace.DOWN };
-                for (final BlockFace f : facesToCheck)
-                {
-                    Block n = null;
-                    try
-                    {
-                        n = nameSign.getRelative(f);
-                    }
-                    catch (final Exception e)
-                    {
-                        n = null;
-                    }
-                    String nType = "null";
-                    String nLoc = "null";
-                    if (n != null)
-                    {
-                        try
-                        {
-                            final Material t = n.getType();
-                            nType = t != null ? t.toString() : "null";
-                        }
-                        catch (final Exception e)
-                        {
-                            nType = "null";
-                        }
-                        try
-                        {
-                            final org.bukkit.Location nl = n.getLocation();
-                            nLoc = nl != null ? nl.toString() : "null";
-                        }
-                        catch (final Exception e)
-                        {
-                            nLoc = "null";
-                        }
-                    }
-                    dbg.append(' ').append(f.toString()).append("=[").append(nType).append("@").append(nLoc).append("]");
-                }
-
-                try
-                {
-                    final org.bukkit.block.data.BlockData bd = nameSign.getBlockData();
-                    if (bd instanceof Directional d)
-                    {
-                        dbg.append(" NameHolderFacing=").append(d.getFacing() != null ? d.getFacing().toString() : "null");
-                    }
-                }
-                catch (final Exception e)
-                {
-                    // ignore
-                }
-
-                _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
-            }
-
-            gate.getGateStructureBlocks().add(placeBlock.getLocation());
-            placeBlock.setType(gate.getEffectiveSignMaterial(), false);
-            final Directional signData = (Directional) placeBlock.getBlockData();
-            signData.setFacing(toward);
-            placeBlock.setBlockData(signData, false);
-
-            final Sign sign = (Sign) placeBlock.getState();
-            final org.bukkit.block.sign.SignSide front = sign.getSide(Side.FRONT);
-            // Colour codes do not count toward a sign's visible width, so the owner is still
-            // truncated on the text alone -- painting it cannot push it off the sign.
-            front.setLine(0, SignStyle.paint(
-                SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
-                "-" + gate.getGateName() + "-"));
-            if (gate.getGateNetwork() != null)
-            {
-                front.setLine(1, SignStyle.paint(
-                    SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
-                    "N:" + gate.getGateNetwork().getNetworkName()));
-            }
-            if (gate.getGateOwner() != null)
-            {
-                final String ownerDisplay = gate.getGateOwnerName();
-                front.setLine(2, SignStyle.paint(
-                    SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColor.GRAY),
-                    "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
-                        ? ownerDisplay.substring(0, 13) : ownerDisplay)));
-            }
-            front.setGlowingText(ConfigManager.isSignGlowingText());
-            sign.update(true, false);
-            // NOTE: gateDialSignBlock/gateDialSign are set during shape detection
-            // (check3DShape) from the [D] marker — the player-placed sign on the
-            // DHD.  Do NOT overwrite them here; this is the static gate frame sign
-            // and it should never be used as the dialer sign.
+            logSignPlacement(gate, nameSign, toward, placeBlock);
+            placeGateSign(gate, placeBlock, toward);
         }
-        else
+        else if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(placeBlock.getType()))
         {
-            if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(placeBlock.getType()))
+            logSignRemoval(gate, placeBlock);
+            removeGateSign(gate, placeBlock);
+        }
+    }
+
+    /**
+     * Records everything around the name holder at the moment a sign is placed.
+     *
+     * <p>Diagnostics only: it reads six neighbours and the holder's own facing, and each
+     * read is guarded because a block that cannot be read is the thing being diagnosed.
+     */
+    private static void logSignPlacement(final Stargate gate, final Block nameSign,
+                                         final BlockFace toward, final Block placeBlock)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if (plugin == null)
+        {
+            return;
+        }
+        final StringBuilder dbg = new StringBuilder(256);
+        dbg.append("Sign placement: Gate=").append(gate.getGateName());
+        dbg.append(" NameHolderLoc=").append(describe(nameSign::getLocation));
+        dbg.append(" GateFacing=").append(describe(() -> toward));
+        dbg.append(" PlaceBlock=").append(describe(placeBlock::getLocation));
+        dbg.append(" PlaceBlockType=").append(describe(placeBlock::getType));
+
+        for (final BlockFace f : new BlockFace[] { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH,
+            BlockFace.WEST, BlockFace.UP, BlockFace.DOWN })
+        {
+            dbg.append(' ').append(f)
+                .append("=[").append(describe(() -> nameSign.getRelative(f).getType()))
+                .append('@').append(describe(() -> nameSign.getRelative(f).getLocation()))
+                .append(']');
+        }
+        dbg.append(describeHolderFacing(nameSign));
+        plugin.prettyLog(Level.INFO, dbg.toString());
+    }
+
+    /**
+     * A value for the log, or {@code "null"} when it is absent or cannot be read.
+     *
+     * <p>Every read in the placement log wants the same thing, and guarding each one inline is
+     * what made the method unreadable.
+     */
+    private static String describe(final java.util.function.Supplier<Object> read)
+    {
+        try
+        {
+            final Object value = read.get();
+            return value != null ? value.toString() : "null";
+        }
+        catch (final RuntimeException unreadable)
+        {
+            return "null";
+        }
+    }
+
+    /** The name holder's own facing, or nothing at all when it has none or cannot be read. */
+    private static String describeHolderFacing(final Block nameSign)
+    {
+        try
+        {
+            if (nameSign.getBlockData() instanceof Directional d)
             {
-                final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
-                if (_plugin_for_log != null)
-                {
-                    final StringBuilder dbg = new StringBuilder(128);
-                    dbg.append("Sign removal: Gate=").append(gate.getGateName());
-                    try
-                    {
-                        final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
-                        dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
-                    }
-                    catch (final Exception e)
-                    {
-                        dbg.append(" PlaceBlock=null");
-                    }
-                    _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
-                }
-                gate.getGateStructureBlocks().remove(placeBlock.getLocation());
-                placeBlock.setType(Material.AIR);
+                return " NameHolderFacing=" + describe(d::getFacing);
             }
         }
+        catch (final RuntimeException unreadable)
+        {
+            // a holder that will not report its facing is the sort of thing this log is for
+        }
+        return "";
+    }
+
+    /** Records where a sign was when it is taken down. */
+    private static void logSignRemoval(final Stargate gate, final Block placeBlock)
+    {
+        final WormholeXTreme _plugin_for_log = WormholeXTreme.getThisPlugin();
+        if (_plugin_for_log == null)
+        {
+            return;
+        }
+        final StringBuilder dbg = new StringBuilder(128);
+        dbg.append("Sign removal: Gate=").append(gate.getGateName());
+        try
+        {
+            final org.bukkit.Location pbLoc = placeBlock != null ? placeBlock.getLocation() : null;
+            dbg.append(" PlaceBlock=").append(pbLoc != null ? pbLoc.toString() : "null");
+        }
+        catch (final Exception e)
+        {
+            dbg.append(" PlaceBlock=null");
+        }
+        _plugin_for_log.prettyLog(Level.INFO, dbg.toString());
+    }
+
+    /** Places the sign and writes the gate's name, network and owner onto its front. */
+    private static void placeGateSign(final Stargate gate, final Block placeBlock, final BlockFace toward)
+    {
+        gate.getGateStructureBlocks().add(placeBlock.getLocation());
+        placeBlock.setType(gate.getEffectiveSignMaterial(), false);
+        final Directional signData = (Directional) placeBlock.getBlockData();
+        signData.setFacing(toward);
+        placeBlock.setBlockData(signData, false);
+
+        final Sign sign = (Sign) placeBlock.getState();
+        final org.bukkit.block.sign.SignSide front = sign.getSide(Side.FRONT);
+        // Colour codes do not count toward a sign's visible width, so the owner is still
+        // truncated on the text alone -- painting it cannot push it off the sign.
+        front.setLine(0, SignStyle.paint(
+            SignStyle.resolveColor(ConfigManager.getSignColorGateName(), ChatColor.DARK_AQUA),
+            "-" + gate.getGateName() + "-"));
+        if (gate.getGateNetwork() != null)
+        {
+            front.setLine(1, SignStyle.paint(
+                SignStyle.resolveColor(ConfigManager.getSignColorNetwork(), ChatColor.GRAY),
+                "N:" + gate.getGateNetwork().getNetworkName()));
+        }
+        if (gate.getGateOwner() != null)
+        {
+            final String ownerDisplay = gate.getGateOwnerName();
+            front.setLine(2, SignStyle.paint(
+                SignStyle.resolveColor(ConfigManager.getSignColorOwner(), ChatColor.GRAY),
+                "O:" + (ownerDisplay != null && ownerDisplay.length() > 13
+                    ? ownerDisplay.substring(0, 13) : ownerDisplay)));
+        }
+        front.setGlowingText(ConfigManager.isSignGlowingText());
+        sign.update(true, false);
+        // NOTE: gateDialSignBlock/gateDialSign are set during shape detection
+        // (check3DShape) from the [D] marker — the player-placed sign on the
+        // DHD.  Do NOT overwrite them here; this is the static gate frame sign
+        // and it should never be used as the dialer sign.
+    }
+
+    /** Takes the sign down and drops it from the gate's structure blocks. */
+    private static void removeGateSign(final Stargate gate, final Block placeBlock)
+    {
+        gate.getGateStructureBlocks().remove(placeBlock.getLocation());
+        placeBlock.setType(Material.AIR);
     }
 
 
