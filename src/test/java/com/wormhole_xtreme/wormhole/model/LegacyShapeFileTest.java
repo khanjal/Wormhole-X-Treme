@@ -141,6 +141,22 @@ class LegacyShapeFileTest
         assertEquals(null, s.getShapeChevronMaterial(), "chevron falls back to the palette");
     }
 
+    /**
+     * The pre-1.13 block names still resolve.
+     *
+     * <p>A shape file old enough to be read by this parser is the one most likely to name
+     * STATIONARY_WATER, and until now only the version 2 parser knew that name. Both share
+     * the one reader, so both understand it.
+     */
+    @Test
+    void thePre113BlockNamesStillResolve()
+    {
+        final StargateShape s = new StargateShape(shape("PORTAL_MATERIAL=STATIONARY_WATER"));
+
+        assertEquals(Material.WATER, s.getShapePortalMaterial(),
+            "STATIONARY_WATER is what WATER was called when these shapes were written");
+    }
+
     /** A shape with no rows under GateShape= is refused rather than half-built. */
     @Test
     void aShapeWithNoGridIsRefused()

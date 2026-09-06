@@ -329,9 +329,20 @@ public class StargateShape
         {
             return null;
         }
+        final String n = name.trim().toUpperCase(Locale.ROOT);
+        // The pre-1.13 names, which is what a shape file old enough to reach this parser is
+        // most likely to be carrying.
+        if ("STATIONARY_WATER".equals(n))
+        {
+            return Material.WATER;
+        }
+        if ("STATIONARY_LAVA".equals(n))
+        {
+            return Material.LAVA;
+        }
         try
         {
-            return Material.valueOf(name.trim().toUpperCase(Locale.ROOT));
+            return Material.valueOf(n);
         }
         catch (final IllegalArgumentException notOnThisServer)
         {
