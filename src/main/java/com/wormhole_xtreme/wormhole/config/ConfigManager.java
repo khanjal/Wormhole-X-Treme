@@ -1231,7 +1231,7 @@ public class ConfigManager
     public static boolean isGateMaterialGroupsAutodiscover()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER);
-        return (s != null) ? s.getBooleanValue() : true;
+        return (s == null) || s.getBooleanValue();
     }
 
     /**
@@ -1295,9 +1295,8 @@ public class ConfigManager
      */
     public static boolean isUseCooldownEnabled()
     {
-        return ConfigManager.getConfigurations().get(ConfigKeys.USE_COOLDOWN_ENABLED) != null
-            ? ConfigManager.getConfigurations().get(ConfigKeys.USE_COOLDOWN_ENABLED).getBooleanValue()
-            : false;
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.USE_COOLDOWN_ENABLED);
+        return (s != null) && s.getBooleanValue();
     }
 
     /**
