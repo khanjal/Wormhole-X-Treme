@@ -1464,7 +1464,7 @@ public class ConfigManager
      */
     public static java.util.List<String> settingNamesMatching(final String needle)
     {
-        final String wanted = (needle == null) || (needle.trim().length() == 0)
+        final String wanted = (needle == null) || (needle.trim().isEmpty())
             ? "" : settingKey(needle);
         final java.util.List<String> found = new java.util.ArrayList<String>();
         for (final String name : settingNames())

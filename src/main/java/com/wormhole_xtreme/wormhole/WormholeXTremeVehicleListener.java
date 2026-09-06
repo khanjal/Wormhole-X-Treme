@@ -596,7 +596,7 @@ class WormholeXTremeVehicleListener implements Listener
         Location target = st.getGateTarget().getGateMinecartTeleportLocation() != null
             ? st.getGateTarget().getGateMinecartTeleportLocation()
             : st.getGateTarget().getGatePlayerTeleportLocation();
-        final Vehicle veh = (Vehicle) event.getVehicle();
+        final Vehicle veh = event.getVehicle();
         if (veh == null)
         {
             return false;
