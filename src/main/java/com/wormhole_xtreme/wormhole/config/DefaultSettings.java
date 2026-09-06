@@ -22,7 +22,7 @@ class DefaultSettings
     private static final String SECTION = "WormholeXTreme";
 
     /** The Constant config. */
-    final static Setting[] config = {
+    static final Setting[] config = {
         new Setting(ConfigKeys.TIMEOUT_ACTIVATE, 30, "Number of seconds after a gate is activated, but before dialing before timing out.", SECTION),
         new Setting(ConfigKeys.TIMEOUT_SHUTDOWN, 38, "Number of seconds after a gate is dialed before automatically shutdown. With 0 timeout a gate won't shutdown until something goes through the gate.", SECTION),
         new Setting(ConfigKeys.MAX_OPEN_SECONDS, 300, "Longest a wormhole may stay open, in seconds, however often it is re-dialled. Dialling restarts the shutdown timer, so without this a gate re-triggered on a schedule (a minecart over a detector rail, for example) would stay open forever and lock everyone else out. Measured from when the wormhole first opened. Set 0 for no limit.", SECTION),

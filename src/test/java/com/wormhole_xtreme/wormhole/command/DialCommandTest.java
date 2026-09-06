@@ -183,7 +183,7 @@ class DialCommandTest
 
         dial("there");
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+        verify(player).sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
         assertSame(other, StargateManager.removeActivatorForStargate(there),
             "the activator mapping should survive: forcing past a live connection would drop it");
     }

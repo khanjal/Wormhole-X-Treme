@@ -47,16 +47,16 @@ public class Force implements CommandExecutor
                             {
                                 CommandUtilities.closeGate(gate, true);
                             }
-                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "All gates have been deactivated, darkened, and have had their iris (if any) opened.");
+                            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "All gates have been deactivated, darkened, and have had their iris (if any) opened.");
                         }
                         else if (StargateManager.isStargate(a[0]))
                         {
                             CommandUtilities.closeGate(StargateManager.getStargate(a[0]), true);
-                            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + a[0] + " has been closed, darkened, and has had its iris (if any) opened.");
+                            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + a[0] + " has been closed, darkened, and has had its iris (if any) opened.");
                         }
                         else
                         {
-                            sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+                            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
                             return false;
                         }
 
@@ -67,7 +67,7 @@ public class Force implements CommandExecutor
                     }
                     else
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                        sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
                     }
                     return true;
                 }

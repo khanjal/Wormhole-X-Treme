@@ -19,7 +19,7 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 public final class GateSerializer
 {
-    private static final byte StargateSaveVersion = 9;
+    private static final byte STARGATE_SAVE_VERSION = 9;
 
     private GateSerializer() {}
 
@@ -106,12 +106,12 @@ public final class GateSerializer
         return 4 + (material == null ? 0 : material.name().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
     }
 
-    public static Stargate parseVersionedData(final byte[] gate_data, final World w, final String name, final StargateNetwork network)
+    public static Stargate parseVersionedData(final byte[] gateData, final World w, final String name, final StargateNetwork network)
     {
         final Stargate s = new Stargate();
         s.setGateName(name);
         s.setGateNetwork(network);
-        final ByteBuffer byteBuff = ByteBuffer.wrap(gate_data);
+        final ByteBuffer byteBuff = ByteBuffer.wrap(gateData);
 
         // First get version byte
         s.setLoadedVersion(byteBuff.get());
@@ -940,7 +940,7 @@ public final class GateSerializer
      */
     private static void writeAnchors(final ByteBuffer dataArr, final Stargate s)
     {
-        dataArr.put(StargateSaveVersion);
+        dataArr.put(STARGATE_SAVE_VERSION);
         dataArr.put(DataUtils.blockToBytes(s.getGateDialLeverBlock()));
         dataArr.put(s.getGateIrisLeverBlock() != null ? DataUtils.blockToBytes(s.getGateIrisLeverBlock()) : emptyBlock());
         dataArr.put(s.getGateNameBlockHolder() != null ? DataUtils.blockToBytes(s.getGateNameBlockHolder()) : emptyBlock());

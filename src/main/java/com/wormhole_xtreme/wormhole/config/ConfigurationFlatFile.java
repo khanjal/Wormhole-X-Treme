@@ -143,8 +143,8 @@ class ConfigurationFlatFile
                         {
                             continue;
                         }
-                        final ConfigKeys key_value = ConfigKeys.valueOf(key[1].trim());
-                        if (key_value == name)
+                        final ConfigKeys keyValue = ConfigKeys.valueOf(key[1].trim());
+                        if (keyValue == name)
                         {
                             //Next line
                             if ((s = bufferedReader.readLine()) != null)

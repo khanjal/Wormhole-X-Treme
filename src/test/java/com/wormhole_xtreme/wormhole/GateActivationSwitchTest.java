@@ -264,7 +264,7 @@ class GateActivationSwitchTest
 
         assertFalse(GateInteractionHandler.closeOrDeactivate(gate, player));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
+        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
         verify(gate, never()).shutdownStargate(anyBoolean());
     }
 
@@ -319,6 +319,6 @@ class GateActivationSwitchTest
 
         assertFalse(GateInteractionHandler.dialFromSign(gate, player));
 
-        verify(player).sendMessage(ConfigManager.MessageStrings.gateRemoveActive.toString());
+        verify(player).sendMessage(ConfigManager.MessageStrings.GATE_REMOVE_ACTIVE.toString());
     }
 }

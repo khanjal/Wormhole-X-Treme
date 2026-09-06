@@ -128,7 +128,7 @@ public class StargateShape
     /**
      * Instantiates a new stargate shape.
      */
-    public StargateShape(final String[] file_data)
+    public StargateShape(final String[] fileData)
     {
         setShapeSignPosition(new int[]{});
         setShapeEnterPosition(new int[]{});
@@ -137,9 +137,9 @@ public class StargateShape
         final ArrayList<Integer[]> portalPositions = new ArrayList<Integer[]>();
         final ArrayList<Integer> lightPositions = new ArrayList<Integer>();
 
-        for (int i = 0; i < file_data.length; i++)
+        for (int i = 0; i < fileData.length; i++)
         {
-            final String line = file_data[i];
+            final String line = fileData[i];
 
             if (line.contains("Name="))
             {
@@ -148,8 +148,8 @@ public class StargateShape
             }
             else if (line.equals("GateShape="))
             {
-                final int[] grid = measureLegacyGrid(file_data, i + 1);
-                parseLegacyGrid(file_data, i + 1, grid, blockPositions, portalPositions, lightPositions);
+                final int[] grid = measureLegacyGrid(fileData, i + 1);
+                parseLegacyGrid(fileData, i + 1, grid, blockPositions, portalPositions, lightPositions);
             }
             else
             {

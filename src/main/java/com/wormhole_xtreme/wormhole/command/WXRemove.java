@@ -49,17 +49,17 @@ public class WXRemove implements CommandExecutor
                         }
                         CommandUtilities.gateRemove(s, destroy, true,
                             CommandUtilities.playerCheck(sender) ? (Player) sender : null);
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole Removed: " + s.getGateName());
+                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole Removed: " + s.getGateName());
                     }
                     else
                     {
-                        sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                        sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
                     }
 
                 }
                 else
                 {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
+                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
                 }
             }
             else
@@ -74,11 +74,11 @@ public class WXRemove implements CommandExecutor
             if (CommandUtilities.playerCheck(sender))
             {
                 final Player p = (Player) sender;
-                p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An error occurred while removing the gate. Check server logs.");
+                p.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An error occurred while removing the gate. Check server logs.");
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An error occurred while removing the gate. Check server logs.");
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An error occurred while removing the gate. Check server logs.");
             }
             return true;
         }

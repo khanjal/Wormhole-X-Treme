@@ -220,15 +220,21 @@ public class Stargate
             return;
         }
         final java.util.Set<Location> lookup = new java.util.HashSet<Location>(Math.max(16, gatePortalBlocks.size() * 2));
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
         for (final Location l : gatePortalBlocks)
         {
             if (l == null)
             {
                 continue;
             }
-            final int x = l.getBlockX(), y = l.getBlockY(), z = l.getBlockZ();
+            final int x = l.getBlockX();
+            final int y = l.getBlockY();
+            final int z = l.getBlockZ();
             lookup.add(new Location(gateWorld, x, y, z));
             if (x < minX) minX = x;
             if (y < minY) minY = y;

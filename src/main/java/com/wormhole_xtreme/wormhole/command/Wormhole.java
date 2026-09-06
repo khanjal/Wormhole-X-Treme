@@ -56,20 +56,20 @@ public class Wormhole implements CommandExecutor
                 {
                     return entry.run(sender, a);
                 }
-                sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
                 return true;
             }
 
             final String valid = SubCommands.nameList(!mayConfigure);
             if (a.length == 0)
             {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid commands: " + valid);
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole admin/config command (use /wormhole <subcommand>)");
+                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid commands: " + valid);
                 return true;
             }
 
-            sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid commands: " + valid);
+            sender.sendMessage(ConfigManager.MessageStrings.REQUEST_INVALID.toString() + ": " + a[0]);
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid commands: " + valid);
             return true;
         }
         catch (final RuntimeException t)
@@ -77,11 +77,11 @@ public class Wormhole implements CommandExecutor
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole command: " + t.getMessage());
             if (CommandUtilities.playerCheck(sender))
             {
-                ((Player) sender).sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+                ((Player) sender).sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
             }
             else
             {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "An internal error occurred. Check server logs.");
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
             }
             return true;
         }

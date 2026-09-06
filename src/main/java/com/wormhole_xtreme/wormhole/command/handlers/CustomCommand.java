@@ -33,7 +33,7 @@ public class CustomCommand implements SubCommand
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
@@ -54,7 +54,7 @@ public class CustomCommand implements SubCommand
         }
         if (!StargateManager.isStargate(args[1]))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
             sendUsage(sender);
             return true;
         }
@@ -62,8 +62,8 @@ public class CustomCommand implements SubCommand
         final Stargate stargate = StargateManager.getStargate(args[1]);
         if (args.length == 2)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate is custom: " + stargate.isGateCustom());
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid boolean options are: true and false");
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Stargate is custom: " + stargate.isGateCustom());
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid boolean options are: true and false");
             return true;
         }
         setOneGateCustom(sender, stargate, args[2]);
@@ -77,7 +77,7 @@ public class CustomCommand implements SubCommand
         {
             CommandHandlerUtils.setGateCustomAll(stargate, Boolean.parseBoolean(value));
         }
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "All stargates with valid shapes have been set to custom mode: " + value);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "All stargates with valid shapes have been set to custom mode: " + value);
     }
 
     /**
@@ -93,25 +93,25 @@ public class CustomCommand implements SubCommand
     {
         if (!com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(value))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid boolean option: " + value);
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + value);
             sendUsage(sender);
             return;
         }
         if (stargate.getGateShape() == null)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate shape to base custom data off of!");
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Make sure the proper shape file is available!");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No gate shape to base custom data off of!");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Make sure the proper shape file is available!");
             return;
         }
         CommandHandlerUtils.setGateCustomAll(stargate, Boolean.parseBoolean(value));
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Stargate is custom: " + stargate.isGateCustom());
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Stargate is custom: " + stargate.isGateCustom());
     }
 
     /** The two lines that told the caller how to use this, written once. */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid boolean options are: true and false");
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid boolean options are: true and false");
     }
 
 
@@ -149,19 +149,19 @@ public class CustomCommand implements SubCommand
 
         if (affected.isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "No gates are carrying snapshotted material overrides.");
             return true;
         }
 
         if (!confirmed)
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + affected.size() + " gate(s) carry material overrides matching the built-in defaults:");
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + gateNames(affected));
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + gateNames(affected));
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Clearing them lets those gates follow their material group.");
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Run '/wormhole custom -clean confirm' to apply.");
             return true;
         }
@@ -176,7 +176,7 @@ public class CustomCommand implements SubCommand
         }
         WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO,
             "Cleared snapshotted material overrides from " + affected.size() + " gate(s): " + gateNames(affected));
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Cleared material overrides on " + affected.size() + " gate(s); they now follow their material group.");
         return true;
     }

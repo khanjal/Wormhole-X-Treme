@@ -30,22 +30,22 @@ public class StargateManager
     // A list of all blocks contained by all stargates. Makes for easy indexing when a player is trying
     // to enter a gate or if water is trying to flow out, also will contain the stone buttons used to activate.
     /** The all_gate_blocks. */
-    private final static ConcurrentHashMap<Location, Stargate> allGateBlocks = new ConcurrentHashMap<Location, Stargate>();
+    private static final ConcurrentHashMap<Location, Stargate> allGateBlocks = new ConcurrentHashMap<Location, Stargate>();
     // List of All stargates indexed by name. Useful for dialing and such
     /** The stargate_list. */
-    private final static ConcurrentHashMap<String, Stargate> stargateList = new ConcurrentHashMap<String, Stargate>();
+    private static final ConcurrentHashMap<String, Stargate> stargateList = new ConcurrentHashMap<String, Stargate>();
     // List of stargates built but not named. Indexed by the player that built it.
     /** The incomplete_stargates. */
-    private final static ConcurrentHashMap<Player, Stargate> incompleteStargates = new ConcurrentHashMap<Player, Stargate>();
+    private static final ConcurrentHashMap<Player, Stargate> incompleteStargates = new ConcurrentHashMap<Player, Stargate>();
     // List of stargates that have been activated but not yet dialed. Only used for gates without public use sign.
     /** The activated_stargates. */
-    private final static ConcurrentHashMap<Player, Stargate> activatedStargates = new ConcurrentHashMap<Player, Stargate>();
+    private static final ConcurrentHashMap<Player, Stargate> activatedStargates = new ConcurrentHashMap<Player, Stargate>();
     // List of networks indexed by their name
     /** The stargate_networks. */
-    private final static ConcurrentHashMap<String, StargateNetwork> stargateNetworks = new ConcurrentHashMap<String, StargateNetwork>();
+    private static final ConcurrentHashMap<String, StargateNetwork> stargateNetworks = new ConcurrentHashMap<String, StargateNetwork>();
     // List of players ready to build a stargate, with the shape they are trying to build.
     /** The player_builders. */
-    private final static ConcurrentHashMap<Player, StargateShape> playerBuilders = new ConcurrentHashMap<Player, StargateShape>();
+    private static final ConcurrentHashMap<Player, StargateShape> playerBuilders = new ConcurrentHashMap<Player, StargateShape>();
 
     // Gates whose portal is currently drawn, kept as a set rather than found by filtering
     // every gate. The portal is a client-side illusion that has to be redrawn whenever a

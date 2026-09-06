@@ -172,9 +172,9 @@ class WormholeXTremeBlockListener implements Listener
         }
         try
         {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "This block is part of the registered gate '" + name + "'.");
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Run '/wormhole remove " + name + "' to remove the gate first (use -all to also destroy blocks).");
         }
         catch (final RuntimeException ignore)

@@ -38,26 +38,26 @@ public class Dial implements CommandExecutor
         final Stargate start = StargateManager.removeActivatedStargate(player);
         if (start == null)
         {
-            player.sendMessage(ConfigManager.MessageStrings.gateNotActive.toString());
+            player.sendMessage(ConfigManager.MessageStrings.GATE_NOT_ACTIVE.toString());
             return;
         }
         if ( !WXPermissions.checkWXPermissions(player, start, PermissionType.DIALER))
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
         final String startnetwork = CommandUtilities.getGateNetwork(start);
         if (start.getGateName().equals(args[0]))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.targetIsSelf.toString());
+            player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_SELF.toString());
             return;
         }
         final Stargate target = StargateManager.getStargate(args[0]);
         if (target == null)
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+            player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
             return;
         }
         final String targetnetwork = CommandUtilities.getGateNetwork(target);
@@ -65,7 +65,7 @@ public class Dial implements CommandExecutor
         if ( !startnetwork.equals(targetnetwork))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString() + " Not on same network.");
+            player.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString() + " Not on same network.");
             return;
         }
         if (start.isGateIrisActive())
@@ -76,13 +76,13 @@ public class Dial implements CommandExecutor
         if (target.isGateIrisActive())
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is active; provide the IDC to unlock.");
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is active; provide the IDC to unlock.");
             return;
         }
 
         if (start.dialStargate(target, false))
         {
-            player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+            player.sendMessage(ConfigManager.MessageStrings.GATE_CONNECTED.toString());
             return;
         }
         recoverFailedDial(player, start, target);
@@ -100,7 +100,7 @@ public class Dial implements CommandExecutor
             && (args.length >= 2) && target.getGateIrisDeactivationCode().equals(args[1]))
         {
             target.toggleIrisActive(false);
-            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "IDC accepted. Iris has been deactivated.");
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "IDC accepted. Iris has been deactivated.");
         }
     }
 
@@ -117,7 +117,7 @@ public class Dial implements CommandExecutor
         if (isTargetInUse(start, target))
         {
             CommandUtilities.closeGate(start, false);
-            player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+            player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
             return;
         }
 
@@ -126,12 +126,12 @@ public class Dial implements CommandExecutor
         if (start.dialStargate(target, true))
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Dial recovery succeeded for target " + target.getGateName());
-            player.sendMessage(ConfigManager.MessageStrings.gateConnected.toString());
+            player.sendMessage(ConfigManager.MessageStrings.GATE_CONNECTED.toString());
             return;
         }
         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Dial recovery failed for target " + target.getGateName());
         CommandUtilities.closeGate(start, false);
-        player.sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+        player.sendMessage(ConfigManager.MessageStrings.TARGET_IS_ACTIVE.toString());
     }
 
     /**

@@ -99,7 +99,7 @@ public class Compass implements CommandExecutor
     private static boolean resetCompass(final Player player)
     {
         player.setCompassTarget(player.getWorld().getSpawnLocation());
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Compass back to normal -- it points at world spawn again.");
         warnIfNothingWillShowIt(player);
         return true;
@@ -114,7 +114,7 @@ public class Compass implements CommandExecutor
      */
     private static boolean refuse(final Player player)
     {
-        player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+        player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
         return true;
     }
 
@@ -133,17 +133,17 @@ public class Compass implements CommandExecutor
             if (closest != null)
             {
                 player.setCompassTarget(closest.getGatePlayerTeleportLocation());
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Compass set to wormhole: " + closest.getGateName());
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Compass set to wormhole: " + closest.getGateName());
                 warnIfNothingWillShowIt(player);
             }
             else
             {
-                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No wormholes to track!");
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No wormholes to track!");
             }
         }
         else
         {
-            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
         }
         return true;
     }

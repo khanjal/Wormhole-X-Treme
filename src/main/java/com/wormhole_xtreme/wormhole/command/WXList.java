@@ -47,7 +47,7 @@ public class WXList implements CommandExecutor
         if (CommandUtilities.playerCheck(sender)
             && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
 
@@ -58,10 +58,10 @@ public class WXList implements CommandExecutor
         final String header = filterNet != null
             ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
             : "Available gates \u00A73::";
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + header);
         if (gates.isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "No gates found.");
         }
         sendGateNames(sender, gates);
     }
