@@ -21,6 +21,9 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 public class WXList implements CommandExecutor
 {
 
+    /** Past this many characters a message is truncated by the client rather than wrapped. */
+    private static final int LINE_BUDGET = 75;
+
     /* (non-Javadoc)
      * @see org.bukkit.command.CommandExecutor#onCommand(org.bukkit.command.CommandSender, org.bukkit.command.Command, java.lang.String, java.lang.String[])
      */
@@ -33,66 +36,86 @@ public class WXList implements CommandExecutor
             public Boolean call() throws Exception
             {
                 if (CommandUtilities.playerCheck(sender)
-                    ? WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST)
-                    : true)
-                {
-                    // Optional network filter: /wx list [network]
-                    // "Public" (case-insensitive) matches gates with no assigned network.
-                    final String filterNet = (args.length > 0) ? args[0].trim() : null;
-                    final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
-
-                    final ArrayList<Stargate> allGates = StargateManager.getAllGates();
-                    final ArrayList<Stargate> gates = new ArrayList<Stargate>();
-                    for (final Stargate g : allGates)
-                    {
-                        if (filterNet == null)
-                        {
-                            gates.add(g);
-                        }
-                        else if (filterPublic && g.getGateNetwork() == null)
-                        {
-                            gates.add(g);
-                        }
-                        else if (!filterPublic && g.getGateNetwork() != null && g.getGateNetwork().getNetworkName().equalsIgnoreCase(filterNet))
-                        {
-                            gates.add(g);
-                        }
-                    }
-
-                    final String header = filterNet != null
-                        ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
-                        : "Available gates \u00A73::";
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
-                    if (gates.isEmpty())
-                    {
-                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
-                    }
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 0; i < gates.size(); i++)
-                    {
-                        sb.append("\u00A77" + gates.get(i).getGateName());
-                        if (i != gates.size() - 1)
-                        {
-                            sb.append("\u00A78, ");
-                        }
-                        if (sb.toString().length() >= 75)
-                        {
-                            sender.sendMessage(sb.toString());
-                            sb = new StringBuilder();
-                        }
-                    }
-                    if ( !sb.toString().equals(""))
-                    {
-                        sender.sendMessage(sb.toString());
-                    }
-                }
-                else
+                    && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST))
                 {
                     sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                    return true;
                 }
+
+                // Optional network filter: /wx list [network]
+                final String filterNet = (args.length > 0) ? args[0].trim() : null;
+                final ArrayList<Stargate> gates = gatesOn(filterNet);
+
+                final String header = filterNet != null
+                    ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
+                    : "Available gates \u00A73::";
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
+                if (gates.isEmpty())
+                {
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
+                }
+                sendGateNames(sender, gates);
                 return true;
             }
         });
     }
 
+    /**
+     * The gates a filter asks for, or all of them when there is no filter.
+     *
+     * <p>"Public" means the gates on no network at all rather than one of that name. Without
+     * it a gate that was never given a network would not appear on any filtered list.
+     */
+    private static ArrayList<Stargate> gatesOn(final String filterNet)
+    {
+        final ArrayList<Stargate> gates = new ArrayList<Stargate>();
+        final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
+        for (final Stargate g : StargateManager.getAllGates())
+        {
+            if (filterNet == null)
+            {
+                gates.add(g);
+            }
+            else if (filterPublic ? (g.getGateNetwork() == null) : namedNetwork(g, filterNet))
+            {
+                gates.add(g);
+            }
+        }
+        return gates;
+    }
+
+    /** Whether this gate is on the network of that name. */
+    private static boolean namedNetwork(final Stargate g, final String filterNet)
+    {
+        return (g.getGateNetwork() != null)
+            && g.getGateNetwork().getNetworkName().equalsIgnoreCase(filterNet);
+    }
+
+    /**
+     * Sends the names, several to a message, breaking before a message grows too long.
+     *
+     * <p>A single message past the client's limit is truncated rather than wrapped, so the
+     * names off the end would simply not be shown.
+     */
+    private static void sendGateNames(final CommandSender sender, final ArrayList<Stargate> gates)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < gates.size(); i++)
+        {
+            sb.append("\u00A77").append(gates.get(i).getGateName());
+            if (i != (gates.size() - 1))
+            {
+                sb.append("\u00A78, ");
+            }
+            if (sb.length() >= LINE_BUDGET)
+            {
+                sender.sendMessage(sb.toString());
+                sb = new StringBuilder();
+            }
+        }
+        if (sb.length() > 0)
+        {
+            sender.sendMessage(sb.toString());
+        }
+    }
 }
