@@ -123,13 +123,10 @@ public class WorldUtils
      */
     public static byte getLeverToggleByte(final byte leverState, final boolean isActive)
     {
-        return (byte) (isActive
-            ? (leverState & 0x8) != 0x8
-                ? leverState ^ 0x8
-                : leverState
-            : (leverState & 0x8) == 0x8
-                ? leverState ^ 0x8
-                : leverState);
+        // 0x8 is the lever's on bit. Both old branches came to the same thing:
+        // flip it when it is not already what the caller asked for.
+        final boolean currentlyOn = (leverState & 0x8) == 0x8;
+        return (currentlyOn == isActive) ? leverState : (byte) (leverState ^ 0x8);
     }
 
     /**
@@ -143,11 +140,9 @@ public class WorldUtils
     {
         switch (bf)
         {
-            case NORTH :
-            case UP :
+            case NORTH, UP:
                 return BlockFace.EAST;
-            case SOUTH :
-            case DOWN :
+            case SOUTH, DOWN:
                 return BlockFace.WEST;
             case EAST :
                 return BlockFace.SOUTH;

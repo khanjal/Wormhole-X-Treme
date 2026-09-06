@@ -79,14 +79,7 @@ public class DataUtils
      */
     public static final boolean byteToBoolean(final byte b)
     {
-        if (b >= 1)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return b >= 1;
     }
 
     /**

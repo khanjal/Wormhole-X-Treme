@@ -139,11 +139,7 @@ public class WXPermissions
     {
         switch (permissiontype)
         {
-            case SIGN:
-            case DIALER:
-            case USE:
-            case LIST:
-            case COMPASS:
+            case SIGN, DIALER, USE, LIST, COMPASS:
                 return true;
             default:
                 return false;
@@ -155,16 +151,8 @@ public class WXPermissions
     {
         switch (permissiontype)
         {
-            case DAMAGE:
-            case REMOVE:
-            case CONFIG:
-            case GO:
-            case SIGN:
-            case DIALER:
-            case USE:
-            case LIST:
-            case COMPASS:
-            case BUILD:
+            case DAMAGE, REMOVE, CONFIG, GO, SIGN,
+                 DIALER, USE, LIST, COMPASS, BUILD:
                 return true;
             default:
                 return false;
@@ -246,8 +234,7 @@ public class WXPermissions
                 return ComplexPermission.GO.checkPermission(player) && mayUseNetwork(player, networkName);
             case COMPASS:
                 return ComplexPermission.USE_COMPASS.checkPermission(player);
-            case DAMAGE:
-            case REMOVE:
+            case DAMAGE, REMOVE:
                 return ComplexPermission.CONFIG.checkPermission(player)
                     || ComplexPermission.REMOVE_ALL.checkPermission(player)
                     || ComplexPermission.REMOVE_OWN.checkPermission(player, stargate);

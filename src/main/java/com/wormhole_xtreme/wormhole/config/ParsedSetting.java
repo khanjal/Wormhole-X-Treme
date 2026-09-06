@@ -141,8 +141,7 @@ final class ParsedSetting
                 return readStyle(key, trimmed);
             case RING_DEFAULT_MATERIAL:
                 return readSlab(key, trimmed);
-            case RING_DEFAULT_LIGHT:
-            case RING_DEFAULT_FLASH:
+            case RING_DEFAULT_LIGHT, RING_DEFAULT_FLASH:
                 return readBlock(key, trimmed);
             default:
                 return accepted(raw);

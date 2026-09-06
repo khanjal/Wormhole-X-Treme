@@ -138,10 +138,7 @@ public final class MaterialUtils {
             return false;
         }
         switch (m) {
-            case ICE:
-            case PACKED_ICE:
-            case BLUE_ICE:
-            case FROSTED_ICE:
+            case ICE, PACKED_ICE, BLUE_ICE, FROSTED_ICE:
                 return true;
             default:
                 return false;
@@ -197,24 +194,12 @@ public final class MaterialUtils {
         if (isButton(m)) return true;
         if (m.name().endsWith("_PRESSURE_PLATE")) return true;
         switch (m) {
-            case REDSTONE_WIRE:
-            case REPEATER:
-            case COMPARATOR:
-            case REDSTONE_BLOCK:
-            case REDSTONE_TORCH:
-            case REDSTONE_WALL_TORCH:
-            case LEVER:
-            case DETECTOR_RAIL:
-            case ACTIVATOR_RAIL:
-            case POWERED_RAIL:
-            case TRIPWIRE_HOOK:
-            case OBSERVER:
-            case DAYLIGHT_DETECTOR:
-            case TARGET:
-            case SCULK_SENSOR:
-            case CALIBRATED_SCULK_SENSOR:
-            case LIGHTNING_ROD:
-            case TRAPPED_CHEST:
+            case REDSTONE_WIRE, REPEATER, COMPARATOR, REDSTONE_BLOCK,
+                 REDSTONE_TORCH, REDSTONE_WALL_TORCH, LEVER,
+                 DETECTOR_RAIL, ACTIVATOR_RAIL, POWERED_RAIL,
+                 TRIPWIRE_HOOK, OBSERVER, DAYLIGHT_DETECTOR, TARGET,
+                 SCULK_SENSOR, CALIBRATED_SCULK_SENSOR, LIGHTNING_ROD,
+                 TRAPPED_CHEST:
                 return true;
             default:
                 return false;

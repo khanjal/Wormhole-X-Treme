@@ -129,12 +129,9 @@ public class StargateManager
                 {
                     net.getNetworkGateList().add(gate);
                 }
-                if (gate.isGateSignPowered())
+                if (gate.isGateSignPowered() && !net.getNetworkSignGateList().contains(gate))
                 {
-                    if (!net.getNetworkSignGateList().contains(gate))
-                    {
-                        net.getNetworkSignGateList().add(gate);
-                    }
+                    net.getNetworkSignGateList().add(gate);
                 }
             }
         }

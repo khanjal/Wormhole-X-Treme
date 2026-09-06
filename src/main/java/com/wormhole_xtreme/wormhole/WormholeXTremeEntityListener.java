@@ -78,15 +78,14 @@ class WormholeXTremeEntityListener implements Listener
     @EventHandler
     public void onEntityDamage(final EntityDamageEvent event)
     {
-        if ( !event.isCancelled() && (event.getCause().equals(DamageCause.FIRE) || event.getCause().equals(DamageCause.FIRE_TICK) || event.getCause().equals(DamageCause.LAVA)))
+        if ( !event.isCancelled()
+            && (event.getCause().equals(DamageCause.FIRE)
+                || event.getCause().equals(DamageCause.FIRE_TICK)
+                || event.getCause().equals(DamageCause.LAVA))
+            && (event.getEntity() instanceof Player)
+            && handlePlayerDamageEvent(event))
         {
-            if (event.getEntity() instanceof Player)
-            {
-                if (handlePlayerDamageEvent(event))
-                {
-                    event.setCancelled(true);
-                }
-            }
+            event.setCancelled(true);
         }
     }
 
