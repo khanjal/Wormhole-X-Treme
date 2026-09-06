@@ -143,7 +143,7 @@ public class BeamCommand implements SubCommand
         final StringBuilder names = new StringBuilder();
         for (final BeamDestination destination : BeamManager.getAllPublicDestinations())
         {
-            if (names.length() > 0)
+            if (!names.isEmpty())
             {
                 names.append(", ");
             }
@@ -159,7 +159,7 @@ public class BeamCommand implements SubCommand
             }
         }
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + (names.length() == 0 ? "No public beam destinations are set." : "Beam destinations: " + names));
+            + (names.isEmpty() ? "No public beam destinations are set." : "Beam destinations: " + names));
         return true;
     }
 
@@ -538,14 +538,14 @@ public class BeamCommand implements SubCommand
         final StringBuilder names = new StringBuilder();
         for (final BeamDestination place : BeamManager.getPlaces(player.getUniqueId()))
         {
-            if (names.length() > 0)
+            if (!names.isEmpty())
             {
                 names.append(", ");
             }
             names.append(place.getName());
         }
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-            + (names.length() == 0 ? "You have no places set." : "Your places: " + names));
+            + (names.isEmpty() ? "You have no places set." : "Your places: " + names));
         return true;
     }
 

@@ -30,7 +30,7 @@ public class DialTabCompleter implements TabCompleter
             for (final Stargate g : StargateManager.getAllGates())
             {
                 final String name = g.getGateName();
-                if ((prefix.length() == 0) || name.toLowerCase(Locale.ROOT).startsWith(prefix))
+                if ((prefix.isEmpty()) || name.toLowerCase(Locale.ROOT).startsWith(prefix))
                 {
                     out.add(name);
                 }

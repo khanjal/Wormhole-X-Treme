@@ -266,7 +266,7 @@ public class ConfigurationYAML
             for (final Setting s : missing)
             {
                 final String keyName = kebabKeyName(s.getName().name());
-                if ((s.getDescription() != null) && (s.getDescription().length() > 0))
+                if ((s.getDescription() != null) && (!s.getDescription().isEmpty()))
                 {
                     for (final String wrapped : wrapComment(s.getDescription(), 80))
                     {
@@ -304,7 +304,7 @@ public class ConfigurationYAML
                     final String keyName = kebabKeyName(s.getName().name());
                     // (Legacy build-group keys removed; nothing to skip here.)
                     // Write comment description
-                    if ((s.getDescription() != null) && (s.getDescription().length() > 0))
+                    if ((s.getDescription() != null) && (!s.getDescription().isEmpty()))
                     {
                         for (final String wrapped : wrapComment(s.getDescription(), 80))
                         {
@@ -346,7 +346,7 @@ public class ConfigurationYAML
         for (final String line : lines)
         {
             final int colon = line.indexOf(':');
-            if ((colon > 0) && (line.length() > 0)
+            if ((colon > 0) && (!line.isEmpty())
                 && !Character.isWhitespace(line.charAt(0))
                 && (line.charAt(0) != '#'))
             {
@@ -446,7 +446,7 @@ public class ConfigurationYAML
                     for (final Setting s : missing)
                     {
                         final String keyName = kebabKeyName(s.getName().name());
-                        if ((s.getDescription() != null) && (s.getDescription().length() > 0))
+                        if ((s.getDescription() != null) && (!s.getDescription().isEmpty()))
                         {
                             for (final String wrapped : wrapComment(s.getDescription(), 80))
                             {
@@ -515,7 +515,7 @@ public class ConfigurationYAML
             StringBuilder line = new StringBuilder();
             for (final String w : words)
             {
-                if (line.length() == 0)
+                if (line.isEmpty())
                 {
                     line.append(w);
                 }
@@ -529,7 +529,7 @@ public class ConfigurationYAML
                     line = new StringBuilder(w);
                 }
             }
-            if (line.length() > 0)
+            if (!line.isEmpty())
             {
                 out.add(line.toString());
             }

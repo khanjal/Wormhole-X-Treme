@@ -460,7 +460,7 @@ public final class SubCommands
             {
                 continue;
             }
-            if (sb.length() > 0)
+            if (!sb.isEmpty())
             {
                 sb.append(", ");
             }
