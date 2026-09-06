@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
@@ -160,6 +162,30 @@ class DialCommandTest
         dial("there", "secret");
 
         verify(player).sendMessage(contains("IDC accepted"));
+    }
+
+    /**
+     * A target someone else is already connected to is reported, not forced.
+     *
+     * <p>The recovery path exists to clear activator mappings left behind by a gate that never
+     * finished closing. Running it against a live connection would cut that player off, so a
+     * target in use has to stop the retry before it starts.
+     */
+    @Test
+    void aTargetSomeoneElseIsUsingIsReportedRatherThanForced()
+    {
+        final Stargate here = gate("here");
+        final Stargate there = gate("there");
+        there.setGateActive(true);
+        final Player other = mock(Player.class);
+        StargateManager.addActivatedStargate(other, there);
+        StargateManager.addActivatedStargate(player, here);
+
+        dial("there");
+
+        verify(player).sendMessage(ConfigManager.MessageStrings.targetIsActive.toString());
+        assertSame(other, StargateManager.removeActivatorForStargate(there),
+            "the activator mapping should survive: forcing past a live connection would drop it");
     }
 
     /** The command only claims argument counts it can actually serve. */
