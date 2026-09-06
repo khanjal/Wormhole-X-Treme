@@ -310,6 +310,74 @@ public final class StargateHelper
     }
 
     /**
+     * Where a gate sits and which way it faces, so a shape cell can be turned into a world
+     * block.
+     *
+     * <p>The mapping was written out seventeen times in this file before this existed: the
+     * layer index steps along the facing, the column along its perpendicular right, and the
+     * row is height. Getting one of those wrong is the mistake a detection refactor is most
+     * likely to make, so it is written once.
+     */
+    private static final class GateFrame
+    {
+        private final World world;
+        private final int ox;
+        private final int oy;
+        private final int oz;
+        private final BlockFace facing;
+        private final BlockFace right;
+
+        GateFrame(final World world, final int ox, final int oy, final int oz, final BlockFace facing)
+        {
+            this.world = world;
+            this.ox = ox;
+            this.oy = oy;
+            this.oz = oz;
+            this.facing = facing;
+            this.right = WorldUtils.getPerpendicularRightDirection(facing);
+        }
+
+        /**
+         * The world block a shape cell maps to.
+         *
+         * @param layerIdx
+         *            the 1-based layer, increasing away from the player
+         * @param row
+         *            the row from the bottom
+         * @param col
+         *            the column from the right, looking at the gate face
+         * @return the block that cell names
+         */
+        Block blockAt(final int layerIdx, final int row, final int col)
+        {
+            return world.getBlockAt(
+                ox + ((layerIdx - 1) * facing.getModX()) + (col * right.getModX()),
+                oy + row,
+                oz + ((layerIdx - 1) * facing.getModZ()) + (col * right.getModZ()));
+        }
+
+        Block blockAt(final int layerIdx, final Integer[] pos)
+        {
+            return blockAt(layerIdx, pos[1].intValue(), pos[2].intValue());
+        }
+
+        Block blockAt(final int layerIdx, final int[] pos)
+        {
+            return blockAt(layerIdx, pos[1], pos[2]);
+        }
+
+        BlockFace facing()
+        {
+            return facing;
+        }
+
+        World world()
+        {
+            return world;
+        }
+    }
+
+    /**
      * Decides which material this gate's frame must be made of, by reading the first
      * frame position out of the world.
      *
@@ -322,11 +390,9 @@ public final class StargateHelper
      * @return the material every frame block must be, or null if the frame belongs to no
      *         palette this shape accepts
      */
-    private static org.bukkit.Material resolveStructureMaterial(final World world,
+    private static org.bukkit.Material resolveStructureMaterial(final GateFrame frame,
                                                                  final Stargate3DShape shape,
-                                                                 final ArrayList<StargateShapeLayer> shapeLayers,
-                                                                 final int ox, final int oy, final int oz,
-                                                                 final BlockFace facing, final BlockFace right)
+                                                                 final ArrayList<StargateShapeLayer> shapeLayers)
     {
         final org.bukkit.Material shapeMaterial = shape.getShapeStructureMaterial();
         for (int layerIdx = 1; layerIdx < shapeLayers.size(); layerIdx++)
@@ -337,10 +403,8 @@ public final class StargateHelper
                 continue;
             }
             final Integer[] pos = layer.getLayerBlockPositions().get(0);
-            final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-            final int wy = oy + pos[1];
-            final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-            final org.bukkit.Material found = world.getBlockAt(wx, wy, wz).getType();
+            final Block cell = frame.blockAt(layerIdx, pos);
+            final org.bukkit.Material found = cell.getType();
 
             if (found == shapeMaterial)
             {
@@ -470,6 +534,7 @@ public final class StargateHelper
         final int oz = holder.getZ() - (activationLayerIdx - 1) * facing.getModZ() - aCol * right.getModZ();
 
         final World world = clickedBlock.getWorld();
+        final GateFrame frame = new GateFrame(world, ox, oy, oz, facing);
         final int numLayers = shapeLayers.size();
 
         // Resolve the palette from what is actually standing in the world rather than
@@ -479,7 +544,7 @@ public final class StargateHelper
         // one .shape file per palette — costs a full extra geometry scan per palette on
         // every detection attempt, and detection already runs up to 156 times for a
         // single click on a directional block that is not a gate.
-        final org.bukkit.Material structMat = resolveStructureMaterial(world, shape, shapeLayers, ox, oy, oz, facing, right);
+        final org.bukkit.Material structMat = resolveStructureMaterial(frame, shape, shapeLayers);
         if (structMat == null)
         {
             return null; // frame is not built from any palette this shape accepts
@@ -494,6 +559,27 @@ public final class StargateHelper
         // only the frame material, exactly as before, and a [C] cell means the same as [S].
         final org.bukkit.Material chevronMat = Stargate.resolveChevronMaterial(shape, group);
 
+        if (!frameMatchesShape(frame, shapeLayers, numLayers, structMat, chevronMat))
+        {
+            return null;
+        }
+
+        final Stargate gate = populateGate(frame, clickedBlock, shape, shapeLayers, numLayers, group);
+        applyRedstoneWiring(gate, frame, shape);
+        return gate;
+    }
+
+    /**
+     * Whether the blocks standing in the world match the shape.
+     *
+     * @return true if every frame, chevron and portal cell is what the shape asks for
+     */
+    private static boolean frameMatchesShape(final GateFrame frame,
+                                            final ArrayList<StargateShapeLayer> shapeLayers,
+                                            final int numLayers,
+                                            final org.bukkit.Material structMat,
+                                            final org.bukkit.Material chevronMat)
+    {
         // Verify every structure (S) block has the expected material,
         // AND every portal (P) block is NOT the structure material.
         // The second check prevents false positives inside solid obsidian rooms
@@ -509,10 +595,8 @@ public final class StargateHelper
             final java.util.Set<Long> litCells = lightCells(layer);
             for (final Integer[] pos : layer.getLayerBlockPositions())
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                final int wy = oy + pos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                final org.bukkit.Material found = world.getBlockAt(wx, wy, wz).getType();
+                final Block cell = frame.blockAt(layerIdx, pos);
+                final org.bukkit.Material found = cell.getType();
                 if (found == structMat)
                 {
                     continue;
@@ -520,48 +604,55 @@ public final class StargateHelper
                 // An [S:L#n] cell is a chevron, and a shape with a chevron material lets one
                 // be built from that instead, so the gate shows where its chevrons are before
                 // any of them light. Both materials are accepted rather than only the chevron
-                // one: every gate standing in every world today has frame material in those
+                // one: every gate standing in every frame.world() today has frame material in those
                 // positions, and re-detection has to go on finding them.
                 if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
                 {
                     continue;
                 }
-                return null; // structure block mismatch
+                return false; // structure block mismatch
             }
             for (final Integer[] pos : layer.getLayerChevronPositions())
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                final int wy = oy + pos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
+                final Block cell = frame.blockAt(layerIdx, pos);
                 // A [C] cell is the strict form: the shape asked for a distinct block there,
                 // so the frame material will not do. Unless the shape named no chevron
                 // material at all, in which case [C] falls back to meaning [S] rather than
                 // making the shape impossible to build.
-                if (world.getBlockAt(wx, wy, wz).getType() != ((chevronMat != null) ? chevronMat : structMat))
+                if (cell.getType() != ((chevronMat != null) ? chevronMat : structMat))
                 {
-                    return null; // chevron block mismatch
+                    return false; // chevron block mismatch
                 }
             }
             for (final Integer[] pos : layer.getLayerPortalPositions())
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                final int wy = oy + pos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                if (world.getBlockAt(wx, wy, wz).getType() == structMat)
+                final Block cell = frame.blockAt(layerIdx, pos);
+                if (cell.getType() == structMat)
                 {
-                    return null; // portal interior is solid — not a real gate
+                    return false; // portal interior is solid — not a real gate
                 }
             }
         }
 
+        return true;
+    }
+
+    /** Builds the gate and records every block the shape names. */
+    private static Stargate populateGate(final GateFrame frame,
+                                         final Block clickedBlock,
+                                         final Stargate3DShape shape,
+                                         final ArrayList<StargateShapeLayer> shapeLayers,
+                                         final int numLayers,
+                                         final MaterialGroup group)
+    {
         // All structure blocks match.  Build and populate the Stargate object.
         final Stargate gate = new Stargate();
         // Record which palette matched so the gate's portal, iris and light materials
         // come from it rather than from the shape's own defaults.
         gate.setGateMaterialGroup(group);
         gate.setGateShape(shape);
-        gate.setGateFacing(facing);
-        gate.setGateWorld(world);
+        gate.setGateFacing(frame.facing());
+        gate.setGateWorld(frame.world());
         gate.setGateDialLeverBlock(clickedBlock);
 
         boolean hasDialSign = false;
@@ -577,10 +668,8 @@ public final class StargateHelper
             // Structure blocks
             for (final Integer[] pos : layer.getLayerBlockPositions())
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                final int wy = oy + pos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                gate.getGateStructureBlocks().add(world.getBlockAt(wx, wy, wz).getLocation());
+                final Block cell = frame.blockAt(layerIdx, pos);
+                gate.getGateStructureBlocks().add(cell.getLocation());
             }
 
             // Chevron blocks are frame for every purpose except which material they have to
@@ -588,19 +677,15 @@ public final class StargateHelper
             // removed. Only the verification above cares about the difference.
             for (final Integer[] pos : layer.getLayerChevronPositions())
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                final int wy = oy + pos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                gate.getGateStructureBlocks().add(world.getBlockAt(wx, wy, wz).getLocation());
+                final Block cell = frame.blockAt(layerIdx, pos);
+                gate.getGateStructureBlocks().add(cell.getLocation());
             }
 
             // Portal blocks
             for (final Integer[] pos : layer.getLayerPortalPositions())
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                final int wy = oy + pos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                gate.getGatePortalBlocks().add(world.getBlockAt(wx, wy, wz).getLocation());
+                final Block cell = frame.blockAt(layerIdx, pos);
+                gate.getGatePortalBlocks().add(cell.getLocation());
             }
 
             // Light blocks — shape uses 1-based wave indices; runtime lighting expects
@@ -626,10 +711,8 @@ public final class StargateHelper
                     }
                     for (final Integer[] pos : wavePositions)
                     {
-                        final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                        final int wy = oy + pos[1];
-                        final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                        gate.getGateLightBlocks().get(gateWaveIdx).add(world.getBlockAt(wx, wy, wz).getLocation());
+                        final Block cell = frame.blockAt(layerIdx, pos);
+                        gate.getGateLightBlocks().get(gateWaveIdx).add(cell.getLocation());
                     }
                 }
             }
@@ -652,10 +735,8 @@ public final class StargateHelper
                     }
                     for (final Integer[] pos : wavePositions)
                     {
-                        final int wx = ox + (layerIdx - 1) * facing.getModX() + pos[2] * right.getModX();
-                        final int wy = oy + pos[1];
-                        final int wz = oz + (layerIdx - 1) * facing.getModZ() + pos[2] * right.getModZ();
-                        gate.getGateWooshBlocks().get(gateWaveIdx).add(world.getBlockAt(wx, wy, wz).getLocation());
+                        final Block cell = frame.blockAt(layerIdx, pos);
+                        gate.getGateWooshBlocks().get(gateWaveIdx).add(cell.getLocation());
                     }
                 }
             }
@@ -664,28 +745,24 @@ public final class StargateHelper
             final int[] nPos = layer.getLayerNameSignPosition();
             if (nPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + nPos[2] * right.getModX();
-                final int wy = oy + nPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + nPos[2] * right.getModZ();
-                gate.setGateNameBlockHolder(world.getBlockAt(wx, wy, wz));
+                final Block cell = frame.blockAt(layerIdx, nPos);
+                gate.setGateNameBlockHolder(cell);
             }
 
             // Player teleport exit (EP)
             final int[] epPos = layer.getLayerPlayerExitPosition();
             if (epPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + epPos[2] * right.getModX();
-                final int wy = oy + epPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + epPos[2] * right.getModZ();
+                final Block cell = frame.blockAt(layerIdx, epPos);
                 // EP is the block the player's feet land on. Add 1.0 Y so feet are on
-                // top of it, offset one block in the -facing direction to place the
+                // top of it, offset one block in the -frame.facing() direction to place the
                 // player just outside the portal water, and face them in the gate's
-                // facing direction with pitch zeroed.
-                // Move one block in the gate's facing direction (outwards)
+                // frame.facing() direction with pitch zeroed.
+                // Move one block in the gate's frame.facing() direction (outwards)
                 // so the player appears just outside the portal rather than
-                // being placed inside it. Use facing's mod components directly.
-                final Location tpLoc = new Location(world, wx + 0.5 + facing.getModX(), wy + 1.0, wz + 0.5 + facing.getModZ());
-                try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(facing)); } catch (final Throwable ignore) { /* best effort */ }
+                // being placed inside it. Use frame.facing()'s mod components directly.
+                final Location tpLoc = new Location(frame.world(), cell.getX() + 0.5 + frame.facing().getModX(), cell.getY() + 1.0, cell.getZ() + 0.5 + frame.facing().getModZ());
+                try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final Throwable ignore) { /* best effort */ }
                 try { tpLoc.setPitch(0f); } catch (final Throwable ignore) { /* best effort */ }
                 gate.setGatePlayerTeleportLocation(tpLoc);
             }
@@ -694,21 +771,17 @@ public final class StargateHelper
             final int[] emPos = layer.getLayerMinecartExitPosition();
             if (emPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + emPos[2] * right.getModX();
-                final int wy = oy + emPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + emPos[2] * right.getModZ();
+                final Block cell = frame.blockAt(layerIdx, emPos);
                 // Use a half-block Y offset so minecarts spawn above the ground and do not sink into blocks.
-                gate.setGateMinecartTeleportLocation(new Location(world, wx + 0.5, wy + 0.5, wz + 0.5));
+                gate.setGateMinecartTeleportLocation(new Location(frame.world(), cell.getX() + 0.5, cell.getY() + 0.5, cell.getZ() + 0.5));
             }
 
-            // Dial-sign holder (D) — the sign sits on the gate-facing face of this block.
+            // Dial-sign holder (D) — the sign sits on the gate-frame.facing() face of this block.
             final int[] dPos = layer.getLayerDialSignPosition();
             if (dPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + dPos[2] * right.getModX();
-                final int wy = oy + dPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + dPos[2] * right.getModZ();
-                final Block signBlock = world.getBlockAt(wx, wy, wz).getRelative(facing);
+                final Block cell = frame.blockAt(layerIdx, dPos);
+                final Block signBlock = cell.getRelative(frame.facing());
                 if (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isWallSign(signBlock.getType()))
                 {
                     try
@@ -737,25 +810,21 @@ public final class StargateHelper
                 }
             }
 
-            // Iris activation holder (IA) — iris lever is on the gate-facing face.
+            // Iris activation holder (IA) — iris lever is on the gate-frame.facing() face.
             final int[] iaPos = layer.getLayerIrisActivationPosition();
             if (iaPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + iaPos[2] * right.getModX();
-                final int wy = oy + iaPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + iaPos[2] * right.getModZ();
-                gate.setGateIrisLeverBlock(world.getBlockAt(wx, wy, wz).getRelative(facing));
+                final Block cell = frame.blockAt(layerIdx, iaPos);
+                gate.setGateIrisLeverBlock(cell.getRelative(frame.facing()));
             }
 
             // Redstone dial activation (RD)
             final int[] rdPos = layer.getLayerRedstoneDialActivationPosition();
             if (rdPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + rdPos[2] * right.getModX();
-                final int wy = oy + rdPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + rdPos[2] * right.getModZ();
+                final Block cell = frame.blockAt(layerIdx, rdPos);
                 gate.setGateRedstoneDialActivationBlock(
-                    world.getBlockAt(wx, redstoneComponentY(layer, rdPos, wy), wz));
+                    frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, rdPos, cell.getY()), cell.getZ()));
                 gate.setGateRedstonePowered(true);
             }
 
@@ -763,28 +832,34 @@ public final class StargateHelper
             final int[] rsPos = layer.getLayerRedstoneSignActivationPosition();
             if (rsPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + rsPos[2] * right.getModX();
-                final int wy = oy + rsPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + rsPos[2] * right.getModZ();
+                final Block cell = frame.blockAt(layerIdx, rsPos);
                 gate.setGateRedstoneSignActivationBlock(
-                    world.getBlockAt(wx, redstoneComponentY(layer, rsPos, wy), wz));
+                    frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, rsPos, cell.getY()), cell.getZ()));
             }
 
             // Redstone gate-activated output (RA)
             final int[] raPos = layer.getLayerRedstoneGateActivatedPosition();
             if (raPos.length >= 3)
             {
-                final int wx = ox + (layerIdx - 1) * facing.getModX() + raPos[2] * right.getModX();
-                final int wy = oy + raPos[1];
-                final int wz = oz + (layerIdx - 1) * facing.getModZ() + raPos[2] * right.getModZ();
+                final Block cell = frame.blockAt(layerIdx, raPos);
                 // Matters most here: the gate-activated output only fires when this block
                 // is a lever, so getting the height wrong means the lever a player placed
                 // is never found or toggled.
                 gate.setGateRedstoneGateActivatedBlock(
-                    world.getBlockAt(wx, redstoneComponentY(layer, raPos, wy), wz));
+                    frame.world().getBlockAt(cell.getX(), redstoneComponentY(layer, raPos, cell.getY()), cell.getZ()));
             }
         }
 
+
+        gate.setGateSignPowered(hasDialSign);
+        return gate;
+    }
+
+    /** Settles where the redstone markers go, once the gate itself is known. */
+    private static void applyRedstoneWiring(final Stargate gate,
+                                           final GateFrame frame,
+                                           final Stargate3DShape shape)
+    {
         // Prevent RD/RS from being side-by-side: if both assigned and adjacent,
         // prefer the dial activation (RD) and drop the sign-cycler (RS).
         if ((gate.getGateRedstoneDialActivationBlock() != null)
@@ -808,9 +883,9 @@ public final class StargateHelper
                 final Block signBlock = gate.getGateDialSignBlock();
                 final Block nameHolder = gate.getGateNameBlockHolder();
 
-                final Block candidateFront = ra.getRelative(facing);
+                final Block candidateFront = ra.getRelative(frame.facing());
                 final Block candidateFrontUp = candidateFront.getRelative(BlockFace.UP);
-                final Block candidateRight = candidateFront.getRelative(WorldUtils.getPerpendicularRightDirection(facing));
+                final Block candidateRight = candidateFront.getRelative(WorldUtils.getPerpendicularRightDirection(frame.facing()));
                 final Block candidateRightUp = candidateRight.getRelative(BlockFace.UP);
                 final Block candidateAboveRa = ra.getRelative(BlockFace.UP);
 
@@ -887,16 +962,14 @@ public final class StargateHelper
                 final Block below = dialHolder.getRelative(BlockFace.DOWN);
                 gate.getGateRedstoneDialMonitorBlocks().add(below);
                 // also monitor the two blocks in front of that below-block
-                final Block front = below.getRelative(facing);
+                final Block front = below.getRelative(frame.facing());
                 gate.getGateRedstoneDialMonitorBlocks().add(front);
-                final Block rightBlock = front.getRelative(WorldUtils.getPerpendicularRightDirection(facing));
+                final Block rightBlock = front.getRelative(WorldUtils.getPerpendicularRightDirection(frame.facing()));
                 gate.getGateRedstoneDialMonitorBlocks().add(rightBlock);
             }
         }
         catch (final Throwable ignore) { /* monitor blocks are optional */ }
 
-        gate.setGateSignPowered(hasDialSign);
-        return gate;
     }
 
 }
