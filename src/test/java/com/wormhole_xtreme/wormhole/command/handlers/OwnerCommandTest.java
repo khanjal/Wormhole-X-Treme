@@ -8,17 +8,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -179,5 +182,83 @@ class OwnerCommandTest
         when(op.getName()).thenReturn(name);
         when(op.hasPlayedBefore()).thenReturn(hasPlayed);
         return op;
+    }
+
+    /**
+     * Handing a gate to somebody online stores their UUID, not their name.
+     *
+     * <p>Ownership is by UUID so it survives the owner renaming themselves. The display name
+     * is kept alongside only so the sign has something to show.
+     */
+    @Test
+    void handingAGateToAnOnlinePlayerStoresTheirUuid()
+    {
+        final Stargate s = gate("alpha", "Ada");
+        final UUID id = UUID.fromString("00000000-0000-0000-0000-00000000beef");
+        final Player target = mock(Player.class);
+        when(target.getUniqueId()).thenReturn(id);
+        when(target.getName()).thenReturn("Grace");
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getPlayerExact("Grace")).thenReturn(target);
+
+            assertTrue(run("owner", "alpha", "Grace"));
+        }
+
+        assertEquals(id.toString(), s.getGateOwner(), "the UUID is what is stored");
+        assertEquals("Grace", s.getGateOwnerName());
+        verify(sender).sendMessage(contains("Now owned by: Grace"));
+    }
+
+    /**
+     * A player the server has seen before is resolved even while they are offline.
+     *
+     * <p>This is what the roster sweep is for: reassigning a gate to somebody not logged in
+     * right now should still record UUID ownership rather than a bare name.
+     */
+    @Test
+    void aKnownButOfflinePlayerIsStillResolvedToTheirUuid()
+    {
+        final Stargate s = gate("alpha", "Ada");
+        final UUID id = UUID.fromString("00000000-0000-0000-0000-0000000000aa");
+        final OfflinePlayer known = mock(OfflinePlayer.class);
+        when(known.getName()).thenReturn("Grace");
+        when(known.getUniqueId()).thenReturn(id);
+        when(known.hasPlayedBefore()).thenReturn(true);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getPlayerExact("grace")).thenReturn(null);
+            bukkit.when(Bukkit::getOfflinePlayers).thenReturn(new OfflinePlayer[] {known});
+
+            assertTrue(run("owner", "alpha", "grace"));
+        }
+
+        assertEquals(id.toString(), s.getGateOwner(), "matched without regard to case");
+        assertEquals("Grace", s.getGateOwnerName(), "the server's spelling is what is stored");
+    }
+
+    /**
+     * A name the server has never seen is stored as written.
+     *
+     * <p>There is no UUID to be had, and refusing would stop an admin naming an owner before
+     * that player first joins.
+     */
+    @Test
+    void aNameTheServerHasNeverSeenIsStoredAsWritten()
+    {
+        final Stargate s = gate("alpha", "Ada");
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getPlayerExact("Stranger")).thenReturn(null);
+            bukkit.when(Bukkit::getOfflinePlayers).thenReturn(new OfflinePlayer[0]);
+
+            assertTrue(run("owner", "alpha", "Stranger"));
+        }
+
+        assertEquals("Stranger", s.getGateOwner());
+        assertEquals("Stranger", s.getGateOwnerName());
     }
 }
