@@ -55,7 +55,7 @@ final class GateInteractionHandler
      * @return true, if successful
      */
     private static boolean buttonLeverHit(final Player player, final Block clickedBlock,
-                                          BlockFace direction)
+                                          final BlockFace direction)
     {
         if (handlePendingCompletion(player, clickedBlock, direction))
         {
@@ -67,130 +67,174 @@ final class GateInteractionHandler
             return true;
         }
 
-
         final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
-
         if (stargate != null)
         {
-            // Disambiguate exact vs adjacent lever clicks to avoid mis-classifying the iris lever
-            final boolean dialSame = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock);
-            final boolean irisSame = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock);
-            final boolean dialAdj = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock);
-            final boolean irisAdj = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock);
-
-            // Gate owners and ops always bypass permission checks.
-            final boolean isOwner = player.isOp() || stargate.isOwner(player);
-            final boolean permSign = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN);
-            final boolean permDialer = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER);
-
-            // Priority: exact same-block match wins. For adjacency, prefer dial when both levers are adjacent
-            // (e.g. iris lever right next to the dial lever — this is the common Standard gate layout).
-            if (dialSame && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
-            {
-                handleGateActivationSwitch(stargate, player);
-            }
-            else if (irisSame && !dialSame && permDialer)
-            {
-                stargate.toggleIrisActive(true);
-            }
-            else if (dialAdj && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
-            {
-                // Both adjacent (overlapping layout) — treat as dial activation.
-                handleGateActivationSwitch(stargate, player);
-            }
-            else if (irisAdj && !dialAdj && permDialer)
-            {
-                stargate.toggleIrisActive(true);
-            }
-            else if (dialSame || irisSame || dialAdj || irisAdj)
-            {
-                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            }
+            handleLeverClick(player, clickedBlock, stargate);
             return true;
+        }
+        return handleNewGateAttempt(player, clickedBlock, direction);
+    }
+
+    /**
+     * Works out which of a gate's two levers a click was aimed at, and acts on it.
+     *
+     * <p>The dial lever and the iris lever sit one block apart on the Standard layout, so
+     * an exact match is taken before adjacency, and when the click is next to both the dial
+     * wins. Otherwise reaching for the dial on a gate with an iris would sometimes shut the
+     * iris instead.
+     */
+    private static void handleLeverClick(final Player player, final Block clickedBlock,
+                                         final Stargate stargate)
+    {
+        // isSameBlock and isAdjacent both answer false for a null lever, so a gate without
+        // one needs no guard of its own here.
+        final Block dial = stargate.getGateDialLeverBlock();
+        final Block iris = stargate.getGateIrisLeverBlock();
+        final boolean dialSame = WorldUtils.isSameBlock(dial, clickedBlock);
+        final boolean irisSame = WorldUtils.isSameBlock(iris, clickedBlock);
+        final boolean dialAdj = WorldUtils.isAdjacent(dial, clickedBlock);
+        final boolean irisAdj = WorldUtils.isAdjacent(iris, clickedBlock);
+        if (!dialSame && !irisSame && !dialAdj && !irisAdj)
+        {
+            return;
+        }
+
+        // Gate owners and ops bypass permission checks. A sign-powered gate is worked
+        // through its sign, so that is the node its dial lever asks about.
+        final boolean isOwner = player.isOp() || stargate.isOwner(player);
+        final boolean mayDial = isOwner || WXPermissions.checkWXPermissions(player, stargate,
+            stargate.isGateSignPowered() ? PermissionType.SIGN : PermissionType.DIALER);
+        final boolean mayIris = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER);
+
+        // Exact match first, adjacency second, and the dial ahead of the iris within each.
+        // The two levers sit one block apart on the Standard layout, so a click near one is
+        // usually near the other; preferring the iris would shut it when somebody reached
+        // for the dial.
+        if (dialSame && mayDial)
+        {
+            handleGateActivationSwitch(stargate, player);
+        }
+        else if (irisSame && !dialSame && mayIris)
+        {
+            stargate.toggleIrisActive(true);
+        }
+        else if (dialAdj && mayDial)
+        {
+            handleGateActivationSwitch(stargate, player);
+        }
+        else if (irisAdj && !dialAdj && mayIris)
+        {
+            stargate.toggleIrisActive(true);
         }
         else
         {
-            if (direction == null)
-            {
-                if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
-                {
-                    direction = clicked.getFacing();
-                }
-
-                if (direction == null)
-                {
-                    return false;
-                }
-            }
-            // Check to see if player has already run the "build" command.
-            final StargateShape shape = StargateManager.getPlayerBuilderShape(player);
-
-            Stargate newGate = null;
-            if (shape != null)
-            {
-                newGate = StargateHelper.checkStargate(clickedBlock, direction, shape);
-            }
-            else
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
-                newGate = StargateHelper.checkStargate(clickedBlock, direction);
-            }
-
-            if (newGate != null)
-            {
-                if (WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
-                {
-                    if (newGate.isGateSignPowered())
-                    {
-                        // Sign-powered gates follow the same /wormhole complete flow as regular gates,
-                        // so the player can specify a network and IDC code.
-                        final String signName = newGate.getGateName();
-                        StargateManager.addIncompleteStargate(player, newGate);
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Sign Nav Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
-                        if (signName.isEmpty())
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
-                        }
-                        else
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B" + signName + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
-                        }
-                    }
-                    else
-                    {
-                        // Print to player that it was successful!
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
-                        // Add gate to unnamed gates.
-                        StargateManager.addIncompleteStargate(player, newGate);
-                    }
-                    return true;
-                }
-                else
-                {
-                    if (newGate.isGateSignPowered())
-                    {
-                        newGate.resetTeleportSign();
-                    }
-                    StargateManager.removeIncompleteStargate(player);
-                    player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    return true;
-                }
-            }
-            else
-            {
-                // Fallback: the player may have clicked beside the DHD rather than on
-                // it, so probe the surrounding blocks. See findGateFromNearbyDial for why
-                // this is filtered rather than brute-forced.
-                final boolean foundNearby = findGateFromNearbyDial(clickedBlock, player);
-
-                if (!foundNearby)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
-                }
-            }
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
         }
-        return false;
+    }
+
+    /**
+     * Treats the click as somebody finishing a gate they have just built.
+     *
+     * @return true if the click was on a valid gate design
+     */
+    private static boolean handleNewGateAttempt(final Player player, final Block clickedBlock,
+                                                final BlockFace direction)
+    {
+        final BlockFace facing = resolveClickDirection(clickedBlock, direction);
+        if (facing == null)
+        {
+            return false;
+        }
+
+        final Stargate newGate = detectGateDesign(player, clickedBlock, facing);
+        if (newGate == null)
+        {
+            // The player may have clicked beside the DHD rather than on it, so probe the
+            // surrounding blocks. See findGateFromNearbyDial for why this is filtered
+            // rather than brute-forced.
+            if (!findGateFromNearbyDial(clickedBlock, player))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
+            }
+            return false;
+        }
+
+        if (!WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
+        {
+            if (newGate.isGateSignPowered())
+            {
+                newGate.resetTeleportSign();
+            }
+            StargateManager.removeIncompleteStargate(player);
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return true;
+        }
+
+        StargateManager.addIncompleteStargate(player, newGate);
+        announceValidDesign(player, newGate);
+        return true;
+    }
+
+    /**
+     * The direction the click was aimed along.
+     *
+     * <p>The caller supplies one for a click it already understands. Otherwise the block's
+     * own orientation is used, and a block that has none cannot be the front of a gate.
+     *
+     * @return the direction, or null if there is none to be had
+     */
+    private static BlockFace resolveClickDirection(final Block clickedBlock, final BlockFace direction)
+    {
+        if (direction != null)
+        {
+            return direction;
+        }
+        if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
+        {
+            return clicked.getFacing();
+        }
+        return null;
+    }
+
+    /**
+     * Looks for a finished gate around the clicked block.
+     *
+     * <p>A player part-way through {@code /wormhole build} has named a shape, and only that
+     * shape is tried. Everyone else gets every shipped shape tried in turn.
+     */
+    private static Stargate detectGateDesign(final Player player, final Block clickedBlock,
+        final BlockFace facing)
+    {
+        final StargateShape shape = StargateManager.getPlayerBuilderShape(player);
+        if (shape != null)
+        {
+            return StargateHelper.checkStargate(clickedBlock, facing, shape);
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
+        return StargateHelper.checkStargate(clickedBlock, facing);
+    }
+
+    /**
+     * Tells the player their design is good and what to type next.
+     *
+     * <p>A sign-powered gate goes through the same {@code /wormhole complete} flow, so the
+     * player can still give it a network and an IDC; the only difference is that its sign may
+     * already carry the name, in which case the suggested command is filled in.
+     */
+    private static void announceValidDesign(final Player player, final Stargate newGate)
+    {
+        final String header = ConfigManager.MessageStrings.normalHeader.toString();
+        if (!newGate.isGateSignPowered())
+        {
+            player.sendMessage(header + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
+            player.sendMessage(header + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
+            return;
+        }
+        player.sendMessage(header + "Valid Sign Nav Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
+        final String signName = newGate.getGateName();
+        final String name = signName.isEmpty() ? "<name>" : signName;
+        player.sendMessage(header + "Type \'\u00A7F/wormhole complete \u00A7B" + name + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
     }
 
     /**
