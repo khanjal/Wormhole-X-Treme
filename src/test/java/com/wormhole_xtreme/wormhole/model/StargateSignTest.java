@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -35,6 +37,8 @@ class StargateSignTest
     // ------------------------------------------------------------------
     // Helper: configure signPlaceBlock to handle setType / getBlockData / getState.
     // ------------------------------------------------------------------
+    private SignSide frontSide;
+
     private Directional stubSignBlock()
     {
         final Directional signData = mock(Directional.class);
@@ -46,6 +50,7 @@ class StargateSignTest
         when(signPlaceBlock.getState()).thenReturn(signState);
         when(signPlaceBlock.getLocation()).thenReturn(loc);
         when(signState.getSide(Side.FRONT)).thenReturn(signSide);
+        frontSide = signSide;
 
         return signData;
     }
@@ -66,6 +71,61 @@ class StargateSignTest
 
         verify(signPlaceBlock).setType(Material.OAK_WALL_SIGN, false);
         verify(signData).setFacing(BlockFace.NORTH);
+    }
+
+    /** The top line is the gate's own name, wrapped in dashes. */
+    @Test
+    void theTopLineIsTheGateNameInDashes()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        gate.setGateName("Alpha");
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        verify(frontSide).setLine(eq(0), contains("-Alpha-"));
+    }
+
+    /**
+     * A long owner name is cut to thirteen characters.
+     *
+     * <p>Colour codes do not count toward a sign's visible width, so the truncation is on the
+     * text alone. Worth pinning because the limit is a bare number in the middle of the line
+     * that builds it, and nothing else would notice if it moved.
+     */
+    @Test
+    void aLongOwnerNameIsCutToThirteenCharacters()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        gate.setGateName("Alpha");
+        gate.setGateOwner("AVeryLongOwnerNameIndeed");
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        // Thirteen characters exactly: the line carries the 13-character prefix and not the
+        // 14-character one, so widening or narrowing the limit fails this either way.
+        verify(frontSide).setLine(eq(2), contains("O:AVeryLongOwne"));
+        verify(frontSide, never()).setLine(eq(2), contains("AVeryLongOwner"));
+    }
+
+    /** A gate on no network gets no network line, rather than an empty one. */
+    @Test
+    void aGateWithNoNetworkGetsNoNetworkLine()
+    {
+        gate.setGateFacing(BlockFace.NORTH);
+        gate.setGateNameBlockHolder(nameHolder);
+        gate.setGateName("Alpha");
+        when(nameHolder.getRelative(BlockFace.NORTH)).thenReturn(signPlaceBlock);
+        stubSignBlock();
+
+        gate.setupGateSign(true);
+
+        verify(frontSide, never()).setLine(eq(1), any());
     }
 
     // ------------------------------------------------------------------
