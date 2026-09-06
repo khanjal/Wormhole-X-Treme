@@ -348,6 +348,9 @@ class GateDetectionTest
 
         final Location arrival = found.getGatePlayerTeleportLocation();
         assertNotNull(arrival, "a Standard gate names an EP cell");
+        // The pitch is set unguarded on a Location built two lines earlier. It used to sit in
+        // a try/catch, which could only ever have hidden a bug in setting it.
+        assertEquals(0f, arrival.getPitch(), 0.001f, "a traveller arrives looking level");
 
         // Find the EP cell the shape declared and check the arrival sits one step out from it.
         final ArrayList<StargateShapeLayer> layers = s.getShapeLayers();
