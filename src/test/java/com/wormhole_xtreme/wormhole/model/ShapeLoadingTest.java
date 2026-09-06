@@ -131,24 +131,25 @@ class ShapeLoadingTest
     }
 
     /**
-     * A shape file that cannot be parsed takes every other shape down with it. This is a bug.
+     * A shape file that cannot be parsed costs only itself.
      *
-     * <p>The per-file catch handles IOException only, and a malformed grid throws
-     * IllegalArgumentException instead, which leaves the loop and the method. One operator's
-     * typo in one custom shape and the server has no gate shapes at all -- not even the
-     * shipped ones, which are read in the same pass.
-     *
-     * <p>Pinned as it stands so the fix that follows shows the change.
+     * <p>It used not to. The per-file catch handled IOException, and a malformed grid throws
+     * IllegalArgumentException instead, which left the loop and the method: one operator's
+     * typo in one custom shape and the server loaded no gate shapes at all, the shipped ones
+     * included, because they are read in the same pass.
      */
     @Test
-    void aMalformedShapeCurrentlyTakesDownTheWholeLoad() throws Exception
+    void aMalformedShapeCostsOnlyItself() throws Exception
     {
         shapesDir().mkdirs();
         Files.write(new File(shapesDir(), "Malformed.shape").toPath(),
             "Name=Malformed\nVersion=2\nGateShape=\n\n".getBytes(StandardCharsets.UTF_8));
 
-        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
-            () -> StargateShapeRegistry.loadShapes(shapesDir()),
-            "one bad file should not be able to do this, and currently is");
+        StargateShapeRegistry.loadShapes(shapesDir());
+
+        assertNotNull(StargateShapeRegistry.getStargateShape("Standard"),
+            "the shipped shapes load around the malformed one");
+        assertFalse(StargateShapeRegistry.getStargateShapes().containsKey("Malformed"),
+            "and the malformed one is simply absent");
     }
 }
