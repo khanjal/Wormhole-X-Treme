@@ -101,20 +101,17 @@ class PendingCompletionDetectionTest
     }
 
     /**
-     * A gate is detected by sweeping the facings, and a failure while completing it is
-     * currently invisible to the player. This is a bug.
+     * A failure while completing the detected gate is reported, not swallowed.
      *
-     * <p>The clicked block does not say which way it faces, so detection walks the six
-     * facings. That part works. But if completing the detected gate throws, the outer catch
-     * logs to the console and returns, and the player who clicked is told nothing at all --
-     * no success, no failure, and the completion still pending. They click again and get the
-     * same silence.
+     * <p>It used not to be. The outer catch logged to the console and returned, so the player
+     * who clicked the DHD was told nothing at all -- no success, no failure -- and the
+     * completion stayed pending, so the next click repeated the silence.
      *
-     * <p>The comment on that catch says failing silently would leave them staring at an
-     * unbuilt gate. That is what it does. Pinned as it stands so the fix shows the change.
+     * <p>The comment on that catch always said failing silently would leave them staring at
+     * an unbuilt gate, which is what it did.
      */
     @Test
-    void aFailureWhileCompletingIsCurrentlyInvisibleToThePlayer()
+    void aFailureWhileCompletingIsReportedToThePlayer()
     {
         Complete.addPendingCompletion(player, "Detected", "", "");
         final Stargate found = detectedGate();
@@ -129,9 +126,9 @@ class PendingCompletionDetectionTest
             click();
         }
 
-        verify(player, never()).sendMessage(anyString());
-        assertNotNull(Complete.getPendingCompletion(player),
-            "and the completion is left pending, so the next click repeats the silence");
+        verify(player).sendMessage(contains("Completing the gate failed"));
+        assertNull(Complete.getPendingCompletion(player),
+            "and the completion is spent, so the player is not left clicking at nothing");
     }
 
     /**
@@ -182,7 +179,7 @@ class PendingCompletionDetectionTest
         }
 
         // Reaching the completion at all is the point: the sweep did not stop at the throw.
-        assertNotNull(Complete.getPendingCompletion(player));
         verify(player, never()).sendMessage(contains("No gate detected"));
+        assertNull(Complete.getPendingCompletion(player));
     }
 }

@@ -246,121 +246,152 @@ final class GateInteractionHandler
      *
      * @return true if the click was spent on a pending completion
      */
+    /** The facings tried when nothing says which way the gate is built. */
+    private static final BlockFace[] ALL_FACINGS = new BlockFace[] {
+        BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
+        BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
+
     private static boolean handlePendingCompletion(final Player player, final Block clickedBlock,
-                                                   BlockFace direction)
+                                                   final BlockFace direction)
     {
+        final String[] pending = com.wormhole_xtreme.wormhole.command.Complete.getPendingCompletion(player);
+        if (pending == null)
+        {
+            return false;
+        }
         try
         {
-            final String[] pending = com.wormhole_xtreme.wormhole.command.Complete.getPendingCompletion(player);
-            if (pending != null)
+            com.wormhole_xtreme.wormhole.model.Stargate found = detectAnyFacing(clickedBlock, resolveFacing(clickedBlock, direction));
+            if (found == null)
             {
-                String name = pending[0];
-                String idc = pending[1];
-                String network = pending[2];
-
-                // Determine facing if not provided
-                if (direction == null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
-                {
-                    direction = clicked.getFacing();
-                }
-
-                com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "+/wormhole complete interactive: attempting detection for player=" + player.getName() + " at " + clickedBlock.getLocation());
-
-                com.wormhole_xtreme.wormhole.model.Stargate found = null;
-                try
-                {
-                    if (direction != null)
-                    {
-                        found = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(clickedBlock, direction);
-                    }
-                    if (found == null)
-                    {
-                        // try common facings
-                        final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
-                        for (final org.bukkit.block.BlockFace face : faces)
-                        {
-                            try
-                            {
-                                found = com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(clickedBlock, face);
-                                if (found != null)
-                                {
-                                    break;
-                                }
-                            }
-                            catch (final RuntimeException e)
-                            {
-                                // A throw here means a malformed shape, not a normal miss.
-                                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                                    "Shape detection failed for face " + face + ": " + e.getMessage());
-                            }
-                        }
-                    }
-                }
-                catch (final RuntimeException t)
-                {
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "/wormhole complete interactive detection error: " + t.getMessage());
-                }
-
-                if (found != null)
-                {
-                    com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
-                    final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable()) ? ConfigManager.getEconomyBuildCost() : 0.0;
-                    if (buildCost > 0 && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
-                    }
-                    else if (com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, name, idc, network))
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                        if (buildCost > 0)
-                        {
-                            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
-                            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
-                                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
-                        }
-                    }
-                    else
-                    {
-                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed after interactive detection. Check server log.");
-                    }
-                    com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
-                    return true;
-                }
-                else
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
-                    // Diagnostic: iterate shapes and facings to report why detection failed
-                    try
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: running detailed detection diagnostics for player=" + player.getName());
-                        final org.bukkit.block.BlockFace[] faces = new org.bukkit.block.BlockFace[] { org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST, org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN };
-                        for (final org.bukkit.block.BlockFace face : faces)
-                        {
-                            try
-                            {
-                                final org.bukkit.block.BlockFace opposite = com.wormhole_xtreme.wormhole.utils.WorldUtils.getInverseDirection(face);
-                                final org.bukkit.block.Block holding = clickedBlock.getRelative(opposite);
-                                final org.bukkit.block.Block below = holding.getRelative(org.bukkit.block.BlockFace.DOWN);
-                                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: face=" + face + " holding=" + holding.getLocation().toString() + " holdingType=" + holding.getType().toString() + " below=" + below.getLocation().toString() + " belowType=" + below.getType().toString());
-                            }
-                            catch (final RuntimeException ignore) { /* diagnostics only */ }
-                        }
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "+/wormhole complete diag: end diagnostics");
-                    }
-                    // Diagnostics only: a failure here costs a log line, nothing more.
-                    catch (final RuntimeException ignore) { /* best effort */ }
-                    return true;
-                }
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "No gate detected at clicked block. Try clicking the DHD button/lever again.");
+                logDetectionDiagnostics(player, clickedBlock);
+                return true;
             }
+            completeDetectedGate(player, found, pending);
+            com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
         }
         catch (final RuntimeException e)
         {
             // This block completes a gate the player asked for, charges them, and messages
-            // them. Failing silently would leave them staring at an unbuilt gate.
+            // them. It used to log here and say nothing to the player, who was left clicking
+            // a DHD that answered with silence.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Interactive /wormhole complete failed for " + player.getName() + ": " + e.getMessage());
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Completing the gate failed. Check server logs.");
+            com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
         }
-        return false;
+        return true;
+    }
+
+    /** The facing to try first: the caller's, or the clicked block's own. */
+    private static BlockFace resolveFacing(final Block clickedBlock, final BlockFace direction)
+    {
+        if (direction != null)
+        {
+            return direction;
+        }
+        if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
+        {
+            return clicked.getFacing();
+        }
+        return null;
+    }
+
+    /**
+     * Looks for a gate at the clicked block, trying every facing if need be.
+     *
+     * <p>A malformed shape can throw out of detection. That is one facing's problem, so the
+     * sweep notes it and carries on rather than giving up on the other five.
+     */
+    private static com.wormhole_xtreme.wormhole.model.Stargate detectAnyFacing(final Block clickedBlock, final BlockFace first)
+    {
+        if (first != null)
+        {
+            final com.wormhole_xtreme.wormhole.model.Stargate found = detectQuietly(clickedBlock, first);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+        for (final BlockFace face : ALL_FACINGS)
+        {
+            final com.wormhole_xtreme.wormhole.model.Stargate found = detectQuietly(clickedBlock, face);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    /** One detection attempt, where a malformed shape is a miss rather than a failure. */
+    private static com.wormhole_xtreme.wormhole.model.Stargate detectQuietly(final Block clickedBlock, final BlockFace face)
+    {
+        try
+        {
+            return com.wormhole_xtreme.wormhole.logic.StargateHelper.checkStargate(clickedBlock, face);
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Shape detection failed for face " + face + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /** Registers the detected gate and completes it, charging for it if the server does. */
+    private static void completeDetectedGate(final Player player, final com.wormhole_xtreme.wormhole.model.Stargate found,
+        final String[] pending)
+    {
+        com.wormhole_xtreme.wormhole.model.StargateManager.addIncompleteStargate(player, found);
+        final double buildCost = (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+            ? ConfigManager.getEconomyBuildCost()
+            : 0.0;
+        if ((buildCost > 0) && !com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, buildCost))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.economyInsufficientFunds.toString());
+            return;
+        }
+        if (!com.wormhole_xtreme.wormhole.model.StargateManager.completeStargate(player, pending[0], pending[1], pending[2]))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed after interactive detection. Check server log.");
+            return;
+        }
+        player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+        if (buildCost > 0)
+        {
+            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, buildCost);
+            player.sendMessage(ConfigManager.MessageStrings.economyBuildCharged.toString()
+                + buildCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(buildCost));
+        }
+    }
+
+    /** Reports what is around the clicked block when detection found nothing. */
+    private static void logDetectionDiagnostics(final Player player, final Block clickedBlock)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE))
+        {
+            return;
+        }
+        plugin.prettyLog(Level.FINE, "+/wormhole complete diag: running detailed detection diagnostics for player=" + player.getName());
+        for (final BlockFace face : ALL_FACINGS)
+        {
+            try
+            {
+                final Block holding = clickedBlock.getRelative(WorldUtils.getInverseDirection(face));
+                final Block below = holding.getRelative(BlockFace.DOWN);
+                plugin.prettyLog(Level.FINE, "+/wormhole complete diag: face=" + face
+                    + " holding=" + holding.getLocation() + " holdingType=" + holding.getType()
+                    + " below=" + below.getLocation() + " belowType=" + below.getType());
+            }
+            catch (final RuntimeException ignore)
+            {
+                // diagnostics only
+            }
+        }
+        plugin.prettyLog(Level.FINE, "+/wormhole complete diag: end diagnostics");
     }
 
     /**
