@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -96,5 +97,48 @@ class WormholeXTremeVehicleRiderFacingTest
         WormholeXTremeVehicleListener.faceTravelDirection(rider, null);
 
         verify(rider, never()).teleport(any(Location.class));
+    }
+
+    @BeforeEach
+    void installPlugin() throws Exception
+    {
+        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
+        f.setAccessible(true);
+        f.set(null, mock(WormholeXTreme.class));
+    }
+
+    /**
+     * A rider the server will not turn is logged and stepped over.
+     *
+     * <p>Turning the rider is cosmetic and happens after the vehicle has already moved, so
+     * refusing it must not leave the arrival half done.
+     */
+    @Test
+    void aRiderWhoCannotBeTurnedDoesNotBreakTheArrival()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenThrow(new IllegalStateException("not here"));
+
+        assertDoesNotThrow(() -> WormholeXTremeVehicleListener.faceTravelDirection(rider, arrivalFacing(90f)));
+    }
+
+    /**
+     * An Error is not swallowed on the way past.
+     *
+     * <p>These catches were written as {@code Throwable}, which meant a genuinely broken
+     * server -- a missing method, an exhausted heap -- was quietly logged as a cosmetic
+     * failure to turn someone and the arrival carried on regardless. Only the vehicle APIs
+     * are guarded here, and those are stable across the versions this plugin supports, so
+     * there is no cross-version Error worth catching.
+     */
+    @Test
+    void anErrorDuringTheTurnIsNotSwallowed()
+    {
+        final Player rider = mock(Player.class);
+        when(rider.teleport(any(Location.class))).thenThrow(new NoSuchMethodError("teleport"));
+
+        assertThrows(NoSuchMethodError.class,
+            () -> WormholeXTremeVehicleListener.faceTravelDirection(rider, arrivalFacing(90f)),
+            "an Error must reach the server, not be logged as a cosmetic failure");
     }
 }
