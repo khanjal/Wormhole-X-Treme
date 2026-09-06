@@ -565,7 +565,7 @@ public final class StargateHelper
         }
 
         final Stargate gate = populateGate(frame, clickedBlock, shape, shapeLayers, numLayers, group);
-        applyRedstoneWiring(gate, frame, shape, activationLayerIdx, aPos);
+        applyRedstoneWiring(gate, frame, shape);
         return gate;
     }
 
@@ -858,9 +858,7 @@ public final class StargateHelper
     /** Settles where the redstone markers go, once the gate itself is known. */
     private static void applyRedstoneWiring(final Stargate gate,
                                            final GateFrame frame,
-                                           final Stargate3DShape shape,
-                                           final int activationLayerIdx,
-                                           final int[] aPos)
+                                           final Stargate3DShape shape)
     {
         // Prevent RD/RS from being side-by-side: if both assigned and adjacent,
         // prefer the dial activation (RD) and drop the sign-cycler (RS).
