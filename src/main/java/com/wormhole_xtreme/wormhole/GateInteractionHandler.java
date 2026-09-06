@@ -55,7 +55,7 @@ final class GateInteractionHandler
      * @return true, if successful
      */
     private static boolean buttonLeverHit(final Player player, final Block clickedBlock,
-                                          BlockFace direction)
+                                          final BlockFace direction)
     {
         if (handlePendingCompletion(player, clickedBlock, direction))
         {
@@ -67,130 +67,150 @@ final class GateInteractionHandler
             return true;
         }
 
-
         final Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
-
         if (stargate != null)
         {
-            // Disambiguate exact vs adjacent lever clicks to avoid mis-classifying the iris lever
-            final boolean dialSame = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock);
-            final boolean irisSame = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock);
-            final boolean dialAdj = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock);
-            final boolean irisAdj = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock);
-
-            // Gate owners and ops always bypass permission checks.
-            final boolean isOwner = player.isOp() || stargate.isOwner(player);
-            final boolean permSign = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN);
-            final boolean permDialer = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER);
-
-            // Priority: exact same-block match wins. For adjacency, prefer dial when both levers are adjacent
-            // (e.g. iris lever right next to the dial lever — this is the common Standard gate layout).
-            if (dialSame && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
-            {
-                handleGateActivationSwitch(stargate, player);
-            }
-            else if (irisSame && !dialSame && permDialer)
-            {
-                stargate.toggleIrisActive(true);
-            }
-            else if (dialAdj && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
-            {
-                // Both adjacent (overlapping layout) — treat as dial activation.
-                handleGateActivationSwitch(stargate, player);
-            }
-            else if (irisAdj && !dialAdj && permDialer)
-            {
-                stargate.toggleIrisActive(true);
-            }
-            else if (dialSame || irisSame || dialAdj || irisAdj)
-            {
-                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-            }
+            handleLeverClick(player, clickedBlock, stargate);
             return true;
+        }
+        return handleNewGateAttempt(player, clickedBlock, direction);
+    }
+
+    /**
+     * Works out which of a gate's two levers a click was aimed at, and acts on it.
+     *
+     * <p>The dial lever and the iris lever sit one block apart on the Standard layout, so
+     * an exact match is taken before adjacency, and when the click is next to both the dial
+     * wins. Otherwise reaching for the dial on a gate with an iris would sometimes shut the
+     * iris instead.
+     */
+    private static void handleLeverClick(final Player player, final Block clickedBlock,
+                                         final Stargate stargate)
+    {
+        // Disambiguate exact vs adjacent lever clicks to avoid mis-classifying the iris lever
+        final boolean dialSame = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock);
+        final boolean irisSame = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock);
+        final boolean dialAdj = (stargate.getGateDialLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateDialLeverBlock(), clickedBlock);
+        final boolean irisAdj = (stargate.getGateIrisLeverBlock() != null) && WorldUtils.isAdjacent(stargate.getGateIrisLeverBlock(), clickedBlock);
+
+        // Gate owners and ops always bypass permission checks.
+        final boolean isOwner = player.isOp() || stargate.isOwner(player);
+        final boolean permSign = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN);
+        final boolean permDialer = isOwner || WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER);
+
+        // Priority: exact same-block match wins. For adjacency, prefer dial when both levers are adjacent
+        // (e.g. iris lever right next to the dial lever — this is the common Standard gate layout).
+        if (dialSame && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
+        {
+            handleGateActivationSwitch(stargate, player);
+        }
+        else if (irisSame && !dialSame && permDialer)
+        {
+            stargate.toggleIrisActive(true);
+        }
+        else if (dialAdj && ((stargate.isGateSignPowered() && permSign) || (!stargate.isGateSignPowered() && permDialer)))
+        {
+            // Both adjacent (overlapping layout) — treat as dial activation.
+            handleGateActivationSwitch(stargate, player);
+        }
+        else if (irisAdj && !dialAdj && permDialer)
+        {
+            stargate.toggleIrisActive(true);
+        }
+        else if (dialSame || irisSame || dialAdj || irisAdj)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+        }
+    }
+
+    /**
+     * Treats the click as somebody finishing a gate they have just built.
+     *
+     * @return true if the click was on a valid gate design
+     */
+    private static boolean handleNewGateAttempt(final Player player, final Block clickedBlock,
+                                                BlockFace direction)
+    {
+        if (direction == null)
+        {
+            if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
+            {
+                direction = clicked.getFacing();
+            }
+
+            if (direction == null)
+            {
+                return false;
+            }
+        }
+        // Check to see if player has already run the "build" command.
+        final StargateShape shape = StargateManager.getPlayerBuilderShape(player);
+
+        Stargate newGate = null;
+        if (shape != null)
+        {
+            newGate = StargateHelper.checkStargate(clickedBlock, direction, shape);
         }
         else
         {
-            if (direction == null)
-            {
-                if (clickedBlock.getBlockData() instanceof org.bukkit.block.data.Directional clicked)
-                {
-                    direction = clicked.getFacing();
-                }
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
+            newGate = StargateHelper.checkStargate(clickedBlock, direction);
+        }
 
-                if (direction == null)
+        if (newGate != null)
+        {
+            if (WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
+            {
+                if (newGate.isGateSignPowered())
                 {
-                    return false;
-                }
-            }
-            // Check to see if player has already run the "build" command.
-            final StargateShape shape = StargateManager.getPlayerBuilderShape(player);
-
-            Stargate newGate = null;
-            if (shape != null)
-            {
-                newGate = StargateHelper.checkStargate(clickedBlock, direction, shape);
-            }
-            else
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINEST, "Attempting to find any gate shapes!");
-                newGate = StargateHelper.checkStargate(clickedBlock, direction);
-            }
-
-            if (newGate != null)
-            {
-                if (WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
-                {
-                    if (newGate.isGateSignPowered())
+                    // Sign-powered gates follow the same /wormhole complete flow as regular gates,
+                    // so the player can specify a network and IDC code.
+                    final String signName = newGate.getGateName();
+                    StargateManager.addIncompleteStargate(player, newGate);
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Sign Nav Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
+                    if (signName.isEmpty())
                     {
-                        // Sign-powered gates follow the same /wormhole complete flow as regular gates,
-                        // so the player can specify a network and IDC code.
-                        final String signName = newGate.getGateName();
-                        StargateManager.addIncompleteStargate(player, newGate);
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Sign Nav Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
-                        if (signName.isEmpty())
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
-                        }
-                        else
-                        {
-                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B" + signName + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
-                        }
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
                     }
                     else
                     {
-                        // Print to player that it was successful!
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
-                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
-                        // Add gate to unnamed gates.
-                        StargateManager.addIncompleteStargate(player, newGate);
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B" + signName + " \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
                     }
-                    return true;
                 }
                 else
                 {
-                    if (newGate.isGateSignPowered())
-                    {
-                        newGate.resetTeleportSign();
-                    }
-                    StargateManager.removeIncompleteStargate(player);
-                    player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    return true;
+                    // Print to player that it was successful!
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design! \u00A73:: \u00A7B<required> \u00A76[optional]");
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type \'\u00A7F/wormhole complete \u00A7B<name> \u00A76[idc=IDC] [net=NET]\u00A77\' to complete.");
+                    // Add gate to unnamed gates.
+                    StargateManager.addIncompleteStargate(player, newGate);
                 }
+                return true;
             }
             else
             {
-                // Fallback: the player may have clicked beside the DHD rather than on
-                // it, so probe the surrounding blocks. See findGateFromNearbyDial for why
-                // this is filtered rather than brute-forced.
-                final boolean foundNearby = findGateFromNearbyDial(clickedBlock, player);
-
-                if (!foundNearby)
+                if (newGate.isGateSignPowered())
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
+                    newGate.resetTeleportSign();
                 }
+                StargateManager.removeIncompleteStargate(player);
+                player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+                return true;
             }
         }
-        return false;
+        else
+        {
+            // Fallback: the player may have clicked beside the DHD rather than on
+            // it, so probe the surrounding blocks. See findGateFromNearbyDial for why
+            // this is filtered rather than brute-forced.
+            final boolean foundNearby = findGateFromNearbyDial(clickedBlock, player);
+
+            if (!foundNearby)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, player.getName() + " has pressed a button or lever but did not find any properly created gates.");
+            }
+        }
+    return false;
     }
 
     /**
