@@ -310,19 +310,6 @@ public final class StargateHelper
     }
 
     /**
-     * Decides which material this gate's frame must be made of, by reading the first
-     * frame position out of the world.
-     *
-     * <p>The shape's own {@code STARGATE_MATERIAL} always wins, so shapes that predate
-     * material groups keep behaving exactly as before. Otherwise the block is looked up
-     * in {@link MaterialGroupRegistry}: if it names a configured palette, and the shape
-     * does not restrict itself to other palettes, that palette's frame material is what
-     * the rest of the scan verifies against.
-     *
-     * @return the material every frame block must be, or null if the frame belongs to no
-     *         palette this shape accepts
-     */
-    /**
      * Where a gate sits and which way it faces, so a shape cell can be turned into a world
      * block.
      *
@@ -390,6 +377,19 @@ public final class StargateHelper
         }
     }
 
+    /**
+     * Decides which material this gate's frame must be made of, by reading the first
+     * frame position out of the world.
+     *
+     * <p>The shape's own {@code STARGATE_MATERIAL} always wins, so shapes that predate
+     * material groups keep behaving exactly as before. Otherwise the block is looked up
+     * in {@link MaterialGroupRegistry}: if it names a configured palette, and the shape
+     * does not restrict itself to other palettes, that palette's frame material is what
+     * the rest of the scan verifies against.
+     *
+     * @return the material every frame block must be, or null if the frame belongs to no
+     *         palette this shape accepts
+     */
     private static org.bukkit.Material resolveStructureMaterial(final GateFrame frame,
                                                                  final Stargate3DShape shape,
                                                                  final ArrayList<StargateShapeLayer> shapeLayers)
@@ -565,7 +565,7 @@ public final class StargateHelper
         }
 
         final Stargate gate = populateGate(frame, clickedBlock, shape, shapeLayers, numLayers, group);
-        applyRedstoneWiring(gate, frame, shape, shapeLayers, numLayers, clickedBlock, activationLayerIdx, aPos);
+        applyRedstoneWiring(gate, frame, shape, activationLayerIdx, aPos);
         return gate;
     }
 
@@ -859,9 +859,6 @@ public final class StargateHelper
     private static void applyRedstoneWiring(final Stargate gate,
                                            final GateFrame frame,
                                            final Stargate3DShape shape,
-                                           final ArrayList<StargateShapeLayer> shapeLayers,
-                                           final int numLayers,
-                                           final Block clickedBlock,
                                            final int activationLayerIdx,
                                            final int[] aPos)
     {
