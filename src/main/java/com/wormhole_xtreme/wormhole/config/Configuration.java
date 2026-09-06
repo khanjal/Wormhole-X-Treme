@@ -51,7 +51,7 @@ public class Configuration
                 ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
             }
-            catch (final Throwable t)
+            catch (final RuntimeException t)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml: " + t.getMessage());
             }
@@ -112,7 +112,7 @@ public class Configuration
             final java.io.File yamlFile = new java.io.File("plugins" + java.io.File.separator + pluginName + java.io.File.separator + "config.yml");
             ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to persist config.yml: " + t.getMessage());
         }

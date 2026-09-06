@@ -68,7 +68,7 @@ public class WXRemove implements CommandExecutor
             }
             return true;
         }
-        catch (final Throwable t)
+        catch (final RuntimeException t)
         {
             com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wx remove: " + t.getMessage());
             if (CommandUtilities.playerCheck(sender))

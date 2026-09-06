@@ -100,7 +100,7 @@ class WormholeXTremeBlockListener implements Listener
                         irisPresent = true;
                     }
                 }
-                catch (final Throwable ignore) { /* an unreadable iris lever just means no iris */ }
+                catch (final RuntimeException ignore) { /* an unreadable iris lever just means no iris */ }
 
                 if ((belowDial != null) && WorldUtils.isSameBlock(belowDial, block))
                 {
@@ -133,10 +133,10 @@ class WormholeXTremeBlockListener implements Listener
                         }
                     }
                 }
-                catch (final Throwable ignore) { /* on failure fall through to the protective default below */ }
+                catch (final RuntimeException ignore) { /* on failure fall through to the protective default below */ }
             }
         }
-        catch (final Throwable ignore) { /* on failure fall through to the protective default below */ }
+        catch (final RuntimeException ignore) { /* on failure fall through to the protective default below */ }
 
         // Require gate removal via command before manual block destruction.
         if (player != null)
@@ -148,7 +148,7 @@ class WormholeXTremeBlockListener implements Listener
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
                     + "Run '/wormhole remove " + (stargate != null ? stargate.getGateName() : "unknown") + "' to remove the gate first (use -all to also destroy blocks).");
             }
-            catch (final Throwable ignore) { /* the break is already refused; only the explanation is missing */ }
+            catch (final RuntimeException ignore) { /* the break is already refused; only the explanation is missing */ }
         }
         else
         {
