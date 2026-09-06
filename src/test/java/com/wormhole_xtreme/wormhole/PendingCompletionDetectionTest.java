@@ -181,4 +181,35 @@ class PendingCompletionDetectionTest
         verify(player, never()).sendMessage(contains("No gate detected"));
         assertNull(Complete.getPendingCompletion(player));
     }
+
+    /**
+     * A detected gate that will not complete says so in its own words.
+     *
+     * <p>The interactive route and the plain command route differ only in this message: this
+     * one has no half-built gate to name, because the click is what found the gate.
+     */
+    @Test
+    void aDetectedGateThatWillNotCompleteSaysSo()
+    {
+        Complete.addPendingCompletion(player, "Detected", "", "");
+        final Stargate found = detectedGate();
+
+        try (MockedStatic<StargateHelper> helper = mockStatic(StargateHelper.class);
+            MockedStatic<StargateManager> mgr = mockStatic(StargateManager.class,
+                org.mockito.Mockito.CALLS_REAL_METHODS))
+        {
+            helper.when(() -> StargateHelper.checkStargate(any(Block.class), any(BlockFace.class)))
+                .thenReturn(null);
+            helper.when(() -> StargateHelper.checkStargate(clicked, BlockFace.WEST))
+                .thenReturn(found);
+            mgr.when(() -> StargateManager.completeStargate(any(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(false);
+
+            click();
+        }
+
+        verify(player).sendMessage(contains("Construction Failed after interactive detection"));
+        assertNull(Complete.getPendingCompletion(player), "the click is spent either way");
+    }
 }
