@@ -128,26 +128,28 @@ class ConfigurationFlatFile
         try
         {
             bufferedReader = new BufferedReader(new FileReader(input, StandardCharsets.UTF_8));
-            for (String s = ""; (s = bufferedReader.readLine()) != null;)
+            for (String raw = ""; (raw = bufferedReader.readLine()) != null;)
             {
                 try
                 {
-                    s = s.trim();
-                    if (s.contains("Setting:"))
+                    final String line = raw.trim();
+                    if (line.contains("Setting:"))
                     {
                         // A line can contain "Setting:" and still have nothing after the
                         // colon, and so can the value line below it. Both used to be indexed
                         // straight at [1].
-                        final String key[] = s.split(":");
+                        final String[] key = line.split(":");
                         if (key.length < 2)
                         {
                             continue;
                         }
                         final ConfigKeys keyValue = ConfigKeys.valueOf(key[1].trim());
-                        // The value is on the line after the key.
-                        if ((keyValue == name) && ((s = bufferedReader.readLine()) != null))
+                        // The value is on the line after the key, and is only read for the
+                        // key we were asked about -- reading it moves the reader on.
+                        final String valueLine = (keyValue == name) ? bufferedReader.readLine() : null;
+                        if (valueLine != null)
                         {
-                            final String[] val = s.split(":");
+                            final String[] val = valueLine.split(":");
                             bufferedReader.close();
                             return val.length < 2 ? defaultVal.trim() : val[1].trim();
                         }
