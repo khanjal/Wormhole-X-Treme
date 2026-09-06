@@ -604,7 +604,7 @@ public final class StargateHelper
                 // An [S:L#n] cell is a chevron, and a shape with a chevron material lets one
                 // be built from that instead, so the gate shows where its chevrons are before
                 // any of them light. Both materials are accepted rather than only the chevron
-                // one: every gate standing in every frame.world() today has frame material in those
+                // one: every gate standing in every world today has frame material in those
                 // positions, and re-detection has to go on finding them.
                 if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
                 {
@@ -755,12 +755,12 @@ public final class StargateHelper
             {
                 final Block cell = frame.blockAt(layerIdx, epPos);
                 // EP is the block the player's feet land on. Add 1.0 Y so feet are on
-                // top of it, offset one block in the -frame.facing() direction to place the
+                // top of it, offset one block in the -facing direction to place the
                 // player just outside the portal water, and face them in the gate's
-                // frame.facing() direction with pitch zeroed.
-                // Move one block in the gate's frame.facing() direction (outwards)
+                // facing direction with pitch zeroed.
+                // Move one block in the gate's facing direction (outwards)
                 // so the player appears just outside the portal rather than
-                // being placed inside it. Use frame.facing()'s mod components directly.
+                // being placed inside it. Use facing's mod components directly.
                 final Location tpLoc = new Location(frame.world(), cell.getX() + 0.5 + frame.facing().getModX(), cell.getY() + 1.0, cell.getZ() + 0.5 + frame.facing().getModZ());
                 try { tpLoc.setYaw(WorldUtils.getDegreesFromBlockFace(frame.facing())); } catch (final Throwable ignore) { /* best effort */ }
                 try { tpLoc.setPitch(0f); } catch (final Throwable ignore) { /* best effort */ }
@@ -776,7 +776,7 @@ public final class StargateHelper
                 gate.setGateMinecartTeleportLocation(new Location(frame.world(), cell.getX() + 0.5, cell.getY() + 0.5, cell.getZ() + 0.5));
             }
 
-            // Dial-sign holder (D) — the sign sits on the gate-frame.facing() face of this block.
+            // Dial-sign holder (D) — the sign sits on the gate-facing face of this block.
             final int[] dPos = layer.getLayerDialSignPosition();
             if (dPos.length >= 3)
             {
@@ -810,7 +810,7 @@ public final class StargateHelper
                 }
             }
 
-            // Iris activation holder (IA) — iris lever is on the gate-frame.facing() face.
+            // Iris activation holder (IA) — iris lever is on the gate-facing face.
             final int[] iaPos = layer.getLayerIrisActivationPosition();
             if (iaPos.length >= 3)
             {
