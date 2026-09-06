@@ -677,80 +677,96 @@ class WormholeXTremeVehicleListener implements Listener
                                                   final List<Player> pendingRestrictions,
                                                   final String gatenetwork)
     {
-
-        if (!passengers.isEmpty() && (passengers.get(0) instanceof Player p))
+        if (passengers.isEmpty() || !(passengers.get(0) instanceof Player p))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
-            if (ConfigManager.getWormholeUseIsTeleport() && ((st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.SIGN)) || ( !st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.DIALER))))
+            if (!st.getGateTarget().isGateIrisActive())
             {
-                p.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                return false;
+                return true;
             }
-            if (st.getGateTarget().isGateIrisActive())
-            {
-                p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
-                final Location irisTarget = st.getGateMinecartTeleportLocation() != null
-                    ? st.getGateMinecartTeleportLocation()
-                    : st.getGatePlayerTeleportLocation();
-                // If player is in a minecart, just move them one block up from the TP location
-                final Location safeIrisTarget = (irisTarget != null)
-                    ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
-                    : irisTarget;
-                if (veh != null)
-                {
-                    final UUID vid = veh.getUniqueId();
-                    markVehicleRecentlyTeleported(vid);
-                }
-                veh.teleport(safeIrisTarget);
-                if (ConfigManager.getTimeoutShutdown() == 0)
-                {
-                    st.shutdownStargate(true);
-                }
-                return false;
-            }
-            if (ConfigManager.isUseCooldownEnabled())
-            {
-                if (StargateRestrictions.isPlayerUseCooldown(p))
-                {
-                    p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
-                    p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
-                    return false;
-                }
-                // Neither is applied here. Both are consequences of having travelled,
-                // and a listener further down may still stop this trip - which would
-                // leave the rider having spent a cooldown and been marked as arriving
-                // somewhere they never went.
-                else
-                {
-                    pendingRestrictions.add(p);
-                }
-            }
-        }
-        else
-        {
-            if (st.getGateTarget().isGateIrisActive())
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
-                final Location irisTarget = st.getGateMinecartTeleportLocation() != null
-                    ? st.getGateMinecartTeleportLocation()
-                    : st.getGatePlayerTeleportLocation();
-                // For non-player carts, use a simple one-block-up offset from configured TP
-                final Location safeIrisTarget = (irisTarget != null) ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0) : irisTarget;
-                if (veh != null)
-                {
-                    final UUID vid = veh.getUniqueId();
-                    markVehicleRecentlyTeleported(vid);
-                }
-                veh.teleport(safeIrisTarget);
-                if (ConfigManager.getTimeoutShutdown() == 0)
-                {
-                    st.shutdownStargate(true);
-                }
-                return false;
-            }
-
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
+            bounceOffClosedIris(st, veh);
+            return false;
         }
 
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
+        if (!mayWorkTheGate(st, p))
+        {
+            p.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return false;
+        }
+        if (st.getGateTarget().isGateIrisActive())
+        {
+            // The one thing the empty-cart path above cannot do: there is nobody to tell.
+            p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+            bounceOffClosedIris(st, veh);
+            return false;
+        }
+        return admitUnderCooldown(p, pendingRestrictions);
+    }
+
+    /**
+     * Puts a vehicle back out at the gate it came from, the far iris being shut.
+     *
+     * <p>The arrival point is the source gate's own, not the target's: there is nowhere to
+     * arrive. The vehicle is marked as recently teleported first, so the move it is about to
+     * make does not read as another trip through the gate.
+     */
+    private static void bounceOffClosedIris(final Stargate st, final Vehicle veh)
+    {
+        final Location irisTarget = st.getGateMinecartTeleportLocation() != null
+            ? st.getGateMinecartTeleportLocation()
+            : st.getGatePlayerTeleportLocation();
+        final Location safeIrisTarget = (irisTarget != null)
+            ? forwardAndUp(irisTarget, st.getGateTarget().getGateFacing(), 1.0, 1.0)
+            : irisTarget;
+        if (veh != null)
+        {
+            markVehicleRecentlyTeleported(veh.getUniqueId());
+        }
+        veh.teleport(safeIrisTarget);
+        if (ConfigManager.getTimeoutShutdown() == 0)
+        {
+            st.shutdownStargate(true);
+        }
+    }
+
+    /**
+     * Whether this rider may work this gate.
+     *
+     * <p>Only asked when the server treats riding through as using the gate. A sign-powered
+     * gate is worked through its sign, so that is the node it asks about.
+     */
+    private static boolean mayWorkTheGate(final Stargate st, final Player p)
+    {
+        if (!ConfigManager.getWormholeUseIsTeleport())
+        {
+            return true;
+        }
+        return WXPermissions.checkWXPermissions(p, st,
+            st.isGateSignPowered() ? PermissionType.SIGN : PermissionType.DIALER);
+    }
+
+    /**
+     * Whether this rider is off cooldown, noting the cooldown they will owe if they travel.
+     *
+     * <p>Neither the cooldown nor the arrival mark is applied here. Both are consequences of
+     * having travelled, and a listener further down may still stop this trip -- which would
+     * leave the rider having spent a cooldown and been marked as arriving somewhere they
+     * never went.
+     */
+    private static boolean admitUnderCooldown(final Player p, final List<Player> pendingRestrictions)
+    {
+        if (!ConfigManager.isUseCooldownEnabled())
+        {
+            return true;
+        }
+        if (StargateRestrictions.isPlayerUseCooldown(p))
+        {
+            p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownRestricted.toString());
+            p.sendMessage(ConfigManager.MessageStrings.playerUseCooldownWaitTime.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(p));
+            return false;
+        }
+        pendingRestrictions.add(p);
         return true;
     }
 
