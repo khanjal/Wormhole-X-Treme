@@ -91,6 +91,9 @@ public class WXPermissions
      *            the permissiontype
      * @return true, if successful
      */
+    /** The network a gate is on when it names none of its own, and the one open to all. */
+    private static final String PUBLIC_NETWORK = "Public";
+
     private static boolean checkWXPermissions(final Player player, final Stargate stargate, final String network, final PermissionType permissiontype)
     {
         // An operator may do anything with a gate, with or without a permissions plugin
@@ -179,7 +182,7 @@ public class WXPermissions
         {
             return fallback;
         }
-        return "Public";
+        return PUBLIC_NETWORK;
     }
 
     /**
@@ -190,14 +193,14 @@ public class WXPermissions
      */
     private static boolean mayUseNetwork(final Player player, final String networkName)
     {
-        return "Public".equals(networkName)
+        return PUBLIC_NETWORK.equals(networkName)
             || ComplexPermission.NETWORK_USE.checkPermission(player, networkName);
     }
 
     /** As {@link #mayUseNetwork}, for building rather than travelling. */
     private static boolean mayBuildOnNetwork(final Player player, final String networkName)
     {
-        return "Public".equals(networkName)
+        return PUBLIC_NETWORK.equals(networkName)
             || ComplexPermission.NETWORK_BUILD.checkPermission(player, networkName);
     }
 
