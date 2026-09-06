@@ -43,7 +43,25 @@ public class StargateYamlManager
 
     public static void loadStargates(final Server server)
     {
-        final File GATES_DIR = getGatesDir();
+        loadStargates(server, getGatesDir());
+    }
+
+    /**
+     * Reads every gate file in a given directory.
+     *
+     * <p>Split out from {@link #loadStargates(Server)} for the same reason
+     * {@link #saveStargate(Stargate, File)} was: {@link #getGatesDir()} resolves through
+     * {@code JavaPlugin.getDataFolder()}, which is final and cannot be stubbed, so a test
+     * needs somewhere else to point.
+     *
+     * @param server
+     *            the server, used to look worlds up by name
+     * @param gatesDir
+     *            the directory to read from
+     */
+    static void loadStargates(final Server server, final File gatesDir)
+    {
+        final File GATES_DIR = gatesDir;
         if (!GATES_DIR.exists())
         {
             GATES_DIR.mkdirs();
