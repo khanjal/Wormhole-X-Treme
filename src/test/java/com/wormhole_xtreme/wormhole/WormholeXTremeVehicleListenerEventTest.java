@@ -3,6 +3,8 @@ package com.wormhole_xtreme.wormhole;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.UUID;
@@ -146,6 +148,68 @@ class WormholeXTremeVehicleListenerEventTest
         org.junit.jupiter.api.Assertions.assertEquals(200.5,
             target.getGatePlayerTeleportLocation().getZ(), 0.001,
             "the far gate's own arrival point is untouched");
+
+        StargateManager.removeBlockIndex(ch);
+    }
+
+
+    /**
+     * A rider meeting a closed far iris is told so, and put out where the cart is.
+     *
+     * <p>Same bounce as an empty cart gets, with a message on top: an empty cart has nobody
+     * to tell. The two paths are otherwise the same, which is worth holding before they are
+     * folded together.
+     */
+    @Test
+    void aRiderMeetingAClosedIrisIsToldAndPutOutAtTheSource() throws Exception
+    {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+
+        final int bx = 10, by = 64, bz = 20;
+        final Location toLoc = new Location(world, bx + 0.5, by, bz + 0.5);
+
+        final Block ch = mock(Block.class);
+        when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
+        when(ch.getType()).thenReturn(Material.AIR);
+        when(ch.getWorld()).thenReturn(world);
+
+        final Stargate src = new Stargate();
+        src.setGateName("src");
+        src.setGateActive(true);
+        src.setGateMinecartTeleportLocation(new Location(world, 5.5, 65.0, 6.5));
+
+        final Stargate target = new Stargate();
+        target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
+        target.setGateFacing(BlockFace.NORTH);
+        target.setGateIrisActive(true);
+
+        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
+        gateTargetField.setAccessible(true);
+        gateTargetField.set(src, target);
+
+        StargateManager.addBlockIndex(ch, src);
+        src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
+
+        final Player rider = mock(Player.class);
+        when(rider.getName()).thenReturn("rider");
+        when(rider.isOp()).thenReturn(true);
+
+        final Minecart cart = mock(Minecart.class);
+        when(cart.getPassengers()).thenReturn(java.util.Collections.<org.bukkit.entity.Entity>singletonList(rider));
+        when(cart.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(cart.getVelocity()).thenReturn(new Vector(1.0, 0.0, 0.0));
+
+        final Location fromLoc = new Location(world, bx + 0.5, by, bz - 0.5);
+        new WormholeXTremeVehicleListener().onVehicleMove(new VehicleMoveEvent(cart, fromLoc, toLoc));
+
+        verify(rider).sendMessage(contains("Remote Iris is locked"));
+        final org.mockito.ArgumentCaptor<Location> sent =
+            org.mockito.ArgumentCaptor.forClass(Location.class);
+        verify(cart, atLeastOnce()).teleport(sent.capture());
+        assertEquals(5.5, sent.getValue().getX(), 0.001,
+            "the rider is put out at the source gate, as an empty cart would be");
 
         StargateManager.removeBlockIndex(ch);
     }
