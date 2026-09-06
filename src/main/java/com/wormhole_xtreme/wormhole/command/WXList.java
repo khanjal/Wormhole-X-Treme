@@ -35,29 +35,35 @@ public class WXList implements CommandExecutor
             @Override
             public Boolean call() throws Exception
             {
-                if (CommandUtilities.playerCheck(sender)
-                    && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST))
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
-                    return true;
-                }
-
-                // Optional network filter: /wx list [network]
-                final String filterNet = (args.length > 0) ? args[0].trim() : null;
-                final ArrayList<Stargate> gates = gatesOn(filterNet);
-
-                final String header = filterNet != null
-                    ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
-                    : "Available gates \u00A73::";
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
-                if (gates.isEmpty())
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
-                }
-                sendGateNames(sender, gates);
+                listGates(sender, args);
                 return true;
             }
         });
+    }
+
+    /** Prints the gate list, or refuses a player who may not see it. */
+    private static void listGates(final CommandSender sender, final String[] args)
+    {
+        if (CommandUtilities.playerCheck(sender)
+            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.LIST))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
+            return;
+        }
+
+        // Optional network filter: /wx list [network]
+        final String filterNet = (args.length > 0) ? args[0].trim() : null;
+        final ArrayList<Stargate> gates = gatesOn(filterNet);
+
+        final String header = filterNet != null
+            ? "Gates on network \u00A7B" + filterNet + "\u00A73 ::"
+            : "Available gates \u00A73::";
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + header);
+        if (gates.isEmpty())
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "No gates found.");
+        }
+        sendGateNames(sender, gates);
     }
 
     /**
@@ -113,7 +119,7 @@ public class WXList implements CommandExecutor
                 sb = new StringBuilder();
             }
         }
-        if (sb.length() > 0)
+        if (!sb.isEmpty())
         {
             sender.sendMessage(sb.toString());
         }
