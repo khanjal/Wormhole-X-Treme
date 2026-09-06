@@ -904,6 +904,203 @@ public final class GateSerializer
             return b;
         }
 
+        final int size = computeSize(s, utfFaceBytes, utfIdcBytes);
+
+        final ByteBuffer dataArr = ByteBuffer.allocate(size);
+
+        writeAnchors(dataArr, s);
+        writeSignAndTarget(dataArr, s, utfFaceBytes, utfIdcBytes);
+        writeRedstoneAndCustom(dataArr, s);
+        writeBlockLists(dataArr, s);
+        if (dataArr.remaining() > 0)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Gate data not filling whole byte array. This could be bad:" + dataArr.remaining());
+        }
+
+        return dataArr.array();
+    }
+
+    /**
+     * A block-sized run of zeroes, standing in for a block this gate does not have.
+     *
+     * <p>The reader counts its way through the buffer rather than looking for markers, so an
+     * absent block still has to occupy its slot. A fresh array each time because it is handed
+     * to a buffer, and a shared one would be a mutable static for no gain.
+     */
+    private static byte[] emptyBlock()
+    {
+        return new byte[12];
+    }
+
+    /**
+     * The blocks and locations every gate has, in the order the reader expects them.
+     *
+     * <p>A gate without an iris lever or a name holder still writes a block-sized run of
+     * zeroes, because the reader counts its way through rather than looking for markers.
+     */
+    private static void writeAnchors(final ByteBuffer dataArr, final Stargate s)
+    {
+        dataArr.put(StargateSaveVersion);
+        dataArr.put(DataUtils.blockToBytes(s.getGateDialLeverBlock()));
+        dataArr.put(s.getGateIrisLeverBlock() != null ? DataUtils.blockToBytes(s.getGateIrisLeverBlock()) : emptyBlock());
+        dataArr.put(s.getGateNameBlockHolder() != null ? DataUtils.blockToBytes(s.getGateNameBlockHolder()) : emptyBlock());
+        // Serialize player teleport location as the EP block location (feet Y - 1)
+        final Location playerSaveLoc = s.getGatePlayerTeleportLocation().clone();
+        playerSaveLoc.setY(playerSaveLoc.getY() - 1.0);
+        dataArr.put(DataUtils.locationToBytes(playerSaveLoc));
+
+        // Serialize minecart teleport location similarly; fall back to player location if null
+        if (s.getGateMinecartTeleportLocation() != null)
+        {
+            final Location minecartSaveLoc = s.getGateMinecartTeleportLocation().clone();
+            minecartSaveLoc.setY(minecartSaveLoc.getY() - 1.0);
+            dataArr.put(DataUtils.locationToBytes(minecartSaveLoc));
+        }
+        else
+        {
+            dataArr.put(DataUtils.locationToBytes(playerSaveLoc));
+        }
+    }
+
+    /** The dial sign, the gate this one is dialled to, its facing, its IDC and its flags. */
+    private static void writeSignAndTarget(final ByteBuffer dataArr, final Stargate s, final byte[] utfFaceBytes, final byte[] utfIdcBytes)
+    {
+        if (s.isGateSignPowered())
+        {
+            dataArr.put((byte) 1);
+            dataArr.put(DataUtils.blockToBytes(s.getGateDialSignBlock()));
+            dataArr.putInt(s.getGateDialSignIndex());
+            dataArr.putLong(s.getGateDialSignTarget() != null ? s.getGateDialSignTarget().getGateId() : -1);
+        }
+        else
+        {
+            dataArr.put((byte) 0);
+            dataArr.put(emptyBlock());
+            dataArr.putInt(-1);
+            dataArr.putLong(-1);
+        }
+
+        if (s.isGateActive() && (s.getGateTarget() != null))
+        {
+            dataArr.put((byte) 1);
+            dataArr.putLong(s.getGateTarget().getGateId());
+        }
+        else
+        {
+            dataArr.put((byte) 0);
+            dataArr.putLong(-1);
+        }
+
+        dataArr.putInt(utfFaceBytes.length);
+        dataArr.put(utfFaceBytes);
+        dataArr.putInt(utfIdcBytes.length);
+        dataArr.put(utfIdcBytes);
+        dataArr.put(s.isGateIrisActive() ? (byte) 1 : (byte) 0);
+        dataArr.put(s.isGateLightsActive() ? (byte) 1 : (byte) 0);
+    }
+
+    /** The three redstone activation blocks, and the gate's own material overrides. */
+    private static void writeRedstoneAndCustom(final ByteBuffer dataArr, final Stargate s)
+    {
+        if (s.getGateRedstoneDialActivationBlock() != null)
+        {
+            dataArr.put((byte) 1);
+            dataArr.put(DataUtils.blockToBytes(s.getGateRedstoneDialActivationBlock()));
+        }
+        else
+        {
+            dataArr.put((byte) 0);
+            dataArr.put(emptyBlock());
+        }
+
+        if (s.getGateRedstoneSignActivationBlock() != null)
+        {
+            dataArr.put((byte) 1);
+            dataArr.put(DataUtils.blockToBytes(s.getGateRedstoneSignActivationBlock()));
+        }
+        else
+        {
+            dataArr.put((byte) 0);
+            dataArr.put(emptyBlock());
+        }
+
+        if (s.getGateRedstoneGateActivatedBlock() != null)
+        {
+            dataArr.put((byte) 1);
+            dataArr.put(DataUtils.blockToBytes(s.getGateRedstoneGateActivatedBlock()));
+        }
+        else
+        {
+            dataArr.put((byte) 0);
+            dataArr.put(emptyBlock());
+        }
+        dataArr.put(s.isGateRedstonePowered() ? (byte) 1 : (byte) 0);
+        dataArr.put(s.isGateCustom() ? (byte) 1 : (byte) 0);
+
+        writeCustomMaterial(dataArr, s.getGateCustomStructureMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomPortalMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomLightMaterial());
+        writeCustomMaterial(dataArr, s.getGateCustomIrisMaterial());
+        dataArr.putInt(s.getGateCustomWooshTicks());
+        dataArr.putInt(s.getGateCustomLightTicks());
+        dataArr.putInt(s.getGateCustomWooshDepth());
+    }
+
+    /**
+     * The gate's own blocks: structure, portal, and the light and woosh waves.
+     *
+     * <p>A wave with nothing in it writes a zero count rather than being skipped, so the
+     * wave numbers still line up when the reader walks them back.
+     */
+    private static void writeBlockLists(final ByteBuffer dataArr, final Stargate s)
+    {
+        writeBlockRun(dataArr, s.getGateStructureBlocks());
+        writeBlockRun(dataArr, s.getGatePortalBlocks());
+        writeWaves(dataArr, s.getGateLightBlocks());
+        writeWaves(dataArr, s.getGateWooshBlocks());
+    }
+
+    /** How many blocks, then that many of them. */
+    private static void writeBlockRun(final ByteBuffer dataArr, final ArrayList<Location> blocks)
+    {
+        dataArr.putInt(blocks.size());
+        for (final Location block : blocks)
+        {
+            dataArr.put(DataUtils.blockLocationToBytes(block));
+        }
+    }
+
+    /**
+     * How many waves, then each wave as a run of its own.
+     *
+     * <p>A wave with nothing in it writes a count of zero rather than being skipped, so the
+     * wave numbers still line up when the reader walks them back.
+     */
+    private static void writeWaves(final ByteBuffer dataArr, final ArrayList<ArrayList<Location>> waves)
+    {
+        dataArr.putInt(waves.size());
+        for (final ArrayList<Location> wave : waves)
+        {
+            if (wave == null)
+            {
+                dataArr.putInt(0);
+                continue;
+            }
+            writeBlockRun(dataArr, wave);
+        }
+    }
+
+    /**
+     * Works out exactly how many bytes this gate needs.
+     *
+     * <p>The buffer is allocated to this and then filled, so an error here is not a
+     * resize but a corrupt save: too small throws, too large leaves trailing zeroes the
+     * reader walks into. GateSerializerTest pins it by reading a written buffer back and
+     * checking nothing is left over.
+     */
+    private static int computeSize(final Stargate s, final byte[] utfFaceBytes,
+        final byte[] utfIdcBytes)
+    {
         final int numBlocks = 7;
         final int numLocations = 2;
         final int locationSize = 32;
@@ -939,157 +1136,6 @@ public final class GateSerializer
         }
         size += utfFaceBytes.length + utfIdcBytes.length;
         size += numIntsOther * 4;
-
-        final ByteBuffer dataArr = ByteBuffer.allocate(size);
-
-        dataArr.put(StargateSaveVersion);
-        dataArr.put(DataUtils.blockToBytes(s.getGateDialLeverBlock()));
-        final byte[] emptyBlock = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        dataArr.put(s.getGateIrisLeverBlock() != null ? DataUtils.blockToBytes(s.getGateIrisLeverBlock()) : emptyBlock);
-        dataArr.put(s.getGateNameBlockHolder() != null ? DataUtils.blockToBytes(s.getGateNameBlockHolder()) : emptyBlock);
-        // Serialize player teleport location as the EP block location (feet Y - 1)
-        final Location playerSaveLoc = s.getGatePlayerTeleportLocation().clone();
-        playerSaveLoc.setY(playerSaveLoc.getY() - 1.0);
-        dataArr.put(DataUtils.locationToBytes(playerSaveLoc));
-
-        // Serialize minecart teleport location similarly; fall back to player location if null
-        if (s.getGateMinecartTeleportLocation() != null)
-        {
-            final Location minecartSaveLoc = s.getGateMinecartTeleportLocation().clone();
-            minecartSaveLoc.setY(minecartSaveLoc.getY() - 1.0);
-            dataArr.put(DataUtils.locationToBytes(minecartSaveLoc));
-        }
-        else
-        {
-            dataArr.put(DataUtils.locationToBytes(playerSaveLoc));
-        }
-
-        if (s.isGateSignPowered())
-        {
-            dataArr.put((byte) 1);
-            dataArr.put(DataUtils.blockToBytes(s.getGateDialSignBlock()));
-            dataArr.putInt(s.getGateDialSignIndex());
-            dataArr.putLong(s.getGateDialSignTarget() != null ? s.getGateDialSignTarget().getGateId() : -1);
-        }
-        else
-        {
-            dataArr.put((byte) 0);
-            dataArr.put(emptyBlock);
-            dataArr.putInt(-1);
-            dataArr.putLong(-1);
-        }
-
-        if (s.isGateActive() && (s.getGateTarget() != null))
-        {
-            dataArr.put((byte) 1);
-            dataArr.putLong(s.getGateTarget().getGateId());
-        }
-        else
-        {
-            dataArr.put((byte) 0);
-            dataArr.putLong(-1);
-        }
-
-        dataArr.putInt(utfFaceBytes.length);
-        dataArr.put(utfFaceBytes);
-        dataArr.putInt(utfIdcBytes.length);
-        dataArr.put(utfIdcBytes);
-        dataArr.put(s.isGateIrisActive() ? (byte) 1 : (byte) 0);
-        dataArr.put(s.isGateLightsActive() ? (byte) 1 : (byte) 0);
-
-        if (s.getGateRedstoneDialActivationBlock() != null)
-        {
-            dataArr.put((byte) 1);
-            dataArr.put(DataUtils.blockToBytes(s.getGateRedstoneDialActivationBlock()));
-        }
-        else
-        {
-            dataArr.put((byte) 0);
-            dataArr.put(emptyBlock);
-        }
-
-        if (s.getGateRedstoneSignActivationBlock() != null)
-        {
-            dataArr.put((byte) 1);
-            dataArr.put(DataUtils.blockToBytes(s.getGateRedstoneSignActivationBlock()));
-        }
-        else
-        {
-            dataArr.put((byte) 0);
-            dataArr.put(emptyBlock);
-        }
-
-        if (s.getGateRedstoneGateActivatedBlock() != null)
-        {
-            dataArr.put((byte) 1);
-            dataArr.put(DataUtils.blockToBytes(s.getGateRedstoneGateActivatedBlock()));
-        }
-        else
-        {
-            dataArr.put((byte) 0);
-            dataArr.put(emptyBlock);
-        }
-        dataArr.put(s.isGateRedstonePowered() ? (byte) 1 : (byte) 0);
-        dataArr.put(s.isGateCustom() ? (byte) 1 : (byte) 0);
-
-        writeCustomMaterial(dataArr, s.getGateCustomStructureMaterial());
-        writeCustomMaterial(dataArr, s.getGateCustomPortalMaterial());
-        writeCustomMaterial(dataArr, s.getGateCustomLightMaterial());
-        writeCustomMaterial(dataArr, s.getGateCustomIrisMaterial());
-        dataArr.putInt(s.getGateCustomWooshTicks());
-        dataArr.putInt(s.getGateCustomLightTicks());
-        dataArr.putInt(s.getGateCustomWooshDepth());
-
-        dataArr.putInt(s.getGateStructureBlocks().size());
-        for (int i = 0; i < s.getGateStructureBlocks().size(); i++)
-        {
-            dataArr.put(DataUtils.blockLocationToBytes(s.getGateStructureBlocks().get(i)));
-        }
-        dataArr.putInt(s.getGatePortalBlocks().size());
-        for (int i = 0; i < s.getGatePortalBlocks().size(); i++)
-        {
-            dataArr.put(DataUtils.blockLocationToBytes(s.getGatePortalBlocks().get(i)));
-        }
-
-        dataArr.putInt(s.getGateLightBlocks().size());
-        for (int i = 0; i < s.getGateLightBlocks().size(); i++)
-        {
-            if (s.getGateLightBlocks().get(i) != null)
-            {
-                dataArr.putInt(s.getGateLightBlocks().get(i).size());
-                for (int j = 0; j < s.getGateLightBlocks().get(i).size(); j++)
-                {
-                    dataArr.put(DataUtils.blockLocationToBytes(s.getGateLightBlocks().get(i).get(j)));
-                }
-            }
-            else
-            {
-                dataArr.putInt(0);
-            }
-        }
-
-        dataArr.putInt(s.getGateWooshBlocks().size());
-        for (int i = 0; i < s.getGateWooshBlocks().size(); i++)
-        {
-            if (s.getGateWooshBlocks().get(i) != null)
-            {
-                dataArr.putInt(s.getGateWooshBlocks().get(i).size());
-                for (int j = 0; j < s.getGateWooshBlocks().get(i).size(); j++)
-                {
-                    dataArr.put(DataUtils.blockLocationToBytes(s.getGateWooshBlocks().get(i).get(j)));
-                }
-            }
-            else
-            {
-                dataArr.putInt(0);
-            }
-        }
-
-        if (dataArr.remaining() > 0)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Gate data not filling whole byte array. This could be bad:" + dataArr.remaining());
-        }
-
-        return dataArr.array();
+        return size;
     }
 }

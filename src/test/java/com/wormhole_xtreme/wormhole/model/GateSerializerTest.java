@@ -216,4 +216,31 @@ class GateSerializerTest
         assertEquals(7, s2.getGateCustomWooshTicks());
         assertEquals(5, s2.getGateCustomLightTicks());
     }
+
+    /**
+     * A wave nobody built still occupies its slot.
+     *
+     * <p>Light and woosh waves are numbered, and a shape declaring only {@code L#3} leaves
+     * waves one and two as nulls in the list. The writer puts a zero count in for each, so
+     * the reader hands back the same numbering. Skip them and every later wave shifts down,
+     * which on a built gate means the wrong blocks lighting in the wrong order.
+     */
+    @Test
+    void anEmptyWaveKeepsItsPlaceInTheNumbering()
+    {
+        final World w = mockWorld();
+        final Stargate s1 = minimalGate(w);
+        s1.getGateLightBlocks().add(null);
+        s1.getGateLightBlocks().add(null);
+        final java.util.ArrayList<Location> thirdWave = new java.util.ArrayList<Location>();
+        thirdWave.add(new Location(w, 1, 2, 3));
+        s1.getGateLightBlocks().add(thirdWave);
+
+        final Stargate s2 = GateSerializer.parseVersionedData(
+            GateSerializer.stargatetoBinary(s1), w, s1.getGateName(), null);
+
+        assertEquals(3, s2.getGateLightBlocks().size(), "all three slots come back");
+        assertEquals(1, s2.getGateLightBlocks().get(2).size(),
+            "and the one real wave is still the third, not the first");
+    }
 }
