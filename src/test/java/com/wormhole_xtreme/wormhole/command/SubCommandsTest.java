@@ -145,6 +145,25 @@ class SubCommandsTest
     }
 
     @Test
+    void onlyThePlayerFacingSubcommandsCheckTheirOwnPermissions()
+    {
+        // This list is what stands between a player-facing node and the wormhole.config gate
+        // /wormhole applies to everything else. Dropping a name from it puts that subcommand
+        // back behind wormhole.config, where wormhole.beam.use and wormhole.ring.* were
+        // unreachable for anyone but an operator; adding one that does not in fact check
+        // anything hands it to every player on the server.
+        final Set<String> expected = new HashSet<String>(
+            java.util.Arrays.asList("beam", "ring", "go", "list", "compass"));
+        for (final SubCommands.Entry e : SubCommands.all())
+        {
+            assertEquals(expected.contains(e.getName()), e.checksOwnPermissions(),
+                e.getName() + " is marked as self-permissioned: " + e.checksOwnPermissions()
+                    + ", but the handler-side checks say it should be "
+                    + expected.contains(e.getName()));
+        }
+    }
+
+    @Test
     void everySubcommandHasUsageTextForHelp()
     {
         for (final SubCommands.Entry e : SubCommands.all())
