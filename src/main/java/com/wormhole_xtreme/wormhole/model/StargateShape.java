@@ -118,6 +118,23 @@ public class StargateShape
      * @param file_data
      *            the file_data
      */
+    /** One [X] marker in a shape row. */
+    private static final Pattern MARKER = Pattern.compile("(\\[.*?\\])");
+
+    /** The material keys a shape file may carry, each against the setting it fills. */
+    private static final java.util.Map<String, java.util.function.BiConsumer<StargateShape, Material>> MATERIAL_KEYS =
+        java.util.Map.of(
+            "PORTAL_MATERIAL", StargateShape::setShapePortalMaterial,
+            "IRIS_MATERIAL", StargateShape::setShapeIrisMaterial,
+            "STARGATE_MATERIAL", StargateShape::setShapeStructureMaterial,
+            "ACTIVE_MATERIAL", StargateShape::setShapeLightMaterial,
+            "CHEVRON_MATERIAL", StargateShape::setShapeChevronMaterial,
+            "SIGN_MATERIAL", StargateShape::setShapeSignMaterial);
+
+    /** Which slot of the corner offset each BUTTON_ key fills. */
+    private static final java.util.Map<String, Integer> BUTTON_AXES =
+        java.util.Map.of("BUTTON_RIGHT", 0, "BUTTON_UP", 1, "BUTTON_AWAY", 2);
+
     public StargateShape(final String[] file_data)
     {
         setShapeSignPosition(new int[]{});
@@ -127,12 +144,6 @@ public class StargateShape
         final ArrayList<Integer[]> portalPositions = new ArrayList<Integer[]>();
         final ArrayList<Integer> lightPositions = new ArrayList<Integer>();
 
-        int numBlocks = 0;
-        int curWooshDepth = 0;
-
-        // 1. scan all lines for lines beginning with [  - that is the height of the gate
-        int height = 0;
-        int width = 0;
         for (int i = 0; i < file_data.length; i++)
         {
             final String line = file_data[i];
@@ -144,140 +155,20 @@ public class StargateShape
             }
             else if (line.equals("GateShape="))
             {
-                int index = i + 1;
-                while (file_data[index].startsWith("["))
-                {
-                    if (width <= 0)
-                    {
-                        final Pattern p = Pattern.compile("(\\[.*?\\])");
-                        final Matcher m = p.matcher(file_data[index]);
-                        while (m.find())
-                        {
-                            width++;
-                        }
-                    }
-
-                    height++;
-                    index++;
-                }
-
-                // At this point we should know the height and width
-                if ((height <= 0) || (width <= 0))
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
-                    throw new IllegalArgumentException("Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
-                }
-                else
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Shape: \"" + shapeName + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
-                }
-
-                // Now parse each [X] and put into int array.
-                index = i + 1;
-                while (file_data[index].startsWith("["))
-                {
-
-                    final Pattern p = Pattern.compile("(\\[.*?\\])");
-                    final Matcher m = p.matcher(file_data[index]);
-                    int j = 0;
-                    while (m.find())
-                    {
-                        final String block = m.group(0);
-                        final Integer[] point = {0, (height - 1 - (index - i - 1)), (width - 1 - j)};
-                        if (block.contains("O"))
-                        {
-                            numBlocks++;
-                            blockPositions.add(point);
-                        }
-                        else if (block.contains("P"))
-                        {
-                            portalPositions.add(point);
-                        }
-
-                        if (block.contains("S") || block.contains("E"))
-                        {
-                            final int[] pointI = new int[3];
-                            for (int k = 0; k < 3; k++)
-                            {
-                                pointI[k] = point[k];
-                            }
-
-                            if (block.contains("S"))
-                            {
-                                setShapeSignPosition(pointI);
-                            }
-                            if (block.contains("E"))
-                            {
-                                setShapeEnterPosition(pointI);
-                            }
-                        }
-
-                        if (block.contains("L") && block.contains("O"))
-                        {
-                            lightPositions.add(numBlocks - 1);
-                        }
-
-                        j++;
-                    }
-                    index++;
-                }
+                final int[] grid = measureGrid(file_data, i + 1);
+                parseGrid(file_data, i + 1, grid, blockPositions, portalPositions, lightPositions);
             }
-            else if (line.contains("BUTTON_UP"))
+            else
             {
-                getShapeToGateCorner()[1] = Integer.parseInt(line.split("=")[1]);
-            }
-            else if (line.contains("BUTTON_RIGHT"))
-            {
-                getShapeToGateCorner()[0] = Integer.parseInt(line.split("=")[1]);
-            }
-            else if (line.contains("BUTTON_AWAY"))
-            {
-                getShapeToGateCorner()[2] = Integer.parseInt(line.split("=")[1]);
-            }
-            else if (line.contains("WOOSH_DEPTH"))
-            {
-                curWooshDepth = Integer.parseInt(line.split("=")[1]);
-            }
-            else if (line.contains("PORTAL_MATERIAL"))
-            {
-                setShapePortalMaterial(Material.valueOf(line.split("=")[1]));
-            }
-            else if (line.contains("IRIS_MATERIAL"))
-            {
-                setShapeIrisMaterial(Material.valueOf(line.split("=")[1]));
-            }
-            else if (line.contains("STARGATE_MATERIAL"))
-            {
-                setShapeStructureMaterial(Material.valueOf(line.split("=")[1]));
-            }
-            else if (line.contains("ACTIVE_MATERIAL"))
-            {
-                setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
-            }
-            else if (line.contains("CHEVRON_MATERIAL"))
-            {
-                try { setShapeChevronMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase(Locale.ROOT))); } catch (final Exception e) { /* ignore unknown */ }
-            }
-            else if (line.contains("SIGN_MATERIAL"))
-            {
-                try { setShapeSignMaterial(Material.valueOf(line.split("=")[1].trim().toUpperCase(Locale.ROOT))); } catch (final Exception e) { /* ignore unknown */ }
+                applySetting(line);
             }
         }
+
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Sign Position: \"" + Arrays.toString(getShapeSignPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Enter Position: \"" + Arrays.toString(getShapeEnterPosition()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Button Position [Left/Right,Up/Down,Forward/Back]: \"" + Arrays.toString(getShapeToGateCorner()) + "\"");
 
-        final int[][] tempPortalPositions = new int[portalPositions.size()][3];
-        for (int i = 0; i < portalPositions.size(); i++)
-        {
-            final int[] point = new int[3];
-            for (int j = 0; j < 3; j++)
-            {
-                point[j] = portalPositions.get(i)[j];
-            }
-            tempPortalPositions[i] = point;
-        }
-        setShapePortalPositions(tempPortalPositions);
+        setShapePortalPositions(toPoints(portalPositions));
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Portal Positions: \"" + Arrays.deepToString(getShapePortalPositions()) + "\"");
 
         final int[] tempLightPositions = new int[lightPositions.size()];
@@ -288,22 +179,179 @@ public class StargateShape
         setShapeLightPositions(tempLightPositions);
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Light Material Positions: \"" + Arrays.toString(getShapeLightPositions()) + "\"");
 
-        final int[][] tempStructurePositions = new int[blockPositions.size()][3];
-        for (int i = 0; i < blockPositions.size(); i++)
-        {
-            final int[] point = new int[3];
-            for (int j = 0; j < 3; j++)
-            {
-                point[j] = blockPositions.get(i)[j];
-            }
-            tempStructurePositions[i] = point;
-        }
-        setShapeStructurePositions(tempStructurePositions);
+        setShapeStructurePositions(toPoints(blockPositions));
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Stargate Material Positions: \"" + Arrays.deepToString(getShapeStructurePositions()) + "\"");
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Finished parsing shape: \"" + shapeName + "\"");
 
-        setShapeWooshDepth(curWooshDepth);
-        setShapeWooshDepthSquared(curWooshDepth * curWooshDepth);
+        setShapeWooshDepthSquared(getShapeWooshDepth() * getShapeWooshDepth());
+    }
+
+    /**
+     * Measures the grid that follows a {@code GateShape=} line.
+     *
+     * @param from
+     *            the first row of the grid
+     * @return the height and the width, in that order
+     */
+    private int[] measureGrid(final String[] fileData, final int from)
+    {
+        int height = 0;
+        int width = 0;
+        int index = from;
+        while (fileData[index].startsWith("["))
+        {
+            if (width <= 0)
+            {
+                final Matcher m = MARKER.matcher(fileData[index]);
+                while (m.find())
+                {
+                    width++;
+                }
+            }
+            height++;
+            index++;
+        }
+
+        if ((height <= 0) || (width <= 0))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
+            throw new IllegalArgumentException("Unable to parse custom gate due to incorrect height or width: \"" + shapeName + "\"");
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Shape: \"" + shapeName + "\"" + " Height: \"" + Integer.toString(height) + "\"" + " Width: \"" + Integer.toString(width) + "\"");
+        return new int[] {height, width};
+    }
+
+    /**
+     * Reads every marker in the grid into the collections the shape is built from.
+     *
+     * <p>Version one's alphabet is its own: {@code O} is a structure block, {@code P} the
+     * portal, {@code S} the sign and {@code E} the entry point. A light is {@code L} on a
+     * block that is also {@code O}, and is recorded as that block's number rather than as
+     * coordinates.
+     */
+    private void parseGrid(final String[] fileData, final int from, final int[] grid,
+        final ArrayList<Integer[]> blockPositions, final ArrayList<Integer[]> portalPositions,
+        final ArrayList<Integer> lightPositions)
+    {
+        final int height = grid[0];
+        final int width = grid[1];
+        int numBlocks = 0;
+        int index = from;
+        while (fileData[index].startsWith("["))
+        {
+            final Matcher m = MARKER.matcher(fileData[index]);
+            int j = 0;
+            while (m.find())
+            {
+                final String block = m.group(0);
+                final Integer[] point = {0, (height - 1 - (index - from)), (width - 1 - j)};
+                if (block.contains("O"))
+                {
+                    numBlocks++;
+                    blockPositions.add(point);
+                }
+                else if (block.contains("P"))
+                {
+                    portalPositions.add(point);
+                }
+
+                if (block.contains("S"))
+                {
+                    setShapeSignPosition(toPoint(point));
+                }
+                if (block.contains("E"))
+                {
+                    setShapeEnterPosition(toPoint(point));
+                }
+                if (block.contains("L") && block.contains("O"))
+                {
+                    lightPositions.add(numBlocks - 1);
+                }
+                j++;
+            }
+            index++;
+        }
+    }
+
+    /**
+     * Applies one {@code KEY=value} line that is neither the name nor the grid.
+     *
+     * <p>An unrecognised line is ignored, which is what lets a shape file carry comments and
+     * keys written for a later version of the plugin.
+     */
+    private void applySetting(final String line)
+    {
+        for (final java.util.Map.Entry<String, Integer> axis : BUTTON_AXES.entrySet())
+        {
+            if (line.contains(axis.getKey()))
+            {
+                // Read back, changed, and set again: the getter hands out a clone, so writing
+                // through it went nowhere and every BUTTON_ line was silently dropped.
+                final int[] corner = getShapeToGateCorner();
+                corner[axis.getValue()] = Integer.parseInt(line.split("=")[1]);
+                setShapeToGateCorner(corner);
+                return;
+            }
+        }
+        if (line.contains("WOOSH_DEPTH"))
+        {
+            setShapeWooshDepth(Integer.parseInt(line.split("=")[1]));
+            return;
+        }
+        for (final java.util.Map.Entry<String, java.util.function.BiConsumer<StargateShape, Material>> key
+            : MATERIAL_KEYS.entrySet())
+        {
+            if (line.contains(key.getKey()) && (line.split("=").length > 1))
+            {
+                final Material m = parseMaterialName(line.split("=")[1]);
+                if (m != null)
+                {
+                    key.getValue().accept(this, m);
+                }
+                return;
+            }
+        }
+    }
+
+    /**
+     * Reads a material name from a shape file, tolerating one this server does not know.
+     *
+     * <p>Shapes outlive the Minecraft versions they were written for, so an unreadable name
+     * means fall back to the palette rather than refuse the whole shape.
+     *
+     * @param name
+     *            the name as written in the file
+     * @return the material, or null if this server has no such block
+     */
+    public static Material parseMaterialName(final String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        try
+        {
+            return Material.valueOf(name.trim().toUpperCase(Locale.ROOT));
+        }
+        catch (final IllegalArgumentException notOnThisServer)
+        {
+            return null;
+        }
+    }
+
+    private static int[] toPoint(final Integer[] point)
+    {
+        return new int[] {point[0], point[1], point[2]};
+    }
+
+    private static int[][] toPoints(final ArrayList<Integer[]> points)
+    {
+        final int[][] out = new int[points.size()][3];
+        for (int i = 0; i < points.size(); i++)
+        {
+            out[i] = toPoint(points.get(i));
+        }
+        return out;
     }
 
     /**

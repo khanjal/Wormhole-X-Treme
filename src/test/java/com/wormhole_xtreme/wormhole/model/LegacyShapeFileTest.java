@@ -69,23 +69,20 @@ class LegacyShapeFileTest
     }
 
     /**
-     * The three button offsets are read and then thrown away. This is a bug.
+     * The three button offsets reach the corner the shape asked for.
      *
-     * <p>{@code getShapeToGateCorner()} hands back a clone, so
-     * {@code getShapeToGateCorner()[1] = ...} writes into a temporary that is discarded on the
-     * next line. A legacy shape naming its own button position silently gets the default one
-     * instead, which puts the DHD somewhere the shape did not ask for.
-     *
-     * <p>Pinned as it stands so the fix that follows shows the change rather than hiding it.
+     * <p>They used not to. {@code getShapeToGateCorner()} hands back a clone, so
+     * {@code getShapeToGateCorner()[1] = ...} wrote into a temporary that was dropped on the
+     * next line, and a legacy shape naming its own button position silently got the default.
      */
     @Test
-    void theButtonOffsetsAreCurrentlyDiscarded()
+    void theButtonOffsetsKeepTheirOwnAxes()
     {
         final StargateShape s = new StargateShape(shape(
             "BUTTON_RIGHT=2", "BUTTON_UP=1", "BUTTON_AWAY=3"));
 
-        assertArrayEquals(new int[] {1, -1, 4}, s.getShapeToGateCorner(),
-            "the file said 2, 1, 3 and the default survived unchanged");
+        assertArrayEquals(new int[] {2, 1, 3}, s.getShapeToGateCorner(),
+            "right, up, away -- not the order the file lists them in");
     }
 
     /** Woosh depth is squared once at parse time rather than at every animation step. */
@@ -124,22 +121,24 @@ class LegacyShapeFileTest
     }
 
     /**
-     * An unknown chevron name is tolerated, an unknown portal name is not.
+     * A material name this server does not know falls back, whichever key it was.
      *
-     * <p>This is the parser as it stands, and the two halves disagree. CHEVRON and SIGN were
-     * given a guard; PORTAL, IRIS, STARGATE and ACTIVE call valueOf straight, so a block
-     * renamed between Minecraft versions takes the whole shape down rather than falling back
-     * to the palette. Pinned as-is so the difference is visible before anything changes it.
+     * <p>The two halves used to disagree. CHEVRON and SIGN had a guard; PORTAL, IRIS,
+     * STARGATE and ACTIVE called valueOf straight, so a block renamed between Minecraft
+     * versions took the whole shape down and every gate built from it with it. They all go
+     * through the same tolerant parse now, which is what version 2 shapes already did.
      */
     @Test
-    void anUnknownMaterialNameIsToleratedForSomeKeysAndFatalForOthers()
+    void anUnknownMaterialNameIsToleratedForEveryKey()
     {
-        final StargateShape tolerated = new StargateShape(shape("CHEVRON_MATERIAL=NOT_A_REAL_BLOCK"));
-        assertEquals(null, tolerated.getShapeChevronMaterial(), "chevron falls back to the palette");
+        final Material defaultPortal = new StargateShape(shape()).getShapePortalMaterial();
 
-        assertThrows(IllegalArgumentException.class,
-            () -> new StargateShape(shape("PORTAL_MATERIAL=NOT_A_REAL_BLOCK")),
-            "portal does not, and takes the shape with it");
+        final StargateShape s = new StargateShape(shape(
+            "PORTAL_MATERIAL=NOT_A_REAL_BLOCK", "CHEVRON_MATERIAL=ALSO_NOT_REAL"));
+
+        assertEquals(defaultPortal, s.getShapePortalMaterial(),
+            "an unreadable portal name leaves the setting as a shape without the key at all");
+        assertEquals(null, s.getShapeChevronMaterial(), "chevron falls back to the palette");
     }
 
     /** A shape with no rows under GateShape= is refused rather than half-built. */
