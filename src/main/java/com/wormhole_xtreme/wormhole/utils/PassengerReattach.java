@@ -105,96 +105,163 @@ public final class PassengerReattach
         final List<Entity> children = new ArrayList<Entity>();
         EntityUtils.collectPassengerPairs(ridden, parents, children);
         // The teleport has usually already detached the moving player, so they will not
-        // appear in the collected tree — put them back explicitly.
+        // appear in the collected tree -- put them back explicitly.
         if (!children.contains(rider))
         {
             parents.add(ridden);
             children.add(rider);
         }
 
-        final int[] attempts = new int[] { 0 };
-        final boolean[] attached = new boolean[children.size()];
-        final Runnable[] taskHolder = new Runnable[1];
-        taskHolder[0] = new Runnable()
+        // 2-tick delay: there is no teleport-ack to wait for, the client re-seats immediately.
+        new Reattacher(ridden, parents, children, exitVelocity).scheduleIn(2);
+    }
+
+    /**
+     * Puts a vehicle's passengers back, retrying while the server keeps refusing.
+     *
+     * <p>Reschedules itself rather than being driven from outside, which is why it holds its
+     * own attempt count: the earlier shape passed a one-element array around so an anonymous
+     * Runnable could see the number it was incrementing.
+     */
+    private static final class Reattacher implements Runnable
+    {
+        private final Entity ridden;
+        private final List<Entity> parents;
+        private final List<Entity> children;
+        private final boolean[] attached;
+        private final Vector exitVelocity;
+        private int attempts;
+
+        Reattacher(final Entity ridden, final List<Entity> parents, final List<Entity> children,
+            final Vector exitVelocity)
         {
-            @Override
-            public void run()
+            this.ridden = ridden;
+            this.parents = parents;
+            this.children = children;
+            this.attached = new boolean[children.size()];
+            this.exitVelocity = exitVelocity;
+        }
+
+        void scheduleIn(final long ticks)
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), this, ticks);
+        }
+
+        @Override
+        public void run()
+        {
+            attempts++;
+            try
             {
-                attempts[0]++;
+                if (!ridden.isValid())
+                {
+                    return;
+                }
+                if (seatEveryone() == 0)
+                {
+                    settle();
+                }
+                else if (attempts < MAX_REATTACH_ATTEMPTS)
+                {
+                    // Backoff, capped: a passenger that has not arrived by now is not going to
+                    // arrive sooner for being asked more often.
+                    scheduleIn(Math.min(1L << Math.max(0, attempts - 1), 20L));
+                }
+                else
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to reattach passengers to " + ridden.getUniqueId() + " after " + attempts + " attempts");
+                }
+            }
+            catch (final RuntimeException t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach: " + t.getMessage());
+            }
+        }
+
+        /**
+         * Seats everyone not already aboard.
+         *
+         * @return how many are still not seated
+         */
+        private int seatEveryone()
+        {
+            int remaining = 0;
+            for (int i = 0; i < children.size(); i++)
+            {
+                if (attached[i])
+                {
+                    continue;
+                }
+                final Entity psg = children.get(i);
                 try
                 {
-                    if (!ridden.isValid())
+                    if (!psg.isValid())
                     {
-                        return;
+                        continue;
                     }
-                    int remaining = 0;
-                    for (int i = 0; i < children.size(); i++)
+                    if (attachPassenger(parents.get(i), psg))
                     {
-                        if (attached[i])
-                        {
-                            continue;
-                        }
-                        final Entity psg = children.get(i);
-                        try
-                        {
-                            if (!psg.isValid())
-                            {
-                                continue;
-                            }
-                            if (attachPassenger(parents.get(i), psg))
-                            {
-                                attached[i] = true;
-                            }
-                            else
-                            {
-                                remaining++;
-                            }
-                        }
-                        catch (final RuntimeException t)
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
-                            remaining++;
-                        }
-                    }
-
-                    if (remaining == 0)
-                    {
-                        try
-                        {
-                            ridden.setVelocity(exitVelocity != null ? exitVelocity : new Vector(0, 0, 0));
-                            ridden.setFireTicks(0);
-                        }
-                        catch (final RuntimeException ignore) { /* velocity and fire state are cosmetic */ }
-                        if (ridden instanceof Boat)
-                        {
-                            final Location resyncLoc = ridden.getLocation();
-                            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
-                            {
-                                @Override
-                                public void run()
-                                {
-                                    try { if (ridden.isValid()) { ridden.teleport(resyncLoc); } } catch (final RuntimeException ignore) { /* best effort */ }
-                                }
-                            }, 3L);
-                        }
-                    }
-                    else if (attempts[0] < MAX_REATTACH_ATTEMPTS)
-                    {
-                        final long backoff = Math.min(1L << Math.max(0, attempts[0] - 1), 20L);
-                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], backoff);
+                        attached[i] = true;
                     }
                     else
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to reattach passengers to " + ridden.getUniqueId() + " after " + attempts[0] + " attempts");
+                        remaining++;
                     }
                 }
                 catch (final RuntimeException t)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach: " + t.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
+                    remaining++;
                 }
             }
-        };
-        // 2-tick delay: there is no teleport-ack to wait for, the client re-seats immediately.
-        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), taskHolder[0], 2);
+            return remaining;
+        }
+
+        /** Everyone is aboard: give the vehicle its exit speed, and a boat its client re-sync. */
+        private void settle()
+        {
+            try
+            {
+                ridden.setVelocity(exitVelocity != null ? exitVelocity : new Vector(0, 0, 0));
+                ridden.setFireTicks(0);
+            }
+            catch (final RuntimeException ignore)
+            {
+                // velocity and fire state are cosmetic
+            }
+            if (ridden instanceof Boat)
+            {
+                resyncBoat();
+            }
+        }
+
+        /**
+         * Nudges a boat back to where it already is.
+         *
+         * <p>A client that has just re-seated in a boat can draw it in the wrong place until
+         * something tells it otherwise.
+         */
+        private void resyncBoat()
+        {
+            final Location resyncLoc = ridden.getLocation();
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try
+                    {
+                        if (ridden.isValid())
+                        {
+                            ridden.teleport(resyncLoc);
+                        }
+                    }
+                    catch (final RuntimeException ignore)
+                    {
+                        // best effort
+                    }
+                }
+            }, 3L);
+        }
     }
 }
