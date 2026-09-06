@@ -93,7 +93,8 @@ class LeverClickDispatchTest
         when(b.getZ()).thenReturn(Integer.valueOf(z));
         when(b.getLocation()).thenReturn(new Location(world, x, y, z));
         // A lever reports Switch data, which is what the iris toggle reads and sets.
-        when(b.getBlockData()).thenReturn(mock(org.bukkit.block.data.type.Switch.class));
+        final org.bukkit.block.data.type.Switch leverData = mock(org.bukkit.block.data.type.Switch.class);
+        when(b.getBlockData()).thenReturn(leverData);
         return b;
     }
 
