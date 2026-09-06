@@ -339,8 +339,8 @@ public final class SubCommands
     private static void register(final String name, final List<String> aliases, final String usage,
         final Object handler, final boolean dropSubcommandArg, final ArgCompleter completer)
     {
-        final SubCommand adapted = handler instanceof SubCommand
-            ? (SubCommand) handler
+        final SubCommand adapted = handler instanceof SubCommand sub
+            ? sub
             : adapt((org.bukkit.command.CommandExecutor) handler);
         final Entry entry = new Entry(name, aliases, usage, adapted, dropSubcommandArg, completer);
         ORDERED.add(entry);

@@ -196,9 +196,8 @@ public final class StargateHelper
         Stargate3DShape bestShape = null;
         for (final StargateShape shape : StargateShapeRegistry.getStargateShapes().values())
         {
-            if (shape instanceof Stargate3DShape)
+            if (shape instanceof Stargate3DShape shape3D)
             {
-                final Stargate3DShape shape3D = (Stargate3DShape) shape;
                 final Stargate result = check3DShape(clickedBlock, direction, shape3D);
                 if ((result != null) && beatsBestMatch(result, shape3D, best, bestShape))
                 {
@@ -269,9 +268,9 @@ public final class StargateHelper
         {
             return null;
         }
-        if (shape instanceof Stargate3DShape)
+        if (shape instanceof Stargate3DShape shape3D)
         {
-            return check3DShape(clickedBlock, direction, (Stargate3DShape) shape);
+            return check3DShape(clickedBlock, direction, shape3D);
         }
         return null;
     }

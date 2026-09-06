@@ -145,9 +145,8 @@ class StargateBlockSetup
                 try
                 {
                     final org.bukkit.block.data.BlockData bd = nameSign.getBlockData();
-                    if (bd instanceof Directional)
+                    if (bd instanceof Directional d)
                     {
-                        final Directional d = (Directional) bd;
                         dbg.append(" NameHolderFacing=").append(d.getFacing() != null ? d.getFacing().toString() : "null");
                     }
                 }
@@ -294,9 +293,9 @@ class StargateBlockSetup
 
             BlockFace facing = null;
             final BlockData oldData = signBlock.getBlockData();
-            if (oldData instanceof Directional)
+            if (oldData instanceof Directional oldFacing)
             {
-                facing = ((Directional) oldData).getFacing();
+                facing = oldFacing.getFacing();
             }
 
             signBlock.setType(want, false);
@@ -304,17 +303,16 @@ class StargateBlockSetup
             if (facing != null)
             {
                 final BlockData newData = signBlock.getBlockData();
-                if (newData instanceof Directional)
+                if (newData instanceof Directional newFacing)
                 {
-                    ((Directional) newData).setFacing(facing);
+                    newFacing.setFacing(facing);
                     signBlock.setBlockData(newData, false);
                 }
             }
 
             final org.bukkit.block.BlockState after = signBlock.getState();
-            if (after instanceof Sign)
+            if (after instanceof Sign fresh)
             {
-                final Sign fresh = (Sign) after;
                 restoreSignSide(fresh.getSide(Side.FRONT), frontLines, frontGlows);
                 restoreSignSide(fresh.getSide(Side.BACK), backLines, backGlows);
                 fresh.update(true, false);
@@ -363,7 +361,7 @@ class StargateBlockSetup
     {
         if ((gate.getGateIrisLeverBlock() == null)
             && (gate.getGateShape() != null)
-            && !((gate.getGateShape() instanceof Stargate3DShape) && ((Stargate3DShape) gate.getGateShape()).isShapeRedstoneActivated()))
+            && !((gate.getGateShape() instanceof Stargate3DShape shape) && shape.isShapeRedstoneActivated()))
         {
             final Block button = gate.getGateDialLeverBlock();
             if (button != null)
@@ -381,9 +379,9 @@ class StargateBlockSetup
                 // faces toward the player standing in front of the gate.
                 BlockFace buttonFacing = gate.getGateFacing(); // fallback if block data unavailable
                 final org.bukkit.block.data.BlockData bd = button.getBlockData();
-                if (bd instanceof Directional)
+                if (bd instanceof Directional buttonData)
                 {
-                    buttonFacing = ((Directional) bd).getFacing();
+                    buttonFacing = buttonData.getFacing();
                 }
                 final Block backing = button.getRelative(WorldUtils.getInverseDirection(buttonFacing));
                 final Block dhdBase = backing.getRelative(BlockFace.DOWN);
@@ -1331,9 +1329,9 @@ class StargateBlockSetup
                     safe = WorldUtils.findSafePlayerLocation(exit);
                 }
                 entity.teleport(safe);
-                if (entity instanceof Player)
+                if (entity instanceof Player traveller)
                 {
-                    ((Player) entity).setNoDamageTicks(5);
+                    traveller.setNoDamageTicks(5);
                 }
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Moved " + entity.getType() + " clear of closing iris on gate: " + gate.getGateName());

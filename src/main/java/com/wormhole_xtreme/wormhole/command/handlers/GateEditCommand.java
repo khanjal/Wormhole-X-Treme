@@ -178,8 +178,8 @@ public class GateEditCommand implements SubCommand
         // anything -- it is its own logic below -- so it had none at all until this. One
         // guard on the front door covers every field today and covers whatever field is
         // added next without relying on its author to remember this.
-        if ((sender instanceof Player)
-            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG))
+        if ((sender instanceof Player player)
+            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;

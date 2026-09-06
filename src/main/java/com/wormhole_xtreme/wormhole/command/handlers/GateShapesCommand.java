@@ -36,8 +36,8 @@ public class GateShapesCommand implements SubCommand
         // Same node the rest of gate management already requires -- this reaches into the
         // GateShapes directory and changes what every future gate on the server can be built
         // from, not something to leave open to any player who can run /wormhole.
-        if ((sender instanceof Player)
-            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG))
+        if ((sender instanceof Player player)
+            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;

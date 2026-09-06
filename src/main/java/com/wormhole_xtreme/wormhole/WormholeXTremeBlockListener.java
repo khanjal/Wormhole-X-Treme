@@ -118,9 +118,9 @@ class WormholeXTremeBlockListener implements Listener
                 {
                     BlockFace buttonFacing = stargate.getGateFacing(); // fallback
                     final org.bukkit.block.data.BlockData bd = dial.getBlockData();
-                    if (bd instanceof Directional)
+                    if (bd instanceof Directional buttonData)
                     {
-                        buttonFacing = ((Directional) bd).getFacing();
+                        buttonFacing = buttonData.getFacing();
                     }
                     final Block backing = dial.getRelative(WorldUtils.getInverseDirection(buttonFacing));
                     final Block dhdBase = backing.getRelative(BlockFace.DOWN);

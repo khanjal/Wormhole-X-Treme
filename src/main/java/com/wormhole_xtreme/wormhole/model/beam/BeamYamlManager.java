@@ -161,7 +161,7 @@ public final class BeamYamlManager
             // written before this field existed, or a place (which never gets one set on
             // it at all), both read back exactly the same way they would have before.
             final Object rawCost = map.get("Cost");
-            final Double cost = rawCost instanceof Number ? ((Number) rawCost).doubleValue() : null;
+            final Double cost = rawCost instanceof Number number ? number.doubleValue() : null;
             return new BeamDestination(name, world, x, y, z, yaw, pitch, cost);
         }
         catch (final RuntimeException e)
@@ -173,7 +173,7 @@ public final class BeamYamlManager
 
     private static double number(final Object value)
     {
-        return value instanceof Number ? ((Number) value).doubleValue() : 0.0;
+        return value instanceof Number number ? number.doubleValue() : 0.0;
     }
 
     /** Writes every currently loaded destination and place back to disk, atomically. */

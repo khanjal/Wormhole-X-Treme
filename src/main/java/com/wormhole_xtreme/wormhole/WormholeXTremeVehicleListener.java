@@ -671,9 +671,9 @@ class WormholeXTremeVehicleListener implements Listener
         // player travelling, and the cart is not a passenger's to veto.
         for (final Entity psg : passengers)
         {
-            if ((psg instanceof Player)
+            if ((psg instanceof Player rider)
                 && !com.wormhole_xtreme.wormhole.events.GateEvents.firePlayerTravel(
-                st, (Player) psg, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
+                st, rider, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Vehicle travel cancelled by a listener for player " + ((Player) psg).getName());
@@ -733,9 +733,8 @@ class WormholeXTremeVehicleListener implements Listener
                                                   final String gatenetwork)
     {
 
-        if (!passengers.isEmpty() && (passengers.get(0) instanceof Player))
+        if (!passengers.isEmpty() && (passengers.get(0) instanceof Player p))
         {
-            final Player p = (Player) passengers.get(0);
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Minecart Player in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
             if (ConfigManager.getWormholeUseIsTeleport() && ((st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.SIGN)) || ( !st.isGateSignPowered() && !WXPermissions.checkWXPermissions(p, st, PermissionType.DIALER))))
             {

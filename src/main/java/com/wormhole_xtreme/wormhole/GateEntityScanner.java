@@ -173,9 +173,9 @@ public final class GateEntityScanner implements Runnable
 
             copyProjectileState(projectile, spawned);
             projectile.remove();
-            if (spawned instanceof Projectile)
+            if (spawned instanceof Projectile shot)
             {
-                ProjectileGateTracker.track((Projectile) spawned);
+                ProjectileGateTracker.track(shot);
             }
             return spawned;
         }
@@ -198,20 +198,19 @@ public final class GateEntityScanner implements Runnable
     private static void copyProjectileState(final Projectile from, final Entity to)
     {
         to.setFireTicks(from.getFireTicks());
-        if (to instanceof Projectile)
+        if (to instanceof Projectile shot)
         {
             // Kill credit, and for an ender pearl, who gets teleported when it lands.
-            ((Projectile) to).setShooter(from.getShooter());
+            shot.setShooter(from.getShooter());
         }
-        if ((from instanceof org.bukkit.entity.ThrownPotion) && (to instanceof org.bukkit.entity.ThrownPotion))
+        if ((from instanceof org.bukkit.entity.ThrownPotion thrown)
+            && (to instanceof org.bukkit.entity.ThrownPotion replacement))
         {
             // Without this the potion still splashes but has no effect.
-            ((org.bukkit.entity.ThrownPotion) to).setItem(((org.bukkit.entity.ThrownPotion) from).getItem());
+            replacement.setItem(thrown.getItem());
         }
-        if ((from instanceof AbstractArrow) && (to instanceof AbstractArrow))
+        if ((from instanceof AbstractArrow a) && (to instanceof AbstractArrow b))
         {
-            final AbstractArrow a = (AbstractArrow) from;
-            final AbstractArrow b = (AbstractArrow) to;
             b.setDamage(a.getDamage());
             b.setCritical(a.isCritical());
             b.setPierceLevel(a.getPierceLevel());
@@ -282,7 +281,7 @@ public final class GateEntityScanner implements Runnable
         {
             return incoming;
         }
-        final boolean stopped = (entity instanceof AbstractArrow) && ((AbstractArrow) entity).isInBlock();
+        final boolean stopped = (entity instanceof AbstractArrow arrow) && arrow.isInBlock();
         if (stopped || incoming.lengthSquared() < (PROJECTILE_LAUNCH_SPEED * PROJECTILE_LAUNCH_SPEED))
         {
             return new Vector(PROJECTILE_LAUNCH_SPEED, 0, 0);
@@ -386,8 +385,8 @@ public final class GateEntityScanner implements Runnable
         // having landed — AbstractArrow.isInBlock() is readable but not settable — so it
         // arrives at the far gate already stuck and drops out of the air. The original is
         // consumed and a replacement fired instead.
-        final Entity arrived = (entity instanceof Projectile)
-            ? respawnProjectile((Projectile) entity, arrival, exit)
+        final Entity arrived = (entity instanceof Projectile shot)
+            ? respawnProjectile(shot, arrival, exit)
             : null;
 
         final Entity moved;

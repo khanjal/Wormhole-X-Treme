@@ -135,8 +135,8 @@ public class GateCommand implements SubCommand
         // Written fresh this session and given the same gap the rest of gate management
         // had: no permission check at all. Fixed at the same time as the others, on the
         // same node.
-        if ((sender instanceof Player)
-            && !WXPermissions.checkWXPermissions((Player) sender, PermissionType.CONFIG))
+        if ((sender instanceof Player player)
+            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;
