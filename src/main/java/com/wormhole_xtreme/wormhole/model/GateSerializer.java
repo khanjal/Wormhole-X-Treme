@@ -1054,49 +1054,39 @@ public final class GateSerializer
      */
     private static void writeBlockLists(final ByteBuffer dataArr, final Stargate s)
     {
-        dataArr.putInt(s.getGateStructureBlocks().size());
-        for (int i = 0; i < s.getGateStructureBlocks().size(); i++)
-        {
-            dataArr.put(DataUtils.blockLocationToBytes(s.getGateStructureBlocks().get(i)));
-        }
-        dataArr.putInt(s.getGatePortalBlocks().size());
-        for (int i = 0; i < s.getGatePortalBlocks().size(); i++)
-        {
-            dataArr.put(DataUtils.blockLocationToBytes(s.getGatePortalBlocks().get(i)));
-        }
+        writeBlockRun(dataArr, s.getGateStructureBlocks());
+        writeBlockRun(dataArr, s.getGatePortalBlocks());
+        writeWaves(dataArr, s.getGateLightBlocks());
+        writeWaves(dataArr, s.getGateWooshBlocks());
+    }
 
-        dataArr.putInt(s.getGateLightBlocks().size());
-        for (int i = 0; i < s.getGateLightBlocks().size(); i++)
+    /** How many blocks, then that many of them. */
+    private static void writeBlockRun(final ByteBuffer dataArr, final ArrayList<Location> blocks)
+    {
+        dataArr.putInt(blocks.size());
+        for (final Location block : blocks)
         {
-            if (s.getGateLightBlocks().get(i) != null)
-            {
-                dataArr.putInt(s.getGateLightBlocks().get(i).size());
-                for (int j = 0; j < s.getGateLightBlocks().get(i).size(); j++)
-                {
-                    dataArr.put(DataUtils.blockLocationToBytes(s.getGateLightBlocks().get(i).get(j)));
-                }
-            }
-            else
+            dataArr.put(DataUtils.blockLocationToBytes(block));
+        }
+    }
+
+    /**
+     * How many waves, then each wave as a run of its own.
+     *
+     * <p>A wave with nothing in it writes a count of zero rather than being skipped, so the
+     * wave numbers still line up when the reader walks them back.
+     */
+    private static void writeWaves(final ByteBuffer dataArr, final ArrayList<ArrayList<Location>> waves)
+    {
+        dataArr.putInt(waves.size());
+        for (final ArrayList<Location> wave : waves)
+        {
+            if (wave == null)
             {
                 dataArr.putInt(0);
+                continue;
             }
-        }
-
-        dataArr.putInt(s.getGateWooshBlocks().size());
-        for (int i = 0; i < s.getGateWooshBlocks().size(); i++)
-        {
-            if (s.getGateWooshBlocks().get(i) != null)
-            {
-                dataArr.putInt(s.getGateWooshBlocks().get(i).size());
-                for (int j = 0; j < s.getGateWooshBlocks().get(i).size(); j++)
-                {
-                    dataArr.put(DataUtils.blockLocationToBytes(s.getGateWooshBlocks().get(i).get(j)));
-                }
-            }
-            else
-            {
-                dataArr.putInt(0);
-            }
+            writeBlockRun(dataArr, wave);
         }
     }
 
