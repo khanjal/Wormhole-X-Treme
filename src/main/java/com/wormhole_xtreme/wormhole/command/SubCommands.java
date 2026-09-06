@@ -440,9 +440,12 @@ public final class SubCommands
     }
 
     /**
-     * The help message's command list, optionally narrowed to what a player without
-     * {@code wormhole.config} can actually run -- listing the admin subcommands to someone
-     * who will only be refused by them is noise, and tells them the server's layout besides.
+     * The help message's command list, optionally narrowed to the subcommands that carry
+     * their own nodes -- everything a player without {@code wormhole.config} is not refused
+     * by the dispatcher for. It is a filter on the registry, not on the sender: whether they
+     * hold {@code wormhole.beam.use} is the beam handler's question, asked when they run it.
+     * Listing the admin subcommands to someone the dispatcher will refuse outright is noise,
+     * and tells them the server's layout besides.
      *
      * @param selfPermissionedOnly
      *            true to list only the subcommands that check their own permissions

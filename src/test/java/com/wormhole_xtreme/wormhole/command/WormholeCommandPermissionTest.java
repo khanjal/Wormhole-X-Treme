@@ -81,10 +81,14 @@ class WormholeCommandPermissionTest
     }
 
     @Test
-    void theBareCommandTellsANonAdminWhatTheyCanActuallyRun()
+    void theBareCommandAnswersANonAdminWithTheSubcommandsTheConfigNodeDoesNotGate()
     {
         // Previously a flat refusal, which left a player who had been granted wormhole.beam.use
         // with no way to discover that /wormhole beam was the command it applied to.
+        //
+        // What is listed is the set the dispatcher will not refuse -- not a set this player is
+        // known to hold nodes for. They hold none here and beam is still listed, because
+        // whether they may beam is BeamPermissions' question, asked when they run it.
         command.onCommand(player, null, "wormhole", new String[0]);
 
         verify(player).sendMessage(contains("beam"));
@@ -118,7 +122,7 @@ class WormholeCommandPermissionTest
     }
 
     @Test
-    void theListOfferedToANonAdminLeavesOutTheAdminSubcommands()
+    void theNarrowedListIsTheSubcommandsCarryingTheirOwnNodes()
     {
         final String offered = SubCommands.nameList(true);
 

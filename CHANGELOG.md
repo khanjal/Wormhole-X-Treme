@@ -38,8 +38,13 @@ subcommand leaves it behind `wormhole.config`, which is the safe way to be wrong
 
 Two smaller things came out of it. `/wormhole` with no arguments used to answer a non-operator
 with a flat refusal, so a player who had been granted `wormhole.beam.use` had no way to find
-out that `/wormhole beam` was the command it applied to; it now lists the subcommands they can
-actually run. And `beam list` turned out to check nothing at all -- it was only ever unreachable
+out that `/wormhole beam` was the command it applied to; it now lists the subcommands the
+dispatcher will not refuse them. That is a filter on the registry, not on the player -- whether
+they hold `wormhole.beam.use` is still the beam handler's question, asked when they run it, so
+`beam` is listed to somebody who may yet be refused by it. Naming it as "what they can run",
+which is how I first wrote both the Javadoc and the test, was the Copilot review's catch.
+
+And `beam list` turned out to check nothing at all -- it was only ever unreachable
 because of the gate in front of it -- so it is behind `wormhole.beam.use` now with the rest of
 the player-facing beam surface.
 
