@@ -564,7 +564,8 @@ public final class GateSerializer
         final int facingSize = byteBuff.getInt();
         final byte[] strBytes = new byte[facingSize];
         byteBuff.get(strBytes);
-        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(new String(strBytes, java.nio.charset.StandardCharsets.UTF_8)));
+        final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
+        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
 
         orientArrival(s.getGatePlayerTeleportLocation(), s.getGateFacing());
     }
@@ -740,7 +741,8 @@ public final class GateSerializer
         final int facingSize = byteBuff.getInt();
         final byte[] strBytes = new byte[facingSize];
         byteBuff.get(strBytes);
-        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(new String(strBytes, java.nio.charset.StandardCharsets.UTF_8)));
+        final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
+        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
 
         orientArrival(s.getGatePlayerTeleportLocation(), s.getGateFacing());
         orientArrival(s.getGateMinecartTeleportLocation(), s.getGateFacing());
