@@ -38,7 +38,7 @@ public class Configuration
     protected static void loadConfiguration(final String pluginName)
     {
         // Prefer YAML config if present, otherwise fall back to legacy flat file.
-        final File yamlFile = new File("plugins" + File.separator + pluginName + File.separator + "config.yml");
+        final File yamlFile = ConfigurationYAML.getConfigFile(pluginName);
         if (yamlFile.exists())
         {
             ConfigurationYAML.loadConfiguration(pluginName);
@@ -53,7 +53,7 @@ public class Configuration
             }
             try
             {
-                ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
+                ConfigurationYAML.writeCurrentConfiguration(yamlFile);
                 WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.INFO, "Created default config.yml at: " + yamlFile.getPath());
             }
             catch (final RuntimeException t)
@@ -114,8 +114,7 @@ public class Configuration
     {
         try
         {
-            final java.io.File yamlFile = new java.io.File("plugins" + java.io.File.separator + pluginName + java.io.File.separator + "config.yml");
-            ConfigurationYAML.writeCurrentConfiguration(yamlFile, pluginName);
+            ConfigurationYAML.writeCurrentConfiguration(ConfigurationYAML.getConfigFile(pluginName));
         }
         catch (final RuntimeException t)
         {
