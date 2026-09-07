@@ -441,4 +441,81 @@ class GateDetectionTest
         assertEquals(clicked, found.getGateDialLeverBlock());
         assertNotNull(found.getGateNameBlockHolder(), "a Standard gate names an N cell");
     }
+
+    /**
+     * A chevron built from the chevron material is still a gate.
+     *
+     * <p>An {@code [S:L#n]} cell is a frame block that happens to sit in a lighting wave, and
+     * a shape naming a CHEVRON_MATERIAL lets one be built from that instead -- so the gate
+     * shows where its chevrons are before any of them light.
+     *
+     * <p>UnlitChevronTest describes this and tests the shape side of it. This is the
+     * detection side: without the tolerance, a gate built the way the feature intends is not
+     * recognised as a gate at all.
+     */
+    @Test
+    void aChevronBuiltFromTheChevronMaterialIsStillFound() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        s.setShapeChevronMaterial(Material.GLOWSTONE);
+
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+        placeLitCellsAs(s, BlockFace.SOUTH, 0, 64, 0, Material.GLOWSTONE);
+
+        assertNotNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
+            "a chevron in the chevron material belongs there");
+    }
+
+    /**
+     * And a chevron built from the frame material is still a gate too.
+     *
+     * <p>Every gate standing in every world today was built that way, so re-detection has to
+     * go on finding them. Both materials are accepted, not one or the other.
+     */
+    @Test
+    void aChevronBuiltFromTheFrameMaterialIsStillFound() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        s.setShapeChevronMaterial(Material.GLOWSTONE);
+
+        // build() puts the frame material everywhere, chevron positions included.
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        assertNotNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
+            "an obsidian chevron is what every existing gate has");
+    }
+
+
+    /** Puts the given material in every cell the shape marks with a light order. */
+    private void placeLitCellsAs(final Stargate3DShape s, final BlockFace facing,
+                                 final int ox, final int oy, final int oz, final Material material)
+    {
+        final BlockFace right = WorldUtils.getPerpendicularRightDirection(facing);
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            if (layer == null)
+            {
+                continue;
+            }
+            final List<List<Integer[]>> waves = layer.getLayerLightPositions();
+            if (waves == null)
+            {
+                continue;
+            }
+            for (int waveIdx = 1; waveIdx < waves.size(); waveIdx++)
+            {
+                if (waves.get(waveIdx) == null)
+                {
+                    continue;
+                }
+                for (final Integer[] pos : waves.get(waveIdx))
+                {
+                    place(ox, oy, oz, facing, right, layerIdx, pos, material);
+                }
+            }
+        }
+    }
+
 }
