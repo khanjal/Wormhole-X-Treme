@@ -1071,6 +1071,10 @@ public final class GateSerializer
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to store gate in DB, byte encoding failed: " + e.getMessage());
+            // Null rather than an empty array, which Sonar's S1168 would prefer: the caller
+            // has to tell "could not encode this gate" from "encoded it", and writing a gate
+            // file with no data in it produces a gate that loads with no blocks at all. See
+            // StargateYamlManager.saveStargate, which skips the gate on null.
             return null;
         }
 

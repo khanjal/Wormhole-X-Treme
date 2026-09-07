@@ -245,12 +245,17 @@ condition, an empty `shutdown()` that said why in its Javadoc but not in its bod
 `reach` field `BukkitRingWorld` stored and never read -- along with the constructor argument
 that fed it, since its one caller already had the value for something else.
 
-**Three `return null`s were left as they are.** `StargateShapeRegistry.readShapeFileLines`
+**Four `return null`s were left as they are.** `StargateShapeRegistry.readShapeFileLines`
 returns null for "does not exist or could not be read", and its caller turns that into
 "No such file"; an empty array there would make an unreadable shape look like a blank but
 valid one. `StargateAnimator.wooshWave` documents null as "the shape authored this index as
-empty", which an empty list cannot say. Returning empty collections is good advice in general
-and wrong at these three sites.
+empty", which an empty list cannot say. And `stargatetoBinary` returns null when it cannot
+encode a gate, which the shutdown save has to tell apart from a gate that encoded -- a file
+with no data in it loads as a gate with no blocks. That fourth one was there all along, hidden
+behind a `final byte[] b = null; return b;` that the analyser could not see through; tidying
+the pointless local away is what made it visible.
+
+Returning empty collections is good advice in general and wrong at all four sites.
 
 ### An error message asked whether you were a player, then said the same thing either way
 

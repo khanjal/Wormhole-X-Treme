@@ -50,8 +50,6 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     /** The world this operates in. Both ends of a pair are always in it. */
     private final World world;
 
-    /** How deep a trigger volume runs, needed to work out where arrivals land. */
-
     /** The pair being drawn, whose two ends decide who can see it. */
     private final RingPair pair;
 
