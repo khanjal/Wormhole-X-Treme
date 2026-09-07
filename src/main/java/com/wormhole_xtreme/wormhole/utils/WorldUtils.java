@@ -47,10 +47,7 @@ public class WorldUtils
         }
     }
 
-    /**
-     * Returns true if the material is any form of ice that we care about.
-     */
-    // NOTE: ice-related predicates have moved to MaterialUtils
+    // The ice-related predicates that used to live here have moved to MaterialUtils.
 
     /**
      * Gets the inverse direction.

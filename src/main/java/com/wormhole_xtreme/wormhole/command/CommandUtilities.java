@@ -16,6 +16,10 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 public class CommandUtilities
 {
+    /** A literal quote, stripped once per argument while splitting a command line. */
+    private static final java.util.regex.Pattern QUOTE =
+        java.util.regex.Pattern.compile("\"");
+
     /** Static helpers only; never instantiated. */
     private CommandUtilities()
     {
@@ -76,7 +80,7 @@ public class CommandUtilities
             if (part.contains("\"") && !startQuoteFound)
             {
                 // Two quotes in same string = no spaces in quoted text;
-                if ( !part.replaceFirst("\"", "").contains("\""))
+                if (!QUOTE.matcher(part).replaceFirst("").contains("\""))
                 {
                     startQuoteFound = true;
                 }

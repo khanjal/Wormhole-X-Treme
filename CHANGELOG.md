@@ -237,6 +237,20 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### Two Javadocs describing methods that no longer exist
+
+`StargateRestrictions` and `WorldUtils` each carried a comment for something that had been
+deleted, with a note underneath saying where it went. The note is the part worth keeping;
+the Javadoc was documenting nothing.
+
+Alongside them: three regular expressions that were being recompiled once per line of a
+config description, a shape file, or a command argument, now compiled once; a layer number
+read with `Integer.valueOf` where `parseInt` says it; a `get`-then-`put` that is one
+`computeIfAbsent`; a local named for the field it shadowed; and two branches in `/wormhole
+list` that added the same gate either way.
+
+No behaviour change.
+
 ### Eight findings that must not be "fixed" now say so in the code
 
 Five Bukkit event classes need both a static `getHandlerList()` and an instance

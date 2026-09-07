@@ -160,7 +160,7 @@ public class ConfigManager
     /**
      * The Enum StringTypes.
      */
-    public static enum MessageStrings
+    public enum MessageStrings
     {
 
         /** The error header. */

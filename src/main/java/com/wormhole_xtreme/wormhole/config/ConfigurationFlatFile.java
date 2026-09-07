@@ -178,32 +178,21 @@ class ConfigurationFlatFile
     protected static String getValueFromSetting(final File input, final ConfigKeys name, final String defaultVal) throws IOException
     {
 
-        BufferedReader bufferedReader = null;
-        try
+        try (BufferedReader bufferedReader =
+            new BufferedReader(new FileReader(input, StandardCharsets.UTF_8)))
         {
-            bufferedReader = new BufferedReader(new FileReader(input, StandardCharsets.UTF_8));
             for (String raw = ""; (raw = bufferedReader.readLine()) != null;)
             {
                 final String found = valueIfThisIsTheSetting(raw, bufferedReader, name, defaultVal);
                 if (found != null)
                 {
-                    bufferedReader.close();
                     return found;
                 }
             }
-            bufferedReader.close();
-
         }
         catch (final FileNotFoundException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, e.getMessage());
-        }
-        finally
-        {
-            if (bufferedReader != null)
-            {
-                bufferedReader.close();
-            }
         }
         return defaultVal.trim();
     }

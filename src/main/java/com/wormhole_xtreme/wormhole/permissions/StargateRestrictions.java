@@ -96,12 +96,8 @@ public class StargateRestrictions
         return -1;
     }
 
-    /**
-     * Gets the player use cooldown group.
-     * 
-     * @return the player use cooldown group
-     */
-    // player-use cooldown group map removed; per-player cooldowns are tracked via `playerUseCooldownStart` only.
+    // The player-use cooldown group map was removed; per-player cooldowns are tracked via
+    // playerUseCooldownStart alone.
 
     /**
      * Gets the player use cooldown list.

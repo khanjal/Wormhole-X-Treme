@@ -345,9 +345,8 @@ public class RingCommand implements SubCommand
                 continue;
             }
             final org.bukkit.block.data.BlockData data = ring.getRingMaterial().createBlockData();
-            if (data instanceof org.bukkit.block.data.type.Slab)
+            if (data instanceof org.bukkit.block.data.type.Slab slab)
             {
-                final org.bukkit.block.data.type.Slab slab = (org.bukkit.block.data.type.Slab) data;
                 slab.setType(top
                     ? org.bukkit.block.data.type.Slab.Type.TOP
                     : org.bukkit.block.data.type.Slab.Type.BOTTOM);
