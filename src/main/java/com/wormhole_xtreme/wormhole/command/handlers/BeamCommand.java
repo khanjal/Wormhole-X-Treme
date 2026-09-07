@@ -408,69 +408,111 @@ public class BeamCommand implements SubCommand
         final int remaining = args.length - start;
         if (remaining == 1)
         {
-            final Player target = Bukkit.getPlayerExact(args[start]);
-            if (target != null)
-            {
-                return target.getLocation();
-            }
-            // Not an online player, so try the public destination list before giving up --
-            // "send someone to spawn" is the obvious thing to reach for, and having to look
-            // up spawn's coordinates by hand to express it was a gap rather than a decision.
-            //
-            // Public destinations only, deliberately: a private place belongs to whoever set
-            // it, and for "send" that would be the target rather than the sender, so a name
-            // could silently mean something the sender cannot see and never chose. An admin
-            // move should not be routed through another player's private list. Players reach
-            // their own places through "beam to", which checks them first by design.
-            final BeamDestination destination = BeamManager.getPublicDestination(args[start]);
-            if (destination == null)
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "No online player or public beam destination named \"" + args[start] + "\".");
-                return null;
-            }
-            final Location located = destination.toLocation();
-            if (located == null)
-            {
-                // The destination outlived the world it was recorded in, or that world just
-                // isn't loaded right now. Saying so beats "no such destination", which would
-                // send someone looking for a typo in a name that is actually fine.
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "Beam destination \"" + destination.getName() + "\" is in world \""
-                    + destination.getWorldName() + "\", which is not loaded.");
-                return null;
-            }
-            return located;
+            return resolveNamedDestination(sender, args[start]);
         }
+        // Both arms below refuse by returning null after saying why, so the only thing this
+        // method decides is which question is being asked. Four of the six ways it can be
+        // got wrong are still unpinned -- they run through Bukkit.getPlayerExact and
+        // Bukkit.getWorld, which this suite does not mock. See BeamCommandTest.
         if ((remaining == 3) || (remaining == 4))
         {
-            final Double x = parseCoordinate(sender, args[start]);
-            final Double y = parseCoordinate(sender, args[start + 1]);
-            final Double z = parseCoordinate(sender, args[start + 2]);
-            if ((x == null) || (y == null) || (z == null))
-            {
-                return null;
-            }
-            final World world;
-            if (remaining == 4)
-            {
-                world = Bukkit.getWorld(args[start + 3]);
-                if (world == null)
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                        + "No world named \"" + args[start + 3] + "\".");
-                    return null;
-                }
-            }
-            else
-            {
-                world = defaultWorld;
-            }
-            return new Location(world, x, y, z, defaultYaw, defaultPitch);
+            return resolveCoordinates(sender, args, start, defaultWorld, defaultYaw, defaultPitch);
         }
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Expected a player name, a public destination name, or <x> <y> <z> [world].");
         return null;
+    }
+
+    /**
+     * One token: an online player, or a public beam destination.
+     *
+     * @param sender
+     *            who asked, for the refusals
+     * @param name
+     *            the player or destination name as typed
+     * @return where to beam to, or null if it was neither
+     */
+    private Location resolveNamedDestination(final CommandSender sender, final String name)
+    {
+        final Player target = Bukkit.getPlayerExact(name);
+        if (target != null)
+        {
+            return target.getLocation();
+        }
+        // Not an online player, so try the public destination list before giving up --
+        // "send someone to spawn" is the obvious thing to reach for, and having to look
+        // up spawn's coordinates by hand to express it was a gap rather than a decision.
+        //
+        // Public destinations only, deliberately: a private place belongs to whoever set
+        // it, and for "send" that would be the target rather than the sender, so a name
+        // could silently mean something the sender cannot see and never chose. An admin
+        // move should not be routed through another player's private list. Players reach
+        // their own places through "beam to", which checks them first by design.
+        final BeamDestination destination = BeamManager.getPublicDestination(name);
+        if (destination == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "No online player or public beam destination named \"" + name + "\".");
+            return null;
+        }
+        final Location located = destination.toLocation();
+        if (located == null)
+        {
+            // The destination outlived the world it was recorded in, or that world just
+            // isn't loaded right now. Saying so beats "no such destination", which would
+            // send someone looking for a typo in a name that is actually fine.
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "Beam destination \"" + destination.getName() + "\" is in world \""
+                + destination.getWorldName() + "\", which is not loaded.");
+            return null;
+        }
+        return located;
+    }
+
+    /**
+     * Three or four tokens: coordinates, optionally in a named world.
+     *
+     * @param sender
+     *            who asked, for the refusals
+     * @param args
+     *            the full argument array
+     * @param start
+     *            the index the destination group starts at
+     * @param defaultWorld
+     *            the world to use when none is named
+     * @param defaultYaw
+     *            the facing to carry through
+     * @param defaultPitch
+     *            the pitch to carry through
+     * @return where to beam to, or null if a coordinate or world would not read
+     */
+    private Location resolveCoordinates(final CommandSender sender, final String[] args, final int start,
+        final World defaultWorld, final float defaultYaw, final float defaultPitch)
+    {
+        final int remaining = args.length - start;
+        final Double x = parseCoordinate(sender, args[start]);
+        final Double y = parseCoordinate(sender, args[start + 1]);
+        final Double z = parseCoordinate(sender, args[start + 2]);
+        if ((x == null) || (y == null) || (z == null))
+        {
+            return null;
+        }
+        final World world;
+        if (remaining == 4)
+        {
+            world = Bukkit.getWorld(args[start + 3]);
+            if (world == null)
+            {
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                    + "No world named \"" + args[start + 3] + "\".");
+                return null;
+            }
+        }
+        else
+        {
+            world = defaultWorld;
+        }
+        return new Location(world, x, y, z, defaultYaw, defaultPitch);
     }
 
     Double parseCoordinate(final CommandSender sender, final String raw)
