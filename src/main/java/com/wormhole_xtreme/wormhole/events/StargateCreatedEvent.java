@@ -15,7 +15,16 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  *
  * <p>{@link #getBuilder()} is the player who completed it, and may be null for a gate
  * created by something other than a player.
+ *
+ * <p>The two handler-list accessors below are necessarily identical, which is why this class
+ * carries {@code @SuppressWarnings("java:S4144")}. Bukkit requires both: {@code Event}
+ * declares {@code getHandlers()} abstract, and {@code SimplePluginManager} looks the static
+ * {@code getHandlerList()} up reflectively -- it carries the literal error string
+ * {@code getHandlerList must be static}. Both return the same field because there is one
+ * handler list per event type. Removing or delegating either breaks event registration at
+ * runtime, and no test here would catch it: the tests do not run a plugin manager.
  */
+@SuppressWarnings("java:S4144")
 public class StargateCreatedEvent extends StargateEvent
 {
     /** Bukkit dispatches on this list; it must be declared per concrete event class. */
