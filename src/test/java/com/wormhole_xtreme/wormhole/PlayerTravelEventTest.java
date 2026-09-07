@@ -375,4 +375,24 @@ class PlayerTravelEventTest
         verify(player).teleport(origin.getGatePlayerTeleportLocation());
         verify(player, never()).teleport(destination.getGatePlayerTeleportLocation());
     }
+
+    /** A traveller who cannot pay is turned away rather than moved and billed. */
+    @Test
+    void aTravellerWhoCannotPayDoesNotTravel()
+    {
+        try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
+             MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            config.when(ConfigManager::isEconomyEnabled).thenReturn(true);
+            config.when(ConfigManager::getEconomyUseCost).thenReturn(5.0);
+            economy.when(EconomySupport::isAvailable).thenReturn(true);
+            economy.when(() -> EconomySupport.canAfford(any(), anyDouble())).thenReturn(false);
+
+            walkIn();
+
+            economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
+            verify(player, never()).teleport(destination.getGatePlayerTeleportLocation());
+            assertTrue(raised.isEmpty(), "nobody is asked about a trip that is not affordable");
+        }
+    }
 }
