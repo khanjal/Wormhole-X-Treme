@@ -219,95 +219,166 @@ class StargateAnimator
     {
         if (on)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Lighting up Order: " + gate.getGateLightingCurrentIteration());
-            if (gate.getGateLightingCurrentIteration() == 0)
-            {
-                gate.setGateLightsActive(true);
-                GateSounds.activated(gate);
-            }
-            else if (!gate.isGateLightsActive())
-            {
-                lightStargate(gate, false);
-                gate.setGateLightingCurrentIteration(0);
-                return;
-            }
-            gate.setGateLightingCurrentIteration(gate.getGateLightingCurrentIteration() + 1);
+            lightNextChevron(gate);
+        }
+        else
+        {
+            darkenStargate(gate);
+        }
+    }
 
-            if (gate.getGateLightBlocks() != null)
-            {
-                if ((gate.getGateLightBlocks().size() > 0) && (gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()) != null))
-                {
-                    // Drawn, not placed. A real lit chevron is an ordinary breakable
-                    // glowstone block for the seconds it stands there, and a server that
-                    // stops mid-dial used to leave the lit ones welded into the frame.
-                    //
-                    // Through drawLights rather than drawBlocks because a chevron the player
-                    // built out of the chevron material lights as that same block switched on,
-                    // and which positions those are is a per-block question.
-                    StargateBlockSetup.drawLights(gate,
-                        gate.getGateLightBlocks().get(gate.getGateLightingCurrentIteration()));
-                    // Off the same counter that drives the lights, so the sound cannot drift
-                    // out of step with what it is describing.
-                    GateSounds.chevron(gate, gate.getGateLightingCurrentIteration(),
-                        gate.getGateLightBlocks().size() - 1);
-                }
+    /**
+     * Draws the next wave of chevron lights and books the tick after it.
+     *
+     * @param gate
+     *            the gate
+     */
+    private static void lightNextChevron(final Stargate gate)
+    {
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Lighting up Order: " + gate.getGateLightingCurrentIteration());
+        if (gate.getGateLightingCurrentIteration() == 0)
+        {
+            gate.setGateLightsActive(true);
+            GateSounds.activated(gate);
+        }
+        else if (!gate.isGateLightsActive())
+        {
+            // The gate went dark part-way through the sequence, so start it over rather
+            // than carrying on from wherever the counter had reached.
+            darkenStargate(gate);
+            gate.setGateLightingCurrentIteration(0);
+            return;
+        }
 
-                if (gate.getGateLightingCurrentIteration() >= gate.getGateLightBlocks().size() - 1)
-                {
-                    gate.setGateLightingCurrentIteration(0);
-                    if (gate.isGateActive())
-                    {
-                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
-                    }
-                }
-                else
-                {
-                    WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
-                }
+        final int step = gate.getGateLightingCurrentIteration() + 1;
+        gate.setGateLightingCurrentIteration(step);
+
+        final List<List<Location>> waves = gate.getGateLightBlocks();
+        if (waves == null)
+        {
+            return;
+        }
+        drawLightWave(gate, waves, step);
+        scheduleNextStep(gate, waves, step);
+    }
+
+    /**
+     * Draws one wave of chevron lights, if there is one at this step.
+     *
+     * <p>Waves are numbered from one -- the shape parser pads the list up to the highest
+     * order it sees, so index 0 is padding and never drawn, which is why the counter is
+     * advanced before the wave is read. A shape whose lights are numbered from zero leaves
+     * the counter one past the end, so the bound is checked rather than assumed.
+     *
+     * @param gate
+     *            the gate
+     * @param waves
+     *            its light waves
+     * @param step
+     *            which wave to draw
+     */
+    private static void drawLightWave(final Stargate gate, final List<List<Location>> waves, final int step)
+    {
+        if ((step >= waves.size()) || (waves.get(step) == null))
+        {
+            return;
+        }
+        // Drawn, not placed. A real lit chevron is an ordinary breakable glowstone block for
+        // the seconds it stands there, and a server that stops mid-dial used to leave the lit
+        // ones welded into the frame.
+        //
+        // Through drawLights rather than drawBlocks because a chevron the player built out of
+        // the chevron material lights as that same block switched on, and which positions
+        // those are is a per-block question.
+        StargateBlockSetup.drawLights(gate, waves.get(step));
+        // Off the same counter that drives the lights, so the sound cannot drift out of step
+        // with what it is describing.
+        GateSounds.chevron(gate, step, waves.size() - 1);
+    }
+
+    /**
+     * Books the next lighting tick, or hands over to the woosh once the last wave is lit.
+     *
+     * @param gate
+     *            the gate
+     * @param waves
+     *            its light waves
+     * @param step
+     *            the wave just drawn
+     */
+    private static void scheduleNextStep(final Stargate gate, final List<List<Location>> waves, final int step)
+    {
+        if (step >= waves.size() - 1)
+        {
+            gate.setGateLightingCurrentIteration(0);
+            if (gate.isGateActive())
+            {
+                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.ANIMATE_WOOSH));
             }
         }
         else
         {
-            gate.setGateLightsActive(false);
-            if (gate.getGateLightBlocks() != null)
-            {
-                for (int i = 0; i < gate.getGateLightBlocks().size(); i++)
-                {
-                    if (gate.getGateLightBlocks().get(i) != null)
-                    {
-                        // Shown as whatever is really there rather than as the structure
-                        // material: the frame was never changed, so this is putting a
-                        // drawing away rather than rebuilding anything.
-                        StargateBlockSetup.undrawBlocks(gate, gate.getGateLightBlocks().get(i));
-                    }
-                }
-            }
-
-            // The woosh can be mid-step when a gate closes: its own step-by-step
-            // retraction is the only thing that ever undraws it, and closing does not wait
-            // for that to finish first. A deep gate's woosh (Massive's thirteen steps, for
-            // instance) takes long enough that an early manual close, or a partner gate
-            // shutting down mid-opening, has a real window to land inside it -- leaving
-            // whatever was drawn so far (the woosh material, the wave nearest the portal
-            // on the very first step) showing to anyone nearby until their client
-            // happens to get a fresh copy of that chunk some other way. Same principle as
-            // the chevron undraw just above, extended to the animation that never had it:
-            // closing reverts whatever was left showing, not just whatever it expected to
-            // find. animateOpening's own gate.isGateActive() guard is what stops an
-            // already-scheduled continuation from reading this reset-to-zero counter as
-            // "start a fresh opening" once it fires after this.
-            if (!gate.getGateAnimatedBlocks().isEmpty())
-            {
-                final ArrayList<Location> stillShowing = new ArrayList<Location>();
-                for (final Block b : gate.getGateAnimatedBlocks())
-                {
-                    stillShowing.add(b.getLocation());
-                }
-                StargateBlockSetup.undrawBlocks(gate, stillShowing);
-                gate.getGateAnimatedBlocks().clear();
-            }
-            gate.setGateAnimationStep3D(0);
-            gate.setGateAnimationRemoving(false);
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(gate, ActionToTake.LIGHTUP), gate.getEffectiveLightTicks());
         }
+    }
+
+    /**
+     * Puts every chevron light away and resets what the woosh left behind.
+     *
+     * @param gate
+     *            the gate
+     */
+    private static void darkenStargate(final Stargate gate)
+    {
+        gate.setGateLightsActive(false);
+        if (gate.getGateLightBlocks() != null)
+        {
+            for (int i = 0; i < gate.getGateLightBlocks().size(); i++)
+            {
+                if (gate.getGateLightBlocks().get(i) != null)
+                {
+                    // Shown as whatever is really there rather than as the structure
+                    // material: the frame was never changed, so this is putting a drawing
+                    // away rather than rebuilding anything.
+                    StargateBlockSetup.undrawBlocks(gate, gate.getGateLightBlocks().get(i));
+                }
+            }
+        }
+        undrawLeftoverWoosh(gate);
+        gate.setGateAnimationStep3D(0);
+        gate.setGateAnimationRemoving(false);
+    }
+
+    /**
+     * Puts away whatever the woosh was still showing when the gate closed.
+     *
+     * <p>The woosh can be mid-step when a gate closes: its own step-by-step retraction is the
+     * only thing that ever undraws it, and closing does not wait for that to finish. A deep
+     * gate's woosh (Massive's thirteen steps, for instance) takes long enough that an early
+     * manual close, or a partner gate shutting down mid-opening, has a real window to land
+     * inside it -- leaving whatever was drawn so far showing to anyone nearby until their
+     * client happens to get a fresh copy of that chunk some other way.
+     *
+     * <p>Same principle as the chevron undraw: closing reverts whatever was left showing, not
+     * just whatever it expected to find. animateOpening's own isGateActive guard is what stops
+     * an already-scheduled continuation from reading this reset counter as "start a fresh
+     * opening" once it fires after this.
+     *
+     * @param gate
+     *            the gate
+     */
+    private static void undrawLeftoverWoosh(final Stargate gate)
+    {
+        if (gate.getGateAnimatedBlocks().isEmpty())
+        {
+            return;
+        }
+        final List<Location> stillShowing = new ArrayList<Location>();
+        for (final Block b : gate.getGateAnimatedBlocks())
+        {
+            stillShowing.add(b.getLocation());
+        }
+        StargateBlockSetup.undrawBlocks(gate, stillShowing);
+        gate.getGateAnimatedBlocks().clear();
     }
 }
