@@ -237,6 +237,16 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### An error message asked whether you were a player, then said the same thing either way
+
+Both command safety nets branched on `playerCheck(sender)` and sent the identical "an internal
+error occurred" down both arms. The test was doing nothing at all -- a pure `instanceof` whose
+answer changed nothing -- so it is gone, and there is now a test for the console sender saying
+so, rather than the removal resting on the two arms having looked the same.
+
+Everyone is told the same thing on purpose: the stack trace is in the log, and neither a
+player nor an operator at the console can act on more than that.
+
 ### Loops that jumped out of themselves in several places now do it once
 
 Sixteen loops across fourteen files each had two or three `continue`s stacked at the top --

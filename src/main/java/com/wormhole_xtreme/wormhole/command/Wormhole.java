@@ -75,14 +75,9 @@ public class Wormhole implements CommandExecutor
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error executing /wormhole command: " + t.getMessage());
-            if (CommandUtilities.playerCheck(sender))
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
-            }
+            // Everyone is told the same thing, console included: a stack trace is in the log
+            // and neither a player nor an operator can act on more than that.
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
             return true;
         }
     }

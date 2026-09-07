@@ -260,14 +260,9 @@ public class CommandUtilities
         catch (final Exception t)
         {
             com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing command: " + t.getMessage());
-            if (playerCheck(sender))
-            {
-                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
-            }
-            else
-            {
-                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
-            }
+            // Everyone is told the same thing, console included: a stack trace is in the log
+            // and neither a player nor an operator can act on more than that.
+            sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
             return true;
         }
     }
