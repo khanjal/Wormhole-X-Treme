@@ -1315,11 +1315,10 @@ class StargateBlockSetup
         {
             try
             {
-                if (!(entity instanceof org.bukkit.entity.LivingEntity))
-                {
-                    continue;
-                }
-                if (!isInIrisPath(gate, entity.getLocation()))
+                // Only a living thing can suffocate, and only one standing where the iris
+                // is about to be is in the way.
+                if (!(entity instanceof org.bukkit.entity.LivingEntity)
+                    || !isInIrisPath(gate, entity.getLocation()))
                 {
                     continue;
                 }

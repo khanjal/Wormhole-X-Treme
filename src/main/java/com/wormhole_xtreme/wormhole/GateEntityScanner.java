@@ -124,23 +124,44 @@ public final class GateEntityScanner implements Runnable
 
         for (final Entity entity : candidates)
         {
-            try
+            sendOneThroughQuietly(entity, gate, arrival, target.getGateFacing());
+        }
+    }
+
+    /**
+     * Sends one entity through, if it is standing somewhere that counts.
+     *
+     * <p>The candidates come from a bounding box, which is bigger than the wormhole itself,
+     * so being in the box is not yet a reason to be sent anywhere.
+     *
+     * @param entity
+     *            the entity to consider
+     * @param gate
+     *            the gate it is standing in
+     * @param arrival
+     *            where it comes out
+     * @param facing
+     *            the way the far gate faces, for the direction it arrives travelling
+     */
+    private static void sendOneThroughQuietly(final Entity entity, final Stargate gate,
+        final Location arrival, final org.bukkit.block.BlockFace facing)
+    {
+        try
+        {
+            if (!shouldSendThrough(entity))
             {
-                if (!shouldSendThrough(entity))
-                {
-                    continue;
-                }
-                final Location at = entity.getLocation();
-                if (!gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
-                {
-                    continue; // inside the bounding box but not in the wormhole itself
-                }
-                sendThrough(entity, arrival, target.getGateFacing());
+                return;
             }
-            catch (final RuntimeException t)
+            final Location at = entity.getLocation();
+            if (!gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate: " + t.getMessage());
+                return; // inside the bounding box but not in the wormhole itself
             }
+            sendThrough(entity, arrival, facing);
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate: " + t.getMessage());
         }
     }
 

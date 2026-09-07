@@ -958,25 +958,36 @@ public final class SubCommands
         final List<String> out = new ArrayList<String>();
         for (final org.bukkit.Material material : org.bukkit.Material.values())
         {
-            // Legacy materials are duplicates of real ones under old names, and offering
-            // them would double the list with things nobody should be typing.
-            if (material.isLegacy()
-                || !com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
-            {
-                continue;
-            }
-            if (slabsOnly && !com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(material))
-            {
-                continue;
-            }
             final String name = material.name().toLowerCase(Locale.ROOT);
-            if (name.startsWith(p))
+            if (worthOffering(material, slabsOnly) && name.startsWith(p))
             {
                 out.add(name);
             }
         }
         Collections.sort(out);
         return out;
+    }
+
+    /**
+     * Whether a material is worth putting in front of somebody typing.
+     *
+     * <p>Legacy materials are duplicates of real ones under old names, and offering them
+     * would double the list with things nobody should be typing.
+     *
+     * @param material
+     *            the material to consider
+     * @param slabsOnly
+     *            true when only what can make a ring should be offered
+     * @return true if it should appear in the completions
+     */
+    private static boolean worthOffering(final org.bukkit.Material material, final boolean slabsOnly)
+    {
+        if (material.isLegacy()
+            || !com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
+        {
+            return false;
+        }
+        return !slabsOnly || com.wormhole_xtreme.wormhole.model.ring.Ring.isUsableAsRing(material);
     }
 
     /**

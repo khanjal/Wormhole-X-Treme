@@ -188,33 +188,50 @@ public final class PassengerReattach
             int remaining = 0;
             for (int i = 0; i < children.size(); i++)
             {
-                if (attached[i])
+                if (stillUnseated(i))
                 {
-                    continue;
-                }
-                final Entity psg = children.get(i);
-                try
-                {
-                    if (!psg.isValid())
-                    {
-                        continue;
-                    }
-                    if (attachPassenger(parents.get(i), psg))
-                    {
-                        attached[i] = true;
-                    }
-                    else
-                    {
-                        remaining++;
-                    }
-                }
-                catch (final RuntimeException t)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
                     remaining++;
                 }
             }
             return remaining;
+        }
+
+        /**
+         * Tries to seat one passenger.
+         *
+         * <p>A passenger that is already aboard, or that is no longer valid, is not counted
+         * as remaining: there is nothing left to do for either of them, and counting them
+         * would keep the retry running for a rider that has gone.
+         *
+         * @param i
+         *            which passenger
+         * @return true if it still needs a seat and is worth trying again
+         */
+        private boolean stillUnseated(final int i)
+        {
+            if (attached[i])
+            {
+                return false;
+            }
+            final Entity psg = children.get(i);
+            try
+            {
+                if (!psg.isValid())
+                {
+                    return false;
+                }
+                if (attachPassenger(parents.get(i), psg))
+                {
+                    attached[i] = true;
+                    return false;
+                }
+                return true;
+            }
+            catch (final RuntimeException t)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
+                return true;
+            }
         }
 
         /** Everyone is aboard: give the vehicle its exit speed, and a boat its client re-sync. */

@@ -73,43 +73,74 @@ public final class StargateShapeRegistry
     {
         for (final String legacy : new String[] { "3d", "2d" })
         {
-            final File subdirectory = new File(directory, legacy);
-            if (!subdirectory.isDirectory())
-            {
-                continue;
-            }
-            final File[] shapes = subdirectory.listFiles();
-            if (shapes == null)
-            {
-                continue;
-            }
-            for (final File shape : shapes)
-            {
-                if (!shape.isFile() || !shape.getName().endsWith(".shape"))
-                {
-                    continue;
-                }
-                final File moved = new File(directory, shape.getName());
-                if (moved.exists())
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
-                        "Ignoring " + legacy + File.separator + shape.getName()
-                        + ": a shape of that name is already in use.");
-                    continue;
-                }
-                if (shape.renameTo(moved))
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
-                        "Moved gate shape " + shape.getName() + " out of " + legacy
-                        + File.separator + "; shapes are read from one folder now.");
-                }
-                else
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                        "Could not move gate shape " + shape.getName() + " out of " + legacy
-                        + File.separator + "; it will not be loaded until it is moved by hand.");
-                }
-            }
+            liftOneSubdirectory(directory, legacy);
+        }
+    }
+
+    /**
+     * Lifts every shape out of one legacy subfolder.
+     *
+     * @param directory
+     *            the flat GateShapes directory to move them into
+     * @param legacy
+     *            the subfolder name, "3d" or "2d"
+     */
+    private static void liftOneSubdirectory(final File directory, final String legacy)
+    {
+        final File subdirectory = new File(directory, legacy);
+        if (!subdirectory.isDirectory())
+        {
+            return;
+        }
+        final File[] shapes = subdirectory.listFiles();
+        if (shapes == null)
+        {
+            return;
+        }
+        for (final File shape : shapes)
+        {
+            liftOneShape(directory, legacy, shape);
+        }
+    }
+
+    /**
+     * Moves one shape file up, unless there is already one of that name.
+     *
+     * <p>An existing shape wins: the flat folder is what the owner has been editing, and
+     * overwriting it with whatever was left behind in a subfolder would undo that.
+     *
+     * @param directory
+     *            the flat GateShapes directory
+     * @param legacy
+     *            the subfolder it is being lifted out of, for the log line
+     * @param shape
+     *            the file to move
+     */
+    private static void liftOneShape(final File directory, final String legacy, final File shape)
+    {
+        if (!shape.isFile() || !shape.getName().endsWith(".shape"))
+        {
+            return;
+        }
+        final File moved = new File(directory, shape.getName());
+        if (moved.exists())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
+                "Ignoring " + legacy + File.separator + shape.getName()
+                + ": a shape of that name is already in use.");
+            return;
+        }
+        if (shape.renameTo(moved))
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
+                "Moved gate shape " + shape.getName() + " out of " + legacy
+                + File.separator + "; shapes are read from one folder now.");
+        }
+        else
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Could not move gate shape " + shape.getName() + " out of " + legacy
+                + File.separator + "; it will not be loaded until it is moved by hand.");
         }
     }
 

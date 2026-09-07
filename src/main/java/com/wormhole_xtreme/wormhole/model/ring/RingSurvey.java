@@ -120,6 +120,48 @@ public final class RingSurvey
     }
 
     /**
+     * What is wrong with one layer of one column, if anything.
+     *
+     * @param ground
+     *            how to read the world
+     * @param ring
+     *            the ring this column belongs to
+     * @param x
+     *            the column's x
+     * @param z
+     *            the column's z
+     * @param base
+     *            the layer the stack is built up from
+     * @param up
+     *            how far up the stack this layer is
+     * @return what is wrong with this layer, or null if nothing is
+     */
+    private static RingBlockage surveyLayer(final Ground ground, final Ring ring, final int x,
+        final int z, final int base, final int up)
+    {
+        final int y = base + up;
+        // The ring's own plane is the ring, and a ceiling ring's is the ceiling it was cut
+        // into. Demanding that be clear would refuse every ring set flush into a four-block
+        // room -- exactly the rooms these are for. It only ever falls inside the stack for a
+        // ceiling ring at its shallowest, where the top ring rests against the ceiling with
+        // nothing above it to be in the way. A floor ring's plane is its base, which the
+        // traveller check in surveyColumn covers instead.
+        if ((y == ring.getAnchorY()) && (ring.getOrientation() == RingOrientation.CEILING))
+        {
+            return null;
+        }
+        if (ground.isPassable(x, y, z))
+        {
+            return null;
+        }
+        // Told apart by what the layer is for. The first two are where a person arrives, so
+        // something in them is something built in the ring; above that it is the stack's own
+        // room, and something in it means the ceiling is too low rather than that anyone did
+        // anything wrong.
+        return (up < TRAVELLER_HEIGHT) ? RingBlockage.OBSTRUCTED : RingBlockage.NO_HEADROOM;
+    }
+
+    /**
      * Everything one interior column has to be.
      *
      * @param ground
@@ -139,26 +181,11 @@ public final class RingSurvey
     {
         for (int up = 0; up < Ring.STACK_HEIGHT; up++)
         {
-            final int y = base + up;
-            // The ring's own plane is the ring, and a ceiling ring's is the ceiling it was
-            // cut into. Demanding that be clear would refuse every ring set flush into a
-            // four-block room -- exactly the rooms these are for. It only ever falls inside
-            // the stack for a ceiling ring at its shallowest, where the top ring rests
-            // against the ceiling with nothing above it to be in the way. A floor ring's
-            // plane is its base, which the traveller check below covers instead.
-            if ((y == ring.getAnchorY()) && (ring.getOrientation() == RingOrientation.CEILING))
+            final RingBlockage layer = surveyLayer(ground, ring, x, z, base, up);
+            if (layer != null)
             {
-                continue;
+                return layer;
             }
-            if (ground.isPassable(x, y, z))
-            {
-                continue;
-            }
-            // Told apart by what the layer is for. The first two are where a person arrives,
-            // so something in them is something built in the ring; above that it is the
-            // stack's own room, and something in it means the ceiling is too low rather than
-            // that anyone did anything wrong.
-            return (up < TRAVELLER_HEIGHT) ? RingBlockage.OBSTRUCTED : RingBlockage.NO_HEADROOM;
         }
         // Ground directly under every column, so nobody arrives over a hole somebody dug.
         // Directly, not somewhere below: a gap with a floor three blocks further down is

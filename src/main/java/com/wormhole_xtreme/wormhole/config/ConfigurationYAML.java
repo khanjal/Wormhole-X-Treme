@@ -325,13 +325,14 @@ public class ConfigurationYAML
         int insertAt = lines.size();
         for (int i = sectionStart + 1; i < lines.size(); i++)
         {
+            // Blank lines, indented lines and comments are all still inside the section; the
+            // first line that is none of those is where the section ends.
             final String line = lines.get(i);
-            if (line.trim().isEmpty() || line.startsWith(" ") || line.trim().startsWith("#"))
+            if (!line.trim().isEmpty() && !line.startsWith(" ") && !line.trim().startsWith("#"))
             {
-                continue;
+                insertAt = i;
+                break;
             }
-            insertAt = i;
-            break;
         }
         while ((insertAt > (sectionStart + 1))
             && (lines.get(insertAt - 1).trim().isEmpty() || lines.get(insertAt - 1).trim().startsWith("#")))

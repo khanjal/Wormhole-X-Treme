@@ -237,6 +237,21 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### Loops that jumped out of themselves in several places now do it once
+
+Sixteen loops across fourteen files each had two or three `continue`s stacked at the top --
+guard clauses deciding whether this iteration was worth doing at all. Most are now one
+question asked in one place: whether a passenger may travel, whether a material is worth
+offering as a completion, what is wrong with one layer of one ring column.
+
+Two are left as guards rather than extracted, and deliberately. The iris sweep carries a
+lazily-found safe location across iterations, so hoisting its body out would mean threading
+that back and forth; its two conditions are joined instead. The shape row-width check carries
+the current layer and row number the same way, so its two line kinds are written as the
+alternatives they are.
+
+No behaviour change.
+
 ### A nested try is its own step now, in eleven places
 
 Each was the same shape: a best-effort attempt sitting inside a wider one, where the inner
