@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
@@ -32,6 +34,12 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  *
  * <p>Nothing can make the server agree — the block genuinely is not water. Allowing flight
  * for as long as the player is inside the portal is what stops the disagreement being fatal.
+ *
+ * <p>Most of what this class has to say is that something did <em>not</em> happen, and a test
+ * that only says that passes against code which does nothing at all: with the exemption call
+ * deleted from onPlayerMove, every never() check here still went green. So each of them is
+ * paired with an assertion that the exemption ran and reached the decision it is being
+ * credited with. Keep that pairing when adding to this class.
  */
 class PortalFlightExemptionTest
 {
@@ -62,12 +70,29 @@ class PortalFlightExemptionTest
      * they ran in.
      */
     @SuppressWarnings("unchecked")
-    private static void clearFlightGrants() throws Exception
+    private static java.util.Set<UUID> flightGrants() throws Exception
     {
         final java.lang.reflect.Field f =
             WormholeXTremePlayerListener.class.getDeclaredField("portalFlightGranted");
         f.setAccessible(true);
-        ((java.util.Set<UUID>) f.get(null)).clear();
+        return (java.util.Set<UUID>) f.get(null);
+    }
+
+    private static void clearFlightGrants() throws Exception
+    {
+        flightGrants().clear();
+    }
+
+    /**
+     * Whether the plugin is currently holding an exemption for the test player.
+     *
+     * <p>The record is what decides whether leaving takes flight back, so it is worth
+     * asserting on directly: watching only the setAllowFlight calls cannot tell "never
+     * granted" apart from "granted and then forgotten about".
+     */
+    private boolean holdsPortalFlight() throws Exception
+    {
+        return flightGrants().contains(player.getUniqueId());
     }
 
     @BeforeEach
@@ -139,7 +164,7 @@ class PortalFlightExemptionTest
     }
 
     @Test
-    void aPlayerFloatingUpInsideThePortalKeepsTheExemption()
+    void aPlayerFloatingUpInsideThePortalKeepsTheExemption() throws Exception
     {
         // The actual complaint: floating in the water and staying there. Each rise is
         // another move event, and none of them may take the exemption away while the
@@ -152,6 +177,13 @@ class PortalFlightExemptionTest
             move(inside(), inside());
         }
 
+        // Granted once on the way in and not handed out again on every rise, and still
+        // held afterwards. Without these two the test passes just as happily against a
+        // handler that granted nothing at all, or one that dropped the record mid-float
+        // and so would never take the flight back on the way out.
+        verify(player).setAllowFlight(true);
+        assertTrue(holdsPortalFlight(),
+            "a player who never left the portal should still be holding the exemption");
         verify(player, never()).setAllowFlight(false);
     }
 
@@ -168,15 +200,27 @@ class PortalFlightExemptionTest
     }
 
     @Test
-    void aPlayerWhoNeverEntersAPortalIsLeftAlone()
+    void aPlayerWhoNeverEntersAPortalIsLeftAlone() throws Exception
     {
         move(outside(), outside());
 
         verify(player, never()).setAllowFlight(anyBoolean());
+        assertFalse(holdsPortalFlight(),
+            "walking about outside a gate should not put a player on the exemption list");
+
+        // The same listener, the same fixture, one step further: it grants the moment the
+        // player is actually in the portal. That is the half of this test which fails if
+        // the exemption never runs at all, which the absence check above cannot tell apart
+        // from working correctly.
+        move(outside(), inside());
+
+        verify(player).setAllowFlight(true);
+        assertTrue(holdsPortalFlight(),
+            "stepping into the portal should grant the exemption");
     }
 
     @Test
-    void flightThePluginDidNotGrantIsNotTakenAway()
+    void flightThePluginDidNotGrantIsNotTakenAway() throws Exception
     {
         // Someone in creative, or with flight from another plugin, walks through a gate.
         // Granting is skipped because they already have it, so leaving must not strip it —
@@ -184,27 +228,46 @@ class PortalFlightExemptionTest
         when(player.getAllowFlight()).thenReturn(true);
 
         move(outside(), inside());
+
+        // It did reach them standing in the portal and ask what flight they already had,
+        // rather than skipping the portal entirely — and having found flight it did not
+        // give, it recorded nothing to take back later.
+        verify(player, atLeastOnce()).getAllowFlight();
+        assertFalse(holdsPortalFlight(),
+            "flight the plugin found rather than granted must not be recorded as granted");
+
         move(inside(), outside());
 
         verify(player, never()).setAllowFlight(false);
     }
 
     @Test
-    void aCreativePlayerKeepsFlightEvenIfTheyWereGrantedIt()
+    void aCreativePlayerKeepsFlightEvenIfTheyWereGrantedIt() throws Exception
     {
         // Belt and braces for a player who entered in survival and switched mode inside:
         // game mode is the authority on the way out, not what was recorded on the way in.
         move(outside(), inside());
+
+        // The exemption really was granted, so this is the "was granted" case it claims to
+        // be rather than the easy one where there was nothing to take back anyway.
+        verify(player).setAllowFlight(true);
         when(player.getAllowFlight()).thenReturn(true);
         when(player.getGameMode()).thenReturn(GameMode.CREATIVE);
 
         move(inside(), outside());
 
+        // Leaving ran and consulted game mode, and released the record on the way past —
+        // the flight is left alone, but the plugin no longer believes it owes this player
+        // a revoke, so a later switch back to survival is not silently stripped.
+        verify(player, atLeastOnce()).getGameMode();
+        assertFalse(holdsPortalFlight(),
+            "leaving should release the record even when the flight itself is left alone");
         verify(player, never()).setAllowFlight(false);
+        verify(player, never()).setFlying(false);
     }
 
     @Test
-    void aClosedGateGrantsNothing()
+    void aClosedGateGrantsNothing() throws Exception
     {
         // The exemption follows the drawn portal. No portal, no client-side water, nothing
         // to float on, and no reason to hand out flight.
@@ -213,5 +276,18 @@ class PortalFlightExemptionTest
         move(outside(), inside());
 
         verify(player, never()).setAllowFlight(anyBoolean());
+        assertFalse(holdsPortalFlight(),
+            "a gate with no portal drawn in it should put nobody on the exemption list");
+
+        // And it is the gate being shut that decides that, not the block being unreachable
+        // in this fixture: open the same gate and the same step into the same block does
+        // hand out the exemption.
+        destination.setGateActive(true);
+
+        move(outside(), inside());
+
+        verify(player).setAllowFlight(true);
+        assertTrue(holdsPortalFlight(),
+            "the same block in the same gate should grant once the gate is open");
     }
 }
