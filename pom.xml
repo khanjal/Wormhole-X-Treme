@@ -126,6 +126,31 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<!-- A local stand-in for part of what SonarCloud reports, so a sweep can be
+				     checked before it is pushed rather than after the scan comes back. The
+				     rules it runs, and the evidence that each one tracks the Sonar rule it
+				     stands in for, are in pmd-ruleset.xml.
+
+				     Deliberately not bound to a phase and deliberately not pmd:check. It
+				     covers eight rules, about a third of the open issues, and roughly one
+				     finding in five is one SonarCloud does not raise, so failing a build on it
+				     would sometimes be failing on nothing. It is run by hand, mvn pmd:pmd
+				     -Dformat=csv, and read as a lead. -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.28.0</version>
+				<configuration>
+					<!-- Only honoured from here. Passing -Drulesets= or -Dpmd.rulesets= on the
+					     command line is silently ignored: the plugin falls back to its default
+					     quickstart set and reports on rules nobody asked for, which looks
+					     exactly like a successful run. -->
+					<rulesets>
+						<ruleset>${project.basedir}/pmd-ruleset.xml</ruleset>
+					</rulesets>
+					<includeTests>true</includeTests>
+				</configuration>
+			</plugin>
+			<plugin>
 				<!-- Coverage for SonarCloud to report against. prepare-agent instruments the
 				     tests surefire already runs; report turns that into the XML SonarCloud's
 				     Java analyzer picks up automatically from the default

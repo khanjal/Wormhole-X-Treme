@@ -4,6 +4,57 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Part of what SonarCloud reports can now be checked before pushing
+
+The Sonar backlog is worked in sweeps, and until now the only way to know whether a sweep had
+actually closed what it aimed at was to push it and wait for the scan. That is minutes per
+attempt, on a check that fails for unrelated reasons anyway, which makes it a poor thing to
+iterate against.
+
+`mvn pmd:pmd -Dformat=csv` now answers part of the same question locally in about ten seconds.
+
+The rules it runs were not chosen from their descriptions. Each candidate was run against the
+tree at the same revision SonarCloud had last analysed, and its findings compared to the Sonar
+rule it was standing in for, file and line. Eight rules survived that comparison:
+
+    Sonar   PMD                                   open   found   caught
+    S3776   CognitiveComplexity                     33      45       33
+    S1168   ReturnEmptyCollectionRatherThanNull      3       3        3
+    S1488   UnnecessaryLocalBeforeReturn             3       3        3
+    S1128   UnnecessaryImport                        2       2        2
+    S1066   CollapsibleIfStatements                  2       2        2
+    S1068   UnusedPrivateField                       1       1        1
+    S1186   UncommentedEmptyMethodBody               1       1        1
+    S3626   UnnecessaryReturn                        2       1        1
+
+46 of 47 open issues across those rules, from 58 findings. Cognitive complexity, the largest
+group left and the one that keeps turning up real bugs, matched all 33 without any tuning --
+PMD's default threshold of 15 is the one Sonar uses.
+
+Two rules were measured and rejected rather than quietly included. `AvoidDuplicateLiterals`
+cannot be tuned to agree with S1192: at a minimum length of 5 it catches 28 of 29 but reports
+185, and at 8 it catches 21 and reports 105. Either setting buries the 58 findings that are
+worth reading, which is the entire point. `ExcessiveParameterList` counts from 10 parameters
+where Sonar counts from 7, and so found neither of the two open S107 issues.
+
+Nothing covers S135, S1141 or S4144, the next three largest groups. PMD has no equivalent, and
+those need the method read regardless.
+
+It is deliberately not bound to a phase, and deliberately `pmd:pmd` rather than `pmd:check`. At
+four findings in five being real, a failing build would sometimes be wrong, and a check that is
+sometimes wrong is one people learn to skip. SonarCloud stays the authority; this is a lead on
+where to look. `pmd-ruleset.xml` carries the measurement so the next person can tell whether it
+still holds.
+
+One thing fell out of the comparison. Five of the six open S4144 "identical implementation"
+issues are in `events/`, and none of them can be fixed: a Bukkit event class must have both a
+static `getHandlerList()` and an instance `getHandlers()` returning the same field, so the two
+bodies are necessarily the same. `org.bukkit.event.Event` declares `getHandlers()` abstract, and
+`SimplePluginManager` looks the static one up reflectively -- it carries the literal string
+`getHandlerList must be static`. Removing either breaks event registration at runtime, and no
+test here would catch it, because the tests do not run a plugin manager. They are marked as
+such rather than left to be rediscovered next sweep.
+
 ### Beaming was undocumented outside its permission nodes
 
 Gates and rings each have a README section running to hundreds of lines. Beaming had
