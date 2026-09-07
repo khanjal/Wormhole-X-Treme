@@ -112,7 +112,8 @@ class DialRefusalTest
     void aTargetThatAlreadyHasATargetIsRefused()
     {
         final Stargate target = dialableTarget();
-        when(target.getGateTarget()).thenReturn(mock(Stargate.class));
+        final Stargate somewhereElse = mock(Stargate.class);
+        when(target.getGateTarget()).thenReturn(somewhereElse);
 
         assertFalse(StargateDialManager.dialStargate(gate, target, false));
         verify(gate, never()).setGateTarget(any());
@@ -218,9 +219,10 @@ class DialRefusalTest
     void forcingSkipsTheRefusals()
     {
         final Stargate target = dialableTarget();
+        final Stargate somewhereElse = mock(Stargate.class);
         when(target.isGateIrisActive()).thenReturn(true);
         when(target.isGateActive()).thenReturn(true);
-        when(target.getGateTarget()).thenReturn(mock(Stargate.class));
+        when(target.getGateTarget()).thenReturn(somewhereElse);
         // Lights active would stop a normal dial here too; forced, it goes on regardless.
         when(target.isGateLightsActive()).thenReturn(true);
 
@@ -242,6 +244,28 @@ class DialRefusalTest
             world.verify(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
                 .scheduleChunkLoad(any(Block.class)));
             verify(gate, never()).setGateTarget(any());
+        }
+    }
+
+    /** Local activation failing stops the dial before a target is ever assigned. */
+    @Test
+    void aLocalEndThatWillNotOpenAssignsNoTarget()
+    {
+        final Stargate target = dialableTarget();
+        when(gate.isGateActive()).thenReturn(false);
+
+        try (MockedStatic<StargateManager> manager = mockStatic(StargateManager.class);
+             MockedStatic<com.wormhole_xtreme.wormhole.utils.WorldUtils> world =
+                 mockStatic(com.wormhole_xtreme.wormhole.utils.WorldUtils.class))
+        {
+            manager.when(StargateManager::getAllGates).thenReturn(Collections.emptyList());
+            world.when(() -> com.wormhole_xtreme.wormhole.utils.WorldUtils
+                .scheduleChunkLoad(any(Block.class))).thenAnswer(invocation -> null);
+
+            assertFalse(StargateDialManager.dialStargate(gate, target, false));
+
+            verify(gate, never()).setGateTarget(any());
+            verify(target, never()).dialStargate();
         }
     }
 }
