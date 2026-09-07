@@ -253,7 +253,10 @@ empty", which an empty list cannot say. And `stargatetoBinary` returns null when
 encode a gate, which the shutdown save has to tell apart from a gate that encoded -- a file
 with no data in it loads as a gate with no blocks. That fourth one was there all along, hidden
 behind a `final byte[] b = null; return b;` that the analyser could not see through; tidying
-the pointless local away is what made it visible.
+the pointless local away is what made it visible. It carries a
+`@SuppressWarnings("java:S1168")` now, which is how this project already says "deliberately
+not this rule" in eight other places -- an explanation in the code beats one in a web console
+nobody reads.
 
 Returning empty collections is good advice in general and wrong at all four sites.
 
