@@ -153,88 +153,27 @@ public class ConfigurationYAML
      */
     static boolean appendMaterialGroups(final File cfg, final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
     {
-        if (groups == null || groups.isEmpty())
+        if ((groups == null) || groups.isEmpty())
         {
             return false;
         }
         try
         {
+            final String block = renderGroups(groups);
             final List<String> lines = new ArrayList<>(java.nio.file.Files.readAllLines(cfg.toPath()));
-
-            final StringBuilder block = new StringBuilder();
-            for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
-            {
-                block.append("  # Added automatically from a gate shape using this frame material.")
-                     .append(System.lineSeparator());
-                block.append("  ").append(g.getName()).append(':').append(System.lineSeparator());
-                block.append("    structure: ").append(g.getStructureMaterial().name()).append(System.lineSeparator());
-                block.append("    portal: ").append(g.getPortalMaterial().name()).append(System.lineSeparator());
-                block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
-                block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
-                block.append("    sign: ").append(g.getSignMaterial().name()).append(System.lineSeparator());
-                // Written only when the shape this palette was derived from asked for one.
-                // Writing a placeholder would hand the server a palette whose gates must be
-                // built differently from the shape that suggested it.
-                if (g.getChevronMaterial() != null)
-                {
-                    block.append("    chevron: ").append(g.getChevronMaterial().name()).append(System.lineSeparator());
-                }
-            }
-
-            int sectionStart = -1;
-            for (int i = 0; i < lines.size(); i++)
-            {
-                if (lines.get(i).startsWith(MATERIAL_GROUPS_KEY + ":"))
-                {
-                    sectionStart = i;
-                    break;
-                }
-            }
+            final int sectionStart = indexOfSection(lines);
 
             if (sectionStart < 0)
             {
-                try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true))
-                {
-                    writer.write(System.lineSeparator());
-                    writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
-                    writer.write(block.toString());
-                }
+                appendNewSection(cfg, block);
             }
             else
             {
-                // The block ends at the first following line that is neither blank, nor a
-                // comment, nor indented — that line belongs to the next top-level key.
-                int insertAt = lines.size();
-                for (int i = sectionStart + 1; i < lines.size(); i++)
-                {
-                    final String line = lines.get(i);
-                    if (line.trim().isEmpty() || line.startsWith(" ") || line.trim().startsWith("#"))
-                    {
-                        continue;
-                    }
-                    insertAt = i;
-                    break;
-                }
-                // Step back over trailing blanks and comments so the new entries sit with
-                // the group definitions rather than after the next key's comment header.
-                while (insertAt > sectionStart + 1
-                    && (lines.get(insertAt - 1).trim().isEmpty() || lines.get(insertAt - 1).trim().startsWith("#")))
-                {
-                    insertAt--;
-                }
-                final List<String> inserted = new ArrayList<>(java.util.Arrays.asList(
-                    block.toString().split("\\R")));
-                lines.addAll(insertAt, inserted);
+                lines.addAll(insertionPoint(lines, sectionStart),
+                    java.util.Arrays.asList(block.split("\\R")));
                 java.nio.file.Files.write(cfg.toPath(), lines);
             }
-
-            final List<String> names = new ArrayList<>();
-            for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
-            {
-                names.add(g.getName() + "=" + g.getStructureMaterial());
-            }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
-                "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
+            logAdded(groups);
             return true;
         }
         catch (final IOException e)
@@ -243,6 +182,129 @@ public class ConfigurationYAML
                 "Failed to add discovered material groups to config.yml: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Writes out the YAML for a set of discovered groups.
+     *
+     * @param groups
+     *            the groups to write
+     * @return the block of lines, indented to sit under the section key
+     */
+    private static String renderGroups(final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        final StringBuilder block = new StringBuilder();
+        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+        {
+            block.append("  # Added automatically from a gate shape using this frame material.")
+                 .append(System.lineSeparator());
+            block.append("  ").append(g.getName()).append(':').append(System.lineSeparator());
+            block.append("    structure: ").append(g.getStructureMaterial().name()).append(System.lineSeparator());
+            block.append("    portal: ").append(g.getPortalMaterial().name()).append(System.lineSeparator());
+            block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
+            block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
+            block.append("    sign: ").append(g.getSignMaterial().name()).append(System.lineSeparator());
+            // Written only when the shape this palette was derived from asked for one.
+            // Writing a placeholder would hand the server a palette whose gates must be
+            // built differently from the shape that suggested it.
+            if (g.getChevronMaterial() != null)
+            {
+                block.append("    chevron: ").append(g.getChevronMaterial().name()).append(System.lineSeparator());
+            }
+        }
+        return block.toString();
+    }
+
+    /**
+     * Finds the material groups section.
+     *
+     * @param lines
+     *            the config file
+     * @return the line the section key sits on, or -1 if the file has no such section
+     */
+    private static int indexOfSection(final List<String> lines)
+    {
+        for (int i = 0; i < lines.size(); i++)
+        {
+            if (lines.get(i).startsWith(MATERIAL_GROUPS_KEY + ":"))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Where new groups belong inside an existing section.
+     *
+     * <p>The section ends at the first following line that is neither blank, nor a comment,
+     * nor indented -- that line belongs to the next top-level key. The point then steps back
+     * over any trailing blanks and comments, so the new entries sit with the group
+     * definitions rather than below the comment that introduces whatever comes next. Both
+     * placements parse; only one of them reads correctly to the next person editing the file.
+     *
+     * @param lines
+     *            the config file
+     * @param sectionStart
+     *            the line the section key sits on
+     * @return the line to insert at
+     */
+    private static int insertionPoint(final List<String> lines, final int sectionStart)
+    {
+        int insertAt = lines.size();
+        for (int i = sectionStart + 1; i < lines.size(); i++)
+        {
+            final String line = lines.get(i);
+            if (line.trim().isEmpty() || line.startsWith(" ") || line.trim().startsWith("#"))
+            {
+                continue;
+            }
+            insertAt = i;
+            break;
+        }
+        while ((insertAt > (sectionStart + 1))
+            && (lines.get(insertAt - 1).trim().isEmpty() || lines.get(insertAt - 1).trim().startsWith("#")))
+        {
+            insertAt--;
+        }
+        return insertAt;
+    }
+
+    /**
+     * Starts a material groups section at the end of a config that has none.
+     *
+     * @param cfg
+     *            the config file
+     * @param block
+     *            the groups to write under it
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void appendNewSection(final File cfg, final String block) throws IOException
+    {
+        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true))
+        {
+            writer.write(System.lineSeparator());
+            writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
+            writer.write(block);
+        }
+    }
+
+    /**
+     * Notes which groups were added and what frame material each came from.
+     *
+     * @param groups
+     *            the groups just written
+     */
+    private static void logAdded(final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        final List<String> names = new ArrayList<>();
+        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+        {
+            names.add(g.getName() + "=" + g.getStructureMaterial());
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
+            "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
     }
 
     /**
