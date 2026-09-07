@@ -382,6 +382,9 @@ public final class StargateShapeRegistry
     }
 
     /** @return the file's lines, or null if it does not exist or could not be read */
+    // S1168 asks for an empty array. Null means "does not exist or could not be read", and
+    // the caller turns that into "No such file"; empty would be a blank but valid shape.
+    @SuppressWarnings("java:S1168")
     private static String[] readShapeFileLines(final String fileName)
     {
         final File file = new File(shapeDirectory(), fileName);

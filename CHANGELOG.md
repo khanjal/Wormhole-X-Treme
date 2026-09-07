@@ -237,6 +237,22 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### Eight findings that must not be "fixed" now say so in the code
+
+Five Bukkit event classes need both a static `getHandlerList()` and an instance
+`getHandlers()` returning the same field -- `Event` declares the instance one abstract, and
+`SimplePluginManager` looks the static one up reflectively, carrying the literal error string
+`getHandlerList must be static`. Removing or delegating either breaks event registration at
+runtime, and no test here would catch it because the tests do not run a plugin manager. Each
+class now carries `@SuppressWarnings("java:S4144")` and a paragraph saying that.
+
+The same for the two methods that return null on purpose: `readShapeFileLines` returns null
+for "does not exist or could not be read" -- its caller reports "No such file" -- and
+`wooshWave` for "the shape authored this index as empty", which an empty list cannot express.
+
+None of this changes behaviour. It moves eight standing decisions out of nobody's head and
+into the file the next person will open.
+
 ### Nine small things, and three left alone on purpose
 
 Two unused imports, three values named on one line only to be returned on the next, a
