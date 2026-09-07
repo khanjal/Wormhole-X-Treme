@@ -143,6 +143,10 @@ class RedstoneWireSetupTest
         final Stargate gate = gateWithDialActivator(null);
 
         StargateBlockSetup.setupRedstoneDialWire(gate, true);
+        // And on the way out, where there is no try/catch to absorb a null dereference --
+        // taking up a wire a shape never asked for must not throw on a live teardown.
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+            () -> StargateBlockSetup.setupRedstoneDialWire(gate, false));
 
         assertFalse(gate.getGateStructureBlocks().iterator().hasNext(),
             "nothing placed and nothing claimed");
