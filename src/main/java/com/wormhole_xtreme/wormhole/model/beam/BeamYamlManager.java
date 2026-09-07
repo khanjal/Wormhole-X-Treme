@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -54,82 +55,128 @@ public final class BeamYamlManager
      *
      * @return how many destinations were loaded, public and private combined
      */
-    @SuppressWarnings("unchecked")
     public static int loadAll()
     {
         BeamManager.clear();
+        final Map<String, Object> root = readBeamFile();
+        return loadPublic(root.get("Public")) + loadPlaces(root.get("Places"));
+    }
+
+    /**
+     * Reads beam.yml, or null if there is nothing usable to read.
+     *
+     * <p>A missing file is a first run. A file that will not parse, or parses to something
+     * other than a map, is an operator's hand edit gone wrong -- worth a line in the log and
+     * not worth taking the server down for. All three come back the same way: nothing to
+     * load, which an empty map says without the caller having to check for null.
+     *
+     * @return the file's top-level map, empty if there is nothing usable to read
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> readBeamFile()
+    {
         final File file = getBeamFile();
         if (!file.exists())
         {
-            return 0;
+            return Collections.emptyMap();
         }
-
-        final Yaml yaml = new Yaml();
-        final Map<String, Object> root;
         try (FileInputStream in = new FileInputStream(file))
         {
-            final Object loaded = yaml.load(in);
-            if (!(loaded instanceof Map))
-            {
-                return 0;
-            }
-            root = (Map<String, Object>) loaded;
+            final Object loaded = new Yaml().load(in);
+            return (loaded instanceof Map) ? (Map<String, Object>) loaded : Collections.emptyMap();
         }
         catch (final IOException | RuntimeException e)
         {
             log(Level.WARNING, "Failed to read beam file: " + e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
+    /**
+     * Loads the destinations anybody may beam to.
+     *
+     * @param section
+     *            the Public section, whatever the file had there
+     * @return how many were loaded
+     */
+    @SuppressWarnings("unchecked")
+    private static int loadPublic(final Object section)
+    {
+        if (!(section instanceof Map))
+        {
             return 0;
         }
-
         int count = 0;
-
-        final Object publicSection = root.get("Public");
-        if (publicSection instanceof Map)
+        for (final Map.Entry<String, Object> entry : ((Map<String, Object>) section).entrySet())
         {
-            for (final Map.Entry<String, Object> entry : ((Map<String, Object>) publicSection).entrySet())
+            final BeamDestination destination = readDestination(entry.getKey(), entry.getValue());
+            if (destination != null)
             {
-                final BeamDestination destination = readDestination(entry.getKey(), entry.getValue());
+                BeamManager.setPublicDestination(destination);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Loads each player's own places, filed under the owner's id.
+     *
+     * <p>A player whose id will not parse loses their places and nobody else's. The whole
+     * file is read at startup, so anything stronger would let one unreadable id leave a
+     * server with no beam destinations at all.
+     *
+     * @param section
+     *            the Places section, whatever the file had there
+     * @return how many were loaded
+     */
+    @SuppressWarnings("unchecked")
+    private static int loadPlaces(final Object section)
+    {
+        if (!(section instanceof Map))
+        {
+            return 0;
+        }
+        int count = 0;
+        for (final Map.Entry<String, Object> playerEntry : ((Map<String, Object>) section).entrySet())
+        {
+            final UUID owner = readOwnerId(playerEntry.getKey());
+            if ((owner == null) || !(playerEntry.getValue() instanceof Map))
+            {
+                continue;
+            }
+            for (final Map.Entry<String, Object> placeEntry
+                : ((Map<String, Object>) playerEntry.getValue()).entrySet())
+            {
+                final BeamDestination destination = readDestination(placeEntry.getKey(), placeEntry.getValue());
                 if (destination != null)
                 {
-                    BeamManager.setPublicDestination(destination);
+                    BeamManager.setPlace(owner, destination);
                     count++;
                 }
             }
         }
-
-        final Object placesSection = root.get("Places");
-        if (placesSection instanceof Map)
-        {
-            for (final Map.Entry<String, Object> playerEntry : ((Map<String, Object>) placesSection).entrySet())
-            {
-                final UUID owner;
-                try
-                {
-                    owner = UUID.fromString(playerEntry.getKey());
-                }
-                catch (final IllegalArgumentException e)
-                {
-                    log(Level.WARNING, "Skipping places for unreadable player id " + playerEntry.getKey());
-                    continue;
-                }
-                final Object playerPlaces = playerEntry.getValue();
-                if (!(playerPlaces instanceof Map))
-                {
-                    continue;
-                }
-                for (final Map.Entry<String, Object> placeEntry : ((Map<String, Object>) playerPlaces).entrySet())
-                {
-                    final BeamDestination destination = readDestination(placeEntry.getKey(), placeEntry.getValue());
-                    if (destination != null)
-                    {
-                        BeamManager.setPlace(owner, destination);
-                        count++;
-                    }
-                }
-            }
-        }
-
         return count;
+    }
+
+    /**
+     * A player id from the file, or null if it will not parse.
+     *
+     * @param key
+     *            the key the file filed these places under
+     * @return the id, or null
+     */
+    private static UUID readOwnerId(final String key)
+    {
+        try
+        {
+            return UUID.fromString(key);
+        }
+        catch (final IllegalArgumentException e)
+        {
+            log(Level.WARNING, "Skipping places for unreadable player id " + key);
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")
