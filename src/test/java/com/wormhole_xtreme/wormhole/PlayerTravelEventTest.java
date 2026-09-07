@@ -302,7 +302,7 @@ class PlayerTravelEventTest
             throw new IllegalStateException("listener blew up");
         });
 
-        assertDoesNotThrow(() -> walkIn());
+        assertDoesNotThrow(this::walkIn);
         verify(player).teleport(any(Location.class));
     }
 

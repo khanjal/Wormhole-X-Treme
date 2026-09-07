@@ -178,7 +178,7 @@ class RemoveStargateTest
      * just stopped existing. Left alone it would keep offering somewhere nobody can go.
      */
     @Test
-    void aSignPointingAtTheRemovedGateIsCleared() throws Exception
+    void aSignPointingAtTheRemovedGateIsCleared()
     {
         final StargateNetwork network = StargateManager.addStargateNetwork("traders");
 

@@ -85,8 +85,15 @@ class GateOneWayTest
         f.set(gate, target);
     }
 
-    /** A zombie standing in the given gate's portal block. */
-    private Entity zombieIn(final Stargate gate, final int x, final int y, final int z)
+    /**
+     * A zombie standing at these coordinates, travelling north.
+     *
+     * <p>Took a gate as well until Sonar noticed nothing read it. Which gate it was standing
+     * in is decided by the coordinates, so naming one alongside them said something the
+     * method did not honour -- every caller passed the same 10, 64, 20 whether it named the
+     * origin or the destination.
+     */
+    private Entity zombieIn(final int x, final int y, final int z)
     {
         final Zombie zombie = mock(Zombie.class);
         when(zombie.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -106,7 +113,7 @@ class GateOneWayTest
         // origin --> destination. The destination is active but has no target of its own.
         final Stargate destination = gateAt("destination", 10, 64, 20);
         StargateManager.registerStargate(destination);
-        final Entity zombie = zombieIn(destination, 10, 64, 20);
+        final Entity zombie = zombieIn(10, 64, 20);
         try
         {
             GateEntityScanner.create().run();
@@ -127,7 +134,7 @@ class GateOneWayTest
         final Stargate origin = gateAt("origin", 10, 64, 20);
         setTarget(origin, destination);
         StargateManager.registerStargate(origin);
-        final Entity zombie = zombieIn(origin, 10, 64, 20);
+        final Entity zombie = zombieIn(10, 64, 20);
         try
         {
             GateEntityScanner.create().run();
@@ -147,7 +154,7 @@ class GateOneWayTest
         setTarget(origin, destination);
         origin.setGateActive(false);
         StargateManager.registerStargate(origin);
-        final Entity zombie = zombieIn(origin, 10, 64, 20);
+        final Entity zombie = zombieIn(10, 64, 20);
         try
         {
             GateEntityScanner.create().run();
@@ -169,7 +176,7 @@ class GateOneWayTest
         final Stargate origin = gateAt("origin", 10, 64, 20);
         setTarget(origin, destination);
         StargateManager.registerStargate(origin);
-        final Entity zombie = zombieIn(origin, 10, 64, 20);
+        final Entity zombie = zombieIn(10, 64, 20);
         try
         {
             GateEntityScanner.create().run();
@@ -208,7 +215,7 @@ class GateOneWayTest
             throw new IllegalStateException(e);
         }
         StargateManager.registerStargate(origin);
-        final Entity item = zombieIn(origin, 10, 64, 20);
+        final Entity item = zombieIn(10, 64, 20);
         when(item.getVelocity()).thenReturn(new org.bukkit.util.Vector(0, 0, 0));
         try
         {

@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -53,8 +54,8 @@ class LegacyImportTest
     {
         final LegacyDatabaseImporter.Result result = LegacyDatabaseImporter.importGates();
         assertNotNull(result.getProblem(), "it should explain, not pretend it worked");
-        assertTrue(result.getImported() == 0);
-        assertTrue(result.getMovedExits() == 0,
+        assertEquals(0, result.getImported(), "nothing was there to import");
+        assertEquals(0, result.getMovedExits(),
             "nothing was imported, so nothing should have had its exit point moved either");
     }
 

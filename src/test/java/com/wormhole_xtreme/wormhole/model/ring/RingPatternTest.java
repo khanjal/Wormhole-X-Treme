@@ -180,7 +180,7 @@ class RingPatternTest
         // reshape every ring on the server at once.
         final java.util.List<RingPattern.Offset> perimeter = RingPattern.ODD.getPerimeter();
         final java.util.List<RingPattern.Offset> interior = RingPattern.EVEN.getInterior();
-        assertThrows(UnsupportedOperationException.class, () -> perimeter.clear());
-        assertThrows(UnsupportedOperationException.class, () -> interior.clear());
+        assertThrows(UnsupportedOperationException.class, perimeter::clear);
+        assertThrows(UnsupportedOperationException.class, interior::clear);
     }
 }

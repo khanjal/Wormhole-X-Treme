@@ -41,7 +41,7 @@ class SubCommandsTest
         assertEquals(java.util.Arrays.asList("gate", "ring", "beam", "compass", "config"),
             offered.stream().sorted(java.util.Comparator.comparing(
                 n -> java.util.Arrays.asList("gate", "ring", "beam", "compass", "config").indexOf(n)))
-                .collect(java.util.stream.Collectors.toList()),
+                .toList(),
             "the advertised list should be exactly the five nouns");
     }
 
