@@ -202,6 +202,10 @@ public class ConfigurationYAML
     }
 
     /** The section every Setting is filed under; the same name for all of them. */
+    /** Runs once per paragraph when a description is wrapped, so it is compiled once. */
+    private static final java.util.regex.Pattern WHITESPACE =
+        java.util.regex.Pattern.compile("\\s+");
+
     private static final String SETTING_SECTION = "WormholeXTreme";
 
     /** The config.yml key holding the nested material-group definitions. */
@@ -726,7 +730,7 @@ public class ConfigurationYAML
         final String[] paragraphs = text.split("\\n");
         for (final String para : paragraphs)
         {
-            final String[] words = para.split("\\s+");
+            final String[] words = WHITESPACE.split(para);
             StringBuilder line = new StringBuilder();
             for (final String w : words)
             {

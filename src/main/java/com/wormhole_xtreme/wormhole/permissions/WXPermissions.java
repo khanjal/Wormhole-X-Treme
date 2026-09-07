@@ -20,7 +20,7 @@ public class WXPermissions
     /**
      * The Enum PermissionType.
      */
-    public static enum PermissionType
+    public enum PermissionType
     {
 
         /** The DAMAGE permission. */

@@ -467,8 +467,8 @@ public class WormholeXTreme extends JavaPlugin
      */
     public boolean isLoggable(final Level severity)
     {
-        final Logger log = getLog();
-        return log != null && log.isLoggable(severity);
+        final Logger logger = getLog();
+        return (logger != null) && logger.isLoggable(severity);
     }
 
     /**

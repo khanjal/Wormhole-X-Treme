@@ -1150,13 +1150,7 @@ class StargateBlockSetup
             // A throwaway set keeps every caller free of null checks.
             return new HashSet<String>();
         }
-        Set<String> showing = DRAWN.get(uuid);
-        if (showing == null)
-        {
-            showing = new HashSet<String>();
-            DRAWN.put(uuid, showing);
-        }
-        return showing;
+        return DRAWN.computeIfAbsent(uuid, key -> new HashSet<String>());
     }
 
     /**
