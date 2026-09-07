@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<!--
+	A local stand-in for part of what SonarCloud reports, so a sweep can be checked in about
+	ten seconds instead of waiting for the scan to come back on the PR.
+
+	Every rule here was verified against the live SonarCloud issue list rather than assumed
+	from its description. The check was run at 23ad030, the same revision SonarCloud had last
+	analysed, and each rule's findings compared to the Sonar rule it stands in for, file and
+	line:
+
+	    Sonar   PMD                                   open   found   caught   missed
+	    S3776   CognitiveComplexity                     33      45       33        0
+	    S1168   ReturnEmptyCollectionRatherThanNull      3       3        3        0
+	    S1488   UnnecessaryLocalBeforeReturn             3       3        3        0
+	    S1128   UnnecessaryImport                        2       2        2        0
+	    S1066   CollapsibleIfStatements                  2       2        2        0
+	    S1068   UnusedPrivateField                       1       1        1        0
+	    S1186   UncommentedEmptyMethodBody               1       1        1        0
+	    S3626   UnnecessaryReturn                        2       1        1        1
+
+	46 of 47, against 58 findings. So a finding here is right about four times in five, and
+	almost nothing Sonar raises for these eight rules gets past it. The 12 extra cognitive
+	complexity hits are methods PMD scores above 15 and Sonar does not; they are worth a look
+	rather than a fix.
+
+	Two rules were tried and deliberately left out:
+
+	AvoidDuplicateLiterals, for S1192. It cannot be tuned to agree. At minimumLength 5 it
+	catches 28 of 29 but reports 185; at 8 it catches 21 and reports 105. Either way the noise
+	would bury the 58 findings above, which is the whole value of this file. Add it back
+	temporarily when working S1192 specifically, not as a default.
+
+	ExcessiveParameterList, for S107. Its threshold is 10 parameters against Sonar's 7, so it
+	found none of the 2 open issues.
+
+	Nothing here covers S135, S1141 or S4144, the next three largest groups. PMD has no
+	equivalent, and those need the method read anyway.
+
+	This is report only. It is deliberately not bound to a phase and deliberately not
+	pmd:check, because at 79% precision a build failure would sometimes be wrong and a check
+	that is sometimes wrong gets ignored. SonarCloud stays the authority on what is an issue.
+
+	Run:  mvn pmd:pmd -Dformat=csv     then read target/pmd.csv
+-->
+<ruleset name="sonar-overlap"
+	xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+	<description>PMD rules verified to track the SonarCloud rules this project still trips</description>
+
+	<!-- S3776, the largest group left and the one that has been finding real bugs. PMD's
+	     default reportLevel of 15 is the same threshold Sonar uses, which is why this agrees
+	     without tuning. -->
+	<rule ref="category/java/design.xml/CognitiveComplexity"/>
+
+	<rule ref="category/java/errorprone.xml/ReturnEmptyCollectionRatherThanNull"/>
+	<rule ref="category/java/codestyle.xml/UnnecessaryLocalBeforeReturn"/>
+	<rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
+	<rule ref="category/java/design.xml/CollapsibleIfStatements"/>
+	<rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+	<rule ref="category/java/documentation.xml/UncommentedEmptyMethodBody"/>
+
+	<!-- S3626. Catches the return case but not the redundant continue in WormholeXTreme. -->
+	<rule ref="category/java/codestyle.xml/UnnecessaryReturn"/>
+</ruleset>
