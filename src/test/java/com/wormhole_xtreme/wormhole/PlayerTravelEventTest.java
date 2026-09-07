@@ -46,7 +46,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 class PlayerTravelEventTest
 {
-    private final List<Event> raised = new ArrayList<Event>();
+    private final List<Event> raised = new ArrayList<>();
     private World world;
     private Player player;
     private Stargate origin;

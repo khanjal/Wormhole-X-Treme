@@ -180,8 +180,8 @@ public final class MaterialGroupRegistry
      */
     public static void load(final Map<String, Object> section)
     {
-        final Map<String, MaterialGroup> byName = new LinkedHashMap<String, MaterialGroup>();
-        final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<Material, MaterialGroup>();
+        final Map<String, MaterialGroup> byName = new LinkedHashMap<>();
+        final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<>();
         MaterialGroup first = null;
 
         if (section != null)
@@ -213,7 +213,7 @@ public final class MaterialGroupRegistry
         groupsByStructureMaterial = Collections.unmodifiableMap(byMaterial);
         defaultGroup = first;
 
-        final List<String> names = new ArrayList<String>();
+        final List<String> names = new ArrayList<>();
         for (final MaterialGroup g : byName.values())
         {
             names.add(g.getName() + "=" + g.getStructureMaterial());
@@ -241,7 +241,7 @@ public final class MaterialGroupRegistry
     public static List<MaterialGroup> discoverUndeclaredGroups(final Collection<StargateShape> shapes)
     {
         // Frame material -> the distinct material sets the shapes using it ask for.
-        final Map<Material, List<MaterialGroup>> byFrame = new LinkedHashMap<Material, List<MaterialGroup>>();
+        final Map<Material, List<MaterialGroup>> byFrame = new LinkedHashMap<>();
         for (final StargateShape shape : shapes)
         {
             final Material frame = shape.getShapeStructureMaterial();
@@ -252,7 +252,7 @@ public final class MaterialGroupRegistry
             List<MaterialGroup> seen = byFrame.get(frame);
             if (seen == null)
             {
-                seen = new ArrayList<MaterialGroup>();
+                seen = new ArrayList<>();
                 byFrame.put(frame, seen);
             }
             final MaterialGroup candidate = new MaterialGroup(suggestGroupName(frame), frame,
@@ -264,7 +264,7 @@ public final class MaterialGroupRegistry
             }
         }
 
-        final List<MaterialGroup> discovered = new ArrayList<MaterialGroup>();
+        final List<MaterialGroup> discovered = new ArrayList<>();
         for (final Map.Entry<Material, List<MaterialGroup>> entry : byFrame.entrySet())
         {
             if (entry.getValue().size() == 1)
@@ -337,8 +337,8 @@ public final class MaterialGroupRegistry
         {
             return;
         }
-        final Map<String, MaterialGroup> byName = new LinkedHashMap<String, MaterialGroup>(groupsByName);
-        final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<Material, MaterialGroup>(groupsByStructureMaterial);
+        final Map<String, MaterialGroup> byName = new LinkedHashMap<>(groupsByName);
+        final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<>(groupsByStructureMaterial);
         byName.put(group.getName().toLowerCase(Locale.ROOT), group);
         byMaterial.put(group.getStructureMaterial(), group);
         groupsByName = Collections.unmodifiableMap(byName);

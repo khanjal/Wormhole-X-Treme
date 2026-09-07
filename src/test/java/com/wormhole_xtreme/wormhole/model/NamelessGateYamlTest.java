@@ -27,7 +27,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * A gate that cannot be written does not take the rest of the save down with it.
  *
  * <p>Three sites built a file name straight off {@code getGateName()}, and a fourth handed
- * {@code stargatetoBinary}'s result to Base64 without checking it. SonarCloud raises the first
+ * {@code stargateToBinary}'s result to Base64 without checking it. SonarCloud raises the first
  * as a guaranteed NPE, and it is right: {@code StargateManager.normalizeGateName} returns null
  * for a null name rather than throwing, so the rest of the model tolerates a nameless gate.
  *
@@ -125,7 +125,7 @@ class NamelessGateYamlTest
     /**
      * A gate that will not serialise is skipped too, rather than written without its blocks.
      *
-     * <p>{@code stargatetoBinary} returns null when the encoding fails, having logged why. A
+     * <p>{@code stargateToBinary} returns null when the encoding fails, having logged why. A
      * file with no GateData loads back as a gate with no blocks at all, which is worse than
      * no file: the gate looks present and does nothing.
      */
@@ -135,7 +135,7 @@ class NamelessGateYamlTest
         final Stargate unserialisable = new Stargate();
         unserialisable.setGateName("broken");
         unserialisable.setGateWorld(world);
-        // No facing, which is what stargatetoBinary fails on.
+        // No facing, which is what stargateToBinary fails on.
 
         assertDoesNotThrow(() -> StargateYamlManager.saveStargate(unserialisable, gatesDir));
 

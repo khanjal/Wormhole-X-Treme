@@ -287,7 +287,7 @@ class WormholeXTremeRedstoneListener implements Listener
      * seconds would have held the gate open for ever.
      *
      * <p>It now pushes the shutdown back instead, which is what someone running carts through
-     * actually wants, and is safe for the reason doing nothing was: max_open_seconds is
+     * actually wants, and is safe for the reason doing nothing was: maxOpenSeconds is
      * measured from when the wormhole first opened and nothing here touches it, so extending
      * can buy more time but never unlimited time. Still not a re-dial -- nothing about the
      * connection is rebuilt.

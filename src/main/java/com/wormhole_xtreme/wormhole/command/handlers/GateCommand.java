@@ -50,7 +50,7 @@ public class GateCommand implements SubCommand
      */
     public static List<String> verbs()
     {
-        return new ArrayList<String>(VERBS);
+        return new ArrayList<>(VERBS);
     }
 
     @Override

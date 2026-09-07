@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.utils.DataUtils;
 /**
  * Reading a gate saved by an older version of the plugin.
  *
- * <p>Save versions 3 to 7 are read-only: {@code stargatetoBinary} writes version 9 and
+ * <p>Save versions 3 to 7 are read-only: {@code stargateToBinary} writes version 9 and
  * nothing else, so nothing round-trips them and there was no test that actually parsed one.
  * {@code LegacyImportTest} had a case that looked like this one and asserted, through
  * reflection, that the reader method existed.

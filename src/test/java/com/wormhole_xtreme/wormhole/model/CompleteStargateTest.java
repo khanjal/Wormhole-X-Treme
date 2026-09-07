@@ -65,7 +65,7 @@ class CompleteStargateTest
 
     private static void clearRegistry()
     {
-        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

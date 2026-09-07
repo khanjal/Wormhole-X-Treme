@@ -285,8 +285,8 @@ class WormholeXTremeVehicleListener implements Listener
         final Vector exitSpeed)
     {
         final VehicleKind kind = VehicleKind.of(veh);
-        final List<Entity> parents = new ArrayList<Entity>();
-        final List<Entity> children = new ArrayList<Entity>();
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
         collectPassengerPairs(veh, parents, children);
         try
         {
@@ -632,9 +632,9 @@ class WormholeXTremeVehicleListener implements Listener
         }
         final Vector v = veh.getVelocity();
         veh.setVelocity(nospeed);
-        final List<Entity> passengers = new ArrayList<Entity>(veh.getPassengers());
+        final List<Entity> passengers = new ArrayList<>(veh.getPassengers());
         // Riders whose cooldown and arrival mark are owed once the trip actually happens.
-        final List<Player> pendingRestrictions = new ArrayList<Player>();
+        final List<Player> pendingRestrictions = new ArrayList<>();
         if (!admitVehiclePassengers(st, veh, passengers, pendingRestrictions, gatenetwork))
         {
             return false;

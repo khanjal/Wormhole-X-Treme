@@ -260,7 +260,7 @@ public class ConfigManager
     }
 
     /** The Constant configurations. */
-    private static final ConcurrentHashMap<ConfigKeys, Setting> configurations = new ConcurrentHashMap<ConfigKeys, Setting>();
+    private static final ConcurrentHashMap<ConfigKeys, Setting> configurations = new ConcurrentHashMap<>();
 
     /**
      * Gets the configurations.

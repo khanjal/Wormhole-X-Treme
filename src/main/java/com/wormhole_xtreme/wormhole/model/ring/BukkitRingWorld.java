@@ -54,7 +54,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     private final RingPair pair;
 
     /** Who is currently being drawn to. */
-    private List<Player> audience = new ArrayList<Player>();
+    private List<Player> audience = new ArrayList<>();
 
     /** When that list was last worked out. */
     private long audienceComputedAt = 0L;
@@ -90,7 +90,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             return audience;
         }
-        final List<Player> found = new ArrayList<Player>();
+        final List<Player> found = new ArrayList<>();
         for (final Player player : world.getPlayers())
         {
             if (inRangeOf(player, pair.getEndA()) || inRangeOf(player, pair.getEndB()))
@@ -187,7 +187,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     @Override
     public List<RingPassenger> passengersIn(final List<int[]> blocks)
     {
-        final List<RingPassenger> out = new ArrayList<RingPassenger>();
+        final List<RingPassenger> out = new ArrayList<>();
         if (blocks.isEmpty())
         {
             return out;
@@ -322,8 +322,8 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         }
         // Teleporting an entity throws off whatever is riding it, so the stack is noted
         // first and put back once everything has landed.
-        final List<Entity> parents = new ArrayList<Entity>();
-        final List<Entity> children = new ArrayList<Entity>();
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
         com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(entity, parents, children);
 
         entity.teleport(arrival);

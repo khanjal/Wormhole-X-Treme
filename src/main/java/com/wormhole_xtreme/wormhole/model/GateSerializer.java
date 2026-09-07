@@ -419,7 +419,7 @@ public final class GateSerializer
                 s.getGateLightBlocks().add(null);
             }
 
-            s.getGateLightBlocks().set(1, new ArrayList<Location>());
+            s.getGateLightBlocks().set(1, new ArrayList<>());
 
             numBlocks = byteBuff.getInt();
             for (int i = 0; i < numBlocks; i++)
@@ -538,7 +538,7 @@ public final class GateSerializer
 
             while (s.getGateLightBlocks().size() < numLayers)
             {
-                s.getGateLightBlocks().add(new ArrayList<Location>());
+                s.getGateLightBlocks().add(new ArrayList<>());
             }
             for (int i = 0; i < numLayers; i++)
             {
@@ -555,7 +555,7 @@ public final class GateSerializer
 
             while (s.getGateWooshBlocks().size() < numLayers)
             {
-                s.getGateWooshBlocks().add(new ArrayList<Location>());
+                s.getGateWooshBlocks().add(new ArrayList<>());
             }
             for (int i = 0; i < numLayers; i++)
             {
@@ -684,7 +684,7 @@ public final class GateSerializer
 
             while (s.getGateLightBlocks().size() < numLayers)
             {
-                s.getGateLightBlocks().add(new ArrayList<Location>());
+                s.getGateLightBlocks().add(new ArrayList<>());
             }
             for (int i = 0; i < numLayers; i++)
             {
@@ -701,7 +701,7 @@ public final class GateSerializer
 
             while (s.getGateWooshBlocks().size() < numLayers)
             {
-                s.getGateWooshBlocks().add(new ArrayList<Location>());
+                s.getGateWooshBlocks().add(new ArrayList<>());
             }
             for (int i = 0; i < numLayers; i++)
             {
@@ -1034,7 +1034,7 @@ public final class GateSerializer
         final int numLayers = byteBuff.getInt();
         while (waves.size() < numLayers)
         {
-            waves.add(new ArrayList<Location>());
+            waves.add(new ArrayList<>());
         }
         for (int i = 0; i < numLayers; i++)
         {
@@ -1063,7 +1063,7 @@ public final class GateSerializer
     // encode this gate" from "encoded it", and a gate file written with no data in it loads as
     // a gate with no blocks at all. See StargateYamlManager.saveStargate, which skips on null.
     @SuppressWarnings("java:S1168")
-    public static byte[] stargatetoBinary(final Stargate s)
+    public static byte[] stargateToBinary(final Stargate s)
     {
         byte[] utfFaceBytes;
         byte[] utfIdcBytes;

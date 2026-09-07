@@ -43,7 +43,7 @@ class ShapeLoadingTest
         f.set(null, mock(WormholeXTreme.class));
 
         // The registry is static and shared, so put back whatever the rest of the suite had.
-        savedShapes = new HashMap<String, StargateShape>(StargateShapeRegistry.getStargateShapes());
+        savedShapes = new HashMap<>(StargateShapeRegistry.getStargateShapes());
         StargateShapeRegistry.getStargateShapes().clear();
     }
 

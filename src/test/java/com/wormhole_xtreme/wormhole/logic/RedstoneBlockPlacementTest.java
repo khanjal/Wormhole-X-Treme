@@ -51,7 +51,7 @@ class RedstoneBlockPlacementTest
 
     private static List<String> shippedShapeNames() throws Exception
     {
-        final List<String> names = new ArrayList<String>();
+        final List<String> names = new ArrayList<>();
         // try-with-resources: Files.list holds an open directory handle until closed.
         try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
         {
@@ -215,8 +215,8 @@ class RedstoneBlockPlacementTest
         for (final String name : shippedShapeNames())
         {
             final Stargate3DShape shape = load(name);
-            final List<int[]> dial = new ArrayList<int[]>();
-            final List<int[]> cycle = new ArrayList<int[]>();
+            final List<int[]> dial = new ArrayList<>();
+            final List<int[]> cycle = new ArrayList<>();
 
             int layerIndex = 0;
             for (final StargateShapeLayer layer : shape.getShapeLayers())

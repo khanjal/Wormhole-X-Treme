@@ -50,7 +50,7 @@ class ShippedShapeIrisTest
 
     private static List<String> shippedShapeNames() throws Exception
     {
-        final List<String> names = new ArrayList<String>();
+        final List<String> names = new ArrayList<>();
         // try-with-resources: Files.list holds an open directory handle until closed.
         try (java.util.stream.Stream<Path> listing = Files.list(SHAPE_DIR))
         {

@@ -41,7 +41,7 @@ class RingAnimatorTest
     /** The distinct y/half pairs present on a frame, as "y:top" strings. */
     private static Set<String> levels(final List<RingAnimator.Placement> placements)
     {
-        final Set<String> out = new HashSet<String>();
+        final Set<String> out = new HashSet<>();
         for (final RingAnimator.Placement placement : placements)
         {
             out.add(placement.getY() + ":" + placement.isTop());
@@ -139,7 +139,7 @@ class RingAnimatorTest
 
         final List<RingAnimator.Placement> settled =
             RingAnimator.settledStack(hanging, RingStyle.CONCURRENT);
-        final Set<Integer> heights = new HashSet<Integer>();
+        final Set<Integer> heights = new HashSet<>();
         for (final RingAnimator.Placement placement : settled)
         {
             heights.add(Integer.valueOf(placement.getY()));
@@ -256,7 +256,7 @@ class RingAnimatorTest
             for (int frame = 0; frame < RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE); frame++)
             {
                 final List<RingAnimator.Placement> placements = RingAnimator.deployFrame(subject, STYLE, frame);
-                final Set<String> seen = new HashSet<String>();
+                final Set<String> seen = new HashSet<>();
                 for (final RingAnimator.Placement placement : placements)
                 {
                     final String key = placement.getX() + ":" + placement.getY() + ":"
@@ -313,7 +313,7 @@ class RingAnimatorTest
         final List<RingAnimator.Placement> last =
             RingAnimator.deployFrame(floor, STYLE, RingAnimator.deployFrames(ANY_FLOOR_RING, STYLE) - 1);
 
-        final Set<Integer> heights = new HashSet<Integer>();
+        final Set<Integer> heights = new HashSet<>();
         for (final RingAnimator.Placement placement : last)
         {
             assertTrue(placement.isTop(), "a settled stack is all top slabs");
@@ -388,7 +388,7 @@ class RingAnimatorTest
         // The travelling rings are copies of the perimeter and must never stray into the
         // interior, which is where the passengers are standing.
         final Ring floor = ring(RingOrientation.FLOOR);
-        final Set<String> interior = new HashSet<String>();
+        final Set<String> interior = new HashSet<>();
         for (final int[] block : floor.interiorBlocks())
         {
             interior.add(block[0] + ":" + block[2]);
@@ -460,7 +460,7 @@ class RingAnimatorTest
         {
             for (int frame = 0; frame < RingAnimator.deployFrames(hanging, style); frame++)
             {
-                final Set<String> seen = new HashSet<String>();
+                final Set<String> seen = new HashSet<>();
                 for (final RingAnimator.Placement placement
                     : RingAnimator.deployFrame(hanging, style, frame))
                 {
@@ -524,13 +524,13 @@ class RingAnimatorTest
     /** The distinct half-step heights present on a frame, highest first. */
     private static List<Integer> heightsOf(final List<RingAnimator.Placement> placements)
     {
-        final Set<Integer> seen = new HashSet<Integer>();
+        final Set<Integer> seen = new HashSet<>();
         for (final RingAnimator.Placement placement : placements)
         {
             // Two half-steps to a block, and a top slab is the upper half of its own block.
             seen.add(Integer.valueOf((placement.getY() * 2) + (placement.isTop() ? 1 : 0)));
         }
-        final List<Integer> out = new ArrayList<Integer>(seen);
+        final List<Integer> out = new ArrayList<>(seen);
         java.util.Collections.sort(out, java.util.Collections.reverseOrder());
         return out;
     }
@@ -606,7 +606,7 @@ class RingAnimatorTest
     void theFlashTouchesEveryRingExactlyOnce()
     {
         // The transport itself, given an animation rather than being an instant nobody sees.
-        final Set<Integer> touched = new HashSet<Integer>();
+        final Set<Integer> touched = new HashSet<>();
         for (int frame = 0; frame < RingAnimator.flashFrames(); frame++)
         {
             assertTrue(touched.add(Integer.valueOf(RingAnimator.litRing(frame))),

@@ -147,7 +147,7 @@ class RingSoundsTest
         for (final RingOrientation orientation : RingOrientation.values())
         {
             final Ring ring = ring(orientation);
-            final Set<Integer> frames = new HashSet<Integer>();
+            final Set<Integer> frames = new HashSet<>();
             for (int index = 0; index < RingAnimator.RING_COUNT; index++)
             {
                 assertTrue(frames.add(Integer.valueOf(RingSounds.startFrame(ring, index, false))),

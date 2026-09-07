@@ -37,7 +37,7 @@ class RingPatternTest
     /** Collects offsets into a set of "dx,dz" strings, so membership reads directly. */
     private static Set<String> cells(final List<RingPattern.Offset> offsets)
     {
-        final Set<String> out = new HashSet<String>();
+        final Set<String> out = new HashSet<>();
         for (final RingPattern.Offset offset : offsets)
         {
             out.add(offset.getDx() + "," + offset.getDz());

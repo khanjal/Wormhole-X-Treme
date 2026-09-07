@@ -93,10 +93,10 @@ class WormholeXTremeRedstoneListenerTest
             // opened. It must still never do that.
             verify(gate, never()).shutdownStargate(anyBoolean());
             // And it is not re-dialled either. Re-dialling rebuilds the connection and, before
-            // max_open_seconds existed, restarted the timer from scratch -- which is what would
+            // maxOpenSeconds existed, restarted the timer from scratch -- which is what would
             // have let a repeatedly triggered gate stay open and lock everyone else out.
             verify(gate, never()).dialStargate(any(Stargate.class), anyBoolean());
-            // What it does instead: pushes the shutdown back. Bounded by max_open_seconds,
+            // What it does instead: pushes the shutdown back. Bounded by maxOpenSeconds,
             // which is measured from when the wormhole first opened and is not touched here.
             verify(scheduler).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
         }

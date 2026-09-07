@@ -72,7 +72,7 @@ public class CommandUtilities
         boolean startQuoteFound = false;
         boolean endQuoteFound = false;
 
-        final ArrayList<String> argsPartsList = new ArrayList<String>();
+        final ArrayList<String> argsPartsList = new ArrayList<>();
 
         for (final String part : args)
         {

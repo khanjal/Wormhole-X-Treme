@@ -85,7 +85,7 @@ public class Stargate
     /** Block that toggle the activation state of the gate if nearby redstone is activated. */
     private Block gateRedstoneDialActivationBlock;
     /** Blocks to monitor for redstone input when auto-placing is disabled. */
-    private final List<Block> gateRedstoneDialMonitorBlocks = new ArrayList<Block>();
+    private final List<Block> gateRedstoneDialMonitorBlocks = new ArrayList<>();
     /** Block that will toggle sign target when redstone nearby is activated. */
     private Block gateRedstoneSignActivationBlock;
     /** The gate redstone gate activated block. */
@@ -167,17 +167,17 @@ public class Stargate
     /** The current_lighting_iteration. */
     private int gateLightingCurrentIteration = 0;
     /** List of all blocks contained in this stargate, including buttons and levers. */
-    private final List<Location> gateStructureBlocks = new ArrayList<Location>();
+    private final List<Location> gateStructureBlocks = new ArrayList<>();
     /** List of all blocks that that are part of the "portal". */
-    private final List<Location> gatePortalBlocks = new ArrayList<Location>();
+    private final List<Location> gatePortalBlocks = new ArrayList<>();
     /** List of all blocks that turn on when gate is active. */
-    private final List<List<Location>> gateLightBlocks = new ArrayList<List<Location>>();
+    private final List<List<Location>> gateLightBlocks = new ArrayList<>();
     /** List of all blocks that woosh in order when gate is active. */
-    private final List<List<Location>> gateWooshBlocks = new ArrayList<List<Location>>();
+    private final List<List<Location>> gateWooshBlocks = new ArrayList<>();
     /** The Animated blocks. */
-    private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<Block>();
+    private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<>();
     /** The gate_order. */
-    private final HashMap<Integer, Stargate> gateSignOrder = new HashMap<Integer, Stargate>();
+    private final HashMap<Integer, Stargate> gateSignOrder = new HashMap<>();
 
     /** The gate custom. */
     private boolean gateCustom = false;
@@ -863,7 +863,7 @@ public class Stargate
      * Pushes this wormhole's shutdown back, without letting it outlive its maximum open time.
      *
      * <p>Not a re-dial: nothing about the connection is rebuilt and the gate's own open
-     * timestamp is untouched, so {@code max_open_seconds} still measures from when the
+     * timestamp is untouched, so {@code maxOpenSeconds} still measures from when the
      * wormhole first opened.
      *
      * @return true if the shutdown was pushed back

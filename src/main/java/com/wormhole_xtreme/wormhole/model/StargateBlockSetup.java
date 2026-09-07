@@ -661,7 +661,7 @@ class StargateBlockSetup
         // them is a good enough filter for the whole gate.
         final Location reference = new Location(gate.getGateWorld(),
             portalBlocks.get(0).getBlockX(), portalBlocks.get(0).getBlockY(), portalBlocks.get(0).getBlockZ());
-        final List<Player> recipients = new ArrayList<Player>();
+        final List<Player> recipients = new ArrayList<>();
         for (final Player p : gate.getGateWorld().getPlayers())
         {
             if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
@@ -816,7 +816,7 @@ class StargateBlockSetup
      */
     private static List<Player> nearby(final Stargate gate)
     {
-        final List<Player> recipients = new ArrayList<Player>();
+        final List<Player> recipients = new ArrayList<>();
         if ((gate == null) || (gate.getGateWorld() == null))
         {
             return recipients;
@@ -1017,7 +1017,7 @@ class StargateBlockSetup
             return;
         }
         final Location playerAt = player.getLocation();
-        final Set<String> stillOpen = new HashSet<String>();
+        final Set<String> stillOpen = new HashSet<>();
 
         for (final Stargate gate : StargateManager.getOpenGates())
         {
@@ -1148,9 +1148,9 @@ class StargateBlockSetup
         {
             // No identity to file it under, so there is nothing to remember between calls.
             // A throwaway set keeps every caller free of null checks.
-            return new HashSet<String>();
+            return new HashSet<>();
         }
-        return DRAWN.computeIfAbsent(uuid, key -> new HashSet<String>());
+        return DRAWN.computeIfAbsent(uuid, key -> new HashSet<>());
     }
 
     /**

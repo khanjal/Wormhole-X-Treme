@@ -94,7 +94,7 @@ class PrettyLogTest
         // since some of these calls wrap. No first argument in the tree contains a comma.
         final Pattern redundant = Pattern.compile("prettyLog\\([^,]*,\\s*false\\s*,", Pattern.DOTALL);
 
-        final List<String> found = new ArrayList<String>();
+        final List<String> found = new ArrayList<>();
         try (java.util.stream.Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
         {
             for (final Path source : walk.toList())

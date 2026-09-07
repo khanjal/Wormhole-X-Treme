@@ -60,8 +60,8 @@ class WooshWaveTest
     void aShapeThatAuthorsItsOwnWavesIsCountedByHowManyItAuthored()
     {
         final Stargate gate = new Stargate();
-        gate.getGateWooshBlocks().add(new ArrayList<Location>());
-        gate.getGateWooshBlocks().add(new ArrayList<Location>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
+        gate.getGateWooshBlocks().add(new ArrayList<>());
 
         assertEquals(2, StargateAnimator.wooshWaveCount(gate),
             "a shape's own :W# waves are the authority on how many waves its woosh has");

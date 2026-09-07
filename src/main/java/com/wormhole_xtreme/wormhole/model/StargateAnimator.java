@@ -253,7 +253,7 @@ class StargateAnimator
             return null;
         }
         final int out = index + 1;
-        final ArrayList<Location> wave = new ArrayList<Location>();
+        final ArrayList<Location> wave = new ArrayList<>();
         for (final Location portal : gate.getGatePortalBlocks())
         {
             // Built as a plain Location rather than looked up through
@@ -434,7 +434,7 @@ class StargateAnimator
         {
             return;
         }
-        final List<Location> stillShowing = new ArrayList<Location>();
+        final List<Location> stillShowing = new ArrayList<>();
         for (final Block b : gate.getGateAnimatedBlocks())
         {
             stillShowing.add(b.getLocation());

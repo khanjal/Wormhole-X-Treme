@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 class GateEventDispatchTest
 {
-    private final List<Event> raised = new ArrayList<Event>();
+    private final List<Event> raised = new ArrayList<>();
     private World world;
 
     @BeforeEach
@@ -69,7 +69,7 @@ class GateEventDispatchTest
 
     private List<Event> ofType(final Class<? extends Event> type)
     {
-        final List<Event> found = new ArrayList<Event>();
+        final List<Event> found = new ArrayList<>();
         for (final Event e : raised)
         {
             if (type.isInstance(e))

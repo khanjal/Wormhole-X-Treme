@@ -22,7 +22,7 @@ public class Stargate3DShape extends StargateShape
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
      */
-    private final List<StargateShapeLayer> shapeLayers = new ArrayList<StargateShapeLayer>();
+    private final List<StargateShapeLayer> shapeLayers = new ArrayList<>();
 
     /** The activation_layer. */
     private int shapeActivationLayer = -1;
@@ -125,7 +125,7 @@ public class Stargate3DShape extends StargateShape
         int i = cursor[0];
         while (fileLines[i].startsWith("[") || fileLines[i].startsWith("#"))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " line_index=" + lineIndex + " Line=" + fileLines[i]);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " lineIndex=" + lineIndex + " Line=" + fileLines[i]);
             layerLines[lineIndex] = fileLines[i];
             i++;
 

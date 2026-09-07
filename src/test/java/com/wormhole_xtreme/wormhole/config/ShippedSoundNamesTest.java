@@ -40,7 +40,7 @@ class ShippedSoundNamesTest
      */
     private static List<Setting> shippedSoundSettings()
     {
-        final List<Setting> sounds = new ArrayList<Setting>();
+        final List<Setting> sounds = new ArrayList<>();
         for (final Setting setting : DefaultSettings.config)
         {
             if (setting.getName().name().contains("SOUND") && (setting.getValue() instanceof String))

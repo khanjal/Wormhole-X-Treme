@@ -138,8 +138,8 @@ public final class SubCommands
         }
     }
 
-    private static final Map<String, Entry> BY_NAME = new LinkedHashMap<String, Entry>();
-    private static final List<Entry> ORDERED = new ArrayList<Entry>();
+    private static final Map<String, Entry> BY_NAME = new LinkedHashMap<>();
+    private static final List<Entry> ORDERED = new ArrayList<>();
 
     private SubCommands() {}
 
@@ -198,7 +198,7 @@ public final class SubCommands
             {
                 if (args.length == 2)
                 {
-                    final List<String> out = new ArrayList<String>(gateNames(args[1]));
+                    final List<String> out = new ArrayList<>(gateNames(args[1]));
                     out.addAll(prefixed(args[1], "-all", "-clean"));
                     return out;
                 }
@@ -417,7 +417,7 @@ public final class SubCommands
         {
             return none();
         }
-        final List<String> out = new ArrayList<String>(gateNames(args[2]));
+        final List<String> out = new ArrayList<>(gateNames(args[2]));
         out.addAll(prefixed(args[2], "-all"));
         return out;
     }
@@ -517,7 +517,7 @@ public final class SubCommands
     public static List<String> namesMatching(final String prefix)
     {
         final String p = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final Entry e : ORDERED)
         {
             if (!e.isHidden() && e.getName().startsWith(p))
@@ -569,7 +569,7 @@ public final class SubCommands
 
     private static List<String> combine(final List<String> first, final List<String> second)
     {
-        final List<String> out = new ArrayList<String>(first);
+        final List<String> out = new ArrayList<>(first);
         out.addAll(second);
         return out;
     }
@@ -577,7 +577,7 @@ public final class SubCommands
     private static List<String> prefixed(final String typed, final String... candidates)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final String c : candidates)
         {
             if (c.toLowerCase(Locale.ROOT).startsWith(p))
@@ -764,7 +764,7 @@ public final class SubCommands
     private static List<String> playerNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final org.bukkit.entity.Player player : org.bukkit.Bukkit.getOnlinePlayers())
         {
             final String name = player.getName();
@@ -830,7 +830,7 @@ public final class SubCommands
     private static List<String> worldNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final org.bukkit.World world : org.bukkit.Bukkit.getWorlds())
         {
             final String name = world.getName();
@@ -846,7 +846,7 @@ public final class SubCommands
     private static List<String> publicBeamNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination destination
             : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getAllPublicDestinations())
         {
@@ -929,7 +929,7 @@ public final class SubCommands
     private static List<String> glowingNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final org.bukkit.Material material
             : com.wormhole_xtreme.wormhole.model.ring.Ring.glowingMaterials())
         {
@@ -955,7 +955,7 @@ public final class SubCommands
     private static List<String> materialNames(final String typed, final boolean slabsOnly)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final org.bukkit.Material material : org.bukkit.Material.values())
         {
             final String name = material.name().toLowerCase(Locale.ROOT);
@@ -1003,7 +1003,7 @@ public final class SubCommands
     private static List<String> shapeNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final String name
             : com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShapes().keySet())
         {
@@ -1019,7 +1019,7 @@ public final class SubCommands
     private static List<String> gateNames(final String typed)
     {
         final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final Stargate g : StargateManager.getAllGatesUnsorted())
         {
             final String name = g.getGateName();
@@ -1044,7 +1044,7 @@ public final class SubCommands
                 nets.add(g.getGateNetwork().getNetworkName());
             }
         }
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final String n : nets)
         {
             if (n.toLowerCase(Locale.ROOT).startsWith(p))

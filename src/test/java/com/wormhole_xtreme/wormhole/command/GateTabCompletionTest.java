@@ -61,7 +61,7 @@ class GateTabCompletionTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
             {

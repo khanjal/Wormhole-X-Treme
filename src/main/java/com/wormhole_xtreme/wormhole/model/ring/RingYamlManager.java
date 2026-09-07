@@ -353,7 +353,7 @@ public final class RingYamlManager
         }
         final File target = fileForWorld(directory, worldName);
 
-        final Map<String, Object> pairsOut = new LinkedHashMap<String, Object>();
+        final Map<String, Object> pairsOut = new LinkedHashMap<>();
         for (final RingPair pair : RingManager.getPairsInWorld(worldName))
         {
             pairsOut.put(pair.getId(), writePair(pair));
@@ -379,7 +379,7 @@ public final class RingYamlManager
             return;
         }
 
-        final Map<String, Object> root = new LinkedHashMap<String, Object>();
+        final Map<String, Object> root = new LinkedHashMap<>();
         root.put(WORLD_KEY, worldName);
         root.put("Pairs", pairsOut);
 
@@ -428,7 +428,7 @@ public final class RingYamlManager
      */
     private static Map<String, Object> writePair(final RingPair pair)
     {
-        final Map<String, Object> out = new LinkedHashMap<String, Object>();
+        final Map<String, Object> out = new LinkedHashMap<>();
         out.put("Owner", pair.getOwner() == null ? "" : pair.getOwner());
         out.put("OwnerName", pair.getOwnerName() == null ? "" : pair.getOwnerName());
         out.put("Created", Long.valueOf(pair.getCreated()));
@@ -451,7 +451,7 @@ public final class RingYamlManager
      */
     private static Map<String, Object> writeRing(final Ring ring)
     {
-        final Map<String, Object> out = new HashMap<String, Object>();
+        final Map<String, Object> out = new HashMap<>();
         out.put("X", Integer.valueOf(ring.getAnchorX()));
         out.put("Y", Integer.valueOf(ring.getAnchorY()));
         out.put("Z", Integer.valueOf(ring.getAnchorZ()));
@@ -522,14 +522,14 @@ public final class RingYamlManager
             return;
         }
 
-        final Map<String, Object> out = new LinkedHashMap<String, Object>();
+        final Map<String, Object> out = new LinkedHashMap<>();
         for (final Map.Entry<UUID, RingManager.PendingRing> entry : waiting.entrySet())
         {
             final Map<String, Object> one = writeRing(entry.getValue().getRing());
             one.put(WORLD_KEY, entry.getValue().getWorldName());
             out.put(entry.getKey().toString(), one);
         }
-        final Map<String, Object> root = new LinkedHashMap<String, Object>();
+        final Map<String, Object> root = new LinkedHashMap<>();
         root.put("Pending", out);
         write(target, root);
     }

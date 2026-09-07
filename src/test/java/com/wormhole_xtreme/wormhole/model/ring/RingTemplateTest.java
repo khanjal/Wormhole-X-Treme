@@ -25,8 +25,8 @@ class RingTemplateTest
     /** A probe backed by a map, so a test can lay out slabs without a server. */
     private static final class FakeWorld implements RingTemplate.BlockProbe
     {
-        private final Map<String, Material> materials = new HashMap<String, Material>();
-        private final Map<String, RingTemplate.SlabHalf> halves = new HashMap<String, RingTemplate.SlabHalf>();
+        private final Map<String, Material> materials = new HashMap<>();
+        private final Map<String, RingTemplate.SlabHalf> halves = new HashMap<>();
 
         private static String key(final int x, final int y, final int z)
         {

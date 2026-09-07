@@ -23,7 +23,7 @@ import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
 
 public final class StargateShapeRegistry
 {
-    private static final ConcurrentHashMap<String, StargateShape> stargateShapes = new ConcurrentHashMap<String, StargateShape>();
+    private static final ConcurrentHashMap<String, StargateShape> stargateShapes = new ConcurrentHashMap<>();
 
     private StargateShapeRegistry() {}
 
@@ -249,7 +249,8 @@ public final class StargateShapeRegistry
             try (final BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                  final BufferedWriter bw = new BufferedWriter(new FileWriter(defaultShapeFile, StandardCharsets.UTF_8)))
             {
-                for (String s = ""; (s = br.readLine()) != null;)
+                String s;
+                while ((s = br.readLine()) != null)
                 {
                     bw.write(s);
                     bw.write("\n");
@@ -292,8 +293,9 @@ public final class StargateShapeRegistry
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Loading shape file: \"" + fi.getName() + "\"");
         try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(fi, StandardCharsets.UTF_8)))
         {
-            final ArrayList<String> fileLines = new ArrayList<String>();
-            for (String s = ""; (s = bufferedReader.readLine()) != null;)
+            final ArrayList<String> fileLines = new ArrayList<>();
+            String s;
+            while ((s = bufferedReader.readLine()) != null)
             {
                 fileLines.add(s);
             }
@@ -392,10 +394,11 @@ public final class StargateShapeRegistry
         {
             return null;
         }
-        final ArrayList<String> fileLines = new ArrayList<String>();
+        final ArrayList<String> fileLines = new ArrayList<>();
         try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8)))
         {
-            for (String s = ""; (s = bufferedReader.readLine()) != null;)
+            String s;
+            while ((s = bufferedReader.readLine()) != null)
             {
                 fileLines.add(s);
             }
