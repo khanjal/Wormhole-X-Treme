@@ -88,17 +88,19 @@ class BeamLoadAllTest
     @Test
     void publicDestinationsAreLoaded() throws Exception
     {
-        writeBeamFile("Public:\n"
-            + "  spawn:\n"
-            + "    World: world\n"
-            + "    X: 1.0\n"
-            + "    Y: 64.0\n"
-            + "    Z: 2.0\n"
-            + "  market:\n"
-            + "    World: world\n"
-            + "    X: 10.0\n"
-            + "    Y: 64.0\n"
-            + "    Z: 20.0\n");
+        writeBeamFile("""
+            Public:
+              spawn:
+                World: world
+                X: 1.0
+                Y: 64.0
+                Z: 2.0
+              market:
+                World: world
+                X: 10.0
+                Y: 64.0
+                Z: 20.0
+            """);
 
         assertEquals(2, BeamYamlManager.loadAll());
         assertNotNull(BeamManager.getPublicDestination("spawn"));
@@ -109,13 +111,15 @@ class BeamLoadAllTest
     @Test
     void placesAreLoadedAgainstTheirOwner() throws Exception
     {
-        writeBeamFile("Places:\n"
-            + "  " + OWNER + ":\n"
-            + "    hideout:\n"
-            + "      World: world\n"
-            + "      X: 5.0\n"
-            + "      Y: 64.0\n"
-            + "      Z: 5.0\n");
+        writeBeamFile("""
+            Places:
+              %s:
+                hideout:
+                  World: world
+                  X: 5.0
+                  Y: 64.0
+                  Z: 5.0
+            """.formatted(OWNER));
 
         assertEquals(1, BeamYamlManager.loadAll());
         assertNotNull(BeamManager.getPlace(OWNER, "hideout"));
@@ -132,25 +136,27 @@ class BeamLoadAllTest
     @Test
     void anUnreadablePlayerIdCostsOnlyThatPlayer() throws Exception
     {
-        writeBeamFile("Public:\n"
-            + "  spawn:\n"
-            + "    World: world\n"
-            + "    X: 1.0\n"
-            + "    Y: 64.0\n"
-            + "    Z: 2.0\n"
-            + "Places:\n"
-            + "  not-a-uuid:\n"
-            + "    lost:\n"
-            + "      World: world\n"
-            + "      X: 5.0\n"
-            + "      Y: 64.0\n"
-            + "      Z: 5.0\n"
-            + "  " + OWNER + ":\n"
-            + "    hideout:\n"
-            + "      World: world\n"
-            + "      X: 6.0\n"
-            + "      Y: 64.0\n"
-            + "      Z: 6.0\n");
+        writeBeamFile("""
+            Public:
+              spawn:
+                World: world
+                X: 1.0
+                Y: 64.0
+                Z: 2.0
+            Places:
+              not-a-uuid:
+                lost:
+                  World: world
+                  X: 5.0
+                  Y: 64.0
+                  Z: 5.0
+              %s:
+                hideout:
+                  World: world
+                  X: 6.0
+                  Y: 64.0
+                  Z: 6.0
+            """.formatted(OWNER));
 
         assertEquals(2, BeamYamlManager.loadAll(), "the public one and the readable player's");
         assertNotNull(BeamManager.getPublicDestination("spawn"));
@@ -161,8 +167,10 @@ class BeamLoadAllTest
     @Test
     void aPlayerWhosePlacesAreNotAMapIsSkipped() throws Exception
     {
-        writeBeamFile("Places:\n"
-            + "  " + OWNER + ": nonsense\n");
+        writeBeamFile("""
+            Places:
+              %s: nonsense
+            """.formatted(OWNER));
 
         assertEquals(0, BeamYamlManager.loadAll());
     }
@@ -177,22 +185,26 @@ class BeamLoadAllTest
     @Test
     void reloadingForgetsWhatTheFileNoLongerSays() throws Exception
     {
-        writeBeamFile("Public:\n"
-            + "  spawn:\n"
-            + "    World: world\n"
-            + "    X: 1.0\n"
-            + "    Y: 64.0\n"
-            + "    Z: 2.0\n");
+        writeBeamFile("""
+            Public:
+              spawn:
+                World: world
+                X: 1.0
+                Y: 64.0
+                Z: 2.0
+            """);
         assertEquals(1, BeamYamlManager.loadAll());
         assertNotNull(BeamManager.getPublicDestination("spawn"));
 
         // The operator deleted spawn and added market.
-        writeBeamFile("Public:\n"
-            + "  market:\n"
-            + "    World: world\n"
-            + "    X: 9.0\n"
-            + "    Y: 64.0\n"
-            + "    Z: 9.0\n");
+        writeBeamFile("""
+            Public:
+              market:
+                World: world
+                X: 9.0
+                Y: 64.0
+                Z: 9.0
+            """);
         assertEquals(1, BeamYamlManager.loadAll());
 
         assertNotNull(BeamManager.getPublicDestination("market"));
@@ -204,8 +216,10 @@ class BeamLoadAllTest
     @Test
     void sectionsThatAreNotMapsAreIgnored() throws Exception
     {
-        writeBeamFile("Public: nonsense\n"
-            + "Places: also nonsense\n");
+        writeBeamFile("""
+            Public: nonsense
+            Places: also nonsense
+            """);
 
         assertEquals(0, BeamYamlManager.loadAll());
     }

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -58,10 +59,6 @@ public final class BeamYamlManager
     {
         BeamManager.clear();
         final Map<String, Object> root = readBeamFile();
-        if (root == null)
-        {
-            return 0;
-        }
         return loadPublic(root.get("Public")) + loadPlaces(root.get("Places"));
     }
 
@@ -70,9 +67,10 @@ public final class BeamYamlManager
      *
      * <p>A missing file is a first run. A file that will not parse, or parses to something
      * other than a map, is an operator's hand edit gone wrong -- worth a line in the log and
-     * not worth taking the server down for.
+     * not worth taking the server down for. All three come back the same way: nothing to
+     * load, which an empty map says without the caller having to check for null.
      *
-     * @return the file's top-level map, or null
+     * @return the file's top-level map, empty if there is nothing usable to read
      */
     @SuppressWarnings("unchecked")
     private static Map<String, Object> readBeamFile()
@@ -80,17 +78,17 @@ public final class BeamYamlManager
         final File file = getBeamFile();
         if (!file.exists())
         {
-            return null;
+            return Collections.emptyMap();
         }
         try (FileInputStream in = new FileInputStream(file))
         {
             final Object loaded = new Yaml().load(in);
-            return (loaded instanceof Map) ? (Map<String, Object>) loaded : null;
+            return (loaded instanceof Map) ? (Map<String, Object>) loaded : Collections.emptyMap();
         }
         catch (final IOException | RuntimeException e)
         {
             log(Level.WARNING, "Failed to read beam file: " + e.getMessage());
-            return null;
+            return Collections.emptyMap();
         }
     }
 
