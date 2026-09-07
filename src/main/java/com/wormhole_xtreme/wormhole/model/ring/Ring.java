@@ -454,7 +454,7 @@ public class Ring
      */
     private static List<Material> resolveGlowing()
     {
-        final List<Material> found = new ArrayList<Material>();
+        final List<Material> found = new ArrayList<>();
         for (final String name : GLOWING)
         {
             final Material material = Material.matchMaterial(name);
@@ -573,7 +573,7 @@ public class Ring
     public List<int[]> triggerVolumeBlocks(final int reach)
     {
         final List<RingPattern.Offset> interior = pattern.getInterior();
-        final List<int[]> out = new ArrayList<int[]>(interior.size() * Math.max(reach, 1));
+        final List<int[]> out = new ArrayList<>(interior.size() * Math.max(reach, 1));
         for (int step = 0; step < reach; step++)
         {
             out.addAll(layer(interior, anchorY + (orientation.getTravel() * step)));
@@ -595,7 +595,7 @@ public class Ring
      */
     private List<int[]> layer(final List<RingPattern.Offset> offsets, final int y)
     {
-        final List<int[]> out = new ArrayList<int[]>(offsets.size());
+        final List<int[]> out = new ArrayList<>(offsets.size());
         for (final RingPattern.Offset offset : offsets)
         {
             out.add(new int[] { anchorX + offset.getDx(), y, anchorZ + offset.getDz() });
@@ -638,7 +638,7 @@ public class Ring
      */
     private static List<Location> locations(final List<int[]> blocks, final World world)
     {
-        final List<Location> out = new ArrayList<Location>(blocks.size());
+        final List<Location> out = new ArrayList<>(blocks.size());
         for (final int[] block : blocks)
         {
             out.add(new Location(world, block[0], block[1], block[2]));

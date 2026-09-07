@@ -89,8 +89,8 @@ class SubCommandsTest
     @Test
     void noTwoSubcommandsShareAName()
     {
-        final Set<String> seen = new HashSet<String>();
-        final List<String> duplicates = new ArrayList<String>();
+        final Set<String> seen = new HashSet<>();
+        final List<String> duplicates = new ArrayList<>();
         for (final SubCommands.Entry e : SubCommands.all())
         {
             if (!seen.add(e.getName()))
@@ -152,7 +152,7 @@ class SubCommandsTest
         // back behind wormhole.config, where wormhole.beam.use and wormhole.ring.* were
         // unreachable for anyone but an operator; adding one that does not in fact check
         // anything hands it to every player on the server.
-        final Set<String> expected = new HashSet<String>(
+        final Set<String> expected = new HashSet<>(
             java.util.Arrays.asList("beam", "ring", "go", "list", "compass"));
         for (final SubCommands.Entry e : SubCommands.all())
         {

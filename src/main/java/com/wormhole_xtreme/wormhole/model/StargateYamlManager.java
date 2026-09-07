@@ -286,10 +286,10 @@ public class StargateYamlManager
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShape() != null ? s.getGateShape().getShapeName() : "Standard");
-        final byte[] data = GateSerializer.stargatetoBinary(s);
+        final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)
         {
-            // stargatetoBinary returns null when it cannot encode the gate, having logged why.
+            // stargateToBinary returns null when it cannot encode the gate, having logged why.
             // A file without GateData loads as a gate with no blocks, which is worse than no
             // file at all -- and this runs in a loop over every gate on shutdown.
             return;

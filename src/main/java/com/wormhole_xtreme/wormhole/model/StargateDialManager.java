@@ -91,7 +91,7 @@ class StargateDialManager
      */
     private static List<Stargate> dialPeers(final Stargate gate)
     {
-        final List<Stargate> others = new ArrayList<Stargate>();
+        final List<Stargate> others = new ArrayList<>();
 
         if (gate.getGateNetwork() != null)
         {

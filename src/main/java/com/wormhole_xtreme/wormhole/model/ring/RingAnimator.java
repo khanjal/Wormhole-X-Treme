@@ -302,7 +302,7 @@ public final class RingAnimator
      */
     public static List<Placement> deployFrame(final Ring ring, final RingStyle style, final int frame)
     {
-        final List<Placement> out = new ArrayList<Placement>();
+        final List<Placement> out = new ArrayList<>();
         for (int index = 0; index < RING_COUNT; index++)
         {
             final int travelled = frame - emergesOnFrame(ring, style, index);
@@ -485,7 +485,7 @@ public final class RingAnimator
      */
     public static List<Placement> ringAtRest(final Ring ring, final int index)
     {
-        final List<Placement> out = new ArrayList<Placement>();
+        final List<Placement> out = new ArrayList<>();
         addRing(out, ring, restingHalfStep(ring, index));
         return out;
     }

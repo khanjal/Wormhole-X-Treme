@@ -538,8 +538,8 @@ public class ConfigurationYAML
             }
 
             final Setting[] defaults = DefaultSettings.config;
-            final Map<String, String> values = new LinkedHashMap<String, String>();
-            final Map<String, Setting> byKey = new LinkedHashMap<String, Setting>();
+            final Map<String, String> values = new LinkedHashMap<>();
+            final Map<String, Setting> byKey = new LinkedHashMap<>();
             collectCurrentValues(defaults, values, byKey);
 
             if (!file.exists())
@@ -606,7 +606,7 @@ public class ConfigurationYAML
     private static List<Setting> missingFrom(final Map<String, Setting> byKey,
                                              final java.util.Set<String> updated)
     {
-        final List<Setting> missing = new ArrayList<Setting>();
+        final List<Setting> missing = new ArrayList<>();
         for (final Map.Entry<String, Setting> e : byKey.entrySet())
         {
             if (!updated.contains(e.getKey()))

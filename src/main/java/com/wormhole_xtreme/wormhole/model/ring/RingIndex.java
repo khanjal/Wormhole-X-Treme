@@ -25,11 +25,11 @@ public final class RingIndex
 {
     /** Trigger volume blocks, by world name and then by packed block position. */
     private static final ConcurrentMap<String, ConcurrentMap<Long, RingEnd>> volumes =
-        new ConcurrentHashMap<String, ConcurrentMap<Long, RingEnd>>();
+        new ConcurrentHashMap<>();
 
     /** Perimeter blocks, by world name and then by packed block position. */
     private static final ConcurrentMap<String, ConcurrentMap<Long, RingEnd>> perimeters =
-        new ConcurrentHashMap<String, ConcurrentMap<Long, RingEnd>>();
+        new ConcurrentHashMap<>();
 
     private RingIndex() {}
 
@@ -177,14 +177,14 @@ public final class RingIndex
         final RingEnd end = new RingEnd(pair, ring);
 
         final ConcurrentMap<Long, RingEnd> volume = volumes.computeIfAbsent(world,
-            k -> new ConcurrentHashMap<Long, RingEnd>());
+            k -> new ConcurrentHashMap<>());
         for (final int[] block : ring.triggerVolumeBlocks(volumeDepth(ring, reach)))
         {
             volume.put(Long.valueOf(pack(block[0], block[1], block[2])), end);
         }
 
         final ConcurrentMap<Long, RingEnd> edge = perimeters.computeIfAbsent(world,
-            k -> new ConcurrentHashMap<Long, RingEnd>());
+            k -> new ConcurrentHashMap<>());
         for (final int[] block : ring.perimeterBlocks())
         {
             edge.put(Long.valueOf(pack(block[0], block[1], block[2])), end);

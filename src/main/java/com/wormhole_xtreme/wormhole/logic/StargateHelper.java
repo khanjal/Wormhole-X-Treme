@@ -104,7 +104,7 @@ public final class StargateHelper
      */
     private static List<Location> frameBlocksExcludingDhd(final List<Location> structure, final Block dhd)
     {
-        final List<Location> frame = new ArrayList<Location>();
+        final List<Location> frame = new ArrayList<>();
         if (structure == null)
         {
             return frame;
@@ -146,9 +146,9 @@ public final class StargateHelper
         return GateSerializer.parseVersionedData(gateData, w, name, network);
     }
 
-    public static byte[] stargatetoBinary(final Stargate s)
+    public static byte[] stargateToBinary(final Stargate s)
     {
-        return GateSerializer.stargatetoBinary(s);
+        return GateSerializer.stargateToBinary(s);
     }
 
     // ---------------------------------------------------------------------
@@ -843,7 +843,7 @@ public final class StargateHelper
             }
             if (gate.getGateLightBlocks().get(waveIdx) == null)
             {
-                gate.getGateLightBlocks().set(waveIdx, new ArrayList<Location>());
+                gate.getGateLightBlocks().set(waveIdx, new ArrayList<>());
             }
             addCells(gate.getGateLightBlocks().get(waveIdx), frame, layerIdx, positions);
         }
@@ -883,7 +883,7 @@ public final class StargateHelper
             final int gateWaveIdx = waveIdx - 1;
             while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
             {
-                gate.getGateWooshBlocks().add(new ArrayList<Location>());
+                gate.getGateWooshBlocks().add(new ArrayList<>());
             }
             addCells(gate.getGateWooshBlocks().get(gateWaveIdx), frame, layerIdx, positions);
         }

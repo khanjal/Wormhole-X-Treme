@@ -44,7 +44,7 @@ public final class LegacyDatabaseImporter
     public static final class Result
     {
         private final int imported;
-        private final List<String> skipped = new ArrayList<String>();
+        private final List<String> skipped = new ArrayList<>();
         private final String problem;
         private int movedExits;
 
@@ -154,7 +154,7 @@ public final class LegacyDatabaseImporter
         }
 
         int imported = 0;
-        final List<String> skipped = new ArrayList<String>();
+        final List<String> skipped = new ArrayList<>();
         // A one-element holder rather than a second return value: importOne already
         // returns the skip reason (or null for success), and this rides along with it.
         final int[] movedExits = { 0 };

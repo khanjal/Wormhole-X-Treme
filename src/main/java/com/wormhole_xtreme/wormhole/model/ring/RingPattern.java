@@ -114,8 +114,8 @@ public enum RingPattern
     {
         this.profile = profile.clone();
         final boolean[][] filled = fill(this.profile);
-        final List<Offset> edge = new ArrayList<Offset>();
-        final List<Offset> inside = new ArrayList<Offset>();
+        final List<Offset> edge = new ArrayList<>();
+        final List<Offset> inside = new ArrayList<>();
         classify(filled, edge, inside);
         this.perimeter = Collections.unmodifiableList(edge);
         this.interior = Collections.unmodifiableList(inside);

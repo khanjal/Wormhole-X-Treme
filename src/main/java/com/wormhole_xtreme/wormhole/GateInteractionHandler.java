@@ -811,7 +811,7 @@ final class GateInteractionHandler
     private static List<Block> blocksAround(final Block clickedBlock)
     {
         final org.bukkit.World world = clickedBlock.getWorld();
-        final List<Block> out = new ArrayList<Block>(26);
+        final List<Block> out = new ArrayList<>(26);
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dy = -1; dy <= 1; dy++)

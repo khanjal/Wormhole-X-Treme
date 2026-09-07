@@ -48,8 +48,8 @@ class GateDetectionTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
-    private final Map<String, Material> placed = new HashMap<String, Material>();
-    private final Map<String, Block> blocks = new HashMap<String, Block>();
+    private final Map<String, Material> placed = new HashMap<>();
+    private final Map<String, Block> blocks = new HashMap<>();
     private World world;
 
     @BeforeEach
@@ -114,7 +114,7 @@ class GateDetectionTest
         throws Exception
     {
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final String line : lines)
         {
             out.add((from == null) || line.trim().startsWith("#") ? line : line.replace(from, to));
@@ -246,7 +246,7 @@ class GateDetectionTest
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
 
         // Rebuild the whole frame in something no palette claims.
-        for (final String at : new ArrayList<String>(placed.keySet()))
+        for (final String at : new ArrayList<>(placed.keySet()))
         {
             placed.put(at, Material.DIRT);
         }

@@ -84,7 +84,7 @@ class ConfigurationFlatFile
         output.newLine();
         output.write("Description:");
 
-        final ArrayList<String> desc = new ArrayList<String>();
+        final ArrayList<String> desc = new ArrayList<>();
         desc.add(0, "");
         final int maxLength = 80;
         final String[] words = description.split(" ");
@@ -181,7 +181,8 @@ class ConfigurationFlatFile
         try (BufferedReader bufferedReader =
             new BufferedReader(new FileReader(input, StandardCharsets.UTF_8)))
         {
-            for (String raw = ""; (raw = bufferedReader.readLine()) != null;)
+            String raw;
+            while ((raw = bufferedReader.readLine()) != null)
             {
                 final String found = valueIfThisIsTheSetting(raw, bufferedReader, name, defaultVal);
                 if (found != null)

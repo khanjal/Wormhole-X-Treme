@@ -117,9 +117,9 @@ final class BeamMount
             // horse is a consent problem.
             return none();
         }
-        final List<Entity> collected = new ArrayList<Entity>();
+        final List<Entity> collected = new ArrayList<>();
         collected.add(ridden);
-        EntityUtils.collectPassengerPairs(ridden, new ArrayList<Entity>(), collected);
+        EntityUtils.collectPassengerPairs(ridden, new ArrayList<>(), collected);
         return new BeamMount(ridden, collected);
     }
 

@@ -100,7 +100,7 @@ public final class ShapeFileValidator
      */
     public static Result validate(final String[] fileLines)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         problems.addAll(checkRowWidths(fileLines));
         problems.addAll(checkMaterialsResolve(fileLines));
         problems.addAll(checkSingletonMarkerCounts(fileLines));
@@ -143,7 +143,7 @@ public final class ShapeFileValidator
      */
     private static List<String> checkRowWidths(final String[] fileLines)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         Integer width = null;
         String currentLayer = null;
         int rowInLayer = 0;
@@ -221,7 +221,7 @@ public final class ShapeFileValidator
     /** No {@code Layer#N=} between 1 and the highest one declared may be missing. */
     private static List<String> checkLayerGaps(final Stargate3DShape shape)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         for (int i = 1; i < shape.getShapeLayers().size(); i++)
         {
             if (shape.getShapeLayers().get(i) == null)
@@ -270,7 +270,7 @@ public final class ShapeFileValidator
             }
         }
 
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         for (final java.util.Map.Entry<String, Integer> entry : counts.entrySet())
         {
             if (entry.getValue() > 1)
@@ -291,9 +291,9 @@ public final class ShapeFileValidator
     /** {@code :L#} and {@code :W#} orders each have to run 1..N with no gap. */
     private static List<String> checkOrderSequencing(final Stargate3DShape shape)
     {
-        final List<String> problems = new ArrayList<String>();
-        final Set<Integer> lightOrders = new TreeSet<Integer>();
-        final Set<Integer> wooshOrders = new TreeSet<Integer>();
+        final List<String> problems = new ArrayList<>();
+        final Set<Integer> lightOrders = new TreeSet<>();
+        final Set<Integer> wooshOrders = new TreeSet<>();
         for (final StargateShapeLayer layer : shape.getShapeLayers())
         {
             if (layer == null)
@@ -357,7 +357,7 @@ public final class ShapeFileValidator
      */
     private static List<String> checkRedstonePlacement(final Stargate3DShape shape)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         boolean hasDialMarker = false;
         boolean hasDialSign = false;
 
@@ -433,7 +433,7 @@ public final class ShapeFileValidator
      */
     private static List<String> checkMaterialsResolve(final String[] fileLines)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         for (final String rawLine : fileLines)
         {
             final String problem = unresolvableMaterialOn(rawLine);

@@ -35,7 +35,7 @@ public final class RingTransit
      * interiors. Once a second is plenty for something a player has to go and physically fix.
      */
     private static final java.util.concurrent.ConcurrentMap<String, Long> surveyed =
-        new ConcurrentHashMap<String, Long>();
+        new ConcurrentHashMap<>();
 
     /** How long a blockage answer is trusted before the world is read again. */
     private static final long SURVEY_TTL_MILLIS = 1000L;

@@ -62,7 +62,7 @@ class PlatformCharsetIsNeverUsedTest
     {
         try (java.util.stream.Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
         {
-            final List<Path> found = new ArrayList<Path>();
+            final List<Path> found = new ArrayList<>();
             for (final Path p : walk.toList())
             {
                 if (p.getFileName().toString().endsWith(".java"))
@@ -100,7 +100,7 @@ class PlatformCharsetIsNeverUsedTest
         final List<Path> sources = sources();
         assertTrue(!sources.isEmpty(), "no sources were read, so this proved nothing");
 
-        final List<String> offenders = new ArrayList<String>();
+        final List<String> offenders = new ArrayList<>();
         for (final Path source : sources)
         {
             int lineNumber = 0;
@@ -146,7 +146,7 @@ class PlatformCharsetIsNeverUsedTest
     @Test
     void bytesAreDecodedWithANamedCharset() throws IOException
     {
-        final List<String> offenders = new ArrayList<String>();
+        final List<String> offenders = new ArrayList<>();
         for (final Path source : sources())
         {
             int lineNumber = 0;

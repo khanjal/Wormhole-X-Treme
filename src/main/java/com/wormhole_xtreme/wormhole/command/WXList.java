@@ -75,7 +75,7 @@ public class WXList implements CommandExecutor
      */
     private static ArrayList<Stargate> gatesOn(final String filterNet)
     {
-        final ArrayList<Stargate> gates = new ArrayList<Stargate>();
+        final ArrayList<Stargate> gates = new ArrayList<>();
         final boolean filterPublic = (filterNet != null) && filterNet.equalsIgnoreCase("Public");
         for (final Stargate g : StargateManager.getAllGates())
         {

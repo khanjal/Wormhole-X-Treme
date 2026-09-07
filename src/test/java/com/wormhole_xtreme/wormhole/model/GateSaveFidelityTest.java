@@ -92,7 +92,7 @@ class GateSaveFidelityTest
 
     private static List<String> allAt(final List<Location> locations)
     {
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final Location l : locations)
         {
             out.add(at(l));
@@ -140,15 +140,15 @@ class GateSaveFidelityTest
         s.getGateStructureBlocks().add(new Location(world, 2, 64, 1));
         s.getGatePortalBlocks().add(new Location(world, 3, 64, 1));
 
-        final List<Location> lightOne = new ArrayList<Location>();
+        final List<Location> lightOne = new ArrayList<>();
         lightOne.add(new Location(world, 4, 64, 1));
-        final List<Location> lightTwo = new ArrayList<Location>();
+        final List<Location> lightTwo = new ArrayList<>();
         lightTwo.add(new Location(world, 5, 64, 1));
         lightTwo.add(new Location(world, 6, 64, 1));
         s.getGateLightBlocks().add(lightOne);
         s.getGateLightBlocks().add(lightTwo);
 
-        final List<Location> woosh = new ArrayList<Location>();
+        final List<Location> woosh = new ArrayList<>();
         woosh.add(new Location(world, 7, 64, 1));
         woosh.add(new Location(world, 8, 64, 1));
         woosh.add(new Location(world, 9, 64, 1));
@@ -159,7 +159,7 @@ class GateSaveFidelityTest
 
     private Stargate roundTrip(final Stargate s)
     {
-        final byte[] data = GateSerializer.stargatetoBinary(s);
+        final byte[] data = GateSerializer.stargateToBinary(s);
         assertNotNull(data, "the gate serialised");
         final Stargate back = GateSerializer.parseVersionedData(data, world, s.getGateName(), null);
         assertNotNull(back, "and parsed back");

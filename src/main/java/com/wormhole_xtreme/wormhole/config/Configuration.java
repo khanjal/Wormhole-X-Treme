@@ -101,7 +101,7 @@ public class Configuration
                 ConfigurationFlatFile.createNewHeader(bufferedwriter, desc.getName() + " " + desc.getVersion(), desc.getName() + " Config Settings", true);
 
                 final Set<ConfigKeys> keys = ConfigManager.getConfigurations().keySet();
-                final ArrayList<ConfigKeys> list = new ArrayList<ConfigKeys>(keys);
+                final ArrayList<ConfigKeys> list = new ArrayList<>(keys);
                 Collections.sort(list);
                 for (final ConfigKeys key : list)
                 {

@@ -61,7 +61,7 @@ class SubCommandSmokeTest
     @Test
     void noSubcommandThrowsWhenGivenNoArguments()
     {
-        final List<String> failures = new ArrayList<String>();
+        final List<String> failures = new ArrayList<>();
         for (final SubCommands.Entry entry : SubCommands.all())
         {
             try
@@ -81,7 +81,7 @@ class SubCommandSmokeTest
     @Test
     void noSubcommandThrowsOnAnUnknownGateName()
     {
-        final List<String> failures = new ArrayList<String>();
+        final List<String> failures = new ArrayList<>();
         for (final SubCommands.Entry entry : SubCommands.all())
         {
             try
@@ -101,7 +101,7 @@ class SubCommandSmokeTest
     @Test
     void noSubcommandThrowsOnAJunkValueArgument()
     {
-        final List<String> failures = new ArrayList<String>();
+        final List<String> failures = new ArrayList<>();
         for (final SubCommands.Entry entry : SubCommands.all())
         {
             try

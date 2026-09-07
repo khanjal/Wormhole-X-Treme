@@ -52,8 +52,8 @@ public final class PassengerReattach
      */
     public static void schedule(final Entity ridden, final Entity rider, final Vector exitVelocity)
     {
-        final List<Entity> parents = new ArrayList<Entity>();
-        final List<Entity> children = new ArrayList<Entity>();
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
         EntityUtils.collectPassengerPairs(ridden, parents, children);
         // The teleport has usually already detached the moving player, so they will not
         // appear in the collected tree -- put them back explicitly.

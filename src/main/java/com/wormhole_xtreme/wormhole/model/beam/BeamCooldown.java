@@ -20,7 +20,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  */
 public final class BeamCooldown
 {
-    private static final Map<UUID, Long> START_NANOS = new ConcurrentHashMap<UUID, Long>();
+    private static final Map<UUID, Long> START_NANOS = new ConcurrentHashMap<>();
 
     private BeamCooldown() {}
 

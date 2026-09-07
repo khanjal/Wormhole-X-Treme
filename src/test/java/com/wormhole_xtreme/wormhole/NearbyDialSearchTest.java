@@ -58,7 +58,7 @@ class NearbyDialSearchTest
         f.setAccessible(true);
         f.set(null, mock(WormholeXTreme.class));
 
-        grid = new HashMap<String, Block>();
+        grid = new HashMap<>();
         world = mock(World.class);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
         {

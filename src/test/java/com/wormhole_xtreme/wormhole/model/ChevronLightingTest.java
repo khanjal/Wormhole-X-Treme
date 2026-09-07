@@ -76,7 +76,7 @@ class ChevronLightingTest
         for (int i = 0; i < waves; i++)
         {
             gate.getGateLightBlocks().add(
-                new ArrayList<Location>(Collections.singletonList(new Location(world, i, 64, 0))));
+                new ArrayList<>(Collections.singletonList(new Location(world, i, 64, 0))));
         }
         return gate;
     }

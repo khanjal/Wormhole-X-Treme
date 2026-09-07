@@ -63,7 +63,7 @@ class WooshDepthCommandTest
 
     private static void clearGates()
     {
-        for (final Stargate s : new ArrayList<Stargate>(StargateManager.getAllGates()))
+        for (final Stargate s : new ArrayList<>(StargateManager.getAllGates()))
         {
             if (s != null)
             {
@@ -203,7 +203,7 @@ class WooshDepthCommandTest
         final Stargate gate = customGate("alpha");
         final World world = mock(World.class);
         gate.getGateWooshBlocks().add(
-            new ArrayList<Location>(Collections.singletonList(new Location(world, 0, 64, 0))));
+            new ArrayList<>(Collections.singletonList(new Location(world, 0, 64, 0))));
 
         assertTrue(run("wooshdepth", "alpha", "4"));
 

@@ -18,13 +18,13 @@ class StargateEffectiveMaterialTest
     @BeforeEach
     void loadGroups()
     {
-        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        final Map<String, Object> atlantis = new LinkedHashMap<>();
         atlantis.put("structure", "LAPIS_BLOCK");
         atlantis.put("portal", "WATER");
         atlantis.put("iris", "YELLOW_STAINED_GLASS");
         atlantis.put("light", "SEA_LANTERN");
 
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Atlantis", atlantis);
         MaterialGroupRegistry.load(section);
     }
@@ -88,11 +88,11 @@ class StargateEffectiveMaterialTest
         // Regression: Horizontal.shape asks for a GLASS iris — a horizontal gate is meant
         // to be seen through — but is framed in obsidian, so it resolves to the Standard
         // palette. The palette must not overwrite what the shape asked for by name.
-        final Map<String, Object> standard = new LinkedHashMap<String, Object>();
+        final Map<String, Object> standard = new LinkedHashMap<>();
         standard.put("structure", "OBSIDIAN");
         standard.put("iris", "STONE");
         standard.put("light", "GLOWSTONE");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", standard);
         MaterialGroupRegistry.load(section);
 
@@ -112,11 +112,11 @@ class StargateEffectiveMaterialTest
     @Test
     void paletteStillSuppliesWhatTheShapeLeavesUnsaid()
     {
-        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        final Map<String, Object> atlantis = new LinkedHashMap<>();
         atlantis.put("structure", "LAPIS_BLOCK");
         atlantis.put("iris", "YELLOW_STAINED_GLASS");
         atlantis.put("light", "SEA_LANTERN");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Atlantis", atlantis);
         MaterialGroupRegistry.load(section);
 
@@ -138,11 +138,11 @@ class StargateEffectiveMaterialTest
         // palette. Reporting the shape's declared OBSIDIAN would be a lie about what is
         // physically there, and StargateAnimator restores lit chevrons using this value —
         // so it would rebuild a lapis gate's chevrons in obsidian.
-        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        final Map<String, Object> atlantis = new LinkedHashMap<>();
         atlantis.put("structure", "LAPIS_BLOCK");
         atlantis.put("iris", "YELLOW_STAINED_GLASS");
         atlantis.put("light", "SEA_LANTERN");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Atlantis", atlantis);
         MaterialGroupRegistry.load(section);
 
@@ -163,17 +163,17 @@ class StargateEffectiveMaterialTest
         // The whole point of material groups, and only true since the sample shapes
         // stopped declaring materials: build one shape in obsidian and it is a Standard
         // gate, build it in lapis and it is an Atlantis one.
-        final Map<String, Object> standard = new LinkedHashMap<String, Object>();
+        final Map<String, Object> standard = new LinkedHashMap<>();
         standard.put("structure", "OBSIDIAN");
         standard.put("iris", "STONE");
         standard.put("light", "GLOWSTONE");
         standard.put("sign", "OAK_WALL_SIGN");
-        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        final Map<String, Object> atlantis = new LinkedHashMap<>();
         atlantis.put("structure", "LAPIS_BLOCK");
         atlantis.put("iris", "YELLOW_STAINED_GLASS");
         atlantis.put("light", "SEA_LANTERN");
         atlantis.put("sign", "WARPED_WALL_SIGN");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", standard);
         section.put("Atlantis", atlantis);
         MaterialGroupRegistry.load(section);
@@ -206,11 +206,11 @@ class StargateEffectiveMaterialTest
         // the gate. With shapes no longer declaring any, that snapshot captured the
         // built-in defaults and pinned the gate to them forever — and `custom -all true`
         // would have done it to every gate on the server.
-        final Map<String, Object> atlantis = new LinkedHashMap<String, Object>();
+        final Map<String, Object> atlantis = new LinkedHashMap<>();
         atlantis.put("structure", "LAPIS_BLOCK");
         atlantis.put("iris", "YELLOW_STAINED_GLASS");
         atlantis.put("light", "SEA_LANTERN");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Atlantis", atlantis);
         MaterialGroupRegistry.load(section);
 

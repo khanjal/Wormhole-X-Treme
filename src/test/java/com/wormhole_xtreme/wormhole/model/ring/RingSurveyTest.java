@@ -33,7 +33,7 @@ class RingSurveyTest
     /** A room made of nothing but the blocks a test says are solid. */
     private static final class Room implements RingSurvey.Ground
     {
-        private final Set<Long> solid = new HashSet<Long>();
+        private final Set<Long> solid = new HashSet<>();
         private int min = -64;
         private int max = 320;
 

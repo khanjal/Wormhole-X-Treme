@@ -64,7 +64,7 @@ class ProjectileGateTracker implements Listener
     }
 
     /** Projectiles in flight. */
-    private static final Map<Projectile, Tracked> tracked = new ConcurrentHashMap<Projectile, Tracked>();
+    private static final Map<Projectile, Tracked> tracked = new ConcurrentHashMap<>();
 
     /** Ticks since the tracker started, used only to expire entries. */
     private static int tick = 0;

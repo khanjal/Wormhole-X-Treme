@@ -156,7 +156,7 @@ public class RingCycle
      * <p>Kept apart from the lights because the two have completely different lifetimes: this
      * is replaced wholesale each frame, and the lights outlast all of it.
      */
-    private final Set<Long> drawnRings = new LinkedHashSet<Long>();
+    private final Set<Long> drawnRings = new LinkedHashSet<>();
 
     /**
      * The pattern lit in the floor, which stays put for the whole cycle.
@@ -165,7 +165,7 @@ public class RingCycle
      * back into it. Putting it out the moment the rings start rising would have the pad close
      * exactly as it does the thing it opened for.
      */
-    private final Set<Long> drawnLights = new LinkedHashSet<Long>();
+    private final Set<Long> drawnLights = new LinkedHashSet<>();
 
     /** How far through the current phase we are. */
     private int frame = 0;
@@ -249,7 +249,7 @@ public class RingCycle
      */
     public List<RingPassenger> everyoneInside()
     {
-        final List<RingPassenger> out = new ArrayList<RingPassenger>();
+        final List<RingPassenger> out = new ArrayList<>();
         out.addAll(occupants(pair.getEndA()));
         out.addAll(occupants(pair.getEndB()));
         return out;
@@ -372,10 +372,10 @@ public class RingCycle
         // a fact about the ring, and asking it twenty times would give the same answer.
         final List<RingPassenger> travellingFromA = (world.survey(pair.getEndB()) == null)
             ? permitted(fromA, pair.getEndA(), pair.getEndB())
-            : new ArrayList<RingPassenger>();
+            : new ArrayList<>();
         final List<RingPassenger> travellingFromB = (world.survey(pair.getEndA()) == null)
             ? permitted(fromB, pair.getEndB(), pair.getEndA())
-            : new ArrayList<RingPassenger>();
+            : new ArrayList<>();
 
         for (final RingPassenger passenger : travellingFromA)
         {
@@ -531,7 +531,7 @@ public class RingCycle
     private List<RingPassenger> permitted(final List<RingPassenger> passengers, final Ring from,
         final Ring to)
     {
-        final List<RingPassenger> allowed = new ArrayList<RingPassenger>(passengers.size());
+        final List<RingPassenger> allowed = new ArrayList<>(passengers.size());
         for (final RingPassenger passenger : passengers)
         {
             if (mayTravel(passenger, from, to))
@@ -595,7 +595,7 @@ public class RingCycle
                 going.add(passenger.getUniqueId());
             }
         }
-        final List<RingPassenger> out = new ArrayList<RingPassenger>(travelling.size());
+        final List<RingPassenger> out = new ArrayList<>(travelling.size());
         for (final RingPassenger passenger : travelling)
         {
             final String ride = passenger.getVehicleId();

@@ -42,7 +42,7 @@ class MaterialGroupConfigWriteTest
 
     private static List<MaterialGroup> diamond()
     {
-        final List<MaterialGroup> groups = new ArrayList<MaterialGroup>();
+        final List<MaterialGroup> groups = new ArrayList<>();
         groups.add(new MaterialGroup("Diamond", Material.DIAMOND_BLOCK, Material.WATER,
             Material.GLASS, Material.GOLD_BLOCK, Material.OAK_WALL_SIGN));
         return groups;
@@ -130,7 +130,7 @@ class MaterialGroupConfigWriteTest
         Files.write(cfg.toPath(), java.util.Arrays.asList("log-level: INFO"));
         final byte[] before = Files.readAllBytes(cfg.toPath());
 
-        assertFalse(ConfigurationYAML.appendMaterialGroups(cfg, new ArrayList<MaterialGroup>()));
+        assertFalse(ConfigurationYAML.appendMaterialGroups(cfg, new ArrayList<>()));
 
         assertArrayEquals(before, Files.readAllBytes(cfg.toPath()));
     }

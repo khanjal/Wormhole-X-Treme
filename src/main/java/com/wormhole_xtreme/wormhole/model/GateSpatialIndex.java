@@ -14,7 +14,7 @@ import org.bukkit.World;
 
 public final class GateSpatialIndex
 {
-    private static final ConcurrentMap<String, Set<Location>> index = new ConcurrentHashMap<String, Set<Location>>();
+    private static final ConcurrentMap<String, Set<Location>> index = new ConcurrentHashMap<>();
 
     private GateSpatialIndex() {}
 
@@ -59,7 +59,7 @@ public final class GateSpatialIndex
 
     public static Set<Location> collectLocationsWithinRadius(final Location center, final int radiusXZ, final int radiusY)
     {
-        final Set<Location> out = new HashSet<Location>();
+        final Set<Location> out = new HashSet<>();
         if ((center == null) || (center.getWorld() == null))
         {
             return out;

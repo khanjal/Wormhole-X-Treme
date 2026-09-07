@@ -44,7 +44,7 @@ class GateSerializerTest
         s1.setGatePlayerTeleportLocation(new Location(w, 65.0, 65.0, 65.0));
         s1.setGateFacing(org.bukkit.block.BlockFace.NORTH);
 
-        final byte[] data = GateSerializer.stargatetoBinary(s1);
+        final byte[] data = GateSerializer.stargateToBinary(s1);
         assertNotNull(data);
 
         final Stargate s2 = GateSerializer.parseVersionedData(data, w, s1.getGateName(), null);
@@ -104,7 +104,7 @@ class GateSerializerTest
         s1.setGateCustomIrisMaterial(org.bukkit.Material.YELLOW_STAINED_GLASS);
 
         final Stargate s2 = GateSerializer.parseVersionedData(
-            GateSerializer.stargatetoBinary(s1), w, s1.getGateName(), null);
+            GateSerializer.stargateToBinary(s1), w, s1.getGateName(), null);
 
         assertTrue(s2.isGateCustom());
         assertEquals(org.bukkit.Material.LAPIS_BLOCK, s2.getGateCustomStructureMaterial());
@@ -121,7 +121,7 @@ class GateSerializerTest
         // No custom materials set — the encoder must write a zero-length name, not a
         // sentinel that resolves back to some arbitrary material.
         final Stargate s2 = GateSerializer.parseVersionedData(
-            GateSerializer.stargatetoBinary(s1), w, s1.getGateName(), null);
+            GateSerializer.stargateToBinary(s1), w, s1.getGateName(), null);
 
         assertNull(s2.getGateCustomStructureMaterial());
         assertNull(s2.getGateCustomPortalMaterial());
@@ -139,7 +139,7 @@ class GateSerializerTest
         s1.setGateCustom(true);
         s1.setGateCustomStructureMaterial(org.bukkit.Material.LAPIS_BLOCK);
 
-        final byte[] data = GateSerializer.stargatetoBinary(s1);
+        final byte[] data = GateSerializer.stargateToBinary(s1);
         final String asLatin1 = new String(data, java.nio.charset.StandardCharsets.ISO_8859_1);
 
         assertTrue(asLatin1.contains("LAPIS_BLOCK"),
@@ -168,9 +168,9 @@ class GateSerializerTest
             withMaterials.setGateCustom(true);
             withMaterials.setGateCustomStructureMaterial(org.bukkit.Material.LAPIS_BLOCK);
             withMaterials.setGateCustomIrisMaterial(org.bukkit.Material.YELLOW_STAINED_GLASS);
-            GateSerializer.parseVersionedData(GateSerializer.stargatetoBinary(withMaterials), w, "a", null);
+            GateSerializer.parseVersionedData(GateSerializer.stargateToBinary(withMaterials), w, "a", null);
 
-            GateSerializer.parseVersionedData(GateSerializer.stargatetoBinary(minimalGate(w)), w, "b", null);
+            GateSerializer.parseVersionedData(GateSerializer.stargateToBinary(minimalGate(w)), w, "b", null);
 
             // Two arguments, not three. The reader logs through the two-argument prettyLog,
             // and a verification against the three-argument overload would pass here for the
@@ -188,7 +188,7 @@ class GateSerializerTest
     void writerEmitsCurrentSaveVersion()
     {
         final World w = mockWorld();
-        final byte[] data = GateSerializer.stargatetoBinary(minimalGate(w));
+        final byte[] data = GateSerializer.stargateToBinary(minimalGate(w));
 
         assertEquals((byte) 9, data[0], "version byte should be 9 now materials are name-encoded");
     }
@@ -206,7 +206,7 @@ class GateSerializerTest
         s1.setGateCustomLightTicks(5);
 
         final Stargate s2 = GateSerializer.parseVersionedData(
-            GateSerializer.stargatetoBinary(s1), w, s1.getGateName(), null);
+            GateSerializer.stargateToBinary(s1), w, s1.getGateName(), null);
 
         assertNull(s2.getGateCustomStructureMaterial());
         assertEquals(org.bukkit.Material.WATER, s2.getGateCustomPortalMaterial());
@@ -237,7 +237,7 @@ class GateSerializerTest
         s1.getGateLightBlocks().add(thirdWave);
 
         final Stargate s2 = GateSerializer.parseVersionedData(
-            GateSerializer.stargatetoBinary(s1), w, s1.getGateName(), null);
+            GateSerializer.stargateToBinary(s1), w, s1.getGateName(), null);
 
         assertEquals(3, s2.getGateLightBlocks().size(), "all three slots come back");
         assertEquals(1, s2.getGateLightBlocks().get(2).size(),

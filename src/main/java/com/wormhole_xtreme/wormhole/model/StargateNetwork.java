@@ -17,10 +17,10 @@ public class StargateNetwork
     private String networkName;
 
     /** The gate list. */
-    private final List<Stargate> networkGateList = new ArrayList<Stargate>();
+    private final List<Stargate> networkGateList = new ArrayList<>();
 
     /** The sign gate list. */
-    private final List<Stargate> networkSignGateList = new ArrayList<Stargate>();
+    private final List<Stargate> networkSignGateList = new ArrayList<>();
 
     /** The gate lock. */
     private Object networkGateLock = new Object();

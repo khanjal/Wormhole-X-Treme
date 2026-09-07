@@ -36,7 +36,7 @@ class ArrivalIsOutsideThePortalTest
 
     private static List<Path> shippedShapes() throws IOException
     {
-        final List<Path> found = new ArrayList<Path>();
+        final List<Path> found = new ArrayList<>();
         final Path dir = Paths.get("src/main/resources/GateShapes");
         if (Files.isDirectory(dir))
         {
@@ -70,7 +70,7 @@ class ArrivalIsOutsideThePortalTest
         final List<Path> shapes = shippedShapes();
         assertFalse(shapes.isEmpty(), "no shape files were read, so this proved nothing");
 
-        final List<String> inside = new ArrayList<String>();
+        final List<String> inside = new ArrayList<>();
         int exitsChecked = 0;
         for (final Path shape : shapes)
         {
@@ -108,7 +108,7 @@ class ArrivalIsOutsideThePortalTest
 
         assertTrue(exitsChecked > 0, "no exit markers were found, so this proved nothing");
         java.util.Collections.sort(inside);
-        final List<String> expected = new ArrayList<String>(LANDS_INSIDE);
+        final List<String> expected = new ArrayList<>(LANDS_INSIDE);
         java.util.Collections.sort(expected);
         assertEquals(expected, inside,
             "a shape changed which side of its portal it lands arrivals on. Anything listed "

@@ -39,16 +39,16 @@ public class StargateShape
         {0, 4, 2}, {0, 5, 2}, {0, 1, 3}, {0, 2, 3}, {0, 3, 3}, {0, 4, 3}, {0, 5, 3}, {0, 1, 4}, {0, 2, 4}, {0, 3, 4},
         {0, 4, 4}, {0, 5, 4}, {0, 2, 5}, {0, 3, 5}, {0, 4, 5}};
 
-    /** The reference_vector, this vector always points up for calculating cross product. */
+    /** The referenceVector, this vector always points up for calculating cross product. */
     private int[] shapeReferenceVector = {0, 1, 0};
 
     /** [0] = Left - / Right + [1] = Up + / Down - [2] = Forward + / Backward -. */
     private int[] shapeToGateCorner = {1, -1, 4};
 
-    /** The woosh_depth. */
+    /** The wooshDepth. */
     private int shapeWooshDepth = 0;
 
-    /** The square of the woosh_depth, used in comparisions with squared distance. */
+    /** The square of the wooshDepth, used in comparisions with squared distance. */
     private int shapeWooshDepthSquared = 0;
 
     /** The portal material. */
@@ -134,9 +134,9 @@ public class StargateShape
         setShapeSignPosition(new int[]{});
         setShapeEnterPosition(new int[]{});
 
-        final ArrayList<Integer[]> blockPositions = new ArrayList<Integer[]>();
-        final ArrayList<Integer[]> portalPositions = new ArrayList<Integer[]>();
-        final ArrayList<Integer> lightPositions = new ArrayList<Integer>();
+        final ArrayList<Integer[]> blockPositions = new ArrayList<>();
+        final ArrayList<Integer[]> portalPositions = new ArrayList<>();
+        final ArrayList<Integer> lightPositions = new ArrayList<>();
 
         for (int i = 0; i < fileData.length; i++)
         {
