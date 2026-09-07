@@ -65,68 +65,28 @@ public class ConfigurationYAML
         final File cfg = new File(directory, "config.yml");
         if (!cfg.exists())
         {
-            // write default file
             writeFile(cfg, DefaultSettings.config);
         }
 
         try (InputStream in = new FileInputStream(cfg))
         {
-            final Yaml yaml = new Yaml();
-            final Object loaded = yaml.load(in);
-            final List<Setting> missing = new ArrayList<>();
-            if (loaded instanceof Map)
+            final Object loaded = new Yaml().load(in);
+            if (!(loaded instanceof Map))
             {
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> map = (Map<String, Object>) loaded;
-                for (final Setting element : DefaultSettings.config)
-                {
-                    final String enumKey = element.getName().name();
-                    final String kebabKey = kebabKeyName(enumKey);
-                    Object value = null;
-                    if (map.containsKey(kebabKey))
-                    {
-                        value = map.get(kebabKey);
-                    }
-                    else if (map.containsKey(enumKey))
-                    {
-                        value = map.get(enumKey);
-                    }
-
-                    if (value != null)
-                    {
-                        Setting s = null;
-                        if (value instanceof Boolean flag)
-                        {
-                            s = new Setting(element.getName(), flag, element.getDescription(), "WormholeXTreme");
-                        }
-                        else if (value instanceof Integer whole)
-                        {
-                            s = new Setting(element.getName(), whole, element.getDescription(), "WormholeXTreme");
-                        }
-                        else if (value instanceof Number number)
-                        {
-                            s = new Setting(element.getName(), number.doubleValue(), element.getDescription(), "WormholeXTreme");
-                        }
-                        else
-                        {
-                            s = new Setting(element.getName(), value.toString(), element.getDescription(), "WormholeXTreme");
-                        }
-                        ConfigManager.getConfigurations().put(s.getName(), s);
-                    }
-                    else
-                    {
-                        // Key absent in file — use default in memory and queue for append
-                        ConfigManager.getConfigurations().put(element.getName(), element);
-                        missing.add(element);
-                    }
-                }
-
-                // Material groups are a nested section, so they are read straight off the
-                // parsed YAML rather than through the flat Setting/ConfigKeys mechanism.
-                // A server with no such section falls back to the built-in Standard group.
-                loadMaterialGroups(map.get("gate-material-groups"));
+                return;
             }
-            // Append any missing keys to the existing file so future runs load them normally
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> map = (Map<String, Object>) loaded;
+
+            final List<Setting> missing = applySettings(map);
+
+            // Material groups are a nested section, so they are read straight off the parsed
+            // YAML rather than through the flat Setting/ConfigKeys mechanism. A server with
+            // no such section falls back to the built-in Standard group.
+            loadMaterialGroups(map.get("gate-material-groups"));
+
+            // Appended to the file as well as defaulted in memory, so an admin can see the
+            // setting exists and change it.
             if (!missing.isEmpty())
             {
                 appendMissingSettings(cfg, missing);
@@ -136,6 +96,87 @@ public class ConfigurationYAML
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml: " + e.getMessage());
         }
+    }
+
+    /**
+     * Puts every known setting into memory, from the file where it says something.
+     *
+     * @param map
+     *            the parsed config file
+     * @return the settings the file did not mention, which the caller appends to it
+     */
+    private static List<Setting> applySettings(final Map<String, Object> map)
+    {
+        final List<Setting> missing = new ArrayList<>();
+        for (final Setting element : DefaultSettings.config)
+        {
+            final Object value = valueFor(map, element);
+            if (value == null)
+            {
+                ConfigManager.getConfigurations().put(element.getName(), element);
+                missing.add(element);
+            }
+            else
+            {
+                final Setting s = settingFrom(element, value);
+                ConfigManager.getConfigurations().put(s.getName(), s);
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * What the file says about one setting, under either spelling of its key.
+     *
+     * <p>Kebab-case first, then the enum name -- so a config.yml written by a version that
+     * spelled it TIMEOUT_SHUTDOWN keeps working rather than silently reverting to the
+     * default.
+     *
+     * @param map
+     *            the parsed config file
+     * @param element
+     *            the setting being looked for
+     * @return its value, or null if the file does not mention it
+     */
+    private static Object valueFor(final Map<String, Object> map, final Setting element)
+    {
+        final String enumKey = element.getName().name();
+        final String kebabKey = kebabKeyName(enumKey);
+        if (map.containsKey(kebabKey))
+        {
+            return map.get(kebabKey);
+        }
+        return map.containsKey(enumKey) ? map.get(enumKey) : null;
+    }
+
+    /**
+     * Builds a setting from whatever type the YAML parser handed back.
+     *
+     * <p>Integer is checked before Number, and the order is load-bearing: Integer is a
+     * Number, so folding the two leaves every whole number stored as a Double and the next
+     * getIntValue throws a ClassCastException.
+     *
+     * @param element
+     *            the default, for its key and description
+     * @param value
+     *            the value read from the file
+     * @return the setting to store
+     */
+    private static Setting settingFrom(final Setting element, final Object value)
+    {
+        if (value instanceof Boolean flag)
+        {
+            return new Setting(element.getName(), flag, element.getDescription(), SETTING_SECTION);
+        }
+        if (value instanceof Integer whole)
+        {
+            return new Setting(element.getName(), whole, element.getDescription(), SETTING_SECTION);
+        }
+        if (value instanceof Number number)
+        {
+            return new Setting(element.getName(), number.doubleValue(), element.getDescription(), SETTING_SECTION);
+        }
+        return new Setting(element.getName(), value.toString(), element.getDescription(), SETTING_SECTION);
     }
 
     /**
@@ -158,6 +199,9 @@ public class ConfigurationYAML
             MaterialGroupRegistry.load(null);
         }
     }
+
+    /** The section every Setting is filed under; the same name for all of them. */
+    private static final String SETTING_SECTION = "WormholeXTreme";
 
     /** The config.yml key holding the nested material-group definitions. */
     private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
