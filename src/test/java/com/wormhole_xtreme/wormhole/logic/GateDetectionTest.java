@@ -518,4 +518,74 @@ class GateDetectionTest
         }
     }
 
+    /**
+     * The chevron material is only accepted where a chevron belongs.
+     *
+     * <p>Accepting it anywhere in the frame would mean a gate with a stray glowstone block
+     * in its wall still detected, and the whole point of the marker is that the shape says
+     * which cells are chevrons.
+     *
+     * <p>It asserts the gate is found first, so the refusal afterwards is about the block
+     * that changed rather than a setup that never detected anything.
+     */
+    @Test
+    void theChevronMaterialIsNotAcceptedJustAnywhereInTheFrame() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        s.setShapeChevronMaterial(Material.GLOWSTONE);
+
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+        assertNotNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
+            "found before anything is spoiled, so the refusal below is about the glowstone");
+        assertTrue(placeChevronMaterialAtAnUnlitFrameCell(s, BlockFace.SOUTH, 0, 64, 0),
+            "the shape needs at least one frame cell that carries no light order");
+
+        assertNull(StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s),
+            "glowstone where the shape marked plain frame is not a chevron");
+    }
+
+    /**
+     * Puts the chevron material in one frame cell the shape did not mark with a light order.
+     *
+     * @return true if such a cell was found
+     */
+    private boolean placeChevronMaterialAtAnUnlitFrameCell(final Stargate3DShape s,
+                                                           final BlockFace facing,
+                                                           final int ox, final int oy, final int oz)
+    {
+        final BlockFace right = WorldUtils.getPerpendicularRightDirection(facing);
+        final List<StargateShapeLayer> layers = s.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            if (layer == null)
+            {
+                continue;
+            }
+            final java.util.Set<String> lit = new java.util.HashSet<String>();
+            final List<List<Integer[]>> waves = layer.getLayerLightPositions();
+            if (waves != null)
+            {
+                for (int w = 1; w < waves.size(); w++)
+                {
+                    if (waves.get(w) != null)
+                    {
+                        for (final Integer[] pos : waves.get(w))
+                        {
+                            lit.add(pos[0] + "," + pos[1] + "," + pos[2]);
+                        }
+                    }
+                }
+            }
+            for (final Integer[] pos : layer.getLayerBlockPositions())
+            {
+                if (!lit.contains(pos[0] + "," + pos[1] + "," + pos[2]))
+                {
+                    place(ox, oy, oz, facing, right, layerIdx, pos, Material.GLOWSTONE);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

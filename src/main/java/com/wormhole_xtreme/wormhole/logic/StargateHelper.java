@@ -580,11 +580,6 @@ public final class StargateHelper
                                             final org.bukkit.Material structMat,
                                             final org.bukkit.Material chevronMat)
     {
-        // Verify every structure (S) block has the expected material,
-        // AND every portal (P) block is NOT the structure material.
-        // The second check prevents false positives inside solid obsidian rooms
-        // (or any room built from the gate's structure material) where the frame
-        // outline happens to match a shape but the interior is not open space.
         for (int layerIdx = 1; layerIdx < numLayers; layerIdx++)
         {
             final StargateShapeLayer layer = shapeLayers.get(layerIdx);
@@ -592,48 +587,120 @@ public final class StargateHelper
             {
                 continue;
             }
-            final java.util.Set<Long> litCells = lightCells(layer);
-            for (final Integer[] pos : layer.getLayerBlockPositions())
+            if (!structureCellsMatch(frame, layer, layerIdx, structMat, chevronMat)
+                || !chevronCellsMatch(frame, layer, layerIdx, structMat, chevronMat)
+                || !portalCellsAreOpen(frame, layer, layerIdx, structMat))
             {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                final org.bukkit.Material found = cell.getType();
-                if (found == structMat)
-                {
-                    continue;
-                }
-                // An [S:L#n] cell is a chevron, and a shape with a chevron material lets one
-                // be built from that instead, so the gate shows where its chevrons are before
-                // any of them light. Both materials are accepted rather than only the chevron
-                // one: every gate standing in every world today has frame material in those
-                // positions, and re-detection has to go on finding them.
-                if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
-                {
-                    continue;
-                }
-                return false; // structure block mismatch
-            }
-            for (final Integer[] pos : layer.getLayerChevronPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                // A [C] cell is the strict form: the shape asked for a distinct block there,
-                // so the frame material will not do. Unless the shape named no chevron
-                // material at all, in which case [C] falls back to meaning [S] rather than
-                // making the shape impossible to build.
-                if (cell.getType() != ((chevronMat != null) ? chevronMat : structMat))
-                {
-                    return false; // chevron block mismatch
-                }
-            }
-            for (final Integer[] pos : layer.getLayerPortalPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                if (cell.getType() == structMat)
-                {
-                    return false; // portal interior is solid — not a real gate
-                }
+                return false;
             }
         }
+        return true;
+    }
 
+    /**
+     * Whether one layer's frame cells are made of what the shape asks for.
+     *
+     * <p>An {@code [S:L#n]} cell is a chevron, and a shape with a chevron material lets one be
+     * built from that instead, so the gate shows where its chevrons are before any of them
+     * light. Both materials are accepted rather than only the chevron one: every gate standing
+     * in every world today has frame material in those positions, and re-detection has to go
+     * on finding them.
+     *
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being checked
+     * @param layerIdx
+     *            which layer that is
+     * @param structMat
+     *            the gate's frame material
+     * @param chevronMat
+     *            its chevron material, or null if it has none
+     * @return true if every frame cell matches
+     */
+    private static boolean structureCellsMatch(final GateFrame frame, final StargateShapeLayer layer,
+                                               final int layerIdx, final org.bukkit.Material structMat,
+                                               final org.bukkit.Material chevronMat)
+    {
+        final java.util.Set<Long> litCells = lightCells(layer);
+        for (final Integer[] pos : layer.getLayerBlockPositions())
+        {
+            final org.bukkit.Material found = frame.blockAt(layerIdx, pos).getType();
+            if (found == structMat)
+            {
+                continue;
+            }
+            if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
+            {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether one layer's {@code [C]} cells are made of what the shape asks for.
+     *
+     * <p>{@code [C]} is the strict form: the shape asked for a distinct block there, so the
+     * frame material will not do. Unless the shape named no chevron material at all, in which
+     * case {@code [C]} falls back to meaning {@code [S]} rather than making the shape
+     * impossible to build.
+     *
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being checked
+     * @param layerIdx
+     *            which layer that is
+     * @param structMat
+     *            the gate's frame material
+     * @param chevronMat
+     *            its chevron material, or null if it has none
+     * @return true if every strict chevron cell matches
+     */
+    private static boolean chevronCellsMatch(final GateFrame frame, final StargateShapeLayer layer,
+                                             final int layerIdx, final org.bukkit.Material structMat,
+                                             final org.bukkit.Material chevronMat)
+    {
+        final org.bukkit.Material wanted = (chevronMat != null) ? chevronMat : structMat;
+        for (final Integer[] pos : layer.getLayerChevronPositions())
+        {
+            if (frame.blockAt(layerIdx, pos).getType() != wanted)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether one layer's portal cells are open rather than solid.
+     *
+     * <p>This is what stops a solid room built from the gate's own material being read as a
+     * gate: the frame outline can match a shape by coincidence, and the interior being filled
+     * in is what says it is a wall rather than a doorway.
+     *
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being checked
+     * @param layerIdx
+     *            which layer that is
+     * @param structMat
+     *            the gate's frame material
+     * @return true if no portal cell is the frame material
+     */
+    private static boolean portalCellsAreOpen(final GateFrame frame, final StargateShapeLayer layer,
+                                              final int layerIdx, final org.bukkit.Material structMat)
+    {
+        for (final Integer[] pos : layer.getLayerPortalPositions())
+        {
+            if (frame.blockAt(layerIdx, pos).getType() == structMat)
+            {
+                return false;
+            }
+        }
         return true;
     }
 
