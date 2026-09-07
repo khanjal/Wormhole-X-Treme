@@ -1,6 +1,9 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Set;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -14,6 +17,13 @@ import org.bukkit.block.BlockFace;
  */
 public final class LegacyCompat {
     private LegacyCompat() {}
+
+    // CRIMSON_SIGN and WARPED_SIGN are standing signs rather than wall signs, but the legacy
+    // mapping has always read them off the sign table, so they stay on it.
+    private static final Set<Material> SIGN_FACINGS = Collections.unmodifiableSet(
+        EnumSet.of(Material.OAK_WALL_SIGN, Material.SPRUCE_WALL_SIGN, Material.BIRCH_WALL_SIGN,
+            Material.ACACIA_WALL_SIGN, Material.JUNGLE_WALL_SIGN, Material.DARK_OAK_WALL_SIGN,
+            Material.CRIMSON_SIGN, Material.WARPED_SIGN));
 
     public static Material materialFromId(final int id) {
         switch (id) {
@@ -55,46 +65,42 @@ public final class LegacyCompat {
         try {
             final Material m = b.getType();
             final BlockData bd = b.getBlockData();
-            // Generic Directional + Powerable handling for levers/buttons/signs
             if (bd instanceof Directional d) {
-                BlockFace face = d.getFacing();
-                if (m == Material.OAK_WALL_SIGN || m == Material.SPRUCE_WALL_SIGN || m == Material.BIRCH_WALL_SIGN || m == Material.ACACIA_WALL_SIGN || m == Material.JUNGLE_WALL_SIGN || m == Material.DARK_OAK_WALL_SIGN || m == Material.CRIMSON_SIGN || m == Material.WARPED_SIGN) {
-                    switch (data) {
-                        case 2: face = BlockFace.EAST; break;
-                        case 3: face = BlockFace.WEST; break;
-                        case 4: face = BlockFace.NORTH; break;
-                        case 5: 
-                        default: face = BlockFace.SOUTH; break;
-                    }
-                } else {
-                    switch (data) {
-                        case 1: face = BlockFace.SOUTH; break;
-                        case 2: face = BlockFace.NORTH; break;
-                        case 3: face = BlockFace.WEST; break;
-                        case 4: face = BlockFace.EAST; break;
-                        default: break;
-                    }
-                }
-                try { d.setFacing(face); b.setBlockData(d); } catch (final Exception | LinkageError ignore) { /* best effort */ }
+                applyFacing(b, d, data, SIGN_FACINGS.contains(m));
             }
             if (bd instanceof Powerable p) {
                 p.setPowered((data & 0x8) == 0x8);
                 try { b.setBlockData(p); } catch (final Exception | LinkageError ignore) { /* best effort */ }
             }
-            // Redstone wire: try reflection to set power if present
-            try {
-                final Class<?> cls = bd.getClass();
-                if (cls.getSimpleName().toLowerCase(Locale.ROOT).contains("redstone")) {
-                    final java.lang.reflect.Method setPower = cls.getMethod("setPower", int.class);
-                    int power = data & 0xF;
-                    if (power < 0) power = 0;
-                    setPower.invoke(bd, power);
-                    b.setBlockData(bd);
-                    return;
-                }
-            } catch (final Exception | LinkageError ignore) { /* best effort */ }
+            applyRedstonePower(b, bd, data);
         } catch (final Exception | LinkageError t) {
             // ignore mapping errors
+        }
+    }
+
+    /** Turns a block to face wherever its legacy byte said, leaving it alone if the byte says nothing. */
+    private static void applyFacing(final Block b, final Directional d, final byte data, final boolean sign) {
+        final BlockFace face = sign ? signFacing(data) : genericFacing(data, d.getFacing());
+        try { d.setFacing(face); b.setBlockData(d); } catch (final Exception | LinkageError ignore) { /* best effort */ }
+    }
+
+    private static BlockFace signFacing(final byte data) {
+        switch (data) {
+            case 2: return BlockFace.EAST;
+            case 3: return BlockFace.WEST;
+            case 4: return BlockFace.NORTH;
+            default: return BlockFace.SOUTH;
+        }
+    }
+
+    /** Anything that is not a sign, which numbered the same four walls differently. */
+    private static BlockFace genericFacing(final byte data, final BlockFace current) {
+        switch (data) {
+            case 1: return BlockFace.SOUTH;
+            case 2: return BlockFace.NORTH;
+            case 3: return BlockFace.WEST;
+            case 4: return BlockFace.EAST;
+            default: return current;
         }
     }
 
@@ -103,38 +109,66 @@ public final class LegacyCompat {
             final Material m = b.getType();
             final BlockData bd = b.getBlockData();
             if (bd instanceof Directional d) {
-                final BlockFace face = d.getFacing();
-                byte base = 0;
-                if (face == BlockFace.SOUTH) base = 1;
-                else if (face == BlockFace.NORTH) base = 2;
-                else if (face == BlockFace.WEST) base = 3;
-                else if (face == BlockFace.EAST) base = 4;
-                if (m == Material.OAK_WALL_SIGN || m == Material.SPRUCE_WALL_SIGN || m == Material.BIRCH_WALL_SIGN || m == Material.ACACIA_WALL_SIGN || m == Material.JUNGLE_WALL_SIGN || m == Material.DARK_OAK_WALL_SIGN || m == Material.CRIMSON_SIGN || m == Material.WARPED_SIGN) {
-                    switch (face) {
-                        case EAST: return 2;
-                        case WEST: return 3;
-                        case NORTH: return 4;
-                        case SOUTH: default: return 5;
-                    }
-                }
-                // include powered bit if applicable
-                if ((bd instanceof Powerable p) && p.isPowered()) {
-                    base |= 0x8;
-                }
-                return base;
+                return SIGN_FACINGS.contains(m) ? signData(d.getFacing()) : genericData(bd, d.getFacing());
             }
-            // Redstone wire: reflection-based getter
-            try {
-                final Class<?> cls = bd.getClass();
-                if (cls.getSimpleName().toLowerCase(Locale.ROOT).contains("redstone")) {
-                    final java.lang.reflect.Method getPower = cls.getMethod("getPower");
-                    final Object val = getPower.invoke(bd);
-                    if (val instanceof Integer i) return i.byteValue();
-                }
-            } catch (final Exception | LinkageError ignore) { /* best effort */ }
+            return redstonePower(bd);
         } catch (final Exception | LinkageError t) {
             // ignore
         }
         return 0;
+    }
+
+    private static byte signData(final BlockFace face) {
+        switch (face) {
+            case EAST: return 2;
+            case WEST: return 3;
+            case NORTH: return 4;
+            default: return 5;
+        }
+    }
+
+    /** The generic table, with the powered bit on top of it. */
+    private static byte genericData(final BlockData bd, final BlockFace face) {
+        byte base = 0;
+        if (face == BlockFace.SOUTH) base = 1;
+        else if (face == BlockFace.NORTH) base = 2;
+        else if (face == BlockFace.WEST) base = 3;
+        else if (face == BlockFace.EAST) base = 4;
+        if ((bd instanceof Powerable p) && p.isPowered()) {
+            base |= 0x8;
+        }
+        return base;
+    }
+
+    /**
+     * Reads redstone wire's power level, which is its whole byte.
+     *
+     * <p>Reflection, because the accessor is not on any interface this plugin can compile
+     * against across every server version it supports.
+     */
+    private static byte redstonePower(final BlockData bd) {
+        if (!isRedstone(bd)) {
+            return 0;
+        }
+        try {
+            final Object val = bd.getClass().getMethod("getPower").invoke(bd);
+            if (val instanceof Integer i) return i.byteValue();
+        } catch (final Exception | LinkageError ignore) { /* best effort */ }
+        return 0;
+    }
+
+    /** The other half of {@link #redstonePower}, and reflective for the same reason. */
+    private static void applyRedstonePower(final Block b, final BlockData bd, final byte data) {
+        if (!isRedstone(bd)) {
+            return;
+        }
+        try {
+            bd.getClass().getMethod("setPower", int.class).invoke(bd, data & 0xF);
+            b.setBlockData(bd);
+        } catch (final Exception | LinkageError ignore) { /* best effort */ }
+    }
+
+    private static boolean isRedstone(final BlockData bd) {
+        return bd.getClass().getSimpleName().toLowerCase(Locale.ROOT).contains("redstone");
     }
 }
