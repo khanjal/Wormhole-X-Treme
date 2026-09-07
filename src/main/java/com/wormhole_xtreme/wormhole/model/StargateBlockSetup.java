@@ -490,35 +490,65 @@ class StargateBlockSetup
     /** Places or removes the dial activation redstone wire. */
     static void setupRedstoneDialWire(final Stargate gate, final boolean create)
     {
-        if (gate.getGateRedstoneDialActivationBlock() != null)
+        setupRedstoneWire(gate, gate.getGateRedstoneDialActivationBlock(), "RD", create);
+    }
+
+    /** Places or removes the sign-dial redstone wire. */
+    static void setupRedstoneSignDialWire(final Stargate gate, final boolean create)
+    {
+        setupRedstoneWire(gate, gate.getGateRedstoneSignActivationBlock(), "RS", create);
+    }
+
+    /**
+     * Lays one marker's redstone wire, or takes it up again.
+     *
+     * <p>Both callers were the same thirty lines, differing only in which block they read and
+     * two characters of a log line.
+     *
+     * <p>Neither direction touches a block it did not put there. On the way in, a cell
+     * somebody has already built in is left alone and reported rather than overwritten; on
+     * the way out, only an actual wire is cleared, because between laying and lifting a
+     * player may have replaced it. The gate's structure list follows the same rule, so it
+     * never claims a block it did not place or abandons one it did.
+     *
+     * @param gate
+     *            the gate being wired
+     * @param target
+     *            the block the marker resolved to, or null if the shape has no such marker
+     * @param marker
+     *            the marker's name, for the log line when the cell is occupied
+     * @param create
+     *            true to lay the wire, false to take it up
+     */
+    private static void setupRedstoneWire(final Stargate gate, final Block target,
+        final String marker, final boolean create)
+    {
+        if (target == null)
         {
-            if (create)
+            return;
+        }
+        if (create)
+        {
+            try
             {
-                final Block rd = gate.getGateRedstoneDialActivationBlock();
-                try
+                final Material current = target.getType();
+                if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
                 {
-                    final Material current = rd.getType();
-                    if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
-                    {
-                        gate.getGateStructureBlocks().add(rd.getLocation());
-                        rd.setType(Material.REDSTONE_WIRE);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RD placement; target occupied: " + current);
-                    }
+                    gate.getGateStructureBlocks().add(target.getLocation());
+                    target.setType(Material.REDSTONE_WIRE);
                 }
-                catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
-            }
-            else
-            {
-                final Block rd = gate.getGateRedstoneDialActivationBlock();
-                if (rd != null && rd.getType() == Material.REDSTONE_WIRE)
+                else
                 {
-                    gate.getGateStructureBlocks().remove(rd.getLocation());
-                    rd.setType(Material.AIR);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                        "Skipping " + marker + " placement; target occupied: " + current);
                 }
             }
+            catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
+        }
+        else if (target.getType() == Material.REDSTONE_WIRE)
+        {
+            gate.getGateStructureBlocks().remove(target.getLocation());
+            target.setType(Material.AIR);
         }
     }
 
@@ -551,41 +581,6 @@ class StargateBlockSetup
                 {
                     gate.getGateStructureBlocks().remove(gate.getGateRedstoneGateActivatedBlock().getLocation());
                     gate.getGateRedstoneGateActivatedBlock().setType(Material.AIR);
-                }
-            }
-        }
-    }
-
-    /** Places or removes the sign-dial redstone wire. */
-    static void setupRedstoneSignDialWire(final Stargate gate, final boolean create)
-    {
-        if (gate.getGateRedstoneSignActivationBlock() != null)
-        {
-            if (create)
-            {
-                final Block rs = gate.getGateRedstoneSignActivationBlock();
-                try
-                {
-                    final Material current = rs.getType();
-                    if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
-                    {
-                        gate.getGateStructureBlocks().add(rs.getLocation());
-                        rs.setType(Material.REDSTONE_WIRE);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RS placement; target occupied: " + current);
-                    }
-                }
-                catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
-            }
-            else
-            {
-                final Block rs = gate.getGateRedstoneSignActivationBlock();
-                if (rs != null && rs.getType() == Material.REDSTONE_WIRE)
-                {
-                    gate.getGateStructureBlocks().remove(rs.getLocation());
-                    rs.setType(Material.AIR);
                 }
             }
         }
