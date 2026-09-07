@@ -132,33 +132,50 @@ class ProjectileGateTracker implements Listener
             while (it.hasNext())
             {
                 final Map.Entry<Projectile, Tracked> entry = it.next();
-                final Projectile projectile = entry.getKey();
-                final Tracked state = entry.getValue();
-                try
-                {
-                    if (!projectile.isValid() || (tick > state.expiresAtTick))
-                    {
-                        it.remove();
-                        continue;
-                    }
-                    final Location from = state.previous;
-                    final Location to = projectile.getLocation();
-                    state.previous = to;
-                    if (sendThroughGateOnPath(from, to, projectile))
-                    {
-                        // The original is consumed on the way through; the replacement
-                        // is tracked in its place so it can cross another gate.
-                        it.remove();
-                    }
-                }
-                catch (final RuntimeException e)
+                if (finishedWith(entry.getKey(), entry.getValue()))
                 {
                     it.remove();
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                        "Projectile gate tracking failed: " + e.getMessage());
                 }
             }
         };
+    }
+
+    /**
+     * Moves one projectile on by a tick, and says whether it should stop being followed.
+     *
+     * <p>Three ways it stops: it is gone, it has been followed longer than anything worth
+     * following, or it went through a gate -- in which case the original is consumed and its
+     * replacement is already being followed in its place.
+     *
+     * <p>A projectile whose handling throws also stops. Kept, it would throw again on the
+     * next tick and every tick after, turning one bad projectile into a log line per tick for
+     * as long as the server runs.
+     *
+     * @param projectile
+     *            the projectile
+     * @param state
+     *            where it was last tick, and when to give up on it
+     * @return true if it should be dropped from the tracked set
+     */
+    private static boolean finishedWith(final Projectile projectile, final Tracked state)
+    {
+        try
+        {
+            if (!projectile.isValid() || (tick > state.expiresAtTick))
+            {
+                return true;
+            }
+            final Location from = state.previous;
+            final Location to = projectile.getLocation();
+            state.previous = to;
+            return sendThroughGateOnPath(from, to, projectile);
+        }
+        catch (final RuntimeException e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Projectile gate tracking failed: " + e.getMessage());
+            return true;
+        }
     }
 
     /**
