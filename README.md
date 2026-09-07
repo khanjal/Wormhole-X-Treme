@@ -16,7 +16,8 @@ Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style te
 
 This README is for **server owners** — installing it, configuring it, building gates and
 rings, and running them. If you are writing a plugin that hooks into gate or ring travel, see
-**[docs/API.md](docs/API.md)** instead.
+**[docs/API.md](docs/API.md)** instead. Why any of it works the way it does is in
+**[docs/GATES.md](docs/GATES.md)** and **[docs/RINGS.md](docs/RINGS.md)**.
 Gates are fully configurable per shape — materials, iris, lighting, and sign type are all set in `.shape` files.
 There are also **transport rings**: small paired pads set into a floor or ceiling that fire when you walk into them.
 Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
@@ -36,6 +37,8 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 **Running a server** — [Storage](#storage) · [Economy](#economy) · [Troubleshooting](#troubleshooting)
 
 **Writing a plugin against this one** — [docs/API.md](docs/API.md)
+
+**How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md)
 
 **Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing)
 
@@ -1261,11 +1264,14 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 
 ## Developer notes
 
-- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
+The design of each subsystem is written up in [docs/GATES.md](docs/GATES.md) and
+[docs/RINGS.md](docs/RINGS.md), and the plugin-facing events in
+[docs/API.md](docs/API.md). A few conventions that run through all of it:
+
+- `MaterialUtils.isWallSign(Material)` and `isButton(Material)` cover every wood, stone and Nether variant, so nothing tests for those block types one at a time. `LegacyCompat` is a different thing: it maps the numeric material ids that only appear in very old save data.
 - All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
 - Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
-- `StargateYamlManager` handles per-gate YAML read/write.
-- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
+- `StargateYamlManager` handles per-gate YAML read/write, `RingYamlManager` one file per world for ring pairs. There is no database backend; `LegacyDatabaseImporter` reads an old SQLite one in.
 - Every file read and write names `StandardCharsets.UTF_8` explicitly. `FileWriter`, `FileReader`, `InputStreamReader` and `OutputStreamWriter` fall back to the platform charset when not given one, and the readers around them (SnakeYAML, `Files.readAllLines`) assume UTF-8 unconditionally, so a charset-less constructor is a mismatch waiting for a non-UTF-8 host. `PlatformCharsetIsNeverUsedTest` reads the sources and fails on any that reappears.
 
 ## Credits

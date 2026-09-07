@@ -472,10 +472,11 @@ public final class RingYamlManager
     /**
      * Writes every half-built pair.
      *
-     * <p>The first end of a pair costs the player their slabs the moment it is registered, so
-     * losing it to a restart would take the slabs with it and leave nothing to show for them.
-     * Written on every change rather than at shutdown, because a server that stops badly is
-     * exactly the case this exists for.
+     * <p>The slabs are not taken until the pair completes, so losing a pending end costs no
+     * blocks -- it silently forgets a ring somebody has already walked away from, and their
+     * first {@code create} has to be run again with no sign of why. Written on every change
+     * rather than at shutdown, because a server that stops badly is exactly the case this
+     * exists for.
      */
     public static void savePending()
     {
