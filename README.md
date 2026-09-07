@@ -1268,7 +1268,7 @@ The design of each subsystem is written up in [docs/GATES.md](docs/GATES.md) and
 [docs/RINGS.md](docs/RINGS.md), and the plugin-facing events in
 [docs/API.md](docs/API.md). A few conventions that run through all of it:
 
-- `MaterialUtils.isWallSign(Material)` and `isButton(Material)` cover every wood, stone and Nether variant, so nothing tests for those block types one at a time. `LegacyCompat` is a different thing: it maps the numeric material ids that only appear in very old save data.
+- `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every wood, stone and Nether variant, so nothing tests for those block types one at a time. `LegacyCompat` is a different thing: it maps the numeric material ids that only appear in very old save data.
 - All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
 - Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
 - `StargateYamlManager` handles per-gate YAML read/write, `RingYamlManager` one file per world for ring pairs. There is no database backend; `LegacyDatabaseImporter` reads an old SQLite one in.
