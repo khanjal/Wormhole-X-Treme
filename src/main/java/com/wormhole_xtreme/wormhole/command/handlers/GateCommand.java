@@ -36,9 +36,11 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 @SuppressWarnings("java:S3516")
 public class GateCommand implements SubCommand
 {
+    private static final String REGENERATE = "regenerate";
+
     /** The verbs, in the order they are offered. */
     private static final List<String> VERBS = Arrays.asList(
-        "build", "complete", "list", "remove", "edit", "regenerate", "refresh", "go", "force",
+        "build", "complete", "list", "remove", "edit", REGENERATE, "refresh", "go", "force",
         "import", "shapes");
 
     /**
@@ -70,10 +72,10 @@ public class GateCommand implements SubCommand
         {
             return new GateEditCommand().execute(sender, args);
         }
-        if ("regenerate".equals(verb) || "regen".equals(verb))
+        if (REGENERATE.equals(verb) || "regen".equals(verb))
         {
             final String[] forHandler = new String[rest.length + 1];
-            forHandler[0] = "regenerate";
+            forHandler[0] = REGENERATE;
             System.arraycopy(rest, 0, forHandler, 1, rest.length);
             return new RegenerateCommand().execute(sender, forHandler);
         }

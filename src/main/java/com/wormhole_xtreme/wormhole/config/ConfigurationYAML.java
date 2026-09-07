@@ -84,7 +84,7 @@ public class ConfigurationYAML
             // Material groups are a nested section, so they are read straight off the parsed
             // YAML rather than through the flat Setting/ConfigKeys mechanism. A server with
             // no such section falls back to the built-in Standard group.
-            loadMaterialGroups(map.get("gate-material-groups"));
+            loadMaterialGroups(map.get(MATERIAL_GROUPS_KEY));
 
             // Appended to the file as well as defaulted in memory, so an admin can see the
             // setting exists and change it.

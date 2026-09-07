@@ -13,8 +13,11 @@ import org.bukkit.Material;
  */
 public class ConfigManager
 {
+    /** The section every setting is filed under. */
+    private static final String SECTION = "WormholeXTreme";
+
     /** Plugin folder name, remembered so config.yml can be located again after load. */
-    private static volatile String configuredPluginName = "WormholeXTreme";
+    private static volatile String configuredPluginName = SECTION;
 
 
     /**
@@ -347,7 +350,7 @@ public class ConfigManager
      */
     public static void setPermissionsSupportDisable(final boolean disabled)
     {
-        configurations.put(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, disabled, "Permissions support disabled (runtime)", "WormholeXTreme"));
+        configurations.put(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, new Setting(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, disabled, "Permissions support disabled (runtime)", SECTION));
     }
 
     /**
@@ -1390,7 +1393,7 @@ public class ConfigManager
             return parsed.getRefusal();
         }
         setting.setValue(parsed.getValue());
-        Configuration.persistCurrentConfiguration("WormholeXTreme");
+        Configuration.persistCurrentConfiguration(SECTION);
         return setting.getName().name() + " is now " + parsed.getValue() + ".";
     }
 

@@ -40,6 +40,9 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public final class RingYamlManager
 {
+    private static final String WORLD_KEY = "World";
+    private static final String STYLE_KEY = "Style";
+
     private RingYamlManager() {}
 
     /**
@@ -163,7 +166,7 @@ public final class RingYamlManager
             return 0;
         }
 
-        final String worldName = String.valueOf(root.getOrDefault("World", ""));
+        final String worldName = String.valueOf(root.getOrDefault(WORLD_KEY, ""));
         if (worldName.isEmpty())
         {
             log(Level.WARNING, "Ring file " + file.getName() + " names no world; skipping it.");
@@ -212,7 +215,7 @@ public final class RingYamlManager
     {
         // A pair written before style moved onto the end carries one value for both. Read
         // it as the fallback for each so those files keep behaving exactly as they did.
-        final RingStyle shared = readStyle(map.get("Style"));
+        final RingStyle shared = readStyle(map.get(STYLE_KEY));
         final Ring endA = readRing((Map<String, Object>) map.get("A"), shared);
         final Ring endB = readRing((Map<String, Object>) map.get("B"), shared);
         final RingPair pair = new RingPair(id, worldName, endA, endB);
@@ -305,7 +308,7 @@ public final class RingYamlManager
         final Material ring = Material.valueOf(String.valueOf(map.get("Ring")));
         final Material light = Material.valueOf(String.valueOf(map.get("Light")));
         final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
-        built.setStyle(map.containsKey("Style") ? readStyle(map.get("Style")) : fallback);
+        built.setStyle(map.containsKey(STYLE_KEY) ? readStyle(map.get(STYLE_KEY)) : fallback);
         built.setName(String.valueOf(map.getOrDefault("Name", "")));
         // A ring written before the flash was its own material used one for both, so falling
         // back to the light keeps those looking exactly as they did.
@@ -368,7 +371,7 @@ public final class RingYamlManager
         }
 
         final Map<String, Object> root = new LinkedHashMap<String, Object>();
-        root.put("World", worldName);
+        root.put(WORLD_KEY, worldName);
         root.put("Pairs", pairsOut);
 
         write(target, root);
@@ -449,7 +452,7 @@ public final class RingYamlManager
         out.put("Built", ring.getBuiltMaterial().name());
         out.put("Light", ring.getLightMaterial().name());
         out.put("Flash", ring.getFlashMaterial().name());
-        out.put("Style", ring.getStyle().name());
+        out.put(STYLE_KEY, ring.getStyle().name());
         out.put("Name", ring.getName());
         return out;
     }
@@ -510,7 +513,7 @@ public final class RingYamlManager
         for (final Map.Entry<UUID, RingManager.PendingRing> entry : waiting.entrySet())
         {
             final Map<String, Object> one = writeRing(entry.getValue().getRing());
-            one.put("World", entry.getValue().getWorldName());
+            one.put(WORLD_KEY, entry.getValue().getWorldName());
             out.put(entry.getKey().toString(), one);
         }
         final Map<String, Object> root = new LinkedHashMap<String, Object>();
@@ -571,7 +574,7 @@ public final class RingYamlManager
                 final Map<String, Object> map = (Map<String, Object>) entry.getValue();
                 final Ring ring = readRing(map, RingStyle.CONCURRENT);
                 RingManager.setPending(UUID.fromString(entry.getKey()), ring,
-                    String.valueOf(map.get("World")));
+                    String.valueOf(map.get(WORLD_KEY)));
                 loaded++;
             }
             // One unreadable entry costs one player their half-built pair, not everybody's.
