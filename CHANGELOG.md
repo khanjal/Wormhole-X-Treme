@@ -4,6 +4,40 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Gates had no design document, and the rings one had grown
+
+Rings were written up as they were built, so `docs/RINGS.md` records why every decision went
+the way it did. Gates -- the older and much larger half of the plugin -- had nothing of the
+kind. The README says what a gate does and `docs/API.md` says what a plugin can hook, but the
+reasoning behind detection, the save format, the dial handshake and the drawn portal lived only
+in Javadoc scattered across twenty-odd classes.
+
+`docs/GATES.md` is that document: anatomy, shapes, palettes, detection, storage, networks,
+dialling, timers, the iris, the drawn portal, animation, sound, the ordered move path,
+permissions, commands, layout, and what the tests guard. It is written from the code, so the
+things that only exist as a comment on the line that needed them are now findable -- why save
+version 9 stopped writing `Material.ordinal()`, why `beatsBestMatch` ranks by frame-block count
+and then by name, why the activation timeout deactivates by gate identity rather than by
+player.
+
+`docs/RINGS.md` got a pass at the same time. Same decisions, none dropped, roughly 1,500 fewer
+words: the `RingTravelEvent` reasoning was written out twice and is now in one place pointing
+at `API.md`, and the longer narratives -- the removed edge-nudge feature, the one-file-per-world
+argument -- say the same thing in a third of the space.
+
+Three stale claims turned up while checking the docs against the code. `docs/API.md` and the
+README's developer notes both said `StorageMigrator` provides a `db -> file` migration; there
+is no such class, and what actually exists is `LegacyDatabaseImporter`, announced at startup
+and run from `/wormhole gate import`. Both also credited `isWallSign` and `isButton` to
+`LegacyCompat`, which holds numeric material ids and neither of those methods -- they are on
+`MaterialUtils`.
+
+The third was in the code. `RingYamlManager.savePending()`'s comment said the first end of a
+pair costs the player their slabs the moment it is registered, which stopped being true when
+consumption moved to the completing `create`; `RingCommand` has said so on its own line for a
+while. Losing a pending end costs no blocks -- it silently forgets a ring somebody has already
+walked away from, which is still worth writing the file for.
+
 ### Every feature node under /wormhole was unreachable without wormhole.config
 
 Reported from a live server: a player had `wormhole.beam.use` set true on their group and true

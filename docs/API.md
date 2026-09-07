@@ -136,11 +136,22 @@ not told to discard what it knows about it.
 
 ## Notes on the internals
 
-- `LegacyCompat` utility class provides `isWallSign(Material)` and `isButton(Material)` helpers that cover all current wood, stone, and Nether variants so that detection code does not need explicit per-type checks.
-- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
-- Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
-- `StargateYamlManager` handles per-gate YAML read/write.
-- `StorageMigrator` provides a CLI-accessible migration tool for `db -> file`.
+How each subsystem is put together, and why, is written up separately:
+**[GATES.md](GATES.md)** and **[RINGS.md](RINGS.md)**. A few conventions worth knowing
+before you read either:
+
+- `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every
+  wood, stone and Nether variant, so nothing tests for those block types one at a time.
+  `LegacyCompat` is a separate thing: it maps the numeric material ids that only appear in
+  very old save data.
+- Air is tested with `Material.isAir()`, never `== Material.AIR`, so `CAVE_AIR` and
+  `VOID_AIR` count.
+- A gate's sign material comes from its shape's `SIGN_MATERIAL=` key, read off the shape
+  object; nothing hardcodes `OAK_WALL_SIGN`.
+- Gates are stored one YAML file each by `StargateYamlManager`; ring pairs are stored one
+  file per world by `RingYamlManager`. There is no database backend. A legacy SQLite database
+  from an older Wormhole X-Treme is imported by `LegacyDatabaseImporter`, which announces
+  itself at startup and runs from `/wormhole gate import`.
 
 ## Contributing
 
