@@ -27,60 +27,57 @@ public class WXRemove implements CommandExecutor
     {
         try
         {
-            final String[] a = CommandUtilities.commandEscaper(args);
-            if ((a.length >= 1) && (a.length <= 2))
-            {
-                if (a[0].equals("-all"))
-                {
-                    return false;
-                }
-                final Stargate s = StargateManager.getStargate(a[0]);
-
-                if (s != null)
-                {
-                    if (!CommandUtilities.playerCheck(sender)
-                        || WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE))
-                    {
-                        boolean destroy = false;
-                        if ((a.length == 2) && a[1].equalsIgnoreCase("-all"))
-                        {
-                            destroy = true;
-                        }
-                        CommandUtilities.gateRemove(s, destroy, true,
-                            CommandUtilities.playerCheck(sender) ? (Player) sender : null);
-                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Wormhole Removed: " + s.getGateName());
-                    }
-                    else
-                    {
-                        sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-                    }
-
-                }
-                else
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
-                }
-            }
-            else
-            {
-                return false;
-            }
-            return true;
+            return removeNamedGate(sender, CommandUtilities.commandEscaper(args));
         }
         catch (final RuntimeException t)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wx remove: " + t.getMessage());
-            if (CommandUtilities.playerCheck(sender))
-            {
-                final Player p = (Player) sender;
-                p.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An error occurred while removing the gate. Check server logs.");
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An error occurred while removing the gate. Check server logs.");
-            }
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(
+                java.util.logging.Level.WARNING, "Error executing /wx remove: " + t.getMessage());
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "An error occurred while removing the gate. Check server logs.");
             return true;
         }
+    }
+
+    /**
+     * Removes the gate named, if there is one and the sender may.
+     *
+     * @param sender
+     *            who asked
+     * @param a
+     *            the arguments, gate name first
+     * @return true unless the words given were not a gate and a flag, which prints the usage
+     *         line
+     */
+    private static boolean removeNamedGate(final CommandSender sender, final String[] a)
+    {
+        // "-all" means "and its blocks" as the second word. There is no "remove every gate",
+        // so in the name position it is refused rather than looked up as a gate called that.
+        if ((a.length < 1) || (a.length > 2) || "-all".equals(a[0]))
+        {
+            return false;
+        }
+
+        final Stargate s = StargateManager.getStargate(a[0]);
+        if (s == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "Gate does not exist: " + a[0] + ". Remember proper capitalization.");
+            return true;
+        }
+        if (CommandUtilities.playerCheck(sender)
+            && !WXPermissions.checkWXPermissions((Player) sender, s, PermissionType.REMOVE))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return true;
+        }
+
+        final boolean destroy = (a.length == 2) && a[1].equalsIgnoreCase("-all");
+        CommandUtilities.gateRemove(s, destroy, true,
+            CommandUtilities.playerCheck(sender) ? (Player) sender : null);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + "Wormhole Removed: " + s.getGateName());
+        return true;
     }
 
 }

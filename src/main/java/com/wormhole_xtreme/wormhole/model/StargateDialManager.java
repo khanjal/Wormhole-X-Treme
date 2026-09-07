@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.ChatColor;
@@ -519,97 +518,154 @@ class StargateDialManager
         {
             WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
         }
-
-        // Prevent dialing a target that currently has an active iris (standard protection)
-        if ((target != null) && target.isGateIrisActive() && !force)
+        final String refusal = force ? null : whyNotDialable(gate, target);
+        if (refusal != null)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Dial prevented: target '" + target.getGateName() + "' iris active.");
+                "Dial prevented: target '" + target.getGateName() + "' " + refusal);
             return false;
         }
-
-        // Prevent dialing a target that is already active (connected/open) or already targeted
-        // by another active gate unless forced.
-        if (target != null && !force)
-        {
-            if (target.isGateActive())
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                    "Dial prevented: target '" + target.getGateName() + "' already active.");
-                return false;
-            }
-            if (target.getGateTarget() != null)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                    "Dial prevented: target '" + target.getGateName() + "' already has a target.");
-                return false;
-            }
-            // If any other gate currently targets this gate and is active, block the dial.
-            try
-            {
-                for (final Stargate s : StargateManager.getAllGates())
-                {
-                    if ((s != null) && (s != gate) && (s.getGateTarget() != null) && (s.getGateTarget() == target) && s.isGateActive())
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                            "Dial prevented: target '" + target.getGateName() + "' is already targeted by '" + s.getGateName() + "'.");
-                        return false;
-                    }
-                }
-            }
-            catch (final RuntimeException ignore) { /* treat an unreadable gate as not dialable */ }
-        }
-
         if (!target.isGateLightsActive() || force)
         {
-            // First, attempt to activate the local gate. Do not assign the target
-            // until local activation succeeds to avoid the local activation path
-            // clearing the target (which previously caused NPEs and aborted dials).
-            dialStargate(gate);
+            return connect(gate, target);
+        }
+        return false;
+    }
 
-            // If local activation failed, abort and leave state clean.
-            if (!gate.isGateActive())
+    /**
+     * Why this target may not be dialled, or null if it may.
+     *
+     * <p>Every one of these is about not putting somebody somewhere they should not arrive:
+     * through a closed iris, into a gate already carrying traffic, or into one another gate
+     * is part-way through connecting to.
+     *
+     * @param gate
+     *            the gate doing the dialling
+     * @param target
+     *            the gate being dialled
+     * @return the reason, phrased to follow the target's name in a log line, or null
+     */
+    private static String whyNotDialable(final Stargate gate, final Stargate target)
+    {
+        if (target.isGateIrisActive())
+        {
+            return "iris active.";
+        }
+        if (target.isGateActive())
+        {
+            return "already active.";
+        }
+        if (target.getGateTarget() != null)
+        {
+            return "already has a target.";
+        }
+        return claimedByAnotherGate(gate, target);
+    }
+
+    /**
+     * Whether some third gate is already dialling this target.
+     *
+     * <p>The target can look free -- not active, no target of its own -- while somebody else
+     * is already on their way into it. The gate doing the dialling is skipped, because
+     * re-dialling somewhere you were already pointed at is ordinary.
+     *
+     * @param gate
+     *            the gate doing the dialling
+     * @param target
+     *            the gate being dialled
+     * @return the reason, or null
+     */
+    private static String claimedByAnotherGate(final Stargate gate, final Stargate target)
+    {
+        try
+        {
+            for (final Stargate s : StargateManager.getAllGates())
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Dial aborted: local activation failed for gate '" + gate.getGateName() + "'.");
-                return false;
+                if ((s != null) && (s != gate) && (s.getGateTarget() == target) && s.isGateActive())
+                {
+                    return "is already targeted by '" + s.getGateName() + "'.";
+                }
             }
+        }
+        catch (final RuntimeException ignore)
+        {
+            // A gate that cannot be read is treated as not blocking, which is what the
+            // original did by falling out of the loop. Refusing instead would make one
+            // broken gate anywhere on the server stop every dial.
+        }
+        return null;
+    }
 
-            // Assign the remote target now that local activation succeeded.
-            gate.setGateTarget(target);
+    /**
+     * Opens both ends, and cleans up whichever one is left alone if the other fails.
+     *
+     * <p>The local end is activated before the target is assigned. Assigning first let the
+     * local activation path clear the target back out, which is what used to abort dials.
+     *
+     * @param gate
+     *            the local gate
+     * @param target
+     *            the gate to connect to
+     * @return true if both ends opened
+     */
+    private static boolean connect(final Stargate gate, final Stargate target)
+    {
+        dialStargate(gate);
+        if (!gate.isGateActive())
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Dial aborted: local activation failed for gate '" + gate.getGateName() + "'.");
+            return false;
+        }
+        gate.setGateTarget(target);
+        try
+        {
+            target.dialStargate();
+        }
+        catch (final RuntimeException ignore)
+        {
+            // the far end failing to dial does not undo this one
+        }
+        return settleConnection(gate, target);
+    }
 
-            // Attempt to activate the remote end.
+    /**
+     * Closes whichever end opened alone, or pre-loads the destination if both did.
+     *
+     * @param gate
+     *            the local gate
+     * @param target
+     *            the remote gate
+     * @return true only if both ends are open
+     */
+    private static boolean settleConnection(final Stargate gate, final Stargate target)
+    {
+        if (gate.isGateActive() && target.isGateActive())
+        {
             try
             {
-                target.dialStargate();
+                // So players and vehicles do not fall through unloaded terrain on arrival.
+                WorldUtils.forceLoadDestinationChunks(target.getGatePlayerTeleportLocation());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                    "Pre-loaded destination chunks for gate: " + target.getGateName());
             }
-            catch (final RuntimeException ignore) { /* the far end failing to dial does not undo this one */ }
-
-            if (gate.isGateActive() && target.isGateActive())
+            catch (final RuntimeException ignore)
             {
-                // Pre-load destination chunks so players/vehicles don't fall through unloaded terrain.
-                try
-                {
-                    final Location destLoc = target.getGatePlayerTeleportLocation();
-                    WorldUtils.forceLoadDestinationChunks(destLoc);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                        "Pre-loaded destination chunks for gate: " + target.getGateName());
-                }
-                catch (final RuntimeException ignore) { /* pre-loading is an optimisation, not a requirement */ }
-                return true;
+                // pre-loading is an optimisation, not a requirement
             }
-            else if (gate.isGateActive() && !target.isGateActive())
-            {
-                gate.shutdownStargate(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Far wormhole failed to open. Closing local wormhole for safety sake.");
-            }
-            else if (!gate.isGateActive() && target.isGateActive())
-            {
-                target.shutdownStargate(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Local wormhole failed to open. Closing far end wormhole for safety sake.");
-            }
+            return true;
+        }
+        if (gate.isGateActive())
+        {
+            gate.shutdownStargate(true);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Far wormhole failed to open. Closing local wormhole for safety sake.");
+        }
+        else if (target.isGateActive())
+        {
+            target.shutdownStargate(true);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Local wormhole failed to open. Closing far end wormhole for safety sake.");
         }
         return false;
     }

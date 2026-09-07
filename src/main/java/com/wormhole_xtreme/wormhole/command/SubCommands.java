@@ -296,30 +296,7 @@ public final class SubCommands
         final String verb = args[1].toLowerCase(Locale.ROOT);
         if ("edit".equals(verb))
         {
-            // gate edit <gate> <field> [value]
-            if (args.length == 3) return gateNames(args[2]);
-            if (args.length == 4)
-            {
-                return prefixed(args[3],
-                    com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.fieldNames()
-                        .toArray(new String[0]));
-            }
-            if (args.length == 5)
-            {
-                final String field = args[3].toLowerCase(Locale.ROOT);
-                if ("group".equals(field))
-                {
-                    return prefixed(args[4],
-                        com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames()
-                            .toArray(new String[0]));
-                }
-                if ("redstone".equals(field)) return prefixed(args[4], "true", "false");
-                if ("portal".equals(field) || "iris".equals(field) || "light".equals(field))
-                {
-                    return materialNames(args[4], false);
-                }
-            }
-            return none();
+            return completeGateEdit(args);
         }
         if ("build".equals(verb))
         {
@@ -327,24 +304,111 @@ public final class SubCommands
         }
         if ("shapes".equals(verb))
         {
-            if (args.length == 3)
-            {
-                return prefixed(args[2], "reload", "validate");
-            }
-            // Completes from names already loaded -- a brand new file not loaded yet has to
-            // be typed out in full, the same limit gate build's own completion already has.
-            return args.length == 4 ? shapeNames(args[3]) : none();
+            return completeGateShapes(args);
         }
-        if (("regenerate".equals(verb) || "regen".equals(verb)) && (args.length == 3))
+        if ("regenerate".equals(verb) || "regen".equals(verb))
         {
-            // -all fixes every gate's arrival point in one pass; alongside gate names so
-            // either is offered without knowing in advance which the admin wants.
-            final java.util.List<String> out = new ArrayList<String>(gateNames(args[2]));
-            out.addAll(prefixed(args[2], "-all"));
-            return out;
+            return completeGateRegenerate(args);
         }
         // Every other verb takes a gate name first, and nothing after it worth guessing at.
         return args.length == 3 ? gateNames(args[2]) : none();
+    }
+
+    /**
+     * Completions for {@code /wormhole gate edit <gate> <field> [value]}.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeGateEdit(final String[] args)
+    {
+        if (args.length == 3)
+        {
+            return gateNames(args[2]);
+        }
+        if (args.length == 4)
+        {
+            return prefixed(args[3],
+                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.fieldNames()
+                    .toArray(new String[0]));
+        }
+        if (args.length == 5)
+        {
+            return completeGateEditValue(args[3].toLowerCase(Locale.ROOT), args[4]);
+        }
+        return none();
+    }
+
+    /**
+     * The value slot of {@code gate edit}, whose candidates depend on the field named.
+     *
+     * <p>Offering a block material where a true/false belongs, or the other way round, is
+     * offering the player a mistake the command is about to refuse. Fields with nothing
+     * worth guessing at -- a gate's new name, say -- offer nothing.
+     *
+     * @param field
+     *            the field being edited, lower-cased
+     * @param typed
+     *            what has been typed in the value slot
+     * @return the candidates
+     */
+    private static List<String> completeGateEditValue(final String field, final String typed)
+    {
+        if ("group".equals(field))
+        {
+            return prefixed(typed,
+                com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames()
+                    .toArray(new String[0]));
+        }
+        if ("redstone".equals(field))
+        {
+            return prefixed(typed, "true", "false");
+        }
+        if ("portal".equals(field) || "iris".equals(field) || "light".equals(field))
+        {
+            return materialNames(typed, false);
+        }
+        return none();
+    }
+
+    /**
+     * Completions for {@code /wormhole gate shapes <reload|validate> [shape]}.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeGateShapes(final String[] args)
+    {
+        if (args.length == 3)
+        {
+            return prefixed(args[2], "reload", "validate");
+        }
+        // Completes from names already loaded -- a brand new file not loaded yet has to be
+        // typed out in full, the same limit gate build's own completion already has.
+        return args.length == 4 ? shapeNames(args[3]) : none();
+    }
+
+    /**
+     * Completions for {@code /wormhole gate regenerate <gate|-all>}.
+     *
+     * <p>-all fixes every gate's arrival point in one pass, and is offered alongside gate
+     * names because a completer cannot know in advance which the admin wants.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeGateRegenerate(final String[] args)
+    {
+        if (args.length != 3)
+        {
+            return none();
+        }
+        final List<String> out = new ArrayList<String>(gateNames(args[2]));
+        out.addAll(prefixed(args[2], "-all"));
+        return out;
     }
 
     /**

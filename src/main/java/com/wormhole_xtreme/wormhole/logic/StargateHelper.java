@@ -580,11 +580,6 @@ public final class StargateHelper
                                             final org.bukkit.Material structMat,
                                             final org.bukkit.Material chevronMat)
     {
-        // Verify every structure (S) block has the expected material,
-        // AND every portal (P) block is NOT the structure material.
-        // The second check prevents false positives inside solid obsidian rooms
-        // (or any room built from the gate's structure material) where the frame
-        // outline happens to match a shape but the interior is not open space.
         for (int layerIdx = 1; layerIdx < numLayers; layerIdx++)
         {
             final StargateShapeLayer layer = shapeLayers.get(layerIdx);
@@ -592,48 +587,120 @@ public final class StargateHelper
             {
                 continue;
             }
-            final java.util.Set<Long> litCells = lightCells(layer);
-            for (final Integer[] pos : layer.getLayerBlockPositions())
+            if (!structureCellsMatch(frame, layer, layerIdx, structMat, chevronMat)
+                || !chevronCellsMatch(frame, layer, layerIdx, structMat, chevronMat)
+                || !portalCellsAreOpen(frame, layer, layerIdx, structMat))
             {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                final org.bukkit.Material found = cell.getType();
-                if (found == structMat)
-                {
-                    continue;
-                }
-                // An [S:L#n] cell is a chevron, and a shape with a chevron material lets one
-                // be built from that instead, so the gate shows where its chevrons are before
-                // any of them light. Both materials are accepted rather than only the chevron
-                // one: every gate standing in every world today has frame material in those
-                // positions, and re-detection has to go on finding them.
-                if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
-                {
-                    continue;
-                }
-                return false; // structure block mismatch
-            }
-            for (final Integer[] pos : layer.getLayerChevronPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                // A [C] cell is the strict form: the shape asked for a distinct block there,
-                // so the frame material will not do. Unless the shape named no chevron
-                // material at all, in which case [C] falls back to meaning [S] rather than
-                // making the shape impossible to build.
-                if (cell.getType() != ((chevronMat != null) ? chevronMat : structMat))
-                {
-                    return false; // chevron block mismatch
-                }
-            }
-            for (final Integer[] pos : layer.getLayerPortalPositions())
-            {
-                final Block cell = frame.blockAt(layerIdx, pos);
-                if (cell.getType() == structMat)
-                {
-                    return false; // portal interior is solid — not a real gate
-                }
+                return false;
             }
         }
+        return true;
+    }
 
+    /**
+     * Whether one layer's frame cells are made of what the shape asks for.
+     *
+     * <p>An {@code [S:L#n]} cell is a chevron, and a shape with a chevron material lets one be
+     * built from that instead, so the gate shows where its chevrons are before any of them
+     * light. Both materials are accepted rather than only the chevron one: every gate standing
+     * in every world today has frame material in those positions, and re-detection has to go
+     * on finding them.
+     *
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being checked
+     * @param layerIdx
+     *            which layer that is
+     * @param structMat
+     *            the gate's frame material
+     * @param chevronMat
+     *            its chevron material, or null if it has none
+     * @return true if every frame cell matches
+     */
+    private static boolean structureCellsMatch(final GateFrame frame, final StargateShapeLayer layer,
+                                               final int layerIdx, final org.bukkit.Material structMat,
+                                               final org.bukkit.Material chevronMat)
+    {
+        final java.util.Set<Long> litCells = lightCells(layer);
+        for (final Integer[] pos : layer.getLayerBlockPositions())
+        {
+            final org.bukkit.Material found = frame.blockAt(layerIdx, pos).getType();
+            if (found == structMat)
+            {
+                continue;
+            }
+            if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
+            {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether one layer's {@code [C]} cells are made of what the shape asks for.
+     *
+     * <p>{@code [C]} is the strict form: the shape asked for a distinct block there, so the
+     * frame material will not do. Unless the shape named no chevron material at all, in which
+     * case {@code [C]} falls back to meaning {@code [S]} rather than making the shape
+     * impossible to build.
+     *
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being checked
+     * @param layerIdx
+     *            which layer that is
+     * @param structMat
+     *            the gate's frame material
+     * @param chevronMat
+     *            its chevron material, or null if it has none
+     * @return true if every strict chevron cell matches
+     */
+    private static boolean chevronCellsMatch(final GateFrame frame, final StargateShapeLayer layer,
+                                             final int layerIdx, final org.bukkit.Material structMat,
+                                             final org.bukkit.Material chevronMat)
+    {
+        final org.bukkit.Material wanted = (chevronMat != null) ? chevronMat : structMat;
+        for (final Integer[] pos : layer.getLayerChevronPositions())
+        {
+            if (frame.blockAt(layerIdx, pos).getType() != wanted)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether one layer's portal cells are open rather than solid.
+     *
+     * <p>This is what stops a solid room built from the gate's own material being read as a
+     * gate: the frame outline can match a shape by coincidence, and the interior being filled
+     * in is what says it is a wall rather than a doorway.
+     *
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being checked
+     * @param layerIdx
+     *            which layer that is
+     * @param structMat
+     *            the gate's frame material
+     * @return true if no portal cell is the frame material
+     */
+    private static boolean portalCellsAreOpen(final GateFrame frame, final StargateShapeLayer layer,
+                                              final int layerIdx, final org.bukkit.Material structMat)
+    {
+        for (final Integer[] pos : layer.getLayerPortalPositions())
+        {
+            if (frame.blockAt(layerIdx, pos).getType() == structMat)
+            {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -708,59 +775,114 @@ public final class StargateHelper
     private static void recordAnimationWaves(final Stargate gate, final GateFrame frame,
                                              final StargateShapeLayer layer, final int layerIdx)
     {
-                // Light blocks — shape uses 1-based wave indices; runtime lighting expects
-                // a placeholder at index 0 and real waves starting at index 1.
-                final List<List<Integer[]>> lightWaves = layer.getLayerLightPositions();
-                if (lightWaves != null)
-                {
-                    for (int waveIdx = 1; waveIdx < lightWaves.size(); waveIdx++)
-                    {
-                        final List<Integer[]> wavePositions = lightWaves.get(waveIdx);
-                        if (wavePositions == null)
-                        {
-                            continue;
-                        }
-                        final int gateWaveIdx = waveIdx; // keep index 1..N so index 0 stays as placeholder
-                        while (gate.getGateLightBlocks().size() <= gateWaveIdx)
-                        {
-                            gate.getGateLightBlocks().add(null);
-                        }
-                        if (gate.getGateLightBlocks().get(gateWaveIdx) == null)
-                        {
-                            gate.getGateLightBlocks().set(gateWaveIdx, new ArrayList<Location>());
-                        }
-                        for (final Integer[] pos : wavePositions)
-                        {
-                            final Block cell = frame.blockAt(layerIdx, pos);
-                            gate.getGateLightBlocks().get(gateWaveIdx).add(cell.getLocation());
-                        }
-                    }
-                }
+        recordLightWaves(gate, frame, layer, layerIdx);
+        recordWooshWaves(gate, frame, layer, layerIdx);
+    }
 
-                // Woosh blocks — same 1-based → 0-based shift.
-                final List<List<Integer[]>> wooshWaves = layer.getLayerWooshPositions();
-                if (wooshWaves != null)
-                {
-                    for (int waveIdx = 1; waveIdx < wooshWaves.size(); waveIdx++)
-                    {
-                        final List<Integer[]> wavePositions = wooshWaves.get(waveIdx);
-                        if (wavePositions == null)
-                        {
-                            continue;
-                        }
-                        final int gateWaveIdx = waveIdx - 1;
-                        while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
-                        {
-                            gate.getGateWooshBlocks().add(new ArrayList<Location>());
-                        }
-                        for (final Integer[] pos : wavePositions)
-                        {
-                            final Block cell = frame.blockAt(layerIdx, pos);
-                            gate.getGateWooshBlocks().get(gateWaveIdx).add(cell.getLocation());
-                        }
-                    }
-                }
+    /**
+     * Records the chevron lighting waves, keeping the shape's own numbering.
+     *
+     * <p>Shapes number their light waves from one, and the runtime steps its counter to 1
+     * before reading a wave -- so index 0 is left as a placeholder and L#1 stays at index 1.
+     * Shifting these down would put wave 1 where nothing ever looks, and the first chevron
+     * would never light.
+     *
+     * @param gate
+     *            the gate being built
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being read
+     * @param layerIdx
+     *            which layer that is
+     */
+    private static void recordLightWaves(final Stargate gate, final GateFrame frame,
+                                         final StargateShapeLayer layer, final int layerIdx)
+    {
+        final List<List<Integer[]>> waves = layer.getLayerLightPositions();
+        if (waves == null)
+        {
+            return;
+        }
+        for (int waveIdx = 1; waveIdx < waves.size(); waveIdx++)
+        {
+            final List<Integer[]> positions = waves.get(waveIdx);
+            if (positions == null)
+            {
+                continue;
+            }
+            // Same index, so index 0 stays null rather than becoming a real wave.
+            while (gate.getGateLightBlocks().size() <= waveIdx)
+            {
+                gate.getGateLightBlocks().add(null);
+            }
+            if (gate.getGateLightBlocks().get(waveIdx) == null)
+            {
+                gate.getGateLightBlocks().set(waveIdx, new ArrayList<Location>());
+            }
+            addCells(gate.getGateLightBlocks().get(waveIdx), frame, layerIdx, positions);
+        }
+    }
 
+    /**
+     * Records the woosh waves, shifting the shape's numbering down by one.
+     *
+     * <p>The opposite of the lighting waves, and deliberately: nothing steps past a
+     * placeholder here, so W#1 becomes index 0 and the woosh starts at the wave nearest the
+     * portal.
+     *
+     * @param gate
+     *            the gate being built
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being read
+     * @param layerIdx
+     *            which layer that is
+     */
+    private static void recordWooshWaves(final Stargate gate, final GateFrame frame,
+                                         final StargateShapeLayer layer, final int layerIdx)
+    {
+        final List<List<Integer[]>> waves = layer.getLayerWooshPositions();
+        if (waves == null)
+        {
+            return;
+        }
+        for (int waveIdx = 1; waveIdx < waves.size(); waveIdx++)
+        {
+            final List<Integer[]> positions = waves.get(waveIdx);
+            if (positions == null)
+            {
+                continue;
+            }
+            final int gateWaveIdx = waveIdx - 1;
+            while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
+            {
+                gate.getGateWooshBlocks().add(new ArrayList<Location>());
+            }
+            addCells(gate.getGateWooshBlocks().get(gateWaveIdx), frame, layerIdx, positions);
+        }
+    }
+
+    /**
+     * Turns one wave's shape positions into world locations on the gate.
+     *
+     * @param wave
+     *            the wave being filled
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layerIdx
+     *            which layer the positions belong to
+     * @param positions
+     *            the shape positions
+     */
+    private static void addCells(final List<Location> wave, final GateFrame frame,
+                                 final int layerIdx, final List<Integer[]> positions)
+    {
+        for (final Integer[] pos : positions)
+        {
+            wave.add(frame.blockAt(layerIdx, pos).getLocation());
+        }
     }
 
     /**
