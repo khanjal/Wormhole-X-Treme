@@ -380,10 +380,6 @@ class GateDetectionTest
     }
 
     /**
-     * EP is the block a traveller's feet land on, and they are put one block outside it along
-     * the gate's facing so they do not arrive inside the portal.
-     */
-    /**
      * The arrival steps out along every axis the facing has, not just one.
      *
      * <p>{@link #theArrivalPointSitsOutsideThePortal} builds facing SOUTH, whose x component
@@ -457,6 +453,10 @@ class GateDetectionTest
                 + "," + lever.getZ());
     }
 
+    /**
+     * EP is the block a traveller's feet land on, and they are put one block outside it along
+     * the gate's facing so they do not arrive inside the portal.
+     */
     @Test
     void theArrivalPointSitsOutsideThePortal() throws Exception
     {
