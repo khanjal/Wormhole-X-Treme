@@ -1406,18 +1406,15 @@ class StargateBlockSetup
                 mat = Material.AIR;
             }
 
-            if (regenerate)
+            // Only create a lever if the activation holder is empty. Preserve the player's
+            // placed activation item (button/lever) otherwise.
+            if (regenerate && (mat == Material.AIR))
             {
-                // Only create a lever if the activation holder is empty. Preserve
-                // the player's placed activation item (button/lever) otherwise.
-                if (mat == Material.AIR)
-                {
-                    gate.getGateDialLeverBlock().setType(Material.LEVER);
-                    final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
-                    rld.setFacing(gate.getGateFacing());
-                    gate.getGateDialLeverBlock().setBlockData(rld);
-                    mat = gate.getGateDialLeverBlock().getType();
-                }
+                gate.getGateDialLeverBlock().setType(Material.LEVER);
+                final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
+                rld.setFacing(gate.getGateFacing());
+                gate.getGateDialLeverBlock().setBlockData(rld);
+                mat = gate.getGateDialLeverBlock().getType();
             }
 
             // Preserve whatever activation the player placed.  If it's a lever,

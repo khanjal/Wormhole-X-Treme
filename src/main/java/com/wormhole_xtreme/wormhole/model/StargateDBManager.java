@@ -55,6 +55,7 @@ public class StargateDBManager
      */
     public static void shutdown()
     {
+        // Intentionally empty; see above.
     }
 
 }

@@ -898,8 +898,7 @@ public class StargateManager
      */
     public static Stargate removeActivatedStargate(final Player p)
     {
-        final Stargate s = getActivatedStargates().remove(p);
-        return s;
+        return getActivatedStargates().remove(p);
     }
 
     /**

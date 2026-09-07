@@ -237,6 +237,21 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### Nine small things, and three left alone on purpose
+
+Two unused imports, three values named on one line only to be returned on the next, a
+`continue` at the end of a loop body that continues anyway, two nested `if`s that were one
+condition, an empty `shutdown()` that said why in its Javadoc but not in its body, and a
+`reach` field `BukkitRingWorld` stored and never read -- along with the constructor argument
+that fed it, since its one caller already had the value for something else.
+
+**Three `return null`s were left as they are.** `StargateShapeRegistry.readShapeFileLines`
+returns null for "does not exist or could not be read", and its caller turns that into
+"No such file"; an empty array there would make an unreadable shape look like a blank but
+valid one. `StargateAnimator.wooshWave` documents null as "the shape authored this index as
+empty", which an empty list cannot say. Returning empty collections is good advice in general
+and wrong at these three sites.
+
 ### An error message asked whether you were a player, then said the same thing either way
 
 Both command safety nets branched on `playerCheck(sender)` and sent the identical "an internal

@@ -51,7 +51,6 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     private final World world;
 
     /** How deep a trigger volume runs, needed to work out where arrivals land. */
-    private final int reach;
 
     /** The pair being drawn, whose two ends decide who can see it. */
     private final RingPair pair;
@@ -69,14 +68,11 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
      *            the world to operate in
      * @param pair
      *            the pair being drawn
-     * @param reach
-     *            how deep each trigger volume runs
      */
-    public BukkitRingWorld(final World world, final RingPair pair, final int reach)
+    public BukkitRingWorld(final World world, final RingPair pair)
     {
         this.world = world;
         this.pair = pair;
-        this.reach = reach;
     }
 
     /**
