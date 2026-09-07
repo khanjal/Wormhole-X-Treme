@@ -212,4 +212,31 @@ class StargateAnimatorTest
         assertEquals(0, gate.getGateAnimationStep3D());
         assertFalse(gate.isGateAnimationRemoving());
     }
+
+    /**
+     * A gate with nothing to animate settles from wherever its counter happened to be.
+     *
+     * <p>The no-waves path and the end of a retraction settle the same way, but only this one
+     * can arrive with a non-zero step: retraction only ends once the counter has already
+     * walked down to 0, so the reset there is a no-op. Here it is the whole point -- a gate
+     * left mid-count would otherwise start its next opening partway through the woosh, which
+     * is the same class of bug as the two this class was written for.
+     */
+    @Test
+    void aGateWithNoWavesSettlesFromWhereverItsCounterWas()
+    {
+        final Stargate gate = new Stargate();
+        gate.setGateActive(true);
+        // No authored waves and no depth to derive any from.
+        gate.setGateCustom(true);
+        gate.setGateCustomWooshDepth(0);
+        gate.setGateAnimationStep3D(3);
+        gate.setGateAnimationRemoving(true);
+
+        StargateAnimator.animateOpening(gate);
+
+        assertEquals(0, gate.getGateAnimationStep3D(),
+            "a gate that cannot animate must not keep a half-finished woosh counter");
+        assertFalse(gate.isGateAnimationRemoving());
+    }
 }
