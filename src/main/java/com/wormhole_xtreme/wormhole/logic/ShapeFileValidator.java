@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * by hand -- this exists so the next one is caught by running a command instead.
  *
  * <p>Pure with respect to Bukkit except for the material lookups in
- * {@link Stargate3DShape#parseMaterialName}, which need no live server to call -- everything
+ * {@link StargateShape#parseMaterialName}, which need no live server to call -- everything
  * else here operates on plain file lines and the already-parsed shape object, the same split
  * this project's other shape-parsing tests already rely on.
  */
@@ -163,27 +163,59 @@ public final class ShapeFileValidator
             }
             else if (line.startsWith("["))
             {
-                final Matcher m = CELL.matcher(line);
-                int count = 0;
-                while (m.find())
-                {
-                    count++;
-                }
+                final int count = cellsOn(line);
                 if (width == null)
                 {
                     width = count;
                 }
                 else if (count != width)
                 {
-                    problems.add((currentLayer == null ? "the ring shape" : currentLayer) + " row "
-                        + rowInLayer + " has " + count + " cells, not " + width
-                        + " -- a block was likely dropped or added while editing, and every "
-                        + "column after the gap is shifted for the rest of that row");
+                    problems.add(raggedRow(currentLayer, rowInLayer, count, width.intValue()));
                 }
                 rowInLayer++;
             }
         }
         return problems;
+    }
+
+    /**
+     * How many cells one row line declares.
+     *
+     * @param line
+     *            the trimmed row line
+     * @return the cell count
+     */
+    private static int cellsOn(final String line)
+    {
+        final Matcher m = CELL.matcher(line);
+        int count = 0;
+        while (m.find())
+        {
+            count++;
+        }
+        return count;
+    }
+
+    /**
+     * What to say about a row that is not the width the rest of the shape is.
+     *
+     * @param currentLayer
+     *            the layer being read, or null for a ring shape with no layers
+     * @param rowInLayer
+     *            which row of that layer
+     * @param count
+     *            how many cells this row has
+     * @param width
+     *            how many the shape is
+     * @return the problem to report
+     */
+    private static String raggedRow(final String currentLayer, final int rowInLayer,
+        final int count, final int width)
+    {
+        return (currentLayer == null ? "the ring shape" : currentLayer) + " row "
+            + rowInLayer + " has " + count + " cells, not " + width
+            + " -- a block was likely dropped or added while editing, and every "
+            + "column after the gap is shifted for the rest of that row";
     }
 
     /** No {@code Layer#N=} between 1 and the highest one declared may be missing. */
@@ -394,7 +426,7 @@ public final class ShapeFileValidator
      * in this server's Minecraft version compiles fine and then either falls back silently or
      * fails when the gate is actually built.
      *
-     * <p>Resolved through {@link Stargate3DShape#parseMaterialName}, the same method the real
+     * <p>Resolved through {@link StargateShape#parseMaterialName}, the same method the real
      * parser uses, rather than {@link Material#matchMaterial} directly: the parser accepts the
      * legacy {@code STATIONARY_WATER}/{@code STATIONARY_LAVA} aliases pre-1.13 shape files
      * still use, and a stricter check here would reject a shape that loads and runs fine.
@@ -433,7 +465,7 @@ public final class ShapeFileValidator
             return null;
         }
         final String value = m.group(2).trim();
-        if (Stargate3DShape.parseMaterialName(value) != null)
+        if (StargateShape.parseMaterialName(value) != null)
         {
             return null;
         }
