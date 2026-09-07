@@ -244,8 +244,10 @@ error occurred" down both arms. The test was doing nothing at all -- a pure `ins
 answer changed nothing -- so it is gone, and there is now a test for the console sender saying
 so, rather than the removal resting on the two arms having looked the same.
 
-Everyone is told the same thing on purpose: the stack trace is in the log, and neither a
-player nor an operator at the console can act on more than that.
+Everyone is told the same thing on purpose: the failure is logged server-side, and neither a
+player nor an operator at the console can act on more than that. (What gets logged is only the
+exception's message, which for a null pointer is the word "null" -- worth improving, but that
+is a change to `prettyLog` and not to this.)
 
 ### Loops that jumped out of themselves in several places now do it once
 
