@@ -60,11 +60,10 @@ public final class GateSpatialIndex
     public static Set<Location> collectLocationsWithinRadius(final Location center, final int radiusXZ, final int radiusY)
     {
         final Set<Location> out = new HashSet<Location>();
-        if (center == null || center.getWorld() == null)
+        if ((center == null) || (center.getWorld() == null))
         {
             return out;
         }
-
         final World world = center.getWorld();
 
         final int minChunkX = (center.getBlockX() - radiusXZ) >> 4;
@@ -76,34 +75,55 @@ public final class GateSpatialIndex
         {
             for (int cz = minChunkZ; cz <= maxChunkZ; cz++)
             {
-                final String key = chunkKey(world, cx, cz);
-                final Set<Location> set = index.get(key);
-                if (set == null)
+                final Set<Location> inChunk = index.get(chunkKey(world, cx, cz));
+                if (inChunk != null)
                 {
-                    continue;
-                }
-                for (final Location l : set)
-                {
-                    if (l == null || l.getWorld() == null)
-                    {
-                        continue;
-                    }
-                    if (!l.getWorld().equals(world))
-                    {
-                        continue;
-                    }
-                    final int dx = Math.abs(center.getBlockX() - l.getBlockX());
-                    final int dy = Math.abs(center.getBlockY() - l.getBlockY());
-                    final int dz = Math.abs(center.getBlockZ() - l.getBlockZ());
-                    if (dx <= radiusXZ && dy <= radiusY && dz <= radiusXZ)
-                    {
-                        out.add(l);
-                    }
+                    addWithinRadius(out, inChunk, center, radiusXZ, radiusY);
                 }
             }
         }
-
         return out;
+    }
+
+    /**
+     * Adds every location in one chunk that is close enough to the centre.
+     *
+     * <p>The two radii are checked separately because a gate is tall and thin: callers want
+     * the neighbours beside them, not the ones forty blocks up the same column.
+     *
+     * <p>The world is checked again per location even though the chunk key is already
+     * prefixed with the world name. The two are redundant with each other on purpose --
+     * either alone keeps another world's gates out of the answer.
+     *
+     * @param out
+     *            the set being built
+     * @param inChunk
+     *            the locations indexed in one chunk
+     * @param center
+     *            what to measure from
+     * @param radiusXZ
+     *            how far to reach horizontally, inclusive
+     * @param radiusY
+     *            how far to reach vertically, inclusive
+     */
+    private static void addWithinRadius(final Set<Location> out, final Set<Location> inChunk,
+                                        final Location center, final int radiusXZ, final int radiusY)
+    {
+        final World world = center.getWorld();
+        for (final Location l : inChunk)
+        {
+            if ((l == null) || (l.getWorld() == null) || !l.getWorld().equals(world))
+            {
+                continue;
+            }
+            final int dx = Math.abs(center.getBlockX() - l.getBlockX());
+            final int dy = Math.abs(center.getBlockY() - l.getBlockY());
+            final int dz = Math.abs(center.getBlockZ() - l.getBlockZ());
+            if ((dx <= radiusXZ) && (dy <= radiusY) && (dz <= radiusXZ))
+            {
+                out.add(l);
+            }
+        }
     }
 
     public static void clear()
