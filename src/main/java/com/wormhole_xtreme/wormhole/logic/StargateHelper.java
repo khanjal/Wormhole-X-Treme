@@ -708,59 +708,114 @@ public final class StargateHelper
     private static void recordAnimationWaves(final Stargate gate, final GateFrame frame,
                                              final StargateShapeLayer layer, final int layerIdx)
     {
-                // Light blocks — shape uses 1-based wave indices; runtime lighting expects
-                // a placeholder at index 0 and real waves starting at index 1.
-                final List<List<Integer[]>> lightWaves = layer.getLayerLightPositions();
-                if (lightWaves != null)
-                {
-                    for (int waveIdx = 1; waveIdx < lightWaves.size(); waveIdx++)
-                    {
-                        final List<Integer[]> wavePositions = lightWaves.get(waveIdx);
-                        if (wavePositions == null)
-                        {
-                            continue;
-                        }
-                        final int gateWaveIdx = waveIdx; // keep index 1..N so index 0 stays as placeholder
-                        while (gate.getGateLightBlocks().size() <= gateWaveIdx)
-                        {
-                            gate.getGateLightBlocks().add(null);
-                        }
-                        if (gate.getGateLightBlocks().get(gateWaveIdx) == null)
-                        {
-                            gate.getGateLightBlocks().set(gateWaveIdx, new ArrayList<Location>());
-                        }
-                        for (final Integer[] pos : wavePositions)
-                        {
-                            final Block cell = frame.blockAt(layerIdx, pos);
-                            gate.getGateLightBlocks().get(gateWaveIdx).add(cell.getLocation());
-                        }
-                    }
-                }
+        recordLightWaves(gate, frame, layer, layerIdx);
+        recordWooshWaves(gate, frame, layer, layerIdx);
+    }
 
-                // Woosh blocks — same 1-based → 0-based shift.
-                final List<List<Integer[]>> wooshWaves = layer.getLayerWooshPositions();
-                if (wooshWaves != null)
-                {
-                    for (int waveIdx = 1; waveIdx < wooshWaves.size(); waveIdx++)
-                    {
-                        final List<Integer[]> wavePositions = wooshWaves.get(waveIdx);
-                        if (wavePositions == null)
-                        {
-                            continue;
-                        }
-                        final int gateWaveIdx = waveIdx - 1;
-                        while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
-                        {
-                            gate.getGateWooshBlocks().add(new ArrayList<Location>());
-                        }
-                        for (final Integer[] pos : wavePositions)
-                        {
-                            final Block cell = frame.blockAt(layerIdx, pos);
-                            gate.getGateWooshBlocks().get(gateWaveIdx).add(cell.getLocation());
-                        }
-                    }
-                }
+    /**
+     * Records the chevron lighting waves, keeping the shape's own numbering.
+     *
+     * <p>Shapes number their light waves from one, and the runtime steps its counter to 1
+     * before reading a wave -- so index 0 is left as a placeholder and L#1 stays at index 1.
+     * Shifting these down would put wave 1 where nothing ever looks, and the first chevron
+     * would never light.
+     *
+     * @param gate
+     *            the gate being built
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being read
+     * @param layerIdx
+     *            which layer that is
+     */
+    private static void recordLightWaves(final Stargate gate, final GateFrame frame,
+                                         final StargateShapeLayer layer, final int layerIdx)
+    {
+        final List<List<Integer[]>> waves = layer.getLayerLightPositions();
+        if (waves == null)
+        {
+            return;
+        }
+        for (int waveIdx = 1; waveIdx < waves.size(); waveIdx++)
+        {
+            final List<Integer[]> positions = waves.get(waveIdx);
+            if (positions == null)
+            {
+                continue;
+            }
+            // Same index, so index 0 stays null rather than becoming a real wave.
+            while (gate.getGateLightBlocks().size() <= waveIdx)
+            {
+                gate.getGateLightBlocks().add(null);
+            }
+            if (gate.getGateLightBlocks().get(waveIdx) == null)
+            {
+                gate.getGateLightBlocks().set(waveIdx, new ArrayList<Location>());
+            }
+            addCells(gate.getGateLightBlocks().get(waveIdx), frame, layerIdx, positions);
+        }
+    }
 
+    /**
+     * Records the woosh waves, shifting the shape's numbering down by one.
+     *
+     * <p>The opposite of the lighting waves, and deliberately: nothing steps past a
+     * placeholder here, so W#1 becomes index 0 and the woosh starts at the wave nearest the
+     * portal.
+     *
+     * @param gate
+     *            the gate being built
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layer
+     *            the shape layer being read
+     * @param layerIdx
+     *            which layer that is
+     */
+    private static void recordWooshWaves(final Stargate gate, final GateFrame frame,
+                                         final StargateShapeLayer layer, final int layerIdx)
+    {
+        final List<List<Integer[]>> waves = layer.getLayerWooshPositions();
+        if (waves == null)
+        {
+            return;
+        }
+        for (int waveIdx = 1; waveIdx < waves.size(); waveIdx++)
+        {
+            final List<Integer[]> positions = waves.get(waveIdx);
+            if (positions == null)
+            {
+                continue;
+            }
+            final int gateWaveIdx = waveIdx - 1;
+            while (gate.getGateWooshBlocks().size() <= gateWaveIdx)
+            {
+                gate.getGateWooshBlocks().add(new ArrayList<Location>());
+            }
+            addCells(gate.getGateWooshBlocks().get(gateWaveIdx), frame, layerIdx, positions);
+        }
+    }
+
+    /**
+     * Turns one wave's shape positions into world locations on the gate.
+     *
+     * @param wave
+     *            the wave being filled
+     * @param frame
+     *            where the shape's cells sit in the world
+     * @param layerIdx
+     *            which layer the positions belong to
+     * @param positions
+     *            the shape positions
+     */
+    private static void addCells(final List<Location> wave, final GateFrame frame,
+                                 final int layerIdx, final List<Integer[]> positions)
+    {
+        for (final Integer[] pos : positions)
+        {
+            wave.add(frame.blockAt(layerIdx, pos).getLocation());
+        }
     }
 
     /**
