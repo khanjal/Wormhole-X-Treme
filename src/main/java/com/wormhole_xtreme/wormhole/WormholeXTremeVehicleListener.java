@@ -524,8 +524,8 @@ class WormholeXTremeVehicleListener implements Listener
     /**
      * Brings one passenger across and puts it back in its seat.
      *
-     * <p>Two separate attempts rather than one, and its own method rather than two trys
-     * nested inside the respawn's: a passenger that arrives but will not reattach is still
+     * <p>Two separate attempts rather than one, and its own method rather than two nested
+     * inside the respawn's: a passenger that arrives but will not reattach is still
      * better off at the destination than left behind at the departure gate, and one
      * passenger failing must not strand the ones after it in the loop.
      *
