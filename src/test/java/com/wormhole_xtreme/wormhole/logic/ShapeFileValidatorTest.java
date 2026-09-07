@@ -151,6 +151,62 @@ class ShapeFileValidatorTest
             "expected the duplicate :EP to be reported, got: " + result.getProblems());
     }
 
+    /**
+     * A shape with no {@code :A} cannot be dialled, and is refused.
+     *
+     * <p>The activation switch is where the lever or button attaches. Without one the shape
+     * parses, builds, and produces a gate nobody can ever open -- which is why this is
+     * checked at validation rather than left to be discovered in a world.
+     */
+    @Test
+    void aShapeWithNoActivationBlockIsCaught() throws Exception
+    {
+        final String[] lines = {
+            "Name=Test",
+            "Version=2",
+            "GateShape=",
+            "",
+            "Layer#1=",
+            "[S][S][S]",
+            "[S][P][S]",
+            "[S][S:EP][S]",
+            "",
+            "REDSTONE_ACTIVATED=FALSE",
+        };
+        final ShapeFileValidator.Result result = validate(lines);
+        assertFalse(result.isValid());
+        assertTrue(result.getProblems().stream().anyMatch(p -> p.contains("no :A block")),
+            "expected the missing activation block to be reported, got: " + result.getProblems());
+    }
+
+    /**
+     * A commented-out row does not count towards the one-per-gate markers.
+     *
+     * <p>Commenting a row out is how somebody tries a shape without deleting their old one.
+     * If the counter read those lines, a shape with one real {@code :EP} and one commented
+     * out would be refused for having two.
+     */
+    @Test
+    void aCommentedOutRowIsNotCounted() throws Exception
+    {
+        final String[] lines = {
+            "Name=Test",
+            "Version=2",
+            "GateShape=",
+            "",
+            "Layer#1=",
+            "[S][S][S]",
+            "[S:A][P][S]",
+            "#[S:EP][S][S]",
+            "[S][S:EP][S]",
+            "",
+            "REDSTONE_ACTIVATED=FALSE",
+        };
+        final ShapeFileValidator.Result result = validate(lines);
+        assertTrue(result.getProblems().stream().noneMatch(p -> p.contains(":EP blocks")),
+            "the commented row should not count as a second entry point, got: " + result.getProblems());
+    }
+
     @Test
     void aGapInLightOrderNumbersIsCaught() throws Exception
     {
