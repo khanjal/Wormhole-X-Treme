@@ -233,6 +233,9 @@ public final class ShapeFileValidator
         return problems;
     }
 
+    /** The markers a gate may carry exactly one of. */
+    private static final String[] SINGLETON_MARKERS = { "EP", "EM", "A", "IA", "D", "N" };
+
     /**
      * {@code :EP}, {@code :EM}, {@code :A}, {@code :IA}, {@code :D} and {@code :N} are each
      * documented as "1 per gate," but nothing enforces it -- a second one silently overwrites
@@ -244,31 +247,7 @@ public final class ShapeFileValidator
      */
     private static List<String> checkSingletonMarkerCounts(final String[] fileLines)
     {
-        final java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<String, Integer>();
-        for (final String tag : new String[] { "EP", "EM", "A", "IA", "D", "N" })
-        {
-            counts.put(tag, 0);
-        }
-
-        for (final String rawLine : fileLines)
-        {
-            final String line = rawLine.trim();
-            if (line.startsWith("#") || !line.startsWith("["))
-            {
-                continue;
-            }
-            final Matcher m = CELL.matcher(line);
-            while (m.find())
-            {
-                for (final String token : m.group(1).split(":"))
-                {
-                    if (counts.containsKey(token))
-                    {
-                        counts.put(token, counts.get(token) + 1);
-                    }
-                }
-            }
-        }
+        final java.util.Map<String, Integer> counts = countMarkers(fileLines);
 
         final List<String> problems = new ArrayList<>();
         for (final java.util.Map.Entry<String, Integer> entry : counts.entrySet())
@@ -286,6 +265,58 @@ public final class ShapeFileValidator
                 + "so a gate built from this shape could never be dialed");
         }
         return problems;
+    }
+
+    /**
+     * How many times each one-per-gate marker appears in the file's cells.
+     *
+     * <p>Counted from the text rather than the parsed shape because that is the whole point:
+     * a second {@code :EP} overwrites the first on the model, so only the last one survives
+     * to be looked at.
+     *
+     * @param fileLines
+     *            the shape file
+     * @return each marker against its count, every marker present even at zero
+     */
+    private static java.util.Map<String, Integer> countMarkers(final String[] fileLines)
+    {
+        final java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        for (final String tag : SINGLETON_MARKERS)
+        {
+            counts.put(tag, 0);
+        }
+        for (final String rawLine : fileLines)
+        {
+            // A commented row is skipped by this too, without needing to say so: a line that
+            // starts with # cannot also start with [, so testing for the comment separately
+            // could never change the answer.
+            final String line = rawLine.trim();
+            if (line.startsWith("["))
+            {
+                countMarkersOn(line, counts);
+            }
+        }
+        return counts;
+    }
+
+    /**
+     * Adds one row's markers to the running counts.
+     *
+     * @param line
+     *            a trimmed row line
+     * @param counts
+     *            the running counts, updated in place
+     */
+    private static void countMarkersOn(final String line, final java.util.Map<String, Integer> counts)
+    {
+        final Matcher m = CELL.matcher(line);
+        while (m.find())
+        {
+            for (final String token : m.group(1).split(":"))
+            {
+                counts.computeIfPresent(token, (tag, seen) -> seen + 1);
+            }
+        }
     }
 
     /** {@code :L#} and {@code :W#} orders each have to run 1..N with no gap. */
