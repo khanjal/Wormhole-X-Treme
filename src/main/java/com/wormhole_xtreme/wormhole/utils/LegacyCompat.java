@@ -93,9 +93,16 @@ public final class LegacyCompat {
         }
     }
 
-    /** Anything that is not a sign, which numbered the same four walls differently. */
+    /**
+     * Anything that is not a sign, which numbered the same four walls differently.
+     *
+     * <p>Only the low three bits are the facing. The fourth is the powered bit that
+     * {@link #genericData} writes on top of it, so a powered lever facing east arrives here
+     * as 12; reading the byte whole matched nothing and left the block facing wherever the
+     * world had already put it.
+     */
     private static BlockFace genericFacing(final byte data, final BlockFace current) {
-        switch (data) {
+        switch (data & 0x7) {
             case 1: return BlockFace.SOUTH;
             case 2: return BlockFace.NORTH;
             case 3: return BlockFace.WEST;

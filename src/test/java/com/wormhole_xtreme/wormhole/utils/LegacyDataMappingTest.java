@@ -236,4 +236,41 @@ class LegacyDataMappingTest {
 
         assertEquals((byte) 0, LegacyCompat.getData(blockOf(Material.REDSTONE_WIRE, wire)));
     }
+
+    /**
+     * A powered block keeps its facing.
+     *
+     * <p>getData writes the powered bit on top of the facing, so a powered lever facing east
+     * is 12, not 4. setData read the whole byte, matched no entry in the generic table, and
+     * left the block facing wherever it already happened to be -- which, on a gate being
+     * rebuilt from an old save, is whatever the world put there.
+     *
+     * <p>Stated as absolute faces per byte rather than as a round trip through getData, so a
+     * matching mistake in both halves cannot pass.
+     */
+    @Test
+    void thePowerBitDoesNotEatTheFacing() {
+        final BlockFace[] expected = { BlockFace.SOUTH, BlockFace.NORTH, BlockFace.WEST, BlockFace.EAST };
+        for (byte facing = 1; facing <= 4; facing++) {
+            final Switch lever = mock(Switch.class);
+            when(lever.getFacing()).thenReturn(BlockFace.UP);
+
+            LegacyCompat.setData(blockOf(Material.LEVER, lever), (byte) (facing | 0x8));
+
+            verify(lever).setFacing(expected[facing - 1]);
+            verify(lever).setPowered(true);
+        }
+    }
+
+    /** A byte carrying the bit and nothing else still says nothing about the facing. */
+    @Test
+    void thePowerBitAloneLeavesTheFacingAlone() {
+        final Switch lever = mock(Switch.class);
+        when(lever.getFacing()).thenReturn(BlockFace.UP);
+
+        LegacyCompat.setData(blockOf(Material.LEVER, lever), (byte) 0x8);
+
+        verify(lever).setFacing(BlockFace.UP);
+        verify(lever).setPowered(true);
+    }
 }
