@@ -155,6 +155,21 @@ Seven `javabugs:S2259` reports across `Build`, `Compass`, `Dial`, `RingCommand`,
 and `GateInteractionHandler` all traced back to this one line. Removing it clears every one of
 them, and behaviour is unchanged because the branch was unreachable.
 
+### A powered lever or button lost its facing when an old gate was rebuilt
+
+`LegacyCompat` translates a pre-flattening facing and power level to and from one byte.
+`getData` writes the powered bit on top of the facing -- a lever facing east and switched on
+is 12, not 4 -- but `setData` read the byte whole, matched no entry in the facing table, and
+left the block pointing wherever it already happened to be.
+
+On a gate rebuilt from an old save that is whatever the world put there, so a powered dial
+lever could come back on the wrong wall. It stayed powered; only the facing was lost, and
+nothing was logged.
+
+`setData` now takes the facing from the low three bits, which is where it has always been
+written. A byte carrying only the powered bit still says nothing about the facing, and still
+leaves it alone.
+
 ### A gate file that would not delete said nothing
 
 `removeStargate` called `delete()` and ignored the result, so a gate whose file could not be
