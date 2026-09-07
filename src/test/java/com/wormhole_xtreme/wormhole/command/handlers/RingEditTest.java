@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -245,7 +246,7 @@ class RingEditTest
 
         assertTrue(edit("aaaa0001", "reset"));
 
-        verify(player, org.mockito.Mockito.never()).sendMessage(contains("Usage:"));
+        verify(player, never()).sendMessage(contains("Usage:"));
     }
 
     /** Somebody else's pair is not editable. */

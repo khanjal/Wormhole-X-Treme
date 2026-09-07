@@ -650,7 +650,9 @@ public class RingCommand implements SubCommand
             return true;
         }
         only.setName(value);
-        return saved(player, pair, value.isEmpty()
+        // Tolerates null as well as empty: edit only ever passes one or the other, but as a
+        // method in its own right this no longer has its single caller in view.
+        return saved(player, pair, ((value == null) || value.isEmpty())
             ? "Name cleared." : ("This ring is now " + value + "."));
     }
 
