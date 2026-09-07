@@ -568,7 +568,27 @@ public class RingCommand implements SubCommand
         // Naming a pair means both ends; standing in one means that end only. Materials are
         // per end precisely so a base and a mine can each look like where they are.
         final Ring only = (named != null) ? null : endUnderfoot(player);
+        return applyEdit(player, pair, only, field, value);
+    }
 
+    /**
+     * Applies one named field to a pair, or to the one end underfoot.
+     *
+     * @param player
+     *            who asked
+     * @param pair
+     *            the pair being edited
+     * @param only
+     *            the single end to change, or null to change the pair
+     * @param field
+     *            which setting, lower-cased
+     * @param value
+     *            what to set it to, empty when the field takes none
+     * @return true, the command was handled
+     */
+    private static boolean applyEdit(final Player player, final RingPair pair, final Ring only,
+                                     final String field, final String value)
+    {
         if ("ring".equals(field))
         {
             return setRingMaterial(player, pair, only, value);
@@ -587,30 +607,11 @@ public class RingCommand implements SubCommand
         }
         if ("name".equals(field))
         {
-            if (only == null)
-            {
-                // Naming both ends the same would defeat the point: the name exists so a
-                // traveller can be told where they are going, which differs by end.
-                player.sendMessage("Stand in the ring you want to name — naming a pair by id "
-                    + "would call both ends the same thing.");
-                return true;
-            }
-            only.setName(value);
-            return saved(player, pair, value.isEmpty()
-                ? "Name cleared." : ("This ring is now " + value + "."));
+            return setName(player, pair, only, value);
         }
         if ("access".equals(field))
         {
-            try
-            {
-                pair.setAccess(RingAccess.valueOf(value.toUpperCase(Locale.ROOT)));
-            }
-            catch (final IllegalArgumentException e)
-            {
-                player.sendMessage("Access is public or private.");
-                return true;
-            }
-            return saved(player, pair, "Access set to " + pair.getAccess() + ".");
+            return setAccess(player, pair, value);
         }
         if ("reset".equals(field))
         {
@@ -618,26 +619,102 @@ public class RingCommand implements SubCommand
         }
         if ("style".equals(field))
         {
-            final RingStyle chosen = RingStyle.parse(value);
-            if (chosen == null)
-            {
-                player.sendMessage("Style is fast (rings climb together) or slow "
-                    + "(one at a time). 'concurrent' and 'sequential' work too.");
-                return true;
-            }
-            if (only != null)
-            {
-                only.setStyle(chosen);
-            }
-            else
-            {
-                pair.getEndA().setStyle(chosen);
-                pair.getEndB().setStyle(chosen);
-            }
-            return saved(player, pair, "Style set to " + chosen + ".");
+            return setStyle(player, pair, only, value);
         }
         player.sendMessage("Fields are: ring, light, flash, built, name, access, style, reset.");
         return true;
+    }
+
+    /**
+     * Names one end of a pair.
+     *
+     * @param player
+     *            who asked
+     * @param pair
+     *            the pair the end belongs to
+     * @param only
+     *            the end underfoot, or null if a pair was named by id
+     * @param value
+     *            the new name, empty to clear it
+     * @return true, the command was handled
+     */
+    private static boolean setName(final Player player, final RingPair pair, final Ring only,
+                                   final String value)
+    {
+        if (only == null)
+        {
+            // Naming both ends the same would defeat the point: the name exists so a
+            // traveller can be told where they are going, which differs by end.
+            player.sendMessage("Stand in the ring you want to name — naming a pair by id "
+                + "would call both ends the same thing.");
+            return true;
+        }
+        only.setName(value);
+        return saved(player, pair, value.isEmpty()
+            ? "Name cleared." : ("This ring is now " + value + "."));
+    }
+
+    /**
+     * Sets who may travel by a pair.
+     *
+     * <p>Always the pair, never one end: both ends fire together, so a pair whose ends
+     * disagreed would let somebody leave and not come back.
+     *
+     * @param player
+     *            who asked
+     * @param pair
+     *            the pair
+     * @param value
+     *            the access level named
+     * @return true, the command was handled
+     */
+    private static boolean setAccess(final Player player, final RingPair pair, final String value)
+    {
+        try
+        {
+            pair.setAccess(RingAccess.valueOf(value.toUpperCase(Locale.ROOT)));
+        }
+        catch (final IllegalArgumentException e)
+        {
+            player.sendMessage("Access is public or private.");
+            return true;
+        }
+        return saved(player, pair, "Access set to " + pair.getAccess() + ".");
+    }
+
+    /**
+     * Sets how a pair's rings climb.
+     *
+     * @param player
+     *            who asked
+     * @param pair
+     *            the pair
+     * @param only
+     *            the end underfoot, or null to set both
+     * @param value
+     *            the style named
+     * @return true, the command was handled
+     */
+    private static boolean setStyle(final Player player, final RingPair pair, final Ring only,
+                                    final String value)
+    {
+        final RingStyle chosen = RingStyle.parse(value);
+        if (chosen == null)
+        {
+            player.sendMessage("Style is fast (rings climb together) or slow "
+                + "(one at a time). 'concurrent' and 'sequential' work too.");
+            return true;
+        }
+        if (only != null)
+        {
+            only.setStyle(chosen);
+        }
+        else
+        {
+            pair.getEndA().setStyle(chosen);
+            pair.getEndB().setStyle(chosen);
+        }
+        return saved(player, pair, "Style set to " + chosen + ".");
     }
 
     /**
