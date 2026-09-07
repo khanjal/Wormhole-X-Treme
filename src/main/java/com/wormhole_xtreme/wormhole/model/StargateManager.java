@@ -273,58 +273,109 @@ public class StargateManager
     public static boolean completeStargate(final Player p, final String name, final String idc, final String network)
     {
         final Stargate complete = getIncompleteStargates().remove(p);
-
-        if (complete != null)
+        if (complete == null)
         {
-            if ( !network.equals(""))
-            {
-                StargateNetwork net = StargateManager.getStargateNetwork(network);
-                if (net == null)
-                {
-                    net = StargateManager.addStargateNetwork(network);
-                }
-                StargateManager.addGateToNetwork(complete, network);
-                complete.setGateNetwork(net);
-            }
-
-            complete.setGateOwner(p.getUniqueId().toString());
-            complete.setGateOwnerName(p.getName());
-            complete.completeGate(name, idc);
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
-            addStargate(complete);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Gate debug: Name=" + complete.getGateName()
-                        + " Owner=" + complete.getGateOwner()
-                        + " DialLever=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getLocation().toString() : "null")
-                        + " DialLeverType=" + (complete.getGateDialLeverBlock() != null ? complete.getGateDialLeverBlock().getType().toString() : "null")
-                        + " IrisLever=" + (complete.getGateIrisLeverBlock() != null ? complete.getGateIrisLeverBlock().getLocation().toString() : "null")
-                        + " IrisLeverType=" + (complete.getGateIrisLeverBlock() != null ? complete.getGateIrisLeverBlock().getType().toString() : "null")
-                        + " DialSignBlock=" + (complete.getGateDialSignBlock() != null ? complete.getGateDialSignBlock().getLocation().toString() : "null")
-                        + " DialSignType=" + (complete.getGateDialSignBlock() != null ? complete.getGateDialSignBlock().getType().toString() : "null")
-                        + " RedstoneDial=" + (complete.getGateRedstoneDialActivationBlock() != null ? complete.getGateRedstoneDialActivationBlock().getLocation().toString() : "null")
-                        + " RedstoneDialType=" + (complete.getGateRedstoneDialActivationBlock() != null ? complete.getGateRedstoneDialActivationBlock().getType().toString() : "null")
-                        + " RedstoneGateActivated=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getLocation().toString() : "null")
-                        + " RedstoneGateActivatedType=" + (complete.getGateRedstoneGateActivatedBlock() != null ? complete.getGateRedstoneGateActivatedBlock().getType().toString() : "null")
-                    );
-            StargateDBManager.saveStargate(complete);
-
-            // Announced once the gate is registered and saved, so a listener can look it
-            // up by name and find it already there.
-            com.wormhole_xtreme.wormhole.events.GateEvents.fireCreated(complete, p);
-
-            // For sign-powered gates, initialize the DHD sign by cycling to the first available target.
-            if (complete.isGateSignPowered() && complete.getGateDialSignBlock() != null)
-            {
-                try
-                {
-                    StargateDialManager.teleportSignClicked(complete, true);
-                }
-                catch (final RuntimeException ignore) { /* a sign that will not cycle is not worth failing the load */ }
-            }
-
-            return true;
+            return false;
         }
 
-        return false;
+        joinNetwork(complete, network);
+        complete.setGateOwner(p.getUniqueId().toString());
+        complete.setGateOwnerName(p.getName());
+        complete.completeGate(name, idc);
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Player: " + p.getName() + " completed a wormhole: " + complete.getGateName());
+
+        addStargate(complete);
+        logGateBlocks(complete);
+        StargateDBManager.saveStargate(complete);
+
+        // Announced once the gate is registered and saved, so a listener can look it up by
+        // name and find it already there.
+        com.wormhole_xtreme.wormhole.events.GateEvents.fireCreated(complete, p);
+
+        initialiseDialSign(complete);
+        return true;
+    }
+
+    /**
+     * Puts a gate on the named network, if one was named.
+     *
+     * @param gate
+     *            the gate
+     * @param network
+     *            the network name, empty for none
+     */
+    private static void joinNetwork(final Stargate gate, final String network)
+    {
+        if (network.isEmpty())
+        {
+            return;
+        }
+        // addStargateNetwork returns the existing network when there is one, so this is
+        // find-or-create and needs no check of its own.
+        final StargateNetwork net = StargateManager.addStargateNetwork(network);
+        StargateManager.addGateToNetwork(gate, network);
+        gate.setGateNetwork(net);
+    }
+
+    /**
+     * Logs which block ended up as which part of the gate.
+     *
+     * <p>At FINE rather than INFO: this is twelve fields about one gate, useful when a gate
+     * came out wrong and noise on every gate that came out right.
+     *
+     * @param gate
+     *            the completed gate
+     */
+    private static void logGateBlocks(final Stargate gate)
+    {
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate debug: Name=" + gate.getGateName()
+            + " Owner=" + gate.getGateOwner()
+            + " DialLever=" + describe(gate.getGateDialLeverBlock())
+            + " IrisLever=" + describe(gate.getGateIrisLeverBlock())
+            + " DialSign=" + describe(gate.getGateDialSignBlock())
+            + " RedstoneDial=" + describe(gate.getGateRedstoneDialActivationBlock())
+            + " RedstoneGateActivated=" + describe(gate.getGateRedstoneGateActivatedBlock()));
+    }
+
+    /**
+     * Where a block is and what it is, for a log line.
+     *
+     * @param block
+     *            the block, which may be absent
+     * @return its location and type, or "null"
+     */
+    private static String describe(final Block block)
+    {
+        if (block == null)
+        {
+            return "null";
+        }
+        return block.getLocation().toString() + " (" + block.getType() + ")";
+    }
+
+    /**
+     * Cycles a sign-powered gate's dial sign to its first destination.
+     *
+     * <p>Otherwise the sign stands blank until somebody clicks it, which reads as a gate that
+     * did not finish building.
+     *
+     * @param gate
+     *            the completed gate
+     */
+    private static void initialiseDialSign(final Stargate gate)
+    {
+        if (!gate.isGateSignPowered() || (gate.getGateDialSignBlock() == null))
+        {
+            return;
+        }
+        try
+        {
+            StargateDialManager.teleportSignClicked(gate, true);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // a sign that will not cycle is not worth failing the build over
+        }
     }
 
     /**
