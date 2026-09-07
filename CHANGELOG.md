@@ -221,6 +221,22 @@ nothing was logged.
 written. A byte carrying only the powered bit still says nothing about the facing, and still
 leaves it alone.
 
+### One unwritable gate could stop every gate after it being saved
+
+`saveStargate` runs in a loop over every gate on every clean shutdown, and it built its file
+name straight off `getGateName()`. A gate with no name threw there, and the gates after it in
+the loop were never written -- the owner finding out at the next start, with no warning at
+shutdown and no partial file to explain it. `removeStargate` and `readOwnerFromYaml` had the
+same dereference.
+
+A nameless gate is skipped now. Empty counts as nameless too: sanitised it became a hidden
+file called `.yml`, which the loader would read straight back in as a gate.
+
+The same method also handed `stargatetoBinary`'s result to Base64 without checking it, and
+that method returns null when it cannot encode a gate. Such a gate is skipped rather than
+written without its `GateData`, which would load back as a gate with no blocks at all --
+present, and doing nothing.
+
 ### Repeated string literals are named now
 
 Twenty-seven literals were written out three to six times each -- subcommand names in the
