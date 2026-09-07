@@ -220,35 +220,68 @@ public class Stargate
         {
             return;
         }
-        final java.util.Set<Location> lookup = new java.util.HashSet<Location>(Math.max(16, gatePortalBlocks.size() * 2));
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
+        final java.util.Set<Location> lookup =
+            new java.util.HashSet<>(Math.max(16, gatePortalBlocks.size() * 2));
+        final Extents extents = new Extents();
         for (final Location l : gatePortalBlocks)
         {
             if (l == null)
             {
                 continue;
             }
-            final int x = l.getBlockX();
-            final int y = l.getBlockY();
-            final int z = l.getBlockZ();
-            lookup.add(new Location(gateWorld, x, y, z));
-            if (x < minX) minX = x;
-            if (y < minY) minY = y;
-            if (z < minZ) minZ = z;
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-            if (z > maxZ) maxZ = z;
+            lookup.add(new Location(gateWorld, l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+            extents.include(l);
         }
         gatePortalBlockLookup = lookup;
-        gatePortalBounds = lookup.isEmpty()
-            ? null
-            : new org.bukkit.util.BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
+        gatePortalBounds = lookup.isEmpty() ? null : extents.toBoundingBox();
         gatePortalCacheSize = gatePortalBlocks.size();
+    }
+
+    /**
+     * The corner-to-corner span of a set of blocks, accumulated one block at a time.
+     *
+     * <p>Six running values tracked by hand is what made the cache rebuild hard to read; the
+     * work is the same, but the loop that uses this now says what it is doing rather than
+     * spelling out twelve comparisons.
+     */
+    private static final class Extents
+    {
+        private int minX = Integer.MAX_VALUE;
+        private int minY = Integer.MAX_VALUE;
+        private int minZ = Integer.MAX_VALUE;
+        private int maxX = Integer.MIN_VALUE;
+        private int maxY = Integer.MIN_VALUE;
+        private int maxZ = Integer.MIN_VALUE;
+
+        /**
+         * Widens the span to take in one more block.
+         *
+         * @param l
+         *            the block's location
+         */
+        void include(final Location l)
+        {
+            minX = Math.min(minX, l.getBlockX());
+            minY = Math.min(minY, l.getBlockY());
+            minZ = Math.min(minZ, l.getBlockZ());
+            maxX = Math.max(maxX, l.getBlockX());
+            maxY = Math.max(maxY, l.getBlockY());
+            maxZ = Math.max(maxZ, l.getBlockZ());
+        }
+
+        /**
+         * The span as a box.
+         *
+         * <p>The maxima gain a block, because a block's location names its corner and the box
+         * has to enclose the whole of it -- a one-block portal would otherwise be a box of
+         * zero volume that contains nothing.
+         *
+         * @return the enclosing box
+         */
+        org.bukkit.util.BoundingBox toBoundingBox()
+        {
+            return new org.bukkit.util.BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
+        }
     }
 
     /**
