@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,24 @@ class CommandSafetyNetTest
         assertTrue(CommandUtilities.runCommandSafe(player, boom));
 
         verify(player).sendMessage(contains("internal error"));
+    }
+
+    /**
+     * The console is told the same thing a player is.
+     *
+     * <p>Both callers of this net used to branch on whether the sender was a player and then
+     * send the identical message down either arm. The branch is gone; this is what makes its
+     * removal a statement rather than an assumption.
+     */
+    @Test
+    void aConsoleSenderIsToldTheSameThing()
+    {
+        final CommandSender console = mock(CommandSender.class);
+        final Callable<Boolean> boom = () -> { throw new IllegalStateException("bug"); };
+
+        assertTrue(CommandUtilities.runCommandSafe(console, boom));
+
+        verify(console).sendMessage(contains("internal error"));
     }
 
     /**

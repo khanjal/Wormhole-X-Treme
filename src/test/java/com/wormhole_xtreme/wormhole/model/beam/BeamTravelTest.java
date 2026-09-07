@@ -31,18 +31,13 @@ class BeamTravelTest
         return new BeamDestination("Spawn", "world", 0.0, 64.0, 0.0, 0f, 0f, cost);
     }
 
+    // Both ends, one method. Real config is a shared static map, so starting from a known
+    // empty state rather than whatever an earlier test in the same JVM left behind is what
+    // keeps these tests from depending on run order -- and leaving it empty again is the
+    // same courtesy to whatever runs next.
     @BeforeEach
-    void clearConfig()
-    {
-        // Real config is a shared static map -- starting from a known-empty state, rather
-        // than whatever an earlier test in the same JVM left behind, is what keeps these
-        // tests from depending on run order.
-        ConfigTestSupport.clear();
-        EconomySupport.disableEconomy();
-    }
-
     @AfterEach
-    void tidyUp()
+    void clearConfig()
     {
         ConfigTestSupport.clear();
         EconomySupport.disableEconomy();
