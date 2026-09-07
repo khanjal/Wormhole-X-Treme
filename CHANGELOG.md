@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Beaming was undocumented outside its permission nodes
+
+Gates and rings each have a README section running to hundreds of lines. Beaming had
+thirteen mentions, all of them inside the Permissions list. There was no description of what a
+beam destination is, no list of the `/wormhole beam` commands, and no table of the settings --
+so `beam-teleport-at-step` and the rest existed, worked, and were discoverable only by reading
+`ConfigManager`.
+
+That is worse than the gap gates had. A missing design document is an inconvenience for
+somebody changing the code; a missing README section means server owners could not find a
+feature that shipped.
+
+The README now has a **Beaming** section: what a destination is, public destinations against
+private places, the command list including the staff verbs, and tables for the settings and
+the three sounds. `/wormhole go` is named there too, since it reaches the same destinations
+and tries a gate name first.
+
+`docs/BEAMS.md` is the design document, finishing the set alongside `GATES.md` and
+`RINGS.md`. The interesting parts are the ones that were only ever a comment on the line that
+needed them:
+
+- The traveller is never removed from the world. Hiding is observer-relative, so they stay
+  physically present -- hidden from everyone else, frozen -- and the teleport moves somebody
+  who was standing there the whole time.
+- `hideEntity` rather than invisibility, because invisibility hides a body and leaves held
+  items, armour and shields rendering where they were. A traveller carrying anything left a
+  person-shaped set of equipment standing in the column instead of dissolving into it.
+- Blindness alone did not hide the destination during the descend -- it is mostly a
+  render-distance fog, so terrain, daylight and the beam's own particles still showed
+  through. Darkness stacked on top is what actually blocks it.
+- Active and frozen are two sets rather than one flag, because collapsing them either lets a
+  second beam start during the envelope or locks the traveller from the first tick.
+- A rider does not raise `PlayerMoveEvent`, so a frozen player on a horse could still steer it
+  out of the departure column. They are dismounted at the vanish tick instead.
+- `beam-teleport-at-step` set at or past `beam-rise-ticks` would mean the teleport never fires
+  and the traveller is left frozen and invisible until a restart. `BeamTiming` resolves all
+  six durations together so that is not expressible.
+
 ### Gates had no design document, and the rings one had grown
 
 Rings were written up as they were built, so `docs/RINGS.md` records why every decision went

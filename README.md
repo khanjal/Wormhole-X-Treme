@@ -32,13 +32,15 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **Transport rings** — [Overview](#transport-rings) · [Building a ring pair](#building-a-ring-pair) · [Using rings](#using-rings) · [Ring settings](#ring-settings) · [Ring permissions](#ring-permissions)
 
+**Beaming** — [Overview](#beaming) · [Beam commands](#beam-commands) · [Beam settings](#beam-settings) · [Beam sounds](#beam-sounds)
+
 **Sound** — [Gate and ring sounds](#sounds)
 
 **Running a server** — [Storage](#storage) · [Economy](#economy) · [Troubleshooting](#troubleshooting)
 
 **Writing a plugin against this one** — [docs/API.md](docs/API.md)
 
-**How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md)
+**How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md) · [docs/BEAMS.md](docs/BEAMS.md)
 
 **Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing)
 
@@ -1215,6 +1217,89 @@ wormhole.ring.unlimited   bypass the per-player quota            default: op
 Being named on a private pair's allow list lets somebody travel by it. It does not let them
 recolour, rename, give away or delete it — managing a pair stays with its owner and with
 staff.
+
+## Beaming
+
+Beaming is the third way to travel, and the only one with nothing to build. A **beam
+destination** is a single named point somebody stood on once — no blocks, no partner, nothing
+to walk into. You go there with a command, a column of light takes you, and there is no way
+back except another beam.
+
+There are two kinds, and the difference is only who can reach them:
+
+- **Public destinations** are curated by staff and reachable by anyone.
+- **Places** are private. Each player has their own set, and nobody else can use them.
+
+A name is resolved against your own places first, then the public list, so a place named after
+a public destination gets you yours.
+
+Beams cross worlds freely — that is the point of them beside rings, which never do. A
+destination whose world is not loaded says so rather than loading it.
+
+### Beam commands
+
+```
+/wormhole beam to <name>                  travel; your own places first, then public
+/wormhole beam list                       list public destinations
+/wormhole beam place list                 list your own places
+/wormhole beam place set <name>           save where you are standing as a place
+/wormhole beam place remove <name>        remove one of your own places
+
+  staff:
+/wormhole beam admin set <name>           register a public destination where you stand
+/wormhole beam admin remove <name>        remove a public destination
+/wormhole beam admin cost <name> <amount> what it costs to use
+/wormhole beam admin cost <name> default  clear the override; use the configured default
+/wormhole beam admin goto <player|destination|x y z [world]>
+/wormhole beam admin send <target> <player|destination|x y z [world]>
+```
+
+`/wormhole go <name>` reaches the same places. It tries a gate name first and a beam
+destination second, so a gate always wins a collision — and either way you arrive through the
+beam sequence rather than walking through a ring.
+
+Facing is stored with a destination, so you arrive looking the way whoever saved it was
+looking. If the ground has since been dug out or built over, the arrival is corrected to the
+nearest safe spot rather than dropping you into it.
+
+Only a public destination can have its own cost. A place is reachable only by the player who
+made it, so setting a price on one would just be them choosing what to pay themselves.
+
+### Beam settings
+
+| Setting | Default | What it does |
+|---|---|---|
+| `beam-envelop-ticks` | 12 | How long the glow gathers before the column opens. You can still move during this. |
+| `beam-vanish-at-step` | 6 | How far into that you disappear. Clamped inside the envelope. |
+| `beam-rise-ticks` | 18 | How long the column rises and departs. |
+| `beam-teleport-at-step` | 12 | How far into the rise you are actually moved. Clamped inside the rise. |
+| `beam-descend-ticks` | 20 | How long the column takes to arrive and settle at the far end. |
+| `beam-fade-ticks` | 8 | How long it takes to collapse once you are deposited. |
+| `beam-use-cooldown-enabled` | `false` | Whether beaming has a per-player cooldown at all. |
+| `beam-use-cooldown-seconds` | 120 | How long that cooldown is. |
+| `beam-economy-use-cost` | 0 | What a beam costs by default. A public destination may override it. |
+
+The two `-at-step` settings are clamped strictly inside the phase they sit in, whatever you
+write. Setting `beam-teleport-at-step` at or past `beam-rise-ticks` would otherwise mean the
+teleport never fires and the traveller is left frozen and invisible until a restart.
+
+Durations are read when a beam starts, not every tick, so changing them will not disturb a beam
+already in flight.
+
+### Beam sounds
+
+| Setting | Default | When it plays |
+|---|---|---|
+| `beam-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `beam-sound-volume` | 1.0 | About sixteen blocks. |
+| `beam-sound-charge` | `block.respawn_anchor.charge` | As the glow begins to gather. |
+| `beam-sound-depart` | `entity.enderman.teleport` | Where the traveller leaves. |
+| `beam-sound-arrive` | `entity.shulker.teleport` | Where they land. |
+
+The defaults are deliberately unlike the ring palette so the two do not sound alike, and they
+are vanilla teleport sounds rather than anything invented.
+
+The full design and the reasoning behind each decision is in [docs/BEAMS.md](docs/BEAMS.md).
 
 ## Storage
 
