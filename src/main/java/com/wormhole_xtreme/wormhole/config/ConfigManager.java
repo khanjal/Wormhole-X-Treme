@@ -1257,10 +1257,6 @@ public class ConfigManager
             : 120;
     }
 
-    /*
-     * Get Built in permissions enabled settings from ConfigKeys. Return sane boolean value.
-     * Return default value if key is missing or broken.
-     */
     /**
      * Gets the wormhole use is teleport.
      * 
