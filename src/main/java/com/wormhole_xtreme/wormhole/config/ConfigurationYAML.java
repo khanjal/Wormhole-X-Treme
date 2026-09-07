@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -531,22 +532,10 @@ public class ConfigurationYAML
                 directory.mkdir();
             }
 
-            final Setting[] defaults = com.wormhole_xtreme.wormhole.config.DefaultSettings.config;
-            final java.util.Map<String, String> values = new java.util.LinkedHashMap<String, String>();
-            final java.util.Map<String, Setting> byKey = new java.util.LinkedHashMap<String, Setting>();
-            for (final Setting def : defaults)
-            {
-                final com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys key = def.getName();
-                if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
-                {
-                    continue;
-                }
-                final Setting runtime = com.wormhole_xtreme.wormhole.config.ConfigManager.getConfigurations().get(key);
-                final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
-                final String keyName = kebabKeyName(key.name());
-                values.put(keyName, formatValueForYaml(value));
-                byKey.put(keyName, def);
-            }
+            final Setting[] defaults = DefaultSettings.config;
+            final Map<String, String> values = new LinkedHashMap<String, String>();
+            final Map<String, Setting> byKey = new LinkedHashMap<String, Setting>();
+            collectCurrentValues(defaults, values, byKey);
 
             if (!file.exists())
             {
@@ -554,49 +543,140 @@ public class ConfigurationYAML
                 return;
             }
 
-            final List<String> existing = java.nio.file.Files.readAllLines(file.toPath());
             final java.util.Set<String> updated = new java.util.HashSet<String>();
-            final List<String> rewritten = updateSettingLines(existing, values, updated);
+            final List<String> rewritten =
+                updateSettingLines(java.nio.file.Files.readAllLines(file.toPath()), values, updated);
 
-            final List<Setting> missing = new java.util.ArrayList<Setting>();
-            for (final java.util.Map.Entry<String, Setting> e : byKey.entrySet())
-            {
-                if (!updated.contains(e.getKey()))
-                {
-                    missing.add(e.getValue());
-                }
-            }
-
-            try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
-            {
-                for (final String line : rewritten)
-                {
-                    writer.write(line + System.lineSeparator());
-                }
-                if (!missing.isEmpty())
-                {
-                    writer.write(System.lineSeparator());
-                    writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
-                    for (final Setting s : missing)
-                    {
-                        final String keyName = kebabKeyName(s.getName().name());
-                        if ((s.getDescription() != null) && (!s.getDescription().isEmpty()))
-                        {
-                            for (final String wrapped : wrapComment(s.getDescription(), 80))
-                            {
-                                writer.write("# " + wrapped + System.lineSeparator());
-                            }
-                        }
-                        writer.write(keyName + ": " + values.get(keyName) + System.lineSeparator());
-                        writer.write(System.lineSeparator());
-                    }
-                }
-            }
+            rewriteFile(file, rewritten, missingFrom(byKey, updated), values);
         }
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
         }
+    }
+
+    /**
+     * Reads every setting's current value, ready to be written back.
+     *
+     * <p>permissions-support-disable is left out on purpose, and that means left as the
+     * admin has it rather than dropped: it is absent from the list this writer owns, so an
+     * existing line survives the rewrite untouched and no line is invented for a server that
+     * never set one.
+     *
+     * @param defaults
+     *            the settings this plugin knows about
+     * @param values
+     *            filled with each key's value, formatted for YAML
+     * @param byKey
+     *            filled with each key's default, for its description
+     */
+    private static void collectCurrentValues(final Setting[] defaults,
+                                             final Map<String, String> values,
+                                             final Map<String, Setting> byKey)
+    {
+        for (final Setting def : defaults)
+        {
+            final ConfigManager.ConfigKeys key = def.getName();
+            if (key == ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
+            {
+                continue;
+            }
+            final Setting runtime = ConfigManager.getConfigurations().get(key);
+            final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
+            final String keyName = kebabKeyName(key.name());
+            values.put(keyName, formatValueForYaml(value));
+            byKey.put(keyName, def);
+        }
+    }
+
+    /**
+     * The settings the file never mentioned, so nothing rewrote them in place.
+     *
+     * @param byKey
+     *            every setting this writer owns
+     * @param updated
+     *            the keys that were found and rewritten
+     * @return the ones left over
+     */
+    private static List<Setting> missingFrom(final Map<String, Setting> byKey,
+                                             final java.util.Set<String> updated)
+    {
+        final List<Setting> missing = new ArrayList<Setting>();
+        for (final Map.Entry<String, Setting> e : byKey.entrySet())
+        {
+            if (!updated.contains(e.getKey()))
+            {
+                missing.add(e.getValue());
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Writes the rewritten file, with anything it never mentioned added at the end.
+     *
+     * <p>An admin who never sees a setting written down has no way to know it exists, so the
+     * missing ones go in with their descriptions rather than only being defaulted in memory.
+     *
+     * @param file
+     *            the config file
+     * @param rewritten
+     *            the existing lines, with known settings brought up to date
+     * @param missing
+     *            settings the file never mentioned
+     * @param values
+     *            each key's value, formatted for YAML
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void rewriteFile(final File file, final List<String> rewritten,
+                                    final List<Setting> missing, final Map<String, String> values)
+        throws IOException
+    {
+        try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
+        {
+            for (final String line : rewritten)
+            {
+                writer.write(line + System.lineSeparator());
+            }
+            if (missing.isEmpty())
+            {
+                return;
+            }
+            writer.write(System.lineSeparator());
+            writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
+            for (final Setting s : missing)
+            {
+                writeMissingSetting(writer, s, values);
+            }
+        }
+    }
+
+    /**
+     * Writes one setting the file did not have, with its explanation above it.
+     *
+     * @param writer
+     *            the file being written
+     * @param setting
+     *            the setting to add
+     * @param values
+     *            each key's value, formatted for YAML
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void writeMissingSetting(final FileWriter writer, final Setting setting,
+                                            final Map<String, String> values) throws IOException
+    {
+        final String keyName = kebabKeyName(setting.getName().name());
+        if ((setting.getDescription() != null) && !setting.getDescription().isEmpty())
+        {
+            for (final String wrapped : wrapComment(setting.getDescription(), 80))
+            {
+                writer.write("# " + wrapped + System.lineSeparator());
+            }
+        }
+        writer.write(keyName + ": " + values.get(keyName) + System.lineSeparator());
+        writer.write(System.lineSeparator());
     }
 
     /**
