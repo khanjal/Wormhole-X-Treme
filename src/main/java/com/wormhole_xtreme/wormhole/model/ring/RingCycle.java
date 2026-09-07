@@ -534,17 +534,35 @@ public class RingCycle
         final List<RingPassenger> allowed = new ArrayList<RingPassenger>(passengers.size());
         for (final RingPassenger passenger : passengers)
         {
-            if (passenger.isPlayer() && !pair.mayUse(passenger.getUniqueId()))
+            if (mayTravel(passenger, from, to))
             {
-                continue;
+                allowed.add(passenger);
             }
-            if (!world.mayTravel(passenger, from, to))
-            {
-                continue;
-            }
-            allowed.add(passenger);
         }
         return riddenBySomethingElse(allowed);
+    }
+
+    /**
+     * Whether one passenger may make this trip.
+     *
+     * <p>Two separate refusals: a player who is not on the pair's allow list, and anything
+     * the world itself will not move between these two ends.
+     *
+     * @param passenger
+     *            who or what is standing in the ring
+     * @param from
+     *            the end they are standing in
+     * @param to
+     *            the end they would arrive at
+     * @return true if they may travel
+     */
+    private boolean mayTravel(final RingPassenger passenger, final Ring from, final Ring to)
+    {
+        if (passenger.isPlayer() && !pair.mayUse(passenger.getUniqueId()))
+        {
+            return false;
+        }
+        return world.mayTravel(passenger, from, to);
     }
 
     /**

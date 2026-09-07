@@ -141,19 +141,42 @@ final class BeamVisibility
         }
         for (final Player observer : Bukkit.getOnlinePlayers())
         {
-            if (traveller.equals(observer))
-            {
-                continue;
-            }
-            change(observer, traveller, plugin, hide);
-            if (alsoHide == null)
-            {
-                continue;
-            }
-            for (final Entity entity : alsoHide)
-            {
-                change(observer, entity, plugin, hide);
-            }
+            changeForOneObserver(observer, traveller, alsoHide, plugin, hide);
+        }
+    }
+
+    /**
+     * Hides or shows the traveller, and whatever is riding with them, from one observer.
+     *
+     * <p>The traveller is never hidden from themselves: they stay in their own view for the
+     * whole beam, which is what makes it look like being beamed rather than dying.
+     *
+     * @param observer
+     *            the player whose view is being changed
+     * @param traveller
+     *            the player being beamed
+     * @param alsoHide
+     *            anything riding with them, or null
+     * @param plugin
+     *            this plugin, for the hide and show calls
+     * @param hide
+     *            true to hide, false to show again
+     */
+    private static void changeForOneObserver(final Player observer, final Player traveller,
+        final Iterable<Entity> alsoHide, final Plugin plugin, final boolean hide)
+    {
+        if (traveller.equals(observer))
+        {
+            return;
+        }
+        change(observer, traveller, plugin, hide);
+        if (alsoHide == null)
+        {
+            return;
+        }
+        for (final Entity entity : alsoHide)
+        {
+            change(observer, entity, plugin, hide);
         }
     }
 

@@ -104,6 +104,59 @@ public final class MaterialGroupRegistry
     }
 
     /**
+     * Reads one configured material group, or says why it cannot be used.
+     *
+     * <p>Three separate refusals, each worth its own message to whoever wrote the config: the
+     * entry is not a mapping at all; it has no readable structure material; or its structure
+     * material is already another group's. That last one matters because a frame material is
+     * how a gate is identified -- two groups claiming obsidian would make every obsidian gate
+     * ambiguous, so the second one is dropped rather than allowed to shadow the first.
+     *
+     * @param entry
+     *            one group's name and its mapping of materials
+     * @param claimed
+     *            the structure materials already taken by earlier groups
+     * @return the group, or null if it cannot be used
+     */
+    private static MaterialGroup readGroup(final Map.Entry<String, Object> entry,
+        final Map<Material, MaterialGroup> claimed)
+    {
+        final String groupName = entry.getKey();
+        if (!(entry.getValue() instanceof Map))
+        {
+            warn(GROUP_PREFIX + groupName + "\" is not a mapping of materials; skipping.");
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> values = (Map<String, Object>) entry.getValue();
+
+        final Material structure = parseMaterial(groupName, "structure", values.get("structure"));
+        if (structure == null)
+        {
+            warn(GROUP_PREFIX + groupName + "\" has no readable structure material; skipping.");
+            return null;
+        }
+        if (claimed.containsKey(structure))
+        {
+            warn(GROUP_PREFIX + groupName + "\" uses structure material " + structure
+                + ", already claimed by \"" + claimed.get(structure).getName()
+                + "\". A frame material identifies exactly one group, so this group is unavailable.");
+            return null;
+        }
+
+        final Material portal = defaulted(parseMaterial(groupName, "portal", values.get("portal")), Material.WATER);
+        final Material iris = defaulted(parseMaterial(groupName, "iris", values.get("iris")), Material.STONE);
+        final Material light = defaulted(parseMaterial(groupName, "light", values.get("light")), Material.GLOWSTONE);
+        final Material sign = defaulted(parseMaterial(groupName, "sign", values.get("sign")), Material.OAK_WALL_SIGN);
+        // Left null when absent rather than defaulted like the rest. A default here would
+        // silently widen what detection accepts as a gate frame for every server that has
+        // never asked for distinct chevrons.
+        final Material chevron = parseMaterial(groupName, "chevron", values.get("chevron"));
+
+        return new MaterialGroup(groupName, structure, portal, iris, light, sign, chevron);
+    }
+
+    /**
      * Loads groups from the {@code gate-material-groups} section of config.yml.
      *
      * <p>Each entry is a group name mapped to its materials, for example:
@@ -135,44 +188,12 @@ public final class MaterialGroupRegistry
         {
             for (final Map.Entry<String, Object> entry : section.entrySet())
             {
-                final String groupName = entry.getKey();
-                if (!(entry.getValue() instanceof Map))
+                final MaterialGroup group = readGroup(entry, byMaterial);
+                if (group != null)
                 {
-                    warn(GROUP_PREFIX + groupName + "\" is not a mapping of materials; skipping.");
-                    continue;
-                }
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> values = (Map<String, Object>) entry.getValue();
-
-                final Material structure = parseMaterial(groupName, "structure", values.get("structure"));
-                if (structure == null)
-                {
-                    warn(GROUP_PREFIX + groupName + "\" has no readable structure material; skipping.");
-                    continue;
-                }
-                if (byMaterial.containsKey(structure))
-                {
-                    warn(GROUP_PREFIX + groupName + "\" uses structure material " + structure
-                        + ", already claimed by \"" + byMaterial.get(structure).getName()
-                        + "\". A frame material identifies exactly one group, so this group is unavailable.");
-                    continue;
-                }
-
-                final Material portal = defaulted(parseMaterial(groupName, "portal", values.get("portal")), Material.WATER);
-                final Material iris = defaulted(parseMaterial(groupName, "iris", values.get("iris")), Material.STONE);
-                final Material light = defaulted(parseMaterial(groupName, "light", values.get("light")), Material.GLOWSTONE);
-                final Material sign = defaulted(parseMaterial(groupName, "sign", values.get("sign")), Material.OAK_WALL_SIGN);
-                // Left null when absent rather than defaulted like the rest. A default here
-                // would silently widen what detection accepts as a gate frame for every
-                // server that has never asked for distinct chevrons.
-                final Material chevron = parseMaterial(groupName, "chevron", values.get("chevron"));
-
-                final MaterialGroup group = new MaterialGroup(groupName, structure, portal, iris, light, sign, chevron);
-                byName.put(groupName.toLowerCase(Locale.ROOT), group);
-                byMaterial.put(structure, group);
-                if (first == null)
-                {
-                    first = group;
+                    byName.put(group.getName().toLowerCase(Locale.ROOT), group);
+                    byMaterial.put(group.getStructureMaterial(), group);
+                    first = (first == null) ? group : first;
                 }
             }
         }

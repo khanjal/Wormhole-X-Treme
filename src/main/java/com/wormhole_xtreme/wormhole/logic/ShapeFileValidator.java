@@ -160,30 +160,28 @@ public final class ShapeFileValidator
             {
                 currentLayer = "Layer#" + headerMatch.group(1);
                 rowInLayer = 0;
-                continue;
             }
-            if (!line.startsWith("["))
+            else if (line.startsWith("["))
             {
-                continue;
+                final Matcher m = CELL.matcher(line);
+                int count = 0;
+                while (m.find())
+                {
+                    count++;
+                }
+                if (width == null)
+                {
+                    width = count;
+                }
+                else if (count != width)
+                {
+                    problems.add((currentLayer == null ? "the ring shape" : currentLayer) + " row "
+                        + rowInLayer + " has " + count + " cells, not " + width
+                        + " -- a block was likely dropped or added while editing, and every "
+                        + "column after the gap is shifted for the rest of that row");
+                }
+                rowInLayer++;
             }
-            final Matcher m = CELL.matcher(line);
-            int count = 0;
-            while (m.find())
-            {
-                count++;
-            }
-            if (width == null)
-            {
-                width = count;
-            }
-            else if (count != width)
-            {
-                problems.add((currentLayer == null ? "the ring shape" : currentLayer) + " row "
-                    + rowInLayer + " has " + count + " cells, not " + width
-                    + " -- a block was likely dropped or added while editing, and every "
-                    + "column after the gap is shifted for the rest of that row");
-            }
-            rowInLayer++;
         }
         return problems;
     }
@@ -406,24 +404,40 @@ public final class ShapeFileValidator
         final List<String> problems = new ArrayList<String>();
         for (final String rawLine : fileLines)
         {
-            final String line = rawLine.trim();
-            if (line.startsWith("#"))
+            final String problem = unresolvableMaterialOn(rawLine);
+            if (problem != null)
             {
-                continue;
-            }
-            final Matcher m = MATERIAL_LINE.matcher(line);
-            if (!m.matches())
-            {
-                continue;
-            }
-            final String key = m.group(1);
-            final String value = m.group(2).trim();
-            if (Stargate3DShape.parseMaterialName(value) == null)
-            {
-                problems.add(key + "=" + value + " does not name a material that exists "
-                    + "in this server's Minecraft version");
+                problems.add(problem);
             }
         }
         return problems;
+    }
+
+    /**
+     * What is wrong with one line's material, if the line names one at all.
+     *
+     * @param rawLine
+     *            the line as read
+     * @return the problem to report, or null if there is nothing wrong with this line
+     */
+    private static String unresolvableMaterialOn(final String rawLine)
+    {
+        final String line = rawLine.trim();
+        if (line.startsWith("#"))
+        {
+            return null;
+        }
+        final Matcher m = MATERIAL_LINE.matcher(line);
+        if (!m.matches())
+        {
+            return null;
+        }
+        final String value = m.group(2).trim();
+        if (Stargate3DShape.parseMaterialName(value) != null)
+        {
+            return null;
+        }
+        return m.group(1) + "=" + value + " does not name a material that exists "
+            + "in this server's Minecraft version";
     }
 }

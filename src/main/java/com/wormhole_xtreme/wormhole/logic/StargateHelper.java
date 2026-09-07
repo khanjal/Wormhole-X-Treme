@@ -626,17 +626,42 @@ public final class StargateHelper
         for (final Integer[] pos : layer.getLayerBlockPositions())
         {
             final org.bukkit.Material found = frame.blockAt(layerIdx, pos).getType();
-            if (found == structMat)
+            if (!cellMatches(found, pos, litCells, structMat, chevronMat))
             {
-                continue;
+                return false;
             }
-            if ((chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos)))
-            {
-                continue;
-            }
-            return false;
         }
         return true;
+    }
+
+    /**
+     * Whether one frame cell is made of something this shape accepts there.
+     *
+     * <p>The frame material always does. A chevron material only does where the shape says a
+     * chevron lights, so a gate built with chevron blocks scattered through the frame is not
+     * mistaken for one built correctly.
+     *
+     * @param found
+     *            what is actually there
+     * @param pos
+     *            the cell's position in the layer
+     * @param litCells
+     *            the cells this layer lights as chevrons
+     * @param structMat
+     *            the frame material
+     * @param chevronMat
+     *            the chevron material, or null if the shape has none
+     * @return true if the cell matches
+     */
+    private static boolean cellMatches(final org.bukkit.Material found, final Integer[] pos,
+        final java.util.Set<Long> litCells, final org.bukkit.Material structMat,
+        final org.bukkit.Material chevronMat)
+    {
+        if (found == structMat)
+        {
+            return true;
+        }
+        return (chevronMat != null) && (found == chevronMat) && litCells.contains(cellKey(pos));
     }
 
     /**

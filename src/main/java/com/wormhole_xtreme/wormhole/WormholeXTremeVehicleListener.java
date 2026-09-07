@@ -370,33 +370,57 @@ class WormholeXTremeVehicleListener implements Listener
         int remaining = 0;
         for (int i = 0; i < children.size(); i++)
         {
-            if (attached[i])
+            if (stillUnseated(parents, children, attached, i))
             {
-                continue;
-            }
-            final Entity child = children.get(i);
-            try
-            {
-                if (!child.isValid())
-                {
-                    continue;
-                }
-                if (attachOne(parents.get(i), child))
-                {
-                    attached[i] = true;
-                }
-                else
-                {
-                    remaining++;
-                }
-            }
-            catch (final RuntimeException t)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
                 remaining++;
             }
         }
         return remaining;
+    }
+
+    /**
+     * Tries to seat one passenger.
+     *
+     * <p>A passenger already aboard, or one that is no longer valid, is not counted as
+     * remaining: there is nothing left to do for either, and counting them would keep the
+     * retry running for a rider that has gone.
+     *
+     * @param parents
+     *            what each passenger should be riding
+     * @param children
+     *            the passengers
+     * @param attached
+     *            which of them are aboard already, updated as they are seated
+     * @param i
+     *            which passenger
+     * @return true if it still needs a seat and is worth trying again
+     */
+    private static boolean stillUnseated(final List<Entity> parents, final List<Entity> children,
+        final boolean[] attached, final int i)
+    {
+        if (attached[i])
+        {
+            return false;
+        }
+        final Entity child = children.get(i);
+        try
+        {
+            if (!child.isValid())
+            {
+                return false;
+            }
+            if (attachOne(parents.get(i), child))
+            {
+                attached[i] = true;
+                return false;
+            }
+            return true;
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception reattaching passenger: " + t.getMessage());
+            return true;
+        }
     }
 
     /** Seats one passenger, retrying once with a position sync if the first attempt is refused. */

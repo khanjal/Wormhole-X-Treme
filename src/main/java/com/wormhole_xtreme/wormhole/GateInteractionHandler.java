@@ -844,26 +844,47 @@ final class GateInteractionHandler
     {
         for (final BlockFace face : probeFaces(candidate))
         {
-            // The dial hangs on a frame block, so if the block behind it is not a frame
-            // material no shape can match here.
-            final Block holder = candidate.getRelative(WorldUtils.getInverseDirection(face));
-            if (holder == null || !StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
+            final Stargate found = unregisteredGateFacing(candidate, face);
+            if (found != null)
             {
-                continue;
+                return found;
             }
-            final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
-            if (nearbyGate == null)
-            {
-                continue;
-            }
-            final Block nearbyDial = nearbyGate.getGateDialLeverBlock();
-            if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
-            {
-                continue;
-            }
-            return nearbyGate;
         }
         return null;
+    }
+
+    /**
+     * The unregistered gate this block would be the dial of, looking one way.
+     *
+     * <p>Three separate reasons for there to be nothing here: the block behind is not frame
+     * material so no shape can match; no shape matches anyway; or a shape matches but its
+     * dial already belongs to a gate that is registered, which makes this a known gate rather
+     * than a found one.
+     *
+     * @param candidate
+     *            a block that could be a dial
+     * @param face
+     *            the direction to look
+     * @return the gate, or null
+     */
+    private static Stargate unregisteredGateFacing(final Block candidate, final BlockFace face)
+    {
+        final Block holder = candidate.getRelative(WorldUtils.getInverseDirection(face));
+        if ((holder == null) || !StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
+        {
+            return null;
+        }
+        final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
+        if (nearbyGate == null)
+        {
+            return null;
+        }
+        final Block nearbyDial = nearbyGate.getGateDialLeverBlock();
+        if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
+        {
+            return null;
+        }
+        return nearbyGate;
     }
 
     /**
