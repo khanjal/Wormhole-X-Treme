@@ -4,14 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -131,7 +131,7 @@ class ChevronLightingTest
             StargateAnimator.lightStargate(gate, false);
 
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(any(Stargate.class), any()),
-                org.mockito.Mockito.times(3));
+                times(3));
         }
     }
 
@@ -168,7 +168,7 @@ class ChevronLightingTest
             // prove nothing: carrying on reaches the last wave and resets to 0 too, so both
             // paths leave the same number behind. Putting the lights away is what differs.
             blocks.verify(() -> StargateBlockSetup.undrawBlocks(any(Stargate.class), any()),
-                org.mockito.Mockito.atLeastOnce());
+                atLeastOnce());
         }
         assertEquals(0, gate.getGateLightingCurrentIteration());
         assertFalse(gate.isGateLightsActive());
