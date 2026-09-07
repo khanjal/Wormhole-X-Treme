@@ -730,7 +730,7 @@ final class GateInteractionHandler
      *            the clicking player
      * @return true if a candidate gate was found and the player was told about it
      */
-    private static boolean findGateFromNearbyDial(final Block clickedBlock, final Player player)
+    static boolean findGateFromNearbyDial(final Block clickedBlock, final Player player)
     {
         final org.bukkit.World world = clickedBlock.getWorld();
         for (int dx = -1; dx <= 1; dx++)
