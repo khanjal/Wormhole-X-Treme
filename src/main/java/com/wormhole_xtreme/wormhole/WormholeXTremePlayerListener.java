@@ -420,88 +420,41 @@ class WormholeXTremePlayerListener implements Listener
         {
             return false;
         }
-        String gatenetwork;
-        if (stargate.getGateNetwork() != null)
-        {
-            gatenetwork = stargate.getGateNetwork().getNetworkName();
-        }
-        else
-        {
-            gatenetwork = "Public";
-        }
-        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player in gate:" + stargate.getGateName() + " gate Active: " + stargate.isGateActive() + " Target Gate: " + stargate.getGateTarget().getGateName() + " Network: " + gatenetwork);
+        logTravelAttempt(stargate);
 
         // Refill the player's air while they stand in the portal so a water-material
         // gate does not drown them. Cosmetic, so a failure is not worth reporting.
         try { player.setRemainingAir(player.getMaximumAir()); } catch (final RuntimeException ignore) { /* best effort */ }
 
-        if (ConfigManager.getWormholeUseIsTeleport() && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN)) || ( !stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
+        if (refusedBeforeTravel(player, stargate))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return false;
         }
-
-        // Prevent immediate re-entry to the gate the player just exited from.
+        // Its own answer, because being turned away at the door is a cancelled move rather
+        // than a permitted one that went nowhere.
         if (com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.isPlayerRecentArrivalFrom(player, stargate))
         {
             return refuseGateEntry(player, stargate);
         }
 
-        if (ConfigManager.isUseCooldownEnabled())
+        // Affordability is checked here so the player is turned away for the right reason
+        // and in the right order, but the money does not move until the trip is certain.
+        final double pendingUseCost = affordableFare(player);
+        if (pendingUseCost < 0)
         {
-            if (StargateRestrictions.isPlayerUseCooldown(player))
-            {
-                player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
-                player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString() + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
-                return false;
-            }
-            // Not applied here: the cooldown is set once the traveller has actually
-            // gone, further down. Setting it at the check as well spent the player's
-            // cooldown on a trip that had not happened yet and might still not.
-        }
-
-        // Affordability is checked here so the player is turned away for the right
-        // reason and in the right order, but the money does not move until the trip is
-        // certain: a listener may still stop it, and charging for a journey that never
-        // happened is the one outcome nobody can argue is correct.
-        double pendingUseCost = 0.0;
-        if (ConfigManager.isEconomyEnabled() && com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
-        {
-            final double useCost = ConfigManager.getEconomyUseCost();
-            if (useCost > 0)
-            {
-                if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
-                    return false;
-                }
-                pendingUseCost = useCost;
-            }
+            return false;
         }
 
         if (stargate.getGateTarget().isGateIrisActive())
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is locked!");
-            player.setNoDamageTicks(5);
-            event.setFrom(stargate.getGatePlayerTeleportLocation());
-            event.setTo(stargate.getGatePlayerTeleportLocation());
-            player.teleport(stargate.getGatePlayerTeleportLocation());
-            return true;
+            return bounceOffRemoteIris(event, player, stargate);
         }
 
         final Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
-
-        if (ConfigManager.isSameWorldOnly())
+        if (refusedForCrossWorld(player, gateBlockFinal, target))
         {
-            final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
-            if (targetWorld != null && !gateBlockFinal.getWorld().equals(targetWorld))
-            {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Cross-world travel is disabled on this server.");
-                player.setNoDamageTicks(5);
-                return false;
-            }
+            return false;
         }
-
         final Location safeTarget = WorldUtils.findSafePlayerLocation(target);
 
         // Every check this plugin makes has passed and nothing has moved yet, which is
@@ -513,13 +466,157 @@ class WormholeXTremePlayerListener implements Listener
         }
 
         // Travel is settled, so the fare can be taken.
-        if (pendingUseCost > 0)
-        {
-            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, pendingUseCost);
-            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
-                + pendingUseCost + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(pendingUseCost));
-        }
+        chargeFare(player, pendingUseCost);
         return performGateTeleport(event, player, stargate, target, safeTarget);
+    }
+
+    /**
+     * Notes who walked into what, for anyone reading the log after the fact.
+     *
+     * @param stargate
+     *            the gate they entered
+     */
+    private static void logTravelAttempt(final Stargate stargate)
+    {
+        final String gatenetwork = (stargate.getGateNetwork() != null)
+            ? stargate.getGateNetwork().getNetworkName() : "Public";
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player in gate:" + stargate.getGateName()
+            + " gate Active: " + stargate.isGateActive()
+            + " Target Gate: " + stargate.getGateTarget().getGateName()
+            + " Network: " + gatenetwork);
+    }
+
+    /**
+     * Whether this player may not use this gate right now, having been told why.
+     *
+     * <p>The permission asked for depends on how the gate is dialled: a sign-powered gate
+     * belongs to whoever may use signs, anything else to whoever may use a dialler.
+     *
+     * @param player
+     *            the traveller
+     * @param stargate
+     *            the gate they entered
+     * @return true if they were refused and told so
+     */
+    private static boolean refusedBeforeTravel(final Player player, final Stargate stargate)
+    {
+        if (ConfigManager.getWormholeUseIsTeleport()
+            && ((stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.SIGN))
+                || (!stargate.isGateSignPowered() && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DIALER))))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return true;
+        }
+        if (ConfigManager.isUseCooldownEnabled() && StargateRestrictions.isPlayerUseCooldown(player))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_RESTRICTED.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PLAYER_USE_COOLDOWN_WAIT_TIME.toString()
+                + StargateRestrictions.checkPlayerUseCooldownRemaining(player));
+            return true;
+        }
+        // The cooldown is not spent here. It is set once the traveller has actually gone,
+        // further down: spending it at the check charged a player for a trip that had not
+        // happened yet and might still not.
+        return false;
+    }
+
+    /**
+     * What this trip will cost, if the player can afford it.
+     *
+     * @param player
+     *            the traveller
+     * @return the fare to take once the trip is certain, 0 if there is none, or -1 if they
+     *         cannot afford it and have been told so
+     */
+    private static double affordableFare(final Player player)
+    {
+        if (!ConfigManager.isEconomyEnabled() || !com.wormhole_xtreme.wormhole.plugin.EconomySupport.isAvailable())
+        {
+            return 0.0;
+        }
+        final double useCost = ConfigManager.getEconomyUseCost();
+        if (useCost <= 0)
+        {
+            return 0.0;
+        }
+        if (!com.wormhole_xtreme.wormhole.plugin.EconomySupport.canAfford(player, useCost))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_INSUFFICIENT_FUNDS.toString());
+            return -1.0;
+        }
+        return useCost;
+    }
+
+    /**
+     * Takes the fare, now that the trip has actually happened.
+     *
+     * @param player
+     *            the traveller
+     * @param fare
+     *            what they owe, 0 for nothing
+     */
+    private static void chargeFare(final Player player, final double fare)
+    {
+        if (fare > 0)
+        {
+            com.wormhole_xtreme.wormhole.plugin.EconomySupport.charge(player, fare);
+            player.sendMessage(ConfigManager.MessageStrings.ECONOMY_CHARGED.toString()
+                + fare + " " + com.wormhole_xtreme.wormhole.plugin.EconomySupport.currencyName(fare));
+        }
+    }
+
+    /**
+     * Puts a traveller back where they started, because the far end is shut.
+     *
+     * <p>An iris is the one thing a gate owner has to keep somebody out, so a closed one has
+     * to stop the trip rather than let it through.
+     *
+     * @param event
+     *            the move that carried them in
+     * @param player
+     *            the traveller
+     * @param stargate
+     *            the gate they entered
+     * @return true, the move is cancelled
+     */
+    private static boolean bounceOffRemoteIris(final PlayerMoveEvent event, final Player player,
+                                               final Stargate stargate)
+    {
+        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Remote Iris is locked!");
+        player.setNoDamageTicks(5);
+        event.setFrom(stargate.getGatePlayerTeleportLocation());
+        event.setTo(stargate.getGatePlayerTeleportLocation());
+        player.teleport(stargate.getGatePlayerTeleportLocation());
+        return true;
+    }
+
+    /**
+     * Whether this trip crosses worlds on a server that does not allow it.
+     *
+     * @param player
+     *            the traveller
+     * @param gateBlockFinal
+     *            the portal block they are standing in
+     * @param target
+     *            where they would arrive
+     * @return true if they were refused and told so
+     */
+    private static boolean refusedForCrossWorld(final Player player, final Block gateBlockFinal,
+                                                final Location target)
+    {
+        if (!ConfigManager.isSameWorldOnly())
+        {
+            return false;
+        }
+        final org.bukkit.World targetWorld = (target != null) ? target.getWorld() : null;
+        if ((targetWorld != null) && !gateBlockFinal.getWorld().equals(targetWorld))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "Cross-world travel is disabled on this server.");
+            player.setNoDamageTicks(5);
+            return true;
+        }
+        return false;
     }
 
     /**
