@@ -201,11 +201,11 @@ public class ConfigurationYAML
         }
     }
 
-    /** The section every Setting is filed under; the same name for all of them. */
     /** Runs once per paragraph when a description is wrapped, so it is compiled once. */
     private static final java.util.regex.Pattern WHITESPACE =
         java.util.regex.Pattern.compile("\\s+");
 
+    /** The section every Setting is filed under; the same name for all of them. */
     private static final String SETTING_SECTION = "WormholeXTreme";
 
     /** The config.yml key holding the nested material-group definitions. */
