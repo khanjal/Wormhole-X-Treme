@@ -6,7 +6,6 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -23,68 +22,94 @@ public class RegenerateCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        // Gate management was never actually gated: none of these commands checked a
-        // permission at all, so any player able to run /wormhole could reconfigure or
-        // reassign any gate on the server. wormhole.config is what an admin already needs
-        // for /wormhole config, so it is reused here rather than inventing a second
-        // admin-only node that would mean the same thing.
+        if (refusedForPermissions(sender))
+        {
+            return true;
+        }
+        if (args.length < 2)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
+            return false;
+        }
+        if ("-all".equalsIgnoreCase(args[1]))
+        {
+            return regenerateAllExits(sender);
+        }
+
+        final Stargate s = StargateManager.getStargate(args[1]);
+        if (s == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_INVALID.toString()
+                + "\"" + args[1] + "\"");
+            return true;
+        }
+        regenerateOneGate(sender, s);
+        return true;
+    }
+
+    /**
+     * Whether this sender may not regenerate gates.
+     *
+     * <p>Gate management was never actually gated: none of these commands checked a
+     * permission at all, so any player able to run /wormhole could reconfigure or reassign
+     * any gate on the server. wormhole.config is what an admin already needs for
+     * /wormhole config, so it is reused rather than inventing a second node meaning the same
+     * thing. The console is not a player and is not asked.
+     *
+     * @param sender
+     *            who is asking
+     * @return true if they were refused and told so
+     */
+    private static boolean refusedForPermissions(final CommandSender sender)
+    {
         if ((sender instanceof Player player)
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
+        return false;
+    }
 
-        if (args.length >= 2)
+    /**
+     * Redoes everything about one gate an admin is looking at.
+     *
+     * <p>Wider than the {@code -all} sweep on purpose: levers, redstone and the sign are all
+     * reasonable to redo on a single gate somebody is actively debugging, and none of them
+     * reasonable to rewrite silently across a whole server.
+     *
+     * @param sender
+     *            who to tell
+     * @param s
+     *            the gate
+     */
+    private static void regenerateOneGate(final CommandSender sender, final Stargate s)
+    {
+        // The exit is worked out once when a gate is built and then stored, so a gate that
+        // landed travellers at its side kept doing it for ever. This is the command people
+        // already reach for when a gate is misbehaving, so it is where the fix belongs.
+        if (s.recomputeGatePlayerTeleportLocation())
         {
-            if ("-all".equalsIgnoreCase(args[1]))
-            {
-                return regenerateAllExits(sender);
-            }
-            final Stargate s = StargateManager.getStargate(args[1]);
-            if (s != null)
-            {
-                if ((s.getGateShape() != null) && StargateHelper.isStargateShape(s.getGateShape().getShapeName()))
-                {
-                    // Shape format (2D/3D) is determined at load time; no runtime upgrade needed.
-                }
-                // The exit is worked out once when a gate is built and then stored, so a
-                // gate that landed travellers at its side kept doing it for ever. This is
-                // the command people already reach for when a gate is misbehaving, so it is
-                // where the fix belongs.
-                if (s.recomputeGatePlayerTeleportLocation())
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                        + "Arrival point recomputed for " + s.getGateName() + ".");
-                }
-                s.toggleDialLeverState(true);
-                if ((s.getGateIrisDeactivationCode() != null) && (!s.getGateIrisDeactivationCode().isEmpty()))
-                {
-                    s.setupIrisLever(true);
-                }
-                if (s.isGateRedstonePowered())
-                {
-                    s.setupRedstone(true);
-                }
-                s.setupGateSign(true);
-                s.matchDialSignMaterial();
-                if (s.isGateSignPowered() && s.getGateDialSignBlock() != null)
-                {
-                    StargateManager.refreshTeleportSign(s, true);
-                }
-                sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Regenerating Gate: " + s.getGateName());
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_INVALID.toString() + "\"" + args[1] + "\"");
-            }
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + "Arrival point recomputed for " + s.getGateName() + ".");
         }
-        else
+        s.toggleDialLeverState(true);
+        if ((s.getGateIrisDeactivationCode() != null) && !s.getGateIrisDeactivationCode().isEmpty())
         {
-            sender.sendMessage(ConfigManager.MessageStrings.GATE_NOT_SPECIFIED.toString());
-            return false;
+            s.setupIrisLever(true);
         }
-        return true;
+        if (s.isGateRedstonePowered())
+        {
+            s.setupRedstone(true);
+        }
+        s.setupGateSign(true);
+        s.matchDialSignMaterial();
+        if (s.isGateSignPowered() && (s.getGateDialSignBlock() != null))
+        {
+            StargateManager.refreshTeleportSign(s, true);
+        }
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + "Regenerating Gate: " + s.getGateName());
     }
 
     /**

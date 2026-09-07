@@ -6,7 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Beaming was undocumented outside its permission nodes
 
-Gates and rings each have a section in this README running to hundreds of lines. Beaming had
+Gates and rings each have a README section running to hundreds of lines. Beaming had
 thirteen mentions, all of them inside the Permissions list. There was no description of what a
 beam destination is, no list of the `/wormhole beam` commands, and no table of the settings --
 so `beam-teleport-at-step` and the rest existed, worked, and were discoverable only by reading

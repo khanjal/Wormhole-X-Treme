@@ -22,6 +22,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.mockito.MockedStatic;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
 import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
@@ -301,5 +304,95 @@ class PlayerTravelEventTest
 
         assertDoesNotThrow(() -> walkIn());
         verify(player).teleport(any(Location.class));
+    }
+
+    /**
+     * A cancelled trip is not charged for.
+     *
+     * <p>Affordability is checked before anything moves, so the traveller is turned away for
+     * the right reason and in the right order -- but the money must not leave until the trip
+     * is certain. A listener can still stop it, and charging for a journey that never
+     * happened is the one outcome nobody can argue is correct. The code says so in a comment;
+     * nothing was holding it.
+     */
+    @Test
+    void aCancelledTripTakesNoFare()
+    {
+        try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
+             MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            config.when(ConfigManager::isEconomyEnabled).thenReturn(true);
+            config.when(ConfigManager::getEconomyUseCost).thenReturn(5.0);
+            economy.when(EconomySupport::isAvailable).thenReturn(true);
+            economy.when(() -> EconomySupport.canAfford(any(), anyDouble())).thenReturn(true);
+
+            GateEvents.setDispatcherForTest(event ->
+            {
+                raised.add(event);
+                if (event instanceof org.bukkit.event.Cancellable cancellable)
+                {
+                    cancellable.setCancelled(true);
+                }
+            });
+
+            walkIn();
+
+            economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
+        }
+    }
+
+    /** A trip that goes ahead is charged for. */
+    @Test
+    void aCompletedTripTakesTheFare()
+    {
+        try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
+             MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            config.when(ConfigManager::isEconomyEnabled).thenReturn(true);
+            config.when(ConfigManager::getEconomyUseCost).thenReturn(5.0);
+            economy.when(EconomySupport::isAvailable).thenReturn(true);
+            economy.when(() -> EconomySupport.canAfford(any(), anyDouble())).thenReturn(true);
+
+            walkIn();
+
+            economy.verify(() -> EconomySupport.charge(player, 5.0));
+        }
+    }
+
+    /**
+     * A closed iris at the far end puts the traveller back where they started.
+     *
+     * <p>An iris is the one thing a gate owner has to keep somebody out, so walking into a
+     * gate whose far end is shut must not put them through it.
+     */
+    @Test
+    void aClosedRemoteIrisSendsTheTravellerBack()
+    {
+        destination.setGateIrisActive(true);
+
+        walkIn();
+
+        verify(player).teleport(origin.getGatePlayerTeleportLocation());
+        verify(player, never()).teleport(destination.getGatePlayerTeleportLocation());
+    }
+
+    /** A traveller who cannot pay is turned away rather than moved and billed. */
+    @Test
+    void aTravellerWhoCannotPayDoesNotTravel()
+    {
+        try (MockedStatic<ConfigManager> config = mockStatic(ConfigManager.class, CALLS_REAL_METHODS);
+             MockedStatic<EconomySupport> economy = mockStatic(EconomySupport.class))
+        {
+            config.when(ConfigManager::isEconomyEnabled).thenReturn(true);
+            config.when(ConfigManager::getEconomyUseCost).thenReturn(5.0);
+            economy.when(EconomySupport::isAvailable).thenReturn(true);
+            economy.when(() -> EconomySupport.canAfford(any(), anyDouble())).thenReturn(false);
+
+            walkIn();
+
+            economy.verify(() -> EconomySupport.charge(any(), anyDouble()), never());
+            verify(player, never()).teleport(destination.getGatePlayerTeleportLocation());
+            assertTrue(raised.isEmpty(), "nobody is asked about a trip that is not affordable");
+        }
     }
 }
