@@ -577,40 +577,103 @@ public final class SubCommands
         }
         if ("admin".equals(noun))
         {
-            if (args.length == 3) return prefixed(args[2], "set", "remove", "cost", "goto", "send");
-            final String action = args[2].toLowerCase(Locale.ROOT);
-            if (args.length == 4)
-            {
-                if ("remove".equals(action) || "cost".equals(action)) return publicBeamNames(args[3]);
-                // goto's only argument is a destination: a player, a public destination name,
-                // or the first of three coordinates -- coordinates would not match a name
-                // prefix anyway, so offering names here does no harm on the numeric path.
-                if ("goto".equals(action)) return playerOrDestinationNames(args[3]);
-                // send's first argument is different in kind: the player being *moved*, who
-                // has to be an actual online player. A destination name would be meaningless
-                // in this slot, so only players are offered.
-                if ("send".equals(action)) return playerNames(args[3]);
-            }
-            if (args.length == 5)
-            {
-                if ("cost".equals(action)) return prefixed(args[4], "default");
-                // send's destination, one token in -- same shape as goto's above.
-                if ("send".equals(action)) return playerOrDestinationNames(args[4]);
-            }
-            // The trailing [world] slot after a full set of raw coordinates -- goto's sits
-            // one token earlier than send's, since send has an extra token (the player being
-            // moved) ahead of its own destination. Offered unconditionally at that position
-            // rather than only once the earlier tokens are confirmed numeric: the same
-            // lightweight, position-based approach completion already takes everywhere else
-            // in this method, not a full parse of what was typed.
-            if ("goto".equals(action) && (args.length == 7)) return worldNames(args[6]);
-            if ("send".equals(action) && (args.length == 8)) return worldNames(args[7]);
-            return none();
+            return completeBeamAdmin(args);
         }
         if ("place".equals(noun))
         {
-            if (args.length == 3) return prefixed(args[2], "list", "set", "remove");
-            return none();
+            return args.length == 3 ? prefixed(args[2], "list", "set", "remove") : none();
+        }
+        return none();
+    }
+
+    /**
+     * Completions for {@code /wormhole beam admin <action> ...}.
+     *
+     * @param args
+     *            the full argument array, {@code beam} at index 0
+     * @return the candidates
+     */
+    private static List<String> completeBeamAdmin(final String[] args)
+    {
+        if (args.length == 3)
+        {
+            return prefixed(args[2], "set", "remove", "cost", "goto", "send");
+        }
+        final String action = args[2].toLowerCase(Locale.ROOT);
+        if (args.length == 4)
+        {
+            return beamAdminFirstArgument(action, args[3]);
+        }
+        if (args.length == 5)
+        {
+            if ("cost".equals(action))
+            {
+                return prefixed(args[4], "default");
+            }
+            // send's destination, one token in -- same shape as goto's first argument.
+            if ("send".equals(action))
+            {
+                return playerOrDestinationNames(args[4]);
+            }
+        }
+        return beamAdminWorldSlot(action, args);
+    }
+
+    /**
+     * The one word directly after an admin action.
+     *
+     * @param action
+     *            the admin action, lower-cased
+     * @param typed
+     *            what has been typed in that slot
+     * @return the candidates
+     */
+    private static List<String> beamAdminFirstArgument(final String action, final String typed)
+    {
+        if ("remove".equals(action) || "cost".equals(action))
+        {
+            return publicBeamNames(typed);
+        }
+        // goto's only argument is a destination: a player, a public destination name, or the
+        // first of three coordinates -- coordinates would not match a name prefix anyway, so
+        // offering names here does no harm on the numeric path.
+        if ("goto".equals(action))
+        {
+            return playerOrDestinationNames(typed);
+        }
+        // send's first argument is different in kind: the player being *moved*, who has to be
+        // an actual online player. A destination name would be meaningless in this slot, so
+        // only players are offered.
+        if ("send".equals(action))
+        {
+            return playerNames(typed);
+        }
+        return none();
+    }
+
+    /**
+     * The trailing {@code [world]} slot after a full set of raw coordinates.
+     *
+     * <p>goto's sits one token earlier than send's, since send has an extra token -- the
+     * player being moved -- ahead of its own destination. Offered on position alone rather
+     * than only once the earlier tokens are confirmed numeric: the same lightweight approach
+     * completion already takes everywhere else here, not a full parse of what was typed.
+     *
+     * @param action
+     *            the admin action, lower-cased
+     * @param args
+     *            the full argument array
+     * @return the world names, or nothing if this is not that slot
+     */
+    private static List<String> beamAdminWorldSlot(final String action, final String[] args)
+    {
+        if ("goto".equals(action) && (args.length == 7))
+        {
+            return worldNames(args[6]);
+        }
+        if ("send".equals(action) && (args.length == 8))
+        {
+            return worldNames(args[7]);
         }
         return none();
     }
