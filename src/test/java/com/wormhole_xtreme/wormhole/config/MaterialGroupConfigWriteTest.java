@@ -134,4 +134,56 @@ class MaterialGroupConfigWriteTest
 
         assertArrayEquals(before, Files.readAllBytes(cfg.toPath()));
     }
+
+    /**
+     * A new group is written among the group definitions, not after the next key's comment.
+     *
+     * <p>Both placements parse, which is why the other tests here do not notice the
+     * difference -- but a group written below "# Some later key" reads as belonging to that
+     * key instead, and the next person to edit the file by hand has been misled.
+     *
+     * <p>Two things put it in the right place: the section is taken to end at the first line
+     * that is neither blank, nor a comment, nor indented, and then the insertion point steps
+     * back over any trailing blanks and comments so it lands with the definitions rather than
+     * after the header that follows them.
+     */
+    @Test
+    void aNewGroupIsWrittenAmongTheDefinitionsNotAfterTheNextKeysComment() throws Exception
+    {
+        final File cfg = new File(tempDir, "config.yml");
+        Files.write(cfg.toPath(), java.util.Arrays.asList(
+            "gate-material-groups:",
+            "  Standard:",
+            "    structure: OBSIDIAN",
+            "    iris: STONE",
+            "",
+            "# Some later key",
+            "log-level: INFO"));
+
+        assertTrue(ConfigurationYAML.appendMaterialGroups(cfg, diamond()));
+
+        final List<String> lines = Files.readAllLines(cfg.toPath(), StandardCharsets.UTF_8);
+        final int standardAt = indexOfLineStartingWith(lines, "  Standard:");
+        final int diamondAt = indexOfLineStartingWith(lines, "  Diamond:");
+        final int commentAt = indexOfLineStartingWith(lines, "# Some later key");
+
+        assertTrue(standardAt >= 0 && diamondAt >= 0 && commentAt >= 0,
+            "all three landmarks should still be in the file: " + lines);
+        assertTrue(standardAt < diamondAt, "a new group is added after the ones already there");
+        assertTrue(diamondAt < commentAt,
+            "and before the comment that introduces the next key, not after it");
+    }
+
+    /** @return the index of the first line starting with the given text, or -1 */
+    private static int indexOfLineStartingWith(final List<String> lines, final String prefix)
+    {
+        for (int i = 0; i < lines.size(); i++)
+        {
+            if (lines.get(i).startsWith(prefix))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
 }
