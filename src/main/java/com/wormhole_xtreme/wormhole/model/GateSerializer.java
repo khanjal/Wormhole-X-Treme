@@ -20,6 +20,10 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 public final class GateSerializer
 {
+    private static final String SIGN_UNREADABLE = "Unable to get sign for stargate: ";
+    private static final String SIGN_UNREADABLE_TAIL = " and will be unable to change dial target.";
+    private static final String TRAILING_BYTES = "While loading gate, not all byte data was read. This could be bad: ";
+
     private static final byte STARGATE_SAVE_VERSION = 9;
 
     private GateSerializer() {}
@@ -189,7 +193,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -278,7 +282,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -367,7 +371,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -473,7 +477,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -566,7 +570,7 @@ public final class GateSerializer
 
             if (byteBuff.remaining() > 0)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, TRAILING_BYTES + byteBuff.remaining());
             }
 
             return s;
@@ -620,7 +624,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -712,7 +716,7 @@ public final class GateSerializer
 
             if (byteBuff.remaining() > 0)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, TRAILING_BYTES + byteBuff.remaining());
             }
 
             return s;
@@ -838,7 +842,7 @@ public final class GateSerializer
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
         }
     }
 
@@ -1051,7 +1055,7 @@ public final class GateSerializer
     {
         if (byteBuff.remaining() > 0)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, TRAILING_BYTES + byteBuff.remaining());
         }
     }
 

@@ -54,6 +54,9 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class WormholeXTremePlayerListener implements Listener
 {
+    /** Part of the debug line naming what a click was. */
+    private static final String ACTION_TYPE = "\" Action Type: \"";
+
     
 
     private static boolean hasChangedBlockCoordinates(final Location fromLoc, final Location toLoc) {
@@ -890,16 +893,16 @@ class WormholeXTremePlayerListener implements Listener
     {
         if (event.getClickedBlock() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             if (GateInteractionHandler.handlePlayerInteractEvent(event))
             {
                 event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             }
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught and ignored Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught and ignored Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\"");
         }
     }
 

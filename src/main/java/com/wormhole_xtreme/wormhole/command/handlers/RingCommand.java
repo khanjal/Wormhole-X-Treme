@@ -41,6 +41,9 @@ import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 @SuppressWarnings("java:S3516")
 public class RingCommand implements SubCommand
 {
+    private static final String ALLOW = "allow";
+    private static final String NOT_YOUR_PAIR = "That is not your ring pair.";
+
     /* (non-Javadoc)
      * @see com.wormhole_xtreme.wormhole.command.SubCommand#execute(org.bukkit.command.CommandSender, java.lang.String[])
      */
@@ -75,9 +78,9 @@ public class RingCommand implements SubCommand
         {
             return edit(player, args);
         }
-        if ("allow".equals(verb) || "deny".equals(verb))
+        if (ALLOW.equals(verb) || "deny".equals(verb))
         {
-            return allowOrDeny(player, args, "allow".equals(verb));
+            return allowOrDeny(player, args, ALLOW.equals(verb));
         }
         if ("owner".equals(verb))
         {
@@ -508,7 +511,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair.");
+            player.sendMessage(NOT_YOUR_PAIR);
             return true;
         }
         RingManager.removePair(pair, ConfigManager.getRingReach());
@@ -559,7 +562,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair.");
+            player.sendMessage(NOT_YOUR_PAIR);
             return true;
         }
 
@@ -906,7 +909,7 @@ public class RingCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage("Usage: /wormhole ring " + (allowing ? "allow" : "deny") + " <player> [id]");
+            player.sendMessage("Usage: /wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]");
             return true;
         }
         final RingPair pair = target(player, args, 3);
@@ -916,7 +919,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair.");
+            player.sendMessage(NOT_YOUR_PAIR);
             return true;
         }
         final OfflinePlayer subject = findPlayer(args[2]);

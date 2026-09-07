@@ -221,6 +221,19 @@ nothing was logged.
 written. A byte carrying only the powered bit still says nothing about the facing, and still
 leaves it alone.
 
+### Repeated string literals are named now
+
+Twenty-seven literals were written out three to six times each -- subcommand names in the
+dispatch table, the two halves of the "Wormhole \"name\" cancelled." log lines, the YAML keys
+`World`, `Style` and `OwnerUUID`, the file-name sanitiser's character class.
+
+Renaming a subcommand or a YAML key meant finding every copy, and missing one was silent:
+the dispatch table would register `remove` and tab-complete something else.
+
+No behaviour change. `SubCommands` also gains a `TRUE` beside the `FALSE` the sweep asked
+for -- one of the pair spelled out and the other named reads like a mistake at every call
+site.
+
 ### A gate file that would not delete said nothing
 
 `removeStargate` called `delete()` and ignored the result, so a gate whose file could not be

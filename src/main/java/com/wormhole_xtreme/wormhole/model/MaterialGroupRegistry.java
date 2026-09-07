@@ -31,6 +31,8 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public final class MaterialGroupRegistry
 {
+    private static final String GROUP_PREFIX = "Material group \"";
+
     /** Groups by name, in declaration order. Replaced wholesale on load. */
     // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
     @SuppressWarnings("java:S3077")
@@ -136,7 +138,7 @@ public final class MaterialGroupRegistry
                 final String groupName = entry.getKey();
                 if (!(entry.getValue() instanceof Map))
                 {
-                    warn("Material group \"" + groupName + "\" is not a mapping of materials; skipping.");
+                    warn(GROUP_PREFIX + groupName + "\" is not a mapping of materials; skipping.");
                     continue;
                 }
                 @SuppressWarnings("unchecked")
@@ -145,12 +147,12 @@ public final class MaterialGroupRegistry
                 final Material structure = parseMaterial(groupName, "structure", values.get("structure"));
                 if (structure == null)
                 {
-                    warn("Material group \"" + groupName + "\" has no readable structure material; skipping.");
+                    warn(GROUP_PREFIX + groupName + "\" has no readable structure material; skipping.");
                     continue;
                 }
                 if (byMaterial.containsKey(structure))
                 {
-                    warn("Material group \"" + groupName + "\" uses structure material " + structure
+                    warn(GROUP_PREFIX + groupName + "\" uses structure material " + structure
                         + ", already claimed by \"" + byMaterial.get(structure).getName()
                         + "\". A frame material identifies exactly one group, so this group is unavailable.");
                     continue;
@@ -346,7 +348,7 @@ public final class MaterialGroupRegistry
         final Material m = Material.matchMaterial(raw.toString().trim().toUpperCase(Locale.ROOT));
         if (m == null)
         {
-            warn("Material group \"" + groupName + "\" has unrecognised " + key + " material \"" + raw + "\".");
+            warn(GROUP_PREFIX + groupName + "\" has unrecognised " + key + " material \"" + raw + "\".");
         }
         return m;
     }

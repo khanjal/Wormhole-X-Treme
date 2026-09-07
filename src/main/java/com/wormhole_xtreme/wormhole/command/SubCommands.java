@@ -25,6 +25,17 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 public final class SubCommands
 {
+    // Paired: Sonar only asks for FALSE, but one of the two spelled out and the
+    // other named reads like a mistake at every call site.
+    private static final String TRUE = "true";
+    private static final String FALSE = "false";
+    private static final String BUILD = "build";
+    private static final String REMOVE = "remove";
+    private static final String REGENERATE = "regenerate";
+    private static final String OWNER = "owner";
+    private static final String REDSTONE = "redstone";
+    private static final String LIGHT = "light";
+
     /**
      * Supplies tab-completion candidates for a subcommand's arguments.
      */
@@ -143,7 +154,7 @@ public final class SubCommands
     private static final ArgCompleter GATE_THEN_BOOLEAN = args ->
     {
         if (args.length == 2) return gateNames(args[1]);
-        if (args.length == 3) return prefixed(args[2], "true", "false");
+        if (args.length == 3) return prefixed(args[2], TRUE, FALSE);
         return none();
     };
 
@@ -155,12 +166,12 @@ public final class SubCommands
         // --- Gate lifecycle -------------------------------------------------
         register("list", aliases(), "/wormhole list [network]", new WXList(), true, args ->
             args.length == 2 ? networkNames(args[1]) : none());
-        register("build", aliases(), "/wormhole build <shape>", new Build(), true, null);
+        register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true, null);
         register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, args ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
-        register("remove", aliases("delete"), "/wormhole remove <gate>", new WXRemove(), true, GATE_NAMES);
-        register("regenerate", aliases("regen"), "/wormhole regenerate <gate>",
+        register(REMOVE, aliases("delete"), "/wormhole remove <gate>", new WXRemove(), true, GATE_NAMES);
+        register(REGENERATE, aliases("regen"), "/wormhole regenerate <gate>",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
 
@@ -177,10 +188,10 @@ public final class SubCommands
         register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
 
         // --- Per-gate settings ----------------------------------------------
-        register("owner", aliases(), "/wormhole owner <gate> [player]",
+        register(OWNER, aliases(), "/wormhole owner <gate> [player]",
             new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, GATE_THEN_VALUE);
         register("idc", aliases(), "/wormhole idc <gate> [code]", new WXIDC(), true, GATE_THEN_VALUE);
-        register("redstone", aliases(), "/wormhole redstone <gate> [true|false]",
+        register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
         register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|confirm]",
             new com.wormhole_xtreme.wormhole.command.handlers.CustomCommand(), false, args ->
@@ -195,7 +206,7 @@ public final class SubCommands
                 {
                     return "-clean".equalsIgnoreCase(args[1])
                         ? prefixed(args[2], "confirm")
-                        : prefixed(args[2], "true", "false");
+                        : prefixed(args[2], TRUE, FALSE);
                 }
                 return none();
             });
@@ -240,7 +251,7 @@ public final class SubCommands
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
         register("cooldown", aliases(), "/wormhole cooldown <seconds> or <true|false>",
             new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, args ->
-                args.length == 2 ? prefixed(args[1], "true", "false") : none());
+                args.length == 2 ? prefixed(args[1], TRUE, FALSE) : none());
         // Kept dispatchable, but it reports that build restriction is gone rather than
         // pretending to set it. See RestrictCommand.
         register("restrict", aliases(), "/wormhole restrict (removed)",
@@ -270,8 +281,8 @@ public final class SubCommands
                         .toArray(new String[0]));
             });
 
-        hide("list", "build", "complete", "remove", "regenerate", "refresh", "go", "force",
-            "owner", "idc", "redstone", "custom", "portalmaterial", "irismaterial",
+        hide("list", BUILD, "complete", REMOVE, REGENERATE, "refresh", "go", "force",
+            OWNER, "idc", REDSTONE, "custom", "portalmaterial", "irismaterial",
             "lightmaterial", "wooshdepth", "shutdown_timeout", "activate_timeout",
             "cooldown", "restrict");
 
@@ -298,7 +309,7 @@ public final class SubCommands
         {
             return completeGateEdit(args);
         }
-        if ("build".equals(verb))
+        if (BUILD.equals(verb))
         {
             return args.length == 3 ? shapeNames(args[2]) : none();
         }
@@ -306,7 +317,7 @@ public final class SubCommands
         {
             return completeGateShapes(args);
         }
-        if ("regenerate".equals(verb) || "regen".equals(verb))
+        if (REGENERATE.equals(verb) || "regen".equals(verb))
         {
             return completeGateRegenerate(args);
         }
@@ -361,11 +372,11 @@ public final class SubCommands
                 com.wormhole_xtreme.wormhole.command.handlers.GateEditCommand.groupNames()
                     .toArray(new String[0]));
         }
-        if ("redstone".equals(field))
+        if (REDSTONE.equals(field))
         {
-            return prefixed(typed, "true", "false");
+            return prefixed(typed, TRUE, FALSE);
         }
-        if ("portal".equals(field) || "iris".equals(field) || "light".equals(field))
+        if ("portal".equals(field) || "iris".equals(field) || LIGHT.equals(field))
         {
             return materialNames(typed, false);
         }
@@ -578,7 +589,7 @@ public final class SubCommands
     }
 
     /** The fields {@code /wormhole ring edit} understands. */
-    private static final String[] RING_FIELDS = { "ring", "light", "flash", "built", "name", "access", "style", "reset" };
+    private static final String[] RING_FIELDS = { "ring", LIGHT, "flash", "built", "name", "access", "style", "reset" };
 
     /**
      * Completions for {@code /wormhole ring}.
@@ -596,8 +607,8 @@ public final class SubCommands
     {
         if (args.length == 2)
         {
-            return prefixed(args[1], "create", "cancel", "list", "remove", "edit",
-                "allow", "deny", "owner");
+            return prefixed(args[1], "create", "cancel", "list", REMOVE, "edit",
+                "allow", "deny", OWNER);
         }
         if (!"edit".equalsIgnoreCase(args[1]))
         {
@@ -645,7 +656,7 @@ public final class SubCommands
         }
         if ("place".equals(noun))
         {
-            return args.length == 3 ? prefixed(args[2], "list", "set", "remove") : none();
+            return args.length == 3 ? prefixed(args[2], "list", "set", REMOVE) : none();
         }
         return none();
     }
@@ -661,7 +672,7 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            return prefixed(args[2], "set", "remove", "cost", "goto", "send");
+            return prefixed(args[2], "set", REMOVE, "cost", "goto", "send");
         }
         final String action = args[2].toLowerCase(Locale.ROOT);
         if (args.length == 4)
@@ -694,7 +705,7 @@ public final class SubCommands
      */
     private static List<String> beamAdminFirstArgument(final String action, final String typed)
     {
-        if ("remove".equals(action) || "cost".equals(action))
+        if (REMOVE.equals(action) || "cost".equals(action))
         {
             return publicBeamNames(typed);
         }
@@ -898,7 +909,7 @@ public final class SubCommands
             // kind of slab, just recorded rather than currently worn.
             return materialNames(typed, true);
         }
-        if ("light".equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
+        if (LIGHT.equalsIgnoreCase(field) || "flash".equalsIgnoreCase(field))
         {
             // Solid blocks that read as glowing. Offering all several hundred blocks was a
             // list nobody could use, and most of them look wrong set into a floor.

@@ -16,6 +16,9 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 public class RedstoneCommand implements SubCommand
 {
+    private static final String USAGE = "Command: /wormhole redstone [stargate] <boolean>";
+    private static final String VALID_OPTIONS = "Valid boolean options are: true and false";
+
 
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
@@ -48,28 +51,28 @@ public class RedstoneCommand implements SubCommand
                     else
                     {
                         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + args[2]);
-                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole redstone [stargate] <boolean>");
-                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid boolean options are: true and false");
+                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
+                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
                     }
                 }
                 else
                 {
                     sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + args[1] + " is redstone powered: " + stargate.isGateRedstonePowered());
-                    sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Valid boolean options are: true and false");
+                    sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + VALID_OPTIONS);
                 }
             }
             else
             {
                 sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole redstone [stargate] <boolean>");
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid boolean options are: true and false");
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
+                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
             }
             return true;
         }
         else
         {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole redstone [stargate] <boolean>");
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid boolean options are: true and false");
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
             return false;
         }
     }

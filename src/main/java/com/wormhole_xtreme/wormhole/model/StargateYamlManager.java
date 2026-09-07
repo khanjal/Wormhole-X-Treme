@@ -25,6 +25,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class StargateYamlManager
 {
+    private static final String OWNER_UUID_KEY = "OwnerUUID";
+    /** Anything that is not safe in a file name, replaced with an underscore. */
+    private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
+
     /** Static helpers only; never instantiated. */
     private StargateYamlManager()
     {
@@ -152,7 +156,7 @@ public class StargateYamlManager
      */
     private static String ownerIdFrom(final Map<String, Object> map)
     {
-        final String ownerUuid = (String) map.getOrDefault("OwnerUUID", "");
+        final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, "");
         if ((ownerUuid != null) && !ownerUuid.isEmpty())
         {
             return ownerUuid;
@@ -247,11 +251,11 @@ public class StargateYamlManager
         {
             gatesDir.mkdirs();
         }
-        final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
+        final String fileName = s.getGateName().replaceAll(UNSAFE_IN_FILENAME, "_") + ".yml";
         final File outFile = new File(gatesDir, fileName);
         final Map<String, Object> map = new HashMap<>();
         map.put("Name", s.getGateName());
-        map.put("OwnerUUID", s.getGateOwner());
+        map.put(OWNER_UUID_KEY, s.getGateOwner());
         map.put("OwnerName", ownerNameToSave(s.getStoredGateOwnerName()));
         map.put("Network", s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "");
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
@@ -296,7 +300,7 @@ public class StargateYamlManager
     public static void removeStargate(final Stargate s)
     {
         final File gatesDir = getGatesDir();
-        final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
+        final String fileName = s.getGateName().replaceAll(UNSAFE_IN_FILENAME, "_") + ".yml";
         final File outFile = new File(gatesDir, fileName);
         // getGatesDir above tolerates a null plugin, so this cannot assume one either.
         final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
@@ -314,7 +318,7 @@ public class StargateYamlManager
     public static String readOwnerFromYaml(final String gateName)
     {
         final File gatesDir = getGatesDir();
-        final String fileName = gateName.replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
+        final String fileName = gateName.replaceAll(UNSAFE_IN_FILENAME, "_") + ".yml";
         final File inFile = new File(gatesDir, fileName);
         if (!inFile.exists())
         {
@@ -328,7 +332,7 @@ public class StargateYamlManager
             {
                 @SuppressWarnings("unchecked")
                 final Map<String, Object> map = (Map<String, Object>) obj;
-                final String ownerUuid = (String) map.getOrDefault("OwnerUUID", null);
+                final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, null);
                 final String legacyOwner = (String) map.getOrDefault("Owner", null);
                 // Prefer UUID, fall back to legacy name
                 final String owner = ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
