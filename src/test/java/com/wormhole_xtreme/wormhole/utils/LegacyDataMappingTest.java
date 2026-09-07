@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -126,5 +127,113 @@ class LegacyDataMappingTest {
         LegacyCompat.setData(blockOf(Material.REDSTONE_WIRE, wire), (byte) 0x87);
 
         verify(wire).setPower(7);
+    }
+
+    /**
+     * Every entry of the sign table, written.
+     *
+     * <p>Stated as absolute faces rather than as a round trip: a round trip only proves the
+     * two tables are inverses of each other, and they would still be inverses if both had
+     * the same pair swapped. A wrong entry puts a rebuilt gate's sign on the wrong wall,
+     * with nothing to notice.
+     */
+    @Test
+    void theWholeSignTableIsWritten() {
+        final BlockFace[] expected = { BlockFace.EAST, BlockFace.WEST, BlockFace.NORTH, BlockFace.SOUTH };
+        for (byte data = 2; data <= 5; data++) {
+            final WallSign sign = mock(WallSign.class);
+            LegacyCompat.setData(blockOf(Material.OAK_WALL_SIGN, sign), data);
+            verify(sign).setFacing(expected[data - 2]);
+        }
+    }
+
+    /** And read. */
+    @Test
+    void theWholeSignTableIsRead() {
+        final BlockFace[] faces = { BlockFace.EAST, BlockFace.WEST, BlockFace.NORTH, BlockFace.SOUTH };
+        for (byte expected = 2; expected <= 5; expected++) {
+            final WallSign sign = mock(WallSign.class);
+            when(sign.getFacing()).thenReturn(faces[expected - 2]);
+            assertEquals(expected, LegacyCompat.getData(blockOf(Material.OAK_WALL_SIGN, sign)),
+                "sign byte " + expected);
+        }
+    }
+
+    /** A byte the sign table does not name falls to south, as it always has. */
+    @Test
+    void anUnknownSignByteFacesSouth() {
+        final WallSign sign = mock(WallSign.class);
+
+        LegacyCompat.setData(blockOf(Material.OAK_WALL_SIGN, sign), (byte) 99);
+
+        verify(sign).setFacing(BlockFace.SOUTH);
+    }
+
+    /** Every entry of the generic table. */
+    @Test
+    void theWholeGenericTableIsWritten() {
+        final BlockFace[] expected = { BlockFace.SOUTH, BlockFace.NORTH, BlockFace.WEST, BlockFace.EAST };
+        for (byte data = 1; data <= 4; data++) {
+            final Switch lever = mock(Switch.class);
+            LegacyCompat.setData(blockOf(Material.LEVER, lever), data);
+            verify(lever).setFacing(expected[data - 1]);
+        }
+    }
+
+    /** And read back. */
+    @Test
+    void theWholeGenericTableIsRead() {
+        final BlockFace[] faces = { BlockFace.SOUTH, BlockFace.NORTH, BlockFace.WEST, BlockFace.EAST };
+        for (byte expected = 1; expected <= 4; expected++) {
+            final Switch lever = mock(Switch.class);
+            when(lever.getFacing()).thenReturn(faces[expected - 1]);
+            assertEquals(expected, LegacyCompat.getData(blockOf(Material.LEVER, lever)),
+                "generic byte " + expected);
+        }
+    }
+
+    /**
+     * A byte the generic table does not name leaves the block facing where it was.
+     *
+     * <p>Not south, and not north: the legacy byte simply has nothing to say, and a gate
+     * being rebuilt keeps whatever the world already had.
+     */
+    @Test
+    void anUnknownGenericByteLeavesTheFacingAlone() {
+        final Switch lever = mock(Switch.class);
+        when(lever.getFacing()).thenReturn(BlockFace.UP);
+
+        LegacyCompat.setData(blockOf(Material.LEVER, lever), (byte) 0);
+
+        verify(lever).setFacing(BlockFace.UP);
+    }
+
+    /**
+     * A block that cannot be read is worth nothing, not a crash.
+     *
+     * <p>This runs while a world is loading old gates; one unreadable block must not take the
+     * rest of the gate down with it.
+     */
+    @Test
+    void aBlockThatCannotBeReadIsZero() {
+        final Block b = mock(Block.class);
+        doThrow(new IllegalStateException("chunk not loaded")).when(b).getBlockData();
+
+        assertEquals((byte) 0, LegacyCompat.getData(b));
+    }
+
+    /**
+     * Nor does a redstone accessor that blows up.
+     *
+     * <p>This pins the outcome and not which catch produces it: getData's own catch would
+     * swallow the same throw if the one inside redstonePower were taken out, so removing
+     * that inner catch leaves this test passing.
+     */
+    @Test
+    void redstoneThatWillNotAnswerIsZero() {
+        final RedstoneWire wire = mock(RedstoneWire.class);
+        when(wire.getPower()).thenThrow(new IllegalStateException("no"));
+
+        assertEquals((byte) 0, LegacyCompat.getData(blockOf(Material.REDSTONE_WIRE, wire)));
     }
 }
