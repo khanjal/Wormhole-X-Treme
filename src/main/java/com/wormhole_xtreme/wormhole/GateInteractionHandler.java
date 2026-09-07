@@ -1,5 +1,7 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
@@ -732,7 +734,36 @@ final class GateInteractionHandler
      */
     static boolean findGateFromNearbyDial(final Block clickedBlock, final Player player)
     {
+        for (final Block candidate : blocksAround(clickedBlock))
+        {
+            if (!isPossibleDialBlock(candidate))
+            {
+                continue;
+            }
+            final Stargate nearbyGate = unregisteredGateAt(candidate);
+            if (nearbyGate != null)
+            {
+                announceNearbyGate(nearbyGate, candidate, player);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The 26 blocks touching this one, the block itself excluded.
+     *
+     * <p>The caller has already tried the clicked block directly, so probing it again would
+     * report a gate the direct path just declined to report.
+     *
+     * @param clickedBlock
+     *            the block at the centre
+     * @return its neighbours
+     */
+    private static List<Block> blocksAround(final Block clickedBlock)
+    {
         final org.bukkit.World world = clickedBlock.getWorld();
+        final List<Block> out = new ArrayList<Block>(26);
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dy = -1; dy <= 1; dy++)
@@ -743,41 +774,48 @@ final class GateInteractionHandler
                     {
                         continue;
                     }
-                    final Block candidate = world.getBlockAt(clickedBlock.getX() + dx,
-                        clickedBlock.getY() + dy, clickedBlock.getZ() + dz);
-                    if (!isPossibleDialBlock(candidate))
-                    {
-                        continue;
-                    }
-                    for (final BlockFace face : probeFaces(candidate))
-                    {
-                        // The dial hangs on a frame block, so if the block behind it is not
-                        // a frame material no shape can match here.
-                        final Block holder = candidate.getRelative(WorldUtils.getInverseDirection(face));
-                        if (holder == null || !StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
-                        {
-                            continue;
-                        }
-                        final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
-                        if (nearbyGate == null)
-                        {
-                            continue;
-                        }
-                        // Skip gates that are already fully registered — this prevents the
-                        // "gate complete" prompt from firing when a player places a lever
-                        // or button near an existing gate's structure blocks.
-                        final Block nearbyDial = nearbyGate.getGateDialLeverBlock();
-                        if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
-                        {
-                            continue;
-                        }
-                        announceNearbyGate(nearbyGate, candidate, player);
-                        return true;
-                    }
+                    out.add(world.getBlockAt(clickedBlock.getX() + dx,
+                        clickedBlock.getY() + dy, clickedBlock.getZ() + dz));
                 }
             }
         }
-        return false;
+        return out;
+    }
+
+    /**
+     * The complete but unregistered gate this candidate dial belongs to, if there is one.
+     *
+     * <p>Already-registered gates are skipped: otherwise placing a lever anywhere near a
+     * finished gate would prompt the player to complete a gate that already exists.
+     *
+     * @param candidate
+     *            a block that could be a dial
+     * @return the gate, or null
+     */
+    private static Stargate unregisteredGateAt(final Block candidate)
+    {
+        for (final BlockFace face : probeFaces(candidate))
+        {
+            // The dial hangs on a frame block, so if the block behind it is not a frame
+            // material no shape can match here.
+            final Block holder = candidate.getRelative(WorldUtils.getInverseDirection(face));
+            if (holder == null || !StargateHelper.isPossibleGateFrameMaterial(holder.getType()))
+            {
+                continue;
+            }
+            final Stargate nearbyGate = StargateHelper.checkStargate(candidate, face);
+            if (nearbyGate == null)
+            {
+                continue;
+            }
+            final Block nearbyDial = nearbyGate.getGateDialLeverBlock();
+            if ((nearbyDial != null) && (StargateManager.getGateFromBlock(nearbyDial) != null))
+            {
+                continue;
+            }
+            return nearbyGate;
+        }
+        return null;
     }
 
     /**
