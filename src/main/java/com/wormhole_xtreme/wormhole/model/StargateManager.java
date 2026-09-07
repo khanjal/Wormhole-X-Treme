@@ -1033,17 +1033,18 @@ public class StargateManager
         synchronized (s.getGateNetwork().getNetworkGateLock())
         {
             s.getGateNetwork().getNetworkGateList().remove(s);
+            final List<Stargate> signGates = s.getGateNetwork().getNetworkSignGateList();
             if (s.isGateSignPowered())
             {
-                s.getGateNetwork().getNetworkSignGateList().remove(s);
+                signGates.remove(s);
             }
-            for (final Stargate s2 : s.getGateNetwork().getNetworkSignGateList())
+            for (final Stargate s2 : signGates)
             {
                 if ((s2.getGateDialSignTarget() != null)
                     && (s2.getGateDialSignTarget().getGateId() == s.getGateId())
                     && s2.isGateSignPowered())
                 {
-                    clearDialSign(s, s2);
+                    clearDialSign(s2, signGates.size() > 1);
                 }
             }
         }
@@ -1052,15 +1053,15 @@ public class StargateManager
     /**
      * Points one sign somewhere else, now that what it named is gone.
      *
-     * @param removed
-     *            the gate being removed
      * @param signGate
-     *            the gate whose sign was naming it
+     *            the gate whose sign was naming the removed one
+     * @param hasSomewhereElse
+     *            whether the network still has another sign-powered gate to offer
      */
-    private static void clearDialSign(final Stargate removed, final Stargate signGate)
+    private static void clearDialSign(final Stargate signGate, final boolean hasSomewhereElse)
     {
         signGate.setGateDialSignTarget(null);
-        if (removed.getGateNetwork().getNetworkSignGateList().size() > 1)
+        if (hasSomewhereElse)
         {
             signGate.setGateDialSignIndex(0);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),

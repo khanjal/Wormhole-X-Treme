@@ -3,7 +3,6 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -81,7 +80,7 @@ class RemoveStargateTest
         return b;
     }
 
-    /** A registered gate with structure blocks and a dial lever, all indexed. */
+    /** A registered gate in the shared world, with no blocks yet. */
     private Stargate builtGate(final String name)
     {
         final Stargate gate = new Stargate();
