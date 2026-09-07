@@ -52,6 +52,10 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class LegacyGateFidelityTest
 {
+    private static final int VERSION_BYTE = 1;
+    private static final int BLOCK_BYTES = 12;
+    private static final int LOCATION_BYTES = 32;
+
     private World world;
 
     @BeforeEach
@@ -324,8 +328,12 @@ class LegacyGateFidelityTest
     @Test
     void aGateThatIsNotSignPoweredKeepsNoSign()
     {
+        // The sign-powered flag sits after the version byte, three blocks, and version 7's two
+        // locations. Named rather than spelled as a sum, so it is one place to correct if the
+        // fixture above ever changes shape.
+        final int signPoweredFlag = VERSION_BYTE + (3 * BLOCK_BYTES) + (2 * LOCATION_BYTES);
         final byte[] saved = legacyGate(7);
-        saved[1 + 12 + 12 + 12 + 32 + 32] = 0;
+        saved[signPoweredFlag] = 0;
 
         final Stargate s = GateSerializer.parseVersionedData(saved, world, "old", null);
 
