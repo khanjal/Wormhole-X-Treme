@@ -893,11 +893,11 @@ class WormholeXTremePlayerListener implements Listener
     {
         if (event.getClickedBlock() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: \"" + event.getClickedBlock().toString() + "\"");
             if (GateInteractionHandler.handlePlayerInteractEvent(event))
             {
                 event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: \"" + event.getClickedBlock().toString() + "\"");
             }
         }
         else
