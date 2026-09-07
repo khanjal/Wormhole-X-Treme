@@ -162,7 +162,6 @@ public final class RingSurvey
     }
 
     /**
-     * Everything one interior column has to be.    /**
      * Everything one interior column has to be.
      *
      * @param ground
