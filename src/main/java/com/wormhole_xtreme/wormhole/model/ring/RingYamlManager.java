@@ -363,9 +363,18 @@ public final class RingYamlManager
         {
             // An empty file is a file that has to be read and skipped every startup, and a
             // world with no rings is better represented by there being nothing there.
-            if (target.exists() && !target.delete())
+            try
             {
-                log(Level.WARNING, "Could not delete now-empty ring file " + target.getName());
+                java.nio.file.Files.deleteIfExists(target.toPath());
+            }
+            catch (final java.io.IOException e)
+            {
+                // Files rather than File.delete: the boolean says only that it did not happen,
+                // where the exception says whether the file was locked, missing a parent, or
+                // not ours to remove -- which is the difference between a fixable report and
+                // one nobody can act on.
+                log(Level.WARNING, "Could not delete now-empty ring file " + target.getName()
+                    + ": " + e.getMessage());
             }
             return;
         }
@@ -502,9 +511,13 @@ public final class RingYamlManager
         final Map<UUID, RingManager.PendingRing> waiting = RingManager.getAllPending();
         if (waiting.isEmpty())
         {
-            if (target.exists() && !target.delete())
+            try
             {
-                log(Level.WARNING, "Could not delete the now-empty pending ring file.");
+                java.nio.file.Files.deleteIfExists(target.toPath());
+            }
+            catch (final java.io.IOException e)
+            {
+                log(Level.WARNING, "Could not delete the now-empty pending ring file: " + e.getMessage());
             }
             return;
         }

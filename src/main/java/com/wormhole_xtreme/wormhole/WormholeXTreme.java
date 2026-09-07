@@ -492,8 +492,8 @@ public class WormholeXTreme extends JavaPlugin
             final String host = getServer().getName();
             getLog().info("");
             getLog().info("  ▄▀▀▄");
-            getLog().info(" ▐ ░░ ▌   Wormhole X-Treme v" + version);
-            getLog().info("  ▀▄▄▀    Running on " + host);
+            getLog().info(() -> " ▐ ░░ ▌   Wormhole X-Treme v" + version);
+            getLog().info(() -> "  ▀▄▄▀    Running on " + host);
             getLog().info("");
         }
         // Decoration only: a console that will not take it must not stop the plugin.
@@ -538,7 +538,10 @@ public class WormholeXTreme extends JavaPlugin
         // The version is looked up only in the branch that wants it. It used to be read on
         // every line logged and discarded on almost all of them.
         final String pluginVersion = version ? getThisPlugin().getDescription().getVersion() : null;
-        getLog().log(severity, prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+        // A supplier, so the tag is not built and joined for a line the level will discard.
+        // Every FINE call on a server logging at INFO pays for that otherwise, and this
+        // method is how the whole plugin logs.
+        getLog().log(severity, () -> prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
     }
 
     /**
