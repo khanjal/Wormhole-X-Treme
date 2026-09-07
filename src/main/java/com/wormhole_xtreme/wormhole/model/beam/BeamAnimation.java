@@ -106,7 +106,7 @@ public final class BeamAnimation
     /** The vertical spacing between particle bursts within the column -- small enough that it
      * reads as one continuous beam rather than a stack of discrete points. The one geometry
      * constant that stays here rather than on {@link BeamFrame}: it is a rendering-resolution
-     * detail of {@link #spawnColumn}, not something that varies by tick or phase. */
+     * detail of {@link Sequence#spawnColumn}, not something that varies by tick or phase. */
     private static final double COLUMN_STEP = 0.4;
 
     private BeamAnimation() {}
@@ -181,37 +181,6 @@ public final class BeamAnimation
     }
 
     /**
-     * Draws a column from the ground up to {@code height}, shifted vertically by
-     * {@code yOffset} and with {@code density} particles per burst. {@code height} is what
-     * separates the envelope (body height) from the departure/arrival column (full height);
-     * {@code yOffset} is what rising and descending both turn out to be; {@code density} is
-     * what brightening and fading both turn out to be.
-     *
-     * @param base where the column is rooted
-     * @param height how tall the column currently is
-     * @param yOffset how far the whole column is currently shifted from where it is rooted
-     * @param density particles spawned per burst point -- higher reads as brighter
-     */
-    private static void spawnColumn(final Location base, final double height, final double yOffset,
-        final int density)
-    {
-        if (density <= 0)
-        {
-            return;
-        }
-        final World world = base.getWorld();
-        if (world == null)
-        {
-            return;
-        }
-        for (double y = 0.0; y <= height; y += COLUMN_STEP)
-        {
-            final Location point = base.clone().add(0.0, y + yOffset, 0.0);
-            world.spawnParticle(Particle.END_ROD, point, density, 0.15, 0.05, 0.15, 0.01);
-        }
-    }
-
-    /**
      * Every potion effect a beam sequence applies to its traveller, and so everything any
      * path that ends one has to take back off them.
      *
@@ -262,6 +231,37 @@ public final class BeamAnimation
     /** One running sequence. A fresh instance per beam; nothing about it is shared or reused. */
     private static final class Sequence implements Runnable
     {
+        /**
+         * Draws a column from the ground up to {@code height}, shifted vertically by
+         * {@code yOffset} and with {@code density} particles per burst. {@code height} is what
+         * separates the envelope (body height) from the departure/arrival column (full height);
+         * {@code yOffset} is what rising and descending both turn out to be; {@code density} is
+         * what brightening and fading both turn out to be.
+         *
+         * @param base where the column is rooted
+         * @param height how tall the column currently is
+         * @param yOffset how far the whole column is currently shifted from where it is rooted
+         * @param density particles spawned per burst point -- higher reads as brighter
+         */
+        private static void spawnColumn(final Location base, final double height, final double yOffset,
+            final int density)
+        {
+            if (density <= 0)
+            {
+                return;
+            }
+            final World world = base.getWorld();
+            if (world == null)
+            {
+                return;
+            }
+            for (double y = 0.0; y <= height; y += COLUMN_STEP)
+            {
+                final Location point = base.clone().add(0.0, y + yOffset, 0.0);
+                world.spawnParticle(Particle.END_ROD, point, density, 0.15, 0.05, 0.15, 0.01);
+            }
+        }
+
         private final Player player;
         private Location origin;
         private final Location destination;
