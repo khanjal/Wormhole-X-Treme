@@ -166,17 +166,17 @@ public class ConfigurationYAML
     {
         if (value instanceof Boolean flag)
         {
-            return new Setting(element.getName(), flag, element.getDescription(), "WormholeXTreme");
+            return new Setting(element.getName(), flag, element.getDescription(), SETTING_SECTION);
         }
         if (value instanceof Integer whole)
         {
-            return new Setting(element.getName(), whole, element.getDescription(), "WormholeXTreme");
+            return new Setting(element.getName(), whole, element.getDescription(), SETTING_SECTION);
         }
         if (value instanceof Number number)
         {
-            return new Setting(element.getName(), number.doubleValue(), element.getDescription(), "WormholeXTreme");
+            return new Setting(element.getName(), number.doubleValue(), element.getDescription(), SETTING_SECTION);
         }
-        return new Setting(element.getName(), value.toString(), element.getDescription(), "WormholeXTreme");
+        return new Setting(element.getName(), value.toString(), element.getDescription(), SETTING_SECTION);
     }
 
     /**
@@ -201,6 +201,9 @@ public class ConfigurationYAML
     }
 
     /** The config.yml key holding the nested material-group definitions. */
+    /** The section every Setting is filed under; the same name for all of them. */
+    private static final String SETTING_SECTION = "WormholeXTreme";
+
     private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
 
     /**
