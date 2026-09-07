@@ -244,48 +244,75 @@ public class WormholeXTreme extends JavaPlugin
                         + (gates.size() == 1 ? "" : "s") + " to disk.");
                 }
 
-                // Any cycle still mid-animation is put back before its blocks are saved as
-                // part of the world, otherwise a server stopped at the wrong moment keeps
-                // the rings standing in the floor for good.
-                try
-                {
-                    com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
-                    for (final String world : ringWorlds())
-                    {
-                        com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
-                    }
-                }
-                catch (final Exception e)
-                {
-                    prettyLog(Level.WARNING, "Failed to save transport rings: " + e.getMessage());
-                }
-
-                try
-                {
-                    com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
-                }
-                catch (final Exception e)
-                {
-                    prettyLog(Level.WARNING, "Failed to save beam destinations: " + e.getMessage());
-                }
-
+                saveRings();
+                saveBeams();
                 StargateDBManager.shutdown();
-                try
-                {
-                    EconomySupport.disableEconomy();
-                }
-                catch (final Exception | LinkageError t)
-                {
-                    // EconomySupport class may be absent in some deployments; do not let that
-                    // prevent the plugin from completing shutdown.
-                    prettyLog(Level.FINE, "Economy support unavailable during shutdown: " + t.getMessage());
-                }
+                disableEconomyQuietly();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
             catch (final Exception e)
             {
                     prettyLog(Level.SEVERE, "Caught exception while shutting down: " + e.getMessage());
             }
+    }
+
+    /**
+     * Puts the rings back and writes them out.
+     *
+     * <p>Its own method rather than a try inside onDisable's try, and it swallows its own
+     * failure: a cycle still mid-animation is put back before its blocks are saved as part of
+     * the world, otherwise a server stopped at the wrong moment keeps the rings standing in
+     * the floor for good -- but failing to do that must not stop the beams and the database
+     * being saved after it.
+     */
+    private void saveRings()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
+            for (final String world : ringWorlds())
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
+            }
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to save transport rings: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Writes the beam destinations out, and keeps shutting down if it cannot.
+     */
+    private void saveBeams()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to save beam destinations: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lets go of the economy plugin, on the servers that have one.
+     *
+     * <p>The catch reaches past Exception on purpose: EconomySupport may be absent entirely,
+     * which arrives as a LinkageError rather than an exception, and that must not stop the
+     * plugin completing its shutdown.
+     */
+    private void disableEconomyQuietly()
+    {
+        try
+        {
+            EconomySupport.disableEconomy();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.FINE, "Economy support unavailable during shutdown: " + t.getMessage());
+        }
     }
 
     /**
@@ -307,6 +334,29 @@ public class WormholeXTreme extends JavaPlugin
         return worlds;
     }
 
+    /**
+     * Attaches to the economy plugin, if this server is configured to charge for gates.
+     *
+     * <p>Its own method rather than a try inside onEnable's try, and the catch reaches past
+     * Exception for the same reason the shutdown one does: EconomySupport may not be there at
+     * all. A server that cannot charge still gets its gates.
+     */
+    private void enableEconomyIfConfigured()
+    {
+        if (!ConfigManager.isEconomyEnabled())
+        {
+            return;
+        }
+        try
+        {
+            EconomySupport.enableEconomy();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to enable economy support: " + t.getMessage());
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -319,14 +369,7 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             PermissionsSupport.enablePermissions();
-            if (ConfigManager.isEconomyEnabled())
-            {
-                try {
-                    EconomySupport.enableEconomy();
-                } catch (final Exception | LinkageError t) {
-                    prettyLog(Level.WARNING, "Failed to enable economy support: " + t.getMessage());
-                }
-            }
+            enableEconomyIfConfigured();
         }
         catch (final Exception e)
         {

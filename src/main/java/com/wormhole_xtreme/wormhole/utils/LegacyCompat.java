@@ -70,12 +70,23 @@ public final class LegacyCompat {
             }
             if (bd instanceof Powerable p) {
                 p.setPowered((data & 0x8) == 0x8);
-                try { b.setBlockData(p); } catch (final Exception | LinkageError ignore) { /* best effort */ }
+                trySetBlockData(b, p);
             }
             applyRedstonePower(b, bd, data);
         } catch (final Exception | LinkageError t) {
             // ignore mapping errors
         }
+    }
+
+    /**
+     * Writes block data back, tolerating a server that will not take it.
+     *
+     * <p>Its own method rather than a try inside setData's try: each step of the mapping is
+     * attempted independently, so a server that rejects the powered bit still gets the
+     * redstone power set after it.
+     */
+    private static void trySetBlockData(final Block b, final BlockData bd) {
+        try { b.setBlockData(bd); } catch (final Exception | LinkageError ignore) { /* best effort */ }
     }
 
     /** Turns a block to face wherever its legacy byte said, leaving it alone if the byte says nothing. */
