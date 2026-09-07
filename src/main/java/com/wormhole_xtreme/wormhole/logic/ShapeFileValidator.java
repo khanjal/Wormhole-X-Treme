@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * by hand -- this exists so the next one is caught by running a command instead.
  *
  * <p>Pure with respect to Bukkit except for the material lookups in
- * {@link Stargate3DShape#parseMaterialName}, which need no live server to call -- everything
+ * {@link StargateShape#parseMaterialName}, which need no live server to call -- everything
  * else here operates on plain file lines and the already-parsed shape object, the same split
  * this project's other shape-parsing tests already rely on.
  */
@@ -426,7 +426,7 @@ public final class ShapeFileValidator
      * in this server's Minecraft version compiles fine and then either falls back silently or
      * fails when the gate is actually built.
      *
-     * <p>Resolved through {@link Stargate3DShape#parseMaterialName}, the same method the real
+     * <p>Resolved through {@link StargateShape#parseMaterialName}, the same method the real
      * parser uses, rather than {@link Material#matchMaterial} directly: the parser accepts the
      * legacy {@code STATIONARY_WATER}/{@code STATIONARY_LAVA} aliases pre-1.13 shape files
      * still use, and a stricter check here would reject a shape that loads and runs fine.
