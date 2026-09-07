@@ -324,10 +324,10 @@ class LegacyGateFidelityTest
     @Test
     void aGateThatIsNotSignPoweredKeepsNoSign()
     {
-        final byte[] record = legacyGate(7);
-        record[1 + 12 + 12 + 12 + 32 + 32] = 0;
+        final byte[] saved = legacyGate(7);
+        saved[1 + 12 + 12 + 12 + 32 + 32] = 0;
 
-        final Stargate s = GateSerializer.parseVersionedData(record, world, "old", null);
+        final Stargate s = GateSerializer.parseVersionedData(saved, world, "old", null);
 
         assertNotNull(s);
         assertFalse(s.isGateSignPowered(), "not sign powered");
