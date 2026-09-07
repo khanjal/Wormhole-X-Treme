@@ -200,10 +200,10 @@ public class ConfigurationYAML
         }
     }
 
-    /** The config.yml key holding the nested material-group definitions. */
     /** The section every Setting is filed under; the same name for all of them. */
     private static final String SETTING_SECTION = "WormholeXTreme";
 
+    /** The config.yml key holding the nested material-group definitions. */
     private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
 
     /**
