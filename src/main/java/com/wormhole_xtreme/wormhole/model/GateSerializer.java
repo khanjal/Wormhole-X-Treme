@@ -1059,6 +1059,10 @@ public final class GateSerializer
         }
     }
 
+    // S1168 asks for an empty array here. It must stay null: the caller has to tell "could not
+    // encode this gate" from "encoded it", and a gate file written with no data in it loads as
+    // a gate with no blocks at all. See StargateYamlManager.saveStargate, which skips on null.
+    @SuppressWarnings("java:S1168")
     public static byte[] stargatetoBinary(final Stargate s)
     {
         byte[] utfFaceBytes;
@@ -1071,8 +1075,7 @@ public final class GateSerializer
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to store gate in DB, byte encoding failed: " + e.getMessage());
-            final byte[] b = null;
-            return b;
+            return null;
         }
 
         final int size = computeSize(s, utfFaceBytes, utfIdcBytes);

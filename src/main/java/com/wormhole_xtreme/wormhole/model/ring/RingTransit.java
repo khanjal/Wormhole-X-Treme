@@ -81,7 +81,7 @@ public final class RingTransit
         }
 
         final int reach = ConfigManager.getRingReach();
-        final BukkitRingWorld surroundings = new BukkitRingWorld(world, pair, reach);
+        final BukkitRingWorld surroundings = new BukkitRingWorld(world, pair);
         final RingCycle cycle = new RingCycle(pair, surroundings, reach);
         // Both ends have to be loaded for the whole cycle. The far end is usually nowhere
         // near a player, and animating into an unloaded chunk writes blocks nobody will see

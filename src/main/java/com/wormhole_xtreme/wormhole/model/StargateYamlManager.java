@@ -373,8 +373,7 @@ public class StargateYamlManager
                 final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, null);
                 final String legacyOwner = (String) map.getOrDefault("Owner", null);
                 // Prefer UUID, fall back to legacy name
-                final String owner = ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
-                return owner;
+                return ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
             }
         }
         catch (final Exception e)

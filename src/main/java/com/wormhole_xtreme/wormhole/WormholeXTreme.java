@@ -1,5 +1,4 @@
 package com.wormhole_xtreme.wormhole;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -154,7 +153,7 @@ public class WormholeXTreme extends JavaPlugin
             }
             catch (final NoClassDefFoundError notOnThisServer)
             {
-                continue;
+                // Not on this server's Bukkit; the loop moves to the next candidate by itself.
             }
             catch (final ReflectiveOperationException | RuntimeException e)
             {
