@@ -55,20 +55,34 @@ public final class GateEntityScanner implements Runnable
             // tick interval is pure waste once a server has hundreds of them.
             for (final Stargate gate : StargateManager.getAllGatesUnsorted())
             {
-                try
-                {
-                    sweepGate(gate);
-                }
-                catch (final RuntimeException t)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                        "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null") + ": " + t.getMessage());
-                }
+                sweepGateQuietly(gate);
             }
         }
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Entity scan aborted: " + t.getMessage());
+        }
+    }
+
+    /**
+     * Sweeps one gate, and keeps going if that one gate cannot be swept.
+     *
+     * <p>Its own method rather than a try inside run's try: one bad gate must not end the
+     * tick for the gates after it in the loop.
+     *
+     * @param gate
+     *            the gate to sweep
+     */
+    private void sweepGateQuietly(final Stargate gate)
+    {
+        try
+        {
+            sweepGate(gate);
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null") + ": " + t.getMessage());
         }
     }
 

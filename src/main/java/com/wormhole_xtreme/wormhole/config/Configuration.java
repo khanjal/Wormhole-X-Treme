@@ -64,6 +64,28 @@ public class Configuration
     }
 
     /**
+     * Makes sure the options file is there to be written to.
+     *
+     * <p>Its own method rather than a try inside writeFile's try, and it does not rethrow:
+     * the writer below creates the file itself if it has to, so a failure here is worth
+     * saying out loud but is not a reason to abandon the write.
+     */
+    private static void createOptionsFileIfMissing()
+    {
+        try
+        {
+            if (!options.exists() && !options.createNewFile())
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create " + options.getPath());
+            }
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create new file: " + e.getMessage());
+        }
+    }
+
+    /**
      * Write file.
      * 
      * @param desc
@@ -73,17 +95,7 @@ public class Configuration
     {
         try
         {
-            try
-            {
-                if (!options.exists() && !options.createNewFile())
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create " + options.getPath());
-                }
-            }
-            catch (final Exception e)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create new file: " + e.getMessage());
-            }
+            createOptionsFileIfMissing();
             try (BufferedWriter bufferedwriter = new BufferedWriter(new FileWriter(options, StandardCharsets.UTF_8)))
             {
                 ConfigurationFlatFile.createNewHeader(bufferedwriter, desc.getName() + " " + desc.getVersion(), desc.getName() + " Config Settings", true);

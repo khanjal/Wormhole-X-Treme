@@ -237,6 +237,23 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### A nested try is its own step now, in eleven places
+
+Each was the same shape: a best-effort attempt sitting inside a wider one, where the inner
+catch exists so the steps *after* it still run. Shutdown is the clearest -- failing to save
+the rings must not stop the beams and the database being saved, and the economy plugin not
+being installed at all must not stop the shutdown finishing. Each inner attempt is a named
+method now, so what it protects is stated rather than inferred from brace depth.
+
+No behaviour change. The catches that reach past `Exception` to `LinkageError` are kept
+exactly as they were: `EconomySupport` may be absent entirely on some servers, which arrives
+as an error rather than an exception.
+
+One coverage gap turned up while pinning the flat-file parser. A config file carrying a
+setting name from an older version -- which `ConfigKeys.valueOf` throws on -- is skipped and
+the rest of the file still read, and nothing tested that. Without it, one stale line would
+hide every setting written after it and the file would silently fall back to defaults.
+
 ### Repeated string literals are named now
 
 Twenty-seven literals were written out three to six times each -- subcommand names in the

@@ -109,6 +109,60 @@ class ConfigurationFlatFile
     }
 
     /**
+     * Reads one line, and the value under it if that line names the setting being looked for.
+     *
+     * <p>Its own method rather than a try inside the read loop's try: a line the parser
+     * cannot make sense of is skipped and the rest of the file still read. A config file
+     * carrying a setting name from an older version is exactly that -- {@code valueOf} throws
+     * for a name the enum no longer has -- and without this, one stale line would hide every
+     * setting written after it.
+     *
+     * @param raw
+     *            the line as read
+     * @param reader
+     *            the reader, moved on by one line if this line is the setting wanted
+     * @param name
+     *            the setting being looked for
+     * @param defaultVal
+     *            what to answer if the value line cannot be read
+     * @return the value, or null if this line is not it
+     */
+    private static String valueIfThisIsTheSetting(final String raw, final BufferedReader reader,
+        final ConfigKeys name, final String defaultVal)
+    {
+        try
+        {
+            final String line = raw.trim();
+            if (!line.contains("Setting:"))
+            {
+                return null;
+            }
+            // A line can contain "Setting:" and still have nothing after the colon, and so can
+            // the value line below it. Both used to be indexed straight at [1].
+            final String[] key = line.split(":");
+            if (key.length < 2)
+            {
+                return null;
+            }
+            final ConfigKeys keyValue = ConfigKeys.valueOf(key[1].trim());
+            // The value is on the line after the key, and is only read for the key we were
+            // asked about -- reading it moves the reader on.
+            final String valueLine = (keyValue == name) ? reader.readLine() : null;
+            if (valueLine == null)
+            {
+                return null;
+            }
+            final String[] val = valueLine.split(":");
+            return val.length < 2 ? defaultVal.trim() : val[1].trim();
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Error parsing setting enum:" + e.toString());
+            return null;
+        }
+    }
+
+    /**
      * Gets the value from setting.
      * 
      * @param input
@@ -130,34 +184,11 @@ class ConfigurationFlatFile
             bufferedReader = new BufferedReader(new FileReader(input, StandardCharsets.UTF_8));
             for (String raw = ""; (raw = bufferedReader.readLine()) != null;)
             {
-                try
+                final String found = valueIfThisIsTheSetting(raw, bufferedReader, name, defaultVal);
+                if (found != null)
                 {
-                    final String line = raw.trim();
-                    if (line.contains("Setting:"))
-                    {
-                        // A line can contain "Setting:" and still have nothing after the
-                        // colon, and so can the value line below it. Both used to be indexed
-                        // straight at [1].
-                        final String[] key = line.split(":");
-                        if (key.length < 2)
-                        {
-                            continue;
-                        }
-                        final ConfigKeys keyValue = ConfigKeys.valueOf(key[1].trim());
-                        // The value is on the line after the key, and is only read for the
-                        // key we were asked about -- reading it moves the reader on.
-                        final String valueLine = (keyValue == name) ? bufferedReader.readLine() : null;
-                        if (valueLine != null)
-                        {
-                            final String[] val = valueLine.split(":");
-                            bufferedReader.close();
-                            return val.length < 2 ? defaultVal.trim() : val[1].trim();
-                        }
-                    }
-                }
-                catch (final Exception e)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Error parsing setting enum:" + e.toString());
+                    bufferedReader.close();
+                    return found;
                 }
             }
             bufferedReader.close();

@@ -169,23 +169,9 @@ public final class LegacyDatabaseImporter
             {
                 while (rows.next())
                 {
-                    final String name = column(rows, "Name");
-                    try
+                    if (importOneQuietly(rows, movedExits, skipped))
                     {
-                        final String outcome = importOne(rows, name, movedExits);
-                        if (outcome == null)
-                        {
-                            imported++;
-                        }
-                        else
-                        {
-                            skipped.add(name + ": " + outcome);
-                        }
-                    }
-                    catch (final RuntimeException oneGate)
-                    {
-                        // One unreadable gate is not a reason to abandon the rest.
-                        skipped.add(name + ": " + oneGate.getMessage());
+                        imported++;
                     }
                 }
             }
@@ -199,6 +185,45 @@ public final class LegacyDatabaseImporter
         done.getSkipped().addAll(skipped);
         done.movedExits = movedExits[0];
         return done;
+    }
+
+    /**
+     * Imports one row, and keeps going if that one row cannot be read.
+     *
+     * <p>Its own method rather than a try inside the query's try-with-resources: one
+     * unreadable gate is not a reason to abandon the rest of the database, and the reason it
+     * was skipped is worth reporting per gate.
+     *
+     * @param rows
+     *            the result set, positioned on the row to import
+     * @param movedExits
+     *            a one-element counter, incremented when a gate's exit had to be moved
+     * @param skipped
+     *            collects a line per gate that was not imported, and why
+     * @return true if the gate was imported
+     * @throws java.sql.SQLException
+     *             if the row cannot be read
+     */
+    private static boolean importOneQuietly(final ResultSet rows, final int[] movedExits,
+        final List<String> skipped)
+        throws java.sql.SQLException
+    {
+        final String name = column(rows, "Name");
+        try
+        {
+            final String outcome = importOne(rows, name, movedExits);
+            if (outcome == null)
+            {
+                return true;
+            }
+            skipped.add(name + ": " + outcome);
+        }
+        catch (final RuntimeException oneGate)
+        {
+            // One unreadable gate is not a reason to abandon the rest.
+            skipped.add(name + ": " + oneGate.getMessage());
+        }
+        return false;
     }
 
     /**

@@ -510,25 +510,7 @@ class WormholeXTremeVehicleListener implements Listener
             // In order, so a parent is aboard before its own passenger is.
             for (int i = 0; i < children.size(); i++)
             {
-                final Entity parent = parents.get(i);
-                final Entity child = children.get(i);
-                try
-                {
-                    child.teleport(safeTarget);
-                    final Entity seat = parent.equals(veh) ? newveh : parent;
-                    try
-                    {
-                        seat.addPassenger(child);
-                    }
-                    catch (final RuntimeException tt)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage());
-                    }
-                }
-                catch (final RuntimeException tt)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
-                }
+                reattachOnePassenger(children.get(i), parents.get(i), veh, newveh, safeTarget);
             }
             newveh.setVelocity(exitSpeed);
         }
@@ -538,6 +520,49 @@ class WormholeXTremeVehicleListener implements Listener
         }
     }
 
+
+    /**
+     * Brings one passenger across and puts it back in its seat.
+     *
+     * <p>Two separate attempts rather than one, and its own method rather than two trys
+     * nested inside the respawn's: a passenger that arrives but will not reattach is still
+     * better off at the destination than left behind at the departure gate, and one
+     * passenger failing must not strand the ones after it in the loop.
+     *
+     * @param child
+     *            the passenger to bring across
+     * @param parent
+     *            what it was riding before
+     * @param veh
+     *            the vehicle being respawned
+     * @param newveh
+     *            what replaced it at the destination
+     * @param target
+     *            where to put the passenger
+     */
+    private static void reattachOnePassenger(final Entity child, final Entity parent,
+        final Entity veh, final Entity newveh, final Location target)
+    {
+        final Entity seat;
+        try
+        {
+            child.teleport(target);
+            seat = parent.equals(veh) ? newveh : parent;
+        }
+        catch (final RuntimeException tt)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback passenger teleport failed: " + tt.getMessage());
+            return;
+        }
+        try
+        {
+            seat.addPassenger(child);
+        }
+        catch (final RuntimeException tt)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Fallback reattach failed: " + tt.getMessage());
+        }
+    }
 
     /**
      * Handle stargate minecart teleport event.
