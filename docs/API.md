@@ -137,8 +137,8 @@ not told to discard what it knows about it.
 ## Notes on the internals
 
 How each subsystem is put together, and why, is written up separately:
-**[GATES.md](GATES.md)** and **[RINGS.md](RINGS.md)**. A few conventions worth knowing
-before you read either:
+**[GATES.md](GATES.md)**, **[RINGS.md](RINGS.md)** and **[BEAMS.md](BEAMS.md)**. A few
+conventions worth knowing before you read any of them:
 
 - `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every
   wood, stone and Nether variant, so nothing tests for those block types one at a time.

@@ -3,7 +3,8 @@
 How a gate is detected, stored, dialled, drawn and travelled through, and why each of those
 works the way it does. The [README](../README.md) is the server owner's guide and says what
 everything does; this says why. Rings are the other half of the plugin and have their own
-document, [RINGS.md](RINGS.md). Plugin authors want [API.md](API.md).
+documents, [RINGS.md](RINGS.md) and [BEAMS.md](BEAMS.md). Plugin authors want
+[API.md](API.md).
 
 A gate is a named, addressable structure: a frame the player builds and leaves standing, a
 sign, a DHD, an iris, redstone hooks and a network. Rings are the deliberate opposite of all
