@@ -35,46 +35,92 @@ public class RedstoneCommand implements SubCommand
             return true;
         }
 
-        if ((args.length == 2) || (args.length == 3))
+        if ((args.length != 2) && (args.length != 3))
         {
-            if (StargateManager.isStargate(args[1]))
-            {
-                final Stargate stargate = StargateManager.getStargate(args[1]);
-                if (args.length == 3)
-                {
-                    if (com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
-                    {
-                        stargate.setGateRedstonePowered(Boolean.parseBoolean(args[2].trim()));
-                        stargate.setupRedstone(stargate.isGateRedstonePowered());
-                        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + args[1] + " is redstone powered: " + stargate.isGateRedstonePowered());
-                    }
-                    else
-                    {
-                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + args[2]);
-                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
-                        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
-                    }
-                }
-                else
-                {
-                    sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + args[1] + " is redstone powered: " + stargate.isGateRedstonePowered());
-                    sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + VALID_OPTIONS);
-                }
-            }
-            else
-            {
-                sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
-                sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
-            }
-            return true;
-        }
-        else
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
-            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
+            sendUsage(sender);
+            // False, unlike every other refusal here: the caller prints the usage again for
+            // a command it could not parse at all, where a named gate that does not exist is
+            // a complete command with a wrong answer.
             return false;
         }
+
+        final Stargate stargate = StargateManager.isStargate(args[1])
+            ? StargateManager.getStargate(args[1])
+            : null;
+        if (stargate == null)
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.TARGET_INVALID.toString());
+            sendUsage(sender);
+            return true;
+        }
+
+        if (args.length == 2)
+        {
+            reportWiring(sender, args[1], stargate);
+            sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + VALID_OPTIONS);
+            return true;
+        }
+
+        setWiring(sender, args[1], stargate, args[2]);
+        return true;
+    }
+
+    /**
+     * Says how the gate is wired, without changing it.
+     *
+     * @param sender
+     *            who asked
+     * @param name
+     *            the gate's name as they typed it
+     * @param stargate
+     *            the gate
+     */
+    private static void reportWiring(final CommandSender sender, final String name, final Stargate stargate)
+    {
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + name + " is redstone powered: " + stargate.isGateRedstonePowered());
+    }
+
+    /**
+     * Wires the gate up, or refuses a word that is not a yes or a no.
+     *
+     * <p>The check matters more than it looks: {@code Boolean.parseBoolean} answers false for
+     * anything it does not recognise, so without it "yes" would quietly unwire a gate and
+     * report that it had worked.
+     *
+     * @param sender
+     *            who asked
+     * @param name
+     *            the gate's name as they typed it
+     * @param stargate
+     *            the gate
+     * @param value
+     *            what they typed for the setting
+     */
+    private static void setWiring(final CommandSender sender, final String name,
+        final Stargate stargate, final String value)
+    {
+        if (!com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(value))
+        {
+            sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid boolean option: " + value);
+            sendUsage(sender);
+            return;
+        }
+        stargate.setGateRedstonePowered(Boolean.parseBoolean(value.trim()));
+        stargate.setupRedstone(stargate.isGateRedstonePowered());
+        reportWiring(sender, name, stargate);
+    }
+
+    /**
+     * The two lines every refusal ends with.
+     *
+     * @param sender
+     *            who asked
+     */
+    private static void sendUsage(final CommandSender sender)
+    {
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + USAGE);
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + VALID_OPTIONS);
     }
 
 }
