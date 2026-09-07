@@ -30,7 +30,33 @@ public class ConfigurationYAML
 
     protected static void loadConfiguration(final String pluginName)
     {
-        final File directory = new File("plugins" + File.separator + pluginName + File.separator);
+        loadConfiguration(pluginDirectory(pluginName));
+    }
+
+    /**
+     * Where this plugin keeps its own files.
+     *
+     * <p>The one place the path is built, so the methods below can be handed a directory
+     * instead of a name and be run against somewhere other than a live server.
+     *
+     * @param pluginName
+     *            the plugin's folder name
+     * @return its directory, which may not exist yet
+     */
+    static File pluginDirectory(final String pluginName)
+    {
+        return new File("plugins" + File.separator + pluginName + File.separator);
+    }
+
+    /**
+     * Reads config.yml out of the given directory, writing a default one first if there is
+     * none, and appending any keys the file does not yet mention.
+     *
+     * @param directory
+     *            the plugin directory to read from
+     */
+    static void loadConfiguration(final File directory)
+    {
         if (!directory.exists())
         {
             directory.mkdir();
@@ -40,7 +66,7 @@ public class ConfigurationYAML
         if (!cfg.exists())
         {
             // write default file
-            writeFile(cfg, pluginName, DefaultSettings.config);
+            writeFile(cfg, DefaultSettings.config);
         }
 
         try (InputStream in = new FileInputStream(cfg))
@@ -316,7 +342,7 @@ public class ConfigurationYAML
      */
     static File getConfigFile(final String pluginName)
     {
-        return new File("plugins" + File.separator + pluginName + File.separator, "config.yml");
+        return new File(pluginDirectory(pluginName), "config.yml");
     }
 
     private static void appendMissingSettings(final File cfg, final List<Setting> missing)
@@ -350,12 +376,14 @@ public class ConfigurationYAML
         }
     }
 
-    protected static void writeFile(final File file, final String pluginName, final Setting[] config)
+    protected static void writeFile(final File file, final Setting[] config)
     {
         try
         {
-            final File directory = new File("plugins" + File.separator + pluginName + File.separator);
-            if (!directory.exists())
+            // The directory to make is the one the file goes in; the caller already decided
+            // where that is, so there is nothing to work out from a plugin name.
+            final File directory = file.getParentFile();
+            if ((directory != null) && !directory.exists())
             {
                 directory.mkdir();
             }
@@ -449,12 +477,12 @@ public class ConfigurationYAML
      * @param pluginName
      *            the plugin's folder name
      */
-    protected static void writeCurrentConfiguration(final File file, final String pluginName)
+    protected static void writeCurrentConfiguration(final File file)
     {
         try
         {
-            final File directory = new File("plugins" + File.separator + pluginName + File.separator);
-            if (!directory.exists())
+            final File directory = file.getParentFile();
+            if ((directory != null) && !directory.exists())
             {
                 directory.mkdir();
             }
@@ -478,7 +506,7 @@ public class ConfigurationYAML
 
             if (!file.exists())
             {
-                writeFile(file, pluginName, defaults);
+                writeFile(file, defaults);
                 return;
             }
 
