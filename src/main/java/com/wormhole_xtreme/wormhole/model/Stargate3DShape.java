@@ -161,7 +161,7 @@ public class Stargate3DShape extends StargateShape
 
         int height = 0;
         int width = 0;
-        final Pattern p = Pattern.compile("(\\[.*?\\])");
+        final Pattern p = Pattern.compile("(\\[[^\\]]*+\\])");
         while (fileLines[index].startsWith("["))
         {
             if (width <= 0)

@@ -337,12 +337,22 @@ public class StargateYamlManager
             return;
         }
         final File outFile = new File(getGatesDir(), fileName);
-        // getGatesDir above tolerates a null plugin, so this cannot assume one either.
-        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-        if (outFile.exists() && !outFile.delete() && (plugin != null))
+        try
         {
-            plugin.prettyLog(Level.WARNING,
-                "Could not delete gate file " + outFile.getPath() + "; the gate may come back on next load.");
+            java.nio.file.Files.deleteIfExists(outFile.toPath());
+        }
+        catch (final java.io.IOException e)
+        {
+            // Files rather than File.delete: the boolean says only that it did not happen,
+            // where the exception says why. This one matters -- a gate whose file survives
+            // comes back on the next load, and the reason is what makes that fixable.
+            // getGatesDir above tolerates a null plugin, so this cannot assume one either.
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not delete gate file " + outFile.getPath()
+                    + " (" + e.getMessage() + "); the gate may come back on next load.");
+            }
         }
     }
 

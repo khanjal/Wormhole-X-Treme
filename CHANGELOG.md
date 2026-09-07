@@ -237,6 +237,21 @@ that method returns null when it cannot encode a gate. Such a gate is skipped ra
 written without its `GateData`, which would load back as a gate with no blocks at all --
 present, and doing nothing.
 
+### A deleted file that will not delete now says why
+
+The three places that remove a YAML file checked `File.delete()`'s boolean and logged that it
+had not worked. That is all a boolean can say. `Files.deleteIfExists` throws instead, and the
+exception distinguishes a file that is locked, one whose parent is gone, and one that is not
+ours to remove.
+
+It matters most for a gate: a gate file that survives its own deletion brings the gate back on
+the next load, and "could not delete" without a reason is a report nobody can act on.
+
+Also here: every line the plugin logs was building its own prefix even when the level was
+about to discard it. `prettyLog` is how the whole plugin logs, so a server running at INFO was
+paying to assemble every FINE line and throw it away. Both it and the startup banner take a
+supplier now, and nothing is joined until something is going to read it.
+
 ### Two Javadocs describing methods that no longer exist
 
 `StargateRestrictions` and `WorldUtils` each carried a comment for something that had been

@@ -137,6 +137,7 @@ public final class LegacyDatabaseImporter
      *
      * @return what happened
      */
+    @SuppressWarnings("java:S6905")
     public static Result importGates()
     {
         final File db = findDatabase();
@@ -163,6 +164,8 @@ public final class LegacyDatabaseImporter
             // Only the columns this fork can use. Owner arrived in schema 5 and WorldName in
             // 4, so both may be absent on an old enough database -- read defensively rather
             // than naming them in the query and failing the whole import over a column.
+            // That is what S6905 objects to, and why it does not apply: naming the columns
+            // is exactly the failure mode this avoids.
             try (PreparedStatement statement = connection.prepareStatement(
                     "SELECT * FROM Stargates;");
                 ResultSet rows = statement.executeQuery())
