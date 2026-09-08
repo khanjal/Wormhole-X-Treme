@@ -108,9 +108,9 @@ GPL-3.0 badge was hand-written rather than detected.
 always been. The README badge now links to the licence rather than to the notice.
 
 The renames also touched `src/main/assembly/package.xml`, whose `LICENSE*` and `NOTICE*` globs made
-its explicit `gpl.txt` include redundant. That edit turned out to be meaningless -- the descriptor
-never ran, so nothing it lists has ever shipped anywhere -- and the file is deleted further up
-these notes.
+its explicit `gpl.txt` include redundant. That edit had no effect: the descriptor had already
+stopped being built four months earlier, when the assembly plugin was dropped from `pom.xml`. The
+file is deleted further up these notes.
 
 `LICENSING.md` was also describing a plugin that no longer exists. It listed `org.sqlite:sqlite-jdbc`
 and `org.hsqldb:hsqldb` as dependencies and named sqlite-jdbc as shaded into the jar; neither has
