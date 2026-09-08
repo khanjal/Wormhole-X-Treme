@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -18,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -427,6 +429,69 @@ class VehicleGateEntryTest
         rollIn();
 
         assertEquals(51.5, whereItLanded().getX(), 1.0e-9, "the rail arrival, stepped clear");
+    }
+
+    /**
+     * With FINE on, the entry line names the vehicle and what it rolled into.
+     *
+     * <p>The line is built only when it would be printed. A cart raises this event roughly
+     * twenty times a second, and the whole point of the guard is that none of this runs on
+     * the other nineteen.
+     */
+    @Test
+    void theEntryLineNamesTheVehicleAndTheBlockWhenFineIsOn() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.isLoggable(Level.FINE)).thenReturn(true);
+        set(WormholeXTreme.class, "thisPlugin", plugin);
+
+        rollIn();
+
+        final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
+        verify(plugin, atLeastOnce()).prettyLog(eq(Level.FINE), said.capture());
+        assertTrue(said.getAllValues().stream().anyMatch(line -> line.startsWith("VehicleMoveEvent:")
+            && line.contains("MINECART") && line.contains("AIR")),
+            "the entry line says what moved and what it moved into: " + said.getAllValues());
+    }
+
+    /**
+     * A cart nudged in at a standstill leaves pointing the way the far gate points.
+     *
+     * <p>With no speed there is no direction to read off the exit velocity, so the gate's own
+     * facing answers instead. It gives the same heading the other way round: 270 rather than
+     * the -90 a moving cart is given.
+     */
+    @Test
+    void aCartEnteringAtAStandstillIsPointedTheWayTheGatePoints()
+    {
+        when(cart.getVelocity()).thenReturn(new Vector(0.0, 0.0, 0.0));
+
+        rollIn();
+
+        assertEquals(270.0f, whereItLanded().getYaw(), 1.0e-4f, "east, as the far gate faces");
+    }
+
+    /**
+     * Something aboard that is not a player is carried, and marked as nothing.
+     *
+     * <p>The mark exists to stop the player listener teleporting a rider out of their seat.
+     * A mob in a boat has no such listener, and asking for its player mark would be asking
+     * about a player that is not there.
+     */
+    @Test
+    void apassengerThatIsNotAPlayerIsCarriedButNotMarked()
+    {
+        final Entity mob = mock(Entity.class);
+        final UUID mobId = UUID.randomUUID();
+        when(mob.getUniqueId()).thenReturn(mobId);
+        when(cart.getPassengers()).thenReturn(Collections.singletonList(mob));
+
+        rollIn();
+
+        assertTrue(WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(cart.getUniqueId()),
+            "the boat still travels");
+        assertFalse(WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(mobId),
+            "but there is no rider to hold back");
     }
 
     /**

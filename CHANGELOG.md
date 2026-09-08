@@ -23,7 +23,7 @@ Four of the sixteen are things a player would notice:
 None of these were broken. Nothing was checking that they were not, which is a different
 thing, and the four of them are the difference between reshaping this code and hoping.
 
-`VehicleGateEntryTest` now holds fifteen tests covering the guards, the deferred cooldown, the
+`VehicleGateEntryTest` now holds eighteen tests covering the guards, the deferred cooldown, the
 travel event -- including that it is asked of every rider, not only whoever is steering -- the
 loop-breaker on both the arrival and the iris bounce, and where and which way a cart lands.
 Every one of the twenty-four mutations now fails at least one of them.
