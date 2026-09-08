@@ -44,7 +44,7 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md) · [docs/BEAMS.md](docs/BEAMS.md)
 
-**Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing) · [Logo](docs/LOGO.md) · [Captures](docs/CAPTURES.md)
+**Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing) · [Logo](docs/LOGO.md) · [Captures](docs/CAPTURES.md) · [Name and logo policy](TRADEMARK.md)
 
 ## Server Compatibility
 
