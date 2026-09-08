@@ -599,14 +599,7 @@ class WormholeXTremeVehicleListener implements Listener
     {
         final Location l = event.getTo();
         final Block ch = l.getWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-        // Built only when FINE is actually enabled: this used to allocate a Location, two
-        // enum-name strings and a concatenation on every event, all of it discarded.
-        if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
-        {
-            final String vt = (event.getVehicle() != null) ? event.getVehicle().getType().name() : "UNKNOWN";
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "VehicleMoveEvent: type=" + vt
-                + " toBlock=" + ch.getLocation() + " blockType=" + ch.getType().name());
-        }
+        logVehicleEntry(event, ch);
         final Stargate st = StargateManager.getGateFromBlock(ch);
         // Ask the gate whether this is one of its portal blocks rather than comparing the
         // block's material to the portal material. An open portal is server-side AIR — the
@@ -622,7 +615,7 @@ class WormholeXTremeVehicleListener implements Listener
         final String gatenetwork = (st.getGateNetwork() != null)
                 ? st.getGateNetwork().getNetworkName()
                 : "Public";
-        Location target = st.getGateTarget().getGateMinecartTeleportLocation() != null
+        final Location target = st.getGateTarget().getGateMinecartTeleportLocation() != null
             ? st.getGateTarget().getGateMinecartTeleportLocation()
             : st.getGateTarget().getGatePlayerTeleportLocation();
         final Vehicle veh = event.getVehicle();
@@ -639,10 +632,54 @@ class WormholeXTremeVehicleListener implements Listener
         {
             return false;
         }
-        // A player riding through a gate is travelling as much as one on foot, and
-        // a listener that saw only walkers would miss every boat and minecart. The
-        // vehicle is not announced, only the people in it: cancelling stops the
-        // player travelling, and the cart is not a passenger's to veto.
+        if (!everyRiderMayTravel(st, passengers))
+        {
+            return false;
+        }
+        // Travel is settled, so what follows from having travelled can be applied.
+        applyTravelRestrictions(st, pendingRestrictions);
+        return dispatchVehicleTeleport(st, veh, v, target, passengers);
+    }
+
+    /**
+     * Says what the vehicle just rolled into, if anybody is listening.
+     *
+     * <p>A moving cart raises this event roughly twenty times a second, and the line used to
+     * be built -- a Location, two enum names and a concatenation -- on every one of them and
+     * then thrown away.
+     *
+     * @param event
+     *            the move
+     * @param ch
+     *            the block it moved into
+     */
+    private static void logVehicleEntry(final VehicleMoveEvent event, final Block ch)
+    {
+        if (WormholeXTreme.getThisPlugin() == null || !WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+        {
+            return;
+        }
+        final String vt = (event.getVehicle() != null) ? event.getVehicle().getType().name() : "UNKNOWN";
+        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "VehicleMoveEvent: type=" + vt
+            + " toBlock=" + ch.getLocation() + " blockType=" + ch.getType().name());
+    }
+
+    /**
+     * Asks the server about each rider, and reports whether anybody objected.
+     *
+     * <p>A player riding through a gate is travelling as much as one on foot, and a listener
+     * that saw only walkers would miss every boat and minecart. The vehicle itself is never
+     * announced, only the people in it: cancelling stops the player travelling, and the cart
+     * is not a passenger's to veto.
+     *
+     * @param st
+     *            the gate being entered
+     * @param passengers
+     *            who is aboard, possibly nobody
+     * @return true if the whole vehicle may go
+     */
+    private static boolean everyRiderMayTravel(final Stargate st, final List<Entity> passengers)
+    {
         for (final Entity psg : passengers)
         {
             if ((psg instanceof Player rider)
@@ -650,18 +687,29 @@ class WormholeXTremeVehicleListener implements Listener
                 st, rider, st.getGateTarget(), st.getGateTarget().getGatePlayerTeleportLocation()))
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                    "Vehicle travel cancelled by a listener for player " + ((Player) psg).getName());
+                    "Vehicle travel cancelled by a listener for player " + rider.getName());
                 return false;
             }
         }
+        return true;
+    }
 
-        // Travel is settled, so what follows from having travelled can be applied.
+    /**
+     * Charges the riders for a trip that is now going to happen.
+     *
+     * <p>Per rider, so one failing does not silently deny everyone else aboard their cooldown
+     * and arrival mark. RuntimeException rather than Throwable is deliberate and matches the
+     * rest of the plugin: an Error is not something to swallow on the way past.
+     *
+     * @param st
+     *            the gate being entered
+     * @param pendingRestrictions
+     *            the riders admitted earlier, whose marks were deferred until now
+     */
+    private static void applyTravelRestrictions(final Stargate st, final List<Player> pendingRestrictions)
+    {
         for (final Player rider : pendingRestrictions)
         {
-            // Per rider, so one failing does not silently deny the rest of the boat
-            // their cooldown and arrival mark. RuntimeException rather than
-            // Throwable is deliberate and matches the rest of the plugin: an Error
-            // is not something to swallow on the way past.
             try
             {
                 StargateRestrictions.addPlayerUseCooldown(rider);
@@ -673,9 +721,6 @@ class WormholeXTremeVehicleListener implements Listener
                     "Failed to apply travel restrictions for " + rider.getName() + ": " + e.getMessage());
             }
         }
-
-
-        return dispatchVehicleTeleport(st, veh, v, target, passengers);
     }
 
     /**
@@ -822,45 +867,22 @@ class WormholeXTremeVehicleListener implements Listener
     {
         final Vector newSpeed = computeExitVelocity(st.getGateTarget().getGateFacing(), v, 5.0);
         final Location safeTarget = (target != null) ? forwardAndUp(target, st.getGateTarget().getGateFacing(), 1.0, 1.0) : target;
-        // set yaw from exit velocity so clients face travel direction
-        try
-        {
-            if (safeTarget != null)
-            {
-                final double dx = newSpeed.getX();
-                final double dz = newSpeed.getZ();
-                final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
-                    ? (float) Math.toDegrees(Math.atan2(-dx, dz))
-                    : WorldUtils.getDegreesFromBlockFace(st.getGateTarget().getGateFacing());
-                safeTarget.setYaw(yaw);
-                safeTarget.setPitch(0f);
-            }
-        }
-        catch (final RuntimeException ignore) { /* arrival facing is cosmetic */ }
+        faceTheWayItIsGoing(safeTarget, newSpeed, st.getGateTarget().getGateFacing());
         if (veh != null)
         {
-            final UUID vid = veh.getUniqueId();
-            markVehicleRecentlyTeleported(vid);
-            if (!passengers.isEmpty())
-            {
-                // Mark all player passengers so PlayerListener does not solo-teleport them
-                // when they are ejected by veh.teleport() on the source side.
-                for (final Entity psg : passengers)
-                {
-                    if (psg instanceof Player)
-                    {
-                        markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
-                    }
-                }
-                // Occupied vehicle: dispatch to type-specific handler.
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
-                teleportOccupiedVehicle(veh, safeTarget, newSpeed);
-            }
-            else
+            markVehicleRecentlyTeleported(veh.getUniqueId());
+            if (passengers.isEmpty())
             {
                 // Unoccupied vehicle: teleport directly and apply exit velocity.
                 veh.teleport(safeTarget);
                 veh.setVelocity(newSpeed);
+            }
+            else
+            {
+                markRidersAsTravellingByVehicle(passengers);
+                // Occupied vehicle: dispatch to type-specific handler.
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Teleporting occupied vehicle through gate: " + st.getGateName() + " -> " + st.getGateTarget().getGateName() + " (type: " + veh.getType().name() + ")");
+                teleportOccupiedVehicle(veh, safeTarget, newSpeed);
             }
         }
 
@@ -869,6 +891,62 @@ class WormholeXTremeVehicleListener implements Listener
             st.shutdownStargate(true);
         }
         return true;
+    }
+
+    /**
+     * Turns the arrival point to face the way the vehicle is leaving.
+     *
+     * <p>Yaw is measured clockwise from south, which is what the negated x is doing. A
+     * vehicle leaving along neither axis -- a gate whose facing has no horizontal component
+     * -- keeps the gate's own facing instead.
+     *
+     * @param safeTarget
+     *            the arrival point, modified in place; may be null
+     * @param newSpeed
+     *            the velocity it is leaving at
+     * @param facing
+     *            the far gate's facing, used when the velocity says nothing
+     */
+    private static void faceTheWayItIsGoing(final Location safeTarget, final Vector newSpeed,
+        final BlockFace facing)
+    {
+        if (safeTarget == null)
+        {
+            return;
+        }
+        // Arrival facing is cosmetic, and this runs on the teleport path.
+        try
+        {
+            final double dx = newSpeed.getX();
+            final double dz = newSpeed.getZ();
+            final float yaw = (Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001)
+                ? (float) Math.toDegrees(Math.atan2(-dx, dz))
+                : WorldUtils.getDegreesFromBlockFace(facing);
+            safeTarget.setYaw(yaw);
+            safeTarget.setPitch(0f);
+        }
+        catch (final RuntimeException ignore) { /* arrival facing is cosmetic */ }
+    }
+
+    /**
+     * Marks the players aboard, so the player listener leaves them where they are.
+     *
+     * <p>{@code veh.teleport()} ejects its passengers on the source side, which the player
+     * listener sees as a player moving inside a gate. Unmarked, it sends each of them through
+     * on foot and the vehicle arrives empty.
+     *
+     * @param passengers
+     *            who is aboard; anything that is not a player is left alone
+     */
+    private static void markRidersAsTravellingByVehicle(final List<Entity> passengers)
+    {
+        for (final Entity psg : passengers)
+        {
+            if (psg instanceof Player)
+            {
+                markPlayerRecentlyTeleportedByVehicle(psg.getUniqueId());
+            }
+        }
     }
 
     /* (non-Javadoc)
