@@ -164,6 +164,7 @@ class PrettyLogThrowableTest
     void noPrettyLogCallFlattensAnExceptionIntoItsMessage() throws IOException
     {
         final List<String> found = new ArrayList<>();
+        int scanned = 0;
         try (java.util.stream.Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
         {
             for (final Path source : walk.toList())
@@ -173,6 +174,7 @@ class PrettyLogThrowableTest
                     continue;
                 }
                 final String text = Files.readString(source, StandardCharsets.UTF_8);
+                scanned++;
                 final Matcher m = GET_MESSAGE.matcher(text);
                 while (m.find())
                 {
@@ -188,7 +190,9 @@ class PrettyLogThrowableTest
             "these calls put an exception's own message in the line. Pass the exception as the "
                 + "third argument instead: the message says what the plugin was doing, and the "
                 + "logger takes care of what went wrong and where.");
-        assertTrue(Files.exists(Paths.get("src/main/java")), "no sources were read, so this proved nothing");
+        // Counted, not asserted from the directory existing: an empty src/main/java under the
+        // wrong working directory would let this pass having read nothing at all.
+        assertTrue(scanned > 100, "only " + scanned + " sources were read, so this proved nothing");
     }
 
     /**
