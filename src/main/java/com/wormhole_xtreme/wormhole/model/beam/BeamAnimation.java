@@ -345,7 +345,7 @@ public final class BeamAnimation
 
             if (frame.isStart())
             {
-                announceDeparture(frame);
+                announceDeparture();
             }
 
             if (frame.isEnvelopActive())
@@ -355,7 +355,7 @@ public final class BeamAnimation
 
             if (frame.isVanish())
             {
-                vanish(frame);
+                vanish();
             }
 
             if (frame.isRiseActive())
@@ -455,16 +455,13 @@ public final class BeamAnimation
 
         /**
          * Says the beam has begun, and starts the charge sound.
-         *
-         * @param frame
-         *            what this tick is, decided entirely by BeamFrame
          */
-        private void announceDeparture(final BeamFrame frame)
+        private void announceDeparture()
         {
-                BeamFreeze.markActive(player);
-                BeamSounds.playCharge(origin);
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + "Beaming to " + destinationName + "...");
+            BeamFreeze.markActive(player);
+            BeamSounds.playCharge(origin);
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + "Beaming to " + destinationName + "...");
         }
 
         /**
@@ -484,43 +481,40 @@ public final class BeamAnimation
 
         /**
          * The moment free movement ends: where they stand is fixed, and they are frozen.
-         *
-         * @param frame
-         *            what this tick is, decided entirely by BeamFrame
          */
-        private void vanish(final BeamFrame frame)
+        private void vanish()
         {
-                // This is the moment free movement ends: note where they are right now --
-                // the departure column roots here for the rest of the rise -- then lock
-                // them in place. Capturing the location before freezing, not after, is
-                // what keeps the last envelope frame and the first rise frame coincident
-                // rather than one tick apart.
-                origin = player.getLocation();
+            // This is the moment free movement ends: note where they are right now --
+            // the departure column roots here for the rest of the rise -- then lock
+            // them in place. Capturing the location before freezing, not after, is
+            // what keeps the last envelope frame and the first rise frame coincident
+            // rather than one tick apart.
+            origin = player.getLocation();
 
-                // Settled here, not in the constructor: the traveller is free to mount or
-                // dismount right through the envelope, so this is the first tick at which
-                // what they are riding is a fixed fact. Held before the freeze, because
-                // holding is what makes the freeze work at all on a mounted traveller --
-                // it dismounts them, so their movement goes back through PlayerMoveEvent,
-                // which is the only thing BeamFreezeListener can revert.
-                mount = BeamMount.capture(player);
-                mount.hold(player);
-                BeamFreeze.freeze(player);
+            // Settled here, not in the constructor: the traveller is free to mount or
+            // dismount right through the envelope, so this is the first tick at which
+            // what they are riding is a fixed fact. Held before the freeze, because
+            // holding is what makes the freeze work at all on a mounted traveller --
+            // it dismounts them, so their movement goes back through PlayerMoveEvent,
+            // which is the only thing BeamFreezeListener can revert.
+            mount = BeamMount.capture(player);
+            mount.hold(player);
+            BeamFreeze.freeze(player);
 
-                // The traveller and their mount both leave everyone else's screen here --
-                // hideEntity rather than an invisibility effect, which would have left
-                // whatever they were holding, wearing and riding rendered exactly where it
-                // was. Invisibility goes on too, but only for the traveller's own camera,
-                // which hiding cannot reach. Both are undone explicitly at the deposit, and
-                // by recover() if this sequence never gets that far.
-                //
-                // The duration is a ceiling, not the timing: the remainder of the envelope
-                // plus the full rise and descent over-estimates when it is needed until,
-                // which is fine, since explicit removal at the deposit is what the sequence
-                // actually depends on and this only guards against that removal being late.
-                visibility.hide(mount.stack(),
-                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks()
-                        + timing.descendTicks());
+            // The traveller and their mount both leave everyone else's screen here --
+            // hideEntity rather than an invisibility effect, which would have left
+            // whatever they were holding, wearing and riding rendered exactly where it
+            // was. Invisibility goes on too, but only for the traveller's own camera,
+            // which hiding cannot reach. Both are undone explicitly at the deposit, and
+            // by recover() if this sequence never gets that far.
+            //
+            // The duration is a ceiling, not the timing: the remainder of the envelope
+            // plus the full rise and descent over-estimates when it is needed until,
+            // which is fine, since explicit removal at the deposit is what the sequence
+            // actually depends on and this only guards against that removal being late.
+            visibility.hide(mount.stack(),
+                (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks()
+                    + timing.descendTicks());
         }
 
         /**
