@@ -243,9 +243,46 @@ public final class LegacyDatabaseImporter
      * @throws java.sql.SQLException
      *             if the row cannot be read
      */
-    private static String importOne(final ResultSet rows, final String name,
+    // Package-private, not private: the four checks that run before Bukkit.getWorld are
+    // exercised directly by LegacyImportTest, the same reason BeamCommand.resolveDestination
+    // is. Everything past the world lookup needs a live server and stays uncovered.
+    static String importOne(final ResultSet rows, final String name,
         final int[] movedExits)
         throws java.sql.SQLException
+    {
+        final byte[] data = rows.getBytes("GateData");
+        final String worldName = column(rows, "WorldName");
+        final String refusal = whyNotImportable(name, data, worldName);
+        if (refusal != null)
+        {
+            return refusal;
+        }
+
+        final Stargate gate = readGate(rows, name, data, Bukkit.getWorld(worldName));
+        if (gate == null)
+        {
+            return "the stored gate could not be read";
+        }
+        settleImportedGate(rows, gate, movedExits);
+        return null;
+    }
+
+    /**
+     * Why this row cannot become a gate, if it cannot.
+     *
+     * <p>Every one of these returns a reason rather than throwing, because one unreadable row
+     * must not abandon the rest of somebody's database -- and the reason is what they are
+     * told about that gate afterwards.
+     *
+     * @param name
+     *            the gate's name as the row holds it
+     * @param data
+     *            the stored gate blob
+     * @param worldName
+     *            the world the row names, which may be absent on an old enough schema
+     * @return the reason to skip it, or null if it can be imported
+     */
+    private static String whyNotImportable(final String name, final byte[] data, final String worldName)
     {
         if ((name == null) || name.isEmpty())
         {
@@ -255,31 +292,58 @@ public final class LegacyDatabaseImporter
         {
             return "a gate of that name is already here";
         }
-        final byte[] data = rows.getBytes("GateData");
+        // Empty as well as null: a zero-length blob parses to nothing, and importing it would
+        // register a gate with no blocks that looks present and does nothing.
         if ((data == null) || (data.length == 0))
         {
             return "no gate data";
         }
-        final String worldName = column(rows, "WorldName");
         if ((worldName == null) || worldName.isEmpty())
         {
             return "no world recorded";
         }
-        final World world = Bukkit.getWorld(worldName);
-        if (world == null)
+        if (Bukkit.getWorld(worldName) == null)
         {
             return "world \"" + worldName + "\" is not loaded";
         }
+        return null;
+    }
 
+    /**
+     * Parses the stored gate, onto its network if the row names one.
+     *
+     * @param rows
+     *            the result set, positioned on the row
+     * @param name
+     *            the gate's name
+     * @param data
+     *            the stored gate blob
+     * @param world
+     *            the world it belongs in
+     * @return the gate, or null if the blob would not parse
+     */
+    private static Stargate readGate(final ResultSet rows, final String name, final byte[] data,
+        final World world)
+    {
         final String networkName = column(rows, "Network");
         final StargateNetwork network = ((networkName == null) || networkName.isEmpty())
             ? null : StargateManager.addStargateNetwork(networkName);
+        return GateSerializer.parseVersionedData(data, world, name, network);
+    }
 
-        final Stargate gate = GateSerializer.parseVersionedData(data, world, name, network);
-        if (gate == null)
-        {
-            return "the stored gate could not be read";
-        }
+    /**
+     * Everything a freshly parsed gate needs before it counts as imported.
+     *
+     * @param rows
+     *            the result set, positioned on the row
+     * @param gate
+     *            the parsed gate
+     * @param movedExits
+     *            a one-element counter, incremented when the exit had to be moved
+     */
+    private static void settleImportedGate(final ResultSet rows, final Stargate gate,
+        final int[] movedExits)
+    {
         final String owner = column(rows, "Owner");
         if ((owner != null) && !owner.isEmpty())
         {
@@ -288,23 +352,22 @@ public final class LegacyDatabaseImporter
             // migration, so it is set as a name and left to resolve itself.
             gate.setGateOwnerName(owner);
         }
-        if (networkName != null && !networkName.isEmpty())
+        final String networkName = column(rows, "Network");
+        if ((networkName != null) && !networkName.isEmpty())
         {
             StargateManager.addGateToNetwork(gate, networkName);
         }
-        // The same fix StargateYamlManager.loadStargates() applies to every gate it reads:
-        // an exit point old enough to predate this check can sit inside the portal itself,
-        // which is exactly the shape of gate these databases hold. Without this, an
-        // imported gate that never had it applied would still land travellers in the water
-        // they have to swim out of, even though every gate loaded the normal way is
-        // guaranteed clear of it.
+        // The same fix StargateYamlManager.loadStargates() applies to every gate it reads: an
+        // exit point old enough to predate this check can sit inside the portal itself, which
+        // is exactly the shape of gate these databases hold. Without this, an imported gate
+        // would still land travellers in the water they have to swim out of, even though
+        // every gate loaded the normal way is guaranteed clear of it.
         if (gate.normalizeGatePlayerTeleportLocation())
         {
             movedExits[0]++;
         }
         StargateManager.addStargate(gate);
         StargateDBManager.saveStargate(gate);
-        return null;
     }
 
     /**
