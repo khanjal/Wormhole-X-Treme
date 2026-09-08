@@ -117,6 +117,45 @@ These come from where the mark actually gets used, so they hold regardless of ho
 - **The plugin ships no images.** The logo is documentation and listing art only; nothing in
   `src/` loads it, so file size and format are unconstrained by the build.
 
+## Licensing, which needs a decision
+
+Everything in this repository inherits GPL-3.0 unless it says otherwise, so as things stand
+these SVGs are GPL-3.0 exactly like the code. That is almost certainly not what is wanted, and
+it is worth deciding deliberately rather than inheriting by default.
+
+The reason is specific to this project rather than general principle. **There is more than one
+Wormhole X-Treme.** Saying which one this is, is a large part of what the mark is for. Under
+GPL-3.0 anybody may redistribute and modify these files, including using them to present a fork
+as this project -- which is the one outcome the mark exists to prevent.
+
+Copyright licensing and trademark are separate regimes, and the GPL does not pretend otherwise:
+**GPL-3.0 section 7(e)** expressly permits an additional term declining to grant rights under
+trademark law. Keeping the code free while keeping the identity controlled is a normal,
+well-trodden arrangement -- Rust, Python, Mozilla and the Linux kernel all do some version of it.
+
+None of the following has been done. It is the shape of the decision, not a description of the
+current state:
+
+- **A statement covering the artwork only.** A short `docs/images/LICENSE` or a paragraph in the
+  README saying that the files in `docs/images/` are not under GPL-3.0 and setting their terms.
+  Two common choices: all rights reserved, or a permissive licence for unmodified use in
+  reference to this project while reserving modified use.
+- **A usage policy**, if it is worth the words: who may use the mark without asking (writing
+  about the plugin, linking to it) and who may not (presenting a different build as this one).
+- **Copyright assignment in the commission.** If a real logo is commissioned (see
+  [issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187)), the contract should
+  assign copyright to the project rather than leaving it with the artist, or none of the above
+  is yours to decide.
+
+This is a note, not legal advice, and nothing here changes the licensing as it currently stands.
+If the mark ever matters commercially, the question is worth a real answer from somebody
+qualified to give one.
+
+**Related, and unrelated to the logo:** `LICENSE.txt` is the sixteen-line GPL notice that
+references the licence rather than the full GPL-3.0 text. That is why GitHub's API reports this
+repository's licence as `NOASSERTION` and the README's GPL-3.0 badge is hand-written rather than
+detected. Dropping in the full text would fix the detection.
+
 ## What is open
 
 Everything below is a decision made to get *something* on the page, not a position worth

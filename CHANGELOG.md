@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The logo is GPL-3.0 by accident
+
+Everything in the repository inherits GPL-3.0 unless it says otherwise, so the mark added a few
+commits ago is currently licensed exactly like the code. Nobody chose that.
+
+It matters here more than it would elsewhere, because there is more than one Wormhole X-Treme,
+and saying which one this is, is most of what a mark is for. Under GPL-3.0 anybody may
+redistribute and modify those SVGs -- including to present a fork as this project, which is the
+one outcome the mark exists to prevent.
+
+`docs/LOGO.md` now says so, along with the shape of the decision: a statement covering
+`docs/images/` alone, optionally a usage policy, and copyright assignment written into any
+commission, since none of it is yours to decide if the artist keeps the copyright. Copyright and
+trademark are separate regimes and the GPL says as much -- section 7(e) expressly allows an
+additional term declining to grant trademark rights, which is how Rust, Python and Mozilla all
+keep free code and a controlled identity at the same time.
+
+Nothing is relicensed. The note is a note; the decision is the owner's.
+
+While writing it: `LICENSE.txt` is the sixteen-line GPL notice rather than the full GPL-3.0 text,
+which is why GitHub reports this repository's licence as `NOASSERTION` and the README's badge is
+hand-written rather than detected.
+
 ### The animations were described but never shown
 
 `RINGS.md` spends most of a section explaining that four rings travel a block apart and settle
