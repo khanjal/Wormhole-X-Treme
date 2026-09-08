@@ -24,6 +24,34 @@ than "the drawing could be nicer".
 The name does not share the weakness. Trademark rights come from use in commerce rather than
 authorship, and Wormhole X-Treme has been in use since 2011. `TRADEMARK.md` now says both things.
 
+### Whether a ring fires at all was decided by nothing anybody had checked
+
+`RingTransit` is thin on purpose. The animation's arithmetic lives in `RingAnimator` and its
+frame-by-frame state in `RingCycle`, both covered, leaving this class as the part that touches a
+live world. What was also left in it, and covered by nothing, is `start` -- six rules deciding
+whether a cycle runs at all.
+
+One of them exists purely to stop a wall of chat. `start` runs on every block boundary somebody
+crosses inside a ring, so a pad whose far end has been built over is refused several times a
+second. The answer is remembered for a second so the world is not re-read and the player not
+re-told on each of them. It is the same fault the gate side already had a test for, in a place
+nothing was watching.
+
+Nineteen mutations, and the four that survived the first pass were all about what happens
+*between* calls rather than within one:
+
+- The remembered answer never expiring, which would leave a pad somebody has since cleared
+  refusing every walk-in for the rest of the server's life.
+- A refusal leaving its claim on the pair behind, which would stop it ever firing again.
+- A pair that fires never forgetting it was once refused -- harmless in itself, but the map is
+  keyed by pair id and nothing else empties it.
+- The rings not being heard opening at the far end, where somebody standing in them gets the
+  only warning they are going to get.
+
+`RingTransitStartTest` is nineteen tests and no production change: `start` was already reachable.
+Three of them reach into the two maps `start` keeps between calls, because a one-second lifetime
+is not a thing to sit through and because the state a re-entrant call would find cannot be
+reached any other way in a single thread.
 
 ### The name and logo are no longer GPL-3.0
 
