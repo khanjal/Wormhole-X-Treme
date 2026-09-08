@@ -22,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * A gate whose name, owner or iris code is not plain ASCII survives being stored.
@@ -169,9 +170,8 @@ class Utf8GateStorageTest
         s.setGateOwnerName(OWNER_NAME);
         StargateYamlManager.saveStargate(s, gatesDir());
 
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> parsed = (Map<String, Object>) new Yaml().load(
-            new String(Files.readAllBytes(savedFile(GATE_NAME).toPath()), StandardCharsets.UTF_8));
+        final Map<String, Object> parsed = YamlMaps.asMap(new Yaml().load(
+            new String(Files.readAllBytes(savedFile(GATE_NAME).toPath()), StandardCharsets.UTF_8)));
 
         assertEquals(GATE_NAME, parsed.get("Name"),
             "the gate came back under a different name than it was saved under, which is the "

@@ -18,6 +18,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Loads and saves beam destinations, in one file.
@@ -72,7 +73,6 @@ public final class BeamYamlManager
      *
      * @return the file's top-level map, empty if there is nothing usable to read
      */
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> readBeamFile()
     {
         final File file = getBeamFile();
@@ -82,8 +82,7 @@ public final class BeamYamlManager
         }
         try (FileInputStream in = new FileInputStream(file))
         {
-            final Object loaded = new Yaml().load(in);
-            return (loaded instanceof Map) ? (Map<String, Object>) loaded : Collections.emptyMap();
+            return YamlMaps.asMap(new Yaml().load(in));
         }
         catch (final IOException | RuntimeException e)
         {
@@ -99,15 +98,10 @@ public final class BeamYamlManager
      *            the Public section, whatever the file had there
      * @return how many were loaded
      */
-    @SuppressWarnings("unchecked")
     private static int loadPublic(final Object section)
     {
-        if (!(section instanceof Map))
-        {
-            return 0;
-        }
         int count = 0;
-        for (final Map.Entry<String, Object> entry : ((Map<String, Object>) section).entrySet())
+        for (final Map.Entry<String, Object> entry : YamlMaps.asMap(section).entrySet())
         {
             final BeamDestination destination = readDestination(entry.getKey(), entry.getValue());
             if (destination != null)
@@ -130,23 +124,18 @@ public final class BeamYamlManager
      *            the Places section, whatever the file had there
      * @return how many were loaded
      */
-    @SuppressWarnings("unchecked")
     private static int loadPlaces(final Object section)
     {
-        if (!(section instanceof Map))
-        {
-            return 0;
-        }
         int count = 0;
-        for (final Map.Entry<String, Object> playerEntry : ((Map<String, Object>) section).entrySet())
+        for (final Map.Entry<String, Object> playerEntry : YamlMaps.asMap(section).entrySet())
         {
             final UUID owner = readOwnerId(playerEntry.getKey());
-            if ((owner == null) || !(playerEntry.getValue() instanceof Map))
+            if (owner == null)
             {
                 continue;
             }
             for (final Map.Entry<String, Object> placeEntry
-                : ((Map<String, Object>) playerEntry.getValue()).entrySet())
+                : YamlMaps.asMap(playerEntry.getValue()).entrySet())
             {
                 final BeamDestination destination = readDestination(placeEntry.getKey(), placeEntry.getValue());
                 if (destination != null)
@@ -179,7 +168,6 @@ public final class BeamYamlManager
         }
     }
 
-    @SuppressWarnings("unchecked")
     // Package-private rather than private: a pure Map <-> BeamDestination conversion with no
     // file I/O in it at all, so BeamYamlManagerTest exercises it directly rather than
     // round-tripping through a real file.
@@ -192,7 +180,7 @@ public final class BeamYamlManager
         }
         try
         {
-            final Map<String, Object> map = (Map<String, Object>) value;
+            final Map<String, Object> map = YamlMaps.asMap(value);
             final String world = (String) map.get("World");
             final double x = number(map.get("X"));
             final double y = number(map.get("Y"));

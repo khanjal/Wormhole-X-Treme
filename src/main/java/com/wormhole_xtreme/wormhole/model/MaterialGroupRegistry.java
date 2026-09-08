@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import org.bukkit.Material;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Holds the {@link MaterialGroup}s defined in config.yml, in declaration order.
@@ -129,8 +130,7 @@ public final class MaterialGroupRegistry
             warn(GROUP_PREFIX + groupName + "\" is not a mapping of materials; skipping.");
             return null;
         }
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> values = (Map<String, Object>) entry.getValue();
+        final Map<String, Object> values = YamlMaps.asMap(entry.getValue());
 
         final Material structure = parseMaterial(groupName, "structure", values.get("structure"));
         if (structure == null)

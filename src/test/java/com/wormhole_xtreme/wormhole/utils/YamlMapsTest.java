@@ -1,0 +1,105 @@
+package com.wormhole_xtreme.wormhole.utils;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.yaml.snakeyaml.Yaml;
+
+/**
+ * The two casts every YAML reader in this plugin now shares.
+ *
+ * <p>What is worth pinning down is not the cast -- that either compiles or does not -- but the
+ * promise the readers were rewritten against. Each of them used to open with its own
+ * {@code instanceof} guard and an early return, and those guards were deleted on the strength
+ * of one claim: an unusable value comes back as something safe to iterate that yields nothing.
+ * If that ever stopped being true, a hand-edited config would stop being a skipped section and
+ * start being a {@code NullPointerException} on startup, in five different files at once.
+ */
+class YamlMapsTest
+{
+    /** The ordinary path: a mapping comes back as the same object, not a copy of it. */
+    @Test
+    void aParsedMappingComesBackAsItself()
+    {
+        final Object parsed = new Yaml().load("World: nether\nX: 12\n");
+
+        final Map<String, Object> map = YamlMaps.asMap(parsed);
+
+        assertSame(parsed, map, "a mapping should be handed straight back, not rebuilt");
+        assertEquals("nether", map.get("World"));
+        assertEquals(Integer.valueOf(12), map.get("X"));
+    }
+
+    /**
+     * The claim the deleted guards rested on, for every shape a hand-edited file can take.
+     *
+     * <p>A scalar where a section was expected, a list where a mapping was expected, and a
+     * file that parsed to nothing at all: all three used to be an early return written out
+     * longhand at each call site, and all three now have to arrive as an empty map that a
+     * for-each loop steps over without complaint.
+     */
+    @Test
+    void anythingThatIsNotAMappingIsAnEmptyMapRatherThanNullOrAThrow()
+    {
+        for (final Object notAMapping : new Object[] {
+            new Yaml().load("just a string"),
+            new Yaml().load("- one\n- two\n"),
+            new Yaml().load(""),
+            null,
+        })
+        {
+            final Map<String, Object> map = YamlMaps.asMap(notAMapping);
+
+            assertTrue(map.isEmpty(), "an unusable value should read as nothing to load");
+            for (final Map.Entry<String, Object> entry : map.entrySet())
+            {
+                throw new AssertionError("an empty section should yield no entries, got " + entry);
+            }
+        }
+    }
+
+    /** The same promise for {@code asList}, which a ring pair's allow-list is read through. */
+    @Test
+    void anythingThatIsNotASequenceIsAnEmptyListRatherThanNullOrAThrow()
+    {
+        assertEquals(List.of("alice", "bob"), YamlMaps.asList(new Yaml().load("- alice\n- bob\n")));
+
+        for (final Object notASequence : new Object[] {
+            new Yaml().load("World: nether"),
+            new Yaml().load("just a string"),
+            null,
+        })
+        {
+            assertTrue(YamlMaps.asList(notASequence).isEmpty(),
+                "an unusable allow-list should read as nobody, not as a crash on startup");
+        }
+    }
+
+    /**
+     * The limit the class documents, held to on purpose so it cannot drift unnoticed.
+     *
+     * <p>YAML permits non-string keys, so {@code 1: one} parses to a mapping whose key is an
+     * {@code Integer} and which this hands back as a {@code Map<String, Object>} regardless.
+     * Reading such a key throws where it is read, exactly as it did when each caller cast for
+     * itself -- and every caller runs inside a try/catch that logs the entry and skips it, so
+     * one bad key costs one entry rather than the file. This is not a bug being enshrined; it
+     * is the reason those try/catch blocks have to stay.
+     */
+    @Test
+    void aNonStringKeyStillThrowsWhereItIsRead()
+    {
+        final Map<String, Object> map = YamlMaps.asMap(new Yaml().load("1: one"));
+
+        assertEquals(1, map.size(), "the mapping itself is handed back, keys unexamined");
+        assertThrows(ClassCastException.class,
+            () -> map.keySet().iterator().next().length(),
+            "reading a non-string key must still fail at the point of use, where a caller "
+                + "catches it and skips the one entry");
+    }
+}

@@ -18,6 +18,7 @@ import org.bukkit.Server;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Simple per-gate YAML manager.
@@ -123,13 +124,7 @@ public class StargateYamlManager
      */
     private static Stargate readGate(final FileInputStream in, final Yaml yaml, final Server server)
     {
-        final Object obj = yaml.load(in);
-        if (!(obj instanceof Map))
-        {
-            return null;
-        }
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> map = (Map<String, Object>) obj;
+        final Map<String, Object> map = YamlMaps.asMap(yaml.load(in));
         final String gateDataB64 = (String) map.get("GateData");
         if (gateDataB64 == null)
         {
@@ -375,16 +370,11 @@ public class StargateYamlManager
         final Yaml yaml = new Yaml();
         try (FileInputStream in = new FileInputStream(inFile))
         {
-            final Object obj = yaml.load(in);
-            if (obj instanceof Map)
-            {
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> map = (Map<String, Object>) obj;
-                final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, null);
-                final String legacyOwner = (String) map.getOrDefault("Owner", null);
-                // Prefer UUID, fall back to legacy name
-                return ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
-            }
+            final Map<String, Object> map = YamlMaps.asMap(yaml.load(in));
+            final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, null);
+            final String legacyOwner = (String) map.getOrDefault("Owner", null);
+            // Prefer UUID, fall back to legacy name
+            return ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
         }
         catch (final Exception e)
         {

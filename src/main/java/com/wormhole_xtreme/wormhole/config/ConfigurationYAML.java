@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Loads and writes plugin configuration via YAML (`config.yml`).
@@ -71,13 +72,7 @@ public class ConfigurationYAML
 
         try (InputStream in = new FileInputStream(cfg))
         {
-            final Object loaded = new Yaml().load(in);
-            if (!(loaded instanceof Map))
-            {
-                return;
-            }
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> map = (Map<String, Object>) loaded;
+            final Map<String, Object> map = YamlMaps.asMap(new Yaml().load(in));
 
             final List<Setting> missing = applySettings(map);
 
@@ -189,16 +184,7 @@ public class ConfigurationYAML
      */
     private static void loadMaterialGroups(final Object raw)
     {
-        if (raw instanceof Map)
-        {
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> section = (Map<String, Object>) raw;
-            MaterialGroupRegistry.load(section);
-        }
-        else
-        {
-            MaterialGroupRegistry.load(null);
-        }
+        MaterialGroupRegistry.load(YamlMaps.asMap(raw));
     }
 
     /** Runs once per paragraph when a description is wrapped, so it is compiled once. */

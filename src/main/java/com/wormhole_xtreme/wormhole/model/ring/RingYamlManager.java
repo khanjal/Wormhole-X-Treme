@@ -20,6 +20,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Loads and saves ring pairs, one file per world.
@@ -144,19 +145,13 @@ public final class RingYamlManager
      *            how deep each trigger volume runs
      * @return how many pairs were loaded from it
      */
-    @SuppressWarnings("unchecked")
     private static int loadFile(final File file, final int reach)
     {
         final Yaml yaml = new Yaml();
         final Map<String, Object> root;
         try (FileInputStream in = new FileInputStream(file))
         {
-            final Object parsed = yaml.load(in);
-            if (!(parsed instanceof Map))
-            {
-                return 0;
-            }
-            root = (Map<String, Object>) parsed;
+            root = YamlMaps.asMap(yaml.load(in));
         }
         // A whole file that will not parse is the one case that cannot be salvaged per
         // entry, so it is reported loudly and the other worlds still load.
@@ -172,19 +167,13 @@ public final class RingYamlManager
             log(Level.WARNING, "Ring file " + file.getName() + " names no world; skipping it.");
             return 0;
         }
-        final Object pairsNode = root.get("Pairs");
-        if (!(pairsNode instanceof Map))
-        {
-            return 0;
-        }
-
         int loaded = 0;
-        for (final Map.Entry<String, Object> entry : ((Map<String, Object>) pairsNode).entrySet())
+        for (final Map.Entry<String, Object> entry : YamlMaps.asMap(root.get("Pairs")).entrySet())
         {
             try
             {
                 final RingPair pair = readPair(entry.getKey(), worldName,
-                    (Map<String, Object>) entry.getValue());
+                    YamlMaps.asMap(entry.getValue()));
                 RingManager.addPair(pair, reach);
                 loaded++;
             }
@@ -209,15 +198,14 @@ public final class RingYamlManager
      *            the stored fields
      * @return the pair
      */
-    @SuppressWarnings("unchecked")
     private static RingPair readPair(final String id, final String worldName,
         final Map<String, Object> map)
     {
         // A pair written before style moved onto the end carries one value for both. Read
         // it as the fallback for each so those files keep behaving exactly as they did.
         final RingStyle shared = readStyle(map.get(STYLE_KEY));
-        final Ring endA = readRing((Map<String, Object>) map.get("A"), shared);
-        final Ring endB = readRing((Map<String, Object>) map.get("B"), shared);
+        final Ring endA = readRing(YamlMaps.asMap(map.get("A")), shared);
+        final Ring endB = readRing(YamlMaps.asMap(map.get("B")), shared);
         final RingPair pair = new RingPair(id, worldName, endA, endB);
         pair.setOwner(String.valueOf(map.getOrDefault("Owner", "")));
         pair.setOwnerName(String.valueOf(map.getOrDefault("OwnerName", "")));
@@ -225,13 +213,9 @@ public final class RingYamlManager
         // Absent means private. A file written before access existed, or one somebody hand
         // edited badly, must not quietly open a ring to the whole server.
         pair.setAccess(readAccess(map.get("Access")));
-        final Object allowed = map.get("Allowed");
-        if (allowed instanceof java.util.List)
+        for (final Object entry : YamlMaps.asList(map.get("Allowed")))
         {
-            for (final Object entry : (java.util.List<Object>) allowed)
-            {
-                pair.allow(String.valueOf(entry));
-            }
+            pair.allow(String.valueOf(entry));
         }
         return pair;
     }
@@ -551,7 +535,6 @@ public final class RingYamlManager
      *            the directory to read
      * @return how many were restored
      */
-    @SuppressWarnings("unchecked")
     public static int loadPending(final File directory)
     {
         final File source = pendingFile(directory);
@@ -562,29 +545,19 @@ public final class RingYamlManager
         final Map<String, Object> root;
         try (FileInputStream in = new FileInputStream(source))
         {
-            final Object parsed = new Yaml().load(in);
-            if (!(parsed instanceof Map))
-            {
-                return 0;
-            }
-            root = (Map<String, Object>) parsed;
+            root = YamlMaps.asMap(new Yaml().load(in));
         }
         catch (final Exception e)
         {
             log(Level.WARNING, "Could not read pending ring file: " + e.getMessage());
             return 0;
         }
-        final Object node = root.get("Pending");
-        if (!(node instanceof Map))
-        {
-            return 0;
-        }
         int loaded = 0;
-        for (final Map.Entry<String, Object> entry : ((Map<String, Object>) node).entrySet())
+        for (final Map.Entry<String, Object> entry : YamlMaps.asMap(root.get("Pending")).entrySet())
         {
             try
             {
-                final Map<String, Object> map = (Map<String, Object>) entry.getValue();
+                final Map<String, Object> map = YamlMaps.asMap(entry.getValue());
                 final Ring ring = readRing(map, RingStyle.CONCURRENT);
                 RingManager.setPending(UUID.fromString(entry.getKey()), ring,
                     String.valueOf(map.get(WORLD_KEY)));

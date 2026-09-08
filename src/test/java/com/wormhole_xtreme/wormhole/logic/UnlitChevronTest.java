@@ -18,6 +18,7 @@ import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * A gate can show where its chevrons are before any of them light.
@@ -264,14 +265,11 @@ class UnlitChevronTest
     @Test
     void theShippedStandardPaletteOffersUnlitChevrons() throws Exception
     {
-        final Object parsed = new org.yaml.snakeyaml.Yaml().load(new String(
-            Files.readAllBytes(Paths.get("src/main/resources/config.yml")),
-            java.nio.charset.StandardCharsets.UTF_8));
-        @SuppressWarnings("unchecked")
-        final java.util.Map<String, Object> root = (java.util.Map<String, Object>) parsed;
-        @SuppressWarnings("unchecked")
-        final java.util.Map<String, Object> section =
-            (java.util.Map<String, Object>) root.get("gate-material-groups");
+        final java.util.Map<String, Object> root = YamlMaps.asMap(
+            new org.yaml.snakeyaml.Yaml().load(new String(
+                Files.readAllBytes(Paths.get("src/main/resources/config.yml")),
+                java.nio.charset.StandardCharsets.UTF_8)));
+        final java.util.Map<String, Object> section = YamlMaps.asMap(root.get("gate-material-groups"));
 
         MaterialGroupRegistry.load(section);
 
