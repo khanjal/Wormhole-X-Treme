@@ -6,6 +6,9 @@ All notable changes to this project are documented in this file.
 
 ### Who may beam whom where was held up by nothing
 
+None of this changes what the plugin does. It is what the plugin already did, written down
+where a refactor has to notice it.
+
 `/wormhole beam admin` reads as one command behind one permission, and it is not. `goto` and
 `send` are answered *before* the `wormhole.beam.admin` check and carry their own
 `wormhole.beam.admin.teleport` instead.

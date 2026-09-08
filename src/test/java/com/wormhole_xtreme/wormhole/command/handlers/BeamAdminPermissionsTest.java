@@ -194,16 +194,24 @@ class BeamAdminPermissionsTest
         yaml.verify(BeamYamlManager::saveAll);
     }
 
-    /** Removing one that is there takes it out of the list and writes the list out. */
+    /**
+     * Removing one that is there takes it out of the list and writes the list out.
+     *
+     * <p>The invocations are cleared between the two commands because the {@code set} that
+     * arranges this saves as well, and a bare verify would pass on that one alone -- which is
+     * the whole thing this is trying to check.
+     */
     @Test
     void removingADestinationTakesItOutAndSavesTheList()
     {
         holding(admin, BeamPermissions.ADMIN);
         run(admin, "set", "hub");
+        yaml.clearInvocations();
 
         assertTrue(run(admin, "remove", "hub"));
 
         assertNull(BeamManager.getPublicDestination("hub"));
+        yaml.verify(BeamYamlManager::saveAll);
         verify(admin).sendMessage(contains("Removed public beam destination"));
     }
 
