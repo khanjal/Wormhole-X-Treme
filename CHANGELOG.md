@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Three fields that were never swapped together
+
+`MaterialGroupRegistry` kept its palettes in three `volatile` fields -- by name, by frame
+material, and the default -- and the end of a load assigned all three, one after another.
+Three writes are three chances to be read between. A reader arriving mid-reload would get the
+new groups with the old default, or find a palette by name that lookup-by-frame-material did
+not yet know about.
+
+No reader does. Nothing in this plugin runs off the main thread: there is no async task in it
+anywhere. None of that could actually happen, and this fixes no bug anybody has hit.
+
+What was wrong is that the code disagreed with itself. `volatile` says cross-thread reads are
+expected; three separate writes say they are not. Both cannot be true, and the cheap way to
+settle it -- delete the `volatile` -- is a bet that the plugin stays single-threaded, which is
+not the sort of thing worth betting on quietly.
+
+The three are now one immutable `Snapshot` record behind a single `AtomicReference`. A load is
+one write, and a reader cannot see half of it. `registerDiscoveredGroup` gets more than
+tidiness out of it: it copies both maps, adds to the copies and puts them back, and two of
+those landing together means both copy the same starting maps and the second discards the
+first, losing a palette the shapes had asked for. It goes through `updateAndGet` now, which
+re-runs on the collision. Written the old way, the test for it fails on the first attempt --
+this was a wide window, not a narrow one, and only unreachable because of where it is called
+from.
+
+`AtomicReference` rather than a single `volatile Snapshot` because that is the fix S3077 asks
+for, so all three suppressions go rather than collapsing into one. The cost is a reference
+read on a path that was already doing exactly one.
+
+Three of the five `S3077` suppressions the warning-suppression audit catalogued were these, so
+that count is now two: `GateEvents.dispatcher` and `StargateShapeRegistry`.
+
 ### The same YAML cast, written thirteen times
 
 SnakeYAML's `load()` returns `Object`, so every reader in the tree tested the type, cast it,

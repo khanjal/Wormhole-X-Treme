@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
@@ -27,27 +28,49 @@ import com.wormhole_xtreme.wormhole.utils.YamlMaps;
  * slower, whereas twenty variant {@code .shape} files would multiply detection cost by
  * twenty.
  *
- * <p>The maps are replaced wholesale on load and read through volatile references, so
- * readers never lock. Loading happens once at startup and on an explicit reload.
+ * <p>Everything a reader needs lives in one immutable {@link Snapshot}, held in a single
+ * {@link AtomicReference}. Readers never lock, and writers replace the whole thing rather
+ * than updating it in place. Loading happens once at startup and on an explicit reload.
  */
 public final class MaterialGroupRegistry
 {
     private static final String GROUP_PREFIX = "Material group \"";
 
-    /** Groups by name, in declaration order. Replaced wholesale on load. */
-    // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
-    @SuppressWarnings("java:S3077")
-    private static volatile Map<String, MaterialGroup> groupsByName = Collections.emptyMap();
+    /**
+     * Everything a reader needs, in one object so it can be swapped in one write.
+     *
+     * <p>These three were three separate {@code volatile} fields, assigned one after another
+     * at the end of a load. Three writes are three chances to be read between: a reader
+     * arriving mid-reload could get the new groups with the old default, or find a palette by
+     * name that {@link #getGroupByStructureMaterial} did not yet know about.
+     *
+     * <p>No such reader exists today. Nothing in this plugin runs off the main thread -- there
+     * is no async task in it anywhere -- so nothing reads while a load writes, and none of
+     * that could actually happen. What was wrong was the disagreement: {@code volatile} says
+     * cross-thread reads are expected, three separate writes say they are not, and both
+     * cannot be right. This settles it the safe way round rather than by deleting the
+     * {@code volatile} and betting the plugin stays single-threaded, and it costs a reference
+     * read on a path that was already doing one.
+     *
+     * <p>Both maps are stored unmodifiable and never touched after construction, so the
+     * snapshot a reader is holding stays the snapshot it read.
+     *
+     * @param byName
+     *            groups by lower-cased name, in declaration order
+     * @param byStructureMaterial
+     *            groups by frame material, for O(1) detection
+     * @param defaultGroup
+     *            the first declared group, or null before anything has been loaded
+     */
+    private record Snapshot(Map<String, MaterialGroup> byName,
+        Map<Material, MaterialGroup> byStructureMaterial,
+        MaterialGroup defaultGroup)
+    {
+    }
 
-    /** Groups by frame material, for O(1) detection. Replaced wholesale on load. */
-    // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
-    @SuppressWarnings("java:S3077")
-    private static volatile Map<Material, MaterialGroup> groupsByStructureMaterial = Collections.emptyMap();
-
-    /** The first declared group, used when nothing more specific applies. */
-    // One immutable group, replaced wholesale; volatile publishes the new reference.
-    @SuppressWarnings("java:S3077")
-    private static volatile MaterialGroup defaultGroup;
+    /** The one thing every reader reads and every writer replaces. */
+    private static final AtomicReference<Snapshot> STATE =
+        new AtomicReference<>(new Snapshot(Collections.emptyMap(), Collections.emptyMap(), null));
 
     private MaterialGroupRegistry() {}
 
@@ -58,7 +81,7 @@ public final class MaterialGroupRegistry
      */
     public static MaterialGroup getDefaultGroup()
     {
-        return defaultGroup;
+        return STATE.get().defaultGroup();
     }
 
     /**
@@ -74,7 +97,7 @@ public final class MaterialGroupRegistry
         {
             return null;
         }
-        return groupsByName.get(name.toLowerCase(Locale.ROOT));
+        return STATE.get().byName().get(name.toLowerCase(Locale.ROOT));
     }
 
     /**
@@ -93,7 +116,7 @@ public final class MaterialGroupRegistry
         {
             return null;
         }
-        return groupsByStructureMaterial.get(material);
+        return STATE.get().byStructureMaterial().get(material);
     }
 
     /**
@@ -103,7 +126,7 @@ public final class MaterialGroupRegistry
      */
     public static Collection<MaterialGroup> getGroups()
     {
-        return groupsByName.values();
+        return STATE.get().byName().values();
     }
 
     /**
@@ -211,9 +234,8 @@ public final class MaterialGroupRegistry
             first = builtin;
         }
 
-        groupsByName = Collections.unmodifiableMap(byName);
-        groupsByStructureMaterial = Collections.unmodifiableMap(byMaterial);
-        defaultGroup = first;
+        STATE.set(new Snapshot(Collections.unmodifiableMap(byName),
+            Collections.unmodifiableMap(byMaterial), first));
 
         final List<String> names = new ArrayList<>();
         for (final MaterialGroup g : byName.values())
@@ -335,20 +357,34 @@ public final class MaterialGroupRegistry
      */
     public static void registerDiscoveredGroup(final MaterialGroup group)
     {
-        if (group == null || groupsByStructureMaterial.containsKey(group.getStructureMaterial()))
+        if (group == null)
         {
             return;
         }
-        final Map<String, MaterialGroup> byName = new LinkedHashMap<>(groupsByName);
-        final Map<Material, MaterialGroup> byMaterial = new LinkedHashMap<>(groupsByStructureMaterial);
-        byName.put(group.getName().toLowerCase(Locale.ROOT), group);
-        byMaterial.put(group.getStructureMaterial(), group);
-        groupsByName = Collections.unmodifiableMap(byName);
-        groupsByStructureMaterial = Collections.unmodifiableMap(byMaterial);
-        if (defaultGroup == null)
+        // Read, copy, write -- the one shape a plain assignment cannot do safely, because two
+        // of these landing together means both copy the same maps and the second write
+        // discards the first, losing a palette outright. Only reachable from a single
+        // sequential loop today, so nothing has ever lost one; updateAndGet re-runs on the
+        // collision rather than leaving that resting on the call site staying sequential.
+        //
+        // Which is why the body below has to stay a pure function of what it is handed: it
+        // may run more than once, so anything with a side effect in it would happen more
+        // than once too.
+        STATE.updateAndGet(current ->
         {
-            defaultGroup = group;
-        }
+            if (current.byStructureMaterial().containsKey(group.getStructureMaterial()))
+            {
+                return current;
+            }
+            final Map<String, MaterialGroup> byName = new LinkedHashMap<>(current.byName());
+            final Map<Material, MaterialGroup> byMaterial =
+                new LinkedHashMap<>(current.byStructureMaterial());
+            byName.put(group.getName().toLowerCase(Locale.ROOT), group);
+            byMaterial.put(group.getStructureMaterial(), group);
+            return new Snapshot(Collections.unmodifiableMap(byName),
+                Collections.unmodifiableMap(byMaterial),
+                current.defaultGroup() == null ? group : current.defaultGroup());
+        });
     }
 
     /**
