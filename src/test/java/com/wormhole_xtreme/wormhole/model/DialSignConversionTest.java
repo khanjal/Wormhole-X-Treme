@@ -293,7 +293,8 @@ class DialSignConversionTest
     @Test
     void aBlockThatIsNoLongerASignIsLeftAloneWithoutComplaint()
     {
-        when(block.getState()).thenReturn(mock(org.bukkit.block.BlockState.class));
+        final org.bukkit.block.BlockState notASign = mock(org.bukkit.block.BlockState.class);
+        when(block.getState()).thenReturn(notASign);
 
         StargateBlockSetup.matchDialSignMaterial(gate);
 
