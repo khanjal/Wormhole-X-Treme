@@ -4,6 +4,39 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The order a gate refuses you in, and when it takes your money
+
+Nothing here changes. This is what the plugin already did, written down.
+
+Walking into a gate runs a sequence of refusals -- permission, then the use cooldown, then
+having just come back through this same gate, then the fare, then a shut iris at the far end,
+then whether the server allows crossing worlds -- and only then asks other plugins whether they
+object. Every one of those was uncovered.
+
+The order is the design rather than the order they happened to get written in, and the code
+says so in comments that nothing was checking. A player who cannot afford the trip is told that,
+not bounced off an iris they were never going to reach: the reason you are given should be the
+one you can act on. A player who holds neither the permission nor a spent cooldown is told about
+the permission, because waiting thirty seconds for a gate they still may not use is thirty
+seconds wasted.
+
+And the money moves last of all. The fare is worked out early so the refusal comes in the right
+order, and taken only once the trip has actually happened -- so a listener that cancels the
+journey cancels the charge with it. A player billed for a trip they never took has no way to
+argue about it afterwards.
+
+Sixteen mutations. The one that survived the first pass was the far side of the cross-world
+rule: `SAME_WORLD_ONLY` restricts crossing worlds, and nothing checked that a trip *within* one
+world still worked while it was on. Both ends in one world is the ordinary case and by far the
+common one, so a rule that refused everything would take every gate on the server with it --
+and the server that turned the setting on is the one least likely to spot it quickly.
+
+One rule turned up that is easy to read as a hole and is a decision: **a gate with no owner is
+public.** Gates built before ownership was recorded have none, and treating those as private
+would strand every one of them behind a permission their builder never had to hold. It now has
+a test saying so, rather than being something a reader has to work out from the absence of a
+complaint.
+
 ### Who may beam whom where was held up by nothing
 
 None of this changes what the plugin does. It is what the plugin already did, written down
