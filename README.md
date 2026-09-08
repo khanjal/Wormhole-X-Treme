@@ -1377,6 +1377,17 @@ stopped, and the plugin's history does not make sense without it.
 This fork picks the original up for modern Minecraft: Java 17, 1.20 through 1.21.10, and
 transport rings.
 
+**The logo is a placeholder, and not the work of a designer.** It was drawn in SVG with Claude
+Code — a reference to hand a real artist rather than a finished identity. Its three elements are
+the three ways to travel: a chevron ring for gates, a column of light for beams, and a stack of
+four rings for transport rings. [docs/LOGO.md](docs/LOGO.md) is the brief that goes with it, and
+[issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187) tracks replacing it.
+
+That provenance is worth stating rather than leaving to be assumed, because it bears on
+[TRADEMARK.md](TRADEMARK.md): a carve-out is only as strong as the copyright behind it, and
+copyright in machine-generated work is on far shakier ground than in a commissioned drawing.
+Credit for the mark, such as it is, belongs to nobody yet.
+
 ## Contributing
 
 Submit PRs against the `main` branch. Keep changes modular and add unit/integration tests where possible.

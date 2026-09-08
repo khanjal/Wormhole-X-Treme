@@ -64,6 +64,18 @@ this one.
 maintainers rather than lawyers. If the mark ever matters commercially, it deserves a real answer
 from somebody qualified to give one.
 
+**The current logo was not drawn by a human.** It was produced in SVG with Claude Code as a
+reference for a commission, and copyright protection for machine-generated work is uncertain --
+the US Copyright Office requires human authorship, and material generated without sufficient human
+creative input is not registrable. Other jurisdictions differ. A carve-out is only as strong as
+the copyright behind it, so this policy stands on firmer ground the day a commissioned mark with
+assigned copyright replaces the current one. That is another reason for
+[issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187), beyond the drawing being
+better.
+
+The name **Wormhole X-Treme** does not have this problem. Trademark rights come from use in
+commerce rather than from authorship, and the name has been in use since 2011.
+
 **This is not retroactive.** The logo files were committed under GPL-3.0 in #184 and sat that way
 for a short window before this policy existed. GPL grants are irrevocable, so anybody who took a
 copy in that window has a GPL-3.0 licence to *that version* of those files, and nothing here

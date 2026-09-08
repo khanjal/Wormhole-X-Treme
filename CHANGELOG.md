@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The credits did not say where the logo came from
+
+The Credits section is careful about attribution -- who wrote which part, how many commits are
+alron's, whose fork kept the plugin alive for three years and why that work is not in this tree.
+Into that, a logo appeared at the top of the README with no account of itself at all.
+
+It was drawn with Claude Code as a reference for a commission, not by a designer, and the credits
+say so now. It also says what the three elements mean, and points at the brief and at #187.
+
+Stating it is not only manners. It bears directly on `TRADEMARK.md`, merged an hour earlier: a
+carve-out is only as strong as the copyright behind it, and copyright in machine-generated work is
+uncertain -- the US Copyright Office requires human authorship, and material generated without
+sufficient human input is not registrable. So the policy is on firmer ground the day a
+commissioned mark with assigned copyright replaces this one, which is a better argument for #187
+than "the drawing could be nicer".
+
+The name does not share the weakness. Trademark rights come from use in commerce rather than
+authorship, and Wormhole X-Treme has been in use since 2011. `TRADEMARK.md` now says both things.
+
+
 ### The name and logo are no longer GPL-3.0
 
 Everything in the repository inherited GPL-3.0 unless it said otherwise, so the mark shipped in
