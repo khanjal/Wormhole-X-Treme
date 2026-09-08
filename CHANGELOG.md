@@ -7,8 +7,9 @@ All notable changes to this project are documented in this file.
 ### Laying the first ring of a pair
 
 Nothing here changes. `RingPairingTest` already covered joining a second end to a waiting first;
-this covers getting that far -- the build permission, a circle of slabs the detector will not
-accept, a spot on top of a stargate, and the quota.
+this covers getting that far -- the build permission, three ways a circle of slabs is refused
+by the detector, a spot too close to an existing pair, a spot on top of a stargate, and the
+quota.
 
 Two decisions worth writing down, both of which a reader would otherwise have to work out:
 

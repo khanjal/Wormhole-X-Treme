@@ -41,8 +41,8 @@ import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
  * Laying the first ring of a pair, and everything that refuses to let you.
  *
  * <p>{@code RingPairingTest} covers joining a second end to a waiting first. This covers getting
- * that far: the build permission, a circle of slabs the detector will not accept, a spot too
- * close to another pair, a spot on top of a stargate, and the quota.
+ * that far: the build permission, three ways a circle of slabs is refused by the detector, a
+ * spot too close to another pair, a spot on top of a stargate, and the quota.
  *
  * <p>The quota is asked at the <em>first</em> end rather than the second, which is the decision
  * worth having a test for. Asked at the second, somebody would lay two complete circles of slabs
@@ -223,6 +223,79 @@ class RingCreationTest
 
         assertNull(waiting());
         verify(builder).sendMessage(contains("No ring"));
+    }
+
+    /**
+     * A circle built from two kinds of slab is refused, and told which problem it has.
+     *
+     * <p>Each refusal gets its own sentence on purpose. Telling somebody looking straight at
+     * their ring that no ring was found would send them hunting the wrong problem entirely --
+     * so the mixed-materials case has to say "more than one kind of slab" rather than falling
+     * through to the generic answer.
+     */
+    @Test
+    void aCircleOfTwoKindsOfSlabIsRefusedForBeingMixed()
+    {
+        final RingPattern.Offset odd = RingPattern.ODD.getPerimeter().iterator().next();
+        final Block b = blockAt(RX + odd.getDx(), RY, RZ + odd.getDz());
+        when(b.getType()).thenReturn(Material.OAK_SLAB);
+
+        assertTrue(create());
+
+        assertNull(waiting(), "nothing was held");
+        verify(builder).sendMessage(contains("more than one kind of slab"));
+    }
+
+    /**
+     * A circle whose middle is filled in is refused, and told why.
+     *
+     * <p>The middle is where people stand, so a filled circle is not a ring at all -- and the
+     * mistake is easy to make, since a solid disc of slabs looks more like a pad than a ring
+     * does.
+     */
+    @Test
+    void aCircleWithItsMiddleFilledInIsRefused()
+    {
+        final Block middle = blockAt(RX, RY, RZ);
+        final Slab slab = mock(Slab.class);
+        when(slab.getType()).thenReturn(Slab.Type.BOTTOM);
+        when(middle.getType()).thenReturn(Material.STONE_SLAB);
+        when(middle.getBlockData()).thenReturn(slab);
+
+        assertTrue(create());
+
+        assertNull(waiting(), "nothing was held");
+        verify(builder).sendMessage(contains("filled in"));
+    }
+
+    /**
+     * A ring laid too near an existing pair is refused before anything is held.
+     *
+     * <p>Separate from overlapping: two rings that merely sit close enough to confuse whoever
+     * walks between them are refused on a configured distance, and told to move rather than
+     * told they overlap.
+     */
+    @Test
+    void aRingLaidTooNearAnExistingPairIsRefused()
+    {
+        config.when(ConfigManager::getRingMinSeparation).thenReturn(Integer.valueOf(50));
+        final com.wormhole_xtreme.wormhole.model.ring.Ring near =
+            new com.wormhole_xtreme.wormhole.model.ring.Ring(RX + 10, RY, RZ + 10,
+                RingPattern.ODD, com.wormhole_xtreme.wormhole.model.ring.RingOrientation.FLOOR,
+                Material.STONE_SLAB, Material.GLOWSTONE);
+        final com.wormhole_xtreme.wormhole.model.ring.Ring far =
+            new com.wormhole_xtreme.wormhole.model.ring.Ring(2000, RY, 2000,
+                RingPattern.ODD, com.wormhole_xtreme.wormhole.model.ring.RingOrientation.FLOOR,
+                Material.STONE_SLAB, Material.GLOWSTONE);
+        final com.wormhole_xtreme.wormhole.model.ring.RingPair neighbour =
+            new com.wormhole_xtreme.wormhole.model.ring.RingPair("yyyy0008", WORLD, near, far);
+        neighbour.setOwner(UUID.randomUUID().toString());
+        RingManager.addPair(neighbour, 5);
+
+        assertTrue(create());
+
+        assertNull(waiting(), "nothing was held");
+        verify(builder).sendMessage(contains("another ring close by"));
     }
 
     /**
