@@ -243,7 +243,10 @@ public final class LegacyDatabaseImporter
      * @throws java.sql.SQLException
      *             if the row cannot be read
      */
-    private static String importOne(final ResultSet rows, final String name,
+    // Package-private, not private: the four checks that run before Bukkit.getWorld are
+    // exercised directly by LegacyImportTest, the same reason BeamCommand.resolveDestination
+    // is. Everything past the world lookup needs a live server and stays uncovered.
+    static String importOne(final ResultSet rows, final String name,
         final int[] movedExits)
         throws java.sql.SQLException
     {
