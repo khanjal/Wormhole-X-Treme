@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A packaging file that looked authoritative and did nothing
+
+`src/main/assembly/package.xml` was a complete, valid maven-assembly descriptor: a zip with the
+jar renamed to `WormholeXTreme.jar`, the gate shapes pre-placed under
+`plugins/WormholeXTreme/GateShapes/`, and the project's documents in a `docs/` folder. It was also
+never run. `maven-assembly-plugin` is not in `pom.xml` and never was, so `mvn package` produced the
+shaded jar and nothing else.
+
+A packaging file that looks like it works is worse than none, because people read it and believe
+it. That happened while writing `TRADEMARK.md`: the descriptor's includes listed `LICENSE*` and
+`NOTICE*`, so `TRADEMARK*` was added beside them and the policy went on to tell readers the jar
+ships the document. The jar contains compiled classes and gate shapes. The commit message said the
+claim was verified with `mvn clean package`, and the build did succeed, which is not the same
+thing.
+
+Deleted rather than wired in. Nothing is lost: the release workflow attaches the jar and only the
+jar, the shapes ship inside it as resources, and no workflow, script or document referenced the
+descriptor. If a server-ready zip is wanted later it can come back deliberately, with the plugin
+that builds it.
+
+Closes #193.
+
 ### The credits did not say where the logo came from
 
 The Credits section is careful about attribution -- who wrote which part, how many commits are
