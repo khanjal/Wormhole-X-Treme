@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Gate protection did nothing if another plugin got to the event first
+
+Every handler in `WormholeXTremeBlockListener` opened with `if (!event.isCancelled())`. Most of
+the time that is harmless -- if somebody else already cancelled, the block was not going to move
+anyway.
+
+The trouble is that Bukkit lets a later listener un-cancel. All six handlers are plain
+`@EventHandler`, which is `EventPriority.NORMAL`, so a handler that skipped has said nothing at
+all by the time a plugin at HIGH calls `setCancelled(false)`. The block then goes through with
+this plugin's protection never having run. The visible symptom is lava spreading out of a gate
+frame, which is what the report against ControllerBlock described in 2012 and what #53 tracked
+down again here.
+
+`onBlockFromTo` and `onBlockPhysics` now run whatever came before, and so do `onBlockIgnite` and
+`onBlockBurn` -- all four only ever cancel, so running on an already-cancelled event costs
+nothing and skipping costs a gate.
+
+`onBlockBreak` and `onBlockDamage` still stand down, because both tell the player they were
+refused, and saying that about a break something else stopped would be a lie. They say it as
+`@EventHandler(ignoreCancelled = true)` now rather than by hand, so the two groups read as
+different on purpose rather than by accident.
+
+That last change moved the guarantee somewhere a test cannot reach it. `ignoreCancelled` is
+enforced by Bukkit's dispatcher, so a test that calls the handler directly bypasses it and would
+pass whatever the annotation said. The two tests for those handlers therefore assert the
+annotation itself, and all six are covered either way -- two ignoring cancelled events, four
+deliberately not.
+
 ### Every warning suppression audited
 
 Forty-three `@SuppressWarnings` across the tree, read one at a time to find any that had

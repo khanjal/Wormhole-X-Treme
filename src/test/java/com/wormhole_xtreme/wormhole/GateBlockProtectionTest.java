@@ -3,7 +3,12 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
@@ -222,6 +227,96 @@ class GateBlockProtectionTest
     {
         assertFalse(burned(blockAt(GX + 8, GY, GZ, Material.OAK_PLANKS), gateBlock),
             "the two rules have to agree about where a gate's responsibility ends");
+    }
+
+    /**
+     * Protection still runs on an event another plugin has already cancelled.
+     *
+     * <p>Issue #53, and the reason it is not merely tidiness: Bukkit lets a later listener
+     * un-cancel. Every handler here is a bare {@code @EventHandler}, so it runs at NORMAL
+     * priority -- and one that skipped because the event arrived cancelled has said nothing at
+     * all by the time a plugin at HIGH calls {@code setCancelled(false)}. The block then flows
+     * with this plugin's protection never having run, which is lava leaving a gate frame.
+     *
+     * <p>Checked by whether the handler <em>acted</em>, not by the event's final state: an
+     * already-cancelled event reads as cancelled either way, so only the call distinguishes
+     * doing the work from skipping it.
+     */
+    @Test
+    void liquidProtectionStillRunsOnAnAlreadyCancelledEvent()
+    {
+        final BlockFromToEvent event = spy(new BlockFromToEvent(
+            blockAt(GX + 1, GY, GZ, Material.WATER), gateBlock));
+        event.setCancelled(true);
+        // The setup call is on the spy too, so it has to be forgotten before the handler runs
+        // or the verify below passes on my own arrangement rather than on anything it did.
+        clearInvocations(event);
+
+        new WormholeXTremeBlockListener().onBlockFromTo(event);
+
+        verify(event).setCancelled(true);
+    }
+
+    /** And so does the physics protection, for the same reason. */
+    @Test
+    void physicsProtectionStillRunsOnAnAlreadyCancelledEvent()
+    {
+        final org.bukkit.event.block.BlockPhysicsEvent event =
+            spy(new org.bukkit.event.block.BlockPhysicsEvent(
+                gateBlock, gateBlock.getBlockData()));
+        event.setCancelled(true);
+        clearInvocations(event);
+
+        new WormholeXTremeBlockListener().onBlockPhysics(event);
+
+        verify(event).setCancelled(true);
+    }
+
+    /**
+     * Breaking and damage are the two that stay guarded, and it is now declared not coded.
+     *
+     * <p>The other half of #53. {@code handleBlockBreak} sends two chat lines before it
+     * returns, so running it on a break another plugin already stopped would tell somebody this
+     * plugin denied them when it did not. Same for the damage refusal.
+     *
+     * <p>Checked by reading the annotation rather than by calling the handler, and that is the
+     * point rather than a shortcut: {@code ignoreCancelled} is enforced by Bukkit's dispatcher,
+     * so a test that invokes the method directly bypasses it entirely and would pass whatever
+     * the annotation said. Moving these two from a hand-rolled {@code !isCancelled()} to the
+     * annotation moved the guarantee out of reach of a behavioural test, so this asserts the
+     * declaration that now carries it.
+     */
+    @Test
+    void theTwoHandlersThatTalkToThePlayerIgnoreCancelledEvents() throws Exception
+    {
+        assertTrue(ignoresCancelled("onBlockBreak", org.bukkit.event.block.BlockBreakEvent.class),
+            "a break somebody else stopped is not this plugin's to comment on");
+        assertTrue(ignoresCancelled("onBlockDamage", BlockDamageEvent.class),
+            "nor is a hit somebody else stopped");
+    }
+
+    /**
+     * And the four that only ever cancel deliberately do not.
+     *
+     * <p>They run on a cancelled event on purpose, because a later listener may un-cancel it
+     * and they would otherwise have said nothing by the time it does.
+     */
+    @Test
+    void theFourThatOnlyCancelRunWhateverCameBefore() throws Exception
+    {
+        assertFalse(ignoresCancelled("onBlockFromTo", BlockFromToEvent.class), "liquid flow");
+        assertFalse(ignoresCancelled("onBlockPhysics",
+            org.bukkit.event.block.BlockPhysicsEvent.class), "physics");
+        assertFalse(ignoresCancelled("onBlockIgnite", BlockIgniteEvent.class), "ignition");
+        assertFalse(ignoresCancelled("onBlockBurn", BlockBurnEvent.class), "burning");
+    }
+
+    /** What the handler's own annotation says about events that arrive cancelled. */
+    private static boolean ignoresCancelled(final String method, final Class<?> eventType)
+        throws Exception
+    {
+        return WormholeXTremeBlockListener.class.getMethod(method, eventType)
+            .getAnnotation(org.bukkit.event.EventHandler.class).ignoreCancelled();
     }
 
     /**
