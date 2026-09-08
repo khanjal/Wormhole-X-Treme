@@ -4,6 +4,40 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Every click on the server built a log line nobody was going to read
+
+`onPlayerInteract` logs what was clicked at FINE. The line was assembled at the call site --
+five method calls and nine joins, including `Block.toString()` and `World.toString()` -- and the
+finished string handed to `prettyLog`, which then decided whether to print it.
+
+`PlayerInteractEvent` fires for both mouse buttons, on both blocks and air, per player, and
+left-clicking air repeats for as long as somebody holds the button down. On any server logging
+at INFO, which is all of them, every one of those lines was built and thrown away.
+
+**This is the third time this exact fault has turned up here.** `logCrossing` on the player move
+path and `logVehicleEntry` on the vehicle move path were the first two, both fixed earlier in
+this release. So rather than fix the one and move on, the tree was scanned for the shape: 70
+FINE calls concatenate at the call site. Most are on paths that run once or twice, where it does
+not matter. The two on the interact path are fixed here -- `onPlayerInteract` itself, and
+`GateInteractionHandler`'s activator line, which allocates a `Location` on every button and
+lever click.
+
+The rest are left alone deliberately. A guard costs a line of code and a branch, and adding
+sixty-eight of them to paths that run at startup or once per command would be worse than the
+thing it fixed.
+
+The test was written first and failed against the old code. It checks the cost rather than the
+output: a click with FINE off must touch neither `player.getName()` nor `block.getWorld()`,
+because nothing else on that path wants either, so touching them means the message was built for
+a level that was going to discard it.
+
+That first version tested only the cost, and mutating showed how narrow that was -- seven of
+thirteen deliberate breakages survived it, including deleting `event.setCancelled(true)`
+outright. Without that call, right-clicking a gate's dial sign drops the player into Minecraft's
+own sign editor on top of whatever the plugin just did, and anything they type there overwrites
+the destination. Nothing anywhere was checking it. The tests now cover what the click does as
+well as what it costs.
+
 ### The order a gate refuses you in, and when it takes your money
 
 Nothing here changes. This is what the plugin already did, written down.

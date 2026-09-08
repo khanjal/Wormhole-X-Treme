@@ -702,7 +702,7 @@ final class GateInteractionHandler
 
         if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
+            logActivatorClick(player, clickedBlock);
             if (buttonLeverHit(player, clickedBlock, null))
             {
                 return true;
@@ -730,6 +730,31 @@ final class GateInteractionHandler
             }
         }
         return false;
+    }
+
+    /**
+     * Says a possible dial block was clicked, if anybody is listening.
+     *
+     * <p>Its own method rather than a guard inline: the guard is a branch, and the method it
+     * would have sat in is already at the cognitive-complexity threshold. Worth guarding at all
+     * because {@code getLocation()} allocates, and this line was built on every button and
+     * lever click whatever the server was logging at.
+     *
+     * @param player
+     *            whoever clicked
+     * @param clickedBlock
+     *            the button or lever they clicked
+     */
+    private static void logActivatorClick(final Player player, final Block clickedBlock)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE))
+        {
+            return;
+        }
+        plugin.prettyLog(Level.FINE, "PlayerInteract: " + player.getName()
+            + " clicked potential activator at " + clickedBlock.getLocation()
+            + " type=" + clickedBlock.getType());
     }
 
     /** Faces probed when a candidate dial block does not report its own orientation. */

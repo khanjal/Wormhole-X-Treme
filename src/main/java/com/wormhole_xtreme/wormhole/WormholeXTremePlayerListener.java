@@ -927,19 +927,51 @@ class WormholeXTremePlayerListener implements Listener
     @EventHandler
     public void onPlayerInteract(final PlayerInteractEvent event)
     {
-        if (event.getClickedBlock() != null)
+        if (event.getClickedBlock() == null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: \"" + event.getClickedBlock().toString() + "\"");
-            if (GateInteractionHandler.handlePlayerInteractEvent(event))
-            {
-                event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: \"" + event.getClickedBlock().toString() + "\"");
-            }
+            logClick(event, "Caught and ignored Player: \"");
+            return;
         }
-        else
+        logClick(event, "Caught Player: \"");
+        if (GateInteractionHandler.handlePlayerInteractEvent(event))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught and ignored Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\"");
+            event.setCancelled(true);
+            logClick(event, "Cancelled Player: \"");
         }
+    }
+
+    /**
+     * Says what was clicked, if anybody is listening.
+     *
+     * <p>Built only when FINE is actually enabled. This line used to be assembled at the call
+     * site -- five calls and nine joins, including {@code Block.toString()} and
+     * {@code World.toString()} -- and handed to a method that then decided whether to print
+     * it. {@code PlayerInteractEvent} fires for both buttons on both blocks and air, per
+     * player, and left-clicking air repeats for as long as somebody holds the button down, so
+     * on any server not logging at FINE all of that was built and discarded.
+     *
+     * @param event
+     *            the click
+     * @param opening
+     *            how the line starts, which is what tells the three cases apart
+     */
+    private static void logClick(final PlayerInteractEvent event, final String opening)
+    {
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin == null) || !plugin.isLoggable(Level.FINE))
+        {
+            return;
+        }
+        final Block clicked = event.getClickedBlock();
+        if (clicked == null)
+        {
+            plugin.prettyLog(Level.FINE,
+                opening + event.getPlayer().getName() + ACTION_TYPE + event.getAction() + "\"");
+            return;
+        }
+        plugin.prettyLog(Level.FINE, opening + event.getPlayer().getName() + ACTION_TYPE
+            + event.getAction() + "\" Event Block Type: \"" + clicked.getType()
+            + "\" Event World: \"" + clicked.getWorld() + "\" Event Block: \"" + clicked + "\"");
     }
 
     /* (non-Javadoc)
