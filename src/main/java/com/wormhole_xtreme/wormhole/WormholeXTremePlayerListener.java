@@ -786,7 +786,7 @@ class WormholeXTremePlayerListener implements Listener
         catch (final RuntimeException tt)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
+                "Failed to teleport what " + player.getName() + " was riding", tt);
             // Could not move what they were riding; send the player through alone
             // rather than stranding them on the source side.
             teleportPlayerAlone(player, safeTarget);
@@ -840,7 +840,7 @@ class WormholeXTremePlayerListener implements Listener
             // Not fatal to the teleport that already happened, but a silently skipped
             // cooldown lets a player re-enter immediately, so say so.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to apply use cooldown for " + player.getName() + ": " + e.getMessage());
+                "Failed to apply use cooldown for " + player.getName(), e);
         }
         try
         {
@@ -854,7 +854,7 @@ class WormholeXTremePlayerListener implements Listener
             // Without this marker the player can walk straight back into the gate they
             // just arrived from, so a failure is worth a line in the log.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to mark recent arrival for " + player.getName() + ": " + e.getMessage());
+                "Failed to mark recent arrival for " + player.getName(), e);
         }
     }
 

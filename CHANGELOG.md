@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The log said "null" where it should have said what went wrong
+
+Every catch site in the plugin reported itself the same way:
+
+    prettyLog(Level.WARNING, "Failed to save gate: " + e.getMessage());
+
+For a `NullPointerException` -- the exception you most want to read, and the one a server
+operator is most likely to send in -- `getMessage()` is null, so that line reads `Failed to
+save gate: null`. For an `IOException` it is a bare filename with nothing saying what was being
+done to it. And in every case the stack trace, the part that says *where*, was thrown away
+before it reached the log.
+
+There is now a `prettyLog(Level, String, Throwable)`. The message says what the plugin was
+doing; the logger is handed the exception and prints what went wrong and where. All 75 sites
+that appended `getMessage()` now use it, including two that had to be reworded by hand -- one
+whose entire message *was* the exception, and one that had it in the middle of a sentence.
+
+The line is still built lazily, through `Logger.log(Level, Throwable, Supplier)`. Several of
+these sites are on the block-physics and move paths, which run thousands of times a second on
+a busy server, and a `FINE` line there must not cost a string concatenation when nothing is
+listening.
+
+A test walks `src/main/java` and fails on any `prettyLog` call that puts `getMessage()` back
+into a message. That is the whole reason it exists: the two forms read almost identically in a
+diff.
+
 ### A half-built ring pair is a record now
 
 `RingManager.PendingRing` holds two things -- the end already built and the world it is in --

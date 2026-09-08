@@ -319,7 +319,7 @@ class StargateBlockSetup
             if (plugin != null)
             {
                 plugin.prettyLog(Level.WARNING,
-                    "Could not match dial sign material on gate " + gate.getGateName() + ": " + t.getMessage());
+                    "Could not match dial sign material on gate " + gate.getGateName(), t);
             }
         }
     }
@@ -1333,7 +1333,7 @@ class StargateBlockSetup
                 // swallowed here, where they would look like an ordinary immovable mob.
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Failed to move " + entity.getType() + " clear of closing iris on gate: "
-                        + gate.getGateName() + ": " + t.getMessage());
+                        + gate.getGateName(), t);
             }
         }
     }

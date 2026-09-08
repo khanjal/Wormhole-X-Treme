@@ -221,7 +221,7 @@ public class Complete implements CommandExecutor, TabCompleter
                 }
                 catch (final Exception e)
                 {
-                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wormhole complete: " + e.getMessage());
+                    com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing /wormhole complete", e);
                     final Player player = (Player) sender;
                     player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid arguments. Usage: /wormhole complete <name> [idc=<code>] [net=<network>]");
                     return true;

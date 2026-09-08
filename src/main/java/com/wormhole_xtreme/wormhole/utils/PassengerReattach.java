@@ -125,7 +125,7 @@ public final class PassengerReattach
             }
             catch (final RuntimeException t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception during passenger reattach", t);
             }
         }
 
@@ -154,7 +154,7 @@ public final class PassengerReattach
             }
             catch (final RuntimeException t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger failed", t);
             }
             // An earlier attempt may already have succeeded without reporting it.
             try
@@ -173,7 +173,7 @@ public final class PassengerReattach
             }
             catch (final RuntimeException t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after position sync failed: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "addPassenger after position sync failed", t);
             }
             return false;
         }
@@ -229,7 +229,7 @@ public final class PassengerReattach
             }
             catch (final RuntimeException t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Exception during passenger reattach", t);
                 return true;
             }
         }

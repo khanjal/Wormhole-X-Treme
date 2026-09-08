@@ -512,8 +512,7 @@ public final class RingTransit
     private static void recover(final RingCycle cycle, final World world, final RuntimeException cause)
     {
         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-            "Ring pair " + cycle.getPair().getId() + " failed mid-cycle, putting it back: "
-                + cause.getMessage());
+            "Ring pair " + cycle.getPair().getId() + " failed mid-cycle, putting it back", cause);
         try
         {
             cycle.finish(System.currentTimeMillis() + (ConfigManager.getRingCooldownTicks() * 50L));
