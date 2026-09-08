@@ -40,6 +40,9 @@ import org.mockito.ArgumentCaptor;
  */
 class PrettyLogThrowableTest
 {
+    /** Compiled once: the guard below runs it over every source file in the tree. */
+    private static final Pattern GET_MESSAGE = Pattern.compile("\\.getMessage\\(\\)");
+
     private Logger logger;
 
     @BeforeEach
@@ -170,13 +173,12 @@ class PrettyLogThrowableTest
                     continue;
                 }
                 final String text = Files.readString(source, StandardCharsets.UTF_8);
-                final Matcher m = Pattern.compile("\\.getMessage\\(\\)").matcher(text);
+                final Matcher m = GET_MESSAGE.matcher(text);
                 while (m.find())
                 {
                     if (opensAPrettyLogCall(text, m.start()))
                     {
-                        found.add(source.getFileName().toString() + ":"
-                            + (text.substring(0, m.start()).split("\\n", -1).length));
+                        found.add(source.getFileName().toString() + ":" + lineOf(text, m.start()));
                     }
                 }
             }
@@ -187,6 +189,28 @@ class PrettyLogThrowableTest
                 + "third argument instead: the message says what the plugin was doing, and the "
                 + "logger takes care of what went wrong and where.");
         assertTrue(Files.exists(Paths.get("src/main/java")), "no sources were read, so this proved nothing");
+    }
+
+    /**
+     * The one-based line {@code at} falls on.
+     *
+     * @param text
+     *            the whole source file
+     * @param at
+     *            an offset into it
+     * @return the line number, so the failure names somewhere to go and look
+     */
+    private static int lineOf(final String text, final int at)
+    {
+        int line = 1;
+        for (int i = 0; i < at; i++)
+        {
+            if (text.charAt(i) == '\n')
+            {
+                line++;
+            }
+        }
+        return line;
     }
 
     /**
