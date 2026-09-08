@@ -26,8 +26,15 @@ import java.util.Map;
  * so a hand-edited file can produce a map these methods will hand back as
  * {@code Map<String, Object>} without every key being one. Reading such a key throws
  * {@code ClassCastException} at the point of use, exactly as it did when each caller cast for
- * itself. Every caller here already runs inside a try/catch that logs the entry and skips it,
- * which is the behaviour worth keeping: one bad key costs one gate, not the whole file.
+ * itself.
+ *
+ * <p>What happens next is the caller's business, and it is not uniform. {@code RingYamlManager}
+ * reads each entry inside its own try/catch, so one bad key there costs one pair and the world
+ * still loads. {@code BeamYamlManager.loadPublic} and {@code MaterialGroupRegistry.load} do
+ * not, so a non-string key aborts that load. That is not a property of these two methods and
+ * not something this class can fix -- it is where those loops stood before this existed, and
+ * it is written down here so the next person reads it as a known gap rather than as a
+ * guarantee these signatures cannot make.
  */
 public final class YamlMaps
 {

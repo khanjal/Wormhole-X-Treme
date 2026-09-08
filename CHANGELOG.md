@@ -27,9 +27,21 @@ unchecked cast, on a pair's stored fields, that nobody had to notice because the
 the top of the method was already silencing it. `javac -Xlint:unchecked` had nothing to say
 about that file until the suppression came off, and then it did.
 
-Behaviour is unchanged, with one visible difference: a ring file that parses to something
-other than a mapping now logs `names no world; skipping it` instead of being dropped without
-comment. Same outcome, one more line saying so happened.
+One guard did not come out, and finding out why is the useful part. `config.yml` is the only
+reader that acts on what is *absent* rather than iterating what is present: a setting the file
+does not mention is defaulted in memory and appended to the file, so the admin can see it
+exists. Read as an empty mapping, a file that parses to a scalar says every setting is
+missing -- and the loader appends all forty defaults onto the end of a file that is already
+not a mapping, turning an operator's typo into one nothing can parse.
+
+That went in, passed its test, and was caught in review. The test it passed asserted that the
+built-in defaults were still used, which stayed true the whole time: the damage was to the
+file, not to memory. It now asserts the file comes back byte for byte, and fails without the
+guard.
+
+Everything else is unchanged, with one visible difference: a ring file that parses to
+something other than a mapping now logs `names no world; skipping it` instead of being
+dropped without comment. Same outcome, one more line saying so happened.
 
 Twenty suppressions become six. Two are the helper's own, where the reason for them is now
 written down. The rest are the ones with no fix available: `EconomySupport`, casting the

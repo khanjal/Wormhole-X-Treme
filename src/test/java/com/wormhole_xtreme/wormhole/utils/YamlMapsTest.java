@@ -88,9 +88,10 @@ class YamlMapsTest
      * <p>YAML permits non-string keys, so {@code 1: one} parses to a mapping whose key is an
      * {@code Integer} and which this hands back as a {@code Map<String, Object>} regardless.
      * Reading such a key throws where it is read, exactly as it did when each caller cast for
-     * itself -- and every caller runs inside a try/catch that logs the entry and skips it, so
-     * one bad key costs one entry rather than the file. This is not a bug being enshrined; it
-     * is the reason those try/catch blocks have to stay.
+     * itself. What that costs depends on the caller: a ring pair is read inside a try/catch and
+     * one bad key skips one pair, while the beam and material-group loops have no such guard
+     * and a bad key aborts the load. Neither is changed by this, and the class doc says which
+     * is which. This test exists so that the throw itself cannot quietly stop happening.
      */
     @Test
     void aNonStringKeyStillThrowsWhereItIsRead()

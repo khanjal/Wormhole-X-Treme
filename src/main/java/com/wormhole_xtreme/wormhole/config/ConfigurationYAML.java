@@ -72,7 +72,18 @@ public class ConfigurationYAML
 
         try (InputStream in = new FileInputStream(cfg))
         {
-            final Map<String, Object> map = YamlMaps.asMap(new Yaml().load(in));
+            // The one reader that cannot treat "not a mapping" as "an empty mapping". Every
+            // other one only iterates what it was given, so nothing happens twice if there is
+            // nothing there. This one acts on what is *absent*: an empty map reads as every
+            // setting missing, and appendMissingSettings would then write forty defaults onto
+            // the end of a file that is already not a mapping. Bail instead, and leave the
+            // operator's broken file exactly as they left it.
+            final Object loaded = new Yaml().load(in);
+            if (!(loaded instanceof Map))
+            {
+                return;
+            }
+            final Map<String, Object> map = YamlMaps.asMap(loaded);
 
             final List<Setting> missing = applySettings(map);
 
