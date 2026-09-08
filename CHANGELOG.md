@@ -32,6 +32,21 @@ down to about 32px; at 16px it is a blue dot with a gold fringe, which is fine f
 and not much else. No PNG exports -- there is no rasteriser on the machine this was drawn on,
 and GitHub renders SVG in Markdown directly. A listing that needs PNG will need one generated.
 
+None of it is meant to be final. It is a reference drawing to hand a real graphic artist, so
+`docs/LOGO.md` is the brief that goes with it: which element stands for which subsystem and why
+that mapping is the part worth keeping, the geometry and palette as currently drawn, and --
+more usefully -- the list of decisions that were made only to get something on the page. The
+chevron count, whether the beam and the rings both belong in one small circle, and the wordmark
+being set in a system font stack rather than a real typeface are all on that list.
+
+Two constraints on it are not open. The mark has to survive 32px, because the README badge row
+and a store listing icon are both small; and it must not reproduce the actual Stargate prop,
+whose ring, chevron design and 39 glyphs belong to somebody else. The tick marks are abstract
+on purpose.
+
+`docs/images/logo-anatomy.svg` is the same mark built up in four tiles, one layer at a time,
+with the palette underneath -- easier to hand somebody than a paragraph describing it.
+
 ### Beaming was undocumented outside its permission nodes
 
 Gates and rings each have a README section running to hundreds of lines. Beaming had
