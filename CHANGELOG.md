@@ -29,6 +29,35 @@ depended on the descriptor. If a server-ready zip is wanted later it can come ba
 that builds it.
 
 Closes #193.
+### Nothing checked that a restyled dial sign kept what was written on it
+
+The dial sign is the one sign this plugin does not place -- a player puts it on the `[D]` block
+in whatever wood they were holding -- so a themed gate ends up with an oak sign on a crimson
+frame. `matchDialSignMaterial` fixes that by replacing the block, and changing a block's type
+wipes a sign.
+
+Everything on it therefore has to be read out first and written back after: the text on both
+faces, whether each face glows, and the way the sign is facing. Which rule decides *whether* to
+convert was already pinned. What survives the conversion was covered by nothing at all, and it
+was the largest single gap in the tree -- 109 uncovered instructions in the least-covered class.
+
+This runs on every complete and every regenerate, so a step missed here is a player's sign
+quietly emptying itself on a command that was supposed to leave it alone.
+
+Eighteen mutations. Two survived the first pass, and both for the same reason: the damage was
+hidden by the `catch` around the whole method.
+
+- Dropping the "is this still a sign" check reaches the same outcome by way of a
+  `ClassCastException` -- nothing is converted either way. The difference is a warning in the
+  log. Somebody breaking their dial sign is an ordinary thing to do, and this runs often enough
+  that treating it as a fault would fill the log for a gate merely waiting for its sign back.
+- Dropping the null-lines guard costs more than the thing it guards. By the time the faces are
+  written the block has already been retyped, so an exception there leaves a blank sign in the
+  wall *and* the gate still writing through the state it read before -- worse than either
+  alone.
+
+Both are now checked for what actually distinguishes them rather than for the outcome they
+share.
 
 ### The credits did not say where the logo came from
 
