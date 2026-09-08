@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -57,10 +58,10 @@ class YamlMapsTest
             final Map<String, Object> map = YamlMaps.asMap(notAMapping);
 
             assertTrue(map.isEmpty(), "an unusable value should read as nothing to load");
-            for (final Map.Entry<String, Object> entry : map.entrySet())
-            {
-                throw new AssertionError("an empty section should yield no entries, got " + entry);
-            }
+            // Iterated rather than only asked, because stepping over it is what the call
+            // sites do now that their guards are gone.
+            assertEquals(List.of(), new ArrayList<>(map.entrySet()),
+                "an empty section should yield no entries to a for-each");
         }
     }
 
@@ -97,8 +98,13 @@ class YamlMapsTest
         final Map<String, Object> map = YamlMaps.asMap(new Yaml().load("1: one"));
 
         assertEquals(1, map.size(), "the mapping itself is handed back, keys unexamined");
+
+        // Read out as Object first: fetching the key is not what fails, treating it as a
+        // String is, which is what a caller's for-each does on its behalf.
+        final Object key = map.keySet().iterator().next();
+        assertEquals(Integer.valueOf(1), key, "the key survives as whatever YAML made of it");
         assertThrows(ClassCastException.class,
-            () -> map.keySet().iterator().next().length(),
+            () -> ((String) key).length(),
             "reading a non-string key must still fail at the point of use, where a caller "
                 + "catches it and skips the one entry");
     }
