@@ -21,9 +21,19 @@ gate" from "encoded it", because a gate file written with no data loads as a gat
 at all. An empty array cannot say that.
 
 Five `S3077` mark `volatile` non-primitive fields. The rule's concern is that `volatile`
-publishes the reference and says nothing about the contents -- so the claim each one makes,
-"immutable snapshot swapped in wholesale", is the thing that matters. Every assignment was
-checked: all of them are `Collections.unmodifiableMap` or `unmodifiableSet`, so the claim holds.
+publishes the reference and says nothing about the contents, so what each one claims is the
+thing that has to be checked -- and the five are not all making the same claim.
+
+Three are collections: `groupsByName`, `groupsByStructureMaterial` and `knownStructureMaterials`.
+Every assignment to them is `Collections.unmodifiableMap`, `unmodifiableSet`, or the `emptyMap`
+and `emptySet` they start out as, so "immutable snapshot swapped in wholesale" holds.
+
+`defaultGroup` is not a collection but a single `MaterialGroup`, which is immutable in its own
+right -- seven `final` fields and no setters -- so publishing the reference publishes all of it.
+
+`GateEvents.dispatcher` is neither: it is a `Consumer` that tests swap in and set back to null,
+where there is no "contents" for the rule to be worried about. Its own comment already says so,
+and it is the one of the five that is right for a different reason than the others.
 
 The one bare suppression was `deprecation` on `RingCommand.findPlayer`, and checking it turned
 out to be worth the trouble. `Bukkit.getOfflinePlayer(String)` is deprecated on **every** version
