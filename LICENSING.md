@@ -28,12 +28,12 @@ All dependencies are managed via Maven and are compatible with GPL-3.0:
 - **org.mockito:mockito-core** - MIT (test scope)
 
 ### Shaded Dependencies
-One dependency is included in the shaded JAR (`target/WormholeXTreme-*.jar`):
+**None.** Every dependency above is `provided` or `test` scope, so nothing third-party is bundled
+into the jar. snakeyaml is compiled against but supplied by the server at runtime, which is why
+`pom.xml` pins 2.0 while noting the server ships 2.2.
 
-- snakeyaml (YAML configuration and per-gate export/import)
-
-There is no database dependency. Gates are stored as one YAML file each; the SQLite and HSQLDB
-backends this document used to list were removed along with the database layer.
+There is no database dependency either. Gates are stored as one YAML file each; the SQLite and
+HSQLDB backends this document used to list were removed along with the database layer.
 
 ## Permission System
 Wormhole X-Treme uses Bukkit's standard permission API, which integrates with:

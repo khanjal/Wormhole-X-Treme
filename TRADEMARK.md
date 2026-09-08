@@ -37,7 +37,9 @@ policy.
 - **Use the logo unmodified to refer to this project.** Writing about the plugin, reviewing it,
   linking to it, listing it on a server list or a wiki, illustrating a tutorial about it -- all
   fine, and welcome.
-- **Redistribute the plugin jar as built**, logo files included. The jar ships this document.
+- **Redistribute the plugin jar as built.** The jar carries no logo files and no documents --
+  only compiled code and the gate shapes -- so redistributing it raises nothing this policy
+  restricts.
 - **Say your server runs Wormhole X-Treme**, because it does.
 - **Fork the code.** The GPL says you may, and this policy does not touch that.
 
@@ -64,8 +66,10 @@ this one.
 maintainers rather than lawyers. If the mark ever matters commercially, it deserves a real answer
 from somebody qualified to give one.
 
-**The current logo was not drawn by a human.** It was produced in SVG with Claude Code as a
-reference for a commission, and copyright protection for machine-generated work is uncertain --
+**The current logo was not made by a human designer.** Its SVG was hand-authored rather than
+image-generated -- written as markup, shape by shape -- but written with Claude Code, at a
+maintainer's direction, rather than by a person. Copyright protection for machine-generated work
+is uncertain --
 the US Copyright Office requires human authorship, and material generated without sufficient human
 creative input is not registrable. Other jurisdictions differ. A carve-out is only as strong as
 the copyright behind it, so this policy stands on firmer ground the day a commissioned mark with
