@@ -178,6 +178,11 @@ public class RingCommand implements SubCommand
     /**
      * Joins a waiting end to the one just built.
      *
+     * <p>Package-private rather than private so it can be tested on its own. Reaching it
+     * through the command means detecting two ring templates out of a mocked world, and the
+     * rules it holds -- same world, how far, how high, and not the same circle twice -- have
+     * nothing to do with how the circles were found.
+     *
      * @param player
      *            the builder
      * @param waiting
@@ -188,7 +193,7 @@ public class RingCommand implements SubCommand
      *            the world the second end is in
      * @return true, the command was handled
      */
-    private static boolean completePair(final Player player, final RingManager.PendingRing waiting,
+    static boolean completePair(final Player player, final RingManager.PendingRing waiting,
         final Ring ring, final String world)
     {
         if (!waiting.worldName().equals(world))
