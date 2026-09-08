@@ -37,11 +37,11 @@ import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 /**
  * Who may let somebody into a ring pair, and who may hand one over.
  *
- * <p>`allow`, `deny` and `owner` were uncovered between them, and they are the whole of how
+ * <p>{@code allow}, {@code deny} and {@code owner} were uncovered between them, and they are the whole of how
  * access to a pair changes hands. Two rules in there are decisions rather than plumbing, and
  * both are the kind a reader would have to work out from the code.
  *
- * <p>The quota is checked against the **recipient** of a transfer, not the giver -- otherwise
+ * <p>The quota is checked against the <em>recipient</em> of a transfer, not the giver -- otherwise
  * anybody at their limit could carry on building by having a friend build and hand over. And a
  * pair's previous owner is not kept on its allow list afterwards: staff who build rings for
  * players would otherwise accumulate standing access to every one of them.
@@ -142,7 +142,7 @@ class RingOwnershipTransferTest
         RingManager.addPair(theirs, 4);
     }
 
-    /** Somebody who has never been on the server, so `findPlayer` gives nothing back. */
+    /** Somebody who has never been on the server, so {@code findPlayer} gives nothing back. */
     private void nobodyCalled(final String name)
     {
         final OfflinePlayer invented = mock(OfflinePlayer.class);
@@ -341,9 +341,10 @@ class RingOwnershipTransferTest
     /**
      * Owning a pair is not on its own enough to travel by one.
      *
-     * <p>The two are separate questions: `mayManage` asks whose pair it is, `mayUse` asks
+     * <p>The two are separate questions: {@code mayManage} asks whose pair it is, {@code mayUse}
+     * asks
      * whether they may travel by rings at all and then whether this pair admits them. An owner
-     * whose `wormhole.ring.use` has been taken away keeps the pair and cannot ride it, which
+     * whose {@code wormhole.ring.use} has been taken away keeps the pair and cannot ride it, which
      * reads as a bug until the two are seen apart.
      */
     @Test
