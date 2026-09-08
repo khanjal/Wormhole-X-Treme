@@ -317,7 +317,7 @@ class LegacyGateFidelityV4V5Test
      * The iris flag and the lights flag are not read in each other's place.
      *
      * <p>They are adjacent bytes, so a record with both set to 1 cannot tell the two apart.
-     * This one has the iris shut and the lights off, which only the right order produces.
+     * This one has the iris on and the lights off, which only the right order produces.
      */
     @Test
     void theIrisAndLightsFlagsAreNotReadInEachOthersPlace()
