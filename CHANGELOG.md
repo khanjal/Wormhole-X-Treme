@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### What a beam destination costs, and whose places are whose
+
+Nothing here changes. Two more corners of `/wormhole beam` that nothing covered: pricing a
+public destination, and a player's own private places.
+
+**Free and unpriced are different things.** A destination's cost is a `Double` rather than a
+`double` on purpose, and `BeamDestination` says why: null means "whatever
+`BEAM_ECONOMY_USE_COST` currently says", and zero is an explicit, permanent "this one is free"
+that a later change to the global default cannot override. Nothing checked that. Collapse the two
+and a destination somebody deliberately set free starts charging the next time the server's
+default is raised, with nothing to announce it. Both directions are now held: `default` storing
+zero, and zero storing null.
+
+**Places are per player, and the three subcommands are deliberately not gated alike.** Making a
+new one needs `wormhole.beam.place`; listing and removing your own do not. Taking the node away
+should stop somebody adding more, not strand them holding places they can neither reach nor tidy
+up. And two players may each have a "home" without either reaching the other's -- kept on one
+shared list, the second person to save one would overwrite the first, and every player on the
+server would be a command away from standing in somebody's bedroom.
+
+Twenty-one mutations, all killed.
+
 ### The last two save-format readers nobody had ever tested
 
 Nothing here changes. This finishes a job the code itself asked for. `LegacyGateFidelityTest`
