@@ -145,5 +145,7 @@ The slates are a few kilobytes each, so leaving some in place indefinitely costs
 | [RINGS.md](RINGS.md) | Countdown and deploy, flash and retract (Animation, The transport flash) |
 | [BEAMS.md](BEAMS.md) | A whole beam cycle (The sequence) |
 
-`gate-placeholder.png` and `gate-placeholder.svg` are the older, vaguer version of this same idea
-and are superseded by the slates. They can go once the guide's own slots are filled.
+`gate-placeholder.png` (a single transparent pixel) and `gate-placeholder.svg` (a grey circle
+labelled "Gate Placeholder") were the older, vaguer version of this same idea. The guide's slots
+replaced the only reference to them, so they were deleted rather than left orphaned in the
+directory.
