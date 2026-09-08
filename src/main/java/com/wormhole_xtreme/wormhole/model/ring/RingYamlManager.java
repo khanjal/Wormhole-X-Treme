@@ -525,8 +525,8 @@ public final class RingYamlManager
         final Map<String, Object> out = new LinkedHashMap<>();
         for (final Map.Entry<UUID, RingManager.PendingRing> entry : waiting.entrySet())
         {
-            final Map<String, Object> one = writeRing(entry.getValue().getRing());
-            one.put(WORLD_KEY, entry.getValue().getWorldName());
+            final Map<String, Object> one = writeRing(entry.getValue().ring());
+            one.put(WORLD_KEY, entry.getValue().worldName());
             out.put(entry.getKey().toString(), one);
         }
         final Map<String, Object> root = new LinkedHashMap<>();
