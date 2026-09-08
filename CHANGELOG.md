@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The animations were described but never shown
+
+`RINGS.md` spends most of a section explaining that four rings travel a block apart and settle
+half a block apart, and why four rather than the show's five. `BEAMS.md` describes an envelope
+that gathers before it opens. `GATES.md` describes chevrons lighting in sequence. All of it is
+prose about motion, which is the one thing prose is worst at.
+
+`docs/CAPTURES.md` is how to record the loops that would fix that. The useful part is that none
+of the clip lengths are guesses -- every animation in the plugin is driven by a tick constant, so
+the right length is arithmetic. A whole beam cycle is `beam-envelop-ticks` 12 plus rise 18 plus
+descend 20 plus fade 8, which is 58 ticks, so the entire thing fits one 2.9-second loop with
+nothing cut. A ring cycle is about nine and a half seconds and mostly a countdown where nothing
+moves, so the shot list splits it in two and says to trim the countdown.
+
+Two decisions in there are about weight rather than taste. The whole repository is 5.6 MiB
+packed, so one careless five-megabyte GIF would roughly double it forever; the budget is 800 KB
+a clip, and anything bigger belongs on a release rather than in git. And APNG is preferred over
+GIF, because the event horizon's gradient posterises badly in 256 colours and APNG is often the
+smaller file anyway.
+
+The slots are open now rather than waiting on the captures. `USER_GUIDE.md`, `GATES.md`,
+`RINGS.md` and `BEAMS.md` each carry `docs/images/capture-*.svg` slates -- plain dark tiles
+naming the shot, its length and the filename that should replace it.
+
+They are deliberately ugly. The obvious shortcut was to drop the new logo into those slots, and
+it was rejected: a placeholder that looks finished gets taken for the real thing, which is
+precisely what went wrong with `gate-placeholder.svg`. A slate that says PLACEHOLDER -- NOT A
+CAPTURE across the top cannot make that mistake, and it carries the shot list where the shot is
+needed.
+
 ### The project had no logo, only two placeholder files
 
 `docs/images/` held a `gate-placeholder.png` that was a single transparent pixel and a

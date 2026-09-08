@@ -15,22 +15,25 @@ This guide provides quick-start instructions and examples for server operators a
 - Teleport to a gate (requires permission): `/wormhole go <gateName>`
 - List gates: `/wormhole list` (or use `/wx` aliases)
 
-## Visual gate examples
-I will add pictures/examples here to illustrate gate shapes and placements.
-Place images under `docs/images/` and reference them here, for example:
+## What it looks like
 
-- `docs/images/gate-example-1.png`
-- `docs/images/gate-example-ring.png`
+The slots below are waiting on real captures from a server. Each placeholder names the shot it
+is holding open, how long it should run and what the finished file is called;
+[CAPTURES.md](CAPTURES.md) has the shot list, the tick arithmetic behind each length, and the
+ffmpeg commands.
 
-Current placeholder (you can replace this with a PNG/JPG):
+**A finished gate.** Its sign, its DHD, and the shape of the thing.
 
-![Gate placeholder](images/gate-placeholder.svg)
+![A built gate](images/capture-gate-anatomy.svg)
 
-Example insertion (Markdown):
+**Dialling.** Chevrons light in sequence, then the horizon erupts and settles.
 
-```markdown
-![Ring gate example](images/gate-example-ring.png)
-```
+![Dial and kawoosh](images/capture-gate-dial.svg)
+
+**Transport rings.** The pad lights, counts down, and four rings rise around whoever is standing
+on it.
+
+![Ring countdown and deploy](images/capture-ring-deploy.svg)
 
 ## Troubleshooting
 - For vehicle/boat teleport reattachment issues, run recent builds of Paper 1.20+ and use the vehicle-first teleport flow.

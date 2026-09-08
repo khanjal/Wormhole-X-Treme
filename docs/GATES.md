@@ -271,6 +271,8 @@ cleanup too.
 
 ## The iris
 
+![Iris turning somebody back](images/capture-gate-iris.svg)
+
 The iris is a shield, and unlike the portal it is **real blocks**. It has to stop things, and
 a drawing cannot. Opening it on an active gate returns the interior to air with the portal
 drawn over it, which also clears the iris blocks.
@@ -304,6 +306,8 @@ mechanism, and deliberately brief. It is the one drawing here that makes the cli
 *less* solid than the real one, so it is only sent where the eye is in open air.
 
 ## Animation
+
+![Dial and kawoosh](images/capture-gate-dial.svg)
 
 **Chevrons light one at a time**, on `:L#n` order, over the activation sequence. A shape with
 three lighting steps climbs the same distance as one with seven, in bigger steps.
