@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Removing a ring pair, and getting the slabs back
+
+Nothing here changes. Building a pair takes the player's slabs; removing it lays them out again
+as the ring they were, which is also the template for building the same ring somewhere else.
+Nobody should have to re-mine a circle they already paid for. None of that was covered.
+
+The rule that makes it safe rather than destructive is the one worth having a test for: **a slab
+goes back only where the block is now air.** By the time somebody removes an old ring they have
+usually built over part of it, and laying a slab through their wall to be tidy is a far worse
+outcome than making them mine one more. The count they are told reflects what actually went back
+rather than what the ring used to be.
+
+Two more that a reader would have to work out from the code:
+
+- **A ceiling ring's slabs come back as top slabs, a floor ring's as bottom ones.** Laid the
+  wrong way up they would sit on the floor of the room above -- neither where the ring was, nor
+  a template for rebuilding it. Both directions are asserted, because either one alone lets the
+  opposite mistake through.
+- **A pair whose world is not loaded is still removed**, and the player told why nothing came
+  back. Removal is by id from anywhere, and loading a world as a side effect of tidying up a
+  ring would be a surprising thing for this command to do.
+
+Seventeen mutations, all killed.
+
 ### What a beam destination costs, and whose places are whose
 
 Nothing here changes. Two more corners of `/wormhole beam` that nothing covered: pricing a
