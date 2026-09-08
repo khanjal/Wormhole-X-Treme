@@ -137,6 +137,9 @@ public final class LegacyDatabaseImporter
      *
      * @return what happened
      */
+    // S6905 objects to SELECT *. It stays: Owner arrived in schema 5 and WorldName in 4, so
+    // naming the columns would fail the whole import against an older database rather than
+    // read what is there. Said again at the query itself, which is where it bites.
     @SuppressWarnings("java:S6905")
     public static Result importGates()
     {

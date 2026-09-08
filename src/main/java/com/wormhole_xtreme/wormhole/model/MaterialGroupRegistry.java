@@ -39,10 +39,12 @@ public final class MaterialGroupRegistry
     private static volatile Map<String, MaterialGroup> groupsByName = Collections.emptyMap();
 
     /** Groups by frame material, for O(1) detection. Replaced wholesale on load. */
+    // Immutable snapshot swapped in wholesale; volatile publishes the new reference.
     @SuppressWarnings("java:S3077")
     private static volatile Map<Material, MaterialGroup> groupsByStructureMaterial = Collections.emptyMap();
 
     /** The first declared group, used when nothing more specific applies. */
+    // One immutable group, replaced wholesale; volatile publishes the new reference.
     @SuppressWarnings("java:S3077")
     private static volatile MaterialGroup defaultGroup;
 

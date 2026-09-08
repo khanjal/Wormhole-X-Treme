@@ -4,6 +4,40 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Every warning suppression audited
+
+Forty-three `@SuppressWarnings` across the tree, read one at a time to find any that had
+outlived their reason or were quietly hiding something. **None had.** What follows is what the
+audit found rather than what it fixed, since the code needed no change.
+
+The two large groups are boilerplate with a stated reason. Ten `S3516` on command handlers,
+which return `boolean` because Bukkit's `CommandExecutor` says so and always answer "handled".
+Five `S4144` on events, where Bukkit requires both an instance `getHandlers` and a static
+`getHandlerList` with the same body.
+
+Three `S1168` return null rather than an empty collection, and each names the caller that
+depends on the difference: `stargateToBinary` has to let the caller tell "could not encode this
+gate" from "encoded it", because a gate file written with no data loads as a gate with no blocks
+at all. An empty array cannot say that.
+
+Five `S3077` mark `volatile` non-primitive fields. The rule's concern is that `volatile`
+publishes the reference and says nothing about the contents -- so the claim each one makes,
+"immutable snapshot swapped in wholesale", is the thing that matters. Every assignment was
+checked: all of them are `Collections.unmodifiableMap` or `unmodifiableSet`, so the claim holds.
+
+The one bare suppression was `deprecation` on `RingCommand.findPlayer`, and checking it turned
+out to be worth the trouble. `Bukkit.getOfflinePlayer(String)` is deprecated on **every** version
+this plugin supports -- confirmed against the API jars for 1.20, 1.20.6, 1.21, 1.21.4, 1.21.6 and
+1.21.10 rather than assumed -- and the obvious replacement, `getOfflinePlayerIfCached`, does not
+exist on plain Spigot in any of them. It is Paper's, and reaching for it would quietly drop
+Spigot and CraftBukkit. The UUID overload that `StargateYamlManager` uses is not deprecated; only
+lookup by name is, and a name is all that command is given. That is now written down where the
+suppression is.
+
+Two smaller placement fixes: `S6905`'s reason sat twenty-seven lines below the annotation, inside
+the method, and two of the four `S3077` fields had inherited their explanation from a neighbour
+rather than carrying one.
+
 ### Laying the first ring of a pair
 
 Nothing here changes. `RingPairingTest` already covered joining a second end to a waiting first;
