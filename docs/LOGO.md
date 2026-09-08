@@ -17,7 +17,7 @@ is the part worth keeping.
 |---|---|---|
 | Chevron ring | **Gates** | The oldest and largest half of the plugin. A ring with chevrons reads as "stargate" instantly, which is the whole job of the mark. |
 | Column of light | **Beams** | `/wormhole beam` sends a player up a column of light. See [BEAMS.md](BEAMS.md). |
-| Ascending ellipses | **Rings** | Transport rings rise around a traveller and shrink as they climb -- the envelope motion described in [BEAMS.md](BEAMS.md) and [RINGS.md](RINGS.md). |
+| Stack of four rings | **Rings** | Transport rings rise around a traveller and settle as a stack. Four of them, identical, a block apart, in stone grey -- which is what the plugin actually draws. See [RINGS.md](RINGS.md). |
 
 There is no mirror, no portal-pair, no hourglass. Earlier discussion floated "mirrors" as a
 fourth subsystem; it is not one. `mirror` appears in the design documents only as ordinary prose
@@ -53,23 +53,35 @@ gradient `#ffdf9c` to `#c9741a`.
 and `(296,400)`, widening as it falls, fading to nothing before it reaches the bottom of the
 horizon. Clipped to the horizon circle.
 
-**Transport rings** -- three ellipses on the centre line at `cy` 342, 282 and 222, with `rx`
-64, 52 and 41. Each one higher is smaller and more transparent, which is what makes the stack
-read as movement rather than as three static hoops.
+**Transport rings** -- four ellipses on the centre line at `cy` 232, 276, 320 and 364, all
+`rx=58`, `ry=15`. Each is drawn twice: a darker `#6f7982` below and a lighter `#dde3ea` shifted
+four units up, which gives the slab its thickness.
+
+The count, the equal size and the colour are all taken from the code rather than chosen.
+`RingAnimator.RING_COUNT` is 4 and the doc comment there explains why it is four rather than the
+show's five. The rings settle one block apart centre to centre and are all the same seven-block
+diameter, so nothing about them tapers. And `RING_DEFAULT_MATERIAL` is `SMOOTH_STONE_SLAB`, so
+they are grey stone, not gold.
+
+An earlier draft had three amber rings shrinking as they rose. That was prettier -- amber inside
+the cyan pool carried further at small sizes than grey does -- but it was drawing something the
+plugin does not do. If an artist wants the contrast back, the honest way to get it is the lights
+on the ring pad, which really are a configurable material, not by recolouring the rings.
 
 ## Palette
 
 | Swatch | Hex | Used for |
 |---|---|---|
 | Chevron amber | `#f3a52c` | Chevrons, and the "X-TREME" half of the wordmark |
-| Ring light | `#ffe3ac` | Transport rings |
+| Ring stone | `#dde3ea` | Transport rings, lit edge |
 | Horizon cyan | `#37b0d8` | Event horizon mid-tone |
 | Horizon deep | `#0a4a70` | Event horizon edge |
 | Band metal | `#7d8895` | Gate ring mid-tone |
 | Space | `#101826` | Backdrop, banner ground |
 
 Amber against cyan is the only strong colour contrast in the mark, and it is doing real work:
-it is what separates the gate hardware from the energy inside it at small sizes.
+it separates the gate hardware from the energy inside it at small sizes. The rings are
+deliberately not competing with it -- they are grey because the blocks are grey.
 
 ## Constraints
 

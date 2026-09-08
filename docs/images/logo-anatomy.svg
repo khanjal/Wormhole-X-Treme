@@ -152,10 +152,19 @@
     <g clip-path="url(#inside)">
       <path d="M234 92 L278 92 L296 400 L216 400 Z" fill="url(#beam)"/>
     </g>
-    <g clip-path="url(#inside)" fill="none" stroke="#ffe3ac" stroke-linecap="round">
-      <ellipse cx="256" cy="342" rx="64" ry="16" stroke-width="11"/>
-      <ellipse cx="256" cy="282" rx="52" ry="14" stroke-width="10" stroke-opacity="0.88"/>
-      <ellipse cx="256" cy="222" rx="41" ry="11" stroke-width="9" stroke-opacity="0.7"/>
+    <g clip-path="url(#inside)" fill="none" stroke-linecap="round">
+      <g stroke="#6f7982" stroke-opacity="0.6" stroke-width="12">
+        <ellipse cx="256" cy="232" rx="58" ry="15"/>
+        <ellipse cx="256" cy="276" rx="58" ry="15"/>
+        <ellipse cx="256" cy="320" rx="58" ry="15"/>
+        <ellipse cx="256" cy="364" rx="58" ry="15"/>
+      </g>
+      <g stroke="#dde3ea" stroke-width="11" transform="translate(0,-4)">
+        <ellipse cx="256" cy="232" rx="58" ry="15"/>
+        <ellipse cx="256" cy="276" rx="58" ry="15"/>
+        <ellipse cx="256" cy="320" rx="58" ry="15"/>
+        <ellipse cx="256" cy="364" rx="58" ry="15"/>
+      </g>
     </g>
     <circle cx="256" cy="256" r="190" fill="none" stroke="url(#metal)" stroke-width="52"/>
     <circle cx="256" cy="256" r="205" fill="none" stroke="#151c25" stroke-opacity="0.7"
@@ -175,16 +184,16 @@
     </g>
     </g>
     <text x="882" y="350" font-size="17" font-weight="700" fill="#f3a52c">4. Transport rings</text>
-    <text x="882" y="374" font-size="13.5" fill="#9aa7b6">Three ellipses climbing the</text>
-    <text x="882" y="393" font-size="13.5" fill="#9aa7b6">column, each smaller and fainter</text>
-    <text x="882" y="412" font-size="13.5" fill="#9aa7b6">than the one below it.</text>
+    <text x="882" y="374" font-size="13.5" fill="#9aa7b6">Four identical rings a block</text>
+    <text x="882" y="393" font-size="13.5" fill="#9aa7b6">apart, in the stone grey the</text>
+    <text x="882" y="412" font-size="13.5" fill="#9aa7b6">plugin actually draws them.</text>
     <text x="42" y="466" font-size="15" font-weight="700" fill="#eef3f9">Palette</text>
     <rect x="42" y="482" width="34" height="34" rx="8" fill="#f3a52c" stroke="#2b3746"/>
     <text x="88" y="500" font-size="13.5" fill="#dbe4ee">Chevron amber</text>
     <text x="88" y="516" font-size="12" font-family="Consolas, monospace" fill="#7f8c9c">#f3a52c</text>
-    <rect x="214" y="482" width="34" height="34" rx="8" fill="#ffe3ac" stroke="#2b3746"/>
-    <text x="260" y="500" font-size="13.5" fill="#dbe4ee">Ring light</text>
-    <text x="260" y="516" font-size="12" font-family="Consolas, monospace" fill="#7f8c9c">#ffe3ac</text>
+    <rect x="214" y="482" width="34" height="34" rx="8" fill="#dde3ea" stroke="#2b3746"/>
+    <text x="260" y="500" font-size="13.5" fill="#dbe4ee">Ring stone</text>
+    <text x="260" y="516" font-size="12" font-family="Consolas, monospace" fill="#7f8c9c">#dde3ea</text>
     <rect x="386" y="482" width="34" height="34" rx="8" fill="#37b0d8" stroke="#2b3746"/>
     <text x="432" y="500" font-size="13.5" fill="#dbe4ee">Horizon cyan</text>
     <text x="432" y="516" font-size="12" font-family="Consolas, monospace" fill="#7f8c9c">#37b0d8</text>

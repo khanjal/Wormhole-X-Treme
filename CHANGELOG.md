@@ -47,6 +47,16 @@ on purpose.
 `docs/images/logo-anatomy.svg` is the same mark built up in four tiles, one layer at a time,
 with the palette underneath -- easier to hand somebody than a paragraph describing it.
 
+The rings in the first drawing were wrong, and wrong in a way the brief was supposed to catch.
+Three of them, amber, shrinking as they climbed. The plugin draws four, identical, a block apart,
+in grey stone: `RingAnimator.RING_COUNT` is 4 and its own comment explains why four rather than
+the show's five, the stack is one seven-block diameter throughout so nothing tapers, and
+`RING_DEFAULT_MATERIAL` is `SMOOTH_STONE_SLAB`.
+
+Amber on cyan read better at small sizes than grey does, so the corrected mark is slightly weaker
+as a drawing. It is drawing the actual plugin, which for a reference a designer will work from
+matters more.
+
 ### Beaming was undocumented outside its permission nodes
 
 Gates and rings each have a README section running to hundreds of lines. Beaming had
