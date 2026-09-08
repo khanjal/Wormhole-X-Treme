@@ -702,7 +702,14 @@ final class GateInteractionHandler
 
         if ((clickedBlock != null) && (com.wormhole_xtreme.wormhole.utils.MaterialUtils.isButton(clickedBlock.getType()) || (clickedBlock.getType() == Material.LEVER)))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerInteract: " + player.getName() + " clicked potential activator at " + clickedBlock.getLocation().toString() + " type=" + clickedBlock.getType().toString());
+            // Guarded for the same reason the listener's own click logging is: getLocation()
+            // allocates, and this line was built on every button and lever click whatever the
+            // server was logging at.
+            if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerInteract: " + player.getName()
+                    + " clicked potential activator at " + clickedBlock.getLocation() + " type=" + clickedBlock.getType());
+            }
             if (buttonLeverHit(player, clickedBlock, null))
             {
                 return true;
