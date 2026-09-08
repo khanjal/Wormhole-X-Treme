@@ -341,10 +341,10 @@ class LegacyGateFidelityV4V5Test
     @Test
     void aVersionNobodyRecognisesIsRefused()
     {
-        final byte[] record = legacyGate(4);
-        record[0] = (byte) 99;
+        final byte[] stored = legacyGate(4);
+        stored[0] = (byte) 99;
 
-        assertNull(GateSerializer.parseVersionedData(record, world, "old", null),
+        assertNull(GateSerializer.parseVersionedData(stored, world, "old", null),
             "a record from the future is not read as one from the past");
     }
 }
