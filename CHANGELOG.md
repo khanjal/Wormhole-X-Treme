@@ -101,9 +101,12 @@ the repository unrecognised, GitHub's API reported the licence as `NOASSERTION`,
 GPL-3.0 badge was hand-written rather than detected.
 
 `gpl.txt` is now `LICENSE` and `LICENSE.txt` is now `NOTICE.txt`, which is what that file has
-always been. `src/main/assembly/package.xml` already globbed `LICENSE*` and `NOTICE*`, so both
-still ship in the jar and its explicit `gpl.txt` include is gone as redundant. The README badge
-now links to the licence rather than to the notice.
+always been. The README badge now links to the licence rather than to the notice.
+
+The renames also touched `src/main/assembly/package.xml`, whose `LICENSE*` and `NOTICE*` globs made
+its explicit `gpl.txt` include redundant. That edit turned out to be meaningless -- the descriptor
+never ran, so nothing it lists has ever shipped anywhere -- and the file is deleted further up
+these notes.
 
 `LICENSING.md` was also describing a plugin that no longer exists. It listed `org.sqlite:sqlite-jdbc`
 and `org.hsqldb:hsqldb` as dependencies and named sqlite-jdbc as shaded into the jar; neither has
