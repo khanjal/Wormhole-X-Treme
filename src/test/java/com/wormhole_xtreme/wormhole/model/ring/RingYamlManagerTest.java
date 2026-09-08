@@ -363,12 +363,12 @@ class RingYamlManagerTest
         assertEquals(1, RingYamlManager.loadPending(directory));
         final RingManager.PendingRing back = RingManager.getPending(builder);
         assertNotNull(back);
-        assertEquals(WORLD, back.getWorldName());
-        assertEquals(40, back.getRing().getAnchorX());
-        assertEquals(RingPattern.EVEN, back.getRing().getPattern());
-        assertEquals(RingOrientation.CEILING, back.getRing().getOrientation());
-        assertEquals(Material.DEEPSLATE_TILE_SLAB, back.getRing().getRingMaterial());
-        assertEquals("Cellar", back.getRing().getName());
+        assertEquals(WORLD, back.worldName());
+        assertEquals(40, back.ring().getAnchorX());
+        assertEquals(RingPattern.EVEN, back.ring().getPattern());
+        assertEquals(RingOrientation.CEILING, back.ring().getOrientation());
+        assertEquals(Material.DEEPSLATE_TILE_SLAB, back.ring().getRingMaterial());
+        assertEquals("Cellar", back.ring().getName());
     }
 
     @Test

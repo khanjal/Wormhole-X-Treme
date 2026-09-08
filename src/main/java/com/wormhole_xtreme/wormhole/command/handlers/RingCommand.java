@@ -191,12 +191,12 @@ public class RingCommand implements SubCommand
     private static boolean completePair(final Player player, final RingManager.PendingRing waiting,
         final Ring ring, final String world)
     {
-        if (!waiting.getWorldName().equals(world))
+        if (!waiting.worldName().equals(world))
         {
             // Said here rather than discovered later. Rings do not cross worlds, and finding
             // that out after laying a second circle of slabs is a poor way to learn it.
             player.sendMessage("Both ends have to be in the same world. Your first ring is in "
-                + waiting.getWorldName() + ", and this one is in " + world + ".");
+                + waiting.worldName() + ", and this one is in " + world + ".");
             player.sendMessage("Run /wormhole ring cancel to give up on that one.");
             return true;
         }
@@ -205,16 +205,16 @@ public class RingCommand implements SubCommand
         // are for.
         final int maxDistance = ConfigManager.getRingMaxLinkDistance();
         if ((maxDistance > 0)
-            && (waiting.getRing().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
+            && (waiting.ring().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
         {
-            player.sendMessage("Those two rings are " + apart(waiting.getRing(), ring)
+            player.sendMessage("Those two rings are " + apart(waiting.ring(), ring)
                 + " blocks apart on the ground, and rings reach " + maxDistance + ".");
             player.sendMessage("Build a stargate for a trip that long — rings are for getting "
                 + "around one place.");
             return true;
         }
         final int maxHeight = ConfigManager.getRingMaxLinkHeight();
-        final int climb = Math.abs(waiting.getRing().getAnchorY() - ring.getAnchorY());
+        final int climb = Math.abs(waiting.ring().getAnchorY() - ring.getAnchorY());
         if ((maxHeight > 0) && (climb > maxHeight))
         {
             player.sendMessage("Those two rings are " + climb + " blocks apart in height, and "
@@ -222,20 +222,20 @@ public class RingCommand implements SubCommand
             return true;
         }
 
-        final RingPair pair = new RingPair(RingManager.newId(), world, waiting.getRing(), ring);
+        final RingPair pair = new RingPair(RingManager.newId(), world, waiting.ring(), ring);
         pair.setOwner(player.getUniqueId().toString());
         pair.setOwnerName(player.getName());
         pair.setCreated(System.currentTimeMillis());
         pair.setAccess(ConfigManager.getRingDefaultAccess());
-        for (final Ring end : new Ring[] { waiting.getRing(), ring })
+        for (final Ring end : new Ring[] { waiting.ring(), ring })
         {
             end.setStyle(ConfigManager.getRingDefaultStyle());
             end.setFlashMaterial(ConfigManager.getRingDefaultFlash());
         }
 
-        if ((waiting.getRing().getAnchorX() == ring.getAnchorX())
-            && (waiting.getRing().getAnchorY() == ring.getAnchorY())
-            && (waiting.getRing().getAnchorZ() == ring.getAnchorZ()))
+        if ((waiting.ring().getAnchorX() == ring.getAnchorX())
+            && (waiting.ring().getAnchorY() == ring.getAnchorY())
+            && (waiting.ring().getAnchorZ() == ring.getAnchorZ()))
         {
             // The first ring's slabs are still lying there, so running the command again in
             // the same circle finds the same ring. Pairing it with itself would make a
@@ -248,7 +248,7 @@ public class RingCommand implements SubCommand
         RingYamlManager.savePending();
         // Both templates come up now, together, because only now is there a pair to show for
         // them.
-        consumeTemplate(player, waiting.getRing());
+        consumeTemplate(player, waiting.ring());
         consumeTemplate(player, ring);
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world);

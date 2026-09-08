@@ -36,41 +36,13 @@ public final class RingManager
      *
      * <p>Carries its world because the second end has to be in the same one, and that is
      * worth refusing at the command with a message rather than discovering later.
+     *
+     * @param ring
+     *            the end already built
+     * @param worldName
+     *            the world it is in
      */
-    public static final class PendingRing
-    {
-        /** The end already built. */
-        private final Ring ring;
-
-        /** The world it is in. */
-        private final String worldName;
-
-        /**
-         * Instantiates a pending ring.
-         *
-         * @param ring
-         *            the end already built
-         * @param worldName
-         *            the world it is in
-         */
-        public PendingRing(final Ring ring, final String worldName)
-        {
-            this.ring = ring;
-            this.worldName = worldName;
-        }
-
-        /** @return the end already built */
-        public Ring getRing()
-        {
-            return ring;
-        }
-
-        /** @return the world it is in */
-        public String getWorldName()
-        {
-            return worldName;
-        }
-    }
+    public record PendingRing(Ring ring, String worldName) { }
 
     /** Why a ring may not be built where it was asked for. */
     public enum Refusal

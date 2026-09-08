@@ -163,8 +163,8 @@ class RingManagerTest
         RingManager.setPending(player, ringAt(5, 5), WORLD);
         final RingManager.PendingRing held = RingManager.getPending(player);
         assertNotNull(held);
-        assertEquals(WORLD, held.getWorldName());
-        assertEquals(5, held.getRing().getAnchorX());
+        assertEquals(WORLD, held.worldName());
+        assertEquals(5, held.ring().getAnchorX());
 
         assertNotNull(RingManager.clearPending(player));
         assertNull(RingManager.getPending(player));

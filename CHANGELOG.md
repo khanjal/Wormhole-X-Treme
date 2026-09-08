@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A half-built ring pair is a record now
+
+`RingManager.PendingRing` holds two things -- the end already built and the world it is in --
+and existed only to be read back when the second end is placed. Thirty-five lines of field,
+constructor and getter for that. It is a record, and `getRing()`/`getWorldName()` are now
+`ring()`/`worldName()` at the thirteen places that read them.
+
+The rest of the model still reads `getGateName()`, `getRing()`, `getWorldName()`. This is the
+one class where the trade came out in favour of the record: it is nested inside its own
+manager and read from two files.
+
 ### Nothing was holding the rules a minecart travels under
 
 Riding a gate is the least covered way of using one. The two methods that carry a vehicle
