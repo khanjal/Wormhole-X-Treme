@@ -4,6 +4,41 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Nothing checked what keeps a gate from being taken apart
+
+Nothing here changes. Five event handlers -- fire spreading to a gate, a block catching alight
+near one, liquid flowing into or out of one, and a player hitting one -- were the whole of this
+plugin's answer to a gate being pulled apart, and every one of them was uncovered.
+
+The rules turn out to be more particular than "protect gate blocks":
+
+- **A lava gate stops fire near it, but only while it is open and only if its portal really is
+  lava.** The plugin put that lava there, so an open one would otherwise burn down whatever was
+  built beside it. Shut, or on a water gate, fire nearby is ordinary fire and none of the
+  plugin's business.
+- **The protection is a radius, not a block list** -- the gate's woosh depth, or twenty-five
+  squared as a floor. Cancelling every ignition on the map because a lava gate exists somewhere
+  would make this a fire-protection plugin, which it is not.
+- **Liquid may not flow into a gate, nor out of one.** Water reaching an open portal would
+  replace it and leave a gate that looks open and carries nobody; an open lava portal left free
+  would pour down whatever it stands over.
+
+Eleven mutations. Three survived the first pass and all three for the same reason: `onBlockBurn`
+and `onBlockIgnite` hold the same condition written out twice, and only the ignite half had been
+tested. Each case is now asked of both, because testing one and trusting the other is how a
+change to one of them ships unnoticed.
+
+The third survivor was a fixture mistake rather than a missing rule. A fire forty blocks away
+tests nothing: the index lookup has a radius of ten, so no gate is found and the distance rule is
+never reached at all. Eight blocks is inside the lookup and outside the protection, which is the
+only place the threshold itself is visible.
+
+One thing worth writing down for whoever tests this next. The index and the distance are two
+different things: `findNearestGateByBlock` answers "which gate is near here" from the spatial
+index, and `distanceSquaredToClosestGateBlock` then measures against the gate's own structure
+block list. A gate that has been indexed but given no blocks of its own reads as infinitely far
+from everything and protects nothing.
+
 ### Every click on the server built a log line nobody was going to read
 
 `onPlayerInteract` logs what was clicked at FINE. The line was assembled at the call site --
