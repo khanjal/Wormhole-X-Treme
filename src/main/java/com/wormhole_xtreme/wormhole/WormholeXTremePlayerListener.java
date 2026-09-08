@@ -972,6 +972,64 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
+     * Whether the ring will not have this player right now, having said why.
+     *
+     * <p>Only said to somebody who has just walked in. This runs on every block boundary
+     * crossed, so a player wandering about on a pad they cannot use would otherwise be told
+     * about it several times a second.
+     *
+     * @param player
+     *            whoever stepped onto the pad
+     * @param pair
+     *            the pair they are standing in
+     * @param end
+     *            which end of it
+     * @param justEntered
+     *            whether this step took them in, rather than around inside
+     * @return true if they were refused
+     */
+    private static boolean ringRefuses(final Player player, final com.wormhole_xtreme.wormhole.model.ring.RingPair pair,
+        final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end, final boolean justEntered)
+    {
+        // Arming is a use of the ring, so the same permission governs it as governs being
+        // carried. Somebody who cannot travel by a pair should not be able to set it off for
+        // everybody else either.
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
+        {
+            if (justEntered)
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
+            }
+            return true;
+        }
+        final long now = System.currentTimeMillis();
+        if (pair.canFire(now))
+        {
+            return false;
+        }
+        if (justEntered)
+        {
+            // Two different reasons to refuse, and a player standing on a silent pad deserves
+            // to know which: one of them ends by itself and the other does not.
+            if (pair.getCooldownUntil() > now)
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(player, pair.getCooldownUntil() - now);
+                // A recharging ring is invisible, so being told it is not ready leaves
+                // somebody standing on ground that looks like any other. Show them where it
+                // is. Not done for a ring that is mid-cycle: that pad is already lit, so
+                // there is nothing to point out and the outline would put those lights out
+                // when it expired.
+                com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
+            }
+            else
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
+            }
+        }
+        return true;
+    }
+
+    /**
      * Arms a transport ring if this move took the player into one.
      *
      * <p>The whole of ring detection on the move path, and it is deliberately three lines of
@@ -1018,41 +1076,8 @@ class WormholeXTremePlayerListener implements Listener
             || (com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
                 from.getWorld().getName(), from.getBlockX(), from.getBlockY(), from.getBlockZ()) != end);
 
-        // Arming is a use of the ring, so the same permission governs it as governs being
-        // carried. Somebody who cannot travel by a pair should not be able to set it off
-        // for everybody else either.
-        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
+        if (ringRefuses(player, pair, end, justEntered))
         {
-            if (justEntered)
-            {
-                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
-            }
-            return;
-        }
-        final long now = System.currentTimeMillis();
-        if (!pair.canFire(now))
-        {
-            if (justEntered)
-            {
-                // Two different reasons to refuse, and a player standing on a silent pad
-                // deserves to know which: one of them ends by itself and the other does not.
-                if (pair.getCooldownUntil() > now)
-                {
-                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(
-                        player, pair.getCooldownUntil() - now);
-                    // A recharging ring is invisible, so being told it is not ready leaves
-                    // somebody standing on ground that looks like any other. Show them where
-                    // it is. Not done for a ring that is mid-cycle: that pad is already lit,
-                    // so there is nothing to point out and the outline would put those lights
-                    // out when it expired.
-                    com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(
-                        player, pair, end.getRing());
-                }
-                else
-                {
-                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
-                }
-            }
             return;
         }
         // justEntered is passed on rather than gating the call: arming still has to happen on
