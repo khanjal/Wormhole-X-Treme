@@ -9,8 +9,12 @@ All notable changes to this project are documented in this file.
 `src/main/assembly/package.xml` was a complete, valid maven-assembly descriptor: a zip with the
 jar renamed to `WormholeXTreme.jar`, the gate shapes pre-placed under
 `plugins/WormholeXTreme/GateShapes/`, and the project's documents in a `docs/` folder. It was also
-never run. `maven-assembly-plugin` is not in `pom.xml` and never was, so `mvn package` produced the
-shaded jar and nothing else.
+not being built. `maven-assembly-plugin` was in `pom.xml` from 2011 until May this year, when
+`4fa7914` -- a commit about teleport and minecart safety -- dropped it and left the descriptor
+behind. Since then `mvn package` has produced the jar and nothing else.
+
+That history is why the file read as authoritative: it was, for fifteen years. It stopped being
+true in a commit about something else entirely, which is the usual way.
 
 A packaging file that looks like it works is worse than none, because people read it and believe
 it. That happened while writing `TRADEMARK.md`: the descriptor's includes listed `LICENSE*` and
