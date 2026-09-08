@@ -278,12 +278,12 @@ class VehicleGateEntryTest
     /**
      * Every rider is asked about, not just whoever is sitting at the front.
      *
-     * <p>Only the first passenger is asked about permission and cooldown -- a boat is worked
-     * by whoever is steering it. The travel event is not the same question: it is asked of
-     * each person being moved, and any one of them can be the reason the boat stays put.
+     * <p>Only the first passenger is asked about permission and cooldown -- a vehicle is
+     * worked by whoever is at the front of it. The travel event is not the same question: it
+     * is asked of each person being moved, and any one of them can be the reason it stays put.
      */
     @Test
-    void aListenerStoppingThePassengerStopsTheBoatToo()
+    void aListenerStoppingAnyRiderStopsTheWholeVehicle()
     {
         final Player helmsman = mock(Player.class);
         when(helmsman.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -475,11 +475,11 @@ class VehicleGateEntryTest
      * Something aboard that is not a player is carried, and marked as nothing.
      *
      * <p>The mark exists to stop the player listener teleporting a rider out of their seat.
-     * A mob in a boat has no such listener, and asking for its player mark would be asking
+     * A mob riding along has no such listener, and asking for its player mark would be asking
      * about a player that is not there.
      */
     @Test
-    void apassengerThatIsNotAPlayerIsCarriedButNotMarked()
+    void aPassengerThatIsNotAPlayerIsCarriedButNotMarked()
     {
         final Entity mob = mock(Entity.class);
         final UUID mobId = UUID.randomUUID();
@@ -489,7 +489,7 @@ class VehicleGateEntryTest
         rollIn();
 
         assertTrue(WormholeXTremeVehicleListener.isVehicleRecentlyTeleported(cart.getUniqueId()),
-            "the boat still travels");
+            "the cart still travels");
         assertFalse(WormholeXTremeVehicleListener.isPlayerRecentlyTeleportedByVehicle(mobId),
             "but there is no rider to hold back");
     }

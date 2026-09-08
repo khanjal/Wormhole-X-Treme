@@ -697,7 +697,7 @@ class WormholeXTremeVehicleListener implements Listener
     /**
      * Charges the riders for a trip that is now going to happen.
      *
-     * <p>Per rider, so one failing does not silently deny the rest of the boat their cooldown
+     * <p>Per rider, so one failing does not silently deny everyone else aboard their cooldown
      * and arrival mark. RuntimeException rather than Throwable is deliberate and matches the
      * rest of the plugin: an Error is not something to swallow on the way past.
      *
