@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Handing a ring pair over, and letting somebody into one
+
+Nothing here changes. `allow`, `deny` and `owner` were uncovered between them, and they are the
+whole of how access to a ring pair changes hands.
+
+Two of the rules are decisions rather than plumbing, and both are the sort a reader would have to
+work out from the code.
+
+**The quota is checked against whoever receives a pair, not whoever gives it.** Checked against
+the giver it would do nothing at all: anybody at their limit could carry on building by having a
+friend lay the rings and hand them over. The code says so in a comment, and now something checks
+it.
+
+**The giver keeps no access to a private pair they handed over.** Written for staff building
+rings on request -- kept on the allow list they would accumulate standing access to every pair
+they had ever built for anybody. Somebody who wants to keep using one they gave away can be added
+back by its new owner, which is that owner's call to make.
+
+A third rule turned up while getting a test to pass, and is pinned rather than worked around:
+**owning a pair is not on its own enough to travel by one.** `mayManage` asks whose pair it is;
+`mayUse` asks whether the player may ride rings at all and then whether this pair admits them. An
+owner whose `wormhole.ring.use` has been taken away keeps the pair and cannot ride it, which
+reads as a bug until the two questions are seen apart.
+
+The smaller answers are covered too: adding somebody already on the list says so rather than
+pretending, and so does removing somebody who was never on it. Told it worked either way, an
+owner has no way to tell a name they have already added from one they mistyped.
+
 ### Nothing checked what keeps a gate from being taken apart
 
 Nothing here changes. Five event handlers -- fire spreading to a gate, a block catching alight
