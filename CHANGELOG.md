@@ -24,8 +24,8 @@ claim was verified with `mvn clean package`, and the build did succeed, which is
 thing.
 
 Deleted rather than wired in. Nothing is lost: the release workflow attaches the jar and only the
-jar, the shapes ship inside it as resources, and no workflow, script or document referenced the
-descriptor. If a server-ready zip is wanted later it can come back deliberately, with the plugin
+jar, the shapes ship inside it as resources, and nothing in the build or release pipeline
+depended on the descriptor. If a server-ready zip is wanted later it can come back deliberately, with the plugin
 that builds it.
 
 Closes #193.
