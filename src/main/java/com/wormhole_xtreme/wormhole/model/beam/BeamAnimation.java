@@ -345,59 +345,22 @@ public final class BeamAnimation
 
             if (frame.isStart())
             {
-                BeamFreeze.markActive(player);
-                BeamSounds.playCharge(origin);
-                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                    + "Beaming to " + destinationName + "...");
+                announceDeparture(frame);
             }
 
             if (frame.isEnvelopActive())
             {
-                // Not yet frozen -- tracks wherever the traveller actually is this tick,
-                // rather than the fixed origin, since they are still free to walk, turn or
-                // react right up until they vanish. A fixed column here would just miss
-                // them the moment they stepped away from where the sequence began.
-                spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.getEnvelopDensity());
+                drawEnvelope(frame);
             }
 
             if (frame.isVanish())
             {
-                // This is the moment free movement ends: note where they are right now --
-                // the departure column roots here for the rest of the rise -- then lock
-                // them in place. Capturing the location before freezing, not after, is
-                // what keeps the last envelope frame and the first rise frame coincident
-                // rather than one tick apart.
-                origin = player.getLocation();
-
-                // Settled here, not in the constructor: the traveller is free to mount or
-                // dismount right through the envelope, so this is the first tick at which
-                // what they are riding is a fixed fact. Held before the freeze, because
-                // holding is what makes the freeze work at all on a mounted traveller --
-                // it dismounts them, so their movement goes back through PlayerMoveEvent,
-                // which is the only thing BeamFreezeListener can revert.
-                mount = BeamMount.capture(player);
-                mount.hold(player);
-                BeamFreeze.freeze(player);
-
-                // The traveller and their mount both leave everyone else's screen here --
-                // hideEntity rather than an invisibility effect, which would have left
-                // whatever they were holding, wearing and riding rendered exactly where it
-                // was. Invisibility goes on too, but only for the traveller's own camera,
-                // which hiding cannot reach. Both are undone explicitly at the deposit, and
-                // by recover() if this sequence never gets that far.
-                //
-                // The duration is a ceiling, not the timing: the remainder of the envelope
-                // plus the full rise and descent over-estimates when it is needed until,
-                // which is fine, since explicit removal at the deposit is what the sequence
-                // actually depends on and this only guards against that removal being late.
-                visibility.hide(mount.stack(),
-                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks()
-                        + timing.descendTicks());
+                vanish(frame);
             }
 
             if (frame.isRiseActive())
             {
-                spawnColumn(origin, frame.columnHeight(), frame.getRiseYOffset(), BeamFrame.MAX_DENSITY);
+                rise(frame);
             }
 
             if (!teleported && frame.isTeleport())
@@ -436,40 +399,139 @@ public final class BeamAnimation
                 }
             }
 
-            if (teleported)
+            if (teleported && arriveAndSettle(frame))
             {
-                if (frame.isDescendActive())
-                {
-                    spawnColumn(destination, frame.columnHeight(), frame.getDescendYOffset(), BeamFrame.MAX_DENSITY);
-                }
-
-                if (frame.isArrive())
-                {
-                    BeamSounds.playArrive(destination);
-                    removeTravellerEffects(player);
-                    // Revealed the instant the column settles, standing inside the light
-                    // rather than popping in after it -- the same tick their sight comes
-                    // back, so what they can see and what everyone else can see resolve
-                    // together.
-                    visibility.show(mount.stack());
-                }
-
-                if (frame.isFadeActive())
-                {
-                    spawnColumn(destination, frame.getFadeHeight(), 0.0, frame.getFadeDensity());
-                }
-
-                if (frame.isFinished())
-                {
-                    BeamFreeze.clear(player);
-                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                        + "Beamed to " + destinationName + ".");
-                    return;
-                }
+                // Finished: no reschedule, which is what ends the animation.
+                return;
             }
 
             tick++;
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), this, 1L);
+        }
+
+        /**
+         * Everything at the far end: the descending column, the landing, and the fade.
+         *
+         * <p>Returns rather than ending the animation itself. The caller is the only place
+         * that knows the animation continues by rescheduling itself, so "we are done" travels
+         * back as an answer instead of as a return that skips the reschedule -- which is what
+         * it was when this lived inline, and is easy to lose in an extraction.
+         *
+         * @param frame
+         *            what this tick is, decided entirely by BeamFrame
+         * @return true when the beam is over and should not run again
+         */
+        private boolean arriveAndSettle(final BeamFrame frame)
+        {
+            if (frame.isDescendActive())
+            {
+                spawnColumn(destination, frame.columnHeight(), frame.getDescendYOffset(), BeamFrame.MAX_DENSITY);
+            }
+
+            if (frame.isArrive())
+            {
+                BeamSounds.playArrive(destination);
+                removeTravellerEffects(player);
+                // Revealed the instant the column settles, standing inside the light rather
+                // than popping in after it -- the same tick their sight comes back, so what
+                // they can see and what everyone else can see resolve together.
+                visibility.show(mount.stack());
+            }
+
+            if (frame.isFadeActive())
+            {
+                spawnColumn(destination, frame.getFadeHeight(), 0.0, frame.getFadeDensity());
+            }
+
+            if (frame.isFinished())
+            {
+                BeamFreeze.clear(player);
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + "Beamed to " + destinationName + ".");
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * Says the beam has begun, and starts the charge sound.
+         *
+         * @param frame
+         *            what this tick is, decided entirely by BeamFrame
+         */
+        private void announceDeparture(final BeamFrame frame)
+        {
+                BeamFreeze.markActive(player);
+                BeamSounds.playCharge(origin);
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                    + "Beaming to " + destinationName + "...");
+        }
+
+        /**
+         * Wraps the traveller while they can still move, so the column follows them.
+         *
+         * @param frame
+         *            what this tick is, decided entirely by BeamFrame
+         */
+        private void drawEnvelope(final BeamFrame frame)
+        {
+                // Not yet frozen -- tracks wherever the traveller actually is this tick,
+                // rather than the fixed origin, since they are still free to walk, turn or
+                // react right up until they vanish. A fixed column here would just miss
+                // them the moment they stepped away from where the sequence began.
+                spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.getEnvelopDensity());
+        }
+
+        /**
+         * The moment free movement ends: where they stand is fixed, and they are frozen.
+         *
+         * @param frame
+         *            what this tick is, decided entirely by BeamFrame
+         */
+        private void vanish(final BeamFrame frame)
+        {
+                // This is the moment free movement ends: note where they are right now --
+                // the departure column roots here for the rest of the rise -- then lock
+                // them in place. Capturing the location before freezing, not after, is
+                // what keeps the last envelope frame and the first rise frame coincident
+                // rather than one tick apart.
+                origin = player.getLocation();
+
+                // Settled here, not in the constructor: the traveller is free to mount or
+                // dismount right through the envelope, so this is the first tick at which
+                // what they are riding is a fixed fact. Held before the freeze, because
+                // holding is what makes the freeze work at all on a mounted traveller --
+                // it dismounts them, so their movement goes back through PlayerMoveEvent,
+                // which is the only thing BeamFreezeListener can revert.
+                mount = BeamMount.capture(player);
+                mount.hold(player);
+                BeamFreeze.freeze(player);
+
+                // The traveller and their mount both leave everyone else's screen here --
+                // hideEntity rather than an invisibility effect, which would have left
+                // whatever they were holding, wearing and riding rendered exactly where it
+                // was. Invisibility goes on too, but only for the traveller's own camera,
+                // which hiding cannot reach. Both are undone explicitly at the deposit, and
+                // by recover() if this sequence never gets that far.
+                //
+                // The duration is a ceiling, not the timing: the remainder of the envelope
+                // plus the full rise and descent over-estimates when it is needed until,
+                // which is fine, since explicit removal at the deposit is what the sequence
+                // actually depends on and this only guards against that removal being late.
+                visibility.hide(mount.stack(),
+                    (timing.envelopTicks() - timing.vanishAtStep()) + timing.riseTicks()
+                        + timing.descendTicks());
+        }
+
+        /**
+         * Lifts the departure column.
+         *
+         * @param frame
+         *            what this tick is, decided entirely by BeamFrame
+         */
+        private void rise(final BeamFrame frame)
+        {
+                spawnColumn(origin, frame.columnHeight(), frame.getRiseYOffset(), BeamFrame.MAX_DENSITY);
         }
 
         /**
