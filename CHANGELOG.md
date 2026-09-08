@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The name and logo are no longer GPL-3.0
+
+Everything in the repository inherited GPL-3.0 unless it said otherwise, so the mark shipped in
+#184 was licensed exactly like the code. Nobody chose that, and it defeated the point of having a
+mark at all: under GPL-3.0 anybody may redistribute and modify any file here, including taking the
+logo to present a different build as this project. There is more than one Wormhole X-Treme, and
+saying which one this is, is most of what the mark is for.
+
+`TRADEMARK.md` carves out the name and the three logo files. The line it draws is confusion, not
+commerce. Using the logo unmodified to refer to this project -- writing about it, reviewing it,
+listing it, redistributing the jar -- needs no permission and is welcome. Modifying the mark, or
+using it to present a different distribution or fork as this project, does.
+
+The code is untouched. Every right GPL-3.0 grants over the code stands, forking included.
+Copyright and trademark are separate regimes and the GPL says so itself: section 7(e) expressly
+permits an additional term declining to grant trademark rights, which is how Rust, Python and
+Mozilla all keep free code alongside a controlled identity.
+
+Two caveats are written into the policy rather than left to be discovered. It is **not
+retroactive** -- the logo files sat under GPL-3.0 for a few days before the policy existed, GPL
+grants are irrevocable, and anybody who took a copy in that window holds a GPL-3.0 licence to that
+version. The exposure is days and no tagged release, but it is real, and a commissioned
+replacement would start clean. And any commission **must assign copyright to the project**, since
+if the artist keeps it none of this is the project's to decide.
+
+
 ### The licence badge said GPL-3.0 on its own authority
 
 The README's licence badge was `img.shields.io/badge/license-GPL--3.0-blue` -- a static image with

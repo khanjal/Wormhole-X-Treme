@@ -6,6 +6,11 @@
 - [LICENSE](LICENSE) is the full GPL-3.0 text.
 - [NOTICE.txt](NOTICE.txt) is the copyright notice and the no-warranty statement.
 
+**The name and logo are excluded from GPL-3.0** and covered by
+[TRADEMARK.md](TRADEMARK.md) instead. The code is unaffected -- every right the GPL grants over
+the code stands. The carve-out exists because more than one project carries this name, and the
+mark is what distinguishes them.
+
 ## Copyright
 
     Copyright (C) 2011  Ben Echols
