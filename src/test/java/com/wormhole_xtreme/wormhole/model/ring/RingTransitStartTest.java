@@ -126,9 +126,9 @@ class RingTransitStartTest
         // A cycle that starts draws its first frame, and drawing a block asks Bukkit to turn a
         // Material into BlockData -- which on a real server means asking the server. There
         // isn't one. Nothing here reads the result; it just has to exist.
+        final BlockData anyBlockData = mock(BlockData.class);
         bukkit = mockStatic(Bukkit.class);
-        bukkit.when(() -> Bukkit.createBlockData(any(Material.class)))
-            .thenReturn(mock(BlockData.class));
+        bukkit.when(() -> Bukkit.createBlockData(any(Material.class))).thenReturn(anyBlockData);
     }
 
     @AfterEach
@@ -155,15 +155,15 @@ class RingTransitStartTest
      * <p>It is trusted for one second, which is not a thing to sit through in a test. Reaching
      * into the map is the only way to be somewhere other than "just now" without waiting.
      */
-    @SuppressWarnings("unchecked")
     private static void ageOutTheRememberedSurvey() throws Exception
     {
-        final Field f = RingTransit.class.getDeclaredField("surveyed");
-        f.setAccessible(true);
-        final Map<String, Long> surveyed = (Map<String, Long>) f.get(null);
-        for (final Map.Entry<String, Long> entry : surveyed.entrySet())
+        final Map<String, Long> surveyed = surveyed();
+        final Long past = Long.valueOf(System.currentTimeMillis() - 1L);
+        // put over the keys rather than Map.Entry#setValue, which not every Map.Entry
+        // implementation supports.
+        for (final String id : new java.util.ArrayList<String>(surveyed.keySet()))
         {
-            entry.setValue(Long.valueOf(System.currentTimeMillis() - 1L));
+            surveyed.put(id, past);
         }
     }
 
