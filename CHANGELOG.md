@@ -23,9 +23,30 @@ keep free code and a controlled identity at the same time.
 
 Nothing is relicensed. The note is a note; the decision is the owner's.
 
-While writing it: `LICENSE.txt` is the sixteen-line GPL notice rather than the full GPL-3.0 text,
-which is why GitHub reports this repository's licence as `NOASSERTION` and the README's badge is
-hand-written rather than detected.
+### Three files that all looked like the licence
+
+`LICENSE.txt` held the sixteen-line copyright notice. `gpl.txt` held the actual GPL-3.0 text, all
+35 KB of it. `LICENSING.md` explained the licence and inventoried the dependencies, and opened by
+telling the reader to see `LICENSE.txt` for the full text -- which is not, and never was, in that
+file.
+
+The naming had a consequence beyond confusion. GitHub's licence detector looks for `LICENSE`,
+`LICENSE.md`, `COPYING` and a few more; it does not look for `gpl.txt`. So the full text sat in
+the repository unrecognised, GitHub's API reported the licence as `NOASSERTION`, and the README's
+GPL-3.0 badge was hand-written rather than detected.
+
+`gpl.txt` is now `LICENSE` and `LICENSE.txt` is now `NOTICE.txt`, which is what that file has
+always been. `src/main/assembly/package.xml` already globbed `LICENSE*` and `NOTICE*`, so both
+still ship in the jar and its explicit `gpl.txt` include is gone as redundant. The README badge
+now links to the licence rather than to the notice.
+
+`LICENSING.md` was also describing a plugin that no longer exists. It listed `org.sqlite:sqlite-jdbc`
+and `org.hsqldb:hsqldb` as dependencies and named sqlite-jdbc as shaded into the jar; neither has
+been in `pom.xml` since the database layer was removed, and gates have been one YAML file each for
+a while. Its compliance note explained that `ServicesResourceTransformer` merges
+`META-INF/services/java.sql.Driver` entries "from multiple database vendors" -- there are no
+database vendors. The transformer is still configured and still a reasonable safeguard, so it is
+described as one rather than deleted.
 
 ### The animations were described but never shown
 

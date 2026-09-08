@@ -15,7 +15,6 @@
                 <include>LICENSE*</include>
                 <include>NOTICE*</include>
                 <include>CHANGELOG*</include>
-                <include>gpl.txt</include>
             </includes>
         </fileSet>
         <fileSet>

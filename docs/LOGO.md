@@ -151,10 +151,11 @@ This is a note, not legal advice, and nothing here changes the licensing as it c
 If the mark ever matters commercially, the question is worth a real answer from somebody
 qualified to give one.
 
-**Related, and unrelated to the logo:** `LICENSE.txt` is the sixteen-line GPL notice that
-references the licence rather than the full GPL-3.0 text. That is why GitHub's API reports this
-repository's licence as `NOASSERTION` and the README's GPL-3.0 badge is hand-written rather than
-detected. Dropping in the full text would fix the detection.
+**Related, and unrelated to the logo:** the repository's own licence files were tidied in the
+same pass. The full GPL-3.0 text was present all along as `gpl.txt`, a name GitHub's licence
+detector does not recognise, while `LICENSE.txt` held only the sixteen-line copyright notice --
+so GitHub reported the licence as `NOASSERTION` and the README's badge was hand-written. The
+text is now `LICENSE` and the notice is `NOTICE.txt`.
 
 ## What is open
 
