@@ -123,13 +123,13 @@ class GateBlockProtectionTest
     }
 
     /**
-     * A block two away from an open lava gate does not catch light.
+     * A block two away from an open lava gate does not catch alight.
      *
      * <p>The gate's own portal is lava, so without this an open gate sets fire to whatever
      * somebody built beside it -- and it is the plugin that put the lava there.
      */
     @Test
-    void nothingCatchesLightBesideAnOpenLavaGate()
+    void nothingCatchesAlightBesideAnOpenLavaGate()
     {
         assertTrue(ignited(blockAt(GX + 2, GY, GZ, Material.OAK_PLANKS)),
             "a plank two blocks from the portal is not the fire's to take");
