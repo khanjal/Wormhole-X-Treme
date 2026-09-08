@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Who may beam whom where was held up by nothing
+
+None of this changes what the plugin does. It is what the plugin already did, written down
+where a refactor has to notice it.
+
+`/wormhole beam admin` reads as one command behind one permission, and it is not. `goto` and
+`send` are answered *before* the `wormhole.beam.admin` check and carry their own
+`wormhole.beam.admin.teleport` instead.
+
+That looks like the gate being skipped. It is not -- both check the teleport node themselves,
+and answering them early is how console gets to use `send` at all when everything below is
+player-only. But nothing anywhere said so, and the whole of `admin` was uncovered.
+
+It is a shape a tidying refactor gets wrong in either direction. Hoisting the `admin` check up
+for consistency takes `send` away from console. Dropping the per-method checks hands every
+player on the server the ability to teleport anybody anywhere.
+
+So both nodes are now pinned independently, in both directions: `wormhole.beam.admin` does not
+let you beam anywhere, and `wormhole.beam.admin.teleport` does not let you curate the
+destination list. Somebody trusted to name places is not thereby trusted to put people in them.
+
+Two smaller things fell out of the same pass. Console asking for `goto` is refused for having
+nowhere to beam from rather than for want of permission -- told the wrong reason, an operator
+goes and grants a node that would never have helped. And removing a destination that was never
+there writes no file, which it would otherwise do for every mistyped name.
+
+`BeamCommandTest`'s class comment said this codebase had no precedent for mocking Bukkit's
+static accessors. It has had one since `OwnerCommandTest`, and now several; the comment said
+otherwise while sitting directly above the tests it was discouraging.
+
 ### A packaging file that looked authoritative and did nothing
 
 `src/main/assembly/package.xml` was a complete, valid maven-assembly descriptor: a zip with the

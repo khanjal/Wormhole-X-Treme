@@ -10,9 +10,11 @@ import org.junit.jupiter.api.Test;
  * The parts of {@code beam admin goto}/{@code send}'s argument handling that need no live
  * server to get right: reading a coordinate, and describing what was resolved. The branches
  * that call {@code Bukkit.getPlayerExact}/{@code getWorld} -- {@link BeamCommand#resolveDestination}'s
- * "one token" and "three or four tokens" cases -- stay covered by manual testing only, the
- * same as the rest of this class always has been; this codebase has no precedent for mocking
- * Bukkit's static accessors.
+ * "one token" and "three or four tokens" cases -- stay covered by manual testing only.
+ *
+ * <p>That was once because this codebase had no precedent for mocking Bukkit's static
+ * accessors. It has since: see {@code OwnerCommandTest}. Who may run these commands at all is
+ * covered by {@link BeamAdminPermissionsTest}.
  */
 class BeamCommandTest
 {
