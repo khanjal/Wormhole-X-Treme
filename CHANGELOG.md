@@ -4,6 +4,90 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The animations were described but never shown
+
+`RINGS.md` spends most of a section explaining that four rings travel a block apart and settle
+half a block apart, and why four rather than the show's five. `BEAMS.md` describes an envelope
+that gathers before it opens. `GATES.md` describes chevrons lighting in sequence. All of it is
+prose about motion, which is the one thing prose is worst at.
+
+`docs/CAPTURES.md` is how to record the loops that would fix that. The useful part is that none
+of the clip lengths are guesses -- every animation in the plugin is driven by a tick constant, so
+the right length is arithmetic. A whole beam cycle is `beam-envelop-ticks` 12 plus rise 18 plus
+descend 20 plus fade 8, which is 58 ticks, so the entire thing fits one 2.9-second loop with
+nothing cut. A ring cycle is about nine and a half seconds and mostly a countdown where nothing
+moves, so the shot list splits it in two and says to trim the countdown.
+
+Two decisions in there are about weight rather than taste. The whole repository is 5.6 MiB
+packed, so one careless five-megabyte GIF would roughly double it forever; the budget is 800 KB
+a clip, and anything bigger belongs on a release rather than in git. And APNG is preferred over
+GIF, because the event horizon's gradient posterises badly in 256 colours and APNG is often the
+smaller file anyway.
+
+The slots are open now rather than waiting on the captures. `USER_GUIDE.md`, `GATES.md`,
+`RINGS.md` and `BEAMS.md` each carry `docs/images/capture-*.svg` slates -- plain dark tiles
+naming the shot, its length and the filename that should replace it.
+
+They are deliberately ugly. The obvious shortcut was to drop the new logo into those slots, and
+it was rejected: a placeholder that looks finished gets taken for the real thing, which is
+precisely what went wrong with `gate-placeholder.svg`. A slate that says PLACEHOLDER -- NOT A
+CAPTURE across the top cannot make that mistake, and it carries the shot list where the shot is
+needed.
+
+### The project had no logo, only two placeholder files
+
+`docs/images/` held a `gate-placeholder.png` that was a single transparent pixel and a
+`gate-placeholder.svg` that drew a grey circle with the words "Gate Placeholder" in it. Neither
+was ever a logo -- they are the screenshot slot `docs/USER_GUIDE.md` still points at, waiting
+on real in-game captures -- but they were the only images in the repository, so the README led
+with a bare `# Wormhole X-Treme` and eight badges.
+
+`docs/images/logo.svg` is a mark drawn from the three things the plugin actually does. The
+chevron ring is a gate: nine chevrons on a metal band, glyph ticks, event horizon inside. The
+column of light falling through the horizon is a beam. The three amber ellipses rising inside
+the column are transport rings, shrinking as they climb, which is the envelope motion
+`docs/BEAMS.md` describes.
+
+There is no mirror in it, because there is no mirror in the plugin yet. A quantum mirror -- a
+clickable banner that sends somebody straight to its pair -- is issue #22 and not built. The
+brief flags it anyway, since a fourth travel method is the one change that could break the
+composition: three ideas already crowd one small circle, and a fourth would force the choice
+between displacing one and admitting the mark should stop trying to inventory every feature.
+
+`docs/images/logo-banner.svg` is the same mark with the wordmark and a one-line description,
+and it now heads the README in place of the `# Wormhole X-Treme` line. Nothing linked to that
+heading anchor.
+
+Both are hand-written SVG. The mark carries its own dark disc rather than a transparent
+background, so it reads on GitHub in either theme without a second file, and it holds together
+down to about 32px; at 16px it is a blue dot with a gold fringe, which is fine for a favicon
+and not much else. No PNG exports -- there is no rasteriser on the machine this was drawn on,
+and GitHub renders SVG in Markdown directly. A listing that needs PNG will need one generated.
+
+None of it is meant to be final. It is a reference drawing to hand a real graphic artist, so
+`docs/LOGO.md` is the brief that goes with it: which element stands for which subsystem and why
+that mapping is the part worth keeping, the geometry and palette as currently drawn, and --
+more usefully -- the list of decisions that were made only to get something on the page. The
+chevron count, whether the beam and the rings both belong in one small circle, and the wordmark
+being set in a system font stack rather than a real typeface are all on that list.
+
+Two constraints on it are not open. The mark has to survive 32px, because the README badge row
+and a store listing icon are both small; and it must not reproduce the actual Stargate prop,
+whose ring, chevron design and 39 glyphs belong to somebody else. The tick marks are abstract
+on purpose.
+
+`docs/images/logo-anatomy.svg` is the same mark built up in four tiles, one layer at a time,
+with the palette underneath -- easier to hand somebody than a paragraph describing it.
+
+The rings in the first drawing were wrong, and wrong in a way the brief was supposed to catch.
+Three of them, amber, shrinking as they climbed. The plugin draws four, identical, a block apart,
+in grey stone: `RingAnimator.RING_COUNT` is 4 and its own comment explains why four rather than
+the show's five, the stack is one seven-block diameter throughout so nothing tapers, and
+`RING_DEFAULT_MATERIAL` is `SMOOTH_STONE_SLAB`.
+
+Amber on cyan read better at small sizes than grey does, so the corrected mark is slightly weaker
+as a drawing. It is drawing the actual plugin, which for a reference a designer will work from
+matters more.
 ### The log said "null" where it should have said what went wrong
 
 Every catch site in the plugin reported itself the same way:

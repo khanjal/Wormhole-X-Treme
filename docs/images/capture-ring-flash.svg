@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="Placeholder for capture: Flash, hold and retract">
+  <title>Placeholder: Flash, hold and retract</title>
+  <defs>
+    <pattern id="hatch" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#1b2735" stroke-width="6"/>
+    </pattern>
+  </defs>
+  <rect width="640" height="360" fill="#0d1420"/>
+  <rect width="640" height="360" fill="url(#hatch)" opacity="0.5"/>
+  <rect x="10" y="10" width="620" height="340" fill="#0d1420" fill-opacity="0.92" stroke="#3a4a5e" stroke-width="2" stroke-dasharray="10 7" rx="6"/>
+  <g stroke="#4d5f75" stroke-width="3" fill="none">
+    <path d="M26 48 L26 26 M26 26 L48 26"/>
+    <path d="M614 48 L614 26 M614 26 L592 26"/>
+    <path d="M26 312 L26 334 M26 334 L48 334"/>
+    <path d="M614 312 L614 334 M614 334 L592 334"/>
+  </g>
+  <g font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif">
+    <text x="44" y="62" font-size="13" font-weight="700" letter-spacing="2.5" fill="#e0803a">PLACEHOLDER -- NOT A CAPTURE</text>
+    <text x="44" y="112" font-size="30" font-weight="700" fill="#eef3f9">Flash, hold and retract</text>
+    <text x="44" y="144" font-size="14" font-weight="700" letter-spacing="1.5" fill="#5fc0e0">LOOP &#183; 3.5s</text>
+    <text x="44" y="186" font-size="14.5" fill="#9aa7b6">The transport flash runs down the stack, the stack</text>
+    <text x="44" y="209" font-size="14.5" fill="#9aa7b6">holds, then sinks back into the pad.</text>
+    <text x="44" y="232" font-size="14.5" fill="#9aa7b6">Flash 3 ticks a ring x 4, hold 20, linger 20.</text>
+    <text x="44" y="322" font-size="13" font-family="Consolas, monospace" fill="#6f7d8d">replace with docs/images/ring-flash.png</text>
+  </g>
+</svg>

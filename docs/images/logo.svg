@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Wormhole X-Treme">
+  <title>Wormhole X-Treme</title>
+  <defs>
+    <radialGradient id="space" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#141d2b"/>
+      <stop offset="100%" stop-color="#070b12"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0.15" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#b6c1cd"/>
+      <stop offset="30%" stop-color="#7d8895"/>
+      <stop offset="55%" stop-color="#4a545f"/>
+      <stop offset="80%" stop-color="#68737f"/>
+      <stop offset="100%" stop-color="#9aa5b1"/>
+    </linearGradient>
+    <linearGradient id="chevron" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffdf9c"/>
+      <stop offset="55%" stop-color="#f3a52c"/>
+      <stop offset="100%" stop-color="#c9741a"/>
+    </linearGradient>
+    <radialGradient id="horizon" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#a9f4ff"/>
+      <stop offset="40%" stop-color="#37b0d8"/>
+      <stop offset="100%" stop-color="#0a4a70"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#e2faff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#9ee8ff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="inside">
+      <circle cx="256" cy="256" r="164"/>
+    </clipPath>
+  </defs>
+
+  <!-- backdrop -->
+  <circle cx="256" cy="256" r="240" fill="url(#space)"/>
+  <circle cx="256" cy="256" r="239" fill="none" stroke="#2b3746" stroke-width="2"/>
+
+  <!-- event horizon -->
+  <g clip-path="url(#inside)">
+    <circle cx="256" cy="256" r="164" fill="url(#horizon)"/>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="3">
+      <circle cx="256" cy="256" r="44"/>
+      <circle cx="256" cy="256" r="82"/>
+      <circle cx="256" cy="256" r="120"/>
+      <circle cx="256" cy="256" r="156"/>
+    </g>
+
+    <!-- transport beam -->
+    <path d="M234 92 L278 92 L296 400 L216 400 Z" fill="url(#beam)"/>
+
+    <!-- transport rings: four, same size, one block apart -->
+    <g fill="none" stroke-linecap="round">
+      <g stroke="#6f7982" stroke-opacity="0.6" stroke-width="12">
+        <ellipse cx="256" cy="232" rx="58" ry="15"/>
+        <ellipse cx="256" cy="276" rx="58" ry="15"/>
+        <ellipse cx="256" cy="320" rx="58" ry="15"/>
+        <ellipse cx="256" cy="364" rx="58" ry="15"/>
+      </g>
+      <g stroke="#dde3ea" stroke-width="11" transform="translate(0,-4)">
+        <ellipse cx="256" cy="232" rx="58" ry="15"/>
+        <ellipse cx="256" cy="276" rx="58" ry="15"/>
+        <ellipse cx="256" cy="320" rx="58" ry="15"/>
+        <ellipse cx="256" cy="364" rx="58" ry="15"/>
+      </g>
+    </g>
+  </g>
+  <circle cx="256" cy="256" r="164" fill="none" stroke="#c9f6ff" stroke-opacity="0.45" stroke-width="4"/>
+
+  <!-- gate ring -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="url(#metal)" stroke-width="52"/>
+  <circle cx="256" cy="256" r="205" fill="none" stroke="#151c25" stroke-opacity="0.7"
+          stroke-width="10" stroke-dasharray="5 30.78"/>
+  <circle cx="256" cy="256" r="216" fill="none" stroke="#0b1017" stroke-opacity="0.6" stroke-width="3"/>
+  <circle cx="256" cy="256" r="164" fill="none" stroke="#0b1017" stroke-opacity="0.6" stroke-width="3"/>
+
+  <!-- chevrons -->
+  <g fill="url(#chevron)" stroke="#4a3413" stroke-width="1.5" stroke-linejoin="round">
+    <path id="chev" d="M256 100 L222 73 L232 37 L256 62 L280 37 L290 73 Z"/>
+    <use href="#chev" transform="rotate(40 256 256)"/>
+    <use href="#chev" transform="rotate(80 256 256)"/>
+    <use href="#chev" transform="rotate(120 256 256)"/>
+    <use href="#chev" transform="rotate(160 256 256)"/>
+    <use href="#chev" transform="rotate(200 256 256)"/>
+    <use href="#chev" transform="rotate(240 256 256)"/>
+    <use href="#chev" transform="rotate(280 256 256)"/>
+    <use href="#chev" transform="rotate(320 256 256)"/>
+  </g>
+</svg>

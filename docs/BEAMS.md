@@ -113,6 +113,8 @@ side effect of somebody typing a name.
 
 ## The sequence
 
+![A whole beam cycle](images/capture-beam-cycle.svg)
+
 Four phases, matched beat for beat against the reference footage: a glow gathers and appears
 to absorb the traveller; they and the light leave in a column; the column arrives at the far
 end and deposits them; it fades.

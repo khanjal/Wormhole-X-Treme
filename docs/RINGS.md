@@ -626,6 +626,8 @@ nobody can stand on a rising ring or be shoved by one.
 
 ## Animation
 
+![Ring countdown and deploy](images/capture-ring-deploy.svg)
+
 Four rings end up **half a block of clear air apart** — one block centre to centre, since a
 slab is half a block thick — with the lowest hanging half a block clear of the floor. They
 settle at 0.5, 1.5, 2.5 and 3.5 blocks up, so the whole thing needs four blocks of headroom.
@@ -693,6 +695,8 @@ a block someone changed underneath it.
 Ceiling rings run the same sequence with the travel direction inverted.
 
 ## The transport flash
+
+![Flash, hold and retract](images/capture-ring-flash.svg)
 
 With the stack up and still, the light runs through it one ring at a time — **twice, once each
 side of the transport.** Then the rings stand a beat and come home. `rings.flash-ticks` is how

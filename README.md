@@ -1,4 +1,6 @@
-# Wormhole X-Treme
+<p align="center">
+  <img src="docs/images/logo-banner.svg" alt="Wormhole X-Treme" width="620">
+</p>
 
 [![CI](https://img.shields.io/github/actions/workflow/status/khanjal/Wormhole-X-Treme/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/khanjal/Wormhole-X-Treme/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fsonarcloud.io%2Fapi%2Fmeasures%2Fcomponent%3Fcomponent%3Dkhanjal_Wormhole-X-Treme%26metricKeys%3Dtests&query=%24.component.measures%5B0%5D.value&suffix=%20passing&label=tests&color=success&logo=junit5&logoColor=white)](https://github.com/khanjal/Wormhole-X-Treme/actions/workflows/ci.yml)
@@ -42,7 +44,7 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 **How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md) · [docs/BEAMS.md](docs/BEAMS.md)
 
-**Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing)
+**Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing) · [Logo](docs/LOGO.md) · [Captures](docs/CAPTURES.md)
 
 ## Server Compatibility
 
