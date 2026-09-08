@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The licence badge said GPL-3.0 on its own authority
+
+The README's licence badge was `img.shields.io/badge/license-GPL--3.0-blue` -- a static image with
+the answer typed into the URL. It was written that way for a reason: GitHub could not detect the
+licence while the full text was filed as `gpl.txt`, so there was nothing to read it from.
+
+Renaming that file to `LICENSE` fixed the detection, and the API now returns `GPL-3.0` where it
+used to return `NOASSERTION`. The badge reads it now, through
+`img.shields.io/github/license/khanjal/Wormhole-X-Treme`, so it reports what the repository
+actually says rather than what somebody typed once.
+
+`?color=blue` is pinned because the dynamic badge defaults to orange, and the badge row was blue.
+
 ### The logo is GPL-3.0 by accident
 
 Everything in the repository inherits GPL-3.0 unless it says otherwise, so the mark added a few
