@@ -48,9 +48,11 @@ column of light falling through the horizon is a beam. The three amber ellipses 
 the column are transport rings, shrinking as they climb, which is the envelope motion
 `docs/BEAMS.md` describes.
 
-There is no mirror in it, despite the name of the subsystem set sounding like there should be
--- `mirror` appears in the design documents only as ordinary prose about one thing mirroring
-another.
+There is no mirror in it, because there is no mirror in the plugin yet. A quantum mirror -- a
+clickable banner that sends somebody straight to its pair -- is issue #22 and not built. The
+brief flags it anyway, since a fourth travel method is the one change that could break the
+composition: three ideas already crowd one small circle, and a fourth would force the choice
+between displacing one and admitting the mark should stop trying to inventory every feature.
 
 `docs/images/logo-banner.svg` is the same mark with the wordmark and a one-line description,
 and it now heads the README in place of the `# Wormhole X-Treme` line. Nothing linked to that

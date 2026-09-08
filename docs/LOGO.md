@@ -19,9 +19,22 @@ is the part worth keeping.
 | Column of light | **Beams** | `/wormhole beam` sends a player up a column of light. See [BEAMS.md](BEAMS.md). |
 | Stack of four rings | **Rings** | Transport rings rise around a traveller and settle as a stack. Four of them, identical, a block apart, in stone grey -- which is what the plugin actually draws. See [RINGS.md](RINGS.md). |
 
-There is no mirror, no portal-pair, no hourglass. Earlier discussion floated "mirrors" as a
-fourth subsystem; it is not one. `mirror` appears in the design documents only as ordinary prose
-about one thing mirroring another.
+### The fourth one, which does not exist yet
+
+There is no mirror in the mark, because there is no mirror in the plugin. But a **quantum
+mirror** is a planned fourth way to travel -- [issue #22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
+-- a clickable banner that sends somebody straight to its pair, with no dial, no command and no
+structure to walk into.
+
+That is worth knowing before redrawing anything, because it is the one change that could break
+the composition. Three ideas already crowd one small circle. A fourth would have to either
+displace one of them, or force the admission that the mark cannot carry a complete inventory of
+features and should stop trying -- which is very likely the right answer, and is a decision better
+made deliberately than discovered later.
+
+The issue also notes that a mirror has to be *recognisable on sight*, the way a ring and chevrons
+read as "stargate". Whatever visual language it ends up with is worth designing alongside the
+logo rather than after it.
 
 ## The parts, as currently drawn
 
