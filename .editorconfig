@@ -1,0 +1,41 @@
+# The conventions in docs/DEVELOPMENT.md, in the form an editor can apply.
+#
+# Brace placement is deliberately not here: EditorConfig cannot express Allman, and the one
+# place the tree drifted from it -- the vehicle listener's single-line try/catch blocks -- was
+# a copy-and-reformat artefact rather than something an editor default would have prevented.
+# That rule stays documented and reviewed. What follows is what a machine can actually hold.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.java]
+indent_style = space
+indent_size = 4
+# A target for new code, not a description of the tree: 324 existing lines are longer, most of
+# them DefaultSettings' setting descriptions and a few log lines. Editors use this for a ruler
+# rather than to reformat on save, so it guides what gets written next without churning what
+# is already here. Wrapping those 324 is its own change, and worth doing per file rather than
+# in one sweep.
+max_line_length = 120
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.{xml,shape}]
+indent_style = space
+indent_size = 4
+
+[*.md]
+indent_style = space
+indent_size = 2
+# Two trailing spaces are a hard line break in Markdown.
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

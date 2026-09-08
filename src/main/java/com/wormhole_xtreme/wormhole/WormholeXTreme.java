@@ -1,5 +1,4 @@
 package com.wormhole_xtreme.wormhole;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -154,12 +153,12 @@ public class WormholeXTreme extends JavaPlugin
             }
             catch (final NoClassDefFoundError notOnThisServer)
             {
-                continue;
+                // Not on this server's Bukkit; the loop moves to the next candidate by itself.
             }
             catch (final ReflectiveOperationException | RuntimeException e)
             {
                 plugin.prettyLog(Level.FINE,
-                    "Could not register " + candidate + ": " + e.getMessage());
+                    "Could not register " + candidate, e);
             }
         }
         plugin.prettyLog(Level.WARNING,
@@ -244,48 +243,75 @@ public class WormholeXTreme extends JavaPlugin
                         + (gates.size() == 1 ? "" : "s") + " to disk.");
                 }
 
-                // Any cycle still mid-animation is put back before its blocks are saved as
-                // part of the world, otherwise a server stopped at the wrong moment keeps
-                // the rings standing in the floor for good.
-                try
-                {
-                    com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
-                    for (final String world : ringWorlds())
-                    {
-                        com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
-                    }
-                }
-                catch (final Exception e)
-                {
-                    prettyLog(Level.WARNING, "Failed to save transport rings: " + e.getMessage());
-                }
-
-                try
-                {
-                    com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
-                }
-                catch (final Exception e)
-                {
-                    prettyLog(Level.WARNING, "Failed to save beam destinations: " + e.getMessage());
-                }
-
+                saveRings();
+                saveBeams();
                 StargateDBManager.shutdown();
-                try
-                {
-                    EconomySupport.disableEconomy();
-                }
-                catch (final Exception | LinkageError t)
-                {
-                    // EconomySupport class may be absent in some deployments; do not let that
-                    // prevent the plugin from completing shutdown.
-                    prettyLog(Level.FINE, "Economy support unavailable during shutdown: " + t.getMessage());
-                }
+                disableEconomyQuietly();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
             catch (final Exception e)
             {
-                    prettyLog(Level.SEVERE, "Caught exception while shutting down: " + e.getMessage());
+                    prettyLog(Level.SEVERE, "Caught exception while shutting down", e);
             }
+    }
+
+    /**
+     * Puts the rings back and writes them out.
+     *
+     * <p>Its own method rather than a try inside onDisable's try, and it swallows its own
+     * failure: a cycle still mid-animation is put back before its blocks are saved as part of
+     * the world, otherwise a server stopped at the wrong moment keeps the rings standing in
+     * the floor for good -- but failing to do that must not stop the beams and the database
+     * being saved after it.
+     */
+    private void saveRings()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.ring.RingTransit.clear();
+            for (final String world : ringWorlds())
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
+            }
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to save transport rings", e);
+        }
+    }
+
+    /**
+     * Writes the beam destinations out, and keeps shutting down if it cannot.
+     */
+    private void saveBeams()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to save beam destinations", e);
+        }
+    }
+
+    /**
+     * Lets go of the economy plugin, on the servers that have one.
+     *
+     * <p>The catch reaches past Exception on purpose: EconomySupport may be absent entirely,
+     * which arrives as a LinkageError rather than an exception, and that must not stop the
+     * plugin completing its shutdown.
+     */
+    private void disableEconomyQuietly()
+    {
+        try
+        {
+            EconomySupport.disableEconomy();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.FINE, "Economy support unavailable during shutdown", t);
+        }
     }
 
     /**
@@ -307,6 +333,29 @@ public class WormholeXTreme extends JavaPlugin
         return worlds;
     }
 
+    /**
+     * Attaches to the economy plugin, if this server is configured to charge for gates.
+     *
+     * <p>Its own method rather than a try inside onEnable's try, and the catch reaches past
+     * Exception for the same reason the shutdown one does: EconomySupport may not be there at
+     * all. A server that cannot charge still gets its gates.
+     */
+    private void enableEconomyIfConfigured()
+    {
+        if (!ConfigManager.isEconomyEnabled())
+        {
+            return;
+        }
+        try
+        {
+            EconomySupport.enableEconomy();
+        }
+        catch (final Exception | LinkageError t)
+        {
+            prettyLog(Level.WARNING, "Failed to enable economy support", t);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
@@ -319,18 +368,11 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             PermissionsSupport.enablePermissions();
-            if (ConfigManager.isEconomyEnabled())
-            {
-                try {
-                    EconomySupport.enableEconomy();
-                } catch (final Exception | LinkageError t) {
-                    prettyLog(Level.WARNING, "Failed to enable economy support: " + t.getMessage());
-                }
-            }
+            enableEconomyIfConfigured();
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins." + e.getMessage());
+            prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
         registerEvents(true);
         // Load stargates.
@@ -341,7 +383,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to load stored gates: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load stored gates", e);
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         // Rings load after gates so that a ring overlapping gate blocks is refused against
@@ -357,7 +399,7 @@ public class WormholeXTreme extends JavaPlugin
         // A ring subsystem that cannot load must not stop the gates from working.
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to load transport rings: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load transport rings", e);
         }
         // A beam subsystem that cannot load must not stop gates or rings from working.
         try
@@ -368,7 +410,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to load beam destinations: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load beam destinations", e);
         }
         registerEvents(false);
         registerCommands();
@@ -425,8 +467,8 @@ public class WormholeXTreme extends JavaPlugin
      */
     public boolean isLoggable(final Level severity)
     {
-        final Logger log = getLog();
-        return log != null && log.isLoggable(severity);
+        final Logger logger = getLog();
+        return (logger != null) && logger.isLoggable(severity);
     }
 
     /**
@@ -450,8 +492,8 @@ public class WormholeXTreme extends JavaPlugin
             final String host = getServer().getName();
             getLog().info("");
             getLog().info("  ▄▀▀▄");
-            getLog().info(" ▐ ░░ ▌   Wormhole X-Treme v" + version);
-            getLog().info("  ▀▄▄▀    Running on " + host);
+            getLog().info(() -> " ▐ ░░ ▌   Wormhole X-Treme v" + version);
+            getLog().info(() -> "  ▀▄▄▀    Running on " + host);
             getLog().info("");
         }
         // Decoration only: a console that will not take it must not stop the plugin.
@@ -496,7 +538,35 @@ public class WormholeXTreme extends JavaPlugin
         // The version is looked up only in the branch that wants it. It used to be read on
         // every line logged and discarded on almost all of them.
         final String pluginVersion = version ? getThisPlugin().getDescription().getVersion() : null;
-        getLog().log(severity, prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+        // A supplier, so the tag is not built and joined for a line the level will discard.
+        // Every FINE call on a server logging at INFO pays for that otherwise, and this
+        // method is how the whole plugin logs.
+        getLog().log(severity, () -> prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+    }
+
+    /**
+     * Logs a line tagged with the plugin name, and what went wrong underneath it.
+     *
+     * <p>The form to use in a {@code catch}. Every site in this plugin used to append
+     * {@code e.getMessage()} to the message instead, which for a {@code NullPointerException}
+     * -- the one you most want to see -- is the literal word {@code null}, and for an
+     * {@code IOException} is a bare filename with nothing saying what was being done to it.
+     * The stack trace, which says where, was thrown away every time.
+     *
+     * <p>The message is still built lazily, so a {@code FINE} line on a server logging at
+     * {@code INFO} costs nothing but the call.
+     *
+     * @param severity
+     *            the level to log at
+     * @param message
+     *            the line to log, without the plugin tag and without the exception
+     * @param thrown
+     *            what went wrong; may be null, which logs the line on its own
+     */
+    public void prettyLog(final Level severity, final String message, final Throwable thrown)
+    {
+        getLog().log(severity, thrown,
+            () -> prettyTag(getThisPlugin().getName(), null) + " " + message);
     }
 
     /**

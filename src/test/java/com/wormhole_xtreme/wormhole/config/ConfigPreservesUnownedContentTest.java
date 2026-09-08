@@ -31,7 +31,7 @@ class ConfigPreservesUnownedContentTest
 {
     private static Map<String, String> values(final String... pairs)
     {
-        final Map<String, String> m = new LinkedHashMap<String, String>();
+        final Map<String, String> m = new LinkedHashMap<>();
         for (int i = 0; i < pairs.length; i += 2)
         {
             m.put(pairs[i], pairs[i + 1]);
@@ -42,7 +42,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void asettingTheFileCarriesIsUpdatedInPlace()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(
             Arrays.asList("shutdown-timeout: 30"), values("shutdown-timeout", "45"), updated);
 
@@ -59,7 +59,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void anestedMaterialGroupBlockIsLeftExactlyAsItWas()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
             "gate-material-groups:",
             "  Standard:",
@@ -84,7 +84,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void anIndentedKeyIsNotTreatedAsASettingOfTheSameName()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
             "gate-material-groups:",
             "  Atlantis:",
@@ -98,7 +98,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void commentsAndBlankLinesAreKept()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
             "# an admin wrote this and would like to keep it",
             "",
@@ -112,7 +112,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void acommentedOutSettingIsNotRevived()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(
             Arrays.asList("#shutdown-timeout: 30"), values("shutdown-timeout", "45"), updated);
 
@@ -130,7 +130,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void akeyThePluginDoesNotOwnIsUntouched()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(Arrays.asList(
             "permissions-support-disable: true",
             "shutdown-timeout: 30"), values("shutdown-timeout", "45"), updated);
@@ -143,9 +143,9 @@ class ConfigPreservesUnownedContentTest
     @Test
     void asettingAbsentFromTheFileIsNotReportedAsUpdated()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         ConfigurationYAML.updateSettingLines(
-            new ArrayList<String>(), values("sign-glowing-text", "false"), updated);
+            new ArrayList<>(), values("sign-glowing-text", "false"), updated);
 
         assertTrue(updated.isEmpty(), "an absent key must be left for the caller to append");
     }
@@ -153,7 +153,7 @@ class ConfigPreservesUnownedContentTest
     @Test
     void avalueContainingDotsIsReplacedWhole()
     {
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(
             Arrays.asList("gate-sound-dial: block.note_block.pling"),
             values("gate-sound-dial", "entity.enderman.teleport"), updated);
@@ -178,13 +178,13 @@ class ConfigPreservesUnownedContentTest
             "the shipped config must define material groups, or this proves nothing");
 
         // Every flat setting the plugin owns, as a shutdown would write them.
-        final Map<String, String> owned = new LinkedHashMap<String, String>();
+        final Map<String, String> owned = new LinkedHashMap<>();
         for (final ConfigManager.ConfigKeys key : ConfigManager.ConfigKeys.values())
         {
             owned.put(ConfigurationYAML.kebabKeyName(key.name()), "written-by-save");
         }
 
-        final Set<String> updated = new HashSet<String>();
+        final Set<String> updated = new HashSet<>();
         final List<String> after = ConfigurationYAML.updateSettingLines(before, owned, updated);
 
         assertTrue(after.contains("gate-material-groups:"),

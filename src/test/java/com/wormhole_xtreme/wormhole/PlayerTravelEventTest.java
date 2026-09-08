@@ -46,7 +46,7 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 class PlayerTravelEventTest
 {
-    private final List<Event> raised = new ArrayList<Event>();
+    private final List<Event> raised = new ArrayList<>();
     private World world;
     private Player player;
     private Stargate origin;
@@ -302,7 +302,7 @@ class PlayerTravelEventTest
             throw new IllegalStateException("listener blew up");
         });
 
-        assertDoesNotThrow(() -> walkIn());
+        assertDoesNotThrow(this::walkIn);
         verify(player).teleport(any(Location.class));
     }
 
@@ -375,6 +375,38 @@ class PlayerTravelEventTest
         verify(player).teleport(origin.getGatePlayerTeleportLocation());
         verify(player, never()).teleport(destination.getGatePlayerTeleportLocation());
     }
+
+    /**
+     * A player a vehicle has just carried through does not also travel on their own.
+     *
+     * <p>The vehicle listener teleports the cart and its rider together, and the rider is
+     * ejected at the far end -- which raises a move event inside the arrival gate. Without
+     * this suppression the player would be sent again as a solo traveller, arriving without
+     * the vehicle they were riding.
+     */
+    @Test
+    void aRiderJustCarriedThroughDoesNotAlsoTravelAlone() throws Exception
+    {
+        // Set directly rather than through markPlayerRecentlyTeleportedByVehicle, which
+        // schedules its own expiry ten ticks out and so needs a live scheduler.
+        final java.lang.reflect.Field f =
+            WormholeXTremeVehicleListener.class.getDeclaredField("recentlyTeleportedPlayersByVehicle");
+        f.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        final java.util.Set<java.util.UUID> marked = (java.util.Set<java.util.UUID>) f.get(null);
+        marked.add(player.getUniqueId());
+        try
+        {
+            walkIn();
+
+            verify(player, never()).teleport(any(Location.class));
+        }
+        finally
+        {
+            marked.remove(player.getUniqueId());
+        }
+    }
+
 
     /** A traveller who cannot pay is turned away rather than moved and billed. */
     @Test

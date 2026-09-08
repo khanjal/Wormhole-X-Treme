@@ -1,8 +1,11 @@
 package com.wormhole_xtreme.wormhole.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
@@ -53,10 +56,80 @@ class LegacyImportTest
     {
         final LegacyDatabaseImporter.Result result = LegacyDatabaseImporter.importGates();
         assertNotNull(result.getProblem(), "it should explain, not pretend it worked");
-        assertTrue(result.getImported() == 0);
-        assertTrue(result.getMovedExits() == 0,
+        assertEquals(0, result.getImported(), "nothing was there to import");
+        assertEquals(0, result.getMovedExits(),
             "nothing was imported, so nothing should have had its exit point moved either");
     }
+
+    /** A result set that answers only what it is told about. */
+    private static java.sql.ResultSet row(final byte[] gateData, final String worldName)
+        throws java.sql.SQLException
+    {
+        final java.sql.ResultSet rows = mock(java.sql.ResultSet.class);
+        when(rows.getBytes("GateData")).thenReturn(gateData);
+        when(rows.getString("WorldName")).thenReturn(worldName);
+        return rows;
+    }
+
+    /**
+     * A row with no name is skipped, and says so.
+     *
+     * <p>Every refusal below returns the reason rather than throwing, because one unreadable
+     * row must not abandon the rest of somebody's database -- and the reason is what they get
+     * told about that gate afterwards.
+     */
+    @Test
+    void aRowWithNoGateNameIsSkipped() throws Exception
+    {
+        assertEquals("no name",
+            LegacyDatabaseImporter.importOne(row(new byte[] { 9 }, "world"), null, new int[1]));
+        assertEquals("no name",
+            LegacyDatabaseImporter.importOne(row(new byte[] { 9 }, "world"), "", new int[1]));
+    }
+
+    /** A gate already on this server is left alone rather than imported over. */
+    @Test
+    void aGateThatIsAlreadyHereIsSkipped() throws Exception
+    {
+        final Stargate existing = new Stargate();
+        existing.setGateName("alpha");
+        StargateManager.registerStargate(existing);
+        try
+        {
+            assertEquals("a gate of that name is already here",
+                LegacyDatabaseImporter.importOne(row(new byte[] { 9 }, "world"), "alpha", new int[1]));
+        }
+        finally
+        {
+            StargateManager.removeStargate(existing);
+        }
+    }
+
+    /**
+     * A row whose blob is missing or empty is skipped.
+     *
+     * <p>Empty as well as null: a zero-length blob parses to nothing, and importing it would
+     * register a gate with no blocks that looks present and does nothing.
+     */
+    @Test
+    void aRowWithNoGateDataIsSkipped() throws Exception
+    {
+        assertEquals("no gate data",
+            LegacyDatabaseImporter.importOne(row(null, "world"), "alpha", new int[1]));
+        assertEquals("no gate data",
+            LegacyDatabaseImporter.importOne(row(new byte[0], "world"), "alpha", new int[1]));
+    }
+
+    /** And one that never recorded which world it was in. */
+    @Test
+    void aRowWithNoWorldRecordedIsSkipped() throws Exception
+    {
+        assertEquals("no world recorded",
+            LegacyDatabaseImporter.importOne(row(new byte[] { 9 }, null), "alpha", new int[1]));
+        assertEquals("no world recorded",
+            LegacyDatabaseImporter.importOne(row(new byte[] { 9 }, ""), "alpha", new int[1]));
+    }
+
 
     @Test
     void anImportedGateGetsTheSamePortalSafetyCheckAsAnyOtherGate()

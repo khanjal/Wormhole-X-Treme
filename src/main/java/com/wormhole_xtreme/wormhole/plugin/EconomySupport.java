@@ -52,7 +52,7 @@ public final class EconomySupport
         catch (final Exception | LinkageError t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to attach to Vault economy: " + t.getMessage());
+                "Failed to attach to Vault economy", t);
         }
     }
 
@@ -107,7 +107,7 @@ public final class EconomySupport
         catch (final Exception | LinkageError t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Economy charge failed for " + player.getName() + ": " + t.getMessage());
+                "Economy charge failed for " + player.getName(), t);
             return false;
         }
     }

@@ -15,6 +15,25 @@ import org.junit.jupiter.api.Test;
  */
 class GateMaxOpenTimeTest
 {
+    /**
+     * Moves a gate's recorded opening time into the past.
+     *
+     * <p>These used to be {@code Thread.sleep} calls, which made the suite wait 1.125 seconds
+     * to observe a clock it could simply be told about. The five-millisecond one was worse
+     * than slow: on a coarse clock the two readings could land in the same millisecond, and
+     * the test would pass without ever having proved the value did not move.
+     *
+     * @param gate
+     *            the gate to age
+     * @param millis
+     *            how far back to push its opening time
+     */
+    private static void openedMillisAgo(final Stargate gate, final long millis) throws Exception
+    {
+        final java.lang.reflect.Field f = Stargate.class.getDeclaredField("gateOpenedAtMillis");
+        f.setAccessible(true);
+        f.setLong(gate, System.currentTimeMillis() - millis);
+    }
     @Test
     void aClosedGateHasNoOpenTime()
     {
@@ -39,9 +58,9 @@ class GateMaxOpenTimeTest
         // hold it open forever.
         final Stargate gate = new Stargate();
         gate.markGateOpened();
+        openedMillisAgo(gate, 5000);
         final long first = gate.getGateOpenedAtMillis();
 
-        Thread.sleep(5);
         gate.markGateOpened();
 
         assertEquals(first, gate.getGateOpenedAtMillis(), "re-dialling must not extend the ceiling");
@@ -95,7 +114,7 @@ class GateMaxOpenTimeTest
         gate.markGateOpened();
 
         final long atOpen = gate.remainingOpenMillis(300);
-        Thread.sleep(20);
+        openedMillisAgo(gate, 20);
         final long later = gate.remainingOpenMillis(300);
 
         assertTrue(later < atOpen, "the allowance should shrink while the gate is open");
@@ -108,7 +127,7 @@ class GateMaxOpenTimeTest
         // rather than having its shutdown timer extended again.
         final Stargate gate = new Stargate();
         gate.markGateOpened();
-        Thread.sleep(1100);
+        openedMillisAgo(gate, 1100);
 
         assertTrue(gate.remainingOpenMillis(1) <= 0L,
             "a one second ceiling should be spent after waiting longer than that");

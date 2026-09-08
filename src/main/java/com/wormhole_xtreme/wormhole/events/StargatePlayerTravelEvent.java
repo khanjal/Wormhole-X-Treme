@@ -26,7 +26,16 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
  * <p>A cancelled traveller is held rather than moved. If they were walking in they are kept
  * out; if they were already standing in the portal they are left free to walk away, because
  * refusing every move of someone already inside would trap them there.
+ *
+ * <p>The two handler-list accessors below are necessarily identical, which is why this class
+ * carries {@code @SuppressWarnings("java:S4144")}. Bukkit requires both: {@code Event}
+ * declares {@code getHandlers()} abstract, and {@code SimplePluginManager} looks the static
+ * {@code getHandlerList()} up reflectively -- it carries the literal error string
+ * {@code getHandlerList must be static}. Both return the same field because there is one
+ * handler list per event type. Removing or delegating either breaks event registration at
+ * runtime, and no test here would catch it: the tests do not run a plugin manager.
  */
+@SuppressWarnings("java:S4144")
 public class StargatePlayerTravelEvent extends StargateEvent implements Cancellable
 {
     /** Bukkit dispatches on this list; it must be declared per concrete event class. */

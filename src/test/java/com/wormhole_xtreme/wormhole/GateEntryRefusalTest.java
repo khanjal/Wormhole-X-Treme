@@ -99,6 +99,47 @@ class GateEntryRefusalTest
         return event;
     }
 
+    /**
+     * A gate that is not open does nothing at all.
+     *
+     * <p>Its frame and its ring are still there to walk through, and the portal blocks are
+     * still indexed against it. Nothing had tested that walking into one is simply walking:
+     * the move handler checks the gate is active before it does anything, and that check
+     * survived every mutation the suite could throw at it.
+     */
+    @Test
+    void walkingIntoAClosedGateIsJustWalking()
+    {
+        destination.setGateActive(false);
+
+        final PlayerMoveEvent event = walkIntoDestination();
+
+        assertFalse(event.isCancelled(), "a closed gate holds nobody back");
+        verify(player, never()).teleport(any(Location.class));
+        verify(player, never()).sendMessage(contains("incoming wormhole"));
+    }
+
+    /**
+     * Only the portal itself counts, not the rest of the gate.
+     *
+     * <p>A gate's structure blocks are indexed against it too, so standing in its frame finds
+     * the gate. Treating that as entering the wormhole would teleport somebody who walked
+     * behind the ring rather than through it.
+     */
+    @Test
+    void standingInTheFrameRatherThanThePortalIsNotEntering()
+    {
+        // Same gate, same block, but no longer one of its portal blocks -- which is what the
+        // frame of a gate looks like to this check.
+        destination.getGatePortalBlocks().clear();
+
+        final PlayerMoveEvent event = walkIntoDestination();
+
+        assertFalse(event.isCancelled(), "walking through the frame is not walking into the wormhole");
+        verify(player, never()).teleport(any(Location.class));
+    }
+
+
     @Test
     void walkingIntoTheExitEndIsRefused()
     {

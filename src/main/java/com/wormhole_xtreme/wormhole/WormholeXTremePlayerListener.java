@@ -54,6 +54,9 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class WormholeXTremePlayerListener implements Listener
 {
+    /** Part of the debug line naming what a click was. */
+    private static final String ACTION_TYPE = "\" Action Type: \"";
+
     
 
     private static boolean hasChangedBlockCoordinates(final Location fromLoc, final Location toLoc) {
@@ -268,45 +271,28 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
         final Player player = event.getPlayer();
-        if (player == null) {
+        if (player == null)
+        {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "handlePlayerMoveEvent: event player is null, ignoring event.");
             return false;
         }
+        logCrossing(event, player);
+
         final Location toLocFinal = event.getTo();
-        // Every player crossing a block boundary reaches here, so the diagnostic is built
-        // only when it would actually be printed. It used to call Player.toString() and
-        // two extra getBlockAt() lookups on every crossing and throw all of it away.
-        if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
-        {
-            try
-            {
-                final Block fromBlock = event.getFrom().getWorld().getBlockAt(event.getFrom().getBlockX(), event.getFrom().getBlockY(), event.getFrom().getBlockZ());
-                final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerMove: " + player.getName()
-                    + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
-            }
-            // Diagnostics only, and on the move path, so never let it disturb the event.
-            catch (final RuntimeException ignore) { /* best effort */ }
-        }
         Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
-        // A rider's own block is not a reliable trigger: a camel is tall enough that
-        // the rider clears the portal entirely while the camel stands in it. When the
-        // player's block is not a gate, look for one under their mount instead so the
-        // mount-first teleport still fires.
+        // A rider's own block is not a reliable trigger: a camel is tall enough that the
+        // rider clears the portal entirely while the camel stands in it. When the player's
+        // block is not a gate, look for one under their mount instead so the mount-first
+        // teleport still fires.
         if (stargate == null)
         {
-            final Entity ridden = player.getVehicle();
-            if (isLivingMount(ridden))
+            final Block mountBlock = gatePortalBlockUnderMount(player);
+            if (mountBlock != null)
             {
-                final Block mountBlock = findActiveGatePortalBlockAtMount(ridden);
-                if (mountBlock != null)
-                {
-                    gateBlockFinal = mountBlock;
-                    stargate = StargateManager.getGateFromBlock(mountBlock);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
-                }
+                gateBlockFinal = mountBlock;
+                stargate = StargateManager.getGateFromBlock(mountBlock);
             }
         }
 
@@ -322,15 +308,68 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
 
-        // A gate holding no target of its own is the far end of somebody else's wormhole,
-        // or one that was lit and walked away from. Either way there is nowhere to send
-        // anyone from here.
+        // A gate holding no target of its own is the far end of somebody else's wormhole, or
+        // one that was lit and walked away from. Either way there is nowhere to send anyone
+        // from here.
         if (stargate.getGateTarget() == null)
         {
             return handleMoveAtArrivalGate(event, player, stargate);
         }
 
         return travelThroughGate(event, player, stargate, gateBlockFinal);
+    }
+
+    /**
+     * Says what the player just walked between, if anybody is listening.
+     *
+     * <p>Every player crossing a block boundary reaches here, so the line is built only when
+     * it would actually be printed. It used to call {@code Player.toString()} and two extra
+     * {@code getBlockAt} lookups on every crossing and throw all of it away.
+     *
+     * @param event
+     *            the move
+     * @param player
+     *            who moved
+     */
+    private static void logCrossing(final PlayerMoveEvent event, final Player player)
+    {
+        if (!WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+        {
+            return;
+        }
+        try
+        {
+            final Location from = event.getFrom();
+            final Location to = event.getTo();
+            final Block fromBlock = from.getWorld().getBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ());
+            final Block toBlock = to.getWorld().getBlockAt(to.getBlockX(), to.getBlockY(), to.getBlockZ());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerMove: " + player.getName()
+                + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + to.getY());
+        }
+        // Diagnostics only, and on the move path, so never let it disturb the event.
+        catch (final RuntimeException ignore) { /* best effort */ }
+    }
+
+    /**
+     * The gate portal block under whatever the player is riding, if any.
+     *
+     * @param player
+     *            the player, who may be riding something
+     * @return the portal block their mount is standing in, or null
+     */
+    private static Block gatePortalBlockUnderMount(final Player player)
+    {
+        final Entity ridden = player.getVehicle();
+        if (!isLivingMount(ridden))
+        {
+            return null;
+        }
+        final Block mountBlock = findActiveGatePortalBlockAtMount(ridden);
+        if (mountBlock != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
+        }
+        return mountBlock;
     }
 
     /**
@@ -675,7 +714,7 @@ class WormholeXTremePlayerListener implements Listener
             if (WormholeXTreme.getThisPlugin() != null)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception while teleporting " + player.getName()
-                    + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
+                    + " to " + (target == null ? "null" : target.toString()), e);
             }
         }
 
@@ -747,7 +786,7 @@ class WormholeXTremePlayerListener implements Listener
         catch (final RuntimeException tt)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to teleport what " + player.getName() + " was riding: " + tt.getMessage());
+                "Failed to teleport what " + player.getName() + " was riding", tt);
             // Could not move what they were riding; send the player through alone
             // rather than stranding them on the source side.
             teleportPlayerAlone(player, safeTarget);
@@ -801,7 +840,7 @@ class WormholeXTremePlayerListener implements Listener
             // Not fatal to the teleport that already happened, but a silently skipped
             // cooldown lets a player re-enter immediately, so say so.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to apply use cooldown for " + player.getName() + ": " + e.getMessage());
+                "Failed to apply use cooldown for " + player.getName(), e);
         }
         try
         {
@@ -815,7 +854,7 @@ class WormholeXTremePlayerListener implements Listener
             // Without this marker the player can walk straight back into the gate they
             // just arrived from, so a failure is worth a line in the log.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to mark recent arrival for " + player.getName() + ": " + e.getMessage());
+                "Failed to mark recent arrival for " + player.getName(), e);
         }
     }
 
@@ -890,16 +929,16 @@ class WormholeXTremePlayerListener implements Listener
     {
         if (event.getClickedBlock() != null)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: \"" + event.getClickedBlock().toString() + "\"");
             if (GateInteractionHandler.handlePlayerInteractEvent(event))
             {
                 event.setCancelled(true);
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Cancelled Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: \"" + event.getClickedBlock().toString() + "\"");
             }
         }
         else
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught and ignored Player: \"" + event.getPlayer().getName() + "\" Action Type: \"" + event.getAction().toString() + "\"");
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Caught and ignored Player: \"" + event.getPlayer().getName() + ACTION_TYPE + event.getAction().toString() + "\"");
         }
     }
 
@@ -930,6 +969,64 @@ class WormholeXTremePlayerListener implements Listener
             // range, and covers coming back to one after being away.
             refreshPortalVisualsFor(event.getPlayer());
         }
+    }
+
+    /**
+     * Whether the ring will not have this player right now, having said why.
+     *
+     * <p>Only said to somebody who has just walked in. This runs on every block boundary
+     * crossed, so a player wandering about on a pad they cannot use would otherwise be told
+     * about it several times a second.
+     *
+     * @param player
+     *            whoever stepped onto the pad
+     * @param pair
+     *            the pair they are standing in
+     * @param end
+     *            which end of it
+     * @param justEntered
+     *            whether this step took them in, rather than around inside
+     * @return true if they were refused
+     */
+    private static boolean ringRefuses(final Player player, final com.wormhole_xtreme.wormhole.model.ring.RingPair pair,
+        final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end, final boolean justEntered)
+    {
+        // Arming is a use of the ring, so the same permission governs it as governs being
+        // carried. Somebody who cannot travel by a pair should not be able to set it off for
+        // everybody else either.
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
+        {
+            if (justEntered)
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
+            }
+            return true;
+        }
+        final long now = System.currentTimeMillis();
+        if (pair.canFire(now))
+        {
+            return false;
+        }
+        if (justEntered)
+        {
+            // Two different reasons to refuse, and a player standing on a silent pad deserves
+            // to know which: one of them ends by itself and the other does not.
+            if (pair.getCooldownUntil() > now)
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(player, pair.getCooldownUntil() - now);
+                // A recharging ring is invisible, so being told it is not ready leaves
+                // somebody standing on ground that looks like any other. Show them where it
+                // is. Not done for a ring that is mid-cycle: that pad is already lit, so
+                // there is nothing to point out and the outline would put those lights out
+                // when it expired.
+                com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(player, pair, end.getRing());
+            }
+            else
+            {
+                com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
+            }
+        }
+        return true;
     }
 
     /**
@@ -979,41 +1076,8 @@ class WormholeXTremePlayerListener implements Listener
             || (com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
                 from.getWorld().getName(), from.getBlockX(), from.getBlockY(), from.getBlockZ()) != end);
 
-        // Arming is a use of the ring, so the same permission governs it as governs being
-        // carried. Somebody who cannot travel by a pair should not be able to set it off
-        // for everybody else either.
-        if (!com.wormhole_xtreme.wormhole.model.ring.RingPermissions.mayUse(player, pair))
+        if (ringRefuses(player, pair, end, justEntered))
         {
-            if (justEntered)
-            {
-                com.wormhole_xtreme.wormhole.model.ring.RingMessages.notYours(player);
-            }
-            return;
-        }
-        final long now = System.currentTimeMillis();
-        if (!pair.canFire(now))
-        {
-            if (justEntered)
-            {
-                // Two different reasons to refuse, and a player standing on a silent pad
-                // deserves to know which: one of them ends by itself and the other does not.
-                if (pair.getCooldownUntil() > now)
-                {
-                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.recharging(
-                        player, pair.getCooldownUntil() - now);
-                    // A recharging ring is invisible, so being told it is not ready leaves
-                    // somebody standing on ground that looks like any other. Show them where
-                    // it is. Not done for a ring that is mid-cycle: that pad is already lit,
-                    // so there is nothing to point out and the outline would put those lights
-                    // out when it expired.
-                    com.wormhole_xtreme.wormhole.model.ring.RingOutline.flash(
-                        player, pair, end.getRing());
-                }
-                else
-                {
-                    com.wormhole_xtreme.wormhole.model.ring.RingMessages.busy(player);
-                }
-            }
             return;
         }
         // justEntered is passed on rather than gating the call: arming still has to happen on

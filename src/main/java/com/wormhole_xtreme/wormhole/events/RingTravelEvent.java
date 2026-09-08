@@ -29,7 +29,16 @@ import com.wormhole_xtreme.wormhole.model.ring.RingPair;
  *
  * <p>Fires only for players. Mobs, dropped items and vehicles travel as cargo and raise
  * nothing, so cancelling stops a person and not the world around them.
+ *
+ * <p>The two handler-list accessors below are necessarily identical, which is why this class
+ * carries {@code @SuppressWarnings("java:S4144")}. Bukkit requires both: {@code Event}
+ * declares {@code getHandlers()} abstract, and {@code SimplePluginManager} looks the static
+ * {@code getHandlerList()} up reflectively -- it carries the literal error string
+ * {@code getHandlerList must be static}. Both return the same field because there is one
+ * handler list per event type. Removing or delegating either breaks event registration at
+ * runtime, and no test here would catch it: the tests do not run a plugin manager.
  */
+@SuppressWarnings("java:S4144")
 public class RingTravelEvent extends Event implements Cancellable
 {
     /** Bukkit dispatches on this list; it must be declared per concrete event class. */

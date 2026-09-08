@@ -25,7 +25,7 @@ import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
  * by hand -- this exists so the next one is caught by running a command instead.
  *
  * <p>Pure with respect to Bukkit except for the material lookups in
- * {@link Stargate3DShape#parseMaterialName}, which need no live server to call -- everything
+ * {@link StargateShape#parseMaterialName}, which need no live server to call -- everything
  * else here operates on plain file lines and the already-parsed shape object, the same split
  * this project's other shape-parsing tests already rely on.
  */
@@ -100,7 +100,7 @@ public final class ShapeFileValidator
      */
     public static Result validate(final String[] fileLines)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         problems.addAll(checkRowWidths(fileLines));
         problems.addAll(checkMaterialsResolve(fileLines));
         problems.addAll(checkSingletonMarkerCounts(fileLines));
@@ -143,7 +143,7 @@ public final class ShapeFileValidator
      */
     private static List<String> checkRowWidths(final String[] fileLines)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         Integer width = null;
         String currentLayer = null;
         int rowInLayer = 0;
@@ -160,38 +160,68 @@ public final class ShapeFileValidator
             {
                 currentLayer = "Layer#" + headerMatch.group(1);
                 rowInLayer = 0;
-                continue;
             }
-            if (!line.startsWith("["))
+            else if (line.startsWith("["))
             {
-                continue;
+                final int count = cellsOn(line);
+                if (width == null)
+                {
+                    width = count;
+                }
+                else if (count != width)
+                {
+                    problems.add(raggedRow(currentLayer, rowInLayer, count, width.intValue()));
+                }
+                rowInLayer++;
             }
-            final Matcher m = CELL.matcher(line);
-            int count = 0;
-            while (m.find())
-            {
-                count++;
-            }
-            if (width == null)
-            {
-                width = count;
-            }
-            else if (count != width)
-            {
-                problems.add((currentLayer == null ? "the ring shape" : currentLayer) + " row "
-                    + rowInLayer + " has " + count + " cells, not " + width
-                    + " -- a block was likely dropped or added while editing, and every "
-                    + "column after the gap is shifted for the rest of that row");
-            }
-            rowInLayer++;
         }
         return problems;
+    }
+
+    /**
+     * How many cells one row line declares.
+     *
+     * @param line
+     *            the trimmed row line
+     * @return the cell count
+     */
+    private static int cellsOn(final String line)
+    {
+        final Matcher m = CELL.matcher(line);
+        int count = 0;
+        while (m.find())
+        {
+            count++;
+        }
+        return count;
+    }
+
+    /**
+     * What to say about a row that is not the width the rest of the shape is.
+     *
+     * @param currentLayer
+     *            the layer being read, or null for a ring shape with no layers
+     * @param rowInLayer
+     *            which row of that layer
+     * @param count
+     *            how many cells this row has
+     * @param width
+     *            how many the shape is
+     * @return the problem to report
+     */
+    private static String raggedRow(final String currentLayer, final int rowInLayer,
+        final int count, final int width)
+    {
+        return (currentLayer == null ? "the ring shape" : currentLayer) + " row "
+            + rowInLayer + " has " + count + " cells, not " + width
+            + " -- a block was likely dropped or added while editing, and every "
+            + "column after the gap is shifted for the rest of that row";
     }
 
     /** No {@code Layer#N=} between 1 and the highest one declared may be missing. */
     private static List<String> checkLayerGaps(final Stargate3DShape shape)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         for (int i = 1; i < shape.getShapeLayers().size(); i++)
         {
             if (shape.getShapeLayers().get(i) == null)
@@ -202,6 +232,9 @@ public final class ShapeFileValidator
         }
         return problems;
     }
+
+    /** The markers a gate may carry exactly one of. */
+    private static final String[] SINGLETON_MARKERS = { "EP", "EM", "A", "IA", "D", "N" };
 
     /**
      * {@code :EP}, {@code :EM}, {@code :A}, {@code :IA}, {@code :D} and {@code :N} are each
@@ -214,33 +247,9 @@ public final class ShapeFileValidator
      */
     private static List<String> checkSingletonMarkerCounts(final String[] fileLines)
     {
-        final java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<String, Integer>();
-        for (final String tag : new String[] { "EP", "EM", "A", "IA", "D", "N" })
-        {
-            counts.put(tag, 0);
-        }
+        final java.util.Map<String, Integer> counts = countMarkers(fileLines);
 
-        for (final String rawLine : fileLines)
-        {
-            final String line = rawLine.trim();
-            if (line.startsWith("#") || !line.startsWith("["))
-            {
-                continue;
-            }
-            final Matcher m = CELL.matcher(line);
-            while (m.find())
-            {
-                for (final String token : m.group(1).split(":"))
-                {
-                    if (counts.containsKey(token))
-                    {
-                        counts.put(token, counts.get(token) + 1);
-                    }
-                }
-            }
-        }
-
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         for (final java.util.Map.Entry<String, Integer> entry : counts.entrySet())
         {
             if (entry.getValue() > 1)
@@ -258,12 +267,64 @@ public final class ShapeFileValidator
         return problems;
     }
 
+    /**
+     * How many times each one-per-gate marker appears in the file's cells.
+     *
+     * <p>Counted from the text rather than the parsed shape because that is the whole point:
+     * a second {@code :EP} overwrites the first on the model, so only the last one survives
+     * to be looked at.
+     *
+     * @param fileLines
+     *            the shape file
+     * @return each marker against its count, every marker present even at zero
+     */
+    private static java.util.Map<String, Integer> countMarkers(final String[] fileLines)
+    {
+        final java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        for (final String tag : SINGLETON_MARKERS)
+        {
+            counts.put(tag, 0);
+        }
+        for (final String rawLine : fileLines)
+        {
+            // A commented row is skipped by this too, without needing to say so: a line that
+            // starts with # cannot also start with [, so testing for the comment separately
+            // could never change the answer.
+            final String line = rawLine.trim();
+            if (line.startsWith("["))
+            {
+                countMarkersOn(line, counts);
+            }
+        }
+        return counts;
+    }
+
+    /**
+     * Adds one row's markers to the running counts.
+     *
+     * @param line
+     *            a trimmed row line
+     * @param counts
+     *            the running counts, updated in place
+     */
+    private static void countMarkersOn(final String line, final java.util.Map<String, Integer> counts)
+    {
+        final Matcher m = CELL.matcher(line);
+        while (m.find())
+        {
+            for (final String token : m.group(1).split(":"))
+            {
+                counts.computeIfPresent(token, (tag, seen) -> seen + 1);
+            }
+        }
+    }
+
     /** {@code :L#} and {@code :W#} orders each have to run 1..N with no gap. */
     private static List<String> checkOrderSequencing(final Stargate3DShape shape)
     {
-        final List<String> problems = new ArrayList<String>();
-        final Set<Integer> lightOrders = new TreeSet<Integer>();
-        final Set<Integer> wooshOrders = new TreeSet<Integer>();
+        final List<String> problems = new ArrayList<>();
+        final Set<Integer> lightOrders = new TreeSet<>();
+        final Set<Integer> wooshOrders = new TreeSet<>();
         for (final StargateShapeLayer layer : shape.getShapeLayers())
         {
             if (layer == null)
@@ -327,7 +388,7 @@ public final class ShapeFileValidator
      */
     private static List<String> checkRedstonePlacement(final Stargate3DShape shape)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         boolean hasDialMarker = false;
         boolean hasDialSign = false;
 
@@ -396,34 +457,50 @@ public final class ShapeFileValidator
      * in this server's Minecraft version compiles fine and then either falls back silently or
      * fails when the gate is actually built.
      *
-     * <p>Resolved through {@link Stargate3DShape#parseMaterialName}, the same method the real
+     * <p>Resolved through {@link StargateShape#parseMaterialName}, the same method the real
      * parser uses, rather than {@link Material#matchMaterial} directly: the parser accepts the
      * legacy {@code STATIONARY_WATER}/{@code STATIONARY_LAVA} aliases pre-1.13 shape files
      * still use, and a stricter check here would reject a shape that loads and runs fine.
      */
     private static List<String> checkMaterialsResolve(final String[] fileLines)
     {
-        final List<String> problems = new ArrayList<String>();
+        final List<String> problems = new ArrayList<>();
         for (final String rawLine : fileLines)
         {
-            final String line = rawLine.trim();
-            if (line.startsWith("#"))
+            final String problem = unresolvableMaterialOn(rawLine);
+            if (problem != null)
             {
-                continue;
-            }
-            final Matcher m = MATERIAL_LINE.matcher(line);
-            if (!m.matches())
-            {
-                continue;
-            }
-            final String key = m.group(1);
-            final String value = m.group(2).trim();
-            if (Stargate3DShape.parseMaterialName(value) == null)
-            {
-                problems.add(key + "=" + value + " does not name a material that exists "
-                    + "in this server's Minecraft version");
+                problems.add(problem);
             }
         }
         return problems;
+    }
+
+    /**
+     * What is wrong with one line's material, if the line names one at all.
+     *
+     * @param rawLine
+     *            the line as read
+     * @return the problem to report, or null if there is nothing wrong with this line
+     */
+    private static String unresolvableMaterialOn(final String rawLine)
+    {
+        final String line = rawLine.trim();
+        if (line.startsWith("#"))
+        {
+            return null;
+        }
+        final Matcher m = MATERIAL_LINE.matcher(line);
+        if (!m.matches())
+        {
+            return null;
+        }
+        final String value = m.group(2).trim();
+        if (StargateShape.parseMaterialName(value) != null)
+        {
+            return null;
+        }
+        return m.group(1) + "=" + value + " does not name a material that exists "
+            + "in this server's Minecraft version";
     }
 }

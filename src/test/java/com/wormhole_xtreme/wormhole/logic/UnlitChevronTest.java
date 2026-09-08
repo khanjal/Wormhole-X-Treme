@@ -62,7 +62,7 @@ class UnlitChevronTest
         f.set(null, plugin);
 
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final String line : lines)
         {
             out.add((from == null) || line.trim().startsWith("#") ? line : line.replace(from, to));
@@ -78,7 +78,7 @@ class UnlitChevronTest
     /** Every cell of a shape that parsed as a frame block, across all layers. */
     private static List<Integer[]> frameCells(final Stargate3DShape shape)
     {
-        final List<Integer[]> all = new ArrayList<Integer[]>();
+        final List<Integer[]> all = new ArrayList<>();
         for (final StargateShapeLayer layer : shape.getShapeLayers())
         {
             if (layer != null)
@@ -92,7 +92,7 @@ class UnlitChevronTest
     /** Every cell of a shape that parsed as a chevron block, across all layers. */
     private static List<Integer[]> chevronCells(final Stargate3DShape shape)
     {
-        final List<Integer[]> all = new ArrayList<Integer[]>();
+        final List<Integer[]> all = new ArrayList<>();
         for (final StargateShapeLayer layer : shape.getShapeLayers())
         {
             if (layer != null)

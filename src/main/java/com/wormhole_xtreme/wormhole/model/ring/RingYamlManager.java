@@ -40,6 +40,9 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public final class RingYamlManager
 {
+    private static final String WORLD_KEY = "World";
+    private static final String STYLE_KEY = "Style";
+
     private RingYamlManager() {}
 
     /**
@@ -163,7 +166,7 @@ public final class RingYamlManager
             return 0;
         }
 
-        final String worldName = String.valueOf(root.getOrDefault("World", ""));
+        final String worldName = String.valueOf(root.getOrDefault(WORLD_KEY, ""));
         if (worldName.isEmpty())
         {
             log(Level.WARNING, "Ring file " + file.getName() + " names no world; skipping it.");
@@ -212,7 +215,7 @@ public final class RingYamlManager
     {
         // A pair written before style moved onto the end carries one value for both. Read
         // it as the fallback for each so those files keep behaving exactly as they did.
-        final RingStyle shared = readStyle(map.get("Style"));
+        final RingStyle shared = readStyle(map.get(STYLE_KEY));
         final Ring endA = readRing((Map<String, Object>) map.get("A"), shared);
         final Ring endB = readRing((Map<String, Object>) map.get("B"), shared);
         final RingPair pair = new RingPair(id, worldName, endA, endB);
@@ -305,7 +308,7 @@ public final class RingYamlManager
         final Material ring = Material.valueOf(String.valueOf(map.get("Ring")));
         final Material light = Material.valueOf(String.valueOf(map.get("Light")));
         final Ring built = new Ring(x, y, z, pattern, orientation, ring, light);
-        built.setStyle(map.containsKey("Style") ? readStyle(map.get("Style")) : fallback);
+        built.setStyle(map.containsKey(STYLE_KEY) ? readStyle(map.get(STYLE_KEY)) : fallback);
         built.setName(String.valueOf(map.getOrDefault("Name", "")));
         // A ring written before the flash was its own material used one for both, so falling
         // back to the light keeps those looking exactly as they did.
@@ -350,7 +353,7 @@ public final class RingYamlManager
         }
         final File target = fileForWorld(directory, worldName);
 
-        final Map<String, Object> pairsOut = new LinkedHashMap<String, Object>();
+        final Map<String, Object> pairsOut = new LinkedHashMap<>();
         for (final RingPair pair : RingManager.getPairsInWorld(worldName))
         {
             pairsOut.put(pair.getId(), writePair(pair));
@@ -360,15 +363,24 @@ public final class RingYamlManager
         {
             // An empty file is a file that has to be read and skipped every startup, and a
             // world with no rings is better represented by there being nothing there.
-            if (target.exists() && !target.delete())
+            try
             {
-                log(Level.WARNING, "Could not delete now-empty ring file " + target.getName());
+                java.nio.file.Files.deleteIfExists(target.toPath());
+            }
+            catch (final java.io.IOException e)
+            {
+                // Files rather than File.delete: the boolean says only that it did not happen,
+                // where the exception says whether the file was locked, missing a parent, or
+                // not ours to remove -- which is the difference between a fixable report and
+                // one nobody can act on.
+                log(Level.WARNING, "Could not delete now-empty ring file " + target.getName()
+                    + ": " + e.getMessage());
             }
             return;
         }
 
-        final Map<String, Object> root = new LinkedHashMap<String, Object>();
-        root.put("World", worldName);
+        final Map<String, Object> root = new LinkedHashMap<>();
+        root.put(WORLD_KEY, worldName);
         root.put("Pairs", pairsOut);
 
         write(target, root);
@@ -416,7 +428,7 @@ public final class RingYamlManager
      */
     private static Map<String, Object> writePair(final RingPair pair)
     {
-        final Map<String, Object> out = new LinkedHashMap<String, Object>();
+        final Map<String, Object> out = new LinkedHashMap<>();
         out.put("Owner", pair.getOwner() == null ? "" : pair.getOwner());
         out.put("OwnerName", pair.getOwnerName() == null ? "" : pair.getOwnerName());
         out.put("Created", Long.valueOf(pair.getCreated()));
@@ -439,7 +451,7 @@ public final class RingYamlManager
      */
     private static Map<String, Object> writeRing(final Ring ring)
     {
-        final Map<String, Object> out = new HashMap<String, Object>();
+        final Map<String, Object> out = new HashMap<>();
         out.put("X", Integer.valueOf(ring.getAnchorX()));
         out.put("Y", Integer.valueOf(ring.getAnchorY()));
         out.put("Z", Integer.valueOf(ring.getAnchorZ()));
@@ -449,7 +461,7 @@ public final class RingYamlManager
         out.put("Built", ring.getBuiltMaterial().name());
         out.put("Light", ring.getLightMaterial().name());
         out.put("Flash", ring.getFlashMaterial().name());
-        out.put("Style", ring.getStyle().name());
+        out.put(STYLE_KEY, ring.getStyle().name());
         out.put("Name", ring.getName());
         return out;
     }
@@ -499,21 +511,25 @@ public final class RingYamlManager
         final Map<UUID, RingManager.PendingRing> waiting = RingManager.getAllPending();
         if (waiting.isEmpty())
         {
-            if (target.exists() && !target.delete())
+            try
             {
-                log(Level.WARNING, "Could not delete the now-empty pending ring file.");
+                java.nio.file.Files.deleteIfExists(target.toPath());
+            }
+            catch (final java.io.IOException e)
+            {
+                log(Level.WARNING, "Could not delete the now-empty pending ring file: " + e.getMessage());
             }
             return;
         }
 
-        final Map<String, Object> out = new LinkedHashMap<String, Object>();
+        final Map<String, Object> out = new LinkedHashMap<>();
         for (final Map.Entry<UUID, RingManager.PendingRing> entry : waiting.entrySet())
         {
-            final Map<String, Object> one = writeRing(entry.getValue().getRing());
-            one.put("World", entry.getValue().getWorldName());
+            final Map<String, Object> one = writeRing(entry.getValue().ring());
+            one.put(WORLD_KEY, entry.getValue().worldName());
             out.put(entry.getKey().toString(), one);
         }
-        final Map<String, Object> root = new LinkedHashMap<String, Object>();
+        final Map<String, Object> root = new LinkedHashMap<>();
         root.put("Pending", out);
         write(target, root);
     }
@@ -571,7 +587,7 @@ public final class RingYamlManager
                 final Map<String, Object> map = (Map<String, Object>) entry.getValue();
                 final Ring ring = readRing(map, RingStyle.CONCURRENT);
                 RingManager.setPending(UUID.fromString(entry.getKey()), ring,
-                    String.valueOf(map.get("World")));
+                    String.valueOf(map.get(WORLD_KEY)));
                 loaded++;
             }
             // One unreadable entry costs one player their half-built pair, not everybody's.

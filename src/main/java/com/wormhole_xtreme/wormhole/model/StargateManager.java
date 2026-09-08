@@ -31,22 +31,22 @@ public class StargateManager
     // A list of all blocks contained by all stargates. Makes for easy indexing when a player is trying
     // to enter a gate or if water is trying to flow out, also will contain the stone buttons used to activate.
     /** The all_gate_blocks. */
-    private static final ConcurrentHashMap<Location, Stargate> allGateBlocks = new ConcurrentHashMap<Location, Stargate>();
+    private static final ConcurrentHashMap<Location, Stargate> allGateBlocks = new ConcurrentHashMap<>();
     // List of All stargates indexed by name. Useful for dialing and such
     /** The stargate_list. */
-    private static final ConcurrentHashMap<String, Stargate> stargateList = new ConcurrentHashMap<String, Stargate>();
+    private static final ConcurrentHashMap<String, Stargate> stargateList = new ConcurrentHashMap<>();
     // List of stargates built but not named. Indexed by the player that built it.
     /** The incomplete_stargates. */
-    private static final ConcurrentHashMap<Player, Stargate> incompleteStargates = new ConcurrentHashMap<Player, Stargate>();
+    private static final ConcurrentHashMap<Player, Stargate> incompleteStargates = new ConcurrentHashMap<>();
     // List of stargates that have been activated but not yet dialed. Only used for gates without public use sign.
     /** The activated_stargates. */
-    private static final ConcurrentHashMap<Player, Stargate> activatedStargates = new ConcurrentHashMap<Player, Stargate>();
+    private static final ConcurrentHashMap<Player, Stargate> activatedStargates = new ConcurrentHashMap<>();
     // List of networks indexed by their name
     /** The stargate_networks. */
-    private static final ConcurrentHashMap<String, StargateNetwork> stargateNetworks = new ConcurrentHashMap<String, StargateNetwork>();
+    private static final ConcurrentHashMap<String, StargateNetwork> stargateNetworks = new ConcurrentHashMap<>();
     // List of players ready to build a stargate, with the shape they are trying to build.
     /** The player_builders. */
-    private static final ConcurrentHashMap<Player, StargateShape> playerBuilders = new ConcurrentHashMap<Player, StargateShape>();
+    private static final ConcurrentHashMap<Player, StargateShape> playerBuilders = new ConcurrentHashMap<>();
 
     // Gates whose portal is currently drawn, kept as a set rather than found by filtering
     // every gate. The portal is a client-side illusion that has to be redrawn whenever a
@@ -56,13 +56,13 @@ public class StargateManager
     // of gates actually open, which is nearly always a handful.
     /** The gates currently showing a portal. */
     private static final java.util.Set<Stargate> openGates =
-        java.util.Collections.newSetFromMap(new ConcurrentHashMap<Stargate, Boolean>());
+        java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     // List of blocks that are part of an active animation. Only use this to make sure water doesn't flow everywhere.
     /** The Constant opening_animation_blocks. */
-    private static final ConcurrentHashMap<Location, Block> openingAnimationBlocks = new ConcurrentHashMap<Location, Block>();
+    private static final ConcurrentHashMap<Location, Block> openingAnimationBlocks = new ConcurrentHashMap<>();
     // Keep the original material for each animated block so we can restore it after the woosh
-    private static final ConcurrentHashMap<Location, Material> openingAnimationOriginalMaterials = new ConcurrentHashMap<Location, Material>();
+    private static final ConcurrentHashMap<Location, Material> openingAnimationOriginalMaterials = new ConcurrentHashMap<>();
 
     /**
      * This method adds a stargate that has been activated but not dialed by a player.
@@ -100,7 +100,7 @@ public class StargateManager
             }
             catch (final Exception e)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error logging indexed block: " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error logging indexed block", e);
             }
         }
     }
@@ -221,7 +221,7 @@ public class StargateManager
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error indexing gate activation blocks: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error indexing gate activation blocks", e);
         }
     }
 
@@ -618,7 +618,7 @@ public class StargateManager
      */
     public static List<Stargate> getAllGates()
     {
-        final ArrayList<Stargate> gates = new ArrayList<Stargate>();
+        final ArrayList<Stargate> gates = new ArrayList<>();
 
         final Enumeration<Stargate> keys = getStargateList().elements();
 
@@ -898,8 +898,7 @@ public class StargateManager
      */
     public static Stargate removeActivatedStargate(final Player p)
     {
-        final Stargate s = getActivatedStargates().remove(p);
-        return s;
+        return getActivatedStargates().remove(p);
     }
 
     /**
@@ -1009,69 +1008,127 @@ public class StargateManager
         }
         getStargateList().remove(normalizeGateName(s.getGateName()));
         StargateDBManager.removeStargate(s);
-        if (s.getGateNetwork() != null)
-        {
-            synchronized (s.getGateNetwork().getNetworkGateLock())
-            {
-                s.getGateNetwork().getNetworkGateList().remove(s);
-                if (s.isGateSignPowered())
-                {
-                    s.getGateNetwork().getNetworkSignGateList().remove(s);
-                }
+        detachFromNetwork(s);
+        unindexGateBlocks(s);
+        unindexActivationBlocks(s);
+    }
 
-                for (final Stargate s2 : s.getGateNetwork().getNetworkSignGateList())
+    /**
+     * Takes a gate off its network, and off any sign that was naming it.
+     *
+     * <p>A dial sign belongs to a different gate entirely, and one pointed at this gate names
+     * a destination that has just stopped existing -- so it is cleared, and moved to the
+     * first of whatever is left if there is anything left to move to.
+     *
+     * @param s
+     *            the gate being removed
+     */
+    private static void detachFromNetwork(final Stargate s)
+    {
+        if (s.getGateNetwork() == null)
+        {
+            return;
+        }
+        synchronized (s.getGateNetwork().getNetworkGateLock())
+        {
+            s.getGateNetwork().getNetworkGateList().remove(s);
+            final List<Stargate> signGates = s.getGateNetwork().getNetworkSignGateList();
+            if (s.isGateSignPowered())
+            {
+                signGates.remove(s);
+            }
+            for (final Stargate s2 : signGates)
+            {
+                if ((s2.getGateDialSignTarget() != null)
+                    && (s2.getGateDialSignTarget().getGateId() == s.getGateId())
+                    && s2.isGateSignPowered())
                 {
-                    if ((s2.getGateDialSignTarget() != null) && (s2.getGateDialSignTarget().getGateId() == s.getGateId()) && s2.isGateSignPowered())
-                    {
-                        s2.setGateDialSignTarget(null);
-                        if (s.getGateNetwork().getNetworkSignGateList().size() > 1)
-                        {
-                            s2.setGateDialSignIndex(0);
-                            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(s2, ActionToTake.DIAL_SIGN_CLICK));
-                        }
-                    }
+                    clearDialSign(s2, signGates.size() > 1);
                 }
             }
         }
+    }
 
+    /**
+     * Points one sign somewhere else, now that what it named is gone.
+     *
+     * @param signGate
+     *            the gate whose sign was naming the removed one
+     * @param hasSomewhereElse
+     *            whether the network still has another sign-powered gate to offer
+     */
+    private static void clearDialSign(final Stargate signGate, final boolean hasSomewhereElse)
+    {
+        signGate.setGateDialSignTarget(null);
+        if (hasSomewhereElse)
+        {
+            signGate.setGateDialSignIndex(0);
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                new StargateUpdateRunnable(signGate, ActionToTake.DIAL_SIGN_CLICK));
+        }
+    }
+
+    /**
+     * Releases every block the gate's shape claimed.
+     *
+     * <p>A block left indexed still answers that it belongs to a gate, and names one that no
+     * longer exists.
+     *
+     * @param s
+     *            the gate being removed
+     */
+    private static void unindexGateBlocks(final Stargate s)
+    {
         for (final Location b : s.getGateStructureBlocks())
         {
             getAllGateBlocks().remove(b);
             GateSpatialIndex.remove(b);
         }
-
         for (final Location b : s.getGatePortalBlocks())
         {
             getAllGateBlocks().remove(b);
             GateSpatialIndex.remove(b);
         }
-        // Also remove any explicit activation-related blocks (dial lever, iris lever, dial sign, redstone activators)
+    }
+
+    /**
+     * Releases the blocks that work the gate rather than make it up.
+     *
+     * <p>The dial lever, iris lever, dial sign and redstone activators are indexed separately
+     * from the shape, so releasing the shape alone leaves them pointing at a gate that is
+     * gone.
+     *
+     * @param s
+     *            the gate being removed
+     */
+    private static void unindexActivationBlocks(final Stargate s)
+    {
         try
         {
-            if (s.getGateDialLeverBlock() != null)
-            {
-                removeBlockIndex(s.getGateDialLeverBlock());
-            }
-            if (s.getGateIrisLeverBlock() != null)
-            {
-                removeBlockIndex(s.getGateIrisLeverBlock());
-            }
-            if (s.getGateDialSignBlock() != null)
-            {
-                removeBlockIndex(s.getGateDialSignBlock());
-            }
-            if (s.getGateRedstoneDialActivationBlock() != null)
-            {
-                removeBlockIndex(s.getGateRedstoneDialActivationBlock());
-            }
-            if (s.getGateRedstoneGateActivatedBlock() != null)
-            {
-                removeBlockIndex(s.getGateRedstoneGateActivatedBlock());
-            }
+            removeBlockIndexIfPresent(s.getGateDialLeverBlock());
+            removeBlockIndexIfPresent(s.getGateIrisLeverBlock());
+            removeBlockIndexIfPresent(s.getGateDialSignBlock());
+            removeBlockIndexIfPresent(s.getGateRedstoneDialActivationBlock());
+            removeBlockIndexIfPresent(s.getGateRedstoneGateActivatedBlock());
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Error removing activation block indices: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Error removing activation block indices", e);
+        }
+    }
+
+    /**
+     * Releases one block, if the gate had one.
+     *
+     * @param block
+     *            the block, or null if this gate has none of that kind
+     */
+    private static void removeBlockIndexIfPresent(final Block block)
+    {
+        if (block != null)
+        {
+            removeBlockIndex(block);
         }
     }
 

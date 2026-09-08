@@ -17,7 +17,7 @@ public class StargateShapeLayer
 {
 
     /** The block positions. */
-    private List<Integer[]> layerBlockPositions = new ArrayList<Integer[]>();
+    private List<Integer[]> layerBlockPositions = new ArrayList<>();
 
     /**
      * The chevron positions -- cells written {@code [C]} rather than {@code [S]}.
@@ -27,7 +27,7 @@ public class StargateShapeLayer
      * belongs to by reading the first frame block it finds. A chevron in that list would
      * have a gate fronted with lamps resolve to the lamp palette, or to no palette at all.
      */
-    private List<Integer[]> layerChevronPositions = new ArrayList<Integer[]>();
+    private List<Integer[]> layerChevronPositions = new ArrayList<>();
 
     /** The sign position. */
     private int[] layerNameSignPosition = null;
@@ -55,13 +55,13 @@ public class StargateShapeLayer
     private int[] layerRedstoneGateActivatedPosition = null;
 
     /** The light_positions. */
-    private List<List<Integer[]>> layerLightPositions = new ArrayList<List<Integer[]>>();
+    private List<List<Integer[]>> layerLightPositions = new ArrayList<>();
 
     /** The positions of woosh. First array is the order to activate them. Inner array is list of points */
-    private List<List<Integer[]>> layerWooshPositions = new ArrayList<List<Integer[]>>();
+    private List<List<Integer[]>> layerWooshPositions = new ArrayList<>();
 
     /** The water_positions. */
-    private List<Integer[]> layerPortalPositions = new ArrayList<Integer[]>();
+    private List<Integer[]> layerPortalPositions = new ArrayList<>();
 
     /**
      * Instantiates a new stargate shape layer.
@@ -171,7 +171,7 @@ public class StargateShapeLayer
         }
         if (waves.get(order) == null)
         {
-            waves.set(order, new ArrayList<Integer[]>());
+            waves.set(order, new ArrayList<>());
         }
         waves.get(order).add(point);
         WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG,

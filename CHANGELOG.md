@@ -88,6 +88,130 @@ the show's five, the stack is one seven-block diameter throughout so nothing tap
 Amber on cyan read better at small sizes than grey does, so the corrected mark is slightly weaker
 as a drawing. It is drawing the actual plugin, which for a reference a designer will work from
 matters more.
+### The log said "null" where it should have said what went wrong
+
+Every catch site in the plugin reported itself the same way:
+
+    prettyLog(Level.WARNING, "Failed to save gate: " + e.getMessage());
+
+For a `NullPointerException` -- the exception you most want to read, and the one a server
+operator is most likely to send in -- `getMessage()` is null, so that line reads `Failed to
+save gate: null`. For an `IOException` it is a bare filename with nothing saying what was being
+done to it. And in every case the stack trace, the part that says *where*, was thrown away
+before it reached the log.
+
+There is now a `prettyLog(Level, String, Throwable)`. The message says what the plugin was
+doing; the logger is handed the exception and prints what went wrong and where. All 75 sites
+that appended `getMessage()` now use it, including two that had to be reworded by hand -- one
+whose entire message *was* the exception, and one that had it in the middle of a sentence.
+
+The line is still built lazily, through `Logger.log(Level, Throwable, Supplier)`. Several of
+these sites are on the block-physics and move paths, which run thousands of times a second on
+a busy server, and a `FINE` line there must not cost a string concatenation when nothing is
+listening.
+
+A test walks `src/main/java` and fails on any `prettyLog` call that puts `getMessage()` back
+into a message. That is the whole reason it exists: the two forms read almost identically in a
+diff.
+
+Its first version matched a whole `prettyLog(...)` call with a regex that allowed one level of
+nested brackets, and so could not see two sites whose message contained a parenthesised
+ternary. Both were missed by the conversion as well, and the test passed. Copilot found them.
+It now walks back from each `getMessage()` to the start of its statement instead, which has no
+brackets to balance and reports the file and line it found.
+
+### A half-built ring pair is a record now
+
+`RingManager.PendingRing` holds two things -- the end already built and the world it is in --
+and existed only to be read back when the second end is placed. Thirty-five lines of field,
+constructor and getter for that. It is a record, and `getRing()`/`getWorldName()` are now
+`ring()`/`worldName()` at the thirteen places that read them.
+
+The rest of the model still reads `getGateName()`, `getRing()`, `getWorldName()`. This is the
+one class where the trade came out in favour of the record: it is nested inside its own
+manager and read from two files.
+
+### Nothing was holding the rules a minecart travels under
+
+Riding a gate is the least covered way of using one. The two methods that carry a vehicle
+through were the last two cognitive-complexity issues left in the tree, and splitting them
+needed a net first. Twenty mutations to the entry path -- deliberate breakages, each one run
+against the whole suite -- and sixteen of them survived it.
+
+Four of the sixteen are things a player would notice:
+
+- A gate that is not open still carried a vehicle through it.
+- So did any block of the gate that is not the portal: a rail laid along the frame.
+- A rider on a boat travelled through their use cooldown for free, and arrived unmarked.
+- The mark that stops a just-arrived cart being sent straight back out could be deleted
+  without a single test complaining, and it is the only thing standing between an arrival and
+  a cart shuttling between two gates forever.
+
+None of these were broken. Nothing was checking that they were not, which is a different
+thing, and the four of them are the difference between reshaping this code and hoping.
+
+`VehicleGateEntryTest` now holds eighteen tests covering the guards, the deferred cooldown, the
+travel event -- including that it is asked of every rider, not only whoever is steering -- the
+loop-breaker on both the arrival and the iris bounce, and where and which way a cart lands.
+Every one of the twenty-four mutations now fails at least one of them.
+
+With that in place `handleStargateVehicleTeleportEvent` and `dispatchVehicleTeleport` were
+split into the questions they were asking: whether anybody objects, what the riders owe, which
+way the arrival faces, and who aboard needs marking. Behaviour is unchanged.
+
+That closes the last two `S3776` issues. What is left on SonarCloud is four design questions
+rather than defects.
+
+### Part of what SonarCloud reports can now be checked before pushing
+
+The Sonar backlog is worked in sweeps, and until now the only way to know whether a sweep had
+actually closed what it aimed at was to push it and wait for the scan. That is minutes per
+attempt, on a check that fails for unrelated reasons anyway, which makes it a poor thing to
+iterate against.
+
+`mvn pmd:pmd -Dformat=csv` now answers part of the same question locally in about ten seconds.
+
+The rules it runs were not chosen from their descriptions. Each candidate was run against the
+tree at the same revision SonarCloud had last analysed, and its findings compared to the Sonar
+rule it was standing in for, file and line. Eight rules survived that comparison:
+
+    Sonar   PMD                                   open   found   caught
+    S3776   CognitiveComplexity                     33      45       33
+    S1168   ReturnEmptyCollectionRatherThanNull      3       3        3
+    S1488   UnnecessaryLocalBeforeReturn             3       3        3
+    S1128   UnnecessaryImport                        2       2        2
+    S1066   CollapsibleIfStatements                  2       2        2
+    S1068   UnusedPrivateField                       1       1        1
+    S1186   UncommentedEmptyMethodBody               1       1        1
+    S3626   UnnecessaryReturn                        2       1        1
+
+46 of 47 open issues across those rules, from 58 findings. Cognitive complexity, the largest
+group left and the one that keeps turning up real bugs, matched all 33 without any tuning --
+PMD's default threshold of 15 is the one Sonar uses.
+
+Two rules were measured and rejected rather than quietly included. `AvoidDuplicateLiterals`
+cannot be tuned to agree with S1192: at a minimum length of 5 it catches 28 of 29 but reports
+185, and at 8 it catches 21 and reports 105. Either setting buries the 58 findings that are
+worth reading, which is the entire point. `ExcessiveParameterList` counts from 10 parameters
+where Sonar counts from 7, and so found neither of the two open S107 issues.
+
+Nothing covers S135, S1141 or S4144, the next three largest groups. PMD has no equivalent, and
+those need the method read regardless.
+
+It is deliberately not bound to a phase, and deliberately `pmd:pmd` rather than `pmd:check`. At
+four findings in five being real, a failing build would sometimes be wrong, and a check that is
+sometimes wrong is one people learn to skip. SonarCloud stays the authority; this is a lead on
+where to look. `pmd-ruleset.xml` carries the measurement so the next person can tell whether it
+still holds.
+
+One thing fell out of the comparison. Five of the six open S4144 "identical implementation"
+issues are in `events/`, and none of them can be fixed: a Bukkit event class must have both a
+static `getHandlerList()` and an instance `getHandlers()` returning the same field, so the two
+bodies are necessarily the same. `org.bukkit.event.Event` declares `getHandlers()` abstract, and
+`SimplePluginManager` looks the static one up reflectively -- it carries the literal string
+`getHandlerList must be static`. Removing either breaks event registration at runtime, and no
+test here would catch it, because the tests do not run a plugin manager. They are marked as
+such rather than left to be rediscovered next sweep.
 
 ### Beaming was undocumented outside its permission nodes
 
@@ -239,6 +363,162 @@ If the player could be null, the guard returns false, the `else` runs, and the m
 Seven `javabugs:S2259` reports across `Build`, `Compass`, `Dial`, `RingCommand`, `BeamCommand`
 and `GateInteractionHandler` all traced back to this one line. Removing it clears every one of
 them, and behaviour is unchanged because the branch was unreachable.
+
+### A powered lever or button lost its facing when an old gate was rebuilt
+
+`LegacyCompat` translates a pre-flattening facing and power level to and from one byte.
+`getData` writes the powered bit on top of the facing -- a lever facing east and switched on
+is 12, not 4 -- but `setData` read the byte whole, matched no entry in the facing table, and
+left the block pointing wherever it already happened to be.
+
+On a gate rebuilt from an old save that is whatever the world put there, so a powered dial
+lever could come back on the wrong wall. It stayed powered; only the facing was lost, and
+nothing was logged.
+
+`setData` now takes the facing from the low three bits, which is where it has always been
+written. A byte carrying only the powered bit still says nothing about the facing, and still
+leaves it alone.
+
+### One unwritable gate could stop every gate after it being saved
+
+`saveStargate` runs in a loop over every gate on every clean shutdown, and it built its file
+name straight off `getGateName()`. A gate with no name threw there, and the gates after it in
+the loop were never written -- the owner finding out at the next start, with no warning at
+shutdown and no partial file to explain it. `removeStargate` and `readOwnerFromYaml` had the
+same dereference.
+
+A nameless gate is skipped now. Empty counts as nameless too: sanitised it became a hidden
+file called `.yml`, which the loader would read straight back in as a gate.
+
+The same method also handed `stargatetoBinary`'s result to Base64 without checking it, and
+that method returns null when it cannot encode a gate. Such a gate is skipped rather than
+written without its `GateData`, which would load back as a gate with no blocks at all --
+present, and doing nothing.
+
+### A deleted file that will not delete now says why
+
+The three places that remove a YAML file checked `File.delete()`'s boolean and logged that it
+had not worked. That is all a boolean can say. `Files.deleteIfExists` throws instead, and the
+exception distinguishes a file that is locked, one whose parent is gone, and one that is not
+ours to remove.
+
+It matters most for a gate: a gate file that survives its own deletion brings the gate back on
+the next load, and "could not delete" without a reason is a report nobody can act on.
+
+Also here: every line the plugin logs was building its own prefix even when the level was
+about to discard it. `prettyLog` is how the whole plugin logs, so a server running at INFO was
+paying to assemble every FINE line and throw it away. Both it and the startup banner take a
+supplier now, and nothing is joined until something is going to read it.
+
+### Two Javadocs describing methods that no longer exist
+
+`StargateRestrictions` and `WorldUtils` each carried a comment for something that had been
+deleted, with a note underneath saying where it went. The note is the part worth keeping;
+the Javadoc was documenting nothing.
+
+Alongside them: three regular expressions that were being recompiled once per line of a
+config description, a shape file, or a command argument, now compiled once; a layer number
+read with `Integer.valueOf` where `parseInt` says it; a `get`-then-`put` that is one
+`computeIfAbsent`; a local named for the field it shadowed; and two branches in `/wormhole
+list` that added the same gate either way.
+
+No behaviour change.
+
+### Eight findings that must not be "fixed" now say so in the code
+
+Five Bukkit event classes need both a static `getHandlerList()` and an instance
+`getHandlers()` returning the same field -- `Event` declares the instance one abstract, and
+`SimplePluginManager` looks the static one up reflectively, carrying the literal error string
+`getHandlerList must be static`. Removing or delegating either breaks event registration at
+runtime, and no test here would catch it because the tests do not run a plugin manager. Each
+class now carries `@SuppressWarnings("java:S4144")` and a paragraph saying that.
+
+The same for the two methods that return null on purpose: `readShapeFileLines` returns null
+for "does not exist or could not be read" -- its caller reports "No such file" -- and
+`wooshWave` for "the shape authored this index as empty", which an empty list cannot express.
+
+None of this changes behaviour. It moves eight standing decisions out of nobody's head and
+into the file the next person will open.
+
+### Nine small things, and three left alone on purpose
+
+Two unused imports, three values named on one line only to be returned on the next, a
+`continue` at the end of a loop body that continues anyway, two nested `if`s that were one
+condition, an empty `shutdown()` that said why in its Javadoc but not in its body, and a
+`reach` field `BukkitRingWorld` stored and never read -- along with the constructor argument
+that fed it, since its one caller already had the value for something else.
+
+**Four `return null`s were left as they are.** `StargateShapeRegistry.readShapeFileLines`
+returns null for "does not exist or could not be read", and its caller turns that into
+"No such file"; an empty array there would make an unreadable shape look like a blank but
+valid one. `StargateAnimator.wooshWave` documents null as "the shape authored this index as
+empty", which an empty list cannot say. And `stargatetoBinary` returns null when it cannot
+encode a gate, which the shutdown save has to tell apart from a gate that encoded -- a file
+with no data in it loads as a gate with no blocks. That fourth one was there all along, hidden
+behind a `final byte[] b = null; return b;` that the analyser could not see through; tidying
+the pointless local away is what made it visible. It carries a
+`@SuppressWarnings("java:S1168")` now, which is how this project already says "deliberately
+not this rule" in eight other places -- an explanation in the code beats one in a web console
+nobody reads.
+
+Returning empty collections is good advice in general and wrong at all four sites.
+
+### An error message asked whether you were a player, then said the same thing either way
+
+Both command safety nets branched on `playerCheck(sender)` and sent the identical "an internal
+error occurred" down both arms. The test was doing nothing at all -- a pure `instanceof` whose
+answer changed nothing -- so it is gone, and there is now a test for the console sender saying
+so, rather than the removal resting on the two arms having looked the same.
+
+Everyone is told the same thing on purpose: the failure is logged server-side, and neither a
+player nor an operator at the console can act on more than that. (What gets logged is only the
+exception's message, which for a null pointer is the word "null" -- worth improving, but that
+is a change to `prettyLog` and not to this.)
+
+### Loops that jumped out of themselves in several places now do it once
+
+Sixteen loops across fourteen files each had two or three `continue`s stacked at the top --
+guard clauses deciding whether this iteration was worth doing at all. Most are now one
+question asked in one place: whether a passenger may travel, whether a material is worth
+offering as a completion, what is wrong with one layer of one ring column.
+
+Two are left as guards rather than extracted, and deliberately. The iris sweep carries a
+lazily-found safe location across iterations, so hoisting its body out would mean threading
+that back and forth; its two conditions are joined instead. The shape row-width check carries
+the current layer and row number the same way, so its two line kinds are written as the
+alternatives they are.
+
+No behaviour change.
+
+### A nested try is its own step now, in eleven places
+
+Each was the same shape: a best-effort attempt sitting inside a wider one, where the inner
+catch exists so the steps *after* it still run. Shutdown is the clearest -- failing to save
+the rings must not stop the beams and the database being saved, and the economy plugin not
+being installed at all must not stop the shutdown finishing. Each inner attempt is a named
+method now, so what it protects is stated rather than inferred from brace depth.
+
+No behaviour change. The catches that reach past `Exception` to `LinkageError` are kept
+exactly as they were: `EconomySupport` may be absent entirely on some servers, which arrives
+as an error rather than an exception.
+
+One coverage gap turned up while pinning the flat-file parser. A config file carrying a
+setting name from an older version -- which `ConfigKeys.valueOf` throws on -- is skipped and
+the rest of the file still read, and nothing tested that. Without it, one stale line would
+hide every setting written after it and the file would silently fall back to defaults.
+
+### Repeated string literals are named now
+
+Twenty-seven literals were written out three to six times each -- subcommand names in the
+dispatch table, the two halves of the "Wormhole \"name\" cancelled." log lines, the YAML keys
+`World`, `Style` and `OwnerUUID`, the file-name sanitiser's character class.
+
+Renaming a subcommand or a YAML key meant finding every copy, and missing one was silent:
+the dispatch table would register `remove` and tab-complete something else.
+
+No behaviour change. `SubCommands` also gains a `TRUE` beside the `FALSE` the sweep asked
+for -- one of the pair spelled out and the other named reads like a mistake at every call
+site.
 
 ### A gate file that would not delete said nothing
 

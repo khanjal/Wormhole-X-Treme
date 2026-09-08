@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +31,33 @@ public class ConfigurationYAML
 
     protected static void loadConfiguration(final String pluginName)
     {
-        final File directory = new File("plugins" + File.separator + pluginName + File.separator);
+        loadConfiguration(pluginDirectory(pluginName));
+    }
+
+    /**
+     * Where this plugin keeps its own files.
+     *
+     * <p>The one place the path is built, so the methods below can be handed a directory
+     * instead of a name and be run against somewhere other than a live server.
+     *
+     * @param pluginName
+     *            the plugin's folder name
+     * @return its directory, which may not exist yet
+     */
+    static File pluginDirectory(final String pluginName)
+    {
+        return new File("plugins" + File.separator + pluginName + File.separator);
+    }
+
+    /**
+     * Reads config.yml out of the given directory, writing a default one first if there is
+     * none, and appending any keys the file does not yet mention.
+     *
+     * @param directory
+     *            the plugin directory to read from
+     */
+    static void loadConfiguration(final File directory)
+    {
         if (!directory.exists())
         {
             directory.mkdir();
@@ -39,68 +66,28 @@ public class ConfigurationYAML
         final File cfg = new File(directory, "config.yml");
         if (!cfg.exists())
         {
-            // write default file
-            writeFile(cfg, pluginName, DefaultSettings.config);
+            writeFile(cfg, DefaultSettings.config);
         }
 
         try (InputStream in = new FileInputStream(cfg))
         {
-            final Yaml yaml = new Yaml();
-            final Object loaded = yaml.load(in);
-            final List<Setting> missing = new ArrayList<>();
-            if (loaded instanceof Map)
+            final Object loaded = new Yaml().load(in);
+            if (!(loaded instanceof Map))
             {
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> map = (Map<String, Object>) loaded;
-                for (final Setting element : DefaultSettings.config)
-                {
-                    final String enumKey = element.getName().name();
-                    final String kebabKey = kebabKeyName(enumKey);
-                    Object value = null;
-                    if (map.containsKey(kebabKey))
-                    {
-                        value = map.get(kebabKey);
-                    }
-                    else if (map.containsKey(enumKey))
-                    {
-                        value = map.get(enumKey);
-                    }
-
-                    if (value != null)
-                    {
-                        Setting s = null;
-                        if (value instanceof Boolean flag)
-                        {
-                            s = new Setting(element.getName(), flag, element.getDescription(), "WormholeXTreme");
-                        }
-                        else if (value instanceof Integer whole)
-                        {
-                            s = new Setting(element.getName(), whole, element.getDescription(), "WormholeXTreme");
-                        }
-                        else if (value instanceof Number number)
-                        {
-                            s = new Setting(element.getName(), number.doubleValue(), element.getDescription(), "WormholeXTreme");
-                        }
-                        else
-                        {
-                            s = new Setting(element.getName(), value.toString(), element.getDescription(), "WormholeXTreme");
-                        }
-                        ConfigManager.getConfigurations().put(s.getName(), s);
-                    }
-                    else
-                    {
-                        // Key absent in file — use default in memory and queue for append
-                        ConfigManager.getConfigurations().put(element.getName(), element);
-                        missing.add(element);
-                    }
-                }
-
-                // Material groups are a nested section, so they are read straight off the
-                // parsed YAML rather than through the flat Setting/ConfigKeys mechanism.
-                // A server with no such section falls back to the built-in Standard group.
-                loadMaterialGroups(map.get("gate-material-groups"));
+                return;
             }
-            // Append any missing keys to the existing file so future runs load them normally
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> map = (Map<String, Object>) loaded;
+
+            final List<Setting> missing = applySettings(map);
+
+            // Material groups are a nested section, so they are read straight off the parsed
+            // YAML rather than through the flat Setting/ConfigKeys mechanism. A server with
+            // no such section falls back to the built-in Standard group.
+            loadMaterialGroups(map.get(MATERIAL_GROUPS_KEY));
+
+            // Appended to the file as well as defaulted in memory, so an admin can see the
+            // setting exists and change it.
             if (!missing.isEmpty())
             {
                 appendMissingSettings(cfg, missing);
@@ -108,8 +95,89 @@ public class ConfigurationYAML
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml", e);
         }
+    }
+
+    /**
+     * Puts every known setting into memory, from the file where it says something.
+     *
+     * @param map
+     *            the parsed config file
+     * @return the settings the file did not mention, which the caller appends to it
+     */
+    private static List<Setting> applySettings(final Map<String, Object> map)
+    {
+        final List<Setting> missing = new ArrayList<>();
+        for (final Setting element : DefaultSettings.config)
+        {
+            final Object value = valueFor(map, element);
+            if (value == null)
+            {
+                ConfigManager.getConfigurations().put(element.getName(), element);
+                missing.add(element);
+            }
+            else
+            {
+                final Setting s = settingFrom(element, value);
+                ConfigManager.getConfigurations().put(s.getName(), s);
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * What the file says about one setting, under either spelling of its key.
+     *
+     * <p>Kebab-case first, then the enum name -- so a config.yml written by a version that
+     * spelled it TIMEOUT_SHUTDOWN keeps working rather than silently reverting to the
+     * default.
+     *
+     * @param map
+     *            the parsed config file
+     * @param element
+     *            the setting being looked for
+     * @return its value, or null if the file does not mention it
+     */
+    private static Object valueFor(final Map<String, Object> map, final Setting element)
+    {
+        final String enumKey = element.getName().name();
+        final String kebabKey = kebabKeyName(enumKey);
+        if (map.containsKey(kebabKey))
+        {
+            return map.get(kebabKey);
+        }
+        return map.containsKey(enumKey) ? map.get(enumKey) : null;
+    }
+
+    /**
+     * Builds a setting from whatever type the YAML parser handed back.
+     *
+     * <p>Integer is checked before Number, and the order is load-bearing: Integer is a
+     * Number, so folding the two leaves every whole number stored as a Double and the next
+     * getIntValue throws a ClassCastException.
+     *
+     * @param element
+     *            the default, for its key and description
+     * @param value
+     *            the value read from the file
+     * @return the setting to store
+     */
+    private static Setting settingFrom(final Setting element, final Object value)
+    {
+        if (value instanceof Boolean flag)
+        {
+            return new Setting(element.getName(), flag, element.getDescription(), SETTING_SECTION);
+        }
+        if (value instanceof Integer whole)
+        {
+            return new Setting(element.getName(), whole, element.getDescription(), SETTING_SECTION);
+        }
+        if (value instanceof Number number)
+        {
+            return new Setting(element.getName(), number.doubleValue(), element.getDescription(), SETTING_SECTION);
+        }
+        return new Setting(element.getName(), value.toString(), element.getDescription(), SETTING_SECTION);
     }
 
     /**
@@ -133,6 +201,13 @@ public class ConfigurationYAML
         }
     }
 
+    /** Runs once per paragraph when a description is wrapped, so it is compiled once. */
+    private static final java.util.regex.Pattern WHITESPACE =
+        java.util.regex.Pattern.compile("\\s+");
+
+    /** The section every Setting is filed under; the same name for all of them. */
+    private static final String SETTING_SECTION = "WormholeXTreme";
+
     /** The config.yml key holding the nested material-group definitions. */
     private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
 
@@ -153,96 +228,159 @@ public class ConfigurationYAML
      */
     static boolean appendMaterialGroups(final File cfg, final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
     {
-        if (groups == null || groups.isEmpty())
+        if ((groups == null) || groups.isEmpty())
         {
             return false;
         }
         try
         {
+            final String block = renderGroups(groups);
             final List<String> lines = new ArrayList<>(java.nio.file.Files.readAllLines(cfg.toPath()));
-
-            final StringBuilder block = new StringBuilder();
-            for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
-            {
-                block.append("  # Added automatically from a gate shape using this frame material.")
-                     .append(System.lineSeparator());
-                block.append("  ").append(g.getName()).append(':').append(System.lineSeparator());
-                block.append("    structure: ").append(g.getStructureMaterial().name()).append(System.lineSeparator());
-                block.append("    portal: ").append(g.getPortalMaterial().name()).append(System.lineSeparator());
-                block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
-                block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
-                block.append("    sign: ").append(g.getSignMaterial().name()).append(System.lineSeparator());
-                // Written only when the shape this palette was derived from asked for one.
-                // Writing a placeholder would hand the server a palette whose gates must be
-                // built differently from the shape that suggested it.
-                if (g.getChevronMaterial() != null)
-                {
-                    block.append("    chevron: ").append(g.getChevronMaterial().name()).append(System.lineSeparator());
-                }
-            }
-
-            int sectionStart = -1;
-            for (int i = 0; i < lines.size(); i++)
-            {
-                if (lines.get(i).startsWith(MATERIAL_GROUPS_KEY + ":"))
-                {
-                    sectionStart = i;
-                    break;
-                }
-            }
+            final int sectionStart = indexOfSection(lines);
 
             if (sectionStart < 0)
             {
-                try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true))
-                {
-                    writer.write(System.lineSeparator());
-                    writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
-                    writer.write(block.toString());
-                }
+                appendNewSection(cfg, block);
             }
             else
             {
-                // The block ends at the first following line that is neither blank, nor a
-                // comment, nor indented — that line belongs to the next top-level key.
-                int insertAt = lines.size();
-                for (int i = sectionStart + 1; i < lines.size(); i++)
-                {
-                    final String line = lines.get(i);
-                    if (line.trim().isEmpty() || line.startsWith(" ") || line.trim().startsWith("#"))
-                    {
-                        continue;
-                    }
-                    insertAt = i;
-                    break;
-                }
-                // Step back over trailing blanks and comments so the new entries sit with
-                // the group definitions rather than after the next key's comment header.
-                while (insertAt > sectionStart + 1
-                    && (lines.get(insertAt - 1).trim().isEmpty() || lines.get(insertAt - 1).trim().startsWith("#")))
-                {
-                    insertAt--;
-                }
-                final List<String> inserted = new ArrayList<>(java.util.Arrays.asList(
-                    block.toString().split("\\R")));
-                lines.addAll(insertAt, inserted);
+                lines.addAll(insertionPoint(lines, sectionStart),
+                    java.util.Arrays.asList(block.split("\\R")));
                 java.nio.file.Files.write(cfg.toPath(), lines);
             }
-
-            final List<String> names = new ArrayList<>();
-            for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
-            {
-                names.add(g.getName() + "=" + g.getStructureMaterial());
-            }
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
-                "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
+            logAdded(groups);
             return true;
         }
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to add discovered material groups to config.yml: " + e.getMessage());
+                "Failed to add discovered material groups to config.yml", e);
             return false;
         }
+    }
+
+    /**
+     * Writes out the YAML for a set of discovered groups.
+     *
+     * @param groups
+     *            the groups to write
+     * @return the block of lines, indented to sit under the section key
+     */
+    private static String renderGroups(final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        final StringBuilder block = new StringBuilder();
+        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+        {
+            block.append("  # Added automatically from a gate shape using this frame material.")
+                 .append(System.lineSeparator());
+            block.append("  ").append(g.getName()).append(':').append(System.lineSeparator());
+            block.append("    structure: ").append(g.getStructureMaterial().name()).append(System.lineSeparator());
+            block.append("    portal: ").append(g.getPortalMaterial().name()).append(System.lineSeparator());
+            block.append("    iris: ").append(g.getIrisMaterial().name()).append(System.lineSeparator());
+            block.append("    light: ").append(g.getLightMaterial().name()).append(System.lineSeparator());
+            block.append("    sign: ").append(g.getSignMaterial().name()).append(System.lineSeparator());
+            // Written only when the shape this palette was derived from asked for one.
+            // Writing a placeholder would hand the server a palette whose gates must be
+            // built differently from the shape that suggested it.
+            if (g.getChevronMaterial() != null)
+            {
+                block.append("    chevron: ").append(g.getChevronMaterial().name()).append(System.lineSeparator());
+            }
+        }
+        return block.toString();
+    }
+
+    /**
+     * Finds the material groups section.
+     *
+     * @param lines
+     *            the config file
+     * @return the line the section key sits on, or -1 if the file has no such section
+     */
+    private static int indexOfSection(final List<String> lines)
+    {
+        for (int i = 0; i < lines.size(); i++)
+        {
+            if (lines.get(i).startsWith(MATERIAL_GROUPS_KEY + ":"))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Where new groups belong inside an existing section.
+     *
+     * <p>The section ends at the first following line that is neither blank, nor a comment,
+     * nor indented -- that line belongs to the next top-level key. The point then steps back
+     * over any trailing blanks and comments, so the new entries sit with the group
+     * definitions rather than below the comment that introduces whatever comes next. Both
+     * placements parse; only one of them reads correctly to the next person editing the file.
+     *
+     * @param lines
+     *            the config file
+     * @param sectionStart
+     *            the line the section key sits on
+     * @return the line to insert at
+     */
+    private static int insertionPoint(final List<String> lines, final int sectionStart)
+    {
+        int insertAt = lines.size();
+        for (int i = sectionStart + 1; i < lines.size(); i++)
+        {
+            // Blank lines, indented lines and comments are all still inside the section; the
+            // first line that is none of those is where the section ends.
+            final String line = lines.get(i);
+            if (!line.trim().isEmpty() && !line.startsWith(" ") && !line.trim().startsWith("#"))
+            {
+                insertAt = i;
+                break;
+            }
+        }
+        while ((insertAt > (sectionStart + 1))
+            && (lines.get(insertAt - 1).trim().isEmpty() || lines.get(insertAt - 1).trim().startsWith("#")))
+        {
+            insertAt--;
+        }
+        return insertAt;
+    }
+
+    /**
+     * Starts a material groups section at the end of a config that has none.
+     *
+     * @param cfg
+     *            the config file
+     * @param block
+     *            the groups to write under it
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void appendNewSection(final File cfg, final String block) throws IOException
+    {
+        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true))
+        {
+            writer.write(System.lineSeparator());
+            writer.write(MATERIAL_GROUPS_KEY + ":" + System.lineSeparator());
+            writer.write(block);
+        }
+    }
+
+    /**
+     * Notes which groups were added and what frame material each came from.
+     *
+     * @param groups
+     *            the groups just written
+     */
+    private static void logAdded(final List<com.wormhole_xtreme.wormhole.model.MaterialGroup> groups)
+    {
+        final List<String> names = new ArrayList<>();
+        for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g : groups)
+        {
+            names.add(g.getName() + "=" + g.getStructureMaterial());
+        }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
+            "Added " + groups.size() + " material group(s) to config.yml from gate shapes: " + names);
     }
 
     /**
@@ -254,7 +392,7 @@ public class ConfigurationYAML
      */
     static File getConfigFile(final String pluginName)
     {
-        return new File("plugins" + File.separator + pluginName + File.separator, "config.yml");
+        return new File(pluginDirectory(pluginName), "config.yml");
     }
 
     private static void appendMissingSettings(final File cfg, final List<Setting> missing)
@@ -284,16 +422,18 @@ public class ConfigurationYAML
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to append missing config keys: " + e.getMessage());
+                "Failed to append missing config keys", e);
         }
     }
 
-    protected static void writeFile(final File file, final String pluginName, final Setting[] config)
+    protected static void writeFile(final File file, final Setting[] config)
     {
         try
         {
-            final File directory = new File("plugins" + File.separator + pluginName + File.separator);
-            if (!directory.exists())
+            // The directory to make is the one the file goes in; the caller already decided
+            // where that is, so there is nothing to work out from a plugin name.
+            final File directory = file.getParentFile();
+            if ((directory != null) && !directory.exists())
             {
                 directory.mkdir();
             }
@@ -318,7 +458,7 @@ public class ConfigurationYAML
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml", e);
         }
     }
 
@@ -387,82 +527,161 @@ public class ConfigurationYAML
      * @param pluginName
      *            the plugin's folder name
      */
-    protected static void writeCurrentConfiguration(final File file, final String pluginName)
+    protected static void writeCurrentConfiguration(final File file)
     {
         try
         {
-            final File directory = new File("plugins" + File.separator + pluginName + File.separator);
-            if (!directory.exists())
+            final File directory = file.getParentFile();
+            if ((directory != null) && !directory.exists())
             {
                 directory.mkdir();
             }
 
-            final Setting[] defaults = com.wormhole_xtreme.wormhole.config.DefaultSettings.config;
-            final java.util.Map<String, String> values = new java.util.LinkedHashMap<String, String>();
-            final java.util.Map<String, Setting> byKey = new java.util.LinkedHashMap<String, Setting>();
-            for (final Setting def : defaults)
-            {
-                final com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys key = def.getName();
-                if (key == com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
-                {
-                    continue;
-                }
-                final Setting runtime = com.wormhole_xtreme.wormhole.config.ConfigManager.getConfigurations().get(key);
-                final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
-                final String keyName = kebabKeyName(key.name());
-                values.put(keyName, formatValueForYaml(value));
-                byKey.put(keyName, def);
-            }
+            final Setting[] defaults = DefaultSettings.config;
+            final Map<String, String> values = new LinkedHashMap<>();
+            final Map<String, Setting> byKey = new LinkedHashMap<>();
+            collectCurrentValues(defaults, values, byKey);
 
             if (!file.exists())
             {
-                writeFile(file, pluginName, defaults);
+                writeFile(file, defaults);
                 return;
             }
 
-            final List<String> existing = java.nio.file.Files.readAllLines(file.toPath());
             final java.util.Set<String> updated = new java.util.HashSet<String>();
-            final List<String> rewritten = updateSettingLines(existing, values, updated);
+            final List<String> rewritten =
+                updateSettingLines(java.nio.file.Files.readAllLines(file.toPath()), values, updated);
 
-            final List<Setting> missing = new java.util.ArrayList<Setting>();
-            for (final java.util.Map.Entry<String, Setting> e : byKey.entrySet())
-            {
-                if (!updated.contains(e.getKey()))
-                {
-                    missing.add(e.getValue());
-                }
-            }
-
-            try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
-            {
-                for (final String line : rewritten)
-                {
-                    writer.write(line + System.lineSeparator());
-                }
-                if (!missing.isEmpty())
-                {
-                    writer.write(System.lineSeparator());
-                    writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
-                    for (final Setting s : missing)
-                    {
-                        final String keyName = kebabKeyName(s.getName().name());
-                        if ((s.getDescription() != null) && (!s.getDescription().isEmpty()))
-                        {
-                            for (final String wrapped : wrapComment(s.getDescription(), 80))
-                            {
-                                writer.write("# " + wrapped + System.lineSeparator());
-                            }
-                        }
-                        writer.write(keyName + ": " + values.get(keyName) + System.lineSeparator());
-                        writer.write(System.lineSeparator());
-                    }
-                }
-            }
+            rewriteFile(file, rewritten, missingFrom(byKey, updated), values);
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml", e);
         }
+    }
+
+    /**
+     * Reads every setting's current value, ready to be written back.
+     *
+     * <p>permissions-support-disable is left out on purpose, and that means left as the
+     * admin has it rather than dropped: it is absent from the list this writer owns, so an
+     * existing line survives the rewrite untouched and no line is invented for a server that
+     * never set one.
+     *
+     * @param defaults
+     *            the settings this plugin knows about
+     * @param values
+     *            filled with each key's value, formatted for YAML
+     * @param byKey
+     *            filled with each key's default, for its description
+     */
+    private static void collectCurrentValues(final Setting[] defaults,
+                                             final Map<String, String> values,
+                                             final Map<String, Setting> byKey)
+    {
+        for (final Setting def : defaults)
+        {
+            final ConfigManager.ConfigKeys key = def.getName();
+            if (key == ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE)
+            {
+                continue;
+            }
+            final Setting runtime = ConfigManager.getConfigurations().get(key);
+            final Object value = (runtime != null) ? runtime.getValue() : def.getValue();
+            final String keyName = kebabKeyName(key.name());
+            values.put(keyName, formatValueForYaml(value));
+            byKey.put(keyName, def);
+        }
+    }
+
+    /**
+     * The settings the file never mentioned, so nothing rewrote them in place.
+     *
+     * @param byKey
+     *            every setting this writer owns
+     * @param updated
+     *            the keys that were found and rewritten
+     * @return the ones left over
+     */
+    private static List<Setting> missingFrom(final Map<String, Setting> byKey,
+                                             final java.util.Set<String> updated)
+    {
+        final List<Setting> missing = new ArrayList<>();
+        for (final Map.Entry<String, Setting> e : byKey.entrySet())
+        {
+            if (!updated.contains(e.getKey()))
+            {
+                missing.add(e.getValue());
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Writes the rewritten file, with anything it never mentioned added at the end.
+     *
+     * <p>An admin who never sees a setting written down has no way to know it exists, so the
+     * missing ones go in with their descriptions rather than only being defaulted in memory.
+     *
+     * @param file
+     *            the config file
+     * @param rewritten
+     *            the existing lines, with known settings brought up to date
+     * @param missing
+     *            settings the file never mentioned
+     * @param values
+     *            each key's value, formatted for YAML
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void rewriteFile(final File file, final List<String> rewritten,
+                                    final List<Setting> missing, final Map<String, String> values)
+        throws IOException
+    {
+        try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
+        {
+            for (final String line : rewritten)
+            {
+                writer.write(line + System.lineSeparator());
+            }
+            if (missing.isEmpty())
+            {
+                return;
+            }
+            writer.write(System.lineSeparator());
+            writer.write("# --- Added by WormholeXTreme (missing keys) ---" + System.lineSeparator());
+            for (final Setting s : missing)
+            {
+                writeMissingSetting(writer, s, values);
+            }
+        }
+    }
+
+    /**
+     * Writes one setting the file did not have, with its explanation above it.
+     *
+     * @param writer
+     *            the file being written
+     * @param setting
+     *            the setting to add
+     * @param values
+     *            each key's value, formatted for YAML
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void writeMissingSetting(final FileWriter writer, final Setting setting,
+                                            final Map<String, String> values) throws IOException
+    {
+        final String keyName = kebabKeyName(setting.getName().name());
+        if ((setting.getDescription() != null) && !setting.getDescription().isEmpty())
+        {
+            for (final String wrapped : wrapComment(setting.getDescription(), 80))
+            {
+                writer.write("# " + wrapped + System.lineSeparator());
+            }
+        }
+        writer.write(keyName + ": " + values.get(keyName) + System.lineSeparator());
+        writer.write(System.lineSeparator());
     }
 
     /**
@@ -511,7 +730,7 @@ public class ConfigurationYAML
         final String[] paragraphs = text.split("\\n");
         for (final String para : paragraphs)
         {
-            final String[] words = para.split("\\s+");
+            final String[] words = WHITESPACE.split(para);
             StringBuilder line = new StringBuilder();
             for (final String w : words)
             {

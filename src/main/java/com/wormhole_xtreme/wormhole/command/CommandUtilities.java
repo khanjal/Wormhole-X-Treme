@@ -16,6 +16,10 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  */
 public class CommandUtilities
 {
+    /** A literal quote, stripped once per argument while splitting a command line. */
+    private static final java.util.regex.Pattern QUOTE =
+        java.util.regex.Pattern.compile("\"");
+
     /** Static helpers only; never instantiated. */
     private CommandUtilities()
     {
@@ -64,53 +68,68 @@ public class CommandUtilities
      */
     static String[] commandEscaper(final String[] args)
     {
-        StringBuilder tempString = new StringBuilder();
-        boolean startQuoteFound = false;
-        boolean endQuoteFound = false;
-
-        final ArrayList<String> argsPartsList = new ArrayList<String>();
-
+        final Phrase phrase = new Phrase();
+        final ArrayList<String> out = new ArrayList<>();
         for (final String part : args)
         {
-            // First check to see if we have a starting or stopping quote
-            if (part.contains("\"") && !startQuoteFound)
-            {
-                // Two quotes in same string = no spaces in quoted text;
-                if ( !part.replaceFirst("\"", "").contains("\""))
-                {
-                    startQuoteFound = true;
-                }
-            }
-            else if (part.contains("\"") && startQuoteFound)
-            {
-                endQuoteFound = true;
-            }
+            phrase.take(part, out);
+        }
+        // Deliberately not flushed: a phrase whose closing quote never arrived is dropped,
+        // along with everything after it. See CommandEscaperTest, which records that rather
+        // than endorsing it.
+        return out.toArray(new String[out.size()]);
+    }
 
-            // If no quotes yet, we just append to list
-            if ( !startQuoteFound)
-            {
-                argsPartsList.add(part);
-            }
+    /**
+     * The quoted phrase being rebuilt, if one is open.
+     *
+     * <p>Minecraft splits a command on spaces before the plugin sees it, so {@code "my gate"}
+     * arrives as two arguments. This walks them one at a time and puts the phrase back
+     * together.
+     */
+    private static final class Phrase
+    {
+        private final StringBuilder words = new StringBuilder();
+        private boolean open;
 
-            // If we have quotes we should make sure to append the values
-            // if we found the last quote we should stop adding.
-            if (startQuoteFound)
+        /**
+         * Takes one argument, adding either it or a finished phrase to the result.
+         *
+         * @param part
+         *            the argument as Minecraft split it
+         * @param out
+         *            the arguments to hand the command, appended to
+         */
+        void take(final String part, final ArrayList<String> out)
+        {
+            final boolean quoted = part.contains("\"");
+            if (!open)
             {
-                tempString.append(part.replace("\"", ""));
-                if (endQuoteFound)
+                // A word carrying both quotes is not a phrase that needs rejoining, so it is
+                // passed through as it came -- quotes included. Recorded in the tests.
+                if (quoted && !QUOTE.matcher(part).replaceFirst("").contains("\""))
                 {
-                    argsPartsList.add(tempString.toString());
-                    startQuoteFound = false;
-                    endQuoteFound = false;
-                    tempString = new StringBuilder();
+                    open = true;
+                    words.append(part.replace("\"", "")).append(" ");
                 }
                 else
                 {
-                    tempString.append(" ");
+                    out.add(part);
                 }
+                return;
+            }
+            words.append(part.replace("\"", ""));
+            if (quoted)
+            {
+                out.add(words.toString());
+                words.setLength(0);
+                open = false;
+            }
+            else
+            {
+                words.append(" ");
             }
         }
-        return argsPartsList.toArray(new String[argsPartsList.size()]);
     }
 
     /**
@@ -168,7 +187,7 @@ public class CommandUtilities
         catch (final Exception e)
         {
             // Be conservative: log and continue with removal to avoid leaving stale DB entries.
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error shutting down gate before removal: " + e.getMessage());
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error shutting down gate before removal", e);
         }
         // Remove any activator/player mapping referencing this stargate.
         try
@@ -177,7 +196,7 @@ public class CommandUtilities
         }
         catch (final Exception e)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "No activator mapping to remove or error: " + e.getMessage());
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "No activator mapping to remove or error", e);
         }
 
         stargate.setupGateSign(false);
@@ -259,15 +278,10 @@ public class CommandUtilities
         }
         catch (final Exception t)
         {
-            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing command: " + t.getMessage());
-            if (playerCheck(sender))
-            {
-                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
-            }
-            else
-            {
-                sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
-            }
+            com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Error executing command", t);
+            // Everyone is told the same thing, console included: the failure is logged
+            // server-side, and neither a player nor an operator can act on more than that.
+            sender.sendMessage(com.wormhole_xtreme.wormhole.config.ConfigManager.MessageStrings.ERROR_HEADER.toString() + "An internal error occurred. Check server logs.");
             return true;
         }
     }

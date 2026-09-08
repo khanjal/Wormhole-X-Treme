@@ -183,23 +183,24 @@ class RingYamlManagerTest
     {
         // The whole reason a shared file is acceptable. A pair with an unreadable pattern is
         // logged and skipped, and its neighbours still load.
-        final String yaml =
-            "World: world\n"
-            + "Pairs:\n"
-            + "  good0001:\n"
-            + "    Owner: ''\n"
-            + "    OwnerName: ''\n"
-            + "    Label: ''\n"
-            + "    Created: 1\n"
-            + "    A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}\n"
-            + "    B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}\n"
-            + "  broken01:\n"
-            + "    Owner: ''\n"
-            + "    OwnerName: ''\n"
-            + "    Label: ''\n"
-            + "    Created: 1\n"
-            + "    A: {X: 0, Y: 64, Z: 0, Pattern: TRIANGLE, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}\n"
-            + "    B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}\n";
+        final String yaml = """
+            World: world
+            Pairs:
+              good0001:
+                Owner: ''
+                OwnerName: ''
+                Label: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+              broken01:
+                Owner: ''
+                OwnerName: ''
+                Label: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: TRIANGLE, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+            """;
         Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
 
         assertEquals(1, RingYamlManager.loadAll(directory, REACH));
@@ -230,16 +231,17 @@ class RingYamlManagerTest
     @Test
     void theWorldFieldWinsOverTheFilename() throws IOException
     {
-        final String yaml =
-            "World: nether_wastes\n"
-            + "Pairs:\n"
-            + "  cccc3333:\n"
-            + "    Owner: ''\n"
-            + "    OwnerName: ''\n"
-            + "    Label: ''\n"
-            + "    Created: 1\n"
-            + "    A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}\n"
-            + "    B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}\n";
+        final String yaml = """
+            World: nether_wastes
+            Pairs:
+              cccc3333:
+                Owner: ''
+                OwnerName: ''
+                Label: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: GLOWSTONE}
+            """;
         Files.write(new File(directory, "some_other_name.yml").toPath(),
             yaml.getBytes(StandardCharsets.UTF_8));
 
@@ -309,15 +311,16 @@ class RingYamlManagerTest
     {
         // Written when one material did both jobs. Falling back to the light keeps those
         // rings looking exactly as they did rather than turning them a default colour.
-        final String yaml =
-            "World: world\n"
-            + "Pairs:\n"
-            + "  older001:\n"
-            + "    Owner: ''\n"
-            + "    OwnerName: ''\n"
-            + "    Created: 1\n"
-            + "    A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: SEA_LANTERN}\n"
-            + "    B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: SEA_LANTERN}\n";
+        final String yaml = """
+            World: world
+            Pairs:
+              older001:
+                Owner: ''
+                OwnerName: ''
+                Created: 1
+                A: {X: 0, Y: 64, Z: 0, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: SEA_LANTERN}
+                B: {X: 90, Y: 64, Z: 90, Pattern: ODD, Orientation: FLOOR, Ring: STONE_SLAB, Light: SEA_LANTERN}
+            """;
         Files.write(new File(directory, "world.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
 
         RingYamlManager.loadAll(directory, REACH);
@@ -360,12 +363,12 @@ class RingYamlManagerTest
         assertEquals(1, RingYamlManager.loadPending(directory));
         final RingManager.PendingRing back = RingManager.getPending(builder);
         assertNotNull(back);
-        assertEquals(WORLD, back.getWorldName());
-        assertEquals(40, back.getRing().getAnchorX());
-        assertEquals(RingPattern.EVEN, back.getRing().getPattern());
-        assertEquals(RingOrientation.CEILING, back.getRing().getOrientation());
-        assertEquals(Material.DEEPSLATE_TILE_SLAB, back.getRing().getRingMaterial());
-        assertEquals("Cellar", back.getRing().getName());
+        assertEquals(WORLD, back.worldName());
+        assertEquals(40, back.ring().getAnchorX());
+        assertEquals(RingPattern.EVEN, back.ring().getPattern());
+        assertEquals(RingOrientation.CEILING, back.ring().getOrientation());
+        assertEquals(Material.DEEPSLATE_TILE_SLAB, back.ring().getRingMaterial());
+        assertEquals("Cellar", back.ring().getName());
     }
 
     @Test

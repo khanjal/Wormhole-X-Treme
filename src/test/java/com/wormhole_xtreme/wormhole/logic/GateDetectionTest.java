@@ -48,8 +48,8 @@ class GateDetectionTest
 {
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
 
-    private final Map<String, Material> placed = new HashMap<String, Material>();
-    private final Map<String, Block> blocks = new HashMap<String, Block>();
+    private final Map<String, Material> placed = new HashMap<>();
+    private final Map<String, Block> blocks = new HashMap<>();
     private World world;
 
     @BeforeEach
@@ -114,7 +114,7 @@ class GateDetectionTest
         throws Exception
     {
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
-        final List<String> out = new ArrayList<String>();
+        final List<String> out = new ArrayList<>();
         for (final String line : lines)
         {
             out.add((from == null) || line.trim().startsWith("#") ? line : line.replace(from, to));
@@ -246,7 +246,7 @@ class GateDetectionTest
         final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
 
         // Rebuild the whole frame in something no palette claims.
-        for (final String at : new ArrayList<String>(placed.keySet()))
+        for (final String at : new ArrayList<>(placed.keySet()))
         {
             placed.put(at, Material.DIRT);
         }
@@ -377,6 +377,80 @@ class GateDetectionTest
             assertTrue(m.getY() < holder.getY(),
                 "every monitor sits below the holder, where a player would run dust");
         }
+    }
+
+    /**
+     * The arrival steps out along every axis the facing has, not just one.
+     *
+     * <p>{@link #theArrivalPointSitsOutsideThePortal} builds facing SOUTH, whose x component
+     * is zero -- so dropping the x term from the arrival changes nothing there and the test
+     * passes anyway. Facing EAST is the other way round. Between them the two cover both
+     * terms; either alone covers one and looks like it covers both.
+     */
+    @Test
+    void theArrivalStepsOutAlongTheFacingsOtherAxis() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.EAST, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.EAST, s);
+        assertNotNull(found);
+
+        final Location arrival = found.getGatePlayerTeleportLocation();
+        assertNotNull(arrival);
+        // EAST is +X, so the arrival must sit a whole block further along x than the cell it
+        // was derived from -- the half-block centring alone would leave it inside the portal.
+        assertEquals(0.5, arrival.getX() - Math.floor(arrival.getX()), 0.001,
+            "still centred in its block: " + arrival);
+        assertTrue(arrival.getX() >= 1.0,
+            "an EAST gate's arrival steps out along x, not only z: " + arrival);
+    }
+
+    /**
+     * A minecart arrives half a block up, in the middle of its block.
+     *
+     * <p>Sunk to the block floor it spawns inside the ground and is pushed out somewhere the
+     * gate did not choose. Nothing covered this at all.
+     */
+    @Test
+    void aMinecartArrivesCentredInItsBlock() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        final Location cart = found.getGateMinecartTeleportLocation();
+        assertNotNull(cart, "a Standard gate names an EM cell");
+        // Fractional part via floor, not %: Java keeps the dividend's sign, so a gate built
+        // at a negative coordinate would give -0.5 for a block that is centred just fine.
+        assertEquals(0.5, cart.getX() - Math.floor(cart.getX()), 0.001, "centred on x: " + cart);
+        assertEquals(0.5, cart.getY() - Math.floor(cart.getY()), 0.001, "and lifted half a block: " + cart);
+        assertEquals(0.5, cart.getZ() - Math.floor(cart.getZ()), 0.001, "and centred on z: " + cart);
+    }
+
+    /**
+     * The iris lever hangs on the gate's face, not inside the frame block.
+     *
+     * <p>Recorded on the block the shape names, the lever would be buried in the frame where
+     * nobody can click it.
+     */
+    @Test
+    void theIrisLeverSitsOnTheGatesFace() throws Exception
+    {
+        final Stargate3DShape s = shape("Standard");
+        final Block clicked = build(s, BlockFace.SOUTH, 0, 64, 0);
+
+        final Stargate found = StargateHelper.checkStargate(clicked, BlockFace.SOUTH, s);
+        assertNotNull(found);
+
+        final Block lever = found.getGateIrisLeverBlock();
+        assertNotNull(lever, "a Standard gate names an IA cell");
+        // SOUTH is +Z, so the lever is one step further along z than any frame cell there.
+        assertFalse(placed.containsKey(key(lever.getX(), lever.getY(), lever.getZ())),
+            "the lever is on the face, not in a frame block: " + lever.getX() + "," + lever.getY()
+                + "," + lever.getZ());
     }
 
     /**

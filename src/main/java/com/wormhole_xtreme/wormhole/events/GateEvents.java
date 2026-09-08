@@ -154,7 +154,7 @@ public final class GateEvents
             if (plugin != null)
             {
                 plugin.prettyLog(Level.WARNING,
-                    "A listener for " + event.getEventName() + " failed: " + cause.getMessage());
+                    "A listener for " + event.getEventName() + " failed", cause);
             }
         }
         catch (final RuntimeException ignore)

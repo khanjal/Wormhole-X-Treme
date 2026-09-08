@@ -235,6 +235,9 @@ class StargateAnimator
      * @param index which wave, 0 being the one nearest the portal
      * @return the wave's locations, or null if the shape authored this index as empty
      */
+    // S1168 asks for an empty list. Null means "the shape authored this index as empty",
+    // which an empty list cannot say, and both callers branch on it.
+    @SuppressWarnings("java:S1168")
     static List<Location> wooshWave(final Stargate gate, final int index)
     {
         if ((gate.getGateWooshBlocks() != null) && !gate.getGateWooshBlocks().isEmpty())
@@ -250,7 +253,7 @@ class StargateAnimator
             return null;
         }
         final int out = index + 1;
-        final ArrayList<Location> wave = new ArrayList<Location>();
+        final ArrayList<Location> wave = new ArrayList<>();
         for (final Location portal : gate.getGatePortalBlocks())
         {
             // Built as a plain Location rather than looked up through
@@ -431,7 +434,7 @@ class StargateAnimator
         {
             return;
         }
-        final List<Location> stillShowing = new ArrayList<Location>();
+        final List<Location> stillShowing = new ArrayList<>();
         for (final Block b : gate.getGateAnimatedBlocks())
         {
             stillShowing.add(b.getLocation());

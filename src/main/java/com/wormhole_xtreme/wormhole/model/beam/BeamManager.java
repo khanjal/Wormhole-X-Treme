@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class BeamManager
 {
-    private static final Map<String, BeamDestination> PUBLIC = new ConcurrentHashMap<String, BeamDestination>();
+    private static final Map<String, BeamDestination> PUBLIC = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<String, BeamDestination>> PLACES =
-        new ConcurrentHashMap<UUID, Map<String, BeamDestination>>();
+        new ConcurrentHashMap<>();
 
     private BeamManager() {}
 
@@ -54,7 +54,7 @@ public final class BeamManager
 
     public static void setPlace(final UUID owner, final BeamDestination place)
     {
-        PLACES.computeIfAbsent(owner, k -> new ConcurrentHashMap<String, BeamDestination>())
+        PLACES.computeIfAbsent(owner, k -> new ConcurrentHashMap<>())
             .put(place.getName().toLowerCase(Locale.ROOT), place);
     }
 

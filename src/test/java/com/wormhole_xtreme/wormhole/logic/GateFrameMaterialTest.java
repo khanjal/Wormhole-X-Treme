@@ -23,9 +23,9 @@ class GateFrameMaterialTest
 {
     private static void loadGroups(final String name, final String structure)
     {
-        final Map<String, Object> group = new LinkedHashMap<String, Object>();
+        final Map<String, Object> group = new LinkedHashMap<>();
         group.put("structure", structure);
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put(name, group);
         MaterialGroupRegistry.load(section);
     }

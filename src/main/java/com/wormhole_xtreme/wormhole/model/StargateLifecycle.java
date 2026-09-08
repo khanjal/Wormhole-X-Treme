@@ -20,6 +20,10 @@ import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
  */
 class StargateLifecycle
 {
+    private static final String GATE_PREFIX = "Wormhole \"";
+    private static final String CANCELLED_TAIL = "\" cancelled.";
+    private static final String ACTIVATE_TASK_ID = "\" ActivateTaskID \"";
+
     private StargateLifecycle() {}
 
     // -----------------------------------------------------------------------
@@ -41,7 +45,7 @@ class StargateLifecycle
         if (gate.getGateShutdownTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" cancelled.");
+                GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + CANCELLED_TAIL);
             WormholeXTreme.getScheduler().cancelTask(gate.getGateShutdownTaskId());
             gate.setGateShutdownTaskId(-1);
         }
@@ -109,7 +113,7 @@ class StargateLifecycle
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, p, ActionToTake.DEACTIVATE), timeout));
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-            "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" created.");
+            GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.getGateActivateTaskId() + "\" created.");
     }
 
     /**
@@ -122,7 +126,7 @@ class StargateLifecycle
         if (gate.getGateActivateTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" cancelled.");
+                GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.getGateActivateTaskId() + CANCELLED_TAIL);
             WormholeXTreme.getScheduler().cancelTask(gate.getGateActivateTaskId());
             gate.setGateActivateTaskId(-1);
         }
@@ -138,7 +142,7 @@ class StargateLifecycle
         if (gate.getGateAfterShutdownTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + "\" cancelled.");
+                GATE_PREFIX + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + CANCELLED_TAIL);
             WormholeXTreme.getScheduler().cancelTask(gate.getGateAfterShutdownTaskId());
             gate.setGateAfterShutdownTaskId(-1);
         }
@@ -161,7 +165,7 @@ class StargateLifecycle
         if (gate.getGateActivateTaskId() > 0)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" ActivateTaskID \"" + gate.getGateActivateTaskId() + "\" timed out.");
+                GATE_PREFIX + gate.getGateName() + ACTIVATE_TASK_ID + gate.getGateActivateTaskId() + "\" timed out.");
             gate.setGateActivateTaskId(-1);
         }
         // By gate identity, not by player: removeActivatedStargate(p) would remove
@@ -281,7 +285,7 @@ class StargateLifecycle
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.AFTERSHUTDOWN), timeout));
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-            "Wormhole \"" + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + "\" created.");
+            GATE_PREFIX + gate.getGateName() + "\" AfterShutdownTaskID \"" + gate.getGateAfterShutdownTaskId() + "\" created.");
         if (gate.getGateAfterShutdownTaskId() == -1)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,

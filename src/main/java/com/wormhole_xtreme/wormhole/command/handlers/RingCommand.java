@@ -41,6 +41,9 @@ import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
 @SuppressWarnings("java:S3516")
 public class RingCommand implements SubCommand
 {
+    private static final String ALLOW = "allow";
+    private static final String NOT_YOUR_PAIR = "That is not your ring pair.";
+
     /* (non-Javadoc)
      * @see com.wormhole_xtreme.wormhole.command.SubCommand#execute(org.bukkit.command.CommandSender, java.lang.String[])
      */
@@ -75,9 +78,9 @@ public class RingCommand implements SubCommand
         {
             return edit(player, args);
         }
-        if ("allow".equals(verb) || "deny".equals(verb))
+        if (ALLOW.equals(verb) || "deny".equals(verb))
         {
-            return allowOrDeny(player, args, "allow".equals(verb));
+            return allowOrDeny(player, args, ALLOW.equals(verb));
         }
         if ("owner".equals(verb))
         {
@@ -188,12 +191,12 @@ public class RingCommand implements SubCommand
     private static boolean completePair(final Player player, final RingManager.PendingRing waiting,
         final Ring ring, final String world)
     {
-        if (!waiting.getWorldName().equals(world))
+        if (!waiting.worldName().equals(world))
         {
             // Said here rather than discovered later. Rings do not cross worlds, and finding
             // that out after laying a second circle of slabs is a poor way to learn it.
             player.sendMessage("Both ends have to be in the same world. Your first ring is in "
-                + waiting.getWorldName() + ", and this one is in " + world + ".");
+                + waiting.worldName() + ", and this one is in " + world + ".");
             player.sendMessage("Run /wormhole ring cancel to give up on that one.");
             return true;
         }
@@ -202,16 +205,16 @@ public class RingCommand implements SubCommand
         // are for.
         final int maxDistance = ConfigManager.getRingMaxLinkDistance();
         if ((maxDistance > 0)
-            && (waiting.getRing().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
+            && (waiting.ring().anchorDistanceSquared(ring) > ((long) maxDistance * maxDistance)))
         {
-            player.sendMessage("Those two rings are " + apart(waiting.getRing(), ring)
+            player.sendMessage("Those two rings are " + apart(waiting.ring(), ring)
                 + " blocks apart on the ground, and rings reach " + maxDistance + ".");
             player.sendMessage("Build a stargate for a trip that long — rings are for getting "
                 + "around one place.");
             return true;
         }
         final int maxHeight = ConfigManager.getRingMaxLinkHeight();
-        final int climb = Math.abs(waiting.getRing().getAnchorY() - ring.getAnchorY());
+        final int climb = Math.abs(waiting.ring().getAnchorY() - ring.getAnchorY());
         if ((maxHeight > 0) && (climb > maxHeight))
         {
             player.sendMessage("Those two rings are " + climb + " blocks apart in height, and "
@@ -219,20 +222,20 @@ public class RingCommand implements SubCommand
             return true;
         }
 
-        final RingPair pair = new RingPair(RingManager.newId(), world, waiting.getRing(), ring);
+        final RingPair pair = new RingPair(RingManager.newId(), world, waiting.ring(), ring);
         pair.setOwner(player.getUniqueId().toString());
         pair.setOwnerName(player.getName());
         pair.setCreated(System.currentTimeMillis());
         pair.setAccess(ConfigManager.getRingDefaultAccess());
-        for (final Ring end : new Ring[] { waiting.getRing(), ring })
+        for (final Ring end : new Ring[] { waiting.ring(), ring })
         {
             end.setStyle(ConfigManager.getRingDefaultStyle());
             end.setFlashMaterial(ConfigManager.getRingDefaultFlash());
         }
 
-        if ((waiting.getRing().getAnchorX() == ring.getAnchorX())
-            && (waiting.getRing().getAnchorY() == ring.getAnchorY())
-            && (waiting.getRing().getAnchorZ() == ring.getAnchorZ()))
+        if ((waiting.ring().getAnchorX() == ring.getAnchorX())
+            && (waiting.ring().getAnchorY() == ring.getAnchorY())
+            && (waiting.ring().getAnchorZ() == ring.getAnchorZ()))
         {
             // The first ring's slabs are still lying there, so running the command again in
             // the same circle finds the same ring. Pairing it with itself would make a
@@ -245,7 +248,7 @@ public class RingCommand implements SubCommand
         RingYamlManager.savePending();
         // Both templates come up now, together, because only now is there a pair to show for
         // them.
-        consumeTemplate(player, waiting.getRing());
+        consumeTemplate(player, waiting.ring());
         consumeTemplate(player, ring);
         RingManager.addPair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(world);
@@ -342,9 +345,8 @@ public class RingCommand implements SubCommand
                 continue;
             }
             final org.bukkit.block.data.BlockData data = ring.getRingMaterial().createBlockData();
-            if (data instanceof org.bukkit.block.data.type.Slab)
+            if (data instanceof org.bukkit.block.data.type.Slab slab)
             {
-                final org.bukkit.block.data.type.Slab slab = (org.bukkit.block.data.type.Slab) data;
                 slab.setType(top
                     ? org.bukkit.block.data.type.Slab.Type.TOP
                     : org.bukkit.block.data.type.Slab.Type.BOTTOM);
@@ -508,7 +510,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair.");
+            player.sendMessage(NOT_YOUR_PAIR);
             return true;
         }
         RingManager.removePair(pair, ConfigManager.getRingReach());
@@ -559,7 +561,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair.");
+            player.sendMessage(NOT_YOUR_PAIR);
             return true;
         }
 
@@ -906,7 +908,7 @@ public class RingCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            player.sendMessage("Usage: /wormhole ring " + (allowing ? "allow" : "deny") + " <player> [id]");
+            player.sendMessage("Usage: /wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]");
             return true;
         }
         final RingPair pair = target(player, args, 3);
@@ -916,7 +918,7 @@ public class RingCommand implements SubCommand
         }
         if (!RingPermissions.mayManage(player, pair))
         {
-            player.sendMessage("That is not your ring pair.");
+            player.sendMessage(NOT_YOUR_PAIR);
             return true;
         }
         final OfflinePlayer subject = findPlayer(args[2]);

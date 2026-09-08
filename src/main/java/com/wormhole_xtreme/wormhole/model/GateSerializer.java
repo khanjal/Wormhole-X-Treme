@@ -20,6 +20,10 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 public final class GateSerializer
 {
+    private static final String SIGN_UNREADABLE = "Unable to get sign for stargate: ";
+    private static final String SIGN_UNREADABLE_TAIL = " and will be unable to change dial target.";
+    private static final String TRAILING_BYTES = "While loading gate, not all byte data was read. This could be bad: ";
+
     private static final byte STARGATE_SAVE_VERSION = 9;
 
     private GateSerializer() {}
@@ -189,7 +193,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -278,7 +282,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -367,7 +371,7 @@ public final class GateSerializer
                     }
                     catch (final Exception e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
                     }
                 }
             }
@@ -415,7 +419,7 @@ public final class GateSerializer
                 s.getGateLightBlocks().add(null);
             }
 
-            s.getGateLightBlocks().set(1, new ArrayList<Location>());
+            s.getGateLightBlocks().set(1, new ArrayList<>());
 
             numBlocks = byteBuff.getInt();
             for (int i = 0; i < numBlocks; i++)
@@ -441,135 +445,7 @@ public final class GateSerializer
      */
     private static Stargate readVersion6(final Stargate s, final ByteBuffer byteBuff, final World w)
     {
-            final byte[] locArray = new byte[32];
-            final byte[] blocArray = new byte[12];
-
-            byteBuff.get(blocArray);
-            s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(blocArray);
-            s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
-
-            byteBuff.get(locArray);
-            s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
-
-            s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
-
-            byteBuff.get(blocArray);
-            s.setGateDialSignIndex(byteBuff.getInt());
-            s.setGateTempSignTarget(byteBuff.getLong());
-            if (s.isGateSignPowered())
-            {
-                s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
-
-                if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
-                {
-                    try
-                    {
-                        s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
-                    }
-                }
-            }
-
-            s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateTempTargetId(byteBuff.getLong());
-
-            final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = new byte[facingSize];
-            byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-            s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
-
-            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
-            s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGatePlayerTeleportLocation().setPitch(0);
-
-            final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = new byte[idcLen];
-            byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
-
-            s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateIrisDefaultActive(s.isGateIrisActive());
-            s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
-
-            boolean isRedstone = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstone)
-            {
-                s.setGateRedstoneDialActivationBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            isRedstone = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstone)
-            {
-                s.setGateRedstoneSignActivationBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            int numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateStructureBlocks().add(bl.getLocation());
-            }
-
-            numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGatePortalBlocks().add(bl.getLocation());
-            }
-
-            int numLayers = byteBuff.getInt();
-
-            while (s.getGateLightBlocks().size() < numLayers)
-            {
-                s.getGateLightBlocks().add(new ArrayList<Location>());
-            }
-            for (int i = 0; i < numLayers; i++)
-            {
-                numBlocks = byteBuff.getInt();
-                for (int j = 0; j < numBlocks; j++)
-                {
-                    byteBuff.get(blocArray);
-                    final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                    s.getGateLightBlocks().get(i).add(bl.getLocation());
-                }
-            }
-
-            numLayers = byteBuff.getInt();
-
-            while (s.getGateWooshBlocks().size() < numLayers)
-            {
-                s.getGateWooshBlocks().add(new ArrayList<Location>());
-            }
-            for (int i = 0; i < numLayers; i++)
-            {
-                numBlocks = byteBuff.getInt();
-                for (int j = 0; j < numBlocks; j++)
-                {
-                    byteBuff.get(blocArray);
-                    final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                    s.getGateWooshBlocks().get(i).add(bl.getLocation());
-                }
-            }
-
-            if (byteBuff.remaining() > 0)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
-            }
-
-            return s;
+        return readVersion6Or7(s, byteBuff, w, false);
     }
 
     /**
@@ -585,137 +461,143 @@ public final class GateSerializer
      */
     private static Stargate readVersion7(final Stargate s, final ByteBuffer byteBuff, final World w)
     {
-            final byte[] locArray = new byte[32];
-            final byte[] blocArray = new byte[12];
+        return readVersion6Or7(s, byteBuff, w, true);
+    }
 
-            byteBuff.get(blocArray);
-            s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+    /**
+     * Reads a save-version 6 or 7 gate, which differ by one field.
+     *
+     * <p>Version 7 added the minecart arrival point. Everything else is byte-for-byte the
+     * same, which is why they were two copies of one method for as long as they existed --
+     * the only difference in 145 lines was those two reads.
+     *
+     * <p>Neither version stores the third redstone block, the redstone-powered flag, or any
+     * of the custom materials and timings; those arrived with version 8. So this shares the
+     * later readers' helpers where the format agrees and reads its own anchors and redstone
+     * where it does not.
+     *
+     * @param s
+     *            the gate being built, already carrying its name, network and world
+     * @param byteBuff
+     *            the buffer, positioned just past the version byte
+     * @param w
+     *            the world the gate belongs to
+     * @param hasMinecartLocation
+     *            true for version 7, which stores a minecart arrival point of its own
+     * @return the gate
+     */
+    private static Stargate readVersion6Or7(final Stargate s, final ByteBuffer byteBuff, final World w,
+        final boolean hasMinecartLocation)
+    {
+        final byte[] blocArray = new byte[12];
 
-            byteBuff.get(blocArray);
-            s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+        readEarlyAnchors(s, byteBuff, w, blocArray, hasMinecartLocation);
+        readSignAndTarget(s, byteBuff, w, blocArray);
+        readEarlyFacing(s, byteBuff);
+        readIrisAndLights(s, byteBuff);
+        readEarlyRedstone(s, byteBuff, w, blocArray);
 
-            byteBuff.get(blocArray);
-            s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
+        readBlockRun(byteBuff, w, blocArray, s.getGateStructureBlocks());
+        readBlockRun(byteBuff, w, blocArray, s.getGatePortalBlocks());
+        readWaves(byteBuff, w, blocArray, s.getGateLightBlocks());
+        readWaves(byteBuff, w, blocArray, s.getGateWooshBlocks());
 
-            byteBuff.get(locArray);
-            s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+        warnIfBytesRemain(byteBuff);
+        return s;
+    }
 
+    /**
+     * The blocks and locations a version 6 or 7 gate has.
+     *
+     * <p>Version 6 stores one arrival point and version 7 two, which is the whole difference
+     * between the formats.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     * @param hasMinecartLocation
+     *            true for version 7
+     */
+    private static void readEarlyAnchors(final Stargate s, final ByteBuffer byteBuff, final World w,
+        final byte[] blocArray, final boolean hasMinecartLocation)
+    {
+        final byte[] locArray = new byte[32];
+
+        byteBuff.get(blocArray);
+        s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+
+        byteBuff.get(blocArray);
+        s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+
+        byteBuff.get(blocArray);
+        s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
+
+        byteBuff.get(locArray);
+        s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+
+        if (hasMinecartLocation)
+        {
             byteBuff.get(locArray);
             s.setGateMinecartTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+        }
+    }
 
-            s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
+    /**
+     * The way the gate faces, and the arrival point it stands a player on.
+     *
+     * <p>Only the player's, unlike version 8: version 7 stores a minecart arrival point but
+     * never stood it up, and version 6 has none at all. Recorded rather than corrected --
+     * whether that was deliberate is a question about the old format, not about this reader.
+     *
+     * @param s
+     *            the gate being built, already carrying its teleport locations
+     * @param byteBuff
+     *            the buffer
+     */
+    private static void readEarlyFacing(final Stargate s, final ByteBuffer byteBuff)
+    {
+        final int facingSize = byteBuff.getInt();
+        final byte[] strBytes = new byte[facingSize];
+        byteBuff.get(strBytes);
+        final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
+        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
 
-            byteBuff.get(blocArray);
-            s.setGateDialSignIndex(byteBuff.getInt());
-            s.setGateTempSignTarget(byteBuff.getLong());
-            if (s.isGateSignPowered())
-            {
-                s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
+        orientArrival(s.getGatePlayerTeleportLocation(), s.getGateFacing());
+    }
 
-                if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
-                {
-                    try
-                    {
-                        s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
-                    }
-                }
-            }
-
-            s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateTempTargetId(byteBuff.getLong());
-
-            final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = new byte[facingSize];
-            byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-            s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
-            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
-            s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGatePlayerTeleportLocation().setPitch(0);
-
-            final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = new byte[idcLen];
-            byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
-
-            s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateIrisDefaultActive(s.isGateIrisActive());
-            s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
-
-            boolean isRedstone = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstone)
-            {
-                s.setGateRedstoneDialActivationBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            isRedstone = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstone)
-            {
-                s.setGateRedstoneSignActivationBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            int numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateStructureBlocks().add(bl.getLocation());
-            }
-
-            numBlocks = byteBuff.getInt();
-            for (int i = 0; i < numBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGatePortalBlocks().add(bl.getLocation());
-            }
-
-            int numLayers = byteBuff.getInt();
-
-            while (s.getGateLightBlocks().size() < numLayers)
-            {
-                s.getGateLightBlocks().add(new ArrayList<Location>());
-            }
-            for (int i = 0; i < numLayers; i++)
-            {
-                numBlocks = byteBuff.getInt();
-                for (int j = 0; j < numBlocks; j++)
-                {
-                    byteBuff.get(blocArray);
-                    final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                    s.getGateLightBlocks().get(i).add(bl.getLocation());
-                }
-            }
-
-            numLayers = byteBuff.getInt();
-
-            while (s.getGateWooshBlocks().size() < numLayers)
-            {
-                s.getGateWooshBlocks().add(new ArrayList<Location>());
-            }
-            for (int i = 0; i < numLayers; i++)
-            {
-                numBlocks = byteBuff.getInt();
-                for (int j = 0; j < numBlocks; j++)
-                {
-                    byteBuff.get(blocArray);
-                    final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                    s.getGateWooshBlocks().get(i).add(bl.getLocation());
-                }
-            }
-
-            if (byteBuff.remaining() > 0)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
-            }
-
-            return s;
+    /**
+     * The two redstone activation blocks these versions know about.
+     *
+     * <p>The gate-activated block and the redstone-powered flag arrived in version 8, so
+     * there is nothing here to read them from.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     */
+    private static void readEarlyRedstone(final Stargate s, final ByteBuffer byteBuff, final World w,
+        final byte[] blocArray)
+    {
+        final Block dialActivation = readOptionalBlock(byteBuff, w, blocArray);
+        if (dialActivation != null)
+        {
+            s.setGateRedstoneDialActivationBlock(dialActivation);
+        }
+        final Block signActivation = readOptionalBlock(byteBuff, w, blocArray);
+        if (signActivation != null)
+        {
+            s.setGateRedstoneSignActivationBlock(signActivation);
+        }
     }
 
     /**
@@ -731,165 +613,336 @@ public final class GateSerializer
      */
     private static Stargate readVersion8Or9(final Stargate s, final ByteBuffer byteBuff, final World w)
     {
-            final boolean materialsByName = s.getLoadedVersion() >= 9;
-            final byte[] locArray = new byte[32];
-            final byte[] blocArray = new byte[12];
-            byteBuff.get(blocArray);
-            s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+        final byte[] blocArray = new byte[12];
 
-            byteBuff.get(blocArray);
-            s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+        readAnchors(s, byteBuff, w, blocArray);
+        readSignAndTarget(s, byteBuff, w, blocArray);
+        readFacingAndOrientation(s, byteBuff);
+        readIrisAndLights(s, byteBuff);
+        readRedstone(s, byteBuff, w, blocArray);
+        readCustom(s, byteBuff, s.getLoadedVersion() >= 9);
 
-            byteBuff.get(blocArray);
-            s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
+        readBlockRun(byteBuff, w, blocArray, s.getGateStructureBlocks());
+        readBlockRun(byteBuff, w, blocArray, s.getGatePortalBlocks());
+        readWaves(byteBuff, w, blocArray, s.getGateLightBlocks());
+        readWaves(byteBuff, w, blocArray, s.getGateWooshBlocks());
 
-            byteBuff.get(locArray);
-            s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
-
-            byteBuff.get(locArray);
-            s.setGateMinecartTeleportLocation(DataUtils.locationFromBytes(locArray, w));
-
-            s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
-
-            byteBuff.get(blocArray);
-            s.setGateDialSignIndex(byteBuff.getInt());
-            s.setGateTempSignTarget(byteBuff.getLong());
-            if (s.isGateSignPowered())
-            {
-                s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
-
-                if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
-                {
-                    try
-                    {
-                        s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
-                    }
-                    catch (final Exception e)
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
-                    }
-                }
-            }
-
-            s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateTempTargetId(byteBuff.getLong());
-
-            final int facingSize = byteBuff.getInt();
-            final byte[] strBytes = new byte[facingSize];
-            byteBuff.get(strBytes);
-            final String faceStr = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
-            s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceStr));
-            s.getGatePlayerTeleportLocation().setY(s.getGatePlayerTeleportLocation().getY() + 1.0);
-            s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGatePlayerTeleportLocation().setPitch(0);
-            s.getGateMinecartTeleportLocation().setY(s.getGateMinecartTeleportLocation().getY() + 1.0);
-            s.getGateMinecartTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()));
-            s.getGateMinecartTeleportLocation().setPitch(0);
-
-            final int idcLen = byteBuff.getInt();
-            final byte[] idcBytes = new byte[idcLen];
-            byteBuff.get(idcBytes);
-            s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
-
-            s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateIrisDefaultActive(s.isGateIrisActive());
-            s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
-
-            final boolean isRedstoneDA = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstoneDA)
-            {
-                s.setGateRedstoneDialActivationBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            final boolean isRedstoneSA = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstoneSA)
-            {
-                s.setGateRedstoneSignActivationBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            final boolean isRedstoneGA = DataUtils.byteToBoolean(byteBuff.get());
-            byteBuff.get(blocArray);
-            if (isRedstoneGA)
-            {
-                s.setGateRedstoneGateActivatedBlock(DataUtils.blockFromBytes(blocArray, w));
-            }
-
-            s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
-
-            s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
-            s.setGateCustomStructureMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "structure"));
-            s.setGateCustomPortalMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "portal"));
-            s.setGateCustomLightMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "light"));
-            s.setGateCustomIrisMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "iris"));
-            s.setGateCustomWooshTicks(byteBuff.getInt());
-            s.setGateCustomLightTicks(byteBuff.getInt());
-            s.setGateCustomWooshDepth(byteBuff.getInt());
-            s.setGateCustomWooshDepthSquared(s.getGateCustomWooshDepth() >= 0
-                ? s.getGateCustomWooshDepth() * s.getGateCustomWooshDepth()
-                : -1);
-
-            final int numStructureBlocks = byteBuff.getInt();
-            for (int i = 0; i < numStructureBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateStructureBlocks().add(bl.getLocation());
-            }
-
-            final int numPortalBlocks = byteBuff.getInt();
-            for (int i = 0; i < numPortalBlocks; i++)
-            {
-                byteBuff.get(blocArray);
-                final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                s.getGatePortalBlocks().add(bl.getLocation());
-            }
-
-            final int numLightLayers = byteBuff.getInt();
-
-            while (s.getGateLightBlocks().size() < numLightLayers)
-            {
-                s.getGateLightBlocks().add(new ArrayList<Location>());
-            }
-
-            for (int i = 0; i < numLightLayers; i++)
-            {
-                final int numLightBlocks = byteBuff.getInt();
-                for (int j = 0; j < numLightBlocks; j++)
-                {
-                    byteBuff.get(blocArray);
-                    final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                    s.getGateLightBlocks().get(i).add(bl.getLocation());
-                }
-            }
-
-            final int numWooshLayers = byteBuff.getInt();
-
-            while (s.getGateWooshBlocks().size() < numWooshLayers)
-            {
-                s.getGateWooshBlocks().add(new ArrayList<Location>());
-            }
-            for (int i = 0; i < numWooshLayers; i++)
-            {
-                final int numWooshBlocks = byteBuff.getInt();
-                for (int j = 0; j < numWooshBlocks; j++)
-                {
-                    byteBuff.get(blocArray);
-                    final Block bl = DataUtils.blockFromBytes(blocArray, w);
-                    s.getGateWooshBlocks().get(i).add(bl.getLocation());
-                }
-            }
-
-            if (byteBuff.remaining() > 0)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
-            }
-
-            return s;
+        warnIfBytesRemain(byteBuff);
+        return s;
     }
 
-    public static byte[] stargatetoBinary(final Stargate s)
+    /**
+     * The blocks and locations every gate has, in the order the writer put them.
+     *
+     * <p>An absent iris lever or name holder still occupies its slot as a run of zeroes, so
+     * these are read unconditionally and it is the block lookup that decides what they mean.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array, reused down the whole read
+     */
+    private static void readAnchors(final Stargate s, final ByteBuffer byteBuff, final World w,
+                                    final byte[] blocArray)
+    {
+        final byte[] locArray = new byte[32];
+
+        byteBuff.get(blocArray);
+        s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+
+        byteBuff.get(blocArray);
+        s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+
+        byteBuff.get(blocArray);
+        s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
+
+        byteBuff.get(locArray);
+        s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+
+        byteBuff.get(locArray);
+        s.setGateMinecartTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+    }
+
+    /**
+     * The dial sign, and the gate this one was dialled to when the server stopped.
+     *
+     * <p>The sign's own state is only read if its chunk is already loaded; a gate in an
+     * unloaded chunk keeps the block and picks the sign up later.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     */
+    private static void readSignAndTarget(final Stargate s, final ByteBuffer byteBuff, final World w,
+                                          final byte[] blocArray)
+    {
+        s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
+
+        byteBuff.get(blocArray);
+        s.setGateDialSignIndex(byteBuff.getInt());
+        s.setGateTempSignTarget(byteBuff.getLong());
+        if (s.isGateSignPowered())
+        {
+            s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
+            readDialSignState(s, w);
+        }
+
+        s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
+        s.setGateTempTargetId(byteBuff.getLong());
+    }
+
+    /**
+     * Picks up the sign itself, if its chunk is there to pick it up from.
+     *
+     * @param s
+     *            the gate being built, already carrying its dial sign block
+     * @param w
+     *            the world the gate belongs to
+     */
+    private static void readDialSignState(final Stargate s, final World w)
+    {
+        if (!w.isChunkLoaded(s.getGateDialSignBlock().getChunk()))
+        {
+            return;
+        }
+        try
+        {
+            s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
+        }
+        catch (final Exception e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, SIGN_UNREADABLE + s.getGateName() + SIGN_UNREADABLE_TAIL);
+        }
+    }
+
+    /**
+     * The way the gate faces, and the two arrival points it puts you at.
+     *
+     * <p>The writer takes a block off each height and this puts it back, because what is
+     * saved is the block and what is wanted is where somebody stands on it. Yaw comes from
+     * the facing rather than from the file, so an arrival always looks out of the gate.
+     *
+     * @param s
+     *            the gate being built, already carrying its teleport locations
+     * @param byteBuff
+     *            the buffer
+     */
+    private static void readFacingAndOrientation(final Stargate s, final ByteBuffer byteBuff)
+    {
+        final int facingSize = byteBuff.getInt();
+        final byte[] strBytes = new byte[facingSize];
+        byteBuff.get(strBytes);
+        final String faceName = new String(strBytes, java.nio.charset.StandardCharsets.UTF_8);
+        s.setGateFacing(org.bukkit.block.BlockFace.valueOf(faceName));
+
+        orientArrival(s.getGatePlayerTeleportLocation(), s.getGateFacing());
+        orientArrival(s.getGateMinecartTeleportLocation(), s.getGateFacing());
+    }
+
+    /**
+     * Stands an arrival on top of its saved block, looking out of the gate.
+     *
+     * @param arrival
+     *            the saved location, moved in place
+     * @param facing
+     *            the way the gate faces
+     */
+    private static void orientArrival(final Location arrival, final org.bukkit.block.BlockFace facing)
+    {
+        arrival.setY(arrival.getY() + 1.0);
+        arrival.setYaw(WorldUtils.getDegreesFromBlockFace(facing));
+        arrival.setPitch(0);
+    }
+
+    /**
+     * The iris, its code, and whether the lights were on.
+     *
+     * <p>The saved iris state becomes the default as well as the current one: the default is
+     * what the gate returns to after every use, so a gate left shut comes back shut.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     */
+    private static void readIrisAndLights(final Stargate s, final ByteBuffer byteBuff)
+    {
+        final int idcLen = byteBuff.getInt();
+        final byte[] idcBytes = new byte[idcLen];
+        byteBuff.get(idcBytes);
+        s.setGateIrisDeactivationCode(new String(idcBytes, java.nio.charset.StandardCharsets.UTF_8));
+
+        s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
+        s.setGateIrisDefaultActive(s.isGateIrisActive());
+        s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
+    }
+
+    /**
+     * The three redstone activation blocks, and whether the gate is wired at all.
+     *
+     * <p>Each is a flag followed by a block-sized slot, and the slot is consumed either way,
+     * so a gate that has only one of them still lines up.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     */
+    private static void readRedstone(final Stargate s, final ByteBuffer byteBuff, final World w,
+                                     final byte[] blocArray)
+    {
+        final Block dialActivation = readOptionalBlock(byteBuff, w, blocArray);
+        if (dialActivation != null)
+        {
+            s.setGateRedstoneDialActivationBlock(dialActivation);
+        }
+        final Block signActivation = readOptionalBlock(byteBuff, w, blocArray);
+        if (signActivation != null)
+        {
+            s.setGateRedstoneSignActivationBlock(signActivation);
+        }
+        final Block gateActivated = readOptionalBlock(byteBuff, w, blocArray);
+        if (gateActivated != null)
+        {
+            s.setGateRedstoneGateActivatedBlock(gateActivated);
+        }
+        s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
+    }
+
+    /**
+     * Reads a present-or-not flag and the block slot behind it.
+     *
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array, filled with the slot either way
+     * @return the block, or null if the flag said there is none
+     */
+    private static Block readOptionalBlock(final ByteBuffer byteBuff, final World w, final byte[] blocArray)
+    {
+        final boolean present = DataUtils.byteToBoolean(byteBuff.get());
+        byteBuff.get(blocArray);
+        return present ? DataUtils.blockFromBytes(blocArray, w) : null;
+    }
+
+    /**
+     * The gate's own material overrides and animation timings.
+     *
+     * <p>The squared woosh depth is derived here rather than stored, because it is what the
+     * woosh compares against; a gate with no depth of its own keeps -1 rather than squaring
+     * it into 1.
+     *
+     * @param s
+     *            the gate being built
+     * @param byteBuff
+     *            the buffer
+     * @param materialsByName
+     *            whether materials are stored by name, which is true from version 9
+     */
+    private static void readCustom(final Stargate s, final ByteBuffer byteBuff, final boolean materialsByName)
+    {
+        s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
+        s.setGateCustomStructureMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "structure"));
+        s.setGateCustomPortalMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "portal"));
+        s.setGateCustomLightMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "light"));
+        s.setGateCustomIrisMaterial(readCustomMaterial(byteBuff, materialsByName, s.getGateName(), "iris"));
+        s.setGateCustomWooshTicks(byteBuff.getInt());
+        s.setGateCustomLightTicks(byteBuff.getInt());
+        s.setGateCustomWooshDepth(byteBuff.getInt());
+        s.setGateCustomWooshDepthSquared(s.getGateCustomWooshDepth() >= 0
+            ? s.getGateCustomWooshDepth() * s.getGateCustomWooshDepth()
+            : -1);
+    }
+
+    /**
+     * Reads a counted run of blocks into one list.
+     *
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     * @param target
+     *            the list to fill
+     */
+    private static void readBlockRun(final ByteBuffer byteBuff, final World w, final byte[] blocArray,
+                                     final List<Location> target)
+    {
+        final int count = byteBuff.getInt();
+        for (int i = 0; i < count; i++)
+        {
+            byteBuff.get(blocArray);
+            target.add(DataUtils.blockFromBytes(blocArray, w).getLocation());
+        }
+    }
+
+    /**
+     * Reads a counted set of counted runs, one run per wave.
+     *
+     * <p>A wave with nothing in it was written as a zero count rather than skipped, so the
+     * layers are grown to the saved number first and the wave numbers line up either way.
+     *
+     * @param byteBuff
+     *            the buffer
+     * @param w
+     *            the world the gate belongs to
+     * @param blocArray
+     *            a block-sized scratch array
+     * @param waves
+     *            the list of waves to fill
+     */
+    private static void readWaves(final ByteBuffer byteBuff, final World w, final byte[] blocArray,
+                                  final List<List<Location>> waves)
+    {
+        final int numLayers = byteBuff.getInt();
+        while (waves.size() < numLayers)
+        {
+            waves.add(new ArrayList<>());
+        }
+        for (int i = 0; i < numLayers; i++)
+        {
+            readBlockRun(byteBuff, w, blocArray, waves.get(i));
+        }
+    }
+
+    /**
+     * Says so if the gate did not use its whole record.
+     *
+     * <p>Left-over bytes mean the reader and the writer disagree about the format, which is
+     * worth knowing about before the next save writes the disagreement back out.
+     *
+     * @param byteBuff
+     *            the buffer, after everything has been read
+     */
+    private static void warnIfBytesRemain(final ByteBuffer byteBuff)
+    {
+        if (byteBuff.remaining() > 0)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, TRAILING_BYTES + byteBuff.remaining());
+        }
+    }
+
+    // S1168 asks for an empty array here. It must stay null: the caller has to tell "could not
+    // encode this gate" from "encoded it", and a gate file written with no data in it loads as
+    // a gate with no blocks at all. See StargateYamlManager.saveStargate, which skips on null.
+    @SuppressWarnings("java:S1168")
+    public static byte[] stargateToBinary(final Stargate s)
     {
         byte[] utfFaceBytes;
         byte[] utfIdcBytes;
@@ -900,9 +953,8 @@ public final class GateSerializer
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to store gate in DB, byte encoding failed: " + e.getMessage());
-            final byte[] b = null;
-            return b;
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to store gate in DB, byte encoding failed", e);
+            return null;
         }
 
         final int size = computeSize(s, utfFaceBytes, utfIdcBytes);

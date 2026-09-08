@@ -28,6 +28,8 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
  */
 class StargateDialManager
 {
+    private static final String GATE_PREFIX = "Wormhole \"";
+
     private StargateDialManager() {}
 
     // -----------------------------------------------------------------------
@@ -89,7 +91,7 @@ class StargateDialManager
      */
     private static List<Stargate> dialPeers(final Stargate gate)
     {
-        final List<Stargate> others = new ArrayList<Stargate>();
+        final List<Stargate> others = new ArrayList<>();
 
         if (gate.getGateNetwork() != null)
         {
@@ -402,7 +404,7 @@ class StargateDialManager
         if (delay == CLOSE_NOW)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" is at its maximum open time; not extending.");
+                GATE_PREFIX + gate.getGateName() + "\" is at its maximum open time; not extending.");
             return false;
         }
         if (delay == 0)
@@ -420,7 +422,7 @@ class StargateDialManager
             WormholeXTreme.getThisPlugin(),
             new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), delay));
         WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-            "Wormhole \"" + gate.getGateName() + "\" open time extended by " + delay + " ticks.");
+            GATE_PREFIX + gate.getGateName() + "\" open time extended by " + delay + " ticks.");
         return true;
     }
 
@@ -454,7 +456,7 @@ class StargateDialManager
         if (timeout == CLOSE_NOW)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" reached its maximum open time; closing.");
+                GATE_PREFIX + gate.getGateName() + "\" reached its maximum open time; closing.");
             gate.shutdownStargate(true);
             return;
         }
@@ -465,7 +467,7 @@ class StargateDialManager
                 WormholeXTreme.getThisPlugin(),
                 new StargateUpdateRunnable(gate, ActionToTake.SHUTDOWN), timeout));
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Wormhole \"" + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" created.");
+                GATE_PREFIX + gate.getGateName() + "\" ShutdownTaskID \"" + gate.getGateShutdownTaskId() + "\" created.");
             if (gate.getGateShutdownTaskId() == -1)
             {
                 gate.shutdownStargate(true);

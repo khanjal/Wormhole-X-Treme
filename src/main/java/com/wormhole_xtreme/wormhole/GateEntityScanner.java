@@ -55,20 +55,34 @@ public final class GateEntityScanner implements Runnable
             // tick interval is pure waste once a server has hundreds of them.
             for (final Stargate gate : StargateManager.getAllGatesUnsorted())
             {
-                try
-                {
-                    sweepGate(gate);
-                }
-                catch (final RuntimeException t)
-                {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                        "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null") + ": " + t.getMessage());
-                }
+                sweepGateQuietly(gate);
             }
         }
         catch (final RuntimeException t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Entity scan aborted: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Entity scan aborted", t);
+        }
+    }
+
+    /**
+     * Sweeps one gate, and keeps going if that one gate cannot be swept.
+     *
+     * <p>Its own method rather than a try inside run's try: one bad gate must not end the
+     * tick for the gates after it in the loop.
+     *
+     * @param gate
+     *            the gate to sweep
+     */
+    private void sweepGateQuietly(final Stargate gate)
+    {
+        try
+        {
+            sweepGate(gate);
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null"), t);
         }
     }
 
@@ -110,23 +124,44 @@ public final class GateEntityScanner implements Runnable
 
         for (final Entity entity : candidates)
         {
-            try
+            sendOneThroughQuietly(entity, gate, arrival, target.getGateFacing());
+        }
+    }
+
+    /**
+     * Sends one entity through, if it is standing somewhere that counts.
+     *
+     * <p>The candidates come from a bounding box, which is bigger than the wormhole itself,
+     * so being in the box is not yet a reason to be sent anywhere.
+     *
+     * @param entity
+     *            the entity to consider
+     * @param gate
+     *            the gate it is standing in
+     * @param arrival
+     *            where it comes out
+     * @param facing
+     *            the way the far gate faces, for the direction it arrives travelling
+     */
+    private static void sendOneThroughQuietly(final Entity entity, final Stargate gate,
+        final Location arrival, final org.bukkit.block.BlockFace facing)
+    {
+        try
+        {
+            if (!shouldSendThrough(entity))
             {
-                if (!shouldSendThrough(entity))
-                {
-                    continue;
-                }
-                final Location at = entity.getLocation();
-                if (!gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
-                {
-                    continue; // inside the bounding box but not in the wormhole itself
-                }
-                sendThrough(entity, arrival, target.getGateFacing());
+                return;
             }
-            catch (final RuntimeException t)
+            final Location at = entity.getLocation();
+            if (!gate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate: " + t.getMessage());
+                return; // inside the bounding box but not in the wormhole itself
             }
+            sendThrough(entity, arrival, facing);
+        }
+        catch (final RuntimeException t)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to send entity through gate", t);
         }
     }
 
@@ -181,7 +216,7 @@ public final class GateEntityScanner implements Runnable
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Could not respawn projectile through gate, falling back to teleport: " + e.getMessage());
+                "Could not respawn projectile through gate, falling back to teleport", e);
             return null;
         }
     }
@@ -311,7 +346,7 @@ public final class GateEntityScanner implements Runnable
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Could not set exit velocity after gate sweep: " + e.getMessage());
+                "Could not set exit velocity after gate sweep", e);
         }
     }
 
@@ -436,7 +471,7 @@ public final class GateEntityScanner implements Runnable
             }
             catch (final RuntimeException t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to re-seat passenger after gate sweep: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Failed to re-seat passenger after gate sweep", t);
             }
         }
     }

@@ -211,6 +211,49 @@ class ProjectileGateTrackerTest
         assertEquals(0, ProjectileGateTracker.trackedCount());
     }
 
+    /**
+     * A projectile that never reaches a gate is eventually forgotten.
+     *
+     * <p>An arrow fired into open sky stays valid until it despawns, which is far longer
+     * than a server should hold a reference to it. Without the expiry every such arrow is
+     * followed until it happens to become invalid, and a busy server fires a lot of them.
+     */
+    @Test
+    void aProjectileThatNeverArrivesIsEventuallyForgotten()
+    {
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 100, BY, BZ + 100);
+        assertEquals(1, ProjectileGateTracker.trackedCount(), "followed to begin with");
+
+        // Past its lifetime, without it ever having gone anywhere near the gate.
+        for (int i = 0; i <= 201; i++)
+        {
+            ticker.run();
+        }
+
+        assertEquals(0, ProjectileGateTracker.trackedCount(),
+            "an arrow that never arrives is dropped rather than followed forever");
+    }
+
+    /**
+     * A projectile whose handling throws is dropped, not retried every tick.
+     *
+     * <p>Kept, it would throw again on the next tick and every tick after -- one bad
+     * projectile turning into a log line per tick for as long as the server runs.
+     */
+    @Test
+    void aProjectileThatThrowsIsDroppedRatherThanRetriedForever()
+    {
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        when(arrow.getLocation()).thenThrow(new IllegalStateException("entity gone"));
+
+        assertDoesNotThrow(() -> ticker.run());
+
+        assertEquals(0, ProjectileGateTracker.trackedCount(),
+            "the one that threw is forgotten, so it cannot throw again next tick");
+    }
+
+
     @Test
     void nothingIsFollowedWhileNoGateIsOpen()
     {

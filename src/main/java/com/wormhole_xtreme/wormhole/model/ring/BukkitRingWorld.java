@@ -50,14 +50,11 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     /** The world this operates in. Both ends of a pair are always in it. */
     private final World world;
 
-    /** How deep a trigger volume runs, needed to work out where arrivals land. */
-    private final int reach;
-
     /** The pair being drawn, whose two ends decide who can see it. */
     private final RingPair pair;
 
     /** Who is currently being drawn to. */
-    private List<Player> audience = new ArrayList<Player>();
+    private List<Player> audience = new ArrayList<>();
 
     /** When that list was last worked out. */
     private long audienceComputedAt = 0L;
@@ -69,14 +66,11 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
      *            the world to operate in
      * @param pair
      *            the pair being drawn
-     * @param reach
-     *            how deep each trigger volume runs
      */
-    public BukkitRingWorld(final World world, final RingPair pair, final int reach)
+    public BukkitRingWorld(final World world, final RingPair pair)
     {
         this.world = world;
         this.pair = pair;
-        this.reach = reach;
     }
 
     /**
@@ -96,7 +90,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         {
             return audience;
         }
-        final List<Player> found = new ArrayList<Player>();
+        final List<Player> found = new ArrayList<>();
         for (final Player player : world.getPlayers())
         {
             if (inRangeOf(player, pair.getEndA()) || inRangeOf(player, pair.getEndB()))
@@ -193,7 +187,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
     @Override
     public List<RingPassenger> passengersIn(final List<int[]> blocks)
     {
-        final List<RingPassenger> out = new ArrayList<RingPassenger>();
+        final List<RingPassenger> out = new ArrayList<>();
         if (blocks.isEmpty())
         {
             return out;
@@ -328,8 +322,8 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
         }
         // Teleporting an entity throws off whatever is riding it, so the stack is noted
         // first and put back once everything has landed.
-        final List<Entity> parents = new ArrayList<Entity>();
-        final List<Entity> children = new ArrayList<Entity>();
+        final List<Entity> parents = new ArrayList<>();
+        final List<Entity> children = new ArrayList<>();
         com.wormhole_xtreme.wormhole.utils.EntityUtils.collectPassengerPairs(entity, parents, children);
 
         entity.teleport(arrival);
@@ -393,7 +387,7 @@ public class BukkitRingWorld implements RingCycle.Surroundings, RingSurvey.Groun
                     // outcome than a stack trace, but not a reason to abandon the rest.
                     catch (final RuntimeException e)
                     {
-                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "Could not re-seat a ring passenger: " + e.getMessage());
+                        WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.FINE, "Could not re-seat a ring passenger", e);
                     }
                 }
             }, 1L);

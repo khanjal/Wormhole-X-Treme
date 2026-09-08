@@ -29,6 +29,27 @@ class StargatePortalCacheTest
         return gate;
     }
 
+    /**
+     * A null in the portal list does not take the cache down with it.
+     *
+     * <p>{@code getGatePortalBlocks()} hands out the live list, so anything holding it can
+     * put a null in. The build runs on the entity sweep's hot path, and a gate whose cache
+     * throws is a gate nobody can walk through.
+     */
+    @Test
+    void aNullPortalBlockIsSkippedRatherThanThrownOver()
+    {
+        final World world = mock(World.class);
+        final Stargate gate = gateWithPortalRing(world);
+        gate.getGatePortalBlocks().add(null);
+
+        assertTrue(assertDoesNotThrow(() -> gate.isGatePortalBlockAt(10, 64, 20)),
+            "the real blocks still answer");
+        assertNotNull(gate.getGatePortalBounds(), "and the box is still built from them");
+        assertEquals(10.0, gate.getGatePortalBounds().getMinX(), 0.001,
+            "the null contributed nothing to the extents");
+    }
+
     @Test
     void portalBlockLookupAnswersContainment()
     {

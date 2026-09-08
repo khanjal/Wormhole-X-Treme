@@ -25,6 +25,10 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class StargateYamlManager
 {
+    private static final String OWNER_UUID_KEY = "OwnerUUID";
+    /** Anything that is not safe in a file name, replaced with an underscore. */
+    private static final String UNSAFE_IN_FILENAME = "[^a-zA-Z0-9._-]";
+
     /** Static helpers only; never instantiated. */
     private StargateYamlManager()
     {
@@ -105,7 +109,7 @@ public class StargateYamlManager
             {
                 if (WormholeXTreme.getThisPlugin() != null)
                 {
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to load gate from " + f.getName() + ": " + e.getMessage());
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to load gate from " + f.getName(), e);
                 }
             }
         }
@@ -152,7 +156,7 @@ public class StargateYamlManager
      */
     private static String ownerIdFrom(final Map<String, Object> map)
     {
-        final String ownerUuid = (String) map.getOrDefault("OwnerUUID", "");
+        final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, "");
         if ((ownerUuid != null) && !ownerUuid.isEmpty())
         {
             return ownerUuid;
@@ -228,6 +232,27 @@ public class StargateYamlManager
     }
 
     /**
+     * The file one gate is stored in.
+     *
+     * <p>A gate with no name has no file. {@code StargateManager.normalizeGateName} returns
+     * null rather than throwing, so a nameless gate can reach here -- and this runs for every
+     * gate on every shutdown, where an exception would stop the rest of them being saved.
+     *
+     * <p>Empty counts as no name too: the sanitiser would turn it into a hidden file called
+     * ".yml" that the loader would then read back as a gate.
+     *
+     * @param gateName
+     *            the gate's name, or null
+     * @return the file name, or null if the gate has no name
+     */
+    private static String yamlFileNameFor(final String gateName)
+    {
+        return ((gateName == null) || gateName.isEmpty())
+            ? null
+            : gateName.replaceAll(UNSAFE_IN_FILENAME, "_") + ".yml";
+    }
+
+    /**
      * Writes one gate's file into a given directory.
      *
      * <p>Split out from {@link #saveStargate(Stargate)} so a test can point the write
@@ -243,21 +268,32 @@ public class StargateYamlManager
      */
     static void saveStargate(final Stargate s, final File gatesDir)
     {
+        final String fileName = yamlFileNameFor(s.getGateName());
+        if (fileName == null)
+        {
+            return;
+        }
         if (!gatesDir.exists())
         {
             gatesDir.mkdirs();
         }
-        final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
         final File outFile = new File(gatesDir, fileName);
         final Map<String, Object> map = new HashMap<>();
         map.put("Name", s.getGateName());
-        map.put("OwnerUUID", s.getGateOwner());
+        map.put(OWNER_UUID_KEY, s.getGateOwner());
         map.put("OwnerName", ownerNameToSave(s.getStoredGateOwnerName()));
         map.put("Network", s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "");
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
         map.put("GateShape", s.getGateShape() != null ? s.getGateShape().getShapeName() : "Standard");
-        final byte[] data = GateSerializer.stargatetoBinary(s);
+        final byte[] data = GateSerializer.stargateToBinary(s);
+        if (data == null)
+        {
+            // stargateToBinary returns null when it cannot encode the gate, having logged why.
+            // A file without GateData loads as a gate with no blocks, which is worse than no
+            // file at all -- and this runs in a loop over every gate on shutdown.
+            return;
+        }
         map.put("GateData", Base64.getEncoder().encodeToString(data));
 
         final DumperOptions options = new DumperOptions();
@@ -279,7 +315,7 @@ public class StargateYamlManager
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to write YAML gate file " + outFile.getName() + ": " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to write YAML gate file " + outFile.getName(), e);
             }
         }
         // FINE rather than INFO: this fires once per gate, and onDisable() calls it for
@@ -295,15 +331,28 @@ public class StargateYamlManager
 
     public static void removeStargate(final Stargate s)
     {
-        final File gatesDir = getGatesDir();
-        final String fileName = s.getGateName().replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
-        final File outFile = new File(gatesDir, fileName);
-        // getGatesDir above tolerates a null plugin, so this cannot assume one either.
-        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-        if (outFile.exists() && !outFile.delete() && (plugin != null))
+        final String fileName = yamlFileNameFor(s.getGateName());
+        if (fileName == null)
         {
-            plugin.prettyLog(Level.WARNING,
-                "Could not delete gate file " + outFile.getPath() + "; the gate may come back on next load.");
+            return;
+        }
+        final File outFile = new File(getGatesDir(), fileName);
+        try
+        {
+            java.nio.file.Files.deleteIfExists(outFile.toPath());
+        }
+        catch (final java.io.IOException e)
+        {
+            // Files rather than File.delete: the boolean says only that it did not happen,
+            // where the exception says why. This one matters -- a gate whose file survives
+            // comes back on the next load, and the reason is what makes that fixable.
+            // getGatesDir above tolerates a null plugin, so this cannot assume one either.
+            final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+            if (plugin != null)
+            {
+                plugin.prettyLog(Level.WARNING, "Could not delete gate file " + outFile.getPath()
+                    + "; the gate may come back on next load.", e);
+            }
         }
     }
 
@@ -313,9 +362,12 @@ public class StargateYamlManager
      */
     public static String readOwnerFromYaml(final String gateName)
     {
-        final File gatesDir = getGatesDir();
-        final String fileName = gateName.replaceAll("[^a-zA-Z0-9._-]", "_") + ".yml";
-        final File inFile = new File(gatesDir, fileName);
+        final String fileName = yamlFileNameFor(gateName);
+        if (fileName == null)
+        {
+            return null;
+        }
+        final File inFile = new File(getGatesDir(), fileName);
         if (!inFile.exists())
         {
             return null;
@@ -328,18 +380,17 @@ public class StargateYamlManager
             {
                 @SuppressWarnings("unchecked")
                 final Map<String, Object> map = (Map<String, Object>) obj;
-                final String ownerUuid = (String) map.getOrDefault("OwnerUUID", null);
+                final String ownerUuid = (String) map.getOrDefault(OWNER_UUID_KEY, null);
                 final String legacyOwner = (String) map.getOrDefault("Owner", null);
                 // Prefer UUID, fall back to legacy name
-                final String owner = ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
-                return owner;
+                return ((ownerUuid != null) && !ownerUuid.isEmpty()) ? ownerUuid : legacyOwner;
             }
         }
         catch (final Exception e)
         {
             if (WormholeXTreme.getThisPlugin() != null)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to read Owner from YAML for " + gateName + ": " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to read Owner from YAML for " + gateName, e);
             }
         }
         return null;

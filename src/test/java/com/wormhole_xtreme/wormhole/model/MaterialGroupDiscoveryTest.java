@@ -28,11 +28,11 @@ class MaterialGroupDiscoveryTest
     @BeforeEach
     void loadStandardOnly()
     {
-        final Map<String, Object> standard = new LinkedHashMap<String, Object>();
+        final Map<String, Object> standard = new LinkedHashMap<>();
         standard.put("structure", "OBSIDIAN");
         standard.put("iris", "STONE");
         standard.put("light", "GLOWSTONE");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", standard);
         MaterialGroupRegistry.load(section);
     }
@@ -41,7 +41,7 @@ class MaterialGroupDiscoveryTest
     void aLoneDiamondGateIsOfferedAsAPalette()
     {
         // The motivating case: someone builds a diamond gate with gold chevrons.
-        final List<StargateShape> shapes = new ArrayList<StargateShape>();
+        final List<StargateShape> shapes = new ArrayList<>();
         shapes.add(shape(Material.DIAMOND_BLOCK, Material.GLASS, Material.GOLD_BLOCK));
 
         final List<MaterialGroup> found = MaterialGroupRegistry.discoverUndeclaredGroups(shapes);
@@ -55,7 +55,7 @@ class MaterialGroupDiscoveryTest
     @Test
     void framesAlreadyClaimedByAConfiguredGroupAreLeftAlone()
     {
-        final List<StargateShape> shapes = new ArrayList<StargateShape>();
+        final List<StargateShape> shapes = new ArrayList<>();
         shapes.add(shape(Material.OBSIDIAN, Material.STONE, Material.GLOWSTONE));
 
         assertTrue(MaterialGroupRegistry.discoverUndeclaredGroups(shapes).isEmpty());
@@ -67,7 +67,7 @@ class MaterialGroupDiscoveryTest
         // This is the shipped situation: every stock shape is framed in obsidian but they
         // ask for three different irises, so no single obsidian palette exists. Guessing
         // one would silently restyle whichever shapes lost the vote.
-        final List<StargateShape> shapes = new ArrayList<StargateShape>();
+        final List<StargateShape> shapes = new ArrayList<>();
         shapes.add(shape(Material.BLACKSTONE, Material.GLASS, Material.GLOWSTONE));
         shapes.add(shape(Material.BLACKSTONE, Material.BEDROCK, Material.GLOWSTONE));
 
@@ -78,7 +78,7 @@ class MaterialGroupDiscoveryTest
     void shapesAgreeingOnMaterialsYieldOnePalette()
     {
         // Several shapes can share a palette, as long as they actually agree.
-        final List<StargateShape> shapes = new ArrayList<StargateShape>();
+        final List<StargateShape> shapes = new ArrayList<>();
         shapes.add(shape(Material.BLACKSTONE, Material.GLASS, Material.SHROOMLIGHT));
         shapes.add(shape(Material.BLACKSTONE, Material.GLASS, Material.SHROOMLIGHT));
 

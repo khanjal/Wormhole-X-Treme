@@ -56,7 +56,7 @@ class ShippedMaterialsExistTest
 
     private static List<Path> shippedResources() throws IOException
     {
-        final List<Path> files = new ArrayList<Path>();
+        final List<Path> files = new ArrayList<>();
         final Path config = Paths.get("src/main/resources/config.yml");
         if (Files.exists(config))
         {
@@ -83,8 +83,8 @@ class ShippedMaterialsExistTest
     @Test
     void everyMaterialNamedInShippedFilesResolves() throws Exception
     {
-        final java.util.Set<String> unknown = new TreeSet<String>();
-        final java.util.Set<String> checked = new TreeSet<String>();
+        final java.util.Set<String> unknown = new TreeSet<>();
+        final java.util.Set<String> checked = new TreeSet<>();
 
         for (final Path file : shippedResources())
         {

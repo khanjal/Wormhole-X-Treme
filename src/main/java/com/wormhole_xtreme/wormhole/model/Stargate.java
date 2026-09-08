@@ -85,7 +85,7 @@ public class Stargate
     /** Block that toggle the activation state of the gate if nearby redstone is activated. */
     private Block gateRedstoneDialActivationBlock;
     /** Blocks to monitor for redstone input when auto-placing is disabled. */
-    private final List<Block> gateRedstoneDialMonitorBlocks = new ArrayList<Block>();
+    private final List<Block> gateRedstoneDialMonitorBlocks = new ArrayList<>();
     /** Block that will toggle sign target when redstone nearby is activated. */
     private Block gateRedstoneSignActivationBlock;
     /** The gate redstone gate activated block. */
@@ -167,17 +167,17 @@ public class Stargate
     /** The current_lighting_iteration. */
     private int gateLightingCurrentIteration = 0;
     /** List of all blocks contained in this stargate, including buttons and levers. */
-    private final List<Location> gateStructureBlocks = new ArrayList<Location>();
+    private final List<Location> gateStructureBlocks = new ArrayList<>();
     /** List of all blocks that that are part of the "portal". */
-    private final List<Location> gatePortalBlocks = new ArrayList<Location>();
+    private final List<Location> gatePortalBlocks = new ArrayList<>();
     /** List of all blocks that turn on when gate is active. */
-    private final List<List<Location>> gateLightBlocks = new ArrayList<List<Location>>();
+    private final List<List<Location>> gateLightBlocks = new ArrayList<>();
     /** List of all blocks that woosh in order when gate is active. */
-    private final List<List<Location>> gateWooshBlocks = new ArrayList<List<Location>>();
+    private final List<List<Location>> gateWooshBlocks = new ArrayList<>();
     /** The Animated blocks. */
-    private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<Block>();
+    private final ArrayList<Block> gateAnimatedBlocks = new ArrayList<>();
     /** The gate_order. */
-    private final HashMap<Integer, Stargate> gateSignOrder = new HashMap<Integer, Stargate>();
+    private final HashMap<Integer, Stargate> gateSignOrder = new HashMap<>();
 
     /** The gate custom. */
     private boolean gateCustom = false;
@@ -220,35 +220,68 @@ public class Stargate
         {
             return;
         }
-        final java.util.Set<Location> lookup = new java.util.HashSet<Location>(Math.max(16, gatePortalBlocks.size() * 2));
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
+        final java.util.Set<Location> lookup =
+            new java.util.HashSet<>(Math.max(16, gatePortalBlocks.size() * 2));
+        final Extents extents = new Extents();
         for (final Location l : gatePortalBlocks)
         {
             if (l == null)
             {
                 continue;
             }
-            final int x = l.getBlockX();
-            final int y = l.getBlockY();
-            final int z = l.getBlockZ();
-            lookup.add(new Location(gateWorld, x, y, z));
-            if (x < minX) minX = x;
-            if (y < minY) minY = y;
-            if (z < minZ) minZ = z;
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-            if (z > maxZ) maxZ = z;
+            lookup.add(new Location(gateWorld, l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+            extents.include(l);
         }
         gatePortalBlockLookup = lookup;
-        gatePortalBounds = lookup.isEmpty()
-            ? null
-            : new org.bukkit.util.BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
+        gatePortalBounds = lookup.isEmpty() ? null : extents.toBoundingBox();
         gatePortalCacheSize = gatePortalBlocks.size();
+    }
+
+    /**
+     * The corner-to-corner span of a set of blocks, accumulated one block at a time.
+     *
+     * <p>Six running values tracked by hand is what made the cache rebuild hard to read; the
+     * work is the same, but the loop that uses this now says what it is doing rather than
+     * spelling out twelve comparisons.
+     */
+    private static final class Extents
+    {
+        private int minX = Integer.MAX_VALUE;
+        private int minY = Integer.MAX_VALUE;
+        private int minZ = Integer.MAX_VALUE;
+        private int maxX = Integer.MIN_VALUE;
+        private int maxY = Integer.MIN_VALUE;
+        private int maxZ = Integer.MIN_VALUE;
+
+        /**
+         * Widens the span to take in one more block.
+         *
+         * @param l
+         *            the block's location
+         */
+        void include(final Location l)
+        {
+            minX = Math.min(minX, l.getBlockX());
+            minY = Math.min(minY, l.getBlockY());
+            minZ = Math.min(minZ, l.getBlockZ());
+            maxX = Math.max(maxX, l.getBlockX());
+            maxY = Math.max(maxY, l.getBlockY());
+            maxZ = Math.max(maxZ, l.getBlockZ());
+        }
+
+        /**
+         * The span as a box.
+         *
+         * <p>The maxima gain a block, because a block's location names its corner and the box
+         * has to enclose the whole of it -- a one-block portal would otherwise be a box of
+         * zero volume that contains nothing.
+         *
+         * @return the enclosing box
+         */
+        org.bukkit.util.BoundingBox toBoundingBox()
+        {
+            return new org.bukkit.util.BoundingBox(minX, minY, minZ, maxX + 1.0, maxY + 1.0, maxZ + 1.0);
+        }
     }
 
     /**
@@ -863,7 +896,7 @@ public class Stargate
      * Pushes this wormhole's shutdown back, without letting it outlive its maximum open time.
      *
      * <p>Not a re-dial: nothing about the connection is rebuilt and the gate's own open
-     * timestamp is untouched, so {@code max_open_seconds} still measures from when the
+     * timestamp is untouched, so {@code maxOpenSeconds} still measures from when the
      * wormhole first opened.
      *
      * @return true if the shutdown was pushed back

@@ -56,7 +56,7 @@ enum ComplexPermission
     private final String complexPermissionNode;
 
     /** The Constant complexPermissionMap. */
-    private static final Map<String, ComplexPermission> complexPermissionMap = new HashMap<String, ComplexPermission>();
+    private static final Map<String, ComplexPermission> complexPermissionMap = new HashMap<>();
 
     static
     {

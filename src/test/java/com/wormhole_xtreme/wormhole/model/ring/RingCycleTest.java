@@ -81,13 +81,13 @@ class RingCycleTest
     private static final class FakeWorld implements RingCycle.Surroundings
     {
         /** What the server actually has. Nothing in the cycle may ever change this. */
-        private final Map<Long, Material> real = new HashMap<Long, Material>();
+        private final Map<Long, Material> real = new HashMap<>();
 
         /** What clients are currently being shown over the top of it. */
-        private final Map<Long, Material> drawn = new HashMap<Long, Material>();
+        private final Map<Long, Material> drawn = new HashMap<>();
 
-        private final Map<String, List<RingPassenger>> standing = new HashMap<String, List<RingPassenger>>();
-        final List<String> deliveries = new ArrayList<String>();
+        private final Map<String, List<RingPassenger>> standing = new HashMap<>();
+        final List<String> deliveries = new ArrayList<>();
 
         void setReal(final int x, final int y, final int z, final Material material)
         {
@@ -114,7 +114,7 @@ class RingCycleTest
 
         void put(final Ring ring, final RingPassenger... passengers)
         {
-            final List<RingPassenger> list = new ArrayList<RingPassenger>();
+            final List<RingPassenger> list = new ArrayList<>();
             for (final RingPassenger passenger : passengers)
             {
                 list.add(passenger);
@@ -159,18 +159,18 @@ class RingCycleTest
                     if ((block[0] == Integer.parseInt(parts[0]))
                         && (block[2] == Integer.parseInt(parts[2])))
                     {
-                        return new ArrayList<RingPassenger>(entry.getValue());
+                        return new ArrayList<>(entry.getValue());
                     }
                 }
             }
-            return new ArrayList<RingPassenger>();
+            return new ArrayList<>();
         }
 
         /** Names of passengers an outside plugin refuses to carry. */
-        final List<String> refuse = new ArrayList<String>();
+        final List<String> refuse = new ArrayList<>();
 
         /** Rings that have been built in or dug out since, by anchor key. */
-        final Map<String, RingBlockage> blocked = new HashMap<String, RingBlockage>();
+        final Map<String, RingBlockage> blocked = new HashMap<>();
 
         @Override
         public RingBlockage survey(final Ring ring)

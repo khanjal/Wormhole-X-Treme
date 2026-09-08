@@ -194,7 +194,7 @@ class Utf8GateStorageTest
         final Stargate s = minimalGate(w, "iris-gate");
         s.setGateIrisDeactivationCode(IRIS_CODE);
 
-        final byte[] data = GateSerializer.stargatetoBinary(s);
+        final byte[] data = GateSerializer.stargateToBinary(s);
         final Stargate back = GateSerializer.parseVersionedData(data, w, s.getGateName(), null);
 
         assertEquals(IRIS_CODE, back.getGateIrisDeactivationCode(),

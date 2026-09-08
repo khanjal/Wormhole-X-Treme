@@ -15,10 +15,14 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 public class Stargate3DShape extends StargateShape
 {
+    /** Splits "Layer#3=" into its parts; runs once per line of a shape file. */
+    private static final java.util.regex.Pattern LAYER_HEADER_PARTS =
+        java.util.regex.Pattern.compile("[#=]");
+
     /**
      * Layers of the 3D shape. Layers go from 1 - 10
      */
-    private final List<StargateShapeLayer> shapeLayers = new ArrayList<StargateShapeLayer>();
+    private final List<StargateShapeLayer> shapeLayers = new ArrayList<>();
 
     /** The activation_layer. */
     private int shapeActivationLayer = -1;
@@ -70,7 +74,7 @@ public class Stargate3DShape extends StargateShape
             else if (line.startsWith("Layer"))
             {
                 // 1. get layer #
-                final int layer = Integer.valueOf(line.trim().split("[#=]")[1]);
+                final int layer = Integer.parseInt(LAYER_HEADER_PARTS.split(line.trim())[1]);
 
                 // 2. add each line that starts with [ to a new string[]
                 final int[] cursor = {i};
@@ -121,7 +125,7 @@ public class Stargate3DShape extends StargateShape
         int i = cursor[0];
         while (fileLines[i].startsWith("[") || fileLines[i].startsWith("#"))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " line_index=" + lineIndex + " Line=" + fileLines[i]);
+            WormholeXTreme.getThisPlugin().prettyLog(Level.CONFIG, "Layer=" + layer + " i=" + i + " lineIndex=" + lineIndex + " Line=" + fileLines[i]);
             layerLines[lineIndex] = fileLines[i];
             i++;
 
@@ -157,7 +161,7 @@ public class Stargate3DShape extends StargateShape
 
         int height = 0;
         int width = 0;
-        final Pattern p = Pattern.compile("(\\[.*?\\])");
+        final Pattern p = Pattern.compile("(\\[[^\\]]*+\\])");
         while (fileLines[index].startsWith("["))
         {
             if (width <= 0)

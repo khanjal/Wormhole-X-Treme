@@ -37,7 +37,7 @@ class RingPatternTest
     /** Collects offsets into a set of "dx,dz" strings, so membership reads directly. */
     private static Set<String> cells(final List<RingPattern.Offset> offsets)
     {
-        final Set<String> out = new HashSet<String>();
+        final Set<String> out = new HashSet<>();
         for (final RingPattern.Offset offset : offsets)
         {
             out.add(offset.getDx() + "," + offset.getDz());
@@ -180,7 +180,7 @@ class RingPatternTest
         // reshape every ring on the server at once.
         final java.util.List<RingPattern.Offset> perimeter = RingPattern.ODD.getPerimeter();
         final java.util.List<RingPattern.Offset> interior = RingPattern.EVEN.getInterior();
-        assertThrows(UnsupportedOperationException.class, () -> perimeter.clear());
-        assertThrows(UnsupportedOperationException.class, () -> interior.clear());
+        assertThrows(UnsupportedOperationException.class, perimeter::clear);
+        assertThrows(UnsupportedOperationException.class, interior::clear);
     }
 }

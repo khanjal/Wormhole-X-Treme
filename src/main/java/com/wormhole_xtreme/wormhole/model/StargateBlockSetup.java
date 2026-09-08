@@ -319,7 +319,7 @@ class StargateBlockSetup
             if (plugin != null)
             {
                 plugin.prettyLog(Level.WARNING,
-                    "Could not match dial sign material on gate " + gate.getGateName() + ": " + t.getMessage());
+                    "Could not match dial sign material on gate " + gate.getGateName(), t);
             }
         }
     }
@@ -490,35 +490,65 @@ class StargateBlockSetup
     /** Places or removes the dial activation redstone wire. */
     static void setupRedstoneDialWire(final Stargate gate, final boolean create)
     {
-        if (gate.getGateRedstoneDialActivationBlock() != null)
+        setupRedstoneWire(gate, gate.getGateRedstoneDialActivationBlock(), "RD", create);
+    }
+
+    /** Places or removes the sign-dial redstone wire. */
+    static void setupRedstoneSignDialWire(final Stargate gate, final boolean create)
+    {
+        setupRedstoneWire(gate, gate.getGateRedstoneSignActivationBlock(), "RS", create);
+    }
+
+    /**
+     * Lays one marker's redstone wire, or takes it up again.
+     *
+     * <p>Both callers were the same thirty lines, differing only in which block they read and
+     * two characters of a log line.
+     *
+     * <p>Neither direction touches a block it did not put there. On the way in, a cell
+     * somebody has already built in is left alone and reported rather than overwritten; on
+     * the way out, only an actual wire is cleared, because between laying and lifting a
+     * player may have replaced it. The gate's structure list follows the same rule, so it
+     * never claims a block it did not place or abandons one it did.
+     *
+     * @param gate
+     *            the gate being wired
+     * @param target
+     *            the block the marker resolved to, or null if the shape has no such marker
+     * @param marker
+     *            the marker's name, for the log line when the cell is occupied
+     * @param create
+     *            true to lay the wire, false to take it up
+     */
+    private static void setupRedstoneWire(final Stargate gate, final Block target,
+        final String marker, final boolean create)
+    {
+        if (target == null)
         {
-            if (create)
+            return;
+        }
+        if (create)
+        {
+            try
             {
-                final Block rd = gate.getGateRedstoneDialActivationBlock();
-                try
+                final Material current = target.getType();
+                if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
                 {
-                    final Material current = rd.getType();
-                    if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
-                    {
-                        gate.getGateStructureBlocks().add(rd.getLocation());
-                        rd.setType(Material.REDSTONE_WIRE);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RD placement; target occupied: " + current);
-                    }
+                    gate.getGateStructureBlocks().add(target.getLocation());
+                    target.setType(Material.REDSTONE_WIRE);
                 }
-                catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
-            }
-            else
-            {
-                final Block rd = gate.getGateRedstoneDialActivationBlock();
-                if (rd != null && rd.getType() == Material.REDSTONE_WIRE)
+                else
                 {
-                    gate.getGateStructureBlocks().remove(rd.getLocation());
-                    rd.setType(Material.AIR);
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                        "Skipping " + marker + " placement; target occupied: " + current);
                 }
             }
+            catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
+        }
+        else if (target.getType() == Material.REDSTONE_WIRE)
+        {
+            gate.getGateStructureBlocks().remove(target.getLocation());
+            target.setType(Material.AIR);
         }
     }
 
@@ -551,41 +581,6 @@ class StargateBlockSetup
                 {
                     gate.getGateStructureBlocks().remove(gate.getGateRedstoneGateActivatedBlock().getLocation());
                     gate.getGateRedstoneGateActivatedBlock().setType(Material.AIR);
-                }
-            }
-        }
-    }
-
-    /** Places or removes the sign-dial redstone wire. */
-    static void setupRedstoneSignDialWire(final Stargate gate, final boolean create)
-    {
-        if (gate.getGateRedstoneSignActivationBlock() != null)
-        {
-            if (create)
-            {
-                final Block rs = gate.getGateRedstoneSignActivationBlock();
-                try
-                {
-                    final Material current = rs.getType();
-                    if ((current == Material.AIR) || (current == Material.REDSTONE_WIRE))
-                    {
-                        gate.getGateStructureBlocks().add(rs.getLocation());
-                        rs.setType(Material.REDSTONE_WIRE);
-                    }
-                    else
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Skipping RS placement; target occupied: " + current);
-                    }
-                }
-                catch (final RuntimeException ignore) { /* placing the marker is best effort */ }
-            }
-            else
-            {
-                final Block rs = gate.getGateRedstoneSignActivationBlock();
-                if (rs != null && rs.getType() == Material.REDSTONE_WIRE)
-                {
-                    gate.getGateStructureBlocks().remove(rs.getLocation());
-                    rs.setType(Material.AIR);
                 }
             }
         }
@@ -661,7 +656,7 @@ class StargateBlockSetup
         // them is a good enough filter for the whole gate.
         final Location reference = new Location(gate.getGateWorld(),
             portalBlocks.get(0).getBlockX(), portalBlocks.get(0).getBlockY(), portalBlocks.get(0).getBlockZ());
-        final List<Player> recipients = new ArrayList<Player>();
+        final List<Player> recipients = new ArrayList<>();
         for (final Player p : gate.getGateWorld().getPlayers())
         {
             if (p.getLocation().distanceSquared(reference) <= (VISUAL_RADIUS * VISUAL_RADIUS))
@@ -816,7 +811,7 @@ class StargateBlockSetup
      */
     private static List<Player> nearby(final Stargate gate)
     {
-        final List<Player> recipients = new ArrayList<Player>();
+        final List<Player> recipients = new ArrayList<>();
         if ((gate == null) || (gate.getGateWorld() == null))
         {
             return recipients;
@@ -1017,7 +1012,7 @@ class StargateBlockSetup
             return;
         }
         final Location playerAt = player.getLocation();
-        final Set<String> stillOpen = new HashSet<String>();
+        final Set<String> stillOpen = new HashSet<>();
 
         for (final Stargate gate : StargateManager.getOpenGates())
         {
@@ -1148,15 +1143,9 @@ class StargateBlockSetup
         {
             // No identity to file it under, so there is nothing to remember between calls.
             // A throwaway set keeps every caller free of null checks.
-            return new HashSet<String>();
+            return new HashSet<>();
         }
-        Set<String> showing = DRAWN.get(uuid);
-        if (showing == null)
-        {
-            showing = new HashSet<String>();
-            DRAWN.put(uuid, showing);
-        }
-        return showing;
+        return DRAWN.computeIfAbsent(uuid, key -> new HashSet<>());
     }
 
     /**
@@ -1315,11 +1304,10 @@ class StargateBlockSetup
         {
             try
             {
-                if (!(entity instanceof org.bukkit.entity.LivingEntity))
-                {
-                    continue;
-                }
-                if (!isInIrisPath(gate, entity.getLocation()))
+                // Only a living thing can suffocate, and only one standing where the iris
+                // is about to be is in the way.
+                if (!(entity instanceof org.bukkit.entity.LivingEntity)
+                    || !isInIrisPath(gate, entity.getLocation()))
                 {
                     continue;
                 }
@@ -1345,7 +1333,7 @@ class StargateBlockSetup
                 // swallowed here, where they would look like an ordinary immovable mob.
                 WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
                     "Failed to move " + entity.getType() + " clear of closing iris on gate: "
-                        + gate.getGateName() + ": " + t.getMessage());
+                        + gate.getGateName(), t);
             }
         }
     }
@@ -1407,18 +1395,15 @@ class StargateBlockSetup
                 mat = Material.AIR;
             }
 
-            if (regenerate)
+            // Only create a lever if the activation holder is empty. Preserve the player's
+            // placed activation item (button/lever) otherwise.
+            if (regenerate && (mat == Material.AIR))
             {
-                // Only create a lever if the activation holder is empty. Preserve
-                // the player's placed activation item (button/lever) otherwise.
-                if (mat == Material.AIR)
-                {
-                    gate.getGateDialLeverBlock().setType(Material.LEVER);
-                    final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
-                    rld.setFacing(gate.getGateFacing());
-                    gate.getGateDialLeverBlock().setBlockData(rld);
-                    mat = gate.getGateDialLeverBlock().getType();
-                }
+                gate.getGateDialLeverBlock().setType(Material.LEVER);
+                final Directional rld = (Directional) gate.getGateDialLeverBlock().getBlockData();
+                rld.setFacing(gate.getGateFacing());
+                gate.getGateDialLeverBlock().setBlockData(rld);
+                mat = gate.getGateDialLeverBlock().getType();
             }
 
             // Preserve whatever activation the player placed.  If it's a lever,

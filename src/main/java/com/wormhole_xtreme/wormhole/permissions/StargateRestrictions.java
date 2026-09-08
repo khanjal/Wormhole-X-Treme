@@ -19,10 +19,10 @@ public class StargateRestrictions
 
 
     /** The Constant playerUseCooldownStart. */
-    private static final ConcurrentHashMap<Player, Long> playerUseCooldownStart = new ConcurrentHashMap<Player, Long>();
+    private static final ConcurrentHashMap<Player, Long> playerUseCooldownStart = new ConcurrentHashMap<>();
     
     /** Recently-arrived players map: player -> (gateId, timestamp) */
-    private static final ConcurrentHashMap<Player, RecentArrival> playerRecentArrival = new ConcurrentHashMap<Player, RecentArrival>();
+    private static final ConcurrentHashMap<Player, RecentArrival> playerRecentArrival = new ConcurrentHashMap<>();
     
     /**
      * Adds the player use cooldown.
@@ -96,12 +96,8 @@ public class StargateRestrictions
         return -1;
     }
 
-    /**
-     * Gets the player use cooldown group.
-     * 
-     * @return the player use cooldown group
-     */
-    // player-use cooldown group map removed; per-player cooldowns are tracked via `playerUseCooldownStart` only.
+    // The player-use cooldown group map was removed; per-player cooldowns are tracked via
+    // playerUseCooldownStart alone.
 
     /**
      * Gets the player use cooldown list.

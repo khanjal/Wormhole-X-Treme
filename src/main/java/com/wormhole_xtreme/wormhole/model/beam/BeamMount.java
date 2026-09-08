@@ -117,9 +117,9 @@ final class BeamMount
             // horse is a consent problem.
             return none();
         }
-        final List<Entity> collected = new ArrayList<Entity>();
+        final List<Entity> collected = new ArrayList<>();
         collected.add(ridden);
-        EntityUtils.collectPassengerPairs(ridden, new ArrayList<Entity>(), collected);
+        EntityUtils.collectPassengerPairs(ridden, new ArrayList<>(), collected);
         return new BeamMount(ridden, collected);
     }
 
@@ -240,8 +240,7 @@ final class BeamMount
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Could not beam " + rider.getName() + "'s mount to the destination; they arrive on foot: "
-                    + e.getMessage());
+                "Could not beam " + rider.getName() + "'s mount to the destination; they arrive on foot", e);
             return;
         }
         PassengerReattach.schedule(mount, rider, null);

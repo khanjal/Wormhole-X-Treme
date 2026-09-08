@@ -35,7 +35,7 @@ public final class RingTransit
      * interiors. Once a second is plenty for something a player has to go and physically fix.
      */
     private static final java.util.concurrent.ConcurrentMap<String, Long> surveyed =
-        new ConcurrentHashMap<String, Long>();
+        new ConcurrentHashMap<>();
 
     /** How long a blockage answer is trusted before the world is read again. */
     private static final long SURVEY_TTL_MILLIS = 1000L;
@@ -81,7 +81,7 @@ public final class RingTransit
         }
 
         final int reach = ConfigManager.getRingReach();
-        final BukkitRingWorld surroundings = new BukkitRingWorld(world, pair, reach);
+        final BukkitRingWorld surroundings = new BukkitRingWorld(world, pair);
         final RingCycle cycle = new RingCycle(pair, surroundings, reach);
         // Both ends have to be loaded for the whole cycle. The far end is usually nowhere
         // near a player, and animating into an unloaded chunk writes blocks nobody will see
@@ -512,8 +512,7 @@ public final class RingTransit
     private static void recover(final RingCycle cycle, final World world, final RuntimeException cause)
     {
         WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-            "Ring pair " + cycle.getPair().getId() + " failed mid-cycle, putting it back: "
-                + cause.getMessage());
+            "Ring pair " + cycle.getPair().getId() + " failed mid-cycle, putting it back", cause);
         try
         {
             cycle.finish(System.currentTimeMillis() + (ConfigManager.getRingCooldownTicks() * 50L));

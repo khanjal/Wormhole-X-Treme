@@ -16,7 +16,7 @@ class MaterialGroupRegistryTest
     private static Map<String, Object> group(final String structure, final String portal,
         final String iris, final String light)
     {
-        final Map<String, Object> m = new LinkedHashMap<String, Object>();
+        final Map<String, Object> m = new LinkedHashMap<>();
         if (structure != null) m.put("structure", structure);
         if (portal != null) m.put("portal", portal);
         if (iris != null) m.put("iris", iris);
@@ -27,7 +27,7 @@ class MaterialGroupRegistryTest
     @Test
     void firstDeclaredGroupIsTheDefault()
     {
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
         section.put("Atlantis", group("LAPIS_BLOCK", "WATER", "YELLOW_STAINED_GLASS", "SEA_LANTERN"));
 
@@ -40,7 +40,7 @@ class MaterialGroupRegistryTest
     @Test
     void groupsAreFoundByTheirStructureMaterial()
     {
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
         section.put("Atlantis", group("LAPIS_BLOCK", "WATER", "YELLOW_STAINED_GLASS", "SEA_LANTERN"));
 
@@ -59,7 +59,7 @@ class MaterialGroupRegistryTest
     @Test
     void lookupByNameIsCaseInsensitive()
     {
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Atlantis", group("LAPIS_BLOCK", "WATER", "STONE", "GLOWSTONE"));
 
         MaterialGroupRegistry.load(section);
@@ -74,7 +74,7 @@ class MaterialGroupRegistryTest
     {
         // The frame material is what identifies a palette, so two groups claiming the
         // same one would make detection ambiguous. The first declared keeps it.
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
         section.put("Impostor", group("OBSIDIAN", "LAVA", "BEDROCK", "SEA_LANTERN"));
 
@@ -88,7 +88,7 @@ class MaterialGroupRegistryTest
     @Test
     void groupWithUnreadableStructureMaterialIsSkipped()
     {
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Good", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
         section.put("Bad", group("NOT_A_REAL_BLOCK", "WATER", "STONE", "GLOWSTONE"));
 
@@ -101,7 +101,7 @@ class MaterialGroupRegistryTest
     @Test
     void missingPortalIrisAndLightFallBackToDefaults()
     {
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Sparse", group("LAPIS_BLOCK", null, null, null));
 
         MaterialGroupRegistry.load(section);
@@ -137,7 +137,7 @@ class MaterialGroupRegistryTest
     {
         final Map<String, Object> standard = group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE");
         standard.put("chevron", "REDSTONE_LAMP");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", standard);
 
         MaterialGroupRegistry.load(section);
@@ -157,7 +157,7 @@ class MaterialGroupRegistryTest
     @Test
     void aPaletteThatNamesNoChevronMaterialGetsNoneRatherThanADefault()
     {
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
 
         MaterialGroupRegistry.load(section);
@@ -178,7 +178,7 @@ class MaterialGroupRegistryTest
     {
         final Map<String, Object> standard = group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE");
         standard.put("chevron", "NOT_A_REAL_BLOCK");
-        final Map<String, Object> section = new LinkedHashMap<String, Object>();
+        final Map<String, Object> section = new LinkedHashMap<>();
         section.put("Standard", standard);
 
         MaterialGroupRegistry.load(section);

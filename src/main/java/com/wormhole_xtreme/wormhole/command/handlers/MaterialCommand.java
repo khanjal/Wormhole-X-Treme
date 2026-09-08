@@ -8,7 +8,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
@@ -117,7 +116,7 @@ public class MaterialCommand implements SubCommand
          */
         public List<String> allowedNames()
         {
-            return allowed.stream().map(Material::name).collect(Collectors.toList());
+            return allowed.stream().map(Material::name).toList();
         }
 
         // Package-private rather than private: MaterialCommandTest sets through one kind and

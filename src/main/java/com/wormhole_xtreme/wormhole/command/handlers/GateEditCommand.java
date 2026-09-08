@@ -53,7 +53,7 @@ public class GateEditCommand implements SubCommand
     }
 
     /** The fields, in the order they are offered. */
-    private static final Map<String, Field> FIELDS = new LinkedHashMap<String, Field>();
+    private static final Map<String, Field> FIELDS = new LinkedHashMap<>();
 
     static
     {
@@ -138,7 +138,7 @@ public class GateEditCommand implements SubCommand
      */
     public static List<String> groupNames()
     {
-        final List<String> names = new ArrayList<String>();
+        final List<String> names = new ArrayList<>();
         for (final com.wormhole_xtreme.wormhole.model.MaterialGroup g
             : com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry.getGroups())
         {
@@ -155,7 +155,7 @@ public class GateEditCommand implements SubCommand
      */
     public static List<String> fieldNames()
     {
-        return new ArrayList<String>(FIELDS.keySet());
+        return new ArrayList<>(FIELDS.keySet());
     }
 
     /**

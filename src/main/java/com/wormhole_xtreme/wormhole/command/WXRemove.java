@@ -32,7 +32,7 @@ public class WXRemove implements CommandExecutor
         catch (final RuntimeException t)
         {
             com.wormhole_xtreme.wormhole.WormholeXTreme.getThisPlugin().prettyLog(
-                java.util.logging.Level.WARNING, "Error executing /wx remove: " + t.getMessage());
+                java.util.logging.Level.WARNING, "Error executing /wx remove", t);
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + "An error occurred while removing the gate. Check server logs.");
             return true;
