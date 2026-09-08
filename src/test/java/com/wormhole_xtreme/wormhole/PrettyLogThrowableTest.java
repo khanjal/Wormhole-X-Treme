@@ -150,15 +150,16 @@ class PrettyLogThrowableTest
      * <p>The whole point of the overload. A message ending in the exception's own text is a
      * site that should be handing over the exception instead, and it reads the same in a diff
      * either way -- which is why this is checked rather than left to review.
+     *
+     * <p>It walks back from each {@code getMessage()} to the start of its statement rather
+     * than trying to match a whole {@code prettyLog(...)} call. The first version of this test
+     * did match the call, with a regex that allowed one level of nested brackets, and so was
+     * blind to the two sites whose message contained a parenthesised ternary. Copilot found
+     * them; the test had passed.
      */
     @Test
     void noPrettyLogCallFlattensAnExceptionIntoItsMessage() throws IOException
     {
-        // DOTALL because these calls wrap; the quoted-string alternative keeps the match from
-        // running past the end of one call into the next.
-        final Pattern flattened = Pattern.compile(
-            "prettyLog\\((?:[^()\"]|\"(?:\\\\.|[^\"\\\\])*\"|\\([^()]*\\))*\\)", Pattern.DOTALL);
-
         final List<String> found = new ArrayList<>();
         try (java.util.stream.Stream<Path> walk = Files.walk(Paths.get("src/main/java")))
         {
@@ -168,12 +169,14 @@ class PrettyLogThrowableTest
                 {
                     continue;
                 }
-                final Matcher m = flattened.matcher(Files.readString(source, StandardCharsets.UTF_8));
+                final String text = Files.readString(source, StandardCharsets.UTF_8);
+                final Matcher m = Pattern.compile("\\.getMessage\\(\\)").matcher(text);
                 while (m.find())
                 {
-                    if (m.group().contains(".getMessage()"))
+                    if (opensAPrettyLogCall(text, m.start()))
                     {
-                        found.add(source.getFileName().toString());
+                        found.add(source.getFileName().toString() + ":"
+                            + (text.substring(0, m.start()).split("\\n", -1).length));
                     }
                 }
             }
@@ -184,5 +187,21 @@ class PrettyLogThrowableTest
                 + "third argument instead: the message says what the plugin was doing, and the "
                 + "logger takes care of what went wrong and where.");
         assertTrue(Files.exists(Paths.get("src/main/java")), "no sources were read, so this proved nothing");
+    }
+
+    /**
+     * Whether the statement containing {@code at} started a {@code prettyLog} call.
+     *
+     * @param text
+     *            the whole source file
+     * @param at
+     *            where the {@code getMessage()} call begins
+     * @return true if a {@code prettyLog(} was opened earlier in the same statement
+     */
+    private static boolean opensAPrettyLogCall(final String text, final int at)
+    {
+        final int statementStart = Math.max(text.lastIndexOf(';', at),
+            Math.max(text.lastIndexOf('{', at), text.lastIndexOf('}', at)));
+        return text.substring(statementStart + 1, at).contains("prettyLog(");
     }
 }

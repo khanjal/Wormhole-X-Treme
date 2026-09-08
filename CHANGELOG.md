@@ -30,6 +30,12 @@ A test walks `src/main/java` and fails on any `prettyLog` call that puts `getMes
 into a message. That is the whole reason it exists: the two forms read almost identically in a
 diff.
 
+Its first version matched a whole `prettyLog(...)` call with a regex that allowed one level of
+nested brackets, and so could not see two sites whose message contained a parenthesised
+ternary. Both were missed by the conversion as well, and the test passed. Copilot found them.
+It now walks back from each `getMessage()` to the start of its statement instead, which has no
+brackets to balance and reports the file and line it found.
+
 ### A half-built ring pair is a record now
 
 `RingManager.PendingRing` holds two things -- the end already built and the world it is in --

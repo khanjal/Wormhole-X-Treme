@@ -714,7 +714,7 @@ class WormholeXTremePlayerListener implements Listener
             if (WormholeXTreme.getThisPlugin() != null)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Exception while teleporting " + player.getName()
-                    + " to " + (target == null ? "null" : target.toString()) + ": " + e.getMessage());
+                    + " to " + (target == null ? "null" : target.toString()), e);
             }
         }
 

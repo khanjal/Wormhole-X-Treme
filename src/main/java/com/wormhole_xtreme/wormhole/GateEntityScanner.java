@@ -82,7 +82,7 @@ public final class GateEntityScanner implements Runnable
         catch (final RuntimeException t)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null") + ": " + t.getMessage());
+                "Entity scan failed for gate " + (gate != null ? gate.getGateName() : "null"), t);
         }
     }
 
