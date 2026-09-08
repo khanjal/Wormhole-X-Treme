@@ -175,6 +175,34 @@ the show's five, the stack is one seven-block diameter throughout so nothing tap
 Amber on cyan read better at small sizes than grey does, so the corrected mark is slightly weaker
 as a drawing. It is drawing the actual plugin, which for a reference a designer will work from
 matters more.
+### Nothing was checking the rules for building a ring pair
+
+`RingCommand.completePair` decides whether the second circle of slabs somebody just laid
+becomes a transport with the first: same world, near enough on the ground, near enough in
+height, and not the same circle twice. Every line of it was uncovered, which is how a two-field
+record conversion came to report 11.5% coverage on its own rename.
+
+Twenty-nine mutations, and one survived the whole suite in a way worth naming: **dropping the
+`y` comparison from the same-circle rule.** A ring directly above another is the shape rings
+exist for -- a shaft between two floors -- and it differs from the first end in nothing but
+height. Without that comparison the pair is refused as "the ring you already laid", and there
+is no way to build one at all. Nothing would have caught it.
+
+Two more were the tests' own fault rather than the code's, and the mutations are what showed
+it. Asserting the pair came out `PRIVATE` proved nothing, because a `RingPair` is `PRIVATE`
+before anybody sets it; asserting the flash was `GLOWSTONE` proved nothing, because the ring
+was built with `GLOWSTONE`. Both now use values the code has to have read the config to
+produce.
+
+`RingPairingTest` holds eighteen tests: the four refusals and what each one says, the two
+limits and where their boundaries fall, that zero means no limit for both, that a refusal
+leaves the pending end waiting and nobody's slabs taken, and that a finished pair is owned,
+stamped, styled at both ends, registered and written out.
+
+`completePair` is package-private rather than private so it can be reached. Getting to it
+through the command means detecting two ring templates out of a mocked world, and how the
+circles were found has nothing to do with the rules for joining them.
+
 ### The log said "null" where it should have said what went wrong
 
 Every catch site in the plugin reported itself the same way:
