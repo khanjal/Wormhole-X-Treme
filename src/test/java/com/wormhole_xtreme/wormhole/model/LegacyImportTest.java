@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
@@ -63,9 +65,9 @@ class LegacyImportTest
     private static java.sql.ResultSet row(final byte[] gateData, final String worldName)
         throws java.sql.SQLException
     {
-        final java.sql.ResultSet rows = org.mockito.Mockito.mock(java.sql.ResultSet.class);
-        org.mockito.Mockito.when(rows.getBytes("GateData")).thenReturn(gateData);
-        org.mockito.Mockito.when(rows.getString("WorldName")).thenReturn(worldName);
+        final java.sql.ResultSet rows = mock(java.sql.ResultSet.class);
+        when(rows.getBytes("GateData")).thenReturn(gateData);
+        when(rows.getString("WorldName")).thenReturn(worldName);
         return rows;
     }
 
