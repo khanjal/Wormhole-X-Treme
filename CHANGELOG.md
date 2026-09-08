@@ -178,7 +178,7 @@ becomes a transport with the first: same world, near enough on the ground, near 
 height, and not the same circle twice. Every line of it was uncovered, which is how a two-field
 record conversion came to report 11.5% coverage on its own rename.
 
-Twenty-six mutations, and one survived the whole suite in a way worth naming: **dropping the
+Twenty-nine mutations, and one survived the whole suite in a way worth naming: **dropping the
 `y` comparison from the same-circle rule.** A ring directly above another is the shape rings
 exist for -- a shaft between two floors -- and it differs from the first end in nothing but
 height. Without that comparison the pair is refused as "the ring you already laid", and there

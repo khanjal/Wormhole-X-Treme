@@ -343,7 +343,7 @@ class RingPairingTest
      * height are both zero, so no earlier rule catches it.
      */
     @Test
-    void thesameCircleTwiceIsRefusedAndTheFirstKeepsWaiting()
+    void theSameCircleTwiceIsRefusedAndTheFirstKeepsWaiting()
     {
         final RingManager.PendingRing waiting = waitingAt(0, 64, 0, WORLD);
 
