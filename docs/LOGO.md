@@ -1,8 +1,10 @@
 # Logo
 
-The mark at the top of the README is a **reference, not a finished identity**. It was drawn by
-hand in SVG so that a real graphic artist has something concrete to react to rather than a
-paragraph of description. This file exists so the *meaning* survives a redraw -- an artist
+The mark at the top of the README is a **reference, not a finished identity**. Its SVG was
+hand-authored -- written as markup, shape by shape, rather than image-generated -- but written with
+Claude Code rather than by a designer, so that a real graphic artist has something concrete to
+react to rather than a paragraph of description. [TRADEMARK.md](../TRADEMARK.md) explains why that
+provenance matters to the licence. This file exists so the *meaning* survives a redraw -- an artist
 should feel free to throw away every curve in it, as long as what comes back still says the
 same three things.
 

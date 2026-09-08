@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The credits did not say where the logo came from
+
+The Credits section is careful about attribution -- who wrote which part, how many commits are
+alron's, whose fork kept the plugin alive for three years and why that work is not in this tree.
+Into that, a logo appeared at the top of the README with no account of itself at all.
+
+It was written with Claude Code as a reference for a commission, not drawn by a designer, and the
+Credits section says so now. It also explains what the three elements mean, and points at the brief
+and at #187.
+
+Stating it is not only manners. It bears directly on `TRADEMARK.md`, merged an hour earlier: a
+carve-out is only as strong as the copyright behind it, and copyright in machine-generated work is
+uncertain -- the US Copyright Office requires human authorship, and material generated without
+sufficient human input is not registrable. So the policy is on firmer ground the day a
+commissioned mark with assigned copyright replaces this one, which is a better argument for #187
+than "the drawing could be nicer".
+
+The name does not share the weakness. Trademark rights come from use in commerce rather than
+authorship, and Wormhole X-Treme has been in use since 2011. `TRADEMARK.md` now says both things.
+
+
 ### The name and logo are no longer GPL-3.0
 
 Everything in the repository inherited GPL-3.0 unless it said otherwise, so the mark shipped in
@@ -16,6 +37,8 @@ saying which one this is, is most of what the mark is for.
 commerce. Using the logo unmodified to refer to this project -- writing about it, reviewing it,
 listing it, redistributing the jar -- needs no permission and is welcome. Modifying the mark, or
 using it to present a different distribution or fork as this project, does.
+
+`docs/LOGO.md` carries the reasoning at length, since an artist redrawing the mark needs it.
 
 The code is untouched. Every right GPL-3.0 grants over the code stands, forking included.
 Copyright and trademark are separate regimes and the GPL says so itself: section 7(e) expressly
@@ -42,25 +65,6 @@ used to return `NOASSERTION`. The badge reads it now, through
 actually says rather than what somebody typed once.
 
 `?color=blue` is pinned because the dynamic badge defaults to orange, and the badge row was blue.
-
-### The logo is GPL-3.0 by accident
-
-Everything in the repository inherits GPL-3.0 unless it says otherwise, so the mark added a few
-commits ago is currently licensed exactly like the code. Nobody chose that.
-
-It matters here more than it would elsewhere, because there is more than one Wormhole X-Treme,
-and saying which one this is, is most of what a mark is for. Under GPL-3.0 anybody may
-redistribute and modify those SVGs -- including to present a fork as this project, which is the
-one outcome the mark exists to prevent.
-
-`docs/LOGO.md` now says so, along with the shape of the decision: a statement covering
-`docs/images/` alone, optionally a usage policy, and copyright assignment written into any
-commission, since none of it is yours to decide if the artist keeps the copyright. Copyright and
-trademark are separate regimes and the GPL says as much -- section 7(e) expressly allows an
-additional term declining to grant trademark rights, which is how Rust, Python and Mozilla all
-keep free code and a controlled identity at the same time.
-
-Nothing is relicensed. The note is a note; the decision is the owner's.
 
 ### Three files that all looked like the licence
 
@@ -121,15 +125,15 @@ needed.
 
 `docs/images/` held a `gate-placeholder.png` that was a single transparent pixel and a
 `gate-placeholder.svg` that drew a grey circle with the words "Gate Placeholder" in it. Neither
-was ever a logo -- they are the screenshot slot `docs/USER_GUIDE.md` still points at, waiting
-on real in-game captures -- but they were the only images in the repository, so the README led
+was ever a logo -- they were the guide's screenshot slot, waiting on real in-game captures, and
+are since deleted -- but they were the only images in the repository, so the README led
 with a bare `# Wormhole X-Treme` and eight badges.
 
 `docs/images/logo.svg` is a mark drawn from the three things the plugin actually does. The
 chevron ring is a gate: nine chevrons on a metal band, glyph ticks, event horizon inside. The
-column of light falling through the horizon is a beam. The three amber ellipses rising inside
-the column are transport rings, shrinking as they climb, which is the envelope motion
-`docs/BEAMS.md` describes.
+column of light falling through the horizon is a beam. The stack of four identical grey ellipses
+inside the column is a set of transport rings, drawn the way `docs/RINGS.md` describes them: four
+of them, one block apart, all the same diameter.
 
 There is no mirror in it, because there is no mirror in the plugin yet. A quantum mirror -- a
 clickable banner that sends somebody straight to its pair -- is issue #22 and not built. The
