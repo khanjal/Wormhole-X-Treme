@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The last two save-format readers nobody had ever tested
+
+Nothing here changes. This finishes a job the code itself asked for. `LegacyGateFidelityTest`
+quoted #77 when it covered versions 6 and 7 -- "Versions 3 to 7 are read-only paths for
+importing old databases and nothing tests them... Those readers want real fixtures, a
+hand-built buffer per version, and that is its own piece of work, since `stargateToBinary` only
+emits v9 and cannot generate them." Version 3 already had a test. Versions 4 and 5 had nothing
+at all.
+
+A wrong answer in one of these is not a crash. It is somebody's gate coming back from a
+decade-old database with its exit a block out, or facing the wrong way, and nothing to say so.
+
+Three things the fixtures pin that the code does not say out loud:
+
+- **The arrival is lifted one block above what was stored, turned to face the way the gate
+  does, and levelled.** All three happen on the way in rather than being saved. A reader that
+  dropped the lift lands travellers inside the floor they should be standing on. Both readers
+  hold their own copy of those three lines, so both are asked.
+- **Version 5's light blocks go into the second wave, not the first.** The reader pads the list
+  to two and fills index 1, leaving index 0 empty. A wave in the wrong slot is a gate whose
+  lights come on in the wrong order -- visible in game, and nothing a stack trace would mention.
+- **Version 4 has no lights byte at all**, so a version 4 gate always comes back with its lights
+  off however it was saved. That is the format's limit rather than a fault, said plainly so
+  nobody "fixes" the version 4 reader by inventing one.
+
+Twenty-two mutations across the two readers. Three survived the first pass, and none of them
+was the code's fault:
+
+- The stored arrival had a pitch of zero, which is what a `Location` holds anyway, so the reader
+  levelling it was invisible. The record now stores a yaw of 33 and a pitch of 45 for the reader
+  to overwrite.
+- The arrival was only checked on the version 4 reader, and there are two.
+- **Version 5's iris byte and lights byte are adjacent and the fixture set both to 1**, so a
+  reader taking them in each other's place looked identical. This is the same limitation
+  `LegacyGateFidelityTest` noted about its own activator flags and left for somebody else --
+  "catching that needs a second record with the flags the other way round". There is now such a
+  record: iris on, lights off, which only the right order produces.
+
 ### Handing a ring pair over, and letting somebody into one
 
 Nothing here changes. `allow`, `deny` and `owner` were uncovered between them, and they are the
