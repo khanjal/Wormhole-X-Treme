@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A packaging file that looked authoritative and did nothing
+
+`src/main/assembly/package.xml` was a complete, valid maven-assembly descriptor: a zip with the
+jar renamed to `WormholeXTreme.jar`, the gate shapes pre-placed under
+`plugins/WormholeXTreme/GateShapes/`, and the project's documents in a `docs/` folder. It was also
+not being built. `maven-assembly-plugin` was in `pom.xml` from 2011 until May this year, when
+`4fa7914` -- a commit about teleport and minecart safety -- dropped it and left the descriptor
+behind. Since then `mvn package` has produced the jar and nothing else.
+
+That history is why the file read as authoritative: it was, for fifteen years. It stopped being
+true in a commit about something else entirely, which is the usual way.
+
+A packaging file that looks like it works is worse than none, because people read it and believe
+it. That happened while writing `TRADEMARK.md`: the descriptor's includes listed `LICENSE*` and
+`NOTICE*`, so `TRADEMARK*` was added beside them and the policy went on to tell readers the jar
+ships the document. The jar contains compiled classes and gate shapes. The commit message said the
+claim was verified with `mvn clean package`, and the build did succeed, which is not the same
+thing.
+
+Deleted rather than wired in. Nothing is lost: the release workflow attaches the jar and only the
+jar, the shapes ship inside it as resources, and nothing in the build or release pipeline
+depended on the descriptor. If a server-ready zip is wanted later it can come back deliberately, with the plugin
+that builds it.
+
+Closes #193.
+
 ### The credits did not say where the logo came from
 
 The Credits section is careful about attribution -- who wrote which part, how many commits are
@@ -107,9 +133,12 @@ the repository unrecognised, GitHub's API reported the licence as `NOASSERTION`,
 GPL-3.0 badge was hand-written rather than detected.
 
 `gpl.txt` is now `LICENSE` and `LICENSE.txt` is now `NOTICE.txt`, which is what that file has
-always been. `src/main/assembly/package.xml` already globbed `LICENSE*` and `NOTICE*`, so both
-still ship in the jar and its explicit `gpl.txt` include is gone as redundant. The README badge
-now links to the licence rather than to the notice.
+always been. The README badge now links to the licence rather than to the notice.
+
+The renames also touched `src/main/assembly/package.xml`, whose `LICENSE*` and `NOTICE*` globs made
+its explicit `gpl.txt` include redundant. That edit had no effect: the descriptor had already
+stopped being built four months earlier, when the assembly plugin was dropped from `pom.xml`. The
+file is deleted further up these notes.
 
 `LICENSING.md` was also describing a plugin that no longer exists. It listed `org.sqlite:sqlite-jdbc`
 and `org.hsqldb:hsqldb` as dependencies and named sqlite-jdbc as shaded into the jar; neither has
