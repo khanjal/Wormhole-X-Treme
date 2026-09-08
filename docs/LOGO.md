@@ -6,6 +6,10 @@ paragraph of description. This file exists so the *meaning* survives a redraw --
 should feel free to throw away every curve in it, as long as what comes back still says the
 same three things.
 
+Replacing it is tracked in
+[issue #187](https://github.com/khanjal/Wormhole-X-Treme/issues/187), which also records the
+current drawing's known weaknesses so nobody has to rediscover them.
+
 ![Logo anatomy](images/logo-anatomy.svg)
 
 ## What the mark has to say
