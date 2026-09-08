@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The project had no logo, only two placeholder files
+
+`docs/images/` held a `gate-placeholder.png` that was a single transparent pixel and a
+`gate-placeholder.svg` that drew a grey circle with the words "Gate Placeholder" in it. Neither
+was ever a logo -- they are the screenshot slot `docs/USER_GUIDE.md` still points at, waiting
+on real in-game captures -- but they were the only images in the repository, so the README led
+with a bare `# Wormhole X-Treme` and eight badges.
+
+`docs/images/logo.svg` is a mark drawn from the three things the plugin actually does. The
+chevron ring is a gate: nine chevrons on a metal band, glyph ticks, event horizon inside. The
+column of light falling through the horizon is a beam. The three amber ellipses rising inside
+the column are transport rings, shrinking as they climb, which is the envelope motion
+`docs/BEAMS.md` describes.
+
+There is no mirror in it, despite the name of the subsystem set sounding like there should be
+-- `mirror` appears in the design documents only as ordinary prose about one thing mirroring
+another.
+
+`docs/images/logo-banner.svg` is the same mark with the wordmark and a one-line description,
+and it now heads the README in place of the `# Wormhole X-Treme` line. Nothing linked to that
+heading anchor.
+
+Both are hand-written SVG. The mark carries its own dark disc rather than a transparent
+background, so it reads on GitHub in either theme without a second file, and it holds together
+down to about 32px; at 16px it is a blue dot with a gold fringe, which is fine for a favicon
+and not much else. No PNG exports -- there is no rasteriser on the machine this was drawn on,
+and GitHub renders SVG in Markdown directly. A listing that needs PNG will need one generated.
+
 ### Beaming was undocumented outside its permission nodes
 
 Gates and rings each have a README section running to hundreds of lines. Beaming had
