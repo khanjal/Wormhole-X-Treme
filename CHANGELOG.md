@@ -4,6 +4,50 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The logo is GPL-3.0 by accident
+
+Everything in the repository inherits GPL-3.0 unless it says otherwise, so the mark added a few
+commits ago is currently licensed exactly like the code. Nobody chose that.
+
+It matters here more than it would elsewhere, because there is more than one Wormhole X-Treme,
+and saying which one this is, is most of what a mark is for. Under GPL-3.0 anybody may
+redistribute and modify those SVGs -- including to present a fork as this project, which is the
+one outcome the mark exists to prevent.
+
+`docs/LOGO.md` now says so, along with the shape of the decision: a statement covering
+`docs/images/` alone, optionally a usage policy, and copyright assignment written into any
+commission, since none of it is yours to decide if the artist keeps the copyright. Copyright and
+trademark are separate regimes and the GPL says as much -- section 7(e) expressly allows an
+additional term declining to grant trademark rights, which is how Rust, Python and Mozilla all
+keep free code and a controlled identity at the same time.
+
+Nothing is relicensed. The note is a note; the decision is the owner's.
+
+### Three files that all looked like the licence
+
+`LICENSE.txt` held the sixteen-line copyright notice. `gpl.txt` held the actual GPL-3.0 text, all
+35 KB of it. `LICENSING.md` explained the licence and inventoried the dependencies, and opened by
+telling the reader to see `LICENSE.txt` for the full text -- which is not, and never was, in that
+file.
+
+The naming had a consequence beyond confusion. GitHub's licence detector looks for `LICENSE`,
+`LICENSE.md`, `COPYING` and a few more; it does not look for `gpl.txt`. So the full text sat in
+the repository unrecognised, GitHub's API reported the licence as `NOASSERTION`, and the README's
+GPL-3.0 badge was hand-written rather than detected.
+
+`gpl.txt` is now `LICENSE` and `LICENSE.txt` is now `NOTICE.txt`, which is what that file has
+always been. `src/main/assembly/package.xml` already globbed `LICENSE*` and `NOTICE*`, so both
+still ship in the jar and its explicit `gpl.txt` include is gone as redundant. The README badge
+now links to the licence rather than to the notice.
+
+`LICENSING.md` was also describing a plugin that no longer exists. It listed `org.sqlite:sqlite-jdbc`
+and `org.hsqldb:hsqldb` as dependencies and named sqlite-jdbc as shaded into the jar; neither has
+been in `pom.xml` since the database layer was removed, and gates have been one YAML file each for
+a while. Its compliance note explained that `ServicesResourceTransformer` merges
+`META-INF/services/java.sql.Driver` entries "from multiple database vendors" -- there are no
+database vendors. The transformer is still configured and still a reasonable safeguard, so it is
+described as one rather than deleted.
+
 ### The animations were described but never shown
 
 `RINGS.md` spends most of a section explaining that four rings travel a block apart and settle

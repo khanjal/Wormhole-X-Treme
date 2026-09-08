@@ -12,7 +12,7 @@
 [![Release](https://img.shields.io/github/v/release/khanjal/Wormhole-X-Treme?label=release&logo=github)](https://github.com/khanjal/Wormhole-X-Treme/releases/latest)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.20%20--%201.21.10-brightgreen)](#server-compatibility)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)](#build)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE.txt)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that provides Stargate-style teleportation portals.
 
