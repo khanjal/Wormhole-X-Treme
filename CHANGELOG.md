@@ -14,8 +14,9 @@ public destination, and a player's own private places.
 `BEAM_ECONOMY_USE_COST` currently says", and zero is an explicit, permanent "this one is free"
 that a later change to the global default cannot override. Nothing checked that. Collapse the two
 and a destination somebody deliberately set free starts charging the next time the server's
-default is raised, with nothing to announce it. Both directions are now held: `default` storing
-zero, and zero storing null.
+default is raised, with nothing to announce it. Both are now pinned as they actually behave:
+`default` clears the override so the configured cost applies, and `0` stays `0` whatever the
+configuration later says.
 
 **Places are per player, and the three subcommands are deliberately not gated alike.** Making a
 new one needs `wormhole.beam.place`; listing and removing your own do not. Taking the node away
