@@ -271,45 +271,28 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
         final Player player = event.getPlayer();
-        if (player == null) {
+        if (player == null)
+        {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "handlePlayerMoveEvent: event player is null, ignoring event.");
             return false;
         }
+        logCrossing(event, player);
+
         final Location toLocFinal = event.getTo();
-        // Every player crossing a block boundary reaches here, so the diagnostic is built
-        // only when it would actually be printed. It used to call Player.toString() and
-        // two extra getBlockAt() lookups on every crossing and throw all of it away.
-        if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
-        {
-            try
-            {
-                final Block fromBlock = event.getFrom().getWorld().getBlockAt(event.getFrom().getBlockX(), event.getFrom().getBlockY(), event.getFrom().getBlockZ());
-                final Block toBlock = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerMove: " + player.getName()
-                    + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + toLocFinal.getY());
-            }
-            // Diagnostics only, and on the move path, so never let it disturb the event.
-            catch (final RuntimeException ignore) { /* best effort */ }
-        }
         Block gateBlockFinal = toLocFinal.getWorld().getBlockAt(toLocFinal.getBlockX(), toLocFinal.getBlockY(), toLocFinal.getBlockZ());
         Stargate stargate = StargateManager.getGateFromBlock(gateBlockFinal);
 
-        // A rider's own block is not a reliable trigger: a camel is tall enough that
-        // the rider clears the portal entirely while the camel stands in it. When the
-        // player's block is not a gate, look for one under their mount instead so the
-        // mount-first teleport still fires.
+        // A rider's own block is not a reliable trigger: a camel is tall enough that the
+        // rider clears the portal entirely while the camel stands in it. When the player's
+        // block is not a gate, look for one under their mount instead so the mount-first
+        // teleport still fires.
         if (stargate == null)
         {
-            final Entity ridden = player.getVehicle();
-            if (isLivingMount(ridden))
+            final Block mountBlock = gatePortalBlockUnderMount(player);
+            if (mountBlock != null)
             {
-                final Block mountBlock = findActiveGatePortalBlockAtMount(ridden);
-                if (mountBlock != null)
-                {
-                    gateBlockFinal = mountBlock;
-                    stargate = StargateManager.getGateFromBlock(mountBlock);
-                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
-                }
+                gateBlockFinal = mountBlock;
+                stargate = StargateManager.getGateFromBlock(mountBlock);
             }
         }
 
@@ -325,15 +308,68 @@ class WormholeXTremePlayerListener implements Listener
             return false;
         }
 
-        // A gate holding no target of its own is the far end of somebody else's wormhole,
-        // or one that was lit and walked away from. Either way there is nowhere to send
-        // anyone from here.
+        // A gate holding no target of its own is the far end of somebody else's wormhole, or
+        // one that was lit and walked away from. Either way there is nowhere to send anyone
+        // from here.
         if (stargate.getGateTarget() == null)
         {
             return handleMoveAtArrivalGate(event, player, stargate);
         }
 
         return travelThroughGate(event, player, stargate, gateBlockFinal);
+    }
+
+    /**
+     * Says what the player just walked between, if anybody is listening.
+     *
+     * <p>Every player crossing a block boundary reaches here, so the line is built only when
+     * it would actually be printed. It used to call {@code Player.toString()} and two extra
+     * {@code getBlockAt} lookups on every crossing and throw all of it away.
+     *
+     * @param event
+     *            the move
+     * @param player
+     *            who moved
+     */
+    private static void logCrossing(final PlayerMoveEvent event, final Player player)
+    {
+        if (!WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+        {
+            return;
+        }
+        try
+        {
+            final Location from = event.getFrom();
+            final Location to = event.getTo();
+            final Block fromBlock = from.getWorld().getBlockAt(from.getBlockX(), from.getBlockY(), from.getBlockZ());
+            final Block toBlock = to.getWorld().getBlockAt(to.getBlockX(), to.getBlockY(), to.getBlockZ());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "PlayerMove: " + player.getName()
+                + " from=" + fromBlock.getType() + " to=" + toBlock.getType() + " y=" + to.getY());
+        }
+        // Diagnostics only, and on the move path, so never let it disturb the event.
+        catch (final RuntimeException ignore) { /* best effort */ }
+    }
+
+    /**
+     * The gate portal block under whatever the player is riding, if any.
+     *
+     * @param player
+     *            the player, who may be riding something
+     * @return the portal block their mount is standing in, or null
+     */
+    private static Block gatePortalBlockUnderMount(final Player player)
+    {
+        final Entity ridden = player.getVehicle();
+        if (!isLivingMount(ridden))
+        {
+            return null;
+        }
+        final Block mountBlock = findActiveGatePortalBlockAtMount(ridden);
+        if (mountBlock != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Detected mount-based gate entry for player=" + player.getName() + " via mount=" + ridden + " at block=" + mountBlock.getLocation());
+        }
+        return mountBlock;
     }
 
     /**
