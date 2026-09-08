@@ -4,6 +4,31 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Laying the first ring of a pair
+
+Nothing here changes. `RingPairingTest` already covered joining a second end to a waiting first;
+this covers getting that far -- the build permission, three ways a circle of slabs is refused
+by the detector, a spot too close to an existing pair, a spot on top of a stargate, and the
+quota.
+
+Two decisions worth writing down, both of which a reader would otherwise have to work out:
+
+- **The quota is asked at the first end, not the second.** Asked at the second, somebody lays two
+  complete circles of slabs and is then told they were never going to be allowed the pair.
+- **The slabs stay where they are until the pair is finished.** Taking them at the first end
+  would mean a crash or a restart between the two halves cost somebody a circle of slabs for a
+  ring that never existed. Leaving them costs nothing, because an unpaired ring does not work
+  anyway.
+
+The gate-overlap rule checks the ring's interior as well as its perimeter: a gate standing in
+the middle of a ring is still two things fighting over the same blocks.
+
+These tests drive the real detector through a mocked world rather than calling past it, so a
+circle of slabs is actually read as a ring -- which means the block has to answer both what it is
+and which half of its cube it fills, the same question `BukkitBlockProbe` asks a real server.
+
+Eight mutations, all killed.
+
 ### Removing a ring pair, and getting the slabs back
 
 Nothing here changes. Building a pair takes the player's slabs; removing it lays them out again
