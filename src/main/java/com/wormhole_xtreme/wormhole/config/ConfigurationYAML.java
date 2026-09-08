@@ -95,7 +95,7 @@ public class ConfigurationYAML
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to read config.yml", e);
         }
     }
 
@@ -254,7 +254,7 @@ public class ConfigurationYAML
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to add discovered material groups to config.yml: " + e.getMessage());
+                "Failed to add discovered material groups to config.yml", e);
             return false;
         }
     }
@@ -422,7 +422,7 @@ public class ConfigurationYAML
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Failed to append missing config keys: " + e.getMessage());
+                "Failed to append missing config keys", e);
         }
     }
 
@@ -458,7 +458,7 @@ public class ConfigurationYAML
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml", e);
         }
     }
 
@@ -556,7 +556,7 @@ public class ConfigurationYAML
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write config.yml", e);
         }
     }
 

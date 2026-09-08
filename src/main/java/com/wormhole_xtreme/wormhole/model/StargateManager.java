@@ -100,7 +100,7 @@ public class StargateManager
             }
             catch (final Exception e)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error logging indexed block: " + e.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error logging indexed block", e);
             }
         }
     }
@@ -221,7 +221,7 @@ public class StargateManager
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error indexing gate activation blocks: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Error indexing gate activation blocks", e);
         }
     }
 
@@ -1114,7 +1114,7 @@ public class StargateManager
         catch (final Exception e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Error removing activation block indices: " + e.getMessage());
+                "Error removing activation block indices", e);
         }
     }
 

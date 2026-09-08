@@ -58,7 +58,7 @@ public class Configuration
             }
             catch (final RuntimeException t)
             {
-                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml: " + t.getMessage());
+                WormholeXTreme.getThisPlugin().prettyLog(java.util.logging.Level.WARNING, "Failed to write default config.yml", t);
             }
         }
     }
@@ -81,7 +81,7 @@ public class Configuration
         }
         catch (final Exception e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create new file: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create new file", e);
         }
     }
 
@@ -115,7 +115,7 @@ public class Configuration
         }
         catch (final Exception exception)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write configuration file: " + exception.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Failed to write configuration file", exception);
         }
     }
 
@@ -130,7 +130,7 @@ public class Configuration
         }
         catch (final RuntimeException t)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to persist config.yml: " + t.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to persist config.yml", t);
         }
     }
 

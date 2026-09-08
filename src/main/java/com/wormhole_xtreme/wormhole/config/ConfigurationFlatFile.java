@@ -193,7 +193,7 @@ class ConfigurationFlatFile
         }
         catch (final FileNotFoundException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "No flat-file config to read a setting from", e);
         }
         return defaultVal.trim();
     }

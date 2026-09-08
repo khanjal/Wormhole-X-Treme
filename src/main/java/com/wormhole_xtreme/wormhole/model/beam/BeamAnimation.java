@@ -563,7 +563,7 @@ public final class BeamAnimation
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
                 "Beam to \"" + destinationName + "\" failed mid-sequence for " + player.getName()
-                    + ", clearing them rather than leaving them stuck: " + cause.getMessage());
+                    + ", clearing them rather than leaving them stuck", cause);
             try
             {
                 removeTravellerEffects(player);

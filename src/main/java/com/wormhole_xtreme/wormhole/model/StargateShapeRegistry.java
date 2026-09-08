@@ -201,7 +201,7 @@ public final class StargateShapeRegistry
         catch (final SecurityException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
-                "Not allowed to create " + directory.getPath() + ": " + e.getMessage());
+                "Not allowed to create " + directory.getPath(), e);
         }
         if (!created && !directory.isDirectory())
         {
@@ -260,7 +260,7 @@ public final class StargateShapeRegistry
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create default shape file: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to create default shape file", e);
         }
     }
 
@@ -309,12 +309,12 @@ public final class StargateShapeRegistry
         }
         catch (final IOException e)
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file: " + e.getMessage());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE, "Unable to read shape file", e);
         }
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
-                "Unable to parse shape file " + fi.getName() + ", skipping it: " + e.getMessage());
+                "Unable to parse shape file " + fi.getName() + ", skipping it", e);
         }
     }
 
@@ -406,7 +406,7 @@ public final class StargateShapeRegistry
         catch (final IOException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Unable to read " + fileName + ": " + e.getMessage());
+                "Unable to read " + fileName, e);
             return null;
         }
         return fileLines.toArray(new String[fileLines.size()]);

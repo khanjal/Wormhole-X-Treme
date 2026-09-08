@@ -158,7 +158,7 @@ public class WormholeXTreme extends JavaPlugin
             catch (final ReflectiveOperationException | RuntimeException e)
             {
                 plugin.prettyLog(Level.FINE,
-                    "Could not register " + candidate + ": " + e.getMessage());
+                    "Could not register " + candidate, e);
             }
         }
         plugin.prettyLog(Level.WARNING,
@@ -251,7 +251,7 @@ public class WormholeXTreme extends JavaPlugin
             }
             catch (final Exception e)
             {
-                    prettyLog(Level.SEVERE, "Caught exception while shutting down: " + e.getMessage());
+                    prettyLog(Level.SEVERE, "Caught exception while shutting down", e);
             }
     }
 
@@ -276,7 +276,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to save transport rings: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to save transport rings", e);
         }
     }
 
@@ -291,7 +291,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to save beam destinations: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to save beam destinations", e);
         }
     }
 
@@ -310,7 +310,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception | LinkageError t)
         {
-            prettyLog(Level.FINE, "Economy support unavailable during shutdown: " + t.getMessage());
+            prettyLog(Level.FINE, "Economy support unavailable during shutdown", t);
         }
     }
 
@@ -352,7 +352,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception | LinkageError t)
         {
-            prettyLog(Level.WARNING, "Failed to enable economy support: " + t.getMessage());
+            prettyLog(Level.WARNING, "Failed to enable economy support", t);
         }
     }
 
@@ -372,7 +372,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins." + e.getMessage());
+            prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
         registerEvents(true);
         // Load stargates.
@@ -383,7 +383,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to load stored gates: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load stored gates", e);
             StargateDBManager.loadStargates(getThisPlugin().getServer());
         }
         // Rings load after gates so that a ring overlapping gate blocks is refused against
@@ -399,7 +399,7 @@ public class WormholeXTreme extends JavaPlugin
         // A ring subsystem that cannot load must not stop the gates from working.
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to load transport rings: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load transport rings", e);
         }
         // A beam subsystem that cannot load must not stop gates or rings from working.
         try
@@ -410,7 +410,7 @@ public class WormholeXTreme extends JavaPlugin
         }
         catch (final Exception e)
         {
-            prettyLog(Level.WARNING, "Failed to load beam destinations: " + e.getMessage());
+            prettyLog(Level.WARNING, "Failed to load beam destinations", e);
         }
         registerEvents(false);
         registerCommands();
@@ -542,6 +542,31 @@ public class WormholeXTreme extends JavaPlugin
         // Every FINE call on a server logging at INFO pays for that otherwise, and this
         // method is how the whole plugin logs.
         getLog().log(severity, () -> prettyTag(getThisPlugin().getName(), pluginVersion) + " " + message);
+    }
+
+    /**
+     * Logs a line tagged with the plugin name, and what went wrong underneath it.
+     *
+     * <p>The form to use in a {@code catch}. Every site in this plugin used to append
+     * {@code e.getMessage()} to the message instead, which for a {@code NullPointerException}
+     * -- the one you most want to see -- is the literal word {@code null}, and for an
+     * {@code IOException} is a bare filename with nothing saying what was being done to it.
+     * The stack trace, which says where, was thrown away every time.
+     *
+     * <p>The message is still built lazily, so a {@code FINE} line on a server logging at
+     * {@code INFO} costs nothing but the call.
+     *
+     * @param severity
+     *            the level to log at
+     * @param message
+     *            the line to log, without the plugin tag and without the exception
+     * @param thrown
+     *            what went wrong; may be null, which logs the line on its own
+     */
+    public void prettyLog(final Level severity, final String message, final Throwable thrown)
+    {
+        getLog().log(severity, thrown,
+            () -> prettyTag(getThisPlugin().getName(), null) + " " + message);
     }
 
     /**

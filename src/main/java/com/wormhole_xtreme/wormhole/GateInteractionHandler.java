@@ -278,7 +278,7 @@ final class GateInteractionHandler
             // them. It used to log here and say nothing to the player, who was left clicking
             // a DHD that answered with silence.
             WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Interactive /wormhole complete failed for " + player.getName() + ": " + e.getMessage());
+                "Interactive /wormhole complete failed for " + player.getName(), e);
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Completing the gate failed. Check server logs.");
             com.wormhole_xtreme.wormhole.command.Complete.removePendingCompletion(player);
         }
@@ -322,7 +322,7 @@ final class GateInteractionHandler
         catch (final RuntimeException e)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
-                "Shape detection failed for face " + face + ": " + e.getMessage());
+                "Shape detection failed for face " + face, e);
             return null;
         }
     }
