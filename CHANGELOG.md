@@ -4,6 +4,37 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Nothing was holding the rules a minecart travels under
+
+Riding a gate is the least covered way of using one. The two methods that carry a vehicle
+through were the last two cognitive-complexity issues left in the tree, and splitting them
+needed a net first. Twenty mutations to the entry path -- deliberate breakages, each one run
+against the whole suite -- and sixteen of them survived it.
+
+Four of the sixteen are things a player would notice:
+
+- A gate that is not open still carried a vehicle through it.
+- So did any block of the gate that is not the portal: a rail laid along the frame.
+- A rider on a boat travelled through their use cooldown for free, and arrived unmarked.
+- The mark that stops a just-arrived cart being sent straight back out could be deleted
+  without a single test complaining, and it is the only thing standing between an arrival and
+  a cart shuttling between two gates forever.
+
+None of these were broken. Nothing was checking that they were not, which is a different
+thing, and the four of them are the difference between reshaping this code and hoping.
+
+`VehicleGateEntryTest` now holds fifteen tests covering the guards, the deferred cooldown, the
+travel event -- including that it is asked of every rider, not only whoever is steering -- the
+loop-breaker on both the arrival and the iris bounce, and where and which way a cart lands.
+Every one of the twenty-four mutations now fails at least one of them.
+
+With that in place `handleStargateVehicleTeleportEvent` and `dispatchVehicleTeleport` were
+split into the questions they were asking: whether anybody objects, what the riders owe, which
+way the arrival faces, and who aboard needs marking. Behaviour is unchanged.
+
+That closes the last two `S3776` issues. What is left on SonarCloud is four design questions
+rather than defects.
+
 ### Part of what SonarCloud reports can now be checked before pushing
 
 The Sonar backlog is worked in sweeps, and until now the only way to know whether a sweep had
