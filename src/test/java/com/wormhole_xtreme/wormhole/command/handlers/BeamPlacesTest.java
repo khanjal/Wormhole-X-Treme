@@ -101,8 +101,8 @@ class BeamPlacesTest
 
         final var saved = BeamManager.getPlace(UUID.fromString(MINE), "home");
         assertNotNull(saved, "the place is kept");
-        assertEquals(10.5, saved.getX(), 1.0e-9, "where they were standing");
-        assertEquals(20.5, saved.getZ(), 1.0e-9);
+        assertEquals(10.5, saved.point().x(), 1.0e-9, "where they were standing");
+        assertEquals(20.5, saved.point().z(), 1.0e-9);
         yaml.verify(BeamYamlManager::saveAll);
         verify(player).sendMessage(contains("Place \"home\" set"));
     }
@@ -120,9 +120,9 @@ class BeamPlacesTest
         place(player, "set", "home");
         place(other, "set", "home");
 
-        assertEquals(10.5, BeamManager.getPlace(UUID.fromString(MINE), "home").getX(), 1.0e-9,
+        assertEquals(10.5, BeamManager.getPlace(UUID.fromString(MINE), "home").point().x(), 1.0e-9,
             "mine is where I was standing");
-        assertEquals(90.5, BeamManager.getPlace(UUID.fromString(THEIRS), "home").getX(), 1.0e-9,
+        assertEquals(90.5, BeamManager.getPlace(UUID.fromString(THEIRS), "home").point().x(), 1.0e-9,
             "and theirs is where they were");
     }
 

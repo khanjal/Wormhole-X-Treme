@@ -850,9 +850,9 @@ public final class SubCommands
         for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination destination
             : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getAllPublicDestinations())
         {
-            if (destination.getName().toLowerCase(Locale.ROOT).startsWith(p))
+            if (destination.name().toLowerCase(Locale.ROOT).startsWith(p))
             {
-                out.add(destination.getName());
+                out.add(destination.name());
             }
         }
         return out;

@@ -30,7 +30,7 @@ public final class BeamManager
 
     public static void setPublicDestination(final BeamDestination destination)
     {
-        PUBLIC.put(destination.getName().toLowerCase(Locale.ROOT), destination);
+        PUBLIC.put(destination.name().toLowerCase(Locale.ROOT), destination);
     }
 
     public static BeamDestination getPublicDestination(final String name)
@@ -55,7 +55,7 @@ public final class BeamManager
     public static void setPlace(final UUID owner, final BeamDestination place)
     {
         PLACES.computeIfAbsent(owner, k -> new ConcurrentHashMap<>())
-            .put(place.getName().toLowerCase(Locale.ROOT), place);
+            .put(place.name().toLowerCase(Locale.ROOT), place);
     }
 
     public static BeamDestination getPlace(final UUID owner, final String name)

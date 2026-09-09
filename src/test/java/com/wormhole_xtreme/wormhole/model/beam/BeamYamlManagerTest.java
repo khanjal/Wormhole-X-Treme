@@ -19,50 +19,53 @@ import org.junit.jupiter.api.Test;
  */
 class BeamYamlManagerTest
 {
+    /** Where these live is beside the point -- every test here is about Cost. */
+    private static final BeamPoint POINT = new BeamPoint("world", 1.0, 2.0, 3.0, 0.0f, 0.0f);
+
     @Test
     void aDestinationWithNoCostFieldReadsBackAsNullNotZero()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
-            new BeamDestination("spawn", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, null));
+            new BeamDestination("spawn", POINT, null));
 
         assertFalse(stored.containsKey("Cost"), "no override means nothing should be written at all");
 
         final BeamDestination read = BeamYamlManager.readDestination("spawn", stored);
-        assertNull(read.getCost(), "an absent field must load as null (inherit), not 0.0 (free)");
+        assertNull(read.cost(), "an absent field must load as null (inherit), not 0.0 (free)");
     }
 
     @Test
     void aDestinationExplicitlySetFreeRoundTripsAsZeroNotNull()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
-            new BeamDestination("market", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, 0.0));
+            new BeamDestination("market", POINT, 0.0));
 
         assertEquals(0.0, stored.get("Cost"), "an explicit free override is written, not omitted");
 
         final BeamDestination read = BeamYamlManager.readDestination("market", stored);
-        assertEquals(0.0, read.getCost(), "0.0 must come back as 0.0, not be mistaken for absent");
+        assertEquals(0.0, read.cost(), "0.0 must come back as 0.0, not be mistaken for absent");
     }
 
     @Test
     void aDestinationWithAPositiveCostRoundTrips()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
-            new BeamDestination("arena", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, 25.0));
+            new BeamDestination("arena", POINT, 25.0));
 
         final BeamDestination read = BeamYamlManager.readDestination("arena", stored);
-        assertEquals(25.0, read.getCost());
+        assertEquals(25.0, read.cost());
     }
 
     @Test
     void aMalformedCostFieldIsIgnoredRatherThanFailingTheWholeEntry()
     {
         final Map<String, Object> stored = BeamYamlManager.writeDestination(
-            new BeamDestination("spawn", "world", 1.0, 2.0, 3.0, 0.0f, 0.0f, 10.0));
+            new BeamDestination("spawn", POINT, 10.0));
         stored.put("Cost", "not a number");
 
         final BeamDestination read = BeamYamlManager.readDestination("spawn", stored);
 
         assertNotNull(read, "the rest of a valid entry should not be thrown away over one bad field");
-        assertNull(read.getCost(), "a Cost that is not a number falls back to inherit, same as absent");
+        assertNull(read.cost(), "a Cost that is not a number falls back to inherit, same as absent");
     }
 }

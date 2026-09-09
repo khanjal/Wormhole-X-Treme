@@ -90,7 +90,7 @@ class BeamCostTest
     private static Double costOf(final String name)
     {
         final BeamDestination d = BeamManager.getPublicDestination(name);
-        return d == null ? null : d.getCost();
+        return d == null ? null : d.cost();
     }
 
     /**
@@ -216,11 +216,11 @@ class BeamCostTest
         final BeamDestination after = BeamManager.getPublicDestination(NAME);
         // The reprice first, or the rest of this passes just as well against a command that
         // returned early and changed nothing.
-        assertEquals(Double.valueOf(3.0), after.getCost(), "the price did change");
-        assertEquals(1.5, after.getX(), 1.0e-9, "still where it was");
-        assertEquals(65.0, after.getY(), 1.0e-9);
-        assertEquals(2.5, after.getZ(), 1.0e-9);
-        assertEquals(NAME, after.getName(), "and still called the same thing");
+        assertEquals(Double.valueOf(3.0), after.cost(), "the price did change");
+        assertEquals(1.5, after.point().x(), 1.0e-9, "still where it was");
+        assertEquals(65.0, after.point().y(), 1.0e-9);
+        assertEquals(2.5, after.point().z(), 1.0e-9);
+        assertEquals(NAME, after.name(), "and still called the same thing");
     }
 
     /** Pricing is an admin job, and the node is the one the rest of admin uses. */

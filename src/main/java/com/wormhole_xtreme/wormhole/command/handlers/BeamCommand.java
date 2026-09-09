@@ -147,12 +147,12 @@ public class BeamCommand implements SubCommand
             {
                 names.append(", ");
             }
-            names.append(destination.getName());
+            names.append(destination.name());
             // Only an override is worth saying anything about -- the default cost is
             // already visible via /wormhole config BEAM_ECONOMY_USE_COST, and repeating it
             // next to every destination that hasn't been given one of its own would just be
             // noise the reader has to filter back out.
-            final Double cost = destination.getCost();
+            final Double cost = destination.cost();
             if (cost != null)
             {
                 names.append(cost <= 0 ? " (free)" : " (" + cost + ")");
@@ -462,8 +462,8 @@ public class BeamCommand implements SubCommand
             // isn't loaded right now. Saying so beats "no such destination", which would
             // send someone looking for a typo in a name that is actually fine.
             sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "Beam destination \"" + destination.getName() + "\" is in world \""
-                + destination.getWorldName() + "\", which is not loaded.");
+                + "Beam destination \"" + destination.name() + "\" is in world \""
+                + destination.point().worldName() + "\", which is not loaded.");
             return null;
         }
         return located;
@@ -584,7 +584,7 @@ public class BeamCommand implements SubCommand
             {
                 names.append(", ");
             }
-            names.append(place.getName());
+            names.append(place.name());
         }
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + (names.isEmpty() ? "You have no places set." : "Your places: " + names));
