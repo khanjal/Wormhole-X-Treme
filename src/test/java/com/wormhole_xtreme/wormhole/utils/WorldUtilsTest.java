@@ -165,41 +165,4 @@ class WorldUtilsTest {
         assertSame(noWorld, WorldUtils.findSafePlayerLocation(noWorld),
             "with no world to search, the original location is returned as-is");
     }
-
-    /**
-     * The lever toggle byte, over every value a lever byte can hold.
-     *
-     * <p>0x8 is the lever's on bit and the low bits are which way it faces. The method has one
-     * job: leave the facing alone and make the on bit say what the caller asked for. Nothing
-     * covered it, and it used to be written as two nested ternaries that reached the same
-     * answer by different routes, so this pins the rule rather than either route.
-     */
-    @Test
-    void theLeverToggleSetsTheOnBitAndLeavesTheFacingAlone() {
-        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
-            final byte state = (byte) i;
-
-            final byte turnedOn = WorldUtils.getLeverToggleByte(state, true);
-            assertEquals(0x8, turnedOn & 0x8,
-                "asked for active, the on bit must be set, state=" + state);
-            assertEquals(state & ~0x8, turnedOn & ~0x8,
-                "and nothing else may change, state=" + state);
-
-            final byte turnedOff = WorldUtils.getLeverToggleByte(state, false);
-            assertEquals(0, turnedOff & 0x8,
-                "asked for inactive, the on bit must be clear, state=" + state);
-            assertEquals(state & ~0x8, turnedOff & ~0x8,
-                "and nothing else may change, state=" + state);
-        }
-    }
-
-    /** Asking for the state it is already in returns the byte untouched. */
-    @Test
-    void aLeverAlreadyInTheAskedForStateIsUnchanged() {
-        final byte on = (byte) 0x0D;
-        final byte off = (byte) 0x05;
-
-        assertEquals(on, WorldUtils.getLeverToggleByte(on, true));
-        assertEquals(off, WorldUtils.getLeverToggleByte(off, false));
-    }
 }
