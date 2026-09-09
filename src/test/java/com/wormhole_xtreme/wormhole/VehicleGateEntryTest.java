@@ -141,14 +141,12 @@ class VehicleGateEntryTest
      * <p>They are static and their entries are removed by a scheduled task that never runs
      * under a mock scheduler, so one test would otherwise decide what the next one sees.
      */
-    @SuppressWarnings("unchecked")
     private static void clearRecentMarks() throws Exception
     {
         for (final String name : new String[] { "recentlyTeleported", "recentlyTeleportedPlayersByVehicle" })
         {
-            final Field f = WormholeXTremeVehicleListener.class.getDeclaredField(name);
-            f.setAccessible(true);
-            ((Set<UUID>) f.get(null)).clear();
+            final Set<UUID> marked = PrivateStatics.of(WormholeXTremeVehicleListener.class, name);
+            marked.clear();
         }
     }
 

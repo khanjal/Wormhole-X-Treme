@@ -38,6 +38,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 
 /**
  * Whether a pair fires at all, and how often somebody is told when it will not.
@@ -168,21 +169,15 @@ class RingTransitStartTest
     }
 
     /** What start() currently believes is mid-cycle. */
-    @SuppressWarnings("unchecked")
     private static java.util.Set<String> running() throws Exception
     {
-        final Field f = RingTransit.class.getDeclaredField("running");
-        f.setAccessible(true);
-        return (java.util.Set<String>) f.get(null);
+        return PrivateStatics.of(RingTransit.class, "running");
     }
 
     /** What start() currently remembers as blocked. */
-    @SuppressWarnings("unchecked")
     private static Map<String, Long> surveyed() throws Exception
     {
-        final Field f = RingTransit.class.getDeclaredField("surveyed");
-        f.setAccessible(true);
-        return (Map<String, Long>) f.get(null);
+        return PrivateStatics.of(RingTransit.class, "surveyed");
     }
 
     /**

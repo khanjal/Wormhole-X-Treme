@@ -389,11 +389,8 @@ class PlayerTravelEventTest
     {
         // Set directly rather than through markPlayerRecentlyTeleportedByVehicle, which
         // schedules its own expiry ten ticks out and so needs a live scheduler.
-        final java.lang.reflect.Field f =
-            WormholeXTremeVehicleListener.class.getDeclaredField("recentlyTeleportedPlayersByVehicle");
-        f.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        final java.util.Set<java.util.UUID> marked = (java.util.Set<java.util.UUID>) f.get(null);
+        final java.util.Set<java.util.UUID> marked =
+            PrivateStatics.of(WormholeXTremeVehicleListener.class, "recentlyTeleportedPlayersByVehicle");
         marked.add(player.getUniqueId());
         try
         {

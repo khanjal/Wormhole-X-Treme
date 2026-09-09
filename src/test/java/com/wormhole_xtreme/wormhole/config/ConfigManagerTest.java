@@ -8,38 +8,20 @@ import org.junit.jupiter.api.Test;
 
 class ConfigManagerTest
 {
+    // The settings map is a static that outlives a test, so one test's settings would
+    // otherwise decide what the next one reads. ConfigTestSupport lives in this package for
+    // exactly this; reaching for the field reflectively also swallowed every exception, so a
+    // rename would have quietly stopped the isolation rather than failing.
     @BeforeEach
     void setUp()
     {
-        try
-        {
-            final java.lang.reflect.Field f = ConfigManager.class.getDeclaredField("configurations");
-            f.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            final java.util.concurrent.ConcurrentHashMap<ConfigManager.ConfigKeys, Setting> map = (java.util.concurrent.ConcurrentHashMap<ConfigManager.ConfigKeys, Setting>) f.get(null);
-            map.clear();
-        }
-        catch (final Exception e)
-        {
-            // ignore
-        }
+        ConfigTestSupport.clear();
     }
+
     @AfterEach
     void tearDown()
     {
-        // ConfigManager keeps its settings in a private static map; clear it so tests stay isolated.
-        try
-        {
-            final java.lang.reflect.Field f = ConfigManager.class.getDeclaredField("configurations");
-            f.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            final java.util.concurrent.ConcurrentHashMap<ConfigManager.ConfigKeys, Setting> map = (java.util.concurrent.ConcurrentHashMap<ConfigManager.ConfigKeys, Setting>) f.get(null);
-            map.clear();
-        }
-        catch (final Exception e)
-        {
-            // ignore
-        }
+        ConfigTestSupport.clear();
     }
 
     /**
