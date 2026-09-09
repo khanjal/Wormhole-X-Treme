@@ -1043,11 +1043,6 @@ down through the rings you are standing in as you are taken, and back up through
 the far end as you arrive — the near rings draw you in, the far ones put you out. Then the
 rings return nearest-first, and the pad stays lit until a second after the last one is home.
 
-Four rather than the show's five: a slab is half a block thick, so rings cannot sit closer
-than a block apart without touching, which makes the ring count and the stack's height the
-same number. Five put a five-block tower around a player less than two blocks tall, and three
-left barely a sequence to watch.
-
 Everything in the ring travels — players, mobs, dropped items, vehicles. Only players are
 subject to access rules; everything else rides along.
 
@@ -1076,103 +1071,10 @@ pad is lit already, so there is nothing to point out.
 Naming an end makes the messages useful: `/wormhole ring edit name Tower`, standing in the
 ring you mean, and its partner then tells travellers they are heading for Tower.
 
-**Rings are drawn, not built.** The lights and rings are sent to nearby clients and the
-server's blocks are never touched, exactly as a gate draws its portal. Nothing is left behind
-if the server stops mid-cycle, nothing appears in block logs, and nobody can mine the
-glowstone out of their own floor while it is lit. The trade is the same one gates make: the
-effect only exists for players in range, and relogging or walking far away and back clears
-it. A "light" material therefore looks lit but does not actually illuminate anything.
-
-### Sounds
-
-Both gates and rings make noise, and both are configured the same way. Everything below is
-optional: `gate-sounds-enabled: false` or `ring-sounds-enabled: false` turns off a whole
-subsystem, and any single sound set to `none` goes quiet on its own.
-
-**Sounds are named, not chosen from a list.** Anything the client already knows works, which
-means a resource pack's own sounds can be named here with no code involved. A name the client
-does not recognise is simply silent — the same thing the client does with one — so a typo
-costs you that sound and nothing else.
-
-Volume doubles as range: Bukkit ties the two together, so `1.0` carries about sixteen blocks
-and `1.5` about twenty-four. Turning a volume down makes a sound more local, not just quieter.
-
-#### Gates
-
-| Setting | Default | When it plays |
-|---|---|---|
-| `gate-sounds-enabled` | `true` | Everything below is ignored when this is off. |
-| `gate-sound-volume` | 1.5 | Louder than rings on purpose — a gate is a landmark you walk towards. |
-| `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
-| `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
-| `gate-sound-kawoosh` | `entity.player.splash.high_speed` | Once, as the wormhole establishes. The heavy splash, played at pitch 0.7 rather than its own. |
-| `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
-| `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
-| `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
-| `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals the gate. Pitched down — it is a shield, not a door. |
-| `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens. |
-
-The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
-seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in
-bigger steps.
-
-The kawoosh is a surge of water thrown out of the ring, so it is played as one — the
-splash a body hitting water at speed makes, pitched down until it reads as a much larger
-volume of it. It was `block.end_portal.spawn` in 1.4.0, which is both one of the loudest
-samples the client owns and a low resonant boom; at a gate volume set high on purpose, an
-opening gate was the loudest thing on the server and sounded like nothing a gate does.
-Changing the default does not change a `config.yml` that already has the old value written
-into it — set `gate-sound-kawoosh` yourself, or delete the line and let it be rewritten.
-
-The water plays at 40% of `gate-sound-volume`, because an open wormhole is a background
-rather than an event, and that keeps it something you hear near the gate rather than across a
-base. `gate-sound-ambient-ticks` is set a little *under* the length of the sound on purpose,
-so it runs continuously instead of in gasps; shorten it further and it layers on itself, which
-is one way to make a gate sound busier.
-
-#### Coming out of a gate
-
-| Setting | Default | What it does |
-|---|---|---|
-| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival, as though surfacing from the event horizon. `0` turns it off. |
-
-Drawn to that one player at eye height — nobody else sees anything and nothing is written to
-the world.
-
-The setting is both how long the water shows and how long it keeps being redrawn. Arriving
-hands the client a fresh copy of the chunk, and a fresh copy erases anything drawn into the
-old one — so a single block change lands *before* the chunk does on any trip long enough to
-need loading, and is wiped by it. If you travel far and see nothing, raise this: the window
-has to outlast the load.
-
-Do not raise it far, though. Water is physics to the client, not decoration: for as long as it
-believes it is submerged it predicts swimming, the server disagrees, and eventually that
-argument is felt as a stumble on landing.
-
-#### Rings
-
-| Setting | Default | When it plays |
-|---|---|---|
-| `ring-sounds-enabled` | `true` | Everything below is ignored when this is off. |
-| `ring-sound-volume` | 1.0 | About sixteen blocks. |
-| `ring-sound-open` | `block.beacon.activate` | At both ends, as the pad opens. |
-| `ring-sound-ring` | `block.piston.extend` | Once per ring, pitch climbing as the stack builds. |
-| `ring-sound-flash` | `block.beacon.power_select` | At both ends, at the moment of transport. |
-| `ring-sound-close` | `block.beacon.deactivate` | At both ends, as the pad closes. |
-| `ring-sound-refused` | `block.note_block.bass` | To a turned-away player alone, not to the room. |
-
-The pitch on `ring-sound-ring` is what makes a deploy sound like a machine rather than four
-identical clicks: each ring leaves a step higher than the one before, and the retract replays
-the same notes in reverse, so it falls on the way home without being told to.
-
-#### Sounds worth trying
-
-| Instead of | Try | For |
-|---|---|---|
-| `gate-sound-kawoosh` | `item.trident.riptide_3` | A longer rush instead of a single burst. |
-| `gate-sound-chevron` | `block.piston.contract` | A heavier clunk, if the trapdoor reads as a trapdoor. |
-| `gate-sound-ambient` | `block.conduit.ambient` | A resonant hum instead of open water. |
-| `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |
+Nothing in a cycle changes the world: the lights and rings are drawn to nearby clients and the
+real blocks are never touched, exactly as a gate draws its portal. One consequence is worth
+knowing before you pick materials — a "light" material looks lit but does not actually
+illuminate anything. [Why it works that way](docs/RINGS.md#rings-are-drawn-not-built).
 
 ### Ring settings
 
@@ -1348,6 +1250,99 @@ The defaults are deliberately unlike the ring palette so the two do not sound al
 are vanilla teleport sounds rather than anything invented.
 
 The full design and the reasoning behind each decision is in [docs/BEAMS.md](docs/BEAMS.md).
+
+## Sounds
+
+Gates and rings make noise, and both are configured the same way. Everything below is
+optional: `gate-sounds-enabled: false` or `ring-sounds-enabled: false` turns off a whole
+subsystem, and any single sound set to `none` goes quiet on its own. Beaming has three sounds
+of its own, listed with the rest of its settings under [Beam sounds](#beam-sounds); everything
+on this page about naming, volume and `none` applies to those too.
+
+**Sounds are named, not chosen from a list.** Anything the client already knows works, which
+means a resource pack's own sounds can be named here with no code involved. A name the client
+does not recognise is simply silent — exactly what setting it to `none` would have done — so a
+typo costs you that sound and nothing else.
+
+Volume doubles as range: Bukkit ties the two together, so `1.0` carries about sixteen blocks
+and `1.5` about twenty-four. Turning a volume down makes a sound more local, not just quieter.
+
+### Gates
+
+| Setting | Default | When it plays |
+|---|---|---|
+| `gate-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `gate-sound-volume` | 1.5 | Louder than rings on purpose — a gate is a landmark you walk towards. |
+| `gate-sound-activate` | `block.conduit.activate` | As the gate begins to dial. |
+| `gate-sound-chevron` | `block.iron_trapdoor.close` | Once per chevron, pitch climbing through the sequence. |
+| `gate-sound-kawoosh` | `entity.player.splash.high_speed` | Once, as the wormhole establishes. The heavy splash, played at pitch 0.7 rather than its own. |
+| `gate-sound-ambient` | `ambient.underwater.loop` | On repeat, while the wormhole stands open — running water, as in the show. |
+| `gate-sound-ambient-ticks` | 70 | How often it repeats. A little under the length of the default sound, so it runs rather than gasps. |
+| `gate-sound-close` | `block.conduit.deactivate` | As the wormhole closes. |
+| `gate-sound-iris-close` | `block.iron_door.close` | As the iris seals the gate. Pitched down — it is a shield, not a door. |
+| `gate-sound-iris-open` | `block.iron_door.open` | As the iris opens. |
+
+The chevron pitch is spread across however many lighting steps the *shape* has, not an assumed
+seven — a three-chevron gate starts and ends on the same notes as a seven-chevron one, in
+bigger steps.
+
+The kawoosh is a surge of water thrown out of the ring, so it is played as one — the
+splash a body hitting water at speed makes, pitched down until it reads as a much larger
+volume of it. It was `block.end_portal.spawn` in 1.4.0, which is both one of the loudest
+samples the client owns and a low resonant boom; at a gate volume set high on purpose, an
+opening gate was the loudest thing on the server and sounded like nothing a gate does.
+Changing the default does not change a `config.yml` that already has the old value written
+into it — set `gate-sound-kawoosh` yourself, or delete the line and let it be rewritten.
+
+The water plays at 40% of `gate-sound-volume`, because an open wormhole is a background
+rather than an event, and that keeps it something you hear near the gate rather than across a
+base. `gate-sound-ambient-ticks` is set a little *under* the length of the sound on purpose,
+so it runs continuously instead of in gasps; shorten it further and it layers on itself, which
+is one way to make a gate sound busier.
+
+### Coming out of a gate
+
+| Setting | Default | What it does |
+|---|---|---|
+| `gate-arrival-splash-ticks` | 20 | How long a traveller sees water on arrival, as though surfacing from the event horizon. `0` turns it off. |
+
+Drawn to that one player at eye height — nobody else sees anything and nothing is written to
+the world.
+
+The setting is both how long the water shows and how long it keeps being redrawn. Arriving
+hands the client a fresh copy of the chunk, and a fresh copy erases anything drawn into the
+old one — so a single block change lands *before* the chunk does on any trip long enough to
+need loading, and is wiped by it. If you travel far and see nothing, raise this: the window
+has to outlast the load.
+
+Do not raise it far, though. Water is physics to the client, not decoration: for as long as it
+believes it is submerged it predicts swimming, the server disagrees, and eventually that
+argument is felt as a stumble on landing.
+
+### Rings
+
+| Setting | Default | When it plays |
+|---|---|---|
+| `ring-sounds-enabled` | `true` | Everything below is ignored when this is off. |
+| `ring-sound-volume` | 1.0 | About sixteen blocks. |
+| `ring-sound-open` | `block.beacon.activate` | At both ends, as the pad opens. |
+| `ring-sound-ring` | `block.piston.extend` | Once per ring, pitch climbing as the stack builds. |
+| `ring-sound-flash` | `block.beacon.power_select` | At both ends, at the moment of transport. |
+| `ring-sound-close` | `block.beacon.deactivate` | At both ends, as the pad closes. |
+| `ring-sound-refused` | `block.note_block.bass` | To a turned-away player alone, not to the room. |
+
+The pitch on `ring-sound-ring` is what makes a deploy sound like a machine rather than four
+identical clicks: each ring leaves a step higher than the one before, and the retract replays
+the same notes in reverse, so it falls on the way home without being told to.
+
+### Sounds worth trying
+
+| Instead of | Try | For |
+|---|---|---|
+| `gate-sound-kawoosh` | `item.trident.riptide_3` | A longer rush instead of a single burst. |
+| `gate-sound-chevron` | `block.piston.contract` | A heavier clunk, if the trapdoor reads as a trapdoor. |
+| `gate-sound-ambient` | `block.conduit.ambient` | A resonant hum instead of open water. |
+| `ring-sound-ring` | `block.amethyst_block.chime` | Crystalline rather than mechanical. |
 
 ## Storage
 
