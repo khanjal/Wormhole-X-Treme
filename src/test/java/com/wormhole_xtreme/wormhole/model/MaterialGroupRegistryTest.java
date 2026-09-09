@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CyclicBarrier;
 
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
@@ -186,5 +187,109 @@ class MaterialGroupRegistryTest
         final MaterialGroup g = MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN);
         assertNotNull(g, "the palette itself must survive a bad chevron name");
         assertNull(g.getChevronMaterial());
+    }
+
+    private static MaterialGroup palette(final String name, final Material frame)
+    {
+        return new MaterialGroup(name, frame, Material.WATER, Material.STONE,
+            Material.GLOWSTONE, Material.OAK_WALL_SIGN);
+    }
+
+    /**
+     * A palette derived from a shape is findable by both of the things that look it up.
+     *
+     * <p>Registering one used to mean three assignments in a row -- the name map, the material
+     * map, then possibly the default. Nothing here proves the order they land in, which is the
+     * point: a caller only ever sees a registry where all three agree, so a test can ask all
+     * three without knowing anything about how it got that way.
+     */
+    @Test
+    void aDiscoveredPaletteIsFoundByNameAndByFrameMaterial()
+    {
+        MaterialGroupRegistry.load(null);
+
+        MaterialGroupRegistry.registerDiscoveredGroup(palette("Diamond", Material.DIAMOND_BLOCK));
+
+        assertNotNull(MaterialGroupRegistry.getGroup("Diamond"),
+            "a discovered palette should be findable by the name it was given");
+        assertEquals("Diamond",
+            MaterialGroupRegistry.getGroupByStructureMaterial(Material.DIAMOND_BLOCK).getName(),
+            "and by the frame material that identifies it during detection");
+        assertEquals("Standard", MaterialGroupRegistry.getDefaultGroup().getName(),
+            "registering one must not displace a default that was already there");
+    }
+
+    /** A frame material another group already claims is left with that group. */
+    @Test
+    void aDiscoveredPaletteDoesNotShadowOneAlreadyClaimingItsFrameMaterial()
+    {
+        final Map<String, Object> section = new LinkedHashMap<>();
+        section.put("Standard", group("OBSIDIAN", "WATER", "STONE", "GLOWSTONE"));
+        MaterialGroupRegistry.load(section);
+
+        MaterialGroupRegistry.registerDiscoveredGroup(palette("Impostor", Material.OBSIDIAN));
+
+        assertEquals("Standard",
+            MaterialGroupRegistry.getGroupByStructureMaterial(Material.OBSIDIAN).getName(),
+            "obsidian was already spoken for, so the discovered palette is dropped");
+        assertNull(MaterialGroupRegistry.getGroup("Impostor"),
+            "and it does not get in under its own name either");
+    }
+
+    /**
+     * Two palettes discovered at the same moment both survive.
+     *
+     * <p>Registering one is a read-modify-write: copy both maps, add to the copies, put them
+     * back. Done with plain assignments, two of these landing together means both copy the
+     * same starting maps and the second write discards the first, and a palette the shapes
+     * asked for is silently absent.
+     *
+     * <p>Nothing calls it that way today -- discovery is one sequential loop, and this plugin
+     * has no async task anywhere -- so this guards a property rather than reproducing a bug
+     * anybody has hit. It is worth holding anyway: the class declares itself safe to read
+     * from another thread, and this is the half of that claim a single-threaded caller would
+     * never expose. Written against plain assignments it fails on the first attempt, so it is
+     * not a subtle window being papered over.
+     *
+     * <p>Repeated because a race needing a particular interleaving may not show in one go. It
+     * cannot fail against a compare-and-set however the two threads interleave, so a failure
+     * here is a regression rather than a flake.
+     */
+    @Test
+    void twoPalettesDiscoveredAtTheSameMomentBothSurvive() throws Exception
+    {
+        for (int attempt = 0; attempt < 200; attempt++)
+        {
+            MaterialGroupRegistry.load(null);
+            final CyclicBarrier together = new CyclicBarrier(2);
+
+            final Thread diamond = registering(together, palette("Diamond", Material.DIAMOND_BLOCK));
+            final Thread gold = registering(together, palette("Gold", Material.GOLD_BLOCK));
+            diamond.start();
+            gold.start();
+            diamond.join();
+            gold.join();
+
+            assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.DIAMOND_BLOCK),
+                "the diamond palette went missing on attempt " + attempt);
+            assertNotNull(MaterialGroupRegistry.getGroupByStructureMaterial(Material.GOLD_BLOCK),
+                "the gold palette went missing on attempt " + attempt);
+        }
+    }
+
+    private static Thread registering(final CyclicBarrier together, final MaterialGroup group)
+    {
+        return new Thread(() ->
+        {
+            try
+            {
+                together.await();
+            }
+            catch (final Exception e)
+            {
+                throw new IllegalStateException(e);
+            }
+            MaterialGroupRegistry.registerDiscoveredGroup(group);
+        });
     }
 }
