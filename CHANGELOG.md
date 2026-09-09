@@ -4,6 +4,56 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The same YAML cast, written thirteen times
+
+SnakeYAML's `load()` returns `Object`, so every reader in the tree tested the type, cast it,
+and decided for itself what an unusable value meant. Thirteen of them, across five classes,
+each carrying its own `@SuppressWarnings("unchecked")` to quiet the cast:
+
+    final Object loaded = new Yaml().load(in);
+    if (!(loaded instanceof Map))
+    {
+        return 0;
+    }
+    root = (Map<String, Object>) loaded;
+
+`YamlMaps.asMap` and `asList` do that once. An unusable value comes back empty, which reads
+the same as "nothing here" at every call site that was already treating the two alike -- so
+the guards came out along with the casts, and five files got shorter rather than just quieter.
+
+Seven of the thirteen were written at method level, wide enough to cover anything else in the
+same method. One of them was covering something. `RingYamlManager.loadFile` had a second
+unchecked cast, on a pair's stored fields, that nobody had to notice because the annotation at
+the top of the method was already silencing it. `javac -Xlint:unchecked` had nothing to say
+about that file until the suppression came off, and then it did.
+
+One guard did not come out, and finding out why is the useful part. `config.yml` is the only
+reader that acts on what is *absent* rather than iterating what is present: a setting the file
+does not mention is defaulted in memory and appended to the file, so the admin can see it
+exists. Read as an empty mapping, a file that parses to a scalar says every setting is
+missing -- and the loader appends all forty defaults onto the end of a file that is already
+not a mapping, turning an operator's typo into one nothing can parse.
+
+That went in, passed its test, and was caught in review. The test it passed asserted that the
+built-in defaults were still used, which stayed true the whole time: the damage was to the
+file, not to memory. It now asserts the file comes back byte for byte, and fails without the
+guard.
+
+Everything else is unchanged, with one visible difference: a ring file that parses to
+something other than a mapping now logs `names no world; skipping it` instead of being
+dropped without comment. Same outcome, one more line saying so happened.
+
+Twenty suppressions become six. Two are the helper's own, where the reason for them is now
+written down. The rest are the ones with no fix available: `EconomySupport`, casting the
+result of a reflective `Class.forName` lookup, and three tests casting `Field.get`. No
+generics survive to be checked in either case.
+
+The helper's signature promises more than it can deliver, and its test says so on purpose.
+YAML permits non-string keys, so `1: one` parses to a mapping this hands back as
+`Map<String, Object>` regardless, and reading that key throws where it is read -- exactly as
+it did when each caller cast for itself. Every caller runs inside a try/catch that logs the
+entry and skips it, so one bad key costs one gate rather than the file. That is why those
+try/catch blocks stay.
 ### The beam value types say what they are
 
 The last three Sonar issues, all in the beam subsystem, all design questions rather than defects.

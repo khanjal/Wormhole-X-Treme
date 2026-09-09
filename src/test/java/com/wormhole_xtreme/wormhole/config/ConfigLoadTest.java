@@ -129,7 +129,21 @@ class ConfigLoadTest
             "and the key that was already there survives");
     }
 
-    /** A file that is not a mapping leaves the defaults alone rather than failing. */
+    /**
+     * A file that is not a mapping leaves the defaults alone rather than failing, and is not
+     * written to.
+     *
+     * <p>The second half is the half with teeth, and it was added after the first half alone
+     * failed to catch a real regression. Reading such a file as an empty mapping produces the
+     * same in-memory answer -- everything defaults, because everything is missing -- so the
+     * default assertion below passed while the loader had started appending all forty missing
+     * keys to the end of a file that is not a mapping. The operator's typo would have come
+     * back as a file the loader could no longer parse at all.
+     *
+     * <p>This is why one {@code instanceof} guard survived the sweep that removed the others.
+     * Every other reader only iterates what it was handed, so an empty mapping and a missing
+     * one mean the same thing to it; this one acts on what is <em>absent</em>.
+     */
     @Test
     void aFileThatIsNotAMappingDoesNotStopStartup() throws Exception
     {
@@ -140,5 +154,7 @@ class ConfigLoadTest
         // Nothing was loaded from it, so the getters fall back to their built-in answers.
         assertEquals(30, ConfigManager.getTimeoutActivate(),
             "an unreadable file leaves the built-in default in place");
+        assertEquals(List.of("just a sentence"), configLines(),
+            "and the file itself is left exactly as it was, not appended to");
     }
 }

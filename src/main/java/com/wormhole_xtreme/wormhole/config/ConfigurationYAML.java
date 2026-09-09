@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Loads and writes plugin configuration via YAML (`config.yml`).
@@ -71,13 +72,18 @@ public class ConfigurationYAML
 
         try (InputStream in = new FileInputStream(cfg))
         {
+            // The one reader that cannot treat "not a mapping" as "an empty mapping". Every
+            // other one only iterates what it was given, so nothing happens twice if there is
+            // nothing there. This one acts on what is *absent*: an empty map reads as every
+            // setting missing, and appendMissingSettings would then write forty defaults onto
+            // the end of a file that is already not a mapping. Bail instead, and leave the
+            // operator's broken file exactly as they left it.
             final Object loaded = new Yaml().load(in);
             if (!(loaded instanceof Map))
             {
                 return;
             }
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> map = (Map<String, Object>) loaded;
+            final Map<String, Object> map = YamlMaps.asMap(loaded);
 
             final List<Setting> missing = applySettings(map);
 
@@ -189,16 +195,7 @@ public class ConfigurationYAML
      */
     private static void loadMaterialGroups(final Object raw)
     {
-        if (raw instanceof Map)
-        {
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> section = (Map<String, Object>) raw;
-            MaterialGroupRegistry.load(section);
-        }
-        else
-        {
-            MaterialGroupRegistry.load(null);
-        }
+        MaterialGroupRegistry.load(YamlMaps.asMap(raw));
     }
 
     /** Runs once per paragraph when a description is wrapped, so it is compiled once. */

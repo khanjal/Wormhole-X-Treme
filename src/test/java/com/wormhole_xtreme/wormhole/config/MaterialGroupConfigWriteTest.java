@@ -18,6 +18,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
+import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
  * Tests writing discovered material groups into config.yml.
@@ -48,11 +49,10 @@ class MaterialGroupConfigWriteTest
         return groups;
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> parse(final File cfg) throws Exception
     {
-        return (Map<String, Object>) new Yaml().load(
-            new String(Files.readAllBytes(cfg.toPath()), StandardCharsets.UTF_8));
+        return YamlMaps.asMap(new Yaml().load(
+            new String(Files.readAllBytes(cfg.toPath()), StandardCharsets.UTF_8)));
     }
 
     @Test
