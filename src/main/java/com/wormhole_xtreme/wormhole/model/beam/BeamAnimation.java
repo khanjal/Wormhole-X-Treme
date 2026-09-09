@@ -343,27 +343,27 @@ public final class BeamAnimation
             // it: Bukkit calls, in the order BeamFrame says they apply, nothing more.
             final BeamFrame frame = BeamFrame.at(tick, timing);
 
-            if (frame.isStart())
+            if (frame.marks().start())
             {
                 announceDeparture();
             }
 
-            if (frame.isEnvelopActive())
+            if (frame.envelop().active())
             {
                 drawEnvelope(frame);
             }
 
-            if (frame.isVanish())
+            if (frame.marks().vanish())
             {
                 vanish();
             }
 
-            if (frame.isRiseActive())
+            if (frame.rise().active())
             {
                 rise(frame);
             }
 
-            if (!teleported && frame.isTeleport())
+            if (!teleported && frame.marks().teleport())
             {
                 BeamSounds.playDepart(origin);
                 player.teleport(destination);
@@ -423,12 +423,12 @@ public final class BeamAnimation
          */
         private boolean arriveAndSettle(final BeamFrame frame)
         {
-            if (frame.isDescendActive())
+            if (frame.descend().active())
             {
-                spawnColumn(destination, frame.columnHeight(), frame.getDescendYOffset(), BeamFrame.MAX_DENSITY);
+                spawnColumn(destination, frame.columnHeight(), frame.descend().yOffset(), BeamFrame.MAX_DENSITY);
             }
 
-            if (frame.isArrive())
+            if (frame.marks().arrive())
             {
                 BeamSounds.playArrive(destination);
                 removeTravellerEffects(player);
@@ -438,12 +438,12 @@ public final class BeamAnimation
                 visibility.show(mount.stack());
             }
 
-            if (frame.isFadeActive())
+            if (frame.fade().active())
             {
-                spawnColumn(destination, frame.getFadeHeight(), 0.0, frame.getFadeDensity());
+                spawnColumn(destination, frame.fade().height(), 0.0, frame.fade().density());
             }
 
-            if (frame.isFinished())
+            if (frame.marks().finished())
             {
                 BeamFreeze.clear(player);
                 player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
@@ -476,7 +476,7 @@ public final class BeamAnimation
                 // rather than the fixed origin, since they are still free to walk, turn or
                 // react right up until they vanish. A fixed column here would just miss
                 // them the moment they stepped away from where the sequence began.
-                spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.getEnvelopDensity());
+                spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.envelop().density());
         }
 
         /**
@@ -525,7 +525,7 @@ public final class BeamAnimation
          */
         private void rise(final BeamFrame frame)
         {
-                spawnColumn(origin, frame.columnHeight(), frame.getRiseYOffset(), BeamFrame.MAX_DENSITY);
+                spawnColumn(origin, frame.columnHeight(), frame.rise().yOffset(), BeamFrame.MAX_DENSITY);
         }
 
         /**
