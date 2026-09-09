@@ -26,9 +26,9 @@ Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
 ## Features
 
-**Gates** — Stargate-style portals, dialled by [sign](#signs), by
-[button or lever](#dhd-dial-home-device--button-and-lever-support), by
-[redstone](#redstone-activation), or with `/dial`. [Eleven bundled shapes](#shapes) from
+**Gates** — Stargate-style portals, dialled by [button or lever](#dhd-dial-home-device--button-and-lever-support),
+by [sign](#signs) or by [redstone](#redstone-activation). A gate with a dial sign goes straight
+to whatever the sign shows; one without asks the player to name a destination with `/dial`. [Eleven bundled shapes](#shapes) from
 `Minimal` to `Massive`, each setting its own materials, lighting, sign type and
 [iris](#iris-gate-shield-setup-and-troubleshooting). Gates work in
 [the Nether and the End](#nether-and-end-dimension-support).
@@ -713,15 +713,24 @@ An iris closes over the portal to block travel. When a remote gate's iris is act
 
 Redstone activation is controlled by blocks registered to the gate at build time.
 
+**A redstone-dialled gate needs a dial sign.** The signal fires the gate; the sign is what
+names the destination, and there is nothing else for redstone to read one from. Building a
+gate on a shape with no `:D` and wiring redstone to it gives you a trigger that does nothing.
+
 ### Redstone direct dial
 
 A gate can be activated directly by a redstone signal on the `gateRedstoneDialActivationBlock`. When the signal goes high the gate dials its current sign target; when the signal drops the gate shuts down (if `shutdown_timeout` is `0`). Enable this mode per gate with `/wormhole redstone <gate> true`.
 
 ### Redstone sign cycling (custom shapes only)
 
-A shape can also mark an `[RS]` block, which advances the dial sign to the next network target on each pulse. **No shipped shape carries one.** Redstone dialling exists so a sign can be left preset on a destination and fired by a pulse, and an input that moves the sign works against that — so the shipped shapes give redstone the trigger and leave choosing the destination to whoever clicks the sign.
+A shape can also mark an `[RS]` block, which advances the dial sign to the next network
+target on each pulse. **No shipped shape carries one**, deliberately —
+[why](docs/GATES.md#why-no-shipped-shape-carries-an-rs).
 
-The support stays for custom shapes. If you add an `[RS]`, keep it more than a block from `[RD]`: a signal counts anywhere within a block of a marker, so placing them together gives one pulse two meanings — cycle the destination, then dial whatever it just landed on. The plugin drops an `[RS]` that lands adjacent to `[RD]` rather than letting that happen.
+The support stays for custom shapes. If you add an `[RS]`, keep it more than a block from
+`[RD]`: a signal counts anywhere within a block of a marker, so placing them together gives one
+pulse two meanings. The plugin drops an `[RS]` that lands adjacent to `[RD]` rather than let
+that happen.
 
 Both work via `BlockRedstoneEvent` and are fully compatible with all Bukkit-based servers.
 
@@ -875,16 +884,11 @@ Use a detector rail, not a powered rail. A powered rail is already energised by 
 switching it, so a cart passing over it changes nothing and produces no event. A detector
 rail emits a pulse only while a cart is on it, which is exactly the trigger you want.
 
-A trigger on an already-open gate pushes its shutdown back, rather than closing it or
-re-dialling it. Closing was the original behaviour and made repeated triggers useless: a
-second cart shut the wormhole the first one had opened. Re-dialling is not the answer either
-— it rebuilds the connection from scratch for no reason.
-
-Extending is bounded by `max_open_seconds`, which is measured from when the wormhole *first*
-opened and is not affected by any of this. So a cart every few seconds keeps the gate open
-while traffic is actually flowing, and still cannot hold it open indefinitely: once the
-maximum is reached the gate closes on the next trigger regardless. Set
-`redstone-extend-open-time: false` to go back to a trigger on an open gate doing nothing.
+A trigger on an already-open gate pushes its shutdown back rather than closing or re-dialling
+it, so a cart every few seconds keeps the gate open while traffic is flowing. It cannot be held
+open indefinitely: the limit is `max_open_seconds`, measured from when the wormhole first
+opened. `redstone-extend-open-time: false` goes back to a trigger on an open gate doing
+nothing. [Why it works that way](docs/GATES.md#a-trigger-on-an-open-gate-extends-it).
 
 A trigger on a gate that is lit but never dialled still deactivates it, which is the only
 way to clear a gate somebody activated and walked away from.

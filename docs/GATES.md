@@ -210,8 +210,37 @@ against.
 
 ## Dialling
 
-Four ways in, all reaching the same handshake: the DHD button or lever, a dial sign, a
-redstone signal, and `/dial`.
+**Three ways in, and `/dial` is not one of them.** It is the second half of one of them.
+
+`handleGateActivationSwitch` is the fork, and it asks one question — is this gate
+sign-powered?
+
+| Route | What happens | Is `/dial` needed? |
+|---|---|---|
+| Button or lever on a **sign** gate | `dialFromSign` dials whatever the sign is showing, immediately | No |
+| Button or lever on a **non-sign** gate | `activateForDialling` lights the chevrons and waits; the player is told to type `/dial <gate>` | **Yes** — nothing else can name the target |
+| Redstone on a **sign** gate | `dialSignTarget` dials what the sign shows | No |
+
+So `/dial` is what a gate without a sign uses instead of a sign: the sign names the
+destination for the other two routes, and typing the name is what replaces it. A gate that
+has a sign never needs the command, which is why `:D` in a shape is described as making a gate
+"sign-dialled rather than `/dial`-only".
+
+`/dial` also cannot start anything on its own. It opens with
+`StargateManager.removeActivatedStargate(player)` and refuses with "gate not active" if that
+comes back null, so the button press has to have happened first.
+
+**Redstone never uses `/dial`, and never leaves a gate waiting for one.** `actOnDialTrigger`
+branches on the gate's own state:
+
+- already open, so extend the shutdown rather than closing or re-dialling it;
+- lit with no target — that is a gate somebody activated by hand and walked away from — so
+  deactivate it, which is the only way to clear that state;
+- otherwise, and **only if the gate is sign-powered**, dial what the sign shows.
+
+That last condition is the one worth knowing when planning a build: **a gate with no dial sign
+cannot be dialled by redstone at all.** There is no branch that would name a target for it,
+and the trigger falls through doing nothing.
 
 **The sign shows four lines**, the gate's own name and three destinations:
 
@@ -242,6 +271,39 @@ ungenerated terrain.
 
 A dial is refused when the target's iris is closed, when the target is already active, or
 when another active gate already points at it. `/wormhole gate force` bypasses those.
+
+### Why no shipped shape carries an `[RS]`
+
+A shape can mark an `[RS]` block that advances the dial sign one destination per pulse. The
+support is real and custom shapes can use it, but none of the eleven shipped shapes has one,
+and that is a decision rather than an omission.
+
+Redstone dialling exists so a sign can be left preset on a destination and fired by a pulse.
+An input that *moves* the sign works directly against that: the point of the arrangement is
+that the pulse always does the same thing. So the shipped shapes give redstone the trigger and
+leave choosing the destination to whoever clicks the sign.
+
+An `[RS]` also has to be kept more than a block away from `[RD]`, because a signal counts
+anywhere within a block of a marker — placed together, one pulse would mean two things, cycling
+the destination and then dialling whatever it happened to land on. The plugin drops an `[RS]`
+that lands adjacent to an `[RD]` rather than allow it.
+
+### A trigger on an open gate extends it
+
+Three behaviours were tried for a redstone pulse arriving at a gate that is already open.
+
+Closing it was the original, and made repeated triggers useless: a second minecart over a
+detector rail shut the wormhole the first one had opened. Doing nothing was the next attempt,
+and was safe but unhelpful. Re-dialling is worse than either -- it rebuilds a working
+connection for no reason, and because dialling restarts the shutdown timer, a cart crossing
+every few seconds would have held a gate open for ever.
+
+Extending the shutdown is what it does now, and it is bounded for the same reason re-dialling
+was not safe: `max_open_seconds` is measured from when the wormhole *first* opened and nothing
+on this path touches it. So traffic keeps a gate open while it is actually flowing, and still
+cannot hold it open indefinitely -- once the maximum is reached the gate closes on the next
+trigger regardless. `redstone-extend-open-time: false` goes back to a trigger on an open gate
+doing nothing.
 
 ## Timers
 
