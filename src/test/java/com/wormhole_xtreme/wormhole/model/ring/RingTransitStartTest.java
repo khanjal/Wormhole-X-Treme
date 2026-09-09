@@ -17,7 +17,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -38,6 +37,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.PrivateStatics;
 
 /**
  * Whether a pair fires at all, and how often somebody is told when it will not.
@@ -99,14 +99,14 @@ class RingTransitStartTest
 
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.getServer()).thenReturn(server);
-        set("thisPlugin", plugin);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", plugin);
 
         scheduler = mock(BukkitScheduler.class);
         // Never actually runs the task: the countdown reschedules itself, and every test here
         // is about the decision taken before the first tick.
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenReturn(Integer.valueOf(1));
-        set("scheduler", scheduler);
+        PrivateStatics.set(WormholeXTreme.class, "scheduler", scheduler);
 
         walker = mock(Player.class);
         when(walker.getName()).thenReturn("walker");
@@ -138,15 +138,8 @@ class RingTransitStartTest
         config.close();
         RingTransit.clear();
         RingManager.clear();
-        set("thisPlugin", null);
-        set("scheduler", null);
-    }
-
-    private static void set(final String name, final Object value) throws Exception
-    {
-        final Field f = WormholeXTreme.class.getDeclaredField(name);
-        f.setAccessible(true);
-        f.set(null, value);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
+        PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
     }
 
     /**
@@ -168,21 +161,15 @@ class RingTransitStartTest
     }
 
     /** What start() currently believes is mid-cycle. */
-    @SuppressWarnings("unchecked")
     private static java.util.Set<String> running() throws Exception
     {
-        final Field f = RingTransit.class.getDeclaredField("running");
-        f.setAccessible(true);
-        return (java.util.Set<String>) f.get(null);
+        return PrivateStatics.of(RingTransit.class, "running");
     }
 
     /** What start() currently remembers as blocked. */
-    @SuppressWarnings("unchecked")
     private static Map<String, Long> surveyed() throws Exception
     {
-        final Field f = RingTransit.class.getDeclaredField("surveyed");
-        f.setAccessible(true);
-        return (Map<String, Long>) f.get(null);
+        return PrivateStatics.of(RingTransit.class, "surveyed");
     }
 
     /**

@@ -14,7 +14,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -75,8 +74,8 @@ class VehicleGateEntryTest
     {
         scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
-        set(WormholeXTreme.class, "scheduler", scheduler);
-        set(WormholeXTreme.class, "thisPlugin", mock(WormholeXTreme.class));
+        PrivateStatics.set(WormholeXTreme.class, "scheduler", scheduler);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", mock(WormholeXTreme.class));
         GateSpatialIndex.clear();
         clearRecentMarks();
 
@@ -99,7 +98,7 @@ class VehicleGateEntryTest
         // Given a facing of its own, so the arrival taking one is a visible change rather
         // than agreeing with a default of zero.
         dst.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5, 12.0f, 45.0f));
-        set(Stargate.class, src, "gateTarget", dst);
+        PrivateStatics.set(Stargate.class, src, "gateTarget", dst);
 
         StargateManager.addBlockIndex(portal, src);
         src.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
@@ -119,20 +118,7 @@ class VehicleGateEntryTest
         GateSpatialIndex.clear();
         GateEvents.setDispatcherForTest(null);
         clearRecentMarks();
-        set(WormholeXTreme.class, "thisPlugin", null);
-    }
-
-    private static void set(final Class<?> owner, final String name, final Object value) throws Exception
-    {
-        set(owner, null, name, value);
-    }
-
-    private static void set(final Class<?> owner, final Object on, final String name, final Object value)
-        throws Exception
-    {
-        final Field f = owner.getDeclaredField(name);
-        f.setAccessible(true);
-        f.set(on, value);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
     }
 
     /**
@@ -141,14 +127,12 @@ class VehicleGateEntryTest
      * <p>They are static and their entries are removed by a scheduled task that never runs
      * under a mock scheduler, so one test would otherwise decide what the next one sees.
      */
-    @SuppressWarnings("unchecked")
     private static void clearRecentMarks() throws Exception
     {
         for (final String name : new String[] { "recentlyTeleported", "recentlyTeleportedPlayersByVehicle" })
         {
-            final Field f = WormholeXTremeVehicleListener.class.getDeclaredField(name);
-            f.setAccessible(true);
-            ((Set<UUID>) f.get(null)).clear();
+            final Set<UUID> marked = PrivateStatics.of(WormholeXTremeVehicleListener.class, name);
+            marked.clear();
         }
     }
 
@@ -198,7 +182,7 @@ class VehicleGateEntryTest
     @Test
     void anOpenGateWithNoTargetCarriesNoVehicle() throws Exception
     {
-        set(Stargate.class, src, "gateTarget", null);
+        PrivateStatics.set(Stargate.class, src, "gateTarget", null);
 
         rollIn();
 
@@ -443,7 +427,7 @@ class VehicleGateEntryTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.isLoggable(Level.FINE)).thenReturn(true);
-        set(WormholeXTreme.class, "thisPlugin", plugin);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", plugin);
 
         rollIn();
 

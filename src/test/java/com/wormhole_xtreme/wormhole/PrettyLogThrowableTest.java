@@ -108,9 +108,7 @@ class PrettyLogThrowableTest
 
         plugin.prettyLog(Level.WARNING, "Failed to save gate ringworld", boom);
 
-        @SuppressWarnings("unchecked")
-        final ArgumentCaptor<Supplier<String>> line =
-            ArgumentCaptor.forClass(Supplier.class);
+        final ArgumentCaptor<Supplier<String>> line = ArgumentCaptor.captor();
         verify(logger).log(eq(Level.WARNING), eq(boom), line.capture());
         assertEquals("[WormholeXTreme] Failed to save gate ringworld", line.getValue().get(),
             "the line is the plugin tag and what it was doing, and nothing of the exception");
@@ -141,8 +139,7 @@ class PrettyLogThrowableTest
 
         plugin.prettyLog(Level.INFO, "nothing went wrong", null);
 
-        @SuppressWarnings("unchecked")
-        final ArgumentCaptor<Supplier<String>> line = ArgumentCaptor.forClass(Supplier.class);
+        final ArgumentCaptor<Supplier<String>> line = ArgumentCaptor.captor();
         verify(logger).log(eq(Level.INFO), eq((Throwable) null), line.capture());
         assertEquals("[WormholeXTreme] nothing went wrong", line.getValue().get());
     }

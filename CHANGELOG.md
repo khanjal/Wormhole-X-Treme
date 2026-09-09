@@ -81,6 +81,51 @@ confidence.
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
+### Nine unchecked casts in the tests, and three different reasons for them
+
+`YamlMaps` took the production count from thirteen to one. The tests kept theirs, and had
+quietly grown back to nine. Reading them turned out to be three separate problems wearing the
+same annotation.
+
+**Two were reimplementing a helper that already exists.** `ConfigManagerTest` reached into
+`ConfigManager`'s settings map by reflection to clear it between tests -- which is what
+`ConfigTestSupport.clear()` in the same package does, and what `ConfigLoadTest` already calls.
+The reflective version also wrapped both blocks in `catch (Exception) { // ignore }`, so
+renaming that field would not have failed the build or the test: it would have stopped
+isolating them and said nothing. That is the sort of thing that surfaces later as two tests
+that pass alone and fail together.
+
+**Two were an old Mockito idiom.** `ArgumentCaptor.forClass(Supplier.class)` can only hand
+back a raw captor, so a generic one needed a cast to say what it really held. Mockito added
+`ArgumentCaptor.captor()` in 5.7 for exactly this, and it infers the type from the variable.
+The other twenty-eight `forClass` calls in the tree capture non-generic types and are right as
+they are.
+
+**Five were the same three lines of reflection.** Get a declared field, make it accessible,
+cast what comes back. All five reach for static state that outlives a test -- who was recently
+teleported, which ring pairs are mid-cycle -- and clear it, because the scheduled tasks that
+would normally empty those never run under a mock scheduler. `PrivateStatics.of` does it once
+now, and infers the type from where the result is going, so the call sites have no cast in
+them at all.
+
+That last one is a trade rather than a fix, and the class says so. Reflection is not
+compile-checked, so a renamed field breaks at run time instead of build time. The alternative
+is production API that exists only so tests can undo themselves, which is worse. What it does
+fix is the failing loudly part: it throws rather than shrugging.
+
+Nine to one, and the one that is left is the cast reflection cannot avoid.
+
+The same three lines going the other way -- writing a field rather than reading one -- carried
+no cast and so no suppression, but sat in `VehicleGateEntryTest` and `RingTransitStartTest` as
+two more private helpers doing the identical thing. Those are `PrivateStatics.set` now.
+
+Counting the rest of them first is what stopped that going further. There are 139 reflective
+field accesses across 87 test files, and 102 of them reach for the same field: the
+`WormholeXTreme.thisPlugin` singleton, installed as a mock in setup and put back in teardown.
+That is one idiom repeated eighty-odd times, and it wants a helper that names what it is for
+rather than a generic field-setter. It is left alone here deliberately -- a sweep of eighty
+test files is its own change, with its own reasons to be careful.
+
 ### Thirty-four command helpers that returned true and nothing else
 
 Ten command classes carried a class-level `@SuppressWarnings("java:S3516")` -- methods should
@@ -128,6 +173,7 @@ Four assertions in `RingPairingTest` turned out to be asserting nothing.
 `assertTrue(pairWith(...))` could never fail, because `completePair` always returned true, and
 three of the four sit in tests about the pairing being *refused*, where a green `true` reads as
 though it succeeded. Each already asserted what mattered on the following line.
+
 
 ### Tab completion could not see your own beam places
 

@@ -69,13 +69,9 @@ class PortalFlightExemptionTest
      * exemption by one test is revoked by the next one and the result depends on the order
      * they ran in.
      */
-    @SuppressWarnings("unchecked")
     private static java.util.Set<UUID> flightGrants() throws Exception
     {
-        final java.lang.reflect.Field f =
-            WormholeXTremePlayerListener.class.getDeclaredField("portalFlightGranted");
-        f.setAccessible(true);
-        return (java.util.Set<UUID>) f.get(null);
+        return PrivateStatics.of(WormholeXTremePlayerListener.class, "portalFlightGranted");
     }
 
     private static void clearFlightGrants() throws Exception
