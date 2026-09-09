@@ -189,8 +189,8 @@ class BeamAdminPermissionsTest
         assertTrue(run(admin, "set", "hub"));
 
         assertNotNull(BeamManager.getPublicDestination("hub"), "the destination is in the list");
-        assertEquals(10.5, BeamManager.getPublicDestination("hub").getX(), 1.0e-9);
-        assertEquals(20.5, BeamManager.getPublicDestination("hub").getZ(), 1.0e-9);
+        assertEquals(10.5, BeamManager.getPublicDestination("hub").point().x(), 1.0e-9);
+        assertEquals(20.5, BeamManager.getPublicDestination("hub").point().z(), 1.0e-9);
         yaml.verify(BeamYamlManager::saveAll);
     }
 

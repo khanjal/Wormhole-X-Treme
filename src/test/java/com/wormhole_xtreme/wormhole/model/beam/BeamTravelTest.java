@@ -28,7 +28,7 @@ class BeamTravelTest
 {
     private static BeamDestination destinationWithCost(final Double cost)
     {
-        return new BeamDestination("Spawn", "world", 0.0, 64.0, 0.0, 0f, 0f, cost);
+        return new BeamDestination("Spawn", new BeamPoint("world", 0.0, 64.0, 0.0, 0f, 0f), cost);
     }
 
     // Both ends, one method. Real config is a shared static map, so starting from a known

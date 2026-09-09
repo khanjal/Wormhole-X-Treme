@@ -34,16 +34,16 @@ class BeamFrameTest
     void tickZeroIsStartAndTheFirstEnvelopFrameAtMinimumDensity()
     {
         final BeamFrame frame = BeamFrame.at(0, TIMING);
-        assertTrue(frame.isStart());
-        assertTrue(frame.isEnvelopActive());
-        assertEquals(1, frame.getEnvelopDensity(), "the ramp must start at MIN_DENSITY, not partway up it");
+        assertTrue(frame.marks().start());
+        assertTrue(frame.envelop().active());
+        assertEquals(1, frame.envelop().density(), "the ramp must start at MIN_DENSITY, not partway up it");
     }
 
     @Test
     void onlyTickZeroIsStart()
     {
-        assertFalse(BeamFrame.at(1, TIMING).isStart());
-        assertFalse(BeamFrame.at(51, TIMING).isStart());
+        assertFalse(BeamFrame.at(1, TIMING).marks().start());
+        assertFalse(BeamFrame.at(51, TIMING).marks().start());
     }
 
     @Test
@@ -52,8 +52,8 @@ class BeamFrameTest
         // The ramp's denominator is envelopTicks - 1, deliberately, so the last rendered
         // tick actually hits MAX_DENSITY rather than falling just short of it.
         final BeamFrame lastEnvelopTick = BeamFrame.at(11, TIMING);
-        assertTrue(lastEnvelopTick.isEnvelopActive());
-        assertEquals(8, lastEnvelopTick.getEnvelopDensity());
+        assertTrue(lastEnvelopTick.envelop().active());
+        assertEquals(8, lastEnvelopTick.envelop().density());
     }
 
     @Test
@@ -62,20 +62,20 @@ class BeamFrameTest
         final BeamFrame lastEnvelop = BeamFrame.at(11, TIMING);
         final BeamFrame firstRise = BeamFrame.at(12, TIMING);
 
-        assertTrue(lastEnvelop.isEnvelopActive());
-        assertFalse(lastEnvelop.isRiseActive(), "envelop and rise must never both be active on the same tick");
+        assertTrue(lastEnvelop.envelop().active());
+        assertFalse(lastEnvelop.rise().active(), "envelop and rise must never both be active on the same tick");
 
-        assertFalse(firstRise.isEnvelopActive());
-        assertTrue(firstRise.isRiseActive());
-        assertEquals(0.0, firstRise.getRiseYOffset(), "rise starts at the ground, not partway up");
+        assertFalse(firstRise.envelop().active());
+        assertTrue(firstRise.rise().active());
+        assertEquals(0.0, firstRise.rise().yOffset(), "rise starts at the ground, not partway up");
     }
 
     @Test
     void vanishFiresOnceAtTheConfiguredStepRegardlessOfEnvelopLength()
     {
-        assertTrue(BeamFrame.at(6, TIMING).isVanish());
-        assertFalse(BeamFrame.at(5, TIMING).isVanish());
-        assertFalse(BeamFrame.at(7, TIMING).isVanish());
+        assertTrue(BeamFrame.at(6, TIMING).marks().vanish());
+        assertFalse(BeamFrame.at(5, TIMING).marks().vanish());
+        assertFalse(BeamFrame.at(7, TIMING).marks().vanish());
     }
 
     @Test
@@ -83,17 +83,17 @@ class BeamFrameTest
     {
         // sinceRise == teleportAtStep (12), and sinceRise = tick - envelopTicks (12), so
         // this lands at tick 24 -- worked out by hand, not derived from the code under test.
-        assertTrue(BeamFrame.at(24, TIMING).isTeleport());
-        assertFalse(BeamFrame.at(23, TIMING).isTeleport());
-        assertFalse(BeamFrame.at(25, TIMING).isTeleport());
+        assertTrue(BeamFrame.at(24, TIMING).marks().teleport());
+        assertFalse(BeamFrame.at(23, TIMING).marks().teleport());
+        assertFalse(BeamFrame.at(25, TIMING).marks().teleport());
     }
 
     @Test
     void riseIsStillActiveOnTheTeleportTickSoTheOriginColumnKeepsPlayingAfterTheyAreGone()
     {
         final BeamFrame teleportTick = BeamFrame.at(24, TIMING);
-        assertTrue(teleportTick.isTeleport());
-        assertTrue(teleportTick.isRiseActive(),
+        assertTrue(teleportTick.marks().teleport());
+        assertTrue(teleportTick.rise().active(),
             "the origin track has to keep animating after the traveller leaves, independent of them");
     }
 
@@ -101,8 +101,8 @@ class BeamFrameTest
     void descendStartsAtFullTravelHeightRightWhenTeleportFires()
     {
         final BeamFrame frame = BeamFrame.at(24, TIMING);
-        assertTrue(frame.isDescendActive());
-        assertEquals(4.0, frame.getDescendYOffset(), 1e-9,
+        assertTrue(frame.descend().active());
+        assertEquals(4.0, frame.descend().yOffset(), 1e-9,
             "the column should arrive from fully overhead, not already partway settled");
     }
 
@@ -112,45 +112,45 @@ class BeamFrameTest
         final BeamFrame lastDescend = BeamFrame.at(43, TIMING);
         final BeamFrame arrive = BeamFrame.at(44, TIMING);
 
-        assertTrue(lastDescend.isDescendActive());
-        assertFalse(lastDescend.isArrive());
+        assertTrue(lastDescend.descend().active());
+        assertFalse(lastDescend.marks().arrive());
 
-        assertFalse(arrive.isDescendActive(), "descend and arrive must not both be active on the same tick");
-        assertTrue(arrive.isArrive());
-        assertTrue(arrive.isFadeActive(), "fade has to start the same tick arrival is announced");
+        assertFalse(arrive.descend().active(), "descend and arrive must not both be active on the same tick");
+        assertTrue(arrive.marks().arrive());
+        assertTrue(arrive.fade().active(), "fade has to start the same tick arrival is announced");
     }
 
     @Test
     void fadeStartsAtFullColumnHeightAndMaximumDensity()
     {
         final BeamFrame frame = BeamFrame.at(44, TIMING);
-        assertEquals(3.0, frame.getFadeHeight(), 1e-9);
-        assertEquals(8, frame.getFadeDensity());
+        assertEquals(3.0, frame.fade().height(), 1e-9);
+        assertEquals(8, frame.fade().density());
     }
 
     @Test
     void fadeShrinksTowardPlayerHeightAndMinimumDensityByItsLastTick()
     {
         final BeamFrame lastFadeTick = BeamFrame.at(51, TIMING);
-        assertTrue(lastFadeTick.isFadeActive());
-        assertTrue(lastFadeTick.getFadeHeight() < 3.0, "height must have visibly shrunk from the full column");
-        assertTrue(lastFadeTick.getFadeDensity() < 8, "density must have visibly dimmed from maximum");
+        assertTrue(lastFadeTick.fade().active());
+        assertTrue(lastFadeTick.fade().height() < 3.0, "height must have visibly shrunk from the full column");
+        assertTrue(lastFadeTick.fade().density() < 8, "density must have visibly dimmed from maximum");
     }
 
     @Test
     void finishesExactlyOnceFadeIsDoneNotBefore()
     {
-        assertFalse(BeamFrame.at(51, TIMING).isFinished(), "the last fade tick must still play, not be skipped");
-        assertTrue(BeamFrame.at(52, TIMING).isFinished());
+        assertFalse(BeamFrame.at(51, TIMING).marks().finished(), "the last fade tick must still play, not be skipped");
+        assertTrue(BeamFrame.at(52, TIMING).marks().finished());
     }
 
     @Test
     void nothingIsActiveOnceFinished()
     {
         final BeamFrame frame = BeamFrame.at(52, TIMING);
-        assertFalse(frame.isEnvelopActive());
-        assertFalse(frame.isRiseActive());
-        assertFalse(frame.isDescendActive());
-        assertFalse(frame.isFadeActive());
+        assertFalse(frame.envelop().active());
+        assertFalse(frame.rise().active());
+        assertFalse(frame.descend().active());
+        assertFalse(frame.fade().active());
     }
 }

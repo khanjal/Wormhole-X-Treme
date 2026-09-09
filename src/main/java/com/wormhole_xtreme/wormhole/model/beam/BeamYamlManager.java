@@ -209,7 +209,7 @@ public final class BeamYamlManager
             // it at all), both read back exactly the same way they would have before.
             final Object rawCost = map.get("Cost");
             final Double cost = rawCost instanceof Number number ? number.doubleValue() : null;
-            return new BeamDestination(name, world, x, y, z, yaw, pitch, cost);
+            return new BeamDestination(name, new BeamPoint(world, x, y, z, yaw, pitch), cost);
         }
         catch (final RuntimeException e)
         {
@@ -229,7 +229,7 @@ public final class BeamYamlManager
         final Map<String, Object> publicOut = new LinkedHashMap<>();
         for (final BeamDestination destination : BeamManager.getAllPublicDestinations())
         {
-            publicOut.put(destination.getName(), writeDestination(destination));
+            publicOut.put(destination.name(), writeDestination(destination));
         }
 
         final Map<String, Object> placesOut = new LinkedHashMap<>();
@@ -238,7 +238,7 @@ public final class BeamYamlManager
             final Map<String, Object> playerOut = new LinkedHashMap<>();
             for (final BeamDestination place : playerEntry.getValue().values())
             {
-                playerOut.put(place.getName(), writeDestination(place));
+                playerOut.put(place.name(), writeDestination(place));
             }
             if (!playerOut.isEmpty())
             {
@@ -280,16 +280,17 @@ public final class BeamYamlManager
 
     static Map<String, Object> writeDestination(final BeamDestination destination)
     {
+        final BeamPoint point = destination.point();
         final Map<String, Object> map = new LinkedHashMap<>();
-        map.put("World", destination.getWorldName());
-        map.put("X", destination.getX());
-        map.put("Y", destination.getY());
-        map.put("Z", destination.getZ());
-        map.put("Yaw", destination.getYaw());
-        map.put("Pitch", destination.getPitch());
-        if (destination.getCost() != null)
+        map.put("World", point.worldName());
+        map.put("X", point.x());
+        map.put("Y", point.y());
+        map.put("Z", point.z());
+        map.put("Yaw", point.yaw());
+        map.put("Pitch", point.pitch());
+        if (destination.cost() != null)
         {
-            map.put("Cost", destination.getCost());
+            map.put("Cost", destination.cost());
         }
         return map;
     }

@@ -4,6 +4,41 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### The beam value types say what they are
+
+The last three Sonar issues, all in the beam subsystem, all design questions rather than defects.
+They were held open on purpose while they were still questions; this answers them.
+
+`BeamDestination` was an immutable data carrier written out longhand, with an eight-parameter
+constructor -- one rule saying "make it a record", another saying "too many parameters". Making it
+a record alone would have answered only the first, since a record's canonical constructor still
+takes every component. But six of the eight fields were always one thing: the class already had
+`fromLocation` and `toLocation` wrapping them. So they become `BeamPoint`, and the destination is
+a three-component record over name, point and cost.
+
+`BeamPoint` is deliberately not a Bukkit `Location`. A `Location` holds a live `World`, so one
+cannot be built for a world the server has not loaded, and beam destinations are read off disk
+during startup before every world exists. Keeping the world's name and resolving it on demand is
+what lets a destination in an unloaded world sit in the registry and refuse to travel, rather
+than failing to load at all. That contract now has tests: both callers branch on `toLocation`
+returning null, and nothing covered it before.
+
+`BeamFrame` had fourteen constructor parameters. Its own javadoc already described them as four
+phases plus five boundary marks, so the grouping was not invented here -- `Envelop`, `Column`,
+`Fade` and `Marks` only say in the type what the comment already said in prose. Rise and descent
+share `Column` because they are the same thing travelling opposite ways: a full-density column at
+some offset.
+
+Worth noting what that last change costs. With rise and descent as one type, the compiler no
+longer objects if the two are handed over the wrong way round -- a mistake the fourteen separate
+booleans and doubles made impossible. That is a real trade, so it was checked rather than assumed:
+swapping them fails three tests, and the frame arithmetic the class exists for is pinned by seven
+mutations in total, all caught.
+
+Neither `S107` was answered with a builder. In both cases the parameter list was long because
+fields that belonged together had been written out flat, so naming the group fixed the rule as a
+side effect. A builder would have satisfied Sonar while leaving the values exactly as loose.
+
 ### Nine unused helpers deleted from the utils package
 
 Following the `LegacyCompat` deletion, every method in `utils` was counted against the rest of

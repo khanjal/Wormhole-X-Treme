@@ -112,7 +112,7 @@ public final class BeamTravel
         // BeamAnimation.start already refuses (and messages) a player who is mid-beam, so
         // there is nothing left to do with its result either way -- this call has handled
         // the attempt fully regardless of which way it went.
-        BeamAnimation.start(player, stored, destination.getName(), () ->
+        BeamAnimation.start(player, stored, destination.name(), () ->
         {
             if (useCost > 0)
             {
@@ -153,7 +153,7 @@ public final class BeamTravel
         {
             return 0.0;
         }
-        final Double override = destination.getCost();
+        final Double override = destination.cost();
         return override != null ? override : ConfigManager.getBeamEconomyUseCost();
     }
 }

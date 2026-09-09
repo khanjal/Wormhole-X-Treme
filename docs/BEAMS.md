@@ -434,7 +434,8 @@ beaming still gets the tuned sequence.
 ## Layout
 
 ```
-model/beam/BeamDestination.java    one named point: world, position, facing, optional cost
+model/beam/BeamDestination.java    one named point: where it is, and an optional cost
+model/beam/BeamPoint.java          a spot in a named world, resolved only when asked
 model/beam/BeamManager.java        the public map and one place map per player
 model/beam/BeamYamlManager.java    load and save beam.yml
 model/beam/BeamTravel.java         resolve a name, check cost and cooldown, start a beam

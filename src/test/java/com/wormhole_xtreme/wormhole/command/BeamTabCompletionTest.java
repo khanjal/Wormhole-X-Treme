@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.model.beam.BeamDestination;
+import com.wormhole_xtreme.wormhole.model.beam.BeamPoint;
 import com.wormhole_xtreme.wormhole.model.beam.BeamManager;
 
 /**
@@ -145,10 +146,8 @@ class BeamTabCompletionTest
     @Test
     void removeAndCostOfferPublicDestinations()
     {
-        final BeamDestination spawn = mock(BeamDestination.class);
-        when(spawn.getName()).thenReturn("spawn");
-        final BeamDestination market = mock(BeamDestination.class);
-        when(market.getName()).thenReturn("market");
+        final BeamDestination spawn = named("spawn");
+        final BeamDestination market = named("market");
 
         try (MockedStatic<BeamManager> beams = mockStatic(BeamManager.class))
         {
@@ -176,8 +175,7 @@ class BeamTabCompletionTest
     {
         final org.bukkit.entity.Player bob = mock(org.bukkit.entity.Player.class);
         when(bob.getName()).thenReturn("bob");
-        final BeamDestination spawn = mock(BeamDestination.class);
-        when(spawn.getName()).thenReturn("spawn");
+        final BeamDestination spawn = named("spawn");
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<BeamManager> beams = mockStatic(BeamManager.class))
@@ -195,4 +193,11 @@ class BeamTabCompletionTest
             assertTrue(forGoto.contains("spawn"), "goto may name a place as well as a player");
         }
     }
+
+    /** A public destination that only needs to have a name for these tests. */
+    private static BeamDestination named(final String name)
+    {
+        return new BeamDestination(name, new BeamPoint("world", 0, 64, 0, 0f, 0f), null);
+    }
+
 }

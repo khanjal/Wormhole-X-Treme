@@ -3,9 +3,10 @@
 Snapshot of `main` at `ecb9f0f` (PR #206), analysed 2026-09-08.
 Regenerate with the queries at the bottom rather than hand-editing the counts.
 
-**There is no backlog left to work.** Three issues are open and all three are design questions
-waiting on a decision, not defects. This file is now a record of what the campaign did and what
-is worth carrying into the next one.
+**The backlog is empty.** Zero open issues. The last three were design questions rather than
+defects, held open on purpose until someone decided them, and they were decided: see
+[The three that were left](#the-three-that-were-left). This file is now a record of what the
+campaign did and what is worth carrying into the next one.
 
 ## Where it ended
 
@@ -19,19 +20,22 @@ is worth carrying into the next one.
 Reliability **A**, security **A**, maintainability **A**. Duplication 0.5% across 22,566 lines.
 Every `S3776` (method too complex) is closed; there were 18 at the halfway mark.
 
-## The three that are left
+## The three that were left
 
-All in the beam subsystem, all deliberate, none of them a bug:
+All in the beam subsystem, all deliberate, none of them a bug. They stayed open while they were
+still questions and were closed once answered, which is the point of holding a design call open
+rather than either sweeping it or suppressing it.
 
-| Rule | Where | The question |
+| Rule | Where | How it was answered |
 |---|---|---|
-| `S6206` | `BeamDestination` | Make it a `record`? It is already immutable; the change is real but it is a public type. |
-| `S107` | `BeamDestination` | 8-parameter constructor. |
-| `S107` | `BeamFrame` | 14-parameter constructor. |
+| `S6206` | `BeamDestination` | Now a record. |
+| `S107` | `BeamDestination` | The six location fields were always one thing -- the class already had `fromLocation`/`toLocation` around them -- so they became `BeamPoint`, leaving three components. |
+| `S107` | `BeamFrame` | Grouped into the four phases and five boundary marks its own javadoc already described: `Envelop`, `Column`, `Fade`, `Marks`. |
 
-The two `S107`s are the same call: a builder or a parameter object would satisfy the rule, and
-whether that reads better than 14 named arguments at the two call sites is a matter of taste
-rather than a defect. Left open on purpose so the decision is visible.
+Both `S107`s came out the same way, and it was not a builder. In each case the parameter list was
+long because a group of fields that belonged together had been written out flat, so naming the
+group fixed the rule as a side effect rather than as the goal. A builder would have satisfied
+Sonar while leaving fourteen loose values exactly as loose.
 
 ## What the campaign was worth
 
