@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.model;
 
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
@@ -41,10 +40,6 @@ public final class GateIntegrity
      */
     public static int missingStructureBlocks(final Stargate gate)
     {
-        if (gate == null)
-        {
-            return 0;
-        }
         int missing = 0;
         for (final Location location : gate.getGateStructureBlocks())
         {
@@ -71,32 +66,6 @@ public final class GateIntegrity
     public static boolean isStructureBroken(final Stargate gate)
     {
         return missingStructureBlocks(gate) > 0;
-    }
-
-    /**
-     * Whether a gate's dial sign is recorded but no longer a sign.
-     *
-     * <p>The sharpest single case, and the one the 2011 report describes: the gate keeps
-     * accepting incoming dials and keeps refusing to change target, because the sign it reads
-     * the target off is not there to read.
-     *
-     * @param gate
-     *            the gate to look at
-     * @return true if the gate is sign-powered, has a dial sign block recorded, and that block
-     *         is not a wall sign any more
-     */
-    public static boolean isDialSignMissing(final Stargate gate)
-    {
-        if ((gate == null) || !gate.isGateSignPowered())
-        {
-            return false;
-        }
-        final Block sign = gate.getGateDialSignBlock();
-        if ((sign == null) || !isLoaded(sign.getWorld(), sign.getX(), sign.getZ()))
-        {
-            return false;
-        }
-        return !MaterialUtils.isWallSign(sign.getType());
     }
 
     /** A recorded block that is in a loaded chunk and is now air. */

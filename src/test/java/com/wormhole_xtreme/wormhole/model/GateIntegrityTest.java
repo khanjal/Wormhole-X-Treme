@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -135,7 +136,7 @@ class GateIntegrityTest
 
         assertEquals(0, GateIntegrity.missingStructureBlocks(gateWith(Collections.singletonList(far))),
             "an unloaded chunk cannot be judged, so it is not");
-        verify(world, org.mockito.Mockito.never()).getBlockAt(any(Location.class));
+        verify(world, never()).getBlockAt(any(Location.class));
     }
 
     /**
@@ -159,50 +160,6 @@ class GateIntegrityTest
     void aGateWithNoRecordedBlocksIsNotBroken()
     {
         assertFalse(GateIntegrity.isStructureBroken(gateWith(Collections.emptyList())));
-        assertEquals(0, GateIntegrity.missingStructureBlocks(null));
-        assertFalse(GateIntegrity.isStructureBroken(null));
     }
 
-    // ---- the dial sign ----
-
-    private Stargate signGate(final Material signMaterial, final boolean signPowered)
-    {
-        final Stargate gate = mock(Stargate.class);
-        when(gate.isGateSignPowered()).thenReturn(signPowered);
-        final Block sign = mock(Block.class);
-        when(sign.getType()).thenReturn(signMaterial);
-        when(sign.getWorld()).thenReturn(world);
-        when(sign.getX()).thenReturn(3);
-        when(sign.getZ()).thenReturn(4);
-        when(gate.getGateDialSignBlock()).thenReturn(sign);
-        return gate;
-    }
-
-    @Test
-    void aDialSignStillThereIsNotMissing()
-    {
-        assertFalse(GateIntegrity.isDialSignMissing(signGate(Material.OAK_WALL_SIGN, true)));
-    }
-
-    /** The 2011 report exactly: the gate keeps working except that no target can be chosen. */
-    @Test
-    void aDialSignReplacedByAirIsMissing()
-    {
-        assertTrue(GateIntegrity.isDialSignMissing(signGate(Material.AIR, true)));
-    }
-
-    /** A gate that was never sign-powered has no sign to lose. */
-    @Test
-    void aGateThatIsNotSignPoweredIsNotMissingASign()
-    {
-        assertFalse(GateIntegrity.isDialSignMissing(signGate(Material.AIR, false)));
-    }
-
-    @Test
-    void aDialSignInAnUnloadedChunkIsNotJudged()
-    {
-        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(Boolean.FALSE);
-
-        assertFalse(GateIntegrity.isDialSignMissing(signGate(Material.AIR, true)));
-    }
 }
