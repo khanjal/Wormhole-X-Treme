@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Shape files written before {@code Version=2}, which a different parser still reads.
@@ -30,7 +30,7 @@ class LegacyShapeFileTest
     @BeforeEach
     void installPlugin() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
     }
 
     private static String[] shape(final String... settings)

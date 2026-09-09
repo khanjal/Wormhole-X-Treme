@@ -39,7 +39,7 @@ class ButtonLeverHitTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         GateSpatialIndex.clear();
         player = mock(Player.class);

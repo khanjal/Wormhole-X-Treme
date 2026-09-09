@@ -51,7 +51,7 @@ class PendingCompletionDetectionTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         GateSpatialIndex.clear();
         player = mock(Player.class);

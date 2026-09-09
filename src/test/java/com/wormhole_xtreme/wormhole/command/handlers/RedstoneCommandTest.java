@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Turning a gate's redstone wiring on and off, and reading it back.
@@ -37,7 +37,7 @@ class RedstoneCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Not a player, so the admin node is not asked for -- the permission branch is its
         // own concern and is covered where the permission itself is.
@@ -49,7 +49,7 @@ class RedstoneCommandTest
     void tearDown() throws Exception
     {
         clearGates();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

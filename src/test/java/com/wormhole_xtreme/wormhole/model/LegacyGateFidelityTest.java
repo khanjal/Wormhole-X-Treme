@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.DataUtils;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * What a version 6 and a version 7 gate come back as.
@@ -61,7 +61,7 @@ class LegacyGateFidelityTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
@@ -82,7 +82,7 @@ class LegacyGateFidelityTest
     @AfterEach
     void tearDown() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private Block blockAt(final int x, final int y, final int z)

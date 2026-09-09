@@ -98,7 +98,7 @@ class PortalFlightExemptionTest
         clearFlightGrants();
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");

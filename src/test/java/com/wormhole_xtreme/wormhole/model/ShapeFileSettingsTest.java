@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * The settings a shape file can carry, and what a broken one does.
@@ -29,7 +29,7 @@ class ShapeFileSettingsTest
     @BeforeEach
     void installPlugin() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
     }
 
     /**

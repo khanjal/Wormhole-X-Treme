@@ -57,7 +57,7 @@ class PendingRefreshTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -82,7 +82,7 @@ class PendingRefreshTest
     {
         Refresh.removePendingRefresh(player);
         clearGates();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

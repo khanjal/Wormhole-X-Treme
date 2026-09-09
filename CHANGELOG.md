@@ -92,7 +92,7 @@ Seventy-eight test classes were doing that for themselves, in a hundred and fift
 the same three lines of reflection each time -- 102 of the 139 reflective field accesses in
 the whole test tree, all reaching for the same field.
 
-`PluginForTests.install()` and `remove()` are those three lines with a name on them. A setup
+`PluginTestSupport.install()` and `remove()` are those three lines with a name on them. A setup
 that ran to four lines of `getDeclaredField`, `setAccessible` and `set` is one line that says
 what it is doing, and the suite lost 250 lines net.
 

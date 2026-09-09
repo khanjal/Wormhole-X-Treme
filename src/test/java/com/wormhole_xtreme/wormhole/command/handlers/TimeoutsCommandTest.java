@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Setting the two gate timeouts.
@@ -41,7 +41,7 @@ class TimeoutsCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Without this the setters are silent no-ops and every assertion below would pass
         // against a value that was never stored.
@@ -61,7 +61,7 @@ class TimeoutsCommandTest
         ConfigManager.setTimeoutShutdown(savedShutdown);
         ConfigTestSupport.clear();
 
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private boolean run(final String... args)

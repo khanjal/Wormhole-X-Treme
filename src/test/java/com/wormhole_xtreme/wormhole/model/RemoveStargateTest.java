@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * What removing a gate takes with it.
@@ -37,7 +37,7 @@ class RemoveStargateTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
         clearGates();
     }
 
@@ -46,7 +46,7 @@ class RemoveStargateTest
     {
         clearGates();
         GateSpatialIndex.clear();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

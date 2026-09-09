@@ -11,7 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * {@code Large.shape}, {@code Grand.shape} and {@code Massive.shape} -- three big, hand-built
@@ -41,7 +41,7 @@ class BigGateShapeTest
     private static Stargate3DShape load(final String name) throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
         return new Stargate3DShape(lines.toArray(new String[0]));

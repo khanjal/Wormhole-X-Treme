@@ -16,7 +16,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Tab completion for {@code /wormhole gate}.
@@ -36,7 +36,7 @@ class GateTabCompletionTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
         clearGates();
 
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
@@ -52,7 +52,7 @@ class GateTabCompletionTest
         clearGates();
         StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().putAll(savedShapes);
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

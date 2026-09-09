@@ -43,11 +43,11 @@ class WormholeXTremeVehicleListenerEventTest
         mockScheduler = mock(BukkitScheduler.class);
         when(mockScheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
 
-        PluginForTests.scheduler(mockScheduler);
+        PluginTestSupport.scheduler(mockScheduler);
 
         // Install a mock plugin instance so prettyLog() calls do not NPE.
         final WormholeXTreme mockPlugin = mock(WormholeXTreme.class);
-        PluginForTests.install(mockPlugin);
+        PluginTestSupport.install(mockPlugin);
         // ensure spatial index / gate registry is clean
         GateSpatialIndex.clear();
     }

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Drives every {@code /wormhole} subcommand through the real dispatcher with a mocked
@@ -38,10 +38,10 @@ class SubCommandSmokeTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         final BukkitScheduler scheduler = mock(BukkitScheduler.class);
-        PluginForTests.scheduler(scheduler);
+        PluginTestSupport.scheduler(scheduler);
 
         final World world = mock(World.class);
         when(world.getName()).thenReturn("world");

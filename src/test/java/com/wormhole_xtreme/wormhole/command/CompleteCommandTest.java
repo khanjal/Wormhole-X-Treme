@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Unit tests for the `/wormhole complete` command parsing and robustness.
@@ -27,7 +27,7 @@ class CompleteCommandTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            PluginForTests.install(pluginMock);
+            PluginTestSupport.install(pluginMock);
         }
         catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
     }

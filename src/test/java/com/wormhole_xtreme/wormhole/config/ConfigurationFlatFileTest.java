@@ -22,7 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Reading a hand-edited flat config file, where a line may not have the colon the parser
@@ -41,13 +41,13 @@ class ConfigurationFlatFileTest
     void setUp() throws Exception
     {
         plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private File write(final String... lines) throws IOException

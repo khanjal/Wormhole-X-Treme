@@ -25,7 +25,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Who a gate belongs to, and who is allowed to change that.
@@ -42,7 +42,7 @@ class OwnerCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         sender = mock(Player.class);
         when(sender.getName()).thenReturn("admin");

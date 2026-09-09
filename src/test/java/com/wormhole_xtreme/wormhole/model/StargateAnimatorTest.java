@@ -9,7 +9,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * The woosh animation's own step counter, {@code gateAnimationStep3D}.
@@ -61,7 +61,7 @@ class StargateAnimatorTest
         // WormholeXTreme.scheduler is a shared static -- every other test in this JVM run
         // that touches it expects the plugin's normal null-until-onEnable default, not
         // whatever mock the one test above it happened to leave behind.
-        PluginForTests.scheduler(null);
+        PluginTestSupport.scheduler(null);
     }
 
     @Test
@@ -128,7 +128,7 @@ class StargateAnimatorTest
         // Reproduces the tick right before the true last step. A correct implementation
         // must not settle here -- it still has index 0 left to undraw -- so it decrements to
         // 0 and schedules one more tick rather than clearing isGateAnimationRemoving early.
-        PluginForTests.scheduler(mock(BukkitScheduler.class));
+        PluginTestSupport.scheduler(mock(BukkitScheduler.class));
         final Stargate gate = new Stargate();
         gate.setGateActive(true);
         gate.getGateWooshBlocks().add(null);

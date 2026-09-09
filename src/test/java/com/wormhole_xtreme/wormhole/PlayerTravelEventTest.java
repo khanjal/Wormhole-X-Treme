@@ -60,12 +60,12 @@ class PlayerTravelEventTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         final org.bukkit.scheduler.BukkitScheduler scheduler =
             mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
-        PluginForTests.scheduler(scheduler);
+        PluginTestSupport.scheduler(scheduler);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");

@@ -51,7 +51,7 @@ class RingMoveEventTest
     void setUp() throws Exception
     {
         RingIndex.clear();
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);
@@ -87,7 +87,7 @@ class RingMoveEventTest
     void tearDown() throws Exception
     {
         RingIndex.clear();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private Location at(final double x, final double y, final double z)

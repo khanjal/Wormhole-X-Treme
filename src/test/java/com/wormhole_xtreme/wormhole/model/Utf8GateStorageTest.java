@@ -22,7 +22,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * A gate whose name, owner or iris code is not plain ASCII survives being stored.
@@ -67,13 +67,13 @@ class Utf8GateStorageTest
     void installPluginMock() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
     }
 
     @AfterEach
     void restorePlugin() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static World mockWorld()

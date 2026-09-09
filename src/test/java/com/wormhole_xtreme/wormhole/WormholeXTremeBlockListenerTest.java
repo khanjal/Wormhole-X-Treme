@@ -31,7 +31,7 @@ class WormholeXTremeBlockListenerTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            PluginForTests.install(pluginMock);
+            PluginTestSupport.install(pluginMock);
         }
         catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
     }

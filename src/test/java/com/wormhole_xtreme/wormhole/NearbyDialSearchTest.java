@@ -53,7 +53,7 @@ class NearbyDialSearchTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         grid = new HashMap<>();
         world = mock(World.class);
@@ -75,7 +75,7 @@ class NearbyDialSearchTest
     @AfterEach
     void tearDown() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     /** A block that is nothing in particular. */

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Filling an empty shapes folder, and reading what is in it.
@@ -38,7 +38,7 @@ class ShapeLoadingTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // The registry is static and shared, so put back whatever the rest of the suite had.
         savedShapes = new HashMap<>(StargateShapeRegistry.getStargateShapes());

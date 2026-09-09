@@ -20,7 +20,7 @@ import org.mockito.ArgumentCaptor;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * What {@code /wx list} shows, and to whom.
@@ -38,7 +38,7 @@ class WXListTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Not a player, so the listing is not gated on a permission node.
         sender = mock(CommandSender.class);

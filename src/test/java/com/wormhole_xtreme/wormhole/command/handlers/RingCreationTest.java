@@ -36,7 +36,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Laying the first ring of a pair, and everything that refuses to let you.
@@ -69,7 +69,7 @@ class RingCreationTest
         blocks.clear();
         // StargateManager.addBlockIndex logs what it indexed, so the gate-overlap test needs a
         // plugin to log through.
-        PluginForTests.install();
+        PluginTestSupport.install();
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);
@@ -106,7 +106,7 @@ class RingCreationTest
         config.close();
         GateSpatialIndex.clear();
         RingManager.clear();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     /** Air unless something has been laid there. */

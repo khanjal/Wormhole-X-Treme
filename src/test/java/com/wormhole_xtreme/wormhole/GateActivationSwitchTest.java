@@ -50,7 +50,7 @@ class GateActivationSwitchTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            PluginForTests.install(pluginMock);
+            PluginTestSupport.install(pluginMock);
         }
         catch (final ReflectiveOperationException e)
         {

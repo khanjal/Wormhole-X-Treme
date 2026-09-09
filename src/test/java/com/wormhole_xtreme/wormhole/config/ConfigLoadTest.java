@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Reading config.yml at startup.
@@ -37,7 +37,7 @@ class ConfigLoadTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
         ConfigTestSupport.clear();
     }
 
@@ -45,7 +45,7 @@ class ConfigLoadTest
     void tearDown() throws Exception
     {
         ConfigTestSupport.clear();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private void writeConfig(final String yaml) throws Exception

@@ -15,7 +15,7 @@ import org.bukkit.block.sign.SignSide;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Tests for sign placement in {@link Stargate#setupGateSign(boolean)}.
@@ -88,7 +88,7 @@ class StargateSignTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
         try
         {
             gate.setGateFacing(BlockFace.NORTH);
@@ -119,7 +119,7 @@ class StargateSignTest
         }
         finally
         {
-            PluginForTests.remove();
+            PluginTestSupport.remove();
         }
     }
 
@@ -134,7 +134,7 @@ class StargateSignTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(false);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
         try
         {
             gate.setGateFacing(BlockFace.NORTH);
@@ -150,7 +150,7 @@ class StargateSignTest
         }
         finally
         {
-            PluginForTests.remove();
+            PluginTestSupport.remove();
         }
     }
 

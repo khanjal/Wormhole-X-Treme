@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.DataUtils;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * What a version 4 and a version 5 gate come back as.
@@ -75,7 +75,7 @@ class LegacyGateFidelityV4V5Test
 
     private static void setPlugin(final WormholeXTreme value) throws Exception
     {
-        PluginForTests.install(value);
+        PluginTestSupport.install(value);
     }
 
     private Block blockAt(final int x, final int y, final int z)

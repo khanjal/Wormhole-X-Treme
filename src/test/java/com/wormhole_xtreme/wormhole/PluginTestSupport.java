@@ -29,13 +29,13 @@ import org.bukkit.scheduler.BukkitScheduler;
  * everywhere else it comes to the same thing, because a class that cleans up leaves null
  * behind for the next one anyway.
  */
-public final class PluginForTests
+public final class PluginTestSupport
 {
     /** What was in the static before the current install, put back by {@link #remove()}. */
     private static Object previous;
 
     /** Static helpers only. */
-    private PluginForTests()
+    private PluginTestSupport()
     {
     }
 

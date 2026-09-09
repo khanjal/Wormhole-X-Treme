@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Setting and reading a gate's woosh depth.
@@ -43,7 +43,7 @@ class WooshDepthCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Not a player, so the admin node is not asked for.
         sender = mock(CommandSender.class);
@@ -54,7 +54,7 @@ class WooshDepthCommandTest
     void tearDown() throws Exception
     {
         clearGates();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

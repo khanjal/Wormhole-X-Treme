@@ -46,14 +46,14 @@ class LeverClickDispatchTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Toggling a lever schedules the block update that follows it.
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(org.mockito.ArgumentMatchers.any(),
             org.mockito.ArgumentMatchers.any(Runnable.class),
             org.mockito.ArgumentMatchers.anyLong())).thenReturn(1);
-        PluginForTests.scheduler(scheduler);
+        PluginTestSupport.scheduler(scheduler);
 
         GateSpatialIndex.clear();
         world = mock(World.class);

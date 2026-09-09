@@ -40,7 +40,7 @@ class GateOneWayTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         // markVehicleRecentlyTeleported schedules the un-mark, so the sweep needs a
         // scheduler or it dies before teleporting and every test passes vacuously.
@@ -48,7 +48,7 @@ class GateOneWayTest
         // Run delayed tasks inline so the next-tick velocity re-apply is observable here.
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
-        PluginForTests.scheduler(scheduler);
+        PluginTestSupport.scheduler(scheduler);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");

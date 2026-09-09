@@ -102,7 +102,7 @@ class WormholeXTremeVehicleRiderFacingTest
     @BeforeEach
     void installPlugin() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
     }
 
     /**

@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Lighting a gate's chevrons, one wave per tick.
@@ -38,9 +38,9 @@ class ChevronLightingTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
-        PluginForTests.scheduler(mock(BukkitScheduler.class));
+        PluginTestSupport.scheduler(mock(BukkitScheduler.class));
 
         world = mock(World.class);
     }
@@ -48,9 +48,9 @@ class ChevronLightingTest
     @AfterEach
     void tearDown() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
 
-        PluginForTests.scheduler(null);
+        PluginTestSupport.scheduler(null);
     }
 
     /**

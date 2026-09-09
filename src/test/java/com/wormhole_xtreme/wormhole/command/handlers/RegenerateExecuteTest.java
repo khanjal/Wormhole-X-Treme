@@ -27,7 +27,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Running {@code /wormhole regenerate}, as opposed to the {@code exitMoved} helper that
@@ -47,7 +47,7 @@ class RegenerateExecuteTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Not a player, so the admin node is not asked for.
         sender = mock(CommandSender.class);
@@ -58,7 +58,7 @@ class RegenerateExecuteTest
     void tearDown() throws Exception
     {
         clearGates();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

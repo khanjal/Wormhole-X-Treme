@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Reading beam.yml back at startup.
@@ -44,7 +44,7 @@ class BeamLoadAllTest
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.getDataFolder()).thenReturn(dataFolder);
 
-        PluginForTests.install(plugin);
+        PluginTestSupport.install(plugin);
 
         BeamManager.clear();
     }
@@ -53,7 +53,7 @@ class BeamLoadAllTest
     void tearDown() throws Exception
     {
         BeamManager.clear();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     /** Writes beam.yml where getBeamFile will look for it. */

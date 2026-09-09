@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * What survives a gate being written to disk and read back.
@@ -47,7 +47,7 @@ class GateYamlRoundTripTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
@@ -78,7 +78,7 @@ class GateYamlRoundTripTest
     @AfterEach
     void restorePlugin() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
         for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)

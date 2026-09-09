@@ -24,7 +24,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Turning a detected gate into a registered one.
@@ -43,7 +43,7 @@ class CompleteStargateTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         player = mock(Player.class);
         when(player.getName()).thenReturn("builder");
@@ -56,7 +56,7 @@ class CompleteStargateTest
     void tearDown() throws Exception
     {
         clearRegistry();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearRegistry()

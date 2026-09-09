@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Everything a gate saves, and gets back.
@@ -51,7 +51,7 @@ class GateSaveFidelityTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
@@ -62,7 +62,7 @@ class GateSaveFidelityTest
     @AfterEach
     void tearDown() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private Block blockAt(final int x, final int y, final int z)

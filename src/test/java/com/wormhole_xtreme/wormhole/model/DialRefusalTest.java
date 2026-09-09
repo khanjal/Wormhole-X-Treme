@@ -22,7 +22,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * When one gate refuses to dial another.
@@ -41,7 +41,7 @@ class DialRefusalTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         gate = mock(Stargate.class);
         when(gate.getGateName()).thenReturn("alpha");
@@ -59,7 +59,7 @@ class DialRefusalTest
     @AfterEach
     void tearDown() throws Exception
     {
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     /** A target that is fine to dial, which each test then spoils in one specific way. */

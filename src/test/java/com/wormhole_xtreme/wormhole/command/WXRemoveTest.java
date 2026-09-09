@@ -27,7 +27,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.PluginForTests;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Removing a gate.
@@ -47,7 +47,7 @@ class WXRemoveTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginForTests.install(mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Not a player, so the permission check is skipped.
         console = mock(CommandSender.class);
@@ -58,7 +58,7 @@ class WXRemoveTest
     void tearDown() throws Exception
     {
         clearGates();
-        PluginForTests.remove();
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()
