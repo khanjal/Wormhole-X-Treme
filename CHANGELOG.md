@@ -4,6 +4,100 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that
+went back over all of it. Twenty-odd player-facing bugs are fixed, several of them older than
+this fork, and the tree went through a quality pass that took SonarCloud from 893 open issues to
+none and the test suite from about 490 tests to 1326.
+
+**Upgrading:** nothing to do. Gate, ring and beam files load unchanged and every setting keeps
+its current value.
+
+### Fixed
+
+- Gate protection no longer stops working when another plugin cancels the event first, which
+  could let lava out of a gate frame ([#53](https://github.com/khanjal/Wormhole-X-Treme/issues/53)).
+- A gate whose blocks WorldEdit removed now refuses to be dialled and says why, rather than
+  going quietly dead ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
+- Beaming off a horse left the horse behind; your mount comes with you now.
+- A chevron was invisible while a gate sat idle.
+- A closing iris no longer buries whoever is standing in the gate.
+- A sign gate wired to redstone dialled twice on one press.
+- A sign gate ignored its own sign until somebody cycled it by hand.
+- `HorizontalSignDial` could not be built at all.
+- Choosing a sign dial cost the gate its iris.
+- Redstone wiring inside a gate could never be taken back up without removing the gate.
+- A ring pair in a room too short to hold it fired anyway.
+- Tab completion after `beam to` offered only public destinations, never your own places.
+- Beaming hid the traveller but left their gear standing in the column.
+- A gate named with an accent came back as `Caf?` after a restart.
+- A gate's owner turned into a UUID.
+- One unwritable gate stopped every gate after it from being saved.
+- Saving the config destroyed the rest of the file, and a hand-edited line missing its colon
+  ended the parse.
+- `/wormhole ring edit` with nothing after it crashed.
+- Every feature permission under `/wormhole` was unreachable without `wormhole.config`.
+- A rider arrived facing the wrong way after a cart trip.
+- A minecart lost its own kind through a failed vehicle teleport.
+- `/wormhole cooldown` reported a setting it never saved, and `/wormhole restrict` did nothing
+  at all.
+- `/wormhole config` rejected settings spelled the way `config.yml` spells them, worked only in
+  English, and accepted values it could not read back.
+- A gate file that would not delete failed silently.
+- A powered lever or button lost its facing when an old gate was rebuilt.
+
+### Changed
+
+- The name and logo are no longer covered by the GPL — see [TRADEMARK.md](TRADEMARK.md).
+- Dial signs are coloured and mark the selected destination, so it no longer looks identical to
+  the two either side.
+- Ring pads light as a redstone lamp rather than glowstone.
+- A redstone signal on an open gate extends it up to the existing maximum, instead of closing it.
+- Every sign gate takes redstone, not only the one with "Redstone" in its name, and the DHD
+  accepts a signal from any component rather than only from dust.
+- The kawoosh sounds like water rather than an explosion, and sign colours are quieter.
+- Gate, ring and beam sounds are each configurable, including to a resource pack's own sounds.
+
+### Documentation
+
+- `docs/GATES.md`, `docs/RINGS.md` and `docs/BEAMS.md` explain how each subsystem works and why.
+- The README gained a Features list, and its sound documentation is no longer filed inside the
+  transport rings section.
+- `/dial` is described correctly: it names a destination for a gate that has no dial sign, and
+  is not a fourth way to dial one.
+
+### Under the hood
+
+None of this changes what the plugin does. It is why the list above could be written with any
+confidence.
+
+- SonarCloud: **893 open issues to 0**, with A ratings for reliability, security and
+  maintainability.
+- Tests: **about 490 to 1326**; line coverage 42.9% to 73%.
+- Every `catch (Throwable)` is gone, every YAML file is read and written as UTF-8, and the dead
+  `LegacyCompat` class plus nine unused helpers were deleted.
+- Three bugs in the list above were found by writing tests rather than by anybody hitting them.
+  Two more turned out to be in methods nothing called, which is how the dead code was noticed.
+
+<details>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order it was made</summary>
+
+### Tab completion could not see your own beam places
+
+`beam to` resolves a name by checking the asking player's places first and the public list
+second. Completion offered only the public half, so a player could travel to a place they could
+not tab-complete -- reported from a live server rather than found here.
+
+The cause was this plugin's, not Bukkit's. Bukkit hands every tab completer the `CommandSender`;
+`WormholeTabCompleter` received it and dropped it, because `ArgCompleter` took only the argument
+array. The comment at the call site recorded that as a fact about tab completers, when it was
+only a fact about this interface. `ArgCompleter` takes the sender now.
+
+Two sites changed and only two -- `beam to` and `wormhole go`, the pair that resolve through
+`travelTo`. Admin `remove`, `cost`, `goto` and `send` still offer public destinations alone,
+because `resolveNamedDestination` still accepts only those, deliberately: an admin moving
+somebody should not be routed through that player's private list. Completion matches resolution
+at every site now rather than at some of them.
+
 ### A gate taken apart by WorldEdit now says so
 
 Gate blocks are protected by `BlockBreakEvent` and the physics handlers, and nothing that goes
@@ -2479,6 +2573,9 @@ hand the sweep was re-run against the merged tree. It walked straight into the s
 regex found the delegation a second time and dropped its `false` a second time. Reading the
 diff caught it, and the third test would have caught it a moment later -- which is the whole
 difference between this time and last.
+
+</details>
+
 
 ## 1.4.0 (2026-09-05)
 
