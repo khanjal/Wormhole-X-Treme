@@ -17,7 +17,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -100,14 +99,14 @@ class RingTransitStartTest
 
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.getServer()).thenReturn(server);
-        set("thisPlugin", plugin);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", plugin);
 
         scheduler = mock(BukkitScheduler.class);
         // Never actually runs the task: the countdown reschedules itself, and every test here
         // is about the decision taken before the first tick.
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenReturn(Integer.valueOf(1));
-        set("scheduler", scheduler);
+        PrivateStatics.set(WormholeXTreme.class, "scheduler", scheduler);
 
         walker = mock(Player.class);
         when(walker.getName()).thenReturn("walker");
@@ -139,15 +138,8 @@ class RingTransitStartTest
         config.close();
         RingTransit.clear();
         RingManager.clear();
-        set("thisPlugin", null);
-        set("scheduler", null);
-    }
-
-    private static void set(final String name, final Object value) throws Exception
-    {
-        final Field f = WormholeXTreme.class.getDeclaredField(name);
-        f.setAccessible(true);
-        f.set(null, value);
+        PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
+        PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
     }
 
     /**

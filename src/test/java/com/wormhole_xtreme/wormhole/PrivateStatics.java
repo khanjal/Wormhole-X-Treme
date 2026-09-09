@@ -62,4 +62,44 @@ public final class PrivateStatics
         field.setAccessible(true);
         return (T) field.get(null);
     }
+
+    /**
+     * Puts a value into a private static field.
+     *
+     * @param owner
+     *            the class declaring it
+     * @param name
+     *            the field name
+     * @param value
+     *            what to put there
+     * @throws ReflectiveOperationException
+     *             if there is no such field, which means it was renamed
+     */
+    public static void set(final Class<?> owner, final String name, final Object value)
+        throws ReflectiveOperationException
+    {
+        set(owner, null, name, value);
+    }
+
+    /**
+     * Puts a value into a private field, static or on one object.
+     *
+     * @param owner
+     *            the class declaring it
+     * @param on
+     *            the object to set it on, or null for a static field
+     * @param name
+     *            the field name
+     * @param value
+     *            what to put there
+     * @throws ReflectiveOperationException
+     *             if there is no such field, which means it was renamed
+     */
+    public static void set(final Class<?> owner, final Object on, final String name, final Object value)
+        throws ReflectiveOperationException
+    {
+        final Field field = owner.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(on, value);
+    }
 }

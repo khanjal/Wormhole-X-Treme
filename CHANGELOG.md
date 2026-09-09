@@ -115,6 +115,17 @@ fix is the failing loudly part: it throws rather than shrugging.
 
 Nine to one, and the one that is left is the cast reflection cannot avoid.
 
+The same three lines going the other way -- writing a field rather than reading one -- carried
+no cast and so no suppression, but sat in `VehicleGateEntryTest` and `RingTransitStartTest` as
+two more private helpers doing the identical thing. Those are `PrivateStatics.set` now.
+
+Counting the rest of them first is what stopped that going further. There are 139 reflective
+field accesses across 87 test files, and 102 of them reach for the same field: the
+`WormholeXTreme.thisPlugin` singleton, installed as a mock in setup and put back in teardown.
+That is one idiom repeated eighty-odd times, and it wants a helper that names what it is for
+rather than a generic field-setter. It is left alone here deliberately -- a sweep of eighty
+test files is its own change, with its own reasons to be careful.
+
 ### Tab completion could not see your own beam places
 
 `beam to` resolves a name by checking the asking player's places first and the public list
