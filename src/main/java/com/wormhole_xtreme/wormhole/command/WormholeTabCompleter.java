@@ -25,6 +25,6 @@ public class WormholeTabCompleter implements TabCompleter
             return SubCommands.namesMatching(args.length == 0 ? "" : args[0]);
         }
         final SubCommands.Entry entry = SubCommands.find(args[0]);
-        return entry == null ? java.util.Collections.<String>emptyList() : entry.completeArgs(args);
+        return entry == null ? java.util.Collections.<String>emptyList() : entry.completeArgs(sender, args);
     }
 }

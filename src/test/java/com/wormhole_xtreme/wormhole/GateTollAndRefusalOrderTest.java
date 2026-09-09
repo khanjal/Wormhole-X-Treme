@@ -260,6 +260,46 @@ class GateTollAndRefusalOrderTest
     }
 
     /**
+     * An iris raised after the wormhole opened still turns a traveller back.
+     *
+     * <p>Dialling checks the far iris once, before connecting, and refuses. That is not the
+     * only moment it can matter: the gates stay connected afterwards, and whoever is at the far
+     * end can raise the iris while somebody is walking towards the portal. The check that
+     * counts is therefore the one on the way through, not the one at dial time.
+     *
+     * <p>They are put back where they started rather than being stopped at the threshold, and
+     * given five ticks of damage immunity so the return trip cannot hurt them.
+     */
+    @Test
+    void anIrisRaisedAfterTheGatesConnectedTurnsATravellerBack()
+    {
+        // Where a bounced traveller is put back. No other test reaches that path, so the
+        // fixture had never needed the source gate to have one.
+        final Location home = new Location(world, BX + 0.5, BY, BZ - 0.5);
+        src.setGatePlayerTeleportLocation(home);
+        dst.setGateIrisActive(true);
+
+        walkIn();
+
+        verify(walker, atLeastOnce()).sendMessage(contains("Remote Iris is locked"));
+        verify(walker).teleport(home);
+        verify(walker).setNoDamageTicks(5);
+    }
+
+    /** And is not charged for the journey they did not make. */
+    @Test
+    void aTravellerTurnedBackByAnIrisPaysNothing()
+    {
+        src.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 0.5));
+        aFareOf(FARE, true);
+        dst.setGateIrisActive(true);
+
+        walkIn();
+
+        nobodyIsCharged();
+    }
+
+    /**
      * A player who cannot afford the trip is told that, and not bounced off the iris.
      *
      * <p>The order the reasons come in is the point. The far end being shut is not something
