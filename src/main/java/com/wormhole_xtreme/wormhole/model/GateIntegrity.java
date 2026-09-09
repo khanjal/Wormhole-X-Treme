@@ -107,7 +107,7 @@ public final class GateIntegrity
         {
             return false;
         }
-        return location.getBlock().getType().isAir();
+        return MaterialUtils.isAirMaterial(location.getBlock().getType());
     }
 
     /** Whether the chunk holding these block coordinates is already in memory. */

@@ -138,6 +138,23 @@ class GateIntegrityTest
         verify(world, org.mockito.Mockito.never()).getBlockAt(any(Location.class));
     }
 
+    /**
+     * All three airs count, and none of them asks the registry.
+     *
+     * <p>This is what the CI matrix caught: the first version of this used
+     * {@code Material.isAir()}, which resolves through {@code org.bukkit.Registry} from 1.20.6
+     * on and threw {@code NoClassDefFoundError} on four of the seven supported versions while
+     * passing locally against the 1.20.4 compile target.
+     */
+    @Test
+    void caveAirAndVoidAirAreMissingToo()
+    {
+        assertEquals(3, GateIntegrity.missingStructureBlocks(gateWith(Arrays.asList(
+            blockAt(0, 64, 0, Material.AIR),
+            blockAt(1, 64, 0, Material.CAVE_AIR),
+            blockAt(2, 64, 0, Material.VOID_AIR)))));
+    }
+
     @Test
     void aGateWithNoRecordedBlocksIsNotBroken()
     {

@@ -1356,7 +1356,7 @@ The design of each subsystem is written up in [docs/GATES.md](docs/GATES.md) and
 [docs/API.md](docs/API.md). A few conventions that run through all of it:
 
 - `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every wood, stone and Nether variant, so nothing tests for those block types one at a time.
-- All air-type checks use `Material.isAir()` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison.
+- Air-type checks use `MaterialUtils.isAirMaterial(Material)` (covers `AIR`, `CAVE_AIR`, `VOID_AIR`) rather than a direct `== Material.AIR` comparison. It compares the three constants rather than calling `Material.isAir()`, which resolves through `org.bukkit.Registry` from 1.20.6 on and therefore throws under test.
 - Sign material for each gate is read from the shape's `SIGN_MATERIAL=` key and stored on `StargateShape` / `Stargate3DShape`; placement and detection code reads from the shape object rather than hardcoding `OAK_WALL_SIGN`.
 - `StargateYamlManager` handles per-gate YAML read/write, `RingYamlManager` one file per world for ring pairs. There is no database backend; `LegacyDatabaseImporter` reads an old SQLite one in.
 - Every file read and write names `StandardCharsets.UTF_8` explicitly. `FileWriter`, `FileReader`, `InputStreamReader` and `OutputStreamWriter` fall back to the platform charset when not given one, and the readers around them (SnakeYAML, `Files.readAllLines`) assume UTF-8 unconditionally, so a charset-less constructor is a mismatch waiting for a non-UTF-8 host. `PlatformCharsetIsNeverUsedTest` reads the sources and fails on any that reappears.

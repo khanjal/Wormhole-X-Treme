@@ -142,8 +142,10 @@ conventions worth knowing before you read any of them:
 
 - `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every
   wood, stone and Nether variant, so nothing tests for those block types one at a time.
-- Air is tested with `Material.isAir()`, never `== Material.AIR`, so `CAVE_AIR` and
-  `VOID_AIR` count.
+- Air is tested with `MaterialUtils.isAirMaterial(Material)`, never `== Material.AIR`, so
+  `CAVE_AIR` and `VOID_AIR` count. It compares the three constants rather than calling
+  `Material.isAir()`, which goes through `org.bukkit.Registry` from 1.20.6 on and needs a
+  running server.
 - A gate's sign material comes from its shape's `SIGN_MATERIAL=` key, read off the shape
   object; nothing hardcodes `OAK_WALL_SIGN`.
 - Gates are stored one YAML file each by `StargateYamlManager`; ring pairs are stored one

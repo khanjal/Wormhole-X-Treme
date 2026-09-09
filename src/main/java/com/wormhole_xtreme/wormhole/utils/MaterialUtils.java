@@ -132,6 +132,27 @@ public final class MaterialUtils {
         return name.endsWith("_WALL_SIGN") && !name.startsWith("LEGACY_");
     }
 
+    /**
+     * Whether a material is one of the three airs, without asking the registry.
+     *
+     * <p>{@code Material.isAir()} is the obvious way to write this and is what the rest of the
+     * tree used. From Minecraft 1.20.6 it resolves through {@code org.bukkit.Registry}, which
+     * needs a running server -- so on 1.20 and 1.20.1 it answers and from 1.20.6 on it throws
+     * {@code NoClassDefFoundError} instead. On a live server it is fine either way; under test
+     * it makes the calling code unloadable on four of the seven versions this plugin supports.
+     *
+     * <p>Comparing the three constants is exactly as correct and asks nothing of the server.
+     * {@code CAVE_AIR} and {@code VOID_AIR} are the reason not to write {@code == Material.AIR},
+     * which is the trap the convention was written to avoid in the first place.
+     *
+     * @param m
+     *            the material, may be null
+     * @return true if it is AIR, CAVE_AIR or VOID_AIR
+     */
+    public static boolean isAirMaterial(final Material m) {
+        return (m == Material.AIR) || (m == Material.CAVE_AIR) || (m == Material.VOID_AIR);
+    }
+
     /** Returns true if the material represents ice we care about. */
     public static boolean isIce(final Material m) {
         if (m == null) {
