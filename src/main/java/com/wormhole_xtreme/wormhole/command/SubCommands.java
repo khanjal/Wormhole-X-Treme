@@ -618,8 +618,9 @@ public final class SubCommands
             return none();
         }
         // Typing the word straight after "edit": either a field, or an id with the field
-        // still to come. Ids cannot be offered because a completer is not told who is asking,
-        // and listing every pair on the server would say more than it should.
+        // still to come. Ids are still not offered: the completer is told who is asking now,
+        // but a pair is not addressed by its owner -- an id names a pair anywhere on the
+        // server, so completing them would list pairs that are none of the asker's business.
         if (args.length == 3)
         {
             return prefixed(args[2], RING_FIELDS);
@@ -875,18 +876,25 @@ public final class SubCommands
             {
                 continue;
             }
-            boolean already = false;
-            for (final String existing : out)
+            // Replaced rather than skipped when the names match case-insensitively: travelTo
+            // resolves this name to the place, so the place's own spelling is what belongs
+            // under the cursor.
+            int shadowed = -1;
+            for (int i = 0; i < out.size(); i++)
             {
-                if (existing.equalsIgnoreCase(name))
+                if (out.get(i).equalsIgnoreCase(name))
                 {
-                    already = true;
+                    shadowed = i;
                     break;
                 }
             }
-            if (!already)
+            if (shadowed < 0)
             {
                 out.add(name);
+            }
+            else
+            {
+                out.set(shadowed, name);
             }
         }
         return out;

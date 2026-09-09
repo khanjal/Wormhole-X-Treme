@@ -284,7 +284,10 @@ class BeamTabCompletionTest
             final List<String> offered = SubCommands.find("beam")
                 .completeArgs(asker, new String[] { "beam", "to", "" });
 
-            assertEquals(1, offered.size(), "one name, one entry -- the lists are keyed lowercase");
+            assertEquals(Collections.singletonList("spawn"), offered,
+                "one entry, spelled the way the place is: travelTo resolves the name to the "
+                + "place, so offering the public destination's casing would put the wrong "
+                + "spelling under the cursor for the trip that actually happens");
         }
     }
 
