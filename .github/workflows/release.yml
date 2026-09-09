@@ -5,6 +5,11 @@ on:
     tags:
       - "v*.*.*"   # triggers on tags like v1.0.0, v0.855, v1.2.3-beta
 
+  # A rehearsal, so this file is not first run in anger on the day of a release. It builds
+  # exactly what a tag would and uploads the jar to look at, but publishes nothing: the three
+  # steps below that only make sense for a real tag are all skipped.
+  workflow_dispatch:
+
 permissions:
   contents: write   # needed to create the GitHub Release and upload assets
 
@@ -18,8 +23,12 @@ jobs:
         with:
           fetch-depth: 0   # full history so git describe works
 
+      # Both of these read the tag, so both are for a real release only. A manual run has no
+      # tag to read -- GITHUB_REF_NAME would be the branch -- and keeps whatever version the
+      # pom already carries, which is what makes the rehearsal build a sensibly named jar.
       - name: Parse version from tag
         id: version
+        if: github.event_name == 'push'
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 21
@@ -30,6 +39,7 @@ jobs:
           cache: "maven"
 
       - name: Set Maven project version
+        if: github.event_name == 'push'
         run: mvn --batch-mode versions:set -DnewVersion="${{ steps.version.outputs.VERSION }}" -DgenerateBackupPoms=false
 
       - name: Build and test
@@ -69,7 +79,11 @@ jobs:
             echo "MC=$MIN-$MAX" >> "$GITHUB_OUTPUT"
           fi
 
+      # The one step a rehearsal cannot exercise, because exercising it would publish. It is
+      # skipped rather than made conditional on a draft, since a workflow that sometimes
+      # publishes from a button is a worse hazard than an unproven step.
       - name: Create GitHub Release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v3
         with:
           # The Minecraft version is the axis that matters. Server flavour is not: the
@@ -79,3 +93,12 @@ jobs:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: ${{ steps.jar.outputs.JAR }}
+
+      # So a rehearsal produces something to look at rather than only a green tick.
+      - name: Upload the jar a real release would have attached
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-dry-run-${{ steps.jar.outputs.JAR_NAME }}
+          path: ${{ steps.jar.outputs.JAR }}
+          if-no-files-found: error
