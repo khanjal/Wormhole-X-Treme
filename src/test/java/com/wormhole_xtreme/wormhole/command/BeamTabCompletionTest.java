@@ -233,6 +233,35 @@ class BeamTabCompletionTest
     }
 
     /**
+     * Typing filters places the same way it filters public destinations.
+     *
+     * <p>The other tests here complete an empty slot, which cannot tell a filtered list from an
+     * unfiltered one -- a mutation that dropped the prefix check survived them all. Offering a
+     * place no matter what has been typed would put the wrong name under the cursor.
+     */
+    @Test
+    void typingAPrefixNarrowsPlacesToo()
+    {
+        final Player asker = mock(Player.class);
+        final UUID id = UUID.randomUUID();
+        when(asker.getUniqueId()).thenReturn(id);
+
+        try (MockedStatic<BeamManager> beams = mockStatic(BeamManager.class))
+        {
+            beams.when(BeamManager::getAllPublicDestinations)
+                .thenReturn(Collections.singletonList(named("spawn")));
+            beams.when(() -> BeamManager.getPlaces(id))
+                .thenReturn(Arrays.asList(named("hideout"), named("harbour"), named("cellar")));
+
+            final List<String> offered = SubCommands.find("beam")
+                .completeArgs(asker, new String[] { "beam", "to", "hi" });
+
+            assertEquals(Collections.singletonList("hideout"), offered,
+                "only the place that starts with what was typed");
+        }
+    }
+
+    /**
      * A place shadowing a public destination of the same name is offered once.
      *
      * <p>{@code travelTo} checks places first, so one name means one destination -- the
