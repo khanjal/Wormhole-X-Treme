@@ -26,10 +26,10 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * shape over before it is worth loading at all, or confirming a fix landed without disturbing
  * whatever a gate is already standing on.
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class GateShapesCommand implements SubCommand
 {
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -55,7 +55,8 @@ public class GateShapesCommand implements SubCommand
 
         if ("reload".equals(action))
         {
-            return reload(sender, name);
+            reload(sender, name);
+            return true;
         }
         if ("validate".equals(action))
         {
@@ -64,23 +65,24 @@ public class GateShapesCommand implements SubCommand
                 sender.sendMessage("/wormhole gate shapes validate <name>");
                 return true;
             }
-            return report(sender, name, StargateShapeRegistry.validateShapeFile(fileName(name)), false);
+            report(sender, name, StargateShapeRegistry.validateShapeFile(fileName(name)), false);
+            return true;
         }
 
         sender.sendMessage("No such shapes command: " + action + ". Try reload or validate.");
         return true;
     }
 
-    private static boolean reload(final CommandSender sender, final String name)
+    private static void reload(final CommandSender sender, final String name)
     {
         if (name == null)
         {
             StargateShapeRegistry.reloadAllShapes();
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Reloaded every shape in the GateShapes directory.");
-            return true;
+            return;
         }
-        return report(sender, name, StargateShapeRegistry.reloadShapeFile(fileName(name)), true);
+        report(sender, name, StargateShapeRegistry.reloadShapeFile(fileName(name)), true);
     }
 
     /**
@@ -93,14 +95,14 @@ public class GateShapesCommand implements SubCommand
         return name.endsWith(".shape") ? name : (name + ".shape");
     }
 
-    private static boolean report(final CommandSender sender, final String name,
+    private static void report(final CommandSender sender, final String name,
         final ShapeFileValidator.Result result, final boolean wasReload)
     {
         if (result.isValid())
         {
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + fileName(name) + ": OK" + (wasReload ? " -- loaded as \"" + result.getShapeName() + "\"." : "."));
-            return true;
+            return;
         }
 
         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
@@ -111,6 +113,5 @@ public class GateShapesCommand implements SubCommand
         {
             sender.sendMessage("  - " + problem);
         }
-        return true;
     }
 }

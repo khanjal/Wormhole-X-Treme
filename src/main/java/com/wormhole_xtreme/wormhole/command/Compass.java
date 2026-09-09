@@ -16,8 +16,6 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * 
  * @author alron
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class Compass implements CommandExecutor
 {
 
@@ -156,6 +154,9 @@ public class Compass implements CommandExecutor
     {
         return CommandUtilities.runCommandSafe(sender, new java.util.concurrent.Callable<Boolean>()
         {
+            // runCommandSafe wants a Callable<Boolean>, and every path here has handled the
+            // command, so the Boolean it hands back is always true.
+            @SuppressWarnings("java:S3516")
             @Override
             public Boolean call() throws Exception
             {

@@ -37,8 +37,6 @@ import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
  * whole. For the two per-end settings that distinction decides scope as well — standing in
  * a ring edits that end, naming a pair edits both.
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class RingCommand implements SubCommand
 {
     private static final String ALLOW = "allow";
@@ -47,6 +45,8 @@ public class RingCommand implements SubCommand
     /* (non-Javadoc)
      * @see com.wormhole_xtreme.wormhole.command.SubCommand#execute(org.bukkit.command.CommandSender, java.lang.String[])
      */
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -60,33 +60,41 @@ public class RingCommand implements SubCommand
 
         if ("create".equals(verb))
         {
-            return create(player);
+            create(player);
+            return true;
         }
         if ("cancel".equals(verb))
         {
-            return cancel(player);
+            cancel(player);
+            return true;
         }
         if ("list".equals(verb))
         {
-            return list(player);
+            list(player);
+            return true;
         }
         if ("remove".equals(verb))
         {
-            return remove(player, args);
+            remove(player, args);
+            return true;
         }
         if ("edit".equals(verb))
         {
-            return edit(player, args);
+            edit(player, args);
+            return true;
         }
         if (ALLOW.equals(verb) || "deny".equals(verb))
         {
-            return allowOrDeny(player, args, ALLOW.equals(verb));
+            allowOrDeny(player, args, ALLOW.equals(verb));
+            return true;
         }
         if ("owner".equals(verb))
         {
-            return transferOwner(player, args);
+            transferOwner(player, args);
+            return true;
         }
-        return help(player);
+        help(player);
+        return true;
     }
 
     /**
@@ -94,14 +102,13 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            the builder
-     * @return true, the command was handled
      */
-    private static boolean create(final Player player)
+    private static void create(final Player player)
     {
         if (!RingPermissions.has(player, RingPermissions.BUILD))
         {
             player.sendMessage("You may not build transport rings.");
-            return true;
+            return;
         }
 
         final RingTemplate.Result found = RingTemplate.detect(
@@ -114,7 +121,7 @@ public class RingCommand implements SubCommand
         if (!found.isSuccess())
         {
             player.sendMessage(explain(found.getFailure()));
-            return true;
+            return;
         }
 
         final Ring ring = found.getRing();
@@ -124,20 +131,21 @@ public class RingCommand implements SubCommand
         if (refusal != null)
         {
             player.sendMessage(explain(refusal));
-            return true;
+            return;
         }
         if (touchesGate(player, ring))
         {
             player.sendMessage("That circle overlaps a stargate. Rings and gates cannot share blocks.");
-            return true;
+            return;
         }
 
         final RingManager.PendingRing waiting = RingManager.getPending(player.getUniqueId());
         if (waiting == null)
         {
-            return holdFirstEnd(player, ring, world);
+            holdFirstEnd(player, ring, world);
+            return;
         }
-        return completePair(player, waiting, ring, world);
+        completePair(player, waiting, ring, world);
     }
 
     /**
@@ -149,9 +157,8 @@ public class RingCommand implements SubCommand
      *            the end just read
      * @param world
      *            the world it is in
-     * @return true, the command was handled
      */
-    private static boolean holdFirstEnd(final Player player, final Ring ring, final String world)
+    private static void holdFirstEnd(final Player player, final Ring ring, final String world)
     {
         final int quota = ConfigManager.getRingMaxPairsPerPlayer();
         if ((quota > 0) && !RingPermissions.has(player, RingPermissions.UNLIMITED)
@@ -160,7 +167,7 @@ public class RingCommand implements SubCommand
             // Checked here rather than at the second end, so nobody builds two rings and
             // only then finds out they were never going to be allowed the pair.
             player.sendMessage("You already have " + quota + " ring pairs, which is the limit.");
-            return true;
+            return;
         }
         RingManager.setPending(player.getUniqueId(), ring, world);
         RingYamlManager.savePending();
@@ -172,7 +179,6 @@ public class RingCommand implements SubCommand
             + ". Lay the other one and run this again to pair them.");
         player.sendMessage("Its slabs stay put until the pair is finished. "
             + "Run /wormhole ring cancel to forget it.");
-        return true;
     }
 
     /**
@@ -191,9 +197,8 @@ public class RingCommand implements SubCommand
      *            the end just read
      * @param world
      *            the world the second end is in
-     * @return true, the command was handled
      */
-    static boolean completePair(final Player player, final RingManager.PendingRing waiting,
+    static void completePair(final Player player, final RingManager.PendingRing waiting,
         final Ring ring, final String world)
     {
         if (!waiting.worldName().equals(world))
@@ -203,7 +208,7 @@ public class RingCommand implements SubCommand
             player.sendMessage("Both ends have to be in the same world. Your first ring is in "
                 + waiting.worldName() + ", and this one is in " + world + ".");
             player.sendMessage("Run /wormhole ring cancel to give up on that one.");
-            return true;
+            return;
         }
         // Ground distance and height are asked separately, because they are different
         // questions. Straight down is what rings are for; sprawling sideways is what gates
@@ -216,7 +221,7 @@ public class RingCommand implements SubCommand
                 + " blocks apart on the ground, and rings reach " + maxDistance + ".");
             player.sendMessage("Build a stargate for a trip that long — rings are for getting "
                 + "around one place.");
-            return true;
+            return;
         }
         final int maxHeight = ConfigManager.getRingMaxLinkHeight();
         final int climb = Math.abs(waiting.ring().getAnchorY() - ring.getAnchorY());
@@ -224,7 +229,7 @@ public class RingCommand implements SubCommand
         {
             player.sendMessage("Those two rings are " + climb + " blocks apart in height, and "
                 + "rings reach " + maxHeight + ".");
-            return true;
+            return;
         }
 
         final RingPair pair = new RingPair(RingManager.newId(), world, waiting.ring(), ring);
@@ -246,7 +251,7 @@ public class RingCommand implements SubCommand
             // the same circle finds the same ring. Pairing it with itself would make a
             // transport that goes nowhere.
             player.sendMessage("That is the ring you already laid. Go and build the other end.");
-            return true;
+            return;
         }
 
         RingManager.clearPending(player.getUniqueId());
@@ -262,7 +267,6 @@ public class RingCommand implements SubCommand
         player.sendMessage("It is " + pair.getAccess()
             + (pair.getAccess() == RingAccess.PRIVATE
                 ? " — use /wormhole ring allow <player> to let others in." : "."));
-        return true;
     }
 
     /**
@@ -451,21 +455,19 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            the builder
-     * @return true, the command was handled
      */
-    private static boolean cancel(final Player player)
+    private static void cancel(final Player player)
     {
         final RingManager.PendingRing waiting = RingManager.clearPending(player.getUniqueId());
         if (waiting == null)
         {
             player.sendMessage("You have no half-built ring pair.");
-            return true;
+            return;
         }
         RingYamlManager.savePending();
         // Nothing to give back: an unfinished pair never took the slabs in the first place.
         player.sendMessage("Forgotten. The circle you laid is still there, so you can pair it "
             + "later or take the slabs back yourself.");
-        return true;
     }
 
     /**
@@ -473,9 +475,8 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            the player
-     * @return true, the command was handled
      */
-    private static boolean list(final Player player)
+    private static void list(final Player player)
     {
         final String uuid = player.getUniqueId().toString();
         int shown = 0;
@@ -494,7 +495,6 @@ public class RingCommand implements SubCommand
         {
             player.sendMessage("You have no transport rings.");
         }
-        return true;
     }
 
     /**
@@ -504,19 +504,18 @@ public class RingCommand implements SubCommand
      *            the player
      * @param args
      *            the command arguments
-     * @return true, the command was handled
      */
-    private static boolean remove(final Player player, final String[] args)
+    private static void remove(final Player player, final String[] args)
     {
         final RingPair pair = target(player, args, 2);
         if (pair == null)
         {
-            return true;
+            return;
         }
         if (!RingPermissions.mayManage(player, pair))
         {
             player.sendMessage(NOT_YOUR_PAIR);
-            return true;
+            return;
         }
         RingManager.removePair(pair, ConfigManager.getRingReach());
         RingYamlManager.saveWorld(pair.getWorldName());
@@ -531,7 +530,6 @@ public class RingCommand implements SubCommand
         {
             player.sendMessage("Its world is not loaded, so the slabs were left where they are.");
         }
-        return true;
     }
 
     /**
@@ -541,9 +539,8 @@ public class RingCommand implements SubCommand
      *            the player
      * @param args
      *            the command arguments
-     * @return true, the command was handled
      */
-    private static boolean edit(final Player player, final String[] args)
+    private static void edit(final Player player, final String[] args)
     {
         // "edit <field> <value>" acts on the ring underfoot; "edit <id> <field> <value>"
         // names a pair. Which form was typed is decided by whether the first word is an id.
@@ -553,7 +550,7 @@ public class RingCommand implements SubCommand
         if (pair == null)
         {
             player.sendMessage("Stand in a ring, or name a pair by its id.");
-            return true;
+            return;
         }
         // "edit" with no field at all still has to reach the usage line, not index past the end.
         final boolean noField = args.length <= fieldAt;
@@ -562,12 +559,12 @@ public class RingCommand implements SubCommand
         {
             player.sendMessage("Usage: /wormhole ring edit [id] "
                 + "<ring|light|flash|built|name|access|style|reset> [value]");
-            return true;
+            return;
         }
         if (!RingPermissions.mayManage(player, pair))
         {
             player.sendMessage(NOT_YOUR_PAIR);
-            return true;
+            return;
         }
 
         final String field = args[fieldAt].toLowerCase(Locale.ROOT);
@@ -575,7 +572,7 @@ public class RingCommand implements SubCommand
         // Naming a pair means both ends; standing in one means that end only. Materials are
         // per end precisely so a base and a mine can each look like where they are.
         final Ring only = (named != null) ? null : endUnderfoot(player);
-        return applyEdit(player, pair, only, field, value);
+        applyEdit(player, pair, only, field, value);
     }
 
     /**
@@ -591,45 +588,51 @@ public class RingCommand implements SubCommand
      *            which setting, lower-cased
      * @param value
      *            what to set it to, empty when the field takes none
-     * @return true, the command was handled
      */
-    private static boolean applyEdit(final Player player, final RingPair pair, final Ring only,
+    private static void applyEdit(final Player player, final RingPair pair, final Ring only,
                                      final String field, final String value)
     {
         if ("ring".equals(field))
         {
-            return setRingMaterial(player, pair, only, value);
+            setRingMaterial(player, pair, only, value);
+            return;
         }
         if ("light".equals(field))
         {
-            return setLightMaterial(player, pair, only, value, false);
+            setLightMaterial(player, pair, only, value, false);
+            return;
         }
         if ("flash".equals(field))
         {
-            return setLightMaterial(player, pair, only, value, true);
+            setLightMaterial(player, pair, only, value, true);
+            return;
         }
         if ("built".equals(field))
         {
-            return setBuiltMaterial(player, pair, only, value);
+            setBuiltMaterial(player, pair, only, value);
+            return;
         }
         if ("name".equals(field))
         {
-            return setName(player, pair, only, value);
+            setName(player, pair, only, value);
+            return;
         }
         if ("access".equals(field))
         {
-            return setAccess(player, pair, value);
+            setAccess(player, pair, value);
+            return;
         }
         if ("reset".equals(field))
         {
-            return reset(player, pair, only);
+            reset(player, pair, only);
+            return;
         }
         if ("style".equals(field))
         {
-            return setStyle(player, pair, only, value);
+            setStyle(player, pair, only, value);
+            return;
         }
         player.sendMessage("Fields are: ring, light, flash, built, name, access, style, reset.");
-        return true;
     }
 
     /**
@@ -643,9 +646,8 @@ public class RingCommand implements SubCommand
      *            the end underfoot, or null if a pair was named by id
      * @param value
      *            the new name, empty to clear it
-     * @return true, the command was handled
      */
-    private static boolean setName(final Player player, final RingPair pair, final Ring only,
+    private static void setName(final Player player, final RingPair pair, final Ring only,
                                    final String value)
     {
         if (only == null)
@@ -654,12 +656,12 @@ public class RingCommand implements SubCommand
             // traveller can be told where they are going, which differs by end.
             player.sendMessage("Stand in the ring you want to name — naming a pair by id "
                 + "would call both ends the same thing.");
-            return true;
+            return;
         }
         only.setName(value);
         // Tolerates null as well as empty: edit only ever passes one or the other, but as a
         // method in its own right this no longer has its single caller in view.
-        return saved(player, pair, ((value == null) || value.isEmpty())
+        saved(player, pair, ((value == null) || value.isEmpty())
             ? "Name cleared." : ("This ring is now " + value + "."));
     }
 
@@ -675,9 +677,8 @@ public class RingCommand implements SubCommand
      *            the pair
      * @param value
      *            the access level named
-     * @return true, the command was handled
      */
-    private static boolean setAccess(final Player player, final RingPair pair, final String value)
+    private static void setAccess(final Player player, final RingPair pair, final String value)
     {
         try
         {
@@ -686,9 +687,9 @@ public class RingCommand implements SubCommand
         catch (final IllegalArgumentException e)
         {
             player.sendMessage("Access is public or private.");
-            return true;
+            return;
         }
-        return saved(player, pair, "Access set to " + pair.getAccess() + ".");
+        saved(player, pair, "Access set to " + pair.getAccess() + ".");
     }
 
     /**
@@ -702,9 +703,8 @@ public class RingCommand implements SubCommand
      *            the end underfoot, or null to set both
      * @param value
      *            the style named
-     * @return true, the command was handled
      */
-    private static boolean setStyle(final Player player, final RingPair pair, final Ring only,
+    private static void setStyle(final Player player, final RingPair pair, final Ring only,
                                     final String value)
     {
         final RingStyle chosen = RingStyle.parse(value);
@@ -712,7 +712,7 @@ public class RingCommand implements SubCommand
         {
             player.sendMessage("Style is fast (rings climb together) or slow "
                 + "(one at a time). 'concurrent' and 'sequential' work too.");
-            return true;
+            return;
         }
         if (only != null)
         {
@@ -723,7 +723,7 @@ public class RingCommand implements SubCommand
             pair.getEndA().setStyle(chosen);
             pair.getEndB().setStyle(chosen);
         }
-        return saved(player, pair, "Style set to " + chosen + ".");
+        saved(player, pair, "Style set to " + chosen + ".");
     }
 
     /**
@@ -747,9 +747,8 @@ public class RingCommand implements SubCommand
      *            the pair
      * @param only
      *            the single end to reset, or null for both
-     * @return true, the command was handled
      */
-    private static boolean reset(final Player player, final RingPair pair, final Ring only)
+    private static void reset(final Player player, final RingPair pair, final Ring only)
     {
         for (final Ring ring : (only != null)
             ? new Ring[] { only } : new Ring[] { pair.getEndA(), pair.getEndB() })
@@ -772,7 +771,6 @@ public class RingCommand implements SubCommand
             + ((only != null) ? " for this end." : " for both ends."));
         player.sendMessage("Access, allow list, names and owner are untouched.");
         RingYamlManager.saveWorld(pair.getWorldName());
-        return true;
     }
 
     /**
@@ -786,9 +784,8 @@ public class RingCommand implements SubCommand
      *            the single end to change, or null for both
      * @param value
      *            the material name
-     * @return true, the command was handled
      */
-    private static boolean setRingMaterial(final Player player, final RingPair pair,
+    private static void setRingMaterial(final Player player, final RingPair pair,
         final Ring only, final String value)
     {
         final Material material = Material.matchMaterial(value);
@@ -799,7 +796,7 @@ public class RingCommand implements SubCommand
             // the whole visual effect.
             player.sendMessage("The travelling ring has to be a slab — that is what lets it "
                 + "move half a block at a time.");
-            return true;
+            return;
         }
         if (only != null)
         {
@@ -810,7 +807,7 @@ public class RingCommand implements SubCommand
             pair.getEndA().setRingMaterial(material);
             pair.getEndB().setRingMaterial(material);
         }
-        return saved(player, pair, "Ring material set to " + material + ".");
+        saved(player, pair, "Ring material set to " + material + ".");
     }
 
     /**
@@ -834,9 +831,8 @@ public class RingCommand implements SubCommand
      *            the single end to change, or null for both
      * @param value
      *            the material name
-     * @return true, the command was handled
      */
-    private static boolean setBuiltMaterial(final Player player, final RingPair pair,
+    private static void setBuiltMaterial(final Player player, final RingPair pair,
         final Ring only, final String value)
     {
         final Material material = Material.matchMaterial(value);
@@ -844,7 +840,7 @@ public class RingCommand implements SubCommand
         {
             player.sendMessage("The laid-in slab has to be a slab — that is what reset would "
                 + "put back.");
-            return true;
+            return;
         }
         if (only != null)
         {
@@ -855,7 +851,7 @@ public class RingCommand implements SubCommand
             pair.getEndA().setBuiltMaterial(material);
             pair.getEndB().setBuiltMaterial(material);
         }
-        return saved(player, pair, "Built material set to " + material + ".");
+        saved(player, pair, "Built material set to " + material + ".");
     }
 
     /**
@@ -871,16 +867,15 @@ public class RingCommand implements SubCommand
      *            the material name
      * @param flash
      *            true for the transport light, false for the pad's own
-     * @return true, the command was handled
      */
-    private static boolean setLightMaterial(final Player player, final RingPair pair,
+    private static void setLightMaterial(final Player player, final RingPair pair,
         final Ring only, final String value, final boolean flash)
     {
         final Material material = Material.matchMaterial(value);
         if ((material == null) || !material.isBlock())
         {
             player.sendMessage("That is not a block.");
-            return true;
+            return;
         }
         for (final Ring ring : (only != null)
             ? new Ring[] { only } : new Ring[] { pair.getEndA(), pair.getEndB() })
@@ -894,7 +889,7 @@ public class RingCommand implements SubCommand
                 ring.setLightMaterial(material);
             }
         }
-        return saved(player, pair, (flash ? "Transport light set to " : "Pad light set to ")
+        saved(player, pair, (flash ? "Transport light set to " : "Pad light set to ")
             + material + ".");
     }
 
@@ -907,39 +902,39 @@ public class RingCommand implements SubCommand
      *            the command arguments
      * @param allowing
      *            true to allow, false to deny
-     * @return true, the command was handled
      */
-    private static boolean allowOrDeny(final Player player, final String[] args, final boolean allowing)
+    private static void allowOrDeny(final Player player, final String[] args, final boolean allowing)
     {
         if (args.length < 3)
         {
             player.sendMessage("Usage: /wormhole ring " + (allowing ? ALLOW : "deny") + " <player> [id]");
-            return true;
+            return;
         }
         final RingPair pair = target(player, args, 3);
         if (pair == null)
         {
-            return true;
+            return;
         }
         if (!RingPermissions.mayManage(player, pair))
         {
             player.sendMessage(NOT_YOUR_PAIR);
-            return true;
+            return;
         }
         final OfflinePlayer subject = findPlayer(args[2]);
         if (subject == null)
         {
             player.sendMessage("No player called " + args[2] + " has been on this server.");
-            return true;
+            return;
         }
         final String uuid = subject.getUniqueId().toString();
         if (allowing)
         {
-            return saved(player, pair, pair.allow(uuid)
+            saved(player, pair, pair.allow(uuid)
                 ? (args[2] + " may now use " + pair.getId() + ".")
                 : (args[2] + " could already use it."));
+            return;
         }
-        return saved(player, pair, pair.deny(uuid)
+        saved(player, pair, pair.deny(uuid)
             ? (args[2] + " may no longer use " + pair.getId() + ".")
             : (args[2] + " was not on the list."));
     }
@@ -955,43 +950,42 @@ public class RingCommand implements SubCommand
      *            the player
      * @param args
      *            the command arguments
-     * @return true, the command was handled
      */
-    private static boolean transferOwner(final Player player, final String[] args)
+    private static void transferOwner(final Player player, final String[] args)
     {
         if (args.length < 3)
         {
             player.sendMessage("Usage: /wormhole ring owner <player> [id]");
-            return true;
+            return;
         }
         final RingPair pair = target(player, args, 3);
         if (pair == null)
         {
-            return true;
+            return;
         }
         if (!RingPermissions.mayManage(player, pair))
         {
             player.sendMessage("That is not your ring pair to give away.");
-            return true;
+            return;
         }
         final OfflinePlayer subject = findPlayer(args[2]);
         if (subject == null)
         {
             player.sendMessage("No player called " + args[2] + " has been on this server.");
-            return true;
+            return;
         }
         final String uuid = subject.getUniqueId().toString();
         if (pair.isOwnedBy(uuid))
         {
             player.sendMessage(args[2] + " already owns that pair.");
-            return true;
+            return;
         }
 
         final int quota = ConfigManager.getRingMaxPairsPerPlayer();
         if ((quota > 0) && (RingManager.countPairsOwnedBy(uuid) >= quota))
         {
             player.sendMessage(args[2] + " already has " + quota + " ring pairs, which is the limit.");
-            return true;
+            return;
         }
 
         pair.setOwner(uuid);
@@ -1000,7 +994,7 @@ public class RingCommand implements SubCommand
         // for somebody should not be left with standing access to it afterwards, and a
         // player who wants to keep using one they gave away can be added back by its new
         // owner — which is their call to make, not ours.
-        return saved(player, pair, "Handed " + pair.getId() + " to " + args[2]
+        saved(player, pair, "Handed " + pair.getId() + " to " + args[2]
             + (pair.getAccess() == RingAccess.PRIVATE
                 ? ". It is private, so you no longer have access to it yourself." : "."));
     }
@@ -1087,13 +1081,11 @@ public class RingCommand implements SubCommand
      *            the pair that changed
      * @param message
      *            what to say
-     * @return true, the command was handled
      */
-    private static boolean saved(final Player player, final RingPair pair, final String message)
+    private static void saved(final Player player, final RingPair pair, final String message)
     {
         RingYamlManager.saveWorld(pair.getWorldName());
         player.sendMessage(message);
-        return true;
     }
 
     /**
@@ -1150,9 +1142,8 @@ public class RingCommand implements SubCommand
      *
      * @param player
      *            the player
-     * @return true, the command was handled
      */
-    private static boolean help(final Player player)
+    private static void help(final Player player)
     {
         player.sendMessage("/wormhole ring create — lay a circle of slabs, stand in it, run this twice to pair");
         player.sendMessage("/wormhole ring cancel — forget a half-built pair");
@@ -1161,7 +1152,6 @@ public class RingCommand implements SubCommand
         player.sendMessage("/wormhole ring edit [id] <ring|light|flash|name|access|style> <value>");
         player.sendMessage("/wormhole ring allow|deny <player> [id] — who may use a private pair");
         player.sendMessage("/wormhole ring owner <player> [id] — hand a pair to somebody else");
-        return true;
     }
 
     /**

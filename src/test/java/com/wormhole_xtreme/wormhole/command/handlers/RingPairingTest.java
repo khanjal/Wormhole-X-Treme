@@ -127,9 +127,9 @@ class RingPairingTest
         return RingManager.getPending(UUID.fromString(OWNER));
     }
 
-    private boolean pairWith(final RingManager.PendingRing waiting, final Ring second)
+    private void pairWith(final RingManager.PendingRing waiting, final Ring second)
     {
-        return RingCommand.completePair(player, waiting, second, WORLD);
+        RingCommand.completePair(player, waiting, second, WORLD);
     }
 
     /** The pair the command registered, or null if it registered none. */
@@ -155,7 +155,7 @@ class RingPairingTest
     {
         final RingManager.PendingRing waiting = waitingAt(0, 64, 0, WORLD);
 
-        assertTrue(pairWith(waiting, ringAt(20, 64, 0)));
+        pairWith(waiting, ringAt(20, 64, 0));
 
         final RingPair pair = registered();
         assertNotNull(pair, "the pair is registered");
@@ -231,7 +231,7 @@ class RingPairingTest
     {
         final RingManager.PendingRing waiting = waitingAt(0, 64, 0, ELSEWHERE);
 
-        assertTrue(pairWith(waiting, ringAt(20, 64, 0)));
+        pairWith(waiting, ringAt(20, 64, 0));
 
         assertNull(registered(), "no pair is made across worlds");
         assertNotNull(stillWaiting(), "and the first end is still waiting");
@@ -246,7 +246,7 @@ class RingPairingTest
         config.when(ConfigManager::getRingMaxLinkDistance).thenReturn(Integer.valueOf(64));
         final RingManager.PendingRing waiting = waitingAt(0, 64, 0, WORLD);
 
-        assertTrue(pairWith(waiting, ringAt(100, 64, 0)));
+        pairWith(waiting, ringAt(100, 64, 0));
 
         assertNull(registered());
         assertNotNull(stillWaiting());
@@ -347,7 +347,7 @@ class RingPairingTest
     {
         final RingManager.PendingRing waiting = waitingAt(0, 64, 0, WORLD);
 
-        assertTrue(pairWith(waiting, ringAt(0, 64, 0)));
+        pairWith(waiting, ringAt(0, 64, 0));
 
         assertNull(registered(), "a ring is not paired with itself");
         assertNotNull(stillWaiting(), "and the end already laid is still waiting for a partner");
