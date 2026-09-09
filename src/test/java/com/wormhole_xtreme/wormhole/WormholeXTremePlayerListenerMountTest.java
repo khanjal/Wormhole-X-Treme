@@ -55,7 +55,7 @@ class WormholeXTremePlayerListenerMountTest
     }
 
     @Test
-    void mountReattachForTwoRiders() throws Exception
+    void mountReattachForTwoRiders()
     {
         // Arrange world and gate block
         final World world = mock(World.class);
@@ -140,7 +140,7 @@ class WormholeXTremePlayerListenerMountTest
     }
 
     @Test
-    void gateIsDetectedUnderMountWhenRiderClearsThePortal() throws Exception
+    void gateIsDetectedUnderMountWhenRiderClearsThePortal()
     {
         // A tall mount (camel) puts the rider's own block above the portal, so the
         // gate has to be found under the mount or the trip never triggers.
@@ -219,7 +219,7 @@ class WormholeXTremePlayerListenerMountTest
      * early return, so it is worth pinning separately.
      */
     @Test
-    void aRiderWhoseMountCannotMoveStillGoesThrough() throws Exception
+    void aRiderWhoseMountCannotMoveStillGoesThrough()
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");

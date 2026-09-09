@@ -96,7 +96,7 @@ class WormholeXTremeVehicleListenerEventTest
      * comes from the target, which reads like a mistake and is what ships today.
      */
     @Test
-    void aClosedFarIrisPutsTheVehicleOutAtTheSourceGate() throws Exception
+    void aClosedFarIrisPutsTheVehicleOutAtTheSourceGate()
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -155,7 +155,7 @@ class WormholeXTremeVehicleListenerEventTest
      * folded together.
      */
     @Test
-    void aRiderMeetingAClosedIrisIsToldAndPutOutAtTheSource() throws Exception
+    void aRiderMeetingAClosedIrisIsToldAndPutOutAtTheSource()
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -207,7 +207,7 @@ class WormholeXTremeVehicleListenerEventTest
     }
 
     @Test
-    void unoccupiedMinecartTeleportsAndReceivesVelocity() throws Exception
+    void unoccupiedMinecartTeleportsAndReceivesVelocity()
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -259,7 +259,7 @@ class WormholeXTremeVehicleListenerEventTest
     }
 
     @Test
-    void occupiedBoatTriggersReattachAndResync() throws Exception
+    void occupiedBoatTriggersReattachAndResync()
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -339,7 +339,7 @@ class WormholeXTremeVehicleListenerEventTest
      * vehicle kinds now that they share a teleport path.
      */
     @Test
-    void occupiedMinecartReattachesButIsNeverResynced() throws Exception
+    void occupiedMinecartReattachesButIsNeverResynced()
     {
         final World world = mock(World.class);
         when(world.getName()).thenReturn("w");

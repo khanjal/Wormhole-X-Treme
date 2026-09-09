@@ -116,7 +116,7 @@ class GateOneWayTest
     }
 
     @Test
-    void aMobInTheOriginGateIsSentThrough() throws Exception
+    void aMobInTheOriginGateIsSentThrough()
     {
         // The mirror of the test above: with a target, the sweep does act, which is what
         // makes the previous test meaningful rather than vacuously green.
@@ -137,7 +137,7 @@ class GateOneWayTest
     }
 
     @Test
-    void anInactiveGateSendsNothingEitherWay() throws Exception
+    void anInactiveGateSendsNothingEitherWay()
     {
         final Stargate destination = gateAt("destination", 99, 70, 99);
         final Stargate origin = gateAt("origin", 10, 64, 20);
@@ -157,7 +157,7 @@ class GateOneWayTest
     }
 
     @Test
-    void aSweptEntityLeavesPointingOutOfTheDestinationGate() throws Exception
+    void aSweptEntityLeavesPointingOutOfTheDestinationGate()
     {
         // An arrow shot north into a gate used to arrive still travelling north, whichever
         // way the far gate faced — often straight back into its own frame.
