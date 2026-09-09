@@ -130,7 +130,7 @@ class SubCommandsTest
     {
         // -clean is the migration for gates carrying snapshotted overrides; it has to be
         // discoverable or nobody will know it exists.
-        final List<String> completions = SubCommands.find("custom").completeArgs(new String[] { "custom", "-" });
+        final List<String> completions = SubCommands.find("custom").completeArgs(null, new String[] { "custom", "-" });
         assertTrue(completions.contains("-all"));
         assertTrue(completions.contains("-clean"));
     }
@@ -139,9 +139,9 @@ class SubCommandsTest
     void cleanOffersConfirmRatherThanTrueFalse()
     {
         final SubCommands.Entry custom = SubCommands.find("custom");
-        assertEquals(List.of("confirm"), custom.completeArgs(new String[] { "custom", "-clean", "" }));
+        assertEquals(List.of("confirm"), custom.completeArgs(null, new String[] { "custom", "-clean", "" }));
         // The gate form still offers booleans.
-        assertTrue(custom.completeArgs(new String[] { "custom", "someGate", "" }).contains("true"));
+        assertTrue(custom.completeArgs(null, new String[] { "custom", "someGate", "" }).contains("true"));
     }
 
     @Test

@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -35,7 +37,7 @@ class BeamTabCompletionTest
 {
     private static List<String> complete(final String... args)
     {
-        return SubCommands.find("beam").completeArgs(args);
+        return SubCommands.find("beam").completeArgs(null, args);
     }
 
     /** The nouns the command understands, and nothing else. */
@@ -191,6 +193,88 @@ class BeamTabCompletionTest
             final List<String> forGoto = complete("beam", "admin", "goto", "");
             assertTrue(forGoto.contains("bob"));
             assertTrue(forGoto.contains("spawn"), "goto may name a place as well as a player");
+        }
+    }
+
+    /**
+     * A player completing a destination sees their own places, not just the public ones.
+     *
+     * <p>{@code beam to} resolves a name through {@code BeamTravel.travelTo}, which checks the
+     * asking player's places <em>first</em> and only then the public list. Completion offered
+     * the public half alone, so a player could travel to a place they could not tab-complete --
+     * reported from a live server, not found here.
+     *
+     * <p>The cause was this plugin's own doing rather than a Bukkit limitation. Bukkit hands
+     * every tab completer the {@code CommandSender}; {@code WormholeTabCompleter} received it
+     * and dropped it, because {@code ArgCompleter} took only the argument array. The comment at
+     * the call site said a completer "is not handed the CommandSender", which was true of the
+     * interface and not of the platform.
+     */
+    @Test
+    void aPlayersOwnPlacesAreOfferedAlongsidePublicDestinations()
+    {
+        final Player asker = mock(Player.class);
+        final UUID id = UUID.randomUUID();
+        when(asker.getUniqueId()).thenReturn(id);
+
+        try (MockedStatic<BeamManager> beams = mockStatic(BeamManager.class))
+        {
+            beams.when(BeamManager::getAllPublicDestinations)
+                .thenReturn(Collections.singletonList(named("spawn")));
+            beams.when(() -> BeamManager.getPlaces(id))
+                .thenReturn(Collections.singletonList(named("hideout")));
+
+            final List<String> offered = SubCommands.find("beam")
+                .completeArgs(asker, new String[] { "beam", "to", "" });
+
+            assertTrue(offered.contains("spawn"), "public destinations are still offered");
+            assertTrue(offered.contains("hideout"), "and so is the asking player's own place");
+        }
+    }
+
+    /**
+     * A place shadowing a public destination of the same name is offered once.
+     *
+     * <p>{@code travelTo} checks places first, so one name means one destination -- the
+     * player's own. Offering it twice would suggest there were two.
+     */
+    @Test
+    void aPlaceAndAPublicDestinationSharingANameAreOfferedOnce()
+    {
+        final Player asker = mock(Player.class);
+        final UUID id = UUID.randomUUID();
+        when(asker.getUniqueId()).thenReturn(id);
+
+        try (MockedStatic<BeamManager> beams = mockStatic(BeamManager.class))
+        {
+            beams.when(BeamManager::getAllPublicDestinations)
+                .thenReturn(Collections.singletonList(named("Spawn")));
+            beams.when(() -> BeamManager.getPlaces(id))
+                .thenReturn(Collections.singletonList(named("spawn")));
+
+            final List<String> offered = SubCommands.find("beam")
+                .completeArgs(asker, new String[] { "beam", "to", "" });
+
+            assertEquals(1, offered.size(), "one name, one entry -- the lists are keyed lowercase");
+        }
+    }
+
+    /**
+     * The console gets the public list and no exception.
+     *
+     * <p>It has no places, and asking it for a UUID would throw, so the sender being a player
+     * is checked rather than assumed.
+     */
+    @Test
+    void aConsoleCompletingStillGetsThePublicDestinations()
+    {
+        try (MockedStatic<BeamManager> beams = mockStatic(BeamManager.class))
+        {
+            beams.when(BeamManager::getAllPublicDestinations)
+                .thenReturn(Collections.singletonList(named("spawn")));
+
+            assertEquals(Collections.singletonList("spawn"), SubCommands.find("beam")
+                .completeArgs(null, new String[] { "beam", "to", "" }));
         }
     }
 

@@ -22,7 +22,7 @@ class RingTabCompletionTest
 {
     private static List<String> complete(final String... args)
     {
-        return SubCommands.find("ring").completeArgs(args);
+        return SubCommands.find("ring").completeArgs(null, args);
     }
 
     @Test

@@ -42,11 +42,15 @@ public final class SubCommands
     public interface ArgCompleter
     {
         /**
+         * @param sender
+         *            who is completing. Bukkit hands this to every tab completer; it is
+         *            carried through here so a completion can depend on who is asking --
+         *            a player's own beam places being the case that needed it.
          * @param args
          *            the full argument array, including the subcommand at index 0
          * @return candidate completions for the argument being typed
          */
-        List<String> complete(String[] args);
+        List<String> complete(CommandSender sender, String[] args);
     }
 
     /** One subcommand: how to run it, what it is called, and how to complete its arguments. */
@@ -132,9 +136,9 @@ public final class SubCommands
          *            the full argument array
          * @return completion candidates for the argument currently being typed
          */
-        public List<String> completeArgs(final String[] args)
+        public List<String> completeArgs(final CommandSender sender, final String[] args)
         {
-            return completer == null ? Collections.<String>emptyList() : completer.complete(args);
+            return completer == null ? Collections.<String>emptyList() : completer.complete(sender, args);
         }
     }
 
@@ -148,10 +152,10 @@ public final class SubCommands
     // -----------------------------------------------------------------------
 
     /** Completes the name of an existing gate. */
-    private static final ArgCompleter GATE_NAMES = args -> args.length == 2 ? gateNames(args[1]) : none();
+    private static final ArgCompleter GATE_NAMES = (sender, args) -> args.length == 2 ? gateNames(args[1]) : none();
 
     /** Completes a gate name, then true/false. */
-    private static final ArgCompleter GATE_THEN_BOOLEAN = args ->
+    private static final ArgCompleter GATE_THEN_BOOLEAN = (sender, args) ->
     {
         if (args.length == 2) return gateNames(args[1]);
         if (args.length == 3) return prefixed(args[2], TRUE, FALSE);
@@ -159,15 +163,15 @@ public final class SubCommands
     };
 
     /** Completes a gate name, then a free value the plugin cannot guess. */
-    private static final ArgCompleter GATE_THEN_VALUE = args -> args.length == 2 ? gateNames(args[1]) : none();
+    private static final ArgCompleter GATE_THEN_VALUE = (sender, args) -> args.length == 2 ? gateNames(args[1]) : none();
 
     static
     {
         // --- Gate lifecycle -------------------------------------------------
-        register("list", aliases(), "/wormhole list [network]", new WXList(), true, args ->
+        register("list", aliases(), "/wormhole list [network]", new WXList(), true, (sender, args) ->
             args.length == 2 ? networkNames(args[1]) : none());
         register(BUILD, aliases(), "/wormhole build <shape>", new Build(), true, null);
-        register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, args ->
+        register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
         register(REMOVE, aliases("delete"), "/wormhole remove <gate>", new WXRemove(), true, GATE_NAMES);
@@ -177,14 +181,13 @@ public final class SubCommands
 
         // --- Travel ---------------------------------------------------------
         // Tries a gate first, then a beam destination or place -- see Go's own class comment.
-        // Completion offers both for the same reason: gate names and public beam destinations
-        // are nobody's secret, so both are safe to suggest regardless of who is asking. A
-        // player's own private places are not offered here, same limitation as everywhere else
-        // a completer cannot see who is asking -- see completeBeam's "to" case.
-        register("go", aliases(), "/wormhole go <gate|destination>", new Go(), true, args ->
-            args.length == 2 ? combine(gateNames(args[1]), publicBeamNames(args[1])) : none());
+        // Completion offers all three, which is what the command accepts: gate names and public
+        // destinations are nobody's secret, and a player's own places are their own to see.
+        register("go", aliases(), "/wormhole go <gate|destination>", new Go(), true, (sender, args) ->
+            args.length == 2
+                ? combine(gateNames(args[1]), travelBeamNames(sender, args[1])) : none());
         register("compass", aliases(), "/wormhole compass [reset]", new Compass(), true,
-            args -> args.length == 2 ? prefixed(args[1], "reset") : none());
+            (sender, args) -> args.length == 2 ? prefixed(args[1], "reset") : none());
         register("force", aliases(), "/wormhole force <gate>", new Force(), true, GATE_NAMES);
 
         // --- Per-gate settings ----------------------------------------------
@@ -194,7 +197,7 @@ public final class SubCommands
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
         register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|confirm]",
-            new com.wormhole_xtreme.wormhole.command.handlers.CustomCommand(), false, args ->
+            new com.wormhole_xtreme.wormhole.command.handlers.CustomCommand(), false, (sender, args) ->
             {
                 if (args.length == 2)
                 {
@@ -217,7 +220,7 @@ public final class SubCommands
         {
             final String name = kind.command();
             register(name, aliases(), "/wormhole " + name + " <gate> <material>",
-                new com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand(kind), false, args ->
+                new com.wormhole_xtreme.wormhole.command.handlers.MaterialCommand(kind), false, (sender, args) ->
                 {
                     if (args.length == 2)
                     {
@@ -250,7 +253,7 @@ public final class SubCommands
         register("activate_timeout", aliases(), "/wormhole activate_timeout <seconds>",
             new com.wormhole_xtreme.wormhole.command.handlers.TimeoutsCommand(), false, null);
         register("cooldown", aliases(), "/wormhole cooldown <seconds> or <true|false>",
-            new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, args ->
+            new com.wormhole_xtreme.wormhole.command.handlers.CooldownCommand(), false, (sender, args) ->
                 args.length == 2 ? prefixed(args[1], TRUE, FALSE) : none());
         // Kept dispatchable, but it reports that build restriction is gone rather than
         // pretending to set it. See RestrictCommand.
@@ -267,7 +270,7 @@ public final class SubCommands
             new com.wormhole_xtreme.wormhole.command.handlers.GateCommand(), false,
             SubCommands::completeGate);
         register("config", aliases("set"), "/wormhole config <setting> [value]",
-            new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, args ->
+            new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, (sender, args) ->
             {
                 if (args.length != 2)
                 {
@@ -296,7 +299,7 @@ public final class SubCommands
      *            the full argument array
      * @return the candidates for the argument being typed
      */
-    private static List<String> completeGate(final String[] args)
+    private static List<String> completeGate(final CommandSender sender, final String[] args)
     {
         if (args.length == 2)
         {
@@ -603,7 +606,7 @@ public final class SubCommands
      *            the full argument array, {@code ring} at index 0
      * @return the candidates
      */
-    private static List<String> completeRing(final String[] args)
+    private static List<String> completeRing(final CommandSender sender, final String[] args)
     {
         if (args.length == 2)
         {
@@ -635,7 +638,7 @@ public final class SubCommands
      *            the full argument array, {@code beam} at index 0
      * @return the candidates
      */
-    private static List<String> completeBeam(final String[] args)
+    private static List<String> completeBeam(final CommandSender sender, final String[] args)
     {
         if (args.length == 2)
         {
@@ -644,11 +647,10 @@ public final class SubCommands
         final String noun = args[1].toLowerCase(Locale.ROOT);
         if ("to".equals(noun))
         {
-            // Only public names are offered here, for the same reason "place remove" cannot
-            // offer place names: a tab completer is not handed the CommandSender, only the
-            // argument array, so there is no "the player asking" to look their own places up
-            // for. Public destinations have no such problem, since they belong to nobody.
-            return args.length == 3 ? publicBeamNames(args[2]) : none();
+            // Public destinations and the asking player's own places, which is exactly what
+            // "beam to" resolves -- places first, then public. Offering only the public half
+            // meant a player could travel to a place they could not tab-complete.
+            return args.length == 3 ? travelBeamNames(sender, args[2]) : none();
         }
         if ("admin".equals(noun))
         {
@@ -840,6 +842,53 @@ public final class SubCommands
             }
         }
         Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /**
+     * Public destinations plus, when a player is asking, their own places.
+     *
+     * <p>What {@code BeamTravel.travelTo} accepts: it looks a name up in the asking player's
+     * places first and falls back to the public list, so completion that offered only the
+     * public half was hiding half of what the command would have taken. A place shadows a
+     * public destination of the same name there, so a shared name is offered once.
+     *
+     * @param sender
+     *            who is completing; a console has no places
+     * @param typed
+     *            what has been typed in that slot
+     * @return the matching names
+     */
+    private static List<String> travelBeamNames(final CommandSender sender, final String typed)
+    {
+        final List<String> out = publicBeamNames(typed);
+        if (!(sender instanceof org.bukkit.entity.Player player))
+        {
+            return out;
+        }
+        final String p = typed == null ? "" : typed.toLowerCase(Locale.ROOT);
+        for (final com.wormhole_xtreme.wormhole.model.beam.BeamDestination place
+            : com.wormhole_xtreme.wormhole.model.beam.BeamManager.getPlaces(player.getUniqueId()))
+        {
+            final String name = place.name();
+            if (!name.toLowerCase(Locale.ROOT).startsWith(p))
+            {
+                continue;
+            }
+            boolean already = false;
+            for (final String existing : out)
+            {
+                if (existing.equalsIgnoreCase(name))
+                {
+                    already = true;
+                    break;
+                }
+            }
+            if (!already)
+            {
+                out.add(name);
+            }
+        }
         return out;
     }
 

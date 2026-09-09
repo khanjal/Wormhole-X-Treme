@@ -79,7 +79,7 @@ class GateTabCompletionTest
 
     private static List<String> complete(final String... args)
     {
-        return SubCommands.find("gate").completeArgs(args);
+        return SubCommands.find("gate").completeArgs(null, args);
     }
 
     /** The verbs the command understands. */
