@@ -17,8 +17,6 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * geometry from scratch (preserving name, owner, IDC, and network) and
  * re-saves the corrected data without touching any blocks.
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class Refresh implements CommandExecutor
 {
     private static final ConcurrentHashMap<Player, Boolean> pendingRefresh = new ConcurrentHashMap<>();
@@ -38,6 +36,8 @@ public class Refresh implements CommandExecutor
         pendingRefresh.remove(p);
     }
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {

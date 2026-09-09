@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.5.0 (unreleased)
+## 1.5.0 (2026-09-09)
 
 Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that
 went back over all of it. Twenty-odd player-facing bugs are fixed, several of them older than
@@ -125,6 +125,55 @@ field accesses across 87 test files, and 102 of them reach for the same field: t
 That is one idiom repeated eighty-odd times, and it wants a helper that names what it is for
 rather than a generic field-setter. It is left alone here deliberately -- a sweep of eighty
 test files is its own change, with its own reasons to be careful.
+
+### Thirty-four command helpers that returned true and nothing else
+
+Ten command classes carried a class-level `@SuppressWarnings("java:S3516")` -- methods should
+not invariantly return the same value -- under one comment saying that Bukkit fixes the
+signature and `true` means handled.
+
+That is true of `execute` and `onCommand`. It was not true of the private helpers behind them,
+which returned `true` for exactly one reason: so the caller could write `return helper(...)` on
+one line. The boolean carried nothing, and the rule was right about every one of them.
+
+The plan had been to move the ten annotations onto the methods that needed them. Counting
+first is what killed that: twenty-eight methods needed one, so precision alone would have
+nearly tripled the count. Voiding the helpers instead removes them from the rule's reach.
+
+It does not reduce the count. Ten before, ten after -- the win is entirely in what is no
+longer hidden, and in thirty-four methods that stopped claiming to return something.
+
+The helpers are void now, and `return helper(...)` is `helper(...); return true;` at the
+caller -- a line longer, and saying what actually happens rather than dressing it as a value.
+Ten suppressions are left, each on a method, each on something Bukkit or a functional
+interface genuinely forces.
+
+The size was a surprise partway in. The first count of twenty-one was wrong because the
+helpers call each other: `place` ends with `return listPlaces(...)`, and `edit` ends with
+`return applyEdit(...)`, which dispatches to eight setters that end with `return saved(...)`.
+Voiding one means voiding the chain, and the closure is thirty-four.
+
+`CustomCommand` ends with no suppression at all. `Compass` keeps one, and where it belongs
+took pushing the branch to find out. Its class-level annotation had been covering a finding
+nobody had seen: the anonymous `Callable<Boolean>` that `runCommandSafe` takes. Sonar follows
+calls, so a `call()` whose every branch ends in one of three always-true helpers is as
+invariant as one that says `return true` outright. Reading the rule rather than running it had
+said otherwise, twice. It is annotated on the `call()` now, which is the thing it is about.
+
+The count is the least of it. Twenty-seven methods stop being invisible to the rule.
+`isOrdinaryCompass`, `isPendingRefresh`, `isOldGroupName`, `hasDefaultSnapshotOverrides`,
+`isField` and `touchesGate` are real predicates, and a class-level annotation was silencing
+every one of them in order to quiet the helpers sitting alongside.
+
+Three tests failed on the first attempt and were right to. Dropping the `return` from
+`return saved(...)` inside a method that is now void does not just discard a value, it removes
+the control flow -- `allowOrDeny` fell through and saved the world twice.
+
+Four assertions in `RingPairingTest` turned out to be asserting nothing.
+`assertTrue(pairWith(...))` could never fail, because `completePair` always returned true, and
+three of the four sit in tests about the pairing being *refused*, where a green `true` reads as
+though it succeeded. Each already asserted what mattered on the following line.
+
 
 ### Tab completion could not see your own beam places
 
@@ -2624,7 +2673,53 @@ difference between this time and last.
 
 ## 1.4.0 (2026-09-05)
 
-### Fix: a failed beam left the traveller in the dark, literally
+Beaming: a third way to travel, with no structure to build and nothing to dial. Three large gate
+shapes and a fourth palette arrived with it, and the woosh finally makes a sound.
+
+**Upgrading:** nothing to do. Beaming is off until somebody sets a destination, and the new
+shapes and palette are additions rather than changes to existing gates.
+
+### Added
+
+- **Beaming**, point-to-point travel alongside gates and rings: staff curate public
+  destinations, each player keeps their own private places, and no structure is built for either.
+- `/wormhole beam admin goto` and `send`, usable from a player, the console or a command block.
+- Public beam destinations can carry their own cost, which admins may bypass.
+- Three big, deep gate shapes: `Large`, `Grand` and `Massive`.
+- `Even`, the first even-width gate shape.
+- A fourth palette, `MilkyWay` — deepslate frame, iron iris, shroomlight chevrons.
+- A gate shape can be validated and reloaded without restarting the server.
+
+### Fixed
+
+- A beam that failed part-way through stranded the traveller, and left them in the dark.
+- The traveller's own view arrived ahead of the beam.
+- A beam charged for a message with nothing behind it.
+- The woosh could leave portal material stuck outside a gate, or an extra layer inside it.
+- The wormhole woosh sound never actually played.
+- A gate's ambient hum outlived the gate.
+- A timed-out gate's chevrons could stay lit forever.
+- `/wormhole go` ignored private network permission, which dialling already respected.
+
+### Changed
+
+- The beam effect matches its reference footage: the glow gathers at the traveller rather than
+  around them.
+- The traveller can move, turn and react during the envelope instead of being frozen from the
+  moment the command runs.
+- Beam and gate arrivals correct for ground that has been built up or dug out since the
+  destination was recorded.
+- Woosh depth is proportional to a gate's size rather than a fixed number.
+
+### Under the hood
+
+- `BeamAnimation.Sequence` was split so every phase boundary and quantity can be tested without
+  a running server, the same way the ring subsystem was split earlier.
+
+<details>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### A failed beam left the traveller in the dark, literally
 
 Caught reviewing the beam work before merging it, and a drift between two places that were
 each correct the day they were written. A beam applies three potion effects across two
@@ -2651,7 +2746,7 @@ and its static initialiser wants a running server. That is why nothing in this s
 touches potion effects at all, and why the list being shared *is* the guarantee here
 instead of a test being it.
 
-### Fix: a beam that fails mid-sequence no longer strands the traveller
+### A beam that fails mid-sequence no longer strands the traveller
 
 Once `isVanish()` fires, a traveller is frozen and invisible until `isFinished()` clears
 them -- or until something in between throws. A Bukkit call failing mid-tick
@@ -2664,7 +2759,7 @@ same shape `RingTransit`'s own mid-cycle recovery already uses: clear the freeze
 whichever potion effects were applied, and tell the traveller they've been freed rather
 than leave them guessing.
 
-### Fix: the traveller's own vision no longer arrives ahead of the beam
+### The traveller's own vision no longer arrives ahead of the beam
 
 The real teleport fires mid-rise, so the traveller is physically at the destination for
 the entire descend phase -- but nothing was stopping them from freely looking around
@@ -2685,7 +2780,7 @@ actually blocks the view; confirmed present across this project's full supported
 already uses, so the traveller's own vision now resolves in sync with the visual instead
 of running ahead of it.
 
-### Fix: beam cost no longer charges a message with nothing behind it
+### Beam cost no longer charges a message with nothing behind it
 
 `BeamTravel.resolveCost` computed a destination's cost -- its own override, or the global
 `BEAM_ECONOMY_USE_COST` default -- unconditionally, unlike every other cost path in this
@@ -2893,7 +2988,7 @@ for anyone holding `wormhole.go`. Fixed by looking the gate up first and passing
 the permission check, whose `GO` case now consults `NETWORK_USE` the same way `DIALER`
 does.
 
-### Fix: the woosh could leave water (or any portal material) stuck outside a gate, or an extra layer inside it
+### The woosh could leave water (or any portal material) stuck outside a gate, or an extra layer inside it
 
 Reported directly: "gates are leaving water one block from the gate," visible only to the
 player who had just gone through, and only sometimes -- both details that point at a
@@ -3098,6 +3193,9 @@ and the closing branch resets the counter the same way the 2D woosh path already
 own. `StargateAnimatorTest` pins both directly against the counter's value rather than trying
 to observe a sound call, so a regression here fails a fast, Bukkit-free test instead of only
 being noticed by someone dialing a gate and not hearing anything.
+
+</details>
+
 
 ## 1.3.0 (2026-09-03)
 

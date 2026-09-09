@@ -17,8 +17,6 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 /**
  * Handler for '/wormhole custom'
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class CustomCommand implements SubCommand
 {
 
@@ -45,7 +43,8 @@ public class CustomCommand implements SubCommand
 
         if (args[1].equalsIgnoreCase("-clean"))
         {
-            return cleanSnapshottedOverrides(sender, (args.length == 3) && "confirm".equalsIgnoreCase(args[2]));
+            cleanSnapshottedOverrides(sender, (args.length == 3) && "confirm".equalsIgnoreCase(args[2]));
+            return true;
         }
         if (args[1].equalsIgnoreCase("-all") && (args.length == 3) && com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
         {
@@ -134,9 +133,8 @@ public class CustomCommand implements SubCommand
      *            who asked
      * @param confirmed
      *            true to apply the change, false to only report what would change
-     * @return true, the command was handled
      */
-    private static boolean cleanSnapshottedOverrides(final CommandSender sender, final boolean confirmed)
+    private static void cleanSnapshottedOverrides(final CommandSender sender, final boolean confirmed)
     {
         final java.util.List<Stargate> affected = new java.util.ArrayList<Stargate>();
         for (final Stargate gate : StargateManager.getAllGatesUnsorted())
@@ -151,7 +149,7 @@ public class CustomCommand implements SubCommand
         {
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "No gates are carrying snapshotted material overrides.");
-            return true;
+            return;
         }
 
         if (!confirmed)
@@ -163,7 +161,7 @@ public class CustomCommand implements SubCommand
                 + "Clearing them lets those gates follow their material group.");
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Run '/wormhole custom -clean confirm' to apply.");
-            return true;
+            return;
         }
 
         for (final Stargate gate : affected)
@@ -178,7 +176,6 @@ public class CustomCommand implements SubCommand
             "Cleared snapshotted material overrides from " + affected.size() + " gate(s): " + gateNames(affected));
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Cleared material overrides on " + affected.size() + " gate(s); they now follow their material group.");
-        return true;
     }
 
     /**
