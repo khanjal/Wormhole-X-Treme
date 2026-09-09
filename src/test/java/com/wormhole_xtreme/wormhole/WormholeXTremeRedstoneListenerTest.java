@@ -33,9 +33,7 @@ class WormholeXTremeRedstoneListenerTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, pluginMock);
+            PluginForTests.install(pluginMock);
         }
         catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
     }
@@ -171,9 +169,7 @@ class WormholeXTremeRedstoneListenerTest
     {
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("scheduler");
-            f.setAccessible(true);
-            f.set(null, scheduler);
+            PluginForTests.scheduler(scheduler);
         }
         catch (final ReflectiveOperationException e)
         {

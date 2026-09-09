@@ -9,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -22,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Lighting a gate's chevrons, one wave per tick.
@@ -38,13 +38,9 @@ class ChevronLightingTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field plugin = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        plugin.setAccessible(true);
-        plugin.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
-        final Field scheduler = WormholeXTreme.class.getDeclaredField("scheduler");
-        scheduler.setAccessible(true);
-        scheduler.set(null, mock(BukkitScheduler.class));
+        PluginForTests.scheduler(mock(BukkitScheduler.class));
 
         world = mock(World.class);
     }
@@ -52,13 +48,9 @@ class ChevronLightingTest
     @AfterEach
     void tearDown() throws Exception
     {
-        final Field plugin = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        plugin.setAccessible(true);
-        plugin.set(null, null);
+        PluginForTests.remove();
 
-        final Field scheduler = WormholeXTreme.class.getDeclaredField("scheduler");
-        scheduler.setAccessible(true);
-        scheduler.set(null, null);
+        PluginForTests.scheduler(null);
     }
 
     /**

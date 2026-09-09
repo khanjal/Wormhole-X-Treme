@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -21,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.DataUtils;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Reading a gate saved by an older version of the plugin.
@@ -41,9 +41,7 @@ class LegacySaveVersionTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
     }
 
     /** A world whose getBlockAt hands back blocks that remember where they are. */

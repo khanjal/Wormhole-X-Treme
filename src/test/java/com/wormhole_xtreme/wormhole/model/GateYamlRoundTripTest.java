@@ -9,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * What survives a gate being written to disk and read back.
@@ -41,17 +41,13 @@ class GateYamlRoundTripTest
     @TempDir
     File tempDir;
 
-    private Object previousPlugin;
     private Server server;
     private World world;
 
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        previousPlugin = f.get(null);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
@@ -82,9 +78,7 @@ class GateYamlRoundTripTest
     @AfterEach
     void restorePlugin() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, previousPlugin);
+        PluginForTests.remove();
         for (final Stargate s : new java.util.ArrayList<Stargate>(StargateManager.getAllGates()))
         {
             if (s != null)

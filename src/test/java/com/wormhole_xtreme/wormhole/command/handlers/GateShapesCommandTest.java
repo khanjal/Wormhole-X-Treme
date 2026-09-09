@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * {@code /wormhole gate shapes <reload|validate> [name]}'s argument handling.
@@ -26,9 +27,7 @@ class GateShapesCommandTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
     }
 
     @Test

@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -43,15 +42,11 @@ class WormholeXTremeVehicleListenerEventTest
         mockScheduler = mock(BukkitScheduler.class);
         when(mockScheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
 
-        final Field schedField = WormholeXTreme.class.getDeclaredField("scheduler");
-        schedField.setAccessible(true);
-        schedField.set(null, mockScheduler);
+        PluginForTests.scheduler(mockScheduler);
 
         // Install a mock plugin instance so prettyLog() calls do not NPE.
         final WormholeXTreme mockPlugin = mock(WormholeXTreme.class);
-        final Field pluginField = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pluginField.setAccessible(true);
-        pluginField.set(null, mockPlugin);
+        PluginForTests.install(mockPlugin);
         // ensure spatial index / gate registry is clean
         GateSpatialIndex.clear();
     }

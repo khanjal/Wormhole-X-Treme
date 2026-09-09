@@ -10,7 +10,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -52,9 +51,7 @@ class RingMoveEventTest
     void setUp() throws Exception
     {
         RingIndex.clear();
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);
@@ -90,9 +87,7 @@ class RingMoveEventTest
     void tearDown() throws Exception
     {
         RingIndex.clear();
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginForTests.remove();
     }
 
     private Location at(final double x, final double y, final double z)

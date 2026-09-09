@@ -31,6 +31,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Detection, end to end: build a shipped shape into a world of blocks and check that
@@ -56,9 +57,7 @@ class GateDetectionTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
 
         placed.clear();
         blocks.clear();

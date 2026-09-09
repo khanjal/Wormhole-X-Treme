@@ -11,7 +11,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -28,6 +27,7 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Running {@code /wormhole regenerate}, as opposed to the {@code exitMoved} helper that
@@ -47,9 +47,7 @@ class RegenerateExecuteTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         // Not a player, so the admin node is not asked for.
         sender = mock(CommandSender.class);
@@ -60,9 +58,7 @@ class RegenerateExecuteTest
     void tearDown() throws Exception
     {
         clearGates();
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginForTests.remove();
     }
 
     private static void clearGates()

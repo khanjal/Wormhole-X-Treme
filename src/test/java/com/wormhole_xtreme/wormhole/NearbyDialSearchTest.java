@@ -11,7 +11,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,9 +53,7 @@ class NearbyDialSearchTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         grid = new HashMap<>();
         world = mock(World.class);
@@ -78,9 +75,7 @@ class NearbyDialSearchTest
     @AfterEach
     void tearDown() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginForTests.remove();
     }
 
     /** A block that is nothing in particular. */

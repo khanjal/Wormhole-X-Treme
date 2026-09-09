@@ -9,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 
 import org.bukkit.command.CommandSender;
@@ -21,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Setting the two gate timeouts.
@@ -41,9 +41,7 @@ class TimeoutsCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         // Without this the setters are silent no-ops and every assertion below would pass
         // against a value that was never stored.
@@ -63,9 +61,7 @@ class TimeoutsCommandTest
         ConfigManager.setTimeoutShutdown(savedShutdown);
         ConfigTestSupport.clear();
 
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginForTests.remove();
     }
 
     private boolean run(final String... args)

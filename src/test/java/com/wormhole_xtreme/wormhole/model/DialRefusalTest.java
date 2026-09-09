@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -23,6 +22,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * When one gate refuses to dial another.
@@ -41,9 +41,7 @@ class DialRefusalTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         gate = mock(Stargate.class);
         when(gate.getGateName()).thenReturn("alpha");
@@ -61,9 +59,7 @@ class DialRefusalTest
     @AfterEach
     void tearDown() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginForTests.remove();
     }
 
     /** A target that is fine to dial, which each test then spoils in one specific way. */

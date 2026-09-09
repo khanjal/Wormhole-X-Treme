@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * {@code loadShapes()}'s own first-load rule -- an existing entry under the same name is kept,
@@ -36,9 +37,7 @@ class StargateShapeRegistryReloadTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
         StargateShapeRegistry.getStargateShapes().remove("ReloadableTest");
     }
 

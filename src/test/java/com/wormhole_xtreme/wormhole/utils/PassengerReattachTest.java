@@ -10,7 +10,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Putting a rider back in the vehicle they were teleported out of.
@@ -44,15 +44,11 @@ class PassengerReattachTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         scheduler = mock(BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
-        final Field sf = WormholeXTreme.class.getDeclaredField("scheduler");
-        sf.setAccessible(true);
-        sf.set(null, scheduler);
+        PluginForTests.scheduler(scheduler);
 
         cart = mock(Minecart.class);
         when(cart.isValid()).thenReturn(true);

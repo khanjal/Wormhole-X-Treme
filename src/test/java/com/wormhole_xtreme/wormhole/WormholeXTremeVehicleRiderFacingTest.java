@@ -102,9 +102,7 @@ class WormholeXTremeVehicleRiderFacingTest
     @BeforeEach
     void installPlugin() throws Exception
     {
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
     }
 
     /**

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Where a shape's [RD], [RS] and [RA] cells put their redstone in the world.
@@ -38,9 +39,7 @@ class RedstoneBlockPlacementTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
     }
 
     private static Stargate3DShape load(final String name) throws Exception

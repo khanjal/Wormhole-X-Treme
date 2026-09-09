@@ -33,6 +33,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * What survives a dial sign being restyled.
@@ -106,9 +107,7 @@ class DialSignConversionTest
     {
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, value);
+            PluginForTests.install(value);
         }
         catch (final ReflectiveOperationException e)
         {

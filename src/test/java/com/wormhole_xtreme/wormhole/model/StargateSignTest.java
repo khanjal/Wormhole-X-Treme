@@ -11,11 +11,11 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
-import java.lang.reflect.Field;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Tests for sign placement in {@link Stargate#setupGateSign(boolean)}.
@@ -88,9 +88,7 @@ class StargateSignTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(true);
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
         try
         {
             gate.setGateFacing(BlockFace.NORTH);
@@ -121,7 +119,7 @@ class StargateSignTest
         }
         finally
         {
-            f.set(null, null);
+            PluginForTests.remove();
         }
     }
 
@@ -136,9 +134,7 @@ class StargateSignTest
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.isLoggable(java.util.logging.Level.FINE)).thenReturn(false);
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
         try
         {
             gate.setGateFacing(BlockFace.NORTH);
@@ -154,7 +150,7 @@ class StargateSignTest
         }
         finally
         {
-            f.set(null, null);
+            PluginForTests.remove();
         }
     }
 

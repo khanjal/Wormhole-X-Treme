@@ -39,15 +39,11 @@ class WormholeXTremePlayerListenerMountTest
         mockScheduler = mock(BukkitScheduler.class);
         when(mockScheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
 
-        final Field schedField = WormholeXTreme.class.getDeclaredField("scheduler");
-        schedField.setAccessible(true);
-        schedField.set(null, mockScheduler);
+        PluginForTests.scheduler(mockScheduler);
 
         // Install a mock plugin instance so prettyLog() calls do not NPE.
         final WormholeXTreme mockPlugin = mock(WormholeXTreme.class);
-        final Field pluginField = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pluginField.setAccessible(true);
-        pluginField.set(null, mockPlugin);
+        PluginForTests.install(mockPlugin);
 
         GateSpatialIndex.clear();
     }

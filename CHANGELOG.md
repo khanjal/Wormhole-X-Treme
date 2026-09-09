@@ -81,6 +81,37 @@ confidence.
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
+### Installing the plugin singleton, seventy-eight times over
+
+Almost everything in this plugin reaches the running instance through
+`WormholeXTreme.getThisPlugin()`, and almost nothing works without one. So a test that
+exercises any of it has to put an instance there first and take it away afterwards, and the
+only way in is a private static field.
+
+Seventy-eight test classes were doing that for themselves, in a hundred and fifteen places, by
+the same three lines of reflection each time -- 102 of the 139 reflective field accesses in
+the whole test tree, all reaching for the same field.
+
+`PluginForTests.install()` and `remove()` are those three lines with a name on them. A setup
+that ran to four lines of `getDeclaredField`, `setAccessible` and `set` is one line that says
+what it is doing, and the suite lost 250 lines net.
+
+Two things came out of doing it rather than reading it. `remove()` puts back whatever was
+there before the matching install, instead of writing null: two classes were already careful
+enough to do that by hand, and everywhere else it comes to the same thing, because a class
+that cleans up leaves null behind for the next one anyway. And three classes did not fit the
+pattern at all -- one wrapped the reflection in a helper that swallowed the checked exception,
+one saved and restored around a single test, one handed the `Field` object itself to its call
+sites to reset in a `finally`. Those were done by hand, and the sweep was written to report
+what it could not match rather than guess at it.
+
+PMD found the rest: forty-four `java.lang.reflect.Field` imports the change orphaned, plus a
+helper that no longer had callers and an import that only its javadoc had been using.
+
+Reflective access across the tests is 139 sites in 87 files down to 23 in 15. What is left is
+mostly `gateTarget`, which is a different idiom -- pointing one gate at another -- and worth
+its own look rather than being swept along with this.
+
 ### Nine unchecked casts in the tests, and three different reasons for them
 
 `YamlMaps` took the production count from thirteen to one. The tests kept theirs, and had

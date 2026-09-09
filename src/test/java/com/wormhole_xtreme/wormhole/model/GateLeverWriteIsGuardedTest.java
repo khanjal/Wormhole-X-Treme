@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.GateRedstoneWrite;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * A gate's own lever writes announce themselves, so the redstone listener can ignore them.
@@ -35,9 +36,7 @@ class GateLeverWriteIsGuardedTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, pluginMock);
+            PluginForTests.install(pluginMock);
         }
         catch (final ReflectiveOperationException e)
         {

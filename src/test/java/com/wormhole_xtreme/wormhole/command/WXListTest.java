@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -21,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * What {@code /wx list} shows, and to whom.
@@ -38,9 +38,7 @@ class WXListTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         // Not a player, so the listing is not gated on a permission node.
         sender = mock(CommandSender.class);

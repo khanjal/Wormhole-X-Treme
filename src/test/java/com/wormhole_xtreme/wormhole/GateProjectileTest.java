@@ -50,16 +50,12 @@ class GateProjectileTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field pf = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pf.setAccessible(true);
-        pf.set(null, plugin);
+        PluginForTests.install(plugin);
 
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
-        final java.lang.reflect.Field sf = WormholeXTreme.class.getDeclaredField("scheduler");
-        sf.setAccessible(true);
-        sf.set(null, scheduler);
+        PluginForTests.scheduler(scheduler);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");

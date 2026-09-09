@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Tests writing discovered material groups into config.yml.
@@ -36,9 +37,7 @@ class MaterialGroupConfigWriteTest
     void installPluginMock() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
     }
 
     private static List<MaterialGroup> diamond()

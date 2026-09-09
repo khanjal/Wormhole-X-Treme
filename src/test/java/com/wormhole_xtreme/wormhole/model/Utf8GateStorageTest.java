@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
@@ -23,6 +22,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * A gate whose name, owner or iris code is not plain ASCII survives being stored.
@@ -62,24 +62,18 @@ class Utf8GateStorageTest
     @TempDir
     File tempDir;
 
-    private Object previousPlugin;
 
     @BeforeEach
     void installPluginMock() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        previousPlugin = f.get(null);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
     }
 
     @AfterEach
     void restorePlugin() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, previousPlugin);
+        PluginForTests.remove();
     }
 
     private static World mockWorld()

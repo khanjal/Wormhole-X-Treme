@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * Everything a gate saves, and gets back.
@@ -51,9 +51,7 @@ class GateSaveFidelityTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
@@ -64,9 +62,7 @@ class GateSaveFidelityTest
     @AfterEach
     void tearDown() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginForTests.remove();
     }
 
     private Block blockAt(final int x, final int y, final int z)

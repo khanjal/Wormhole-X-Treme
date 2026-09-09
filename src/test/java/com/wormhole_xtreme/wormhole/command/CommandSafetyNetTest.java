@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 
 import org.bukkit.command.CommandSender;
@@ -15,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * What the command safety net is for, and what it should let past.
@@ -31,9 +31,7 @@ class CommandSafetyNetTest
     @BeforeEach
     void installPlugin() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
         player = mock(Player.class);
     }
 

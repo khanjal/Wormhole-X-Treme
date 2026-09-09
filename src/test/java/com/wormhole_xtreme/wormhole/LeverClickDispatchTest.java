@@ -6,7 +6,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -47,18 +46,14 @@ class LeverClickDispatchTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginForTests.install(mock(WormholeXTreme.class));
 
         // Toggling a lever schedules the block update that follows it.
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(org.mockito.ArgumentMatchers.any(),
             org.mockito.ArgumentMatchers.any(Runnable.class),
             org.mockito.ArgumentMatchers.anyLong())).thenReturn(1);
-        final Field sf = WormholeXTreme.class.getDeclaredField("scheduler");
-        sf.setAccessible(true);
-        sf.set(null, scheduler);
+        PluginForTests.scheduler(scheduler);
 
         GateSpatialIndex.clear();
         world = mock(World.class);

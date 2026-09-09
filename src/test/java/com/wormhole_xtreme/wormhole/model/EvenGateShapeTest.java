@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * {@code Even.shape} and {@code EvenSignDial.shape} -- the first shipped gates with an
@@ -31,9 +32,7 @@ class EvenGateShapeTest
     private static Stargate3DShape load(final String name) throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginForTests.install(plugin);
 
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
         return new Stargate3DShape(lines.toArray(new String[0]));

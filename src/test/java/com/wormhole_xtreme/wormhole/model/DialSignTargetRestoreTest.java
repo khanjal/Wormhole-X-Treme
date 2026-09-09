@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * A sign gate dials what its sign has been showing since before the server restarted.
@@ -40,9 +41,7 @@ class DialSignTargetRestoreTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, pluginMock);
+            PluginForTests.install(pluginMock);
         }
         catch (final ReflectiveOperationException e)
         {

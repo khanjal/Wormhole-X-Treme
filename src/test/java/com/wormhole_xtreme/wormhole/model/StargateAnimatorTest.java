@@ -3,14 +3,13 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.lang.reflect.Field;
 
 import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginForTests;
 
 /**
  * The woosh animation's own step counter, {@code gateAnimationStep3D}.
@@ -56,31 +55,13 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  */
 class StargateAnimatorTest
 {
-    /**
-     * Points {@link WormholeXTreme#getScheduler()} at a Mockito no-op for the one test that
-     * needs the "continue, do not settle yet" branch to actually run to completion instead
-     * of settling early -- that branch's only externally-visible action past the counters
-     * themselves is scheduling the next tick, so proving it was taken at all means letting
-     * that scheduling call happen against something that will not throw for lacking a live
-     * server. {@code scheduler} is a private static field on {@link WormholeXTreme}, the
-     * same shape {@code BigGateShapeTest} already reaches into for {@code thisPlugin}.
-     *
-     * @return the field, left accessible, for the test to reset in its own {@code finally}
-     */
-    private static Field schedulerField() throws Exception
-    {
-        final Field f = WormholeXTreme.class.getDeclaredField("scheduler");
-        f.setAccessible(true);
-        return f;
-    }
-
     @AfterEach
     void restoreRealScheduler() throws Exception
     {
         // WormholeXTreme.scheduler is a shared static -- every other test in this JVM run
         // that touches it expects the plugin's normal null-until-onEnable default, not
         // whatever mock the one test above it happened to leave behind.
-        schedulerField().set(null, null);
+        PluginForTests.scheduler(null);
     }
 
     @Test
@@ -147,7 +128,7 @@ class StargateAnimatorTest
         // Reproduces the tick right before the true last step. A correct implementation
         // must not settle here -- it still has index 0 left to undraw -- so it decrements to
         // 0 and schedules one more tick rather than clearing isGateAnimationRemoving early.
-        schedulerField().set(null, mock(BukkitScheduler.class));
+        PluginForTests.scheduler(mock(BukkitScheduler.class));
         final Stargate gate = new Stargate();
         gate.setGateActive(true);
         gate.getGateWooshBlocks().add(null);

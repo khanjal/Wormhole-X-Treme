@@ -42,9 +42,7 @@ class GateEntryRefusalTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field pf = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pf.setAccessible(true);
-        pf.set(null, plugin);
+        PluginForTests.install(plugin);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");

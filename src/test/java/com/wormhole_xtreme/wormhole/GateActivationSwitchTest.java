@@ -50,9 +50,7 @@ class GateActivationSwitchTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, pluginMock);
+            PluginForTests.install(pluginMock);
         }
         catch (final ReflectiveOperationException e)
         {
