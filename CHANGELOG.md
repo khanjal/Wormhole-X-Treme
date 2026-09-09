@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Deleted LegacyCompat, which nothing has called for some time
+
+`utils/LegacyCompat` mapped pre-flattening numeric block ids (8 to water, 69 to a lever) and
+translated a legacy facing-and-power byte to and from `BlockData`. Production stopped calling it
+when the block handling moved to `Material`/`BlockData`, and nothing has called it since -- no
+reference anywhere in `src/main`.
+
+It did not read as dead, which is the interesting part. It kept a full test class and a data
+mapping test, so it looked maintained, and three changes in the recent quality campaign went into
+it on that basis -- including a real bug fix for the powered bit eating a lever's facing. That
+bug could not have affected anybody, because the method it was in has no callers.
+
+Checked before deleting that the legacy load path does not want it back: no save version stores
+a numeric block id. Versions 3 through 7 store no custom materials at all, 8 stores
+`Material.ordinal()`, and 9 stores the name. `LegacyDatabaseImporter` reads a `GateData` blob out
+of the old SQLite database and hands it straight to that same versioned parser, so it never sees
+a raw id either.
+
+Gone with it: `LegacyCompatTest`, `LegacyDataMappingTest`, and the mentions in `README.md` and
+`docs/API.md` that described it as a live part of the conventions.
 ### Gate protection did nothing if another plugin got to the event first
 
 Every handler in `WormholeXTremeBlockListener` opened with `if (!event.isCancelled())`. Most of
