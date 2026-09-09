@@ -35,7 +35,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Only the skill and the tree it searches are needed; no history.
           fetch-depth: 1
