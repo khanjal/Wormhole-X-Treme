@@ -67,9 +67,9 @@ For what is actually open, read `CHANGELOG.md` and the repository's issues rathe
   longer swallows `Error`" is a recorded decision (see the 1.1.0 changelog notes); the ~86
   remaining `catch (Throwable)` blocks are legacy being narrowed, not the target style.
 
-  The exception is deliberate cross-version compatibility: `utils/LegacyCompat`,
-  `plugin/EconomySupport` and `plugin/PermissionsSupport` catch `NoSuchMethodError` on purpose so
-  the plugin stays standing across API versions. Where that is the reason, say so in a comment.
+  The exception is deliberate cross-version compatibility: `plugin/EconomySupport` and
+  `plugin/PermissionsSupport` catch `NoSuchMethodError` on purpose so the plugin stays standing
+  across API versions. Where that is the reason, say so in a comment.
 - **`instanceof` before cast** — always guard casts with `instanceof`.
 
 ### Logging
