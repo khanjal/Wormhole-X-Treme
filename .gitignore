@@ -26,4 +26,11 @@
 
 # Editor settings
 /.vscode/
+
+# Working files, not deliverables. The skills under .claude/ are tracked on purpose,
+# so only the log is named here rather than the whole directory.
 PR-*-review.md
+/.claude/unattended-log.md
+
+# A built jar copied out of target/ to install on a server. Any version, root only.
+/WormholeXTreme-*.jar
