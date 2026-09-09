@@ -51,8 +51,8 @@ noticed:
 **And it fixed two bugs that could not have reached anybody**, which is worth recording as
 plainly as the three that could. A lever's powered bit eating its facing (#153) and
 `getLeverToggleByte` reaching the same answer by two routes (#118) were both real defects in
-real code -- in methods with no production callers. `LegacyCompat` was deleted for that reason;
-`WorldUtils.getLeverToggleByte` is still there and still uncalled.
+real code -- in methods with no production callers. Both are deleted now, `LegacyCompat` in
+#208 and `getLeverToggleByte` in the utils audit that followed it.
 
 The lesson is not "check for callers before fixing" so much as **a test suite makes dead code
 look maintained**. Both of those methods had careful tests, which is exactly why three separate

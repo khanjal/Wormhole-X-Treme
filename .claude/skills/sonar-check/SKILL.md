@@ -89,10 +89,15 @@ where a reshape can silently change behaviour. The cycle the earlier work settle
 3. Reshape.
 4. Mutate again.
 
-`getLeverToggleByte` is the example worth remembering: two nested ternaries reaching the same
-answer by different routes, with no coverage at all. The tests that now pin it over all 256 byte
-values were run against the original before the rewrite, which is what makes "no behaviour
-change" a measurement rather than a claim. See [[wormhole-test-style]] for how to write them.
+`WorldUtils.getLeverToggleByte` was the example worth remembering, and it carries two lessons
+now. Two nested ternaries reaching the same answer by different routes, with no coverage at all;
+the tests that pinned it over all 256 byte values were run against the original before the
+rewrite, which is what makes "no behaviour change" a measurement rather than a claim. See
+[[wormhole-test-style]] for how to write them.
+
+The second lesson arrived later: **the method had no callers**, and neither did the class beside
+it. Both are deleted now. Before reshaping something a rule points at, check that anything calls
+it -- a careful test class is not evidence that it runs.
 
 ## 5. Reading the real numbers when the PR check is red
 

@@ -145,37 +145,6 @@ public final class MaterialUtils {
         }
     }
 
-    /** Returns true for any rail material (rails, powered, detector, activator). */
-    public static boolean isRail(final Material m) {
-        if (m == null) return false;
-        final String name = m.name();
-        return "RAIL".equals(name) || name.endsWith("_RAIL");
-    }
-
-    /** Returns true for doors and trapdoors. Uses name-based checks to be forward-compatible. */
-    public static boolean isDoor(final Material m) {
-        if (m == null) return false;
-        final String name = m.name();
-        return name.endsWith("_DOOR") || name.endsWith("_TRAPDOOR");
-    }
-
-    /** Returns true for fluid blocks (water or lava). */
-    public static boolean isLiquid(final Material m) {
-        if (m == null) return false;
-        return m == Material.WATER || m == Material.LAVA || m.name().contains("WATER") || m.name().contains("LAVA");
-    }
-
-    /** Convenience checks. */
-    public static boolean isWater(final Material m) { return m == Material.WATER; }
-    public static boolean isLava(final Material m) { return m == Material.LAVA; }
-
-    /** Returns true for any sign (wall or standing). */
-    public static boolean isSign(final Material m) {
-        if (m == null) return false;
-        final String name = m.name();
-        return name.endsWith("_SIGN") || name.equals("SIGN");
-    }
-
     /**
      * Returns true for blocks that can put a redstone signal into a neighbouring block:
      * the wire and repeaters that carry one, and the components that emit one.

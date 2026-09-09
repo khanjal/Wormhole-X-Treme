@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### Nine unused helpers deleted from the utils package
+
+Following the `LegacyCompat` deletion, every method in `utils` was counted against the rest of
+`src/main`. Nine had no caller anywhere in production, in two groups.
+
+Three in `WorldUtils` are pre-flattening byte mapping, the same category as `LegacyCompat`:
+`getLeverFacingByteFromBlockFace`, `getSignFacingByteFromBlockFace` and `getLeverToggleByte`.
+The sign one returned exactly the table the deleted class already had. Checked the same way
+before removing them: no save version stores a facing byte at all. Gate facing has always been
+written as a string and read back with `BlockFace.valueOf`, and `DataUtils.blockToBytes` stores
+twelve bytes of x, y and z with no data byte anywhere in them.
+
+Six in `MaterialUtils` are speculative predicates: `isRail`, `isDoor`, `isLiquid`, `isWater`,
+`isLava` and `isSign`. These are the ones worth a second look, because `MaterialUtils` is a
+documented convention -- but what `README.md` and `docs/API.md` actually commit to is
+`isWallSign` and `isButton` covering every wood, stone and Nether variant, and both of those
+stay. The six that go were never named anywhere and never called.
+
+`isLiquid` is the reason not to leave them sitting there. Documented as "fluid blocks (water or
+lava)", it was written as a name match on `contains("WATER")`, so it answers true for a water
+bucket, a lava bucket and a water cauldron. It was correct for the two arguments its test passed
+it and wrong for the rest, and it was one call site away from being a bug.
+
+`getLeverToggleByte` had four tests, including one over all 256 byte values, and was rewritten in
+#118 to fix two ternaries that reached the same answer by different routes. Like the
+`LegacyCompat` lever fix, that was a real defect that could not reach anybody. It is the same
+lesson twice: a careful test class makes dead code look maintained.
+
 ### Deleted LegacyCompat, which nothing has called for some time
 
 `utils/LegacyCompat` mapped pre-flattening numeric block ids (8 to water, 69 to a lever) and
