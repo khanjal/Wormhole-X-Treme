@@ -38,6 +38,13 @@ its chunk into memory and this runs on the dial path, so the check stops at the 
 rather than find out. "Cannot tell" has to mean "fine" here: guessing the other way would refuse
 to dial every gate whose far end nobody has visited yet.
 
+Air is tested with `MaterialUtils.isAirMaterial`, not `Material.isAir()`. The version matrix is
+what found that: `isAir()` resolves through `org.bukkit.Registry` from 1.20.6 on, so it answers
+on 1.20 and 1.20.1 and throws `NoClassDefFoundError` from 1.20.6 -- fine on a live server, fatal
+under test on four of the seven supported versions. Comparing the three air constants is exactly
+as correct and asks nothing of the server. `README.md` and `docs/API.md` named the old method as
+the convention and now name this one.
+
 This is the first two of the four things #54 asks for. Reattaching an unbound sign on regenerate
 and a `validate` command are still open, both waiting on what #42 settles about regenerate.
 
