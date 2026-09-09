@@ -93,6 +93,10 @@ class YamlMapsTest
      * and a bad key aborts the load. Neither is changed by this, and the class doc says which
      * is which. This test exists so that the throw itself cannot quietly stop happening.
      */
+    // S1612 wants ((String) key)::length here. A method reference evaluates its receiver
+    // eagerly, when the reference is created, so the cast would throw outside assertThrows and
+    // the test would error instead of pass. Verified by applying the suggestion and running it.
+    @SuppressWarnings("java:S1612")
     @Test
     void aNonStringKeyStillThrowsWhereItIsRead()
     {
