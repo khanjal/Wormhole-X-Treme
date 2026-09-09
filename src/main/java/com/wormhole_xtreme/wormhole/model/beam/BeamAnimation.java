@@ -472,11 +472,11 @@ public final class BeamAnimation
          */
         private void drawEnvelope(final BeamFrame frame)
         {
-                // Not yet frozen -- tracks wherever the traveller actually is this tick,
-                // rather than the fixed origin, since they are still free to walk, turn or
-                // react right up until they vanish. A fixed column here would just miss
-                // them the moment they stepped away from where the sequence began.
-                spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.envelop().density());
+            // Not yet frozen -- tracks wherever the traveller actually is this tick,
+            // rather than the fixed origin, since they are still free to walk, turn or
+            // react right up until they vanish. A fixed column here would just miss
+            // them the moment they stepped away from where the sequence began.
+            spawnColumn(player.getLocation(), frame.playerHeight(), 0.0, frame.envelop().density());
         }
 
         /**
@@ -525,7 +525,7 @@ public final class BeamAnimation
          */
         private void rise(final BeamFrame frame)
         {
-                spawnColumn(origin, frame.columnHeight(), frame.rise().yOffset(), BeamFrame.MAX_DENSITY);
+            spawnColumn(origin, frame.columnHeight(), frame.rise().yOffset(), BeamFrame.MAX_DENSITY);
         }
 
         /**
