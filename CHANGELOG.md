@@ -79,7 +79,7 @@ confidence.
   Two more turned out to be in methods nothing called, which is how the dead code was noticed.
 
 <details>
-<summary><b>Full notes</b> — the reasoning behind each change, in the order it was made</summary>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
 ### Tab completion could not see your own beam places
 
