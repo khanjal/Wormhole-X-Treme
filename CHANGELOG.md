@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.5.0 (unreleased)
+## 1.5.0 (2026-09-09)
 
 Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that
 went back over all of it. Twenty-odd player-facing bugs are fixed, several of them older than
