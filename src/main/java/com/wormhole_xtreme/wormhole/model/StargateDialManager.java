@@ -145,6 +145,14 @@ class StargateDialManager
         final org.bukkit.block.BlockState bState = gate.getGateDialSignBlock().getState();
         if (!(bState instanceof Sign))
         {
+            // Was a silent return, which is how a gate went quietly dead: the sign is gone, so
+            // no target can ever be chosen, while the gate keeps accepting incoming dials. See
+            // #54. Every caller here is a load, a refresh, a peer leaving the network or the
+            // redstone listener -- none has a player to tell, so the log is where this goes.
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                GATE_PREFIX + gate.getGateName() + "\" has no dial sign where it recorded one."
+                + " It will keep accepting incoming dials but cannot choose a target."
+                + " Replace the sign and run /wormhole refresh.");
             return;
         }
         gate.setGateDialSign((Sign) bState);
@@ -549,6 +557,14 @@ class StargateDialManager
      */
     private static String whyNotDialable(final Stargate gate, final Stargate target)
     {
+        // Before the reasons about traffic: a target that is not standing any more is not a
+        // place to put somebody. Nothing fires an event when WorldEdit removes the blocks, so
+        // this is the moment it gets noticed. See #54.
+        if (GateIntegrity.isStructureBroken(target))
+        {
+            return "has " + GateIntegrity.missingStructureBlocks(target)
+                + " frame blocks missing; something removed them without breaking them.";
+        }
         if (target.isGateIrisActive())
         {
             return "iris active.";
