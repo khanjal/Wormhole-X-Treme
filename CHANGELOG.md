@@ -92,12 +92,15 @@ which returned `true` for exactly one reason: so the caller could write `return 
 one line. The boolean carried nothing, and the rule was right about every one of them.
 
 The plan had been to move the ten annotations onto the methods that needed them. Counting
-first is what killed that: twenty-eight methods needed one, so precision would have nearly
-tripled the count. Voiding the helpers instead removes them from the rule's reach altogether.
+first is what killed that: twenty-eight methods needed one, so precision alone would have
+nearly tripled the count. Voiding the helpers instead removes them from the rule's reach.
+
+It does not reduce the count. Ten before, ten after -- the win is entirely in what is no
+longer hidden, and in thirty-four methods that stopped claiming to return something.
 
 The helpers are void now, and `return helper(...)` is `helper(...); return true;` at the
 caller -- a line longer, and saying what actually happens rather than dressing it as a value.
-Nine suppressions are left, each on a method, each on something Bukkit or a functional
+Ten suppressions are left, each on a method, each on something Bukkit or a functional
 interface genuinely forces.
 
 The size was a surprise partway in. The first count of twenty-one was wrong because the
@@ -105,10 +108,12 @@ helpers call each other: `place` ends with `return listPlaces(...)`, and `edit` 
 `return applyEdit(...)`, which dispatches to eight setters that end with `return saved(...)`.
 Voiding one means voiding the chain, and the closure is thirty-four.
 
-Two classes end with no suppression at all. `Compass` never needed one -- each of its helpers
-has a single return, which the rule already exempts -- and its helpers are deliberately left
-alone: they are called from inside an anonymous `Callable<Boolean>`, and voiding them would
-make *that* invariantly return true, inventing the issue the annotation was there for.
+`CustomCommand` ends with no suppression at all. `Compass` keeps one, and where it belongs
+took pushing the branch to find out. Its class-level annotation had been covering a finding
+nobody had seen: the anonymous `Callable<Boolean>` that `runCommandSafe` takes. Sonar follows
+calls, so a `call()` whose every branch ends in one of three always-true helpers is as
+invariant as one that says `return true` outright. Reading the rule rather than running it had
+said otherwise, twice. It is annotated on the `call()` now, which is the thing it is about.
 
 The count is the least of it. Twenty-seven methods stop being invisible to the rule.
 `isOrdinaryCompass`, `isPendingRefresh`, `isOldGroupName`, `hasDefaultSnapshotOverrides`,
