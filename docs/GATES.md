@@ -514,6 +514,7 @@ list [network]           gates you can see
 remove <gate>            take it down
 edit <gate> <field> <value>
 regenerate <gate>|-all   redraw signs, levers and arrival points
+validate <gate>|-all    check the gate is still actually standing (#54)
 refresh                  next DHD click re-detects the geometry
 go <gate>                teleport to a gate
 force <gate>             dial past the usual refusals

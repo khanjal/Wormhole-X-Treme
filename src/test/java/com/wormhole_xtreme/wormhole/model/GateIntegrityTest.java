@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -18,6 +19,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -159,6 +162,65 @@ class GateIntegrityTest
     void aGateWithNoRecordedBlocksIsNotBroken()
     {
         assertEquals(0, GateIntegrity.missingStructureBlocks(gateWith(Collections.emptyList())));
+    }
+
+    // -------------------------------------------------------------------
+    // isDialSignMissing
+    // -------------------------------------------------------------------
+
+    /** A dial sign block wired into the mock world, either still a sign or already replaced. */
+    private Block signBlockAt(final int x, final int z, final boolean stillASign)
+    {
+        final Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        when(block.getX()).thenReturn(x);
+        when(block.getZ()).thenReturn(z);
+        final BlockState state = stillASign ? mock(Sign.class) : mock(BlockState.class);
+        when(block.getState()).thenReturn(state);
+        return block;
+    }
+
+    private static Stargate gateWithDialSign(final Block signBlock)
+    {
+        final Stargate gate = mock(Stargate.class);
+        when(gate.getGateDialSignBlock()).thenReturn(signBlock);
+        return gate;
+    }
+
+    /** A gate with no dial sign recorded -- lever, button or redstone only -- has nothing to lose. */
+    @Test
+    void aGateWithNoDialSignRecordedIsNotMissingOne()
+    {
+        assertFalse(GateIntegrity.isDialSignMissing(gateWithDialSign(null)));
+    }
+
+    /** The ordinary case: the block is still a sign, so nothing has happened to it. */
+    @Test
+    void aSignStillStandingIsNotMissing()
+    {
+        assertFalse(GateIntegrity.isDialSignMissing(gateWithDialSign(signBlockAt(0, 0, true))));
+    }
+
+    /**
+     * The 2011 report's exact case: something wrote over the sign block. This is the same
+     * question {@code updateDialSign} asks on every click, asked here on demand instead --
+     * see #54.
+     */
+    @Test
+    void aSignReplacedBySomethingElseIsMissing()
+    {
+        assertTrue(GateIntegrity.isDialSignMissing(gateWithDialSign(signBlockAt(0, 0, false))));
+    }
+
+    /** An unloaded chunk reads as intact here too, for the same reason the frame check does. */
+    @Test
+    void aDialSignInAnUnloadedChunkIsLeftAloneRatherThanLoadedToCheck()
+    {
+        when(world.isChunkLoaded(500 >> 4, 500 >> 4)).thenReturn(Boolean.FALSE);
+        final Block signBlock = signBlockAt(500, 500, false);
+
+        assertFalse(GateIntegrity.isDialSignMissing(gateWithDialSign(signBlock)));
+        verify(signBlock, never()).getState();
     }
 
 }

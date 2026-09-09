@@ -238,7 +238,7 @@ The plugin uses permission nodes for feature access. Permissions are intended to
 - `wormhole.remove.all` — allow removing any gate (admin-level).
 - `wormhole.build` — allow building gates using `/wormhole build`/`wxbuild` automation.
 - `wormhole.config` — allow changing plugin configuration via commands, and everything
-  under `gate edit`, `gate regenerate`, `gate import`, and gate ownership. These were never
+  under `gate edit`, `gate regenerate`, `gate validate`, `gate import`, and gate ownership. These were never
   actually gated before this release — any player able to run `/wormhole` at all could
   reconfigure or reassign any gate on the server. They now share this one node rather than
   each getting a separate admin-only node that would mean the same thing.
@@ -305,7 +305,7 @@ thing that is neither.
 
 **Gates** — `gate build <shape>`, `gate complete <name> [idc=IDC] [net=NET]`,
 `gate list [network]`, `gate remove <gate> [-all]`, `gate regenerate <gate|-all>`,
-`gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`,
+`gate validate <gate|-all>`, `gate refresh`, `gate go <gate>`, `gate force <gate>`, `gate import`,
 `gate shapes <reload [name]|validate <name>>`
 
 `gate edit <gate> <field> [value]` covers everything you set on a gate:
@@ -383,6 +383,16 @@ comes back unchanged and is not counted. It is narrower than running `regenerate
 gate: it only touches the arrival point, not the dial lever, iris lever, redstone hookup or
 sign that a single-gate regenerate also refreshes, since rewriting those for every gate on the
 server at once is not something an unattended sweep should do on its own.
+
+**`gate validate <gate|-all>`** checks whether a gate is actually still standing where it says
+it is, without waiting for a click or a dial to find out. WorldEdit's `//set`, `//replace` and
+`//cut` write blocks straight into the world and fire nothing this plugin protects itself
+with, so a gate they take apart stays fully registered with nothing there — dialling already
+refuses that gate and says why, and a redrawn dial sign already logs it, but this asks the
+question on demand for a gate nobody has approached in a while. It reports missing frame
+blocks and a dial sign that is no longer a sign; `-all` sweeps every gate and names only the
+ones with something wrong. A gate in a chunk nobody has loaded reads as fine rather than being
+checked — this never loads a chunk just to answer.
 
 **`gate shapes validate <name>`** checks a `.shape` file in the GateShapes directory for
 problems that will not throw on their own: a row one cell short of the width its first layer

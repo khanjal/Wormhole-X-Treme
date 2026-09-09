@@ -320,8 +320,9 @@ public final class SubCommands
         {
             return completeGateShapes(args);
         }
-        if (REGENERATE.equals(verb) || "regen".equals(verb))
+        if (REGENERATE.equals(verb) || "regen".equals(verb) || "validate".equals(verb))
         {
+            // Same shape as regenerate: a specific gate, or -all to sweep every one of them.
             return completeGateRegenerate(args);
         }
         // Every other verb takes a gate name first, and nothing after it worth guessing at.
@@ -405,10 +406,9 @@ public final class SubCommands
     }
 
     /**
-     * Completions for {@code /wormhole gate regenerate <gate|-all>}.
-     *
-     * <p>-all fixes every gate's arrival point in one pass, and is offered alongside gate
-     * names because a completer cannot know in advance which the admin wants.
+     * Completions for {@code /wormhole gate regenerate <gate|-all>} and
+     * {@code /wormhole gate validate <gate|-all>} -- both take exactly one gate name, or
+     * {@code -all} to sweep every gate on the server in one pass.
      *
      * @param args
      *            the full argument array
