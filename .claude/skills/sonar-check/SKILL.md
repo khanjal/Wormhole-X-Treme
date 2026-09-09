@@ -44,11 +44,11 @@ two in any one. It usually dissolves as a side effect of an S3776 reshape rather
 worth its own change — if you are already extracting a method from the loop body, check whether
 the breaks went with it.
 
-**S1141, extract this nested try (14 open).** Concentrated: four in `WormholeXTreme.java`, four
-in `LegacyCompat.java`, two in `WormholeXTremeVehicleListener.java`. Before flattening one, read
-[[catch-throwable-can-be-load-bearing]] — some of the nesting in `LegacyCompat` exists to catch
-`LinkageError` separately from `Exception` across server versions, and collapsing the two
-changes behaviour on exactly the servers hardest to test.
+**S1141, extract this nested try.** Concentrated in `WormholeXTreme.java` and
+`WormholeXTremeVehicleListener.java`. Before flattening one, read
+[[catch-throwable-can-be-load-bearing]] — some of the nesting exists to catch `LinkageError`
+separately from `Exception` across server versions, and collapsing the two changes behaviour on
+exactly the servers hardest to test.
 
 **S4144, identical implementations (6 open).** Read every one. Two turned out to be real
 duplication bugs during the earlier sweeps. But see the next section first, because five of the

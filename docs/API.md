@@ -142,8 +142,6 @@ conventions worth knowing before you read any of them:
 
 - `MaterialUtils.isWallSign(Material)` and `MaterialUtils.isButton(Material)` cover every
   wood, stone and Nether variant, so nothing tests for those block types one at a time.
-  `LegacyCompat` is a separate thing: it maps the numeric material ids that only appear in
-  very old save data.
 - Air is tested with `Material.isAir()`, never `== Material.AIR`, so `CAVE_AIR` and
   `VOID_AIR` count.
 - A gate's sign material comes from its shape's `SIGN_MATERIAL=` key, read off the shape

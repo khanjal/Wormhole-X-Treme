@@ -1,127 +1,93 @@
 # SonarCloud backlog - Wormhole-X-Treme
 
-Snapshot of `main` at `4a06d49`, after the six bundled sweeps (PRs #115-#122).
+Snapshot of `main` at `ecb9f0f` (PR #206), analysed 2026-09-08.
 Regenerate with the queries at the bottom rather than hand-editing the counts.
 
-## Where the campaign stands
+**There is no backlog left to work.** Three issues are open and all three are design questions
+waiting on a decision, not defects. This file is now a record of what the campaign did and what
+is worth carrying into the next one.
 
-| | 2026-09-05 | after S3776 work | now |
+## Where it ended
+
+| | 2026-09-05 | after the S3776 work | now |
 |---|---|---|---|
-| Open issues | 893 | 427 | **178** |
-| Cognitive complexity | 4978 | 4074 | **4013** |
-| Line coverage | 42.9% | 53.3% | **53.5%** |
-| Tests | ~490 | 903 | **905** |
+| Open issues | 893 | 427 | **3** |
+| Cognitive complexity | 4978 | 4074 | **3560** |
+| Line coverage | 42.9% | 53.3% | **73.0%** |
+| Tests | ~490 | 903 | **1321** |
 
-The sweeps closed **251 issues in 8 PRs**. What is left is almost entirely work that
-needs a method read rather than a pattern matched.
+Reliability **A**, security **A**, maintainability **A**. Duplication 0.5% across 22,566 lines.
+Every `S3776` (method too complex) is closed; there were 18 at the halfway mark.
 
-## What the sweeps were, and what they cost
+## The three that are left
 
-| PR | Sweep | Issues |
+All in the beam subsystem, all deliberate, none of them a bug:
+
+| Rule | Where | The question |
 |---|---|---|
-| #115 | dead wood and test idioms | 82 |
-| #116 | naming and layout | 47 |
-| #118 | local simplifications | 23 |
-| #119 | anonymous classes to lambdas | 45 (23 edits) |
-| #120 | switch labels, nested ifs, ternaries | 25 |
-| #121 | List and ConcurrentMap on getters | 19 |
-| #122 | the tail of the above | 7 |
+| `S6206` | `BeamDestination` | Make it a `record`? It is already immutable; the change is real but it is a public type. |
+| `S107` | `BeamDestination` | 8-parameter constructor. |
+| `S107` | `BeamFrame` | 14-parameter constructor. |
 
-Three things were worth more than the rule that found them:
+The two `S107`s are the same call: a builder or a parameter object would satisfy the rule, and
+whether that reads better than 14 named arguments at the two call sites is a matter of taste
+rather than a defect. Left open on purpose so the decision is visible.
 
-- **Six Javadocs were reattached, not deleted.** The dangling-comment rule was finding
-  documentation that had been separated from its method in an earlier refactor and left
-  above a different one. Only two of the eight were genuinely dead.
-- **Five `assertThrows` calls were passing for the wrong reason.** `assertThrows(X, () ->
-  pair().getAllowed().add(y))` passes if `pair()` throws X. The setup call is hoisted out
-  now, so only the call under test is inside the lambda.
-- **`getLeverToggleByte` had no coverage at all.** It was two nested ternaries reaching the
-  same answer by different routes. Two tests now pin it over all 256 byte values; they were
-  run against the original before the rewrite, which is what makes "no behaviour change" a
-  measurement rather than a claim.
+## What the campaign was worth
 
-And two were traps the compiler caught: three `length() == 0` sites were Bukkit `Vector`s,
-where `length()` is magnitude; and `playerRecentArrival` is both a `MessageStrings` constant
-and an unrelated private field, so the rename had to be scoped rather than global.
+The sweeps (PRs #115-#122) closed 251 issues by pattern. The later work (#150-#206) was
+different in kind: coverage-led, one class at a time, with a mutation run to prove each test
+bites before the PR opened.
 
-## What is left
+That second half found **three production bugs** the rule that pointed at the file had not
+noticed:
 
-### Per-site work - 119 issues
+- indexed gate wiring could never be removed without deleting the whole gate, so the redstone
+  an admin lays to wire a gate was trapped there
+- a debug line was built on every player interaction whether or not `FINE` was enabled (#199)
+- gate protection did nothing when another plugin cancelled the event first, and Bukkit lets a
+  later listener un-cancel (#53, PR #207)
 
-These cannot be swept. Each needs the method read, and for S3776 the net-first cycle:
-characterisation test, mutate to prove it bites, reshape, mutate again.
+**And it fixed two bugs that could not have reached anybody**, which is worth recording as
+plainly as the three that could. A lever's powered bit eating its facing (#153) and
+`getLeverToggleByte` reaching the same answer by two routes (#118) were both real defects in
+real code -- in methods with no production callers. `LegacyCompat` was deleted for that reason;
+`WorldUtils.getLeverToggleByte` is still there and still uncalled.
 
-| Rule | Count | Note |
-|---|---|---|
-| `S3776` Cognitive complexity | 47 | ~1 per PR. The rule that has been finding real bugs. |
-| `S1192` Duplicated literal | 33 | Needs judgement about what deserves a name. `SubCommands.java` has 7. |
-| `S135` Multiple break/continue | 19 | Usually dissolves as a side effect of an S3776 reshape. |
-| `S1141` Nested try | 14 | Same - an extraction fixes it. |
-| `S4144` Identical implementations | 6 | Read each one. Two of these turned out to be real duplication bugs. |
+The lesson is not "check for callers before fixing" so much as **a test suite makes dead code
+look maintained**. Both of those methods had careful tests, which is exactly why three separate
+PRs went into them without anybody asking whether they ran.
 
-### The long tail - 59 issues across 33 rules
+**The yield collapses once the easy classes are covered.** After #199 the remaining PRs found
+no production bugs at all -- every mutation that survived turned out to be a fault in the test I
+had just written, not in the code. That is the signal to stop, and it is why this file closes
+rather than listing more targets.
 
-No rule here has more than three sites, so there is nothing left to bundle. Fix them as
-you pass through the file.
-
-| Rule | Count | Where |
-|---|---|---|
-| `S1168` Return an empty collection, not null | 3 | `StargateShapeRegistry.java` x2, `StargateAnimator.java` |
-| `S1488` Return the expression directly | 3 | `GateSerializer.java`, `StargateYamlManager.java`, `StargateManager.java` |
-| `S1612` Use a method reference | 3 | `RingPatternTest.java` x2, `PlayerTravelEventTest.java` |
-| `S2629` Build the log message lazily | 3 | `WormholeXTreme.java` x3 |
-| `S2925` Remove Thread.sleep from a test | 3 | `GateMaxOpenTimeTest.java` x3 |
-| `S4042` Use Files.delete to see why it failed | 3 | `RingYamlManager.java` x2, `StargateYamlManager.java` |
-| `S6126` Use a text block | 3 | `RingYamlManagerTest.java` x3 |
-| `S9142` Use a switch expression | 3 | `ConfigurationYAML.java`, `Stargate3DShape.java`, `CommandUtilities.java` |
-| `S1066`  | 2 | `StargateBlockSetup.java`, `WormholeXTremePlayerListener.java` |
-| `S107`  | 2 | `BeamDestination.java`, `BeamFrame.java` |
-| `S1128`  | 2 | `ShapeMatchPreferenceTest.java`, `WormholeXTreme.java` |
-| `S2786`  | 2 | `ConfigManager.java`, `WXPermissions.java` |
-| `S3626` Redundant jump statement | 2 | `WormholeXTreme.java`, `LegacyCompat.java` |
-| `S3923`  | 2 | `CommandUtilities.java`, `Wormhole.java` |
-| `S5785` assertTrue on a constant | 2 | `LegacyImportTest.java` x2 |
-| `S6204`  | 2 | `MaterialCommand.java`, `SubCommandsTest.java` |
-| `S6206`  | 2 | `BeamDestination.java`, `RingManager.java` |
-| `S8491` Dangling Javadoc comment | 2 | `StargateRestrictions.java`, `WorldUtils.java` |
-| `S1068`  | 1 | `BukkitRingWorld.java` |
-| `S1117`  | 1 | `WormholeXTreme.java` |
-| `S1155`  | 1 | `StargateAnimator.java` |
-| `S1172`  | 1 | `GateOneWayTest.java` |
-| `S1186`  | 1 | `StargateDBManager.java` |
-| `S1871`  | 1 | `WXList.java` |
-| `S2093`  | 1 | `ConfigurationFlatFile.java` |
-| `S2130`  | 1 | `Stargate3DShape.java` |
-| `S3252`  | 1 | `ShapeFileValidator.java` |
-| `S3398`  | 1 | `BeamAnimation.java` |
-| `S3457`  | 1 | `WormholeXTreme.java` |
-| `S3824`  | 1 | `StargateBlockSetup.java` |
-| `S5857`  | 1 | `Stargate3DShape.java` |
-| `S6201`  | 1 | `RingCommand.java` |
-| `S6905`  | 1 | `LegacyDatabaseImporter.java` |
+What is uncovered now is uncovered for a reason: thin I/O wrappers (`StargateBlockSetup`
+drawing, `BukkitRingWorld`), accessor padding (`ConfigManager`), and lifecycle that needs a live
+server. `BeamAnimation.arriveAndSettle` is the one real gap -- the class cannot be loaded under
+test at all, because its `TRAVELLER_EFFECTS` static field builds `PotionEffectType` values from
+a registry that wants a running server.
 
 ## Two things to know before working this list
 
 **The Sonar check fails on almost every PR here, and it carries no signal.** The gate wants
-80% coverage on new code; a sweep or a rename touches hundreds of lines and adds no tests,
-so it trips by construction. Every sweep PR merged with 12/12 required checks green and
-zero new issues while showing a red Sonar X. Read `new_coverage` and the new-issue count
-directly rather than trusting the tick.
+80% coverage on new code; a sweep or a rename touches hundreds of lines and adds no tests, so it
+trips by construction. Every sweep PR merged with 12/12 required checks green and zero new
+issues while showing a red Sonar X. Read `new_coverage` and the new-issue count directly rather
+than trusting the tick.
 
 **Retarget a stacked PR before merging its parent.** `main` requires 11 checks with
 `strict: true`, so stacked branches must rebase anyway - but merging the parent with
-`--delete-branch` auto-closes the child, and GitHub will not reopen a PR whose base branch
-is gone. PR #117 was lost that way and had to be recreated as #118.
+`--delete-branch` auto-closes the child, and GitHub will not reopen a PR whose base branch is
+gone. PR #117 was lost that way and had to be recreated as #118.
 
-## Running this across several sessions
+## Splitting the work across sessions
 
-Splitting *by rule* was right for the sweeps, because each rule had one shape. It is wrong
-for what is left: S3776 and S1192 both cut across every package, and two sessions working
-different rules in the same file will conflict.
-
-Split by directory instead - each session owns a subtree and fixes every issue inside it.
-Past three or four sessions the CI queue is the limit, not the authoring: every merge
-invalidates every other open PR, which then has to rebase and re-run the full matrix.
+Splitting *by rule* was right for the sweeps, because each rule had one shape. It is wrong for
+coverage work: split by directory instead, so each session owns a subtree. Past three or four
+sessions the CI queue is the limit rather than the authoring, since every merge invalidates
+every other open PR, which then has to rebase and re-run the full matrix.
 
 ## Regenerating this file
 
@@ -133,4 +99,8 @@ curl -s "https://sonarcloud.io/api/project_analyses/search?project=khanjal_Wormh
 
 ```bash
 curl -s "https://sonarcloud.io/api/issues/search?componentKeys=khanjal_Wormhole-X-Treme&resolved=false&ps=500&facets=rules"
+```
+
+```bash
+curl -s "https://sonarcloud.io/api/measures/component?component=khanjal_Wormhole-X-Treme&metricKeys=coverage,line_coverage,ncloc,tests,reliability_rating,security_rating,sqale_rating,duplicated_lines_density,cognitive_complexity"
 ```
