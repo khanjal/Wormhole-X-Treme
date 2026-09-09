@@ -32,8 +32,6 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * what these commands <em>do</em> has changed. The old flat names still work too -- they are
  * registered as hidden entries -- so nothing in a command block or a script breaks.
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class GateCommand implements SubCommand
 {
     private static final String REGENERATE = "regenerate";
@@ -53,6 +51,8 @@ public class GateCommand implements SubCommand
         return new ArrayList<>(VERBS);
     }
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -81,7 +81,8 @@ public class GateCommand implements SubCommand
         }
         if ("import".equals(verb))
         {
-            return importLegacy(sender);
+            importLegacy(sender);
+            return true;
         }
         if ("shapes".equals(verb))
         {
@@ -130,9 +131,8 @@ public class GateCommand implements SubCommand
      *
      * @param sender
      *            who asked
-     * @return true, the command was handled
      */
-    private static boolean importLegacy(final CommandSender sender)
+    private static void importLegacy(final CommandSender sender)
     {
         // Written fresh this session and given the same gap the rest of gate management
         // had: no permission check at all. Fixed at the same time as the others, on the
@@ -141,14 +141,14 @@ public class GateCommand implements SubCommand
             && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
         {
             sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
+            return;
         }
         final com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.Result result =
             com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.importGates();
         if (result.getProblem() != null)
         {
             sender.sendMessage(result.getProblem());
-            return true;
+            return;
         }
         sender.sendMessage("Imported " + result.getImported() + " gate"
             + (result.getImported() == 1 ? "" : "s") + ". The old database is untouched.");
@@ -161,6 +161,5 @@ public class GateCommand implements SubCommand
         {
             sender.sendMessage("  skipped " + skipped);
         }
-        return true;
     }
 }
