@@ -23,8 +23,6 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * {@code StargateRestrictions.cooldownTicks} is what keeps an extreme value in that file
  * schedulable.
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class CooldownCommand implements SubCommand
 {
 
@@ -34,6 +32,8 @@ public class CooldownCommand implements SubCommand
     /** Longest cooldown accepted, in seconds. An hour. */
     private static final int MAX_SECONDS = 3600;
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {

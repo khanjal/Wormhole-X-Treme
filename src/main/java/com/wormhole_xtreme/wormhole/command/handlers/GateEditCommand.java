@@ -31,8 +31,6 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  * validation, the permission checks and the messages are all still the originals. This class
  * is a front door, not a rewrite.
  */
-// Command handlers return boolean because SubCommand/CommandExecutor say so; "always true" means handled.
-@SuppressWarnings("java:S3516")
 public class GateEditCommand implements SubCommand
 {
     /**
@@ -98,6 +96,8 @@ public class GateEditCommand implements SubCommand
      *            the group name
      * @return true, the command was handled
      */
+    // Behind the Field interface, whose other implementations do return false.
+    @SuppressWarnings("java:S3516")
     private static boolean setGroup(final CommandSender sender, final String gateName,
         final String value)
     {
@@ -170,6 +170,8 @@ public class GateEditCommand implements SubCommand
         return (field != null) && FIELDS.containsKey(field.toLowerCase(Locale.ROOT));
     }
 
+    // Bukkit reads the boolean as "handled"; every path here has handled it.
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
