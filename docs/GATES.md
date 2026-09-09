@@ -218,7 +218,7 @@ sign-powered?
 | Route | What happens | Is `/dial` needed? |
 |---|---|---|
 | Button or lever on a **sign** gate | `dialFromSign` dials whatever the sign is showing, immediately | No |
-| Button or lever on a **non-sign** gate | `activateForDialling` lights the chevrons and waits; the player is told to type `/dial <gate>` | **Yes** — nothing else can name the target |
+| Button or lever on a **non-sign** gate | `activateForDialling` lights the chevrons and waits, printing `Type '/dial <gatename> [idc]'` | **Yes** — nothing else can name the target |
 | Redstone on a **sign** gate | `dialSignTarget` dials what the sign shows | No |
 
 So `/dial` is what a gate without a sign uses instead of a sign: the sign names the
