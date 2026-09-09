@@ -69,7 +69,7 @@ class GateIntegrityTest
             blockAt(1, 64, 0, Material.OBSIDIAN)));
 
         assertEquals(0, GateIntegrity.missingStructureBlocks(gate));
-        assertFalse(GateIntegrity.isStructureBroken(gate));
+        assertEquals(0, GateIntegrity.missingStructureBlocks(gate));
     }
 
     @Test
@@ -81,7 +81,7 @@ class GateIntegrityTest
             blockAt(2, 64, 0, Material.AIR)));
 
         assertEquals(2, GateIntegrity.missingStructureBlocks(gate));
-        assertTrue(GateIntegrity.isStructureBroken(gate));
+        assertTrue(GateIntegrity.missingStructureBlocks(gate) > 0);
     }
 
     /**
@@ -100,8 +100,8 @@ class GateIntegrityTest
             structure.add(blockAt(x, 64, 0, x == 7 ? Material.AIR : Material.OBSIDIAN));
         }
 
-        assertTrue(GateIntegrity.isStructureBroken(gateWith(structure)));
-        assertEquals(1, GateIntegrity.missingStructureBlocks(gateWith(structure)));
+        assertEquals(1, GateIntegrity.missingStructureBlocks(gateWith(structure)),
+            "one block out of twenty is already one too many");
     }
 
     /**
@@ -118,7 +118,7 @@ class GateIntegrityTest
             blockAt(0, 64, 0, Material.STONE),
             blockAt(1, 64, 0, Material.GLASS)));
 
-        assertFalse(GateIntegrity.isStructureBroken(gate));
+        assertEquals(0, GateIntegrity.missingStructureBlocks(gate));
     }
 
     /**
@@ -159,7 +159,7 @@ class GateIntegrityTest
     @Test
     void aGateWithNoRecordedBlocksIsNotBroken()
     {
-        assertFalse(GateIntegrity.isStructureBroken(gateWith(Collections.emptyList())));
+        assertEquals(0, GateIntegrity.missingStructureBlocks(gateWith(Collections.emptyList())));
     }
 
 }

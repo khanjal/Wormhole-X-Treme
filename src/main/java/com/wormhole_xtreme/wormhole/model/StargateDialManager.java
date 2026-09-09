@@ -560,9 +560,10 @@ class StargateDialManager
         // Before the reasons about traffic: a target that is not standing any more is not a
         // place to put somebody. Nothing fires an event when WorldEdit removes the blocks, so
         // this is the moment it gets noticed. See #54.
-        if (GateIntegrity.isStructureBroken(target))
+        final int missingBlocks = GateIntegrity.missingStructureBlocks(target);
+        if (missingBlocks > 0)
         {
-            return "has " + GateIntegrity.missingStructureBlocks(target)
+            return "has " + missingBlocks
                 + " frame blocks missing; something removed them without breaking them.";
         }
         if (target.isGateIrisActive())

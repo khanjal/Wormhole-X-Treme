@@ -34,6 +34,11 @@ public final class GateIntegrity
      * be built of anything and its material can be changed under it. Somebody replacing obsidian
      * with stone has not broken the gate; somebody replacing it with nothing has.
      *
+     * <p>A count rather than a predicate because the caller needs the number for its message,
+     * and any of them being missing is already enough: a gate with one block out of its ring
+     * will not detect as a shape, and a traveller arrives inside whatever replaced it. There is
+     * no proportion worth being lenient about, so callers branch on {@code > 0}.
+     *
      * @param gate
      *            the gate to look at
      * @return how many recorded frame blocks are missing, counting only blocks in loaded chunks
@@ -49,23 +54,6 @@ public final class GateIntegrity
             }
         }
         return missing;
-    }
-
-    /**
-     * Whether a gate has lost enough of its frame that dialling it is pointless.
-     *
-     * <p>Any missing frame block at all, rather than a proportion. A gate with one block taken
-     * out of its ring is not a gate any more -- the shape will not detect, the animation draws
-     * against blocks that are not there, and a traveller arrives inside whatever replaced it.
-     * There is no partial state worth being lenient about.
-     *
-     * @param gate
-     *            the gate to look at
-     * @return true if any recorded frame block in a loaded chunk is now air
-     */
-    public static boolean isStructureBroken(final Stargate gate)
-    {
-        return missingStructureBlocks(gate) > 0;
     }
 
     /** A recorded block that is in a loaded chunk and is now air. */
