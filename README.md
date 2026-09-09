@@ -24,7 +24,53 @@ Gates are fully configurable per shape — materials, iris, lighting, and sign t
 There are also **transport rings**: small paired pads set into a floor or ceiling that fire when you walk into them.
 Runs on Minecraft 1.20 through 1.21.10. Built as Java 17 bytecode.
 
+## Features
+
+**Gates** — Stargate-style portals, dialled by [sign](#signs), by
+[button or lever](#dhd-dial-home-device--button-and-lever-support), by
+[redstone](#redstone-activation), or with `/dial`. [Eleven bundled shapes](#shapes) from
+`Minimal` to `Massive`, each setting its own materials, lighting, sign type and
+[iris](#iris-gate-shield-setup-and-troubleshooting). Gates work in
+[the Nether and the End](#nether-and-end-dimension-support).
+
+**Everything travels, not just players** — minecarts and boats carry their passengers through
+and re-seat them on arrival, ridden animals go with their rider, arrows and ender pearls cross
+mid-flight, and wandering mobs, dropped items and XP orbs are swept through an open gate once a
+second. [The full table](#what-travels-through-a-gate) says which route each one takes, and what
+that costs.
+
+**Transport rings** — paired pads set into a floor or ceiling that fire when somebody walks in.
+No frame to build and no dialling: step on, and the rings come down.
+[Building](#building-a-ring-pair) · [using](#using-rings) · [settings](#ring-settings)
+
+**Beaming** — point-to-point travel with no structure at all. Staff curate public destinations;
+each player keeps their own private [places](#beaming).
+
+**Sound** — [fifteen sounds](#sounds) — seven for gates, five for rings, three for beaming — and
+every one of them is a setting rather than a hardcoded choice. Each subsystem has its own
+on/off switch and volume, so rings can be silent while gates are not.
+
+**Configuration without a restart** — [seventy-five settings](#configuration), most of them
+changeable in-game with `/wormhole config` rather than by editing a file and reloading. The
+shipped `config.yml` is deliberately short; the rest have working defaults until you change them.
+
+**Access control** — [seventeen permission nodes](#permissions), separating who may build, use,
+remove and administer each subsystem. Soft-depends on LuckPerms or Permissions if you run one,
+and works without either.
+
+**Economy, optionally** — [charge for building or travelling](#economy) through Vault. Vault
+absent simply means nothing is charged; there is no hard dependency.
+
+**Hooks for other plugins** — [five events](docs/API.md), two of them cancellable, so another
+plugin can watch travel or veto it.
+
+**Storage you can read** — [one YAML file per gate](#storage), no database to install or migrate.
+If you are coming from an old build that used SQLite, `/wormhole gate import` brings those gates
+across; it is a command you run, not something that happens to your data on startup.
+
 ## Contents
+
+**What it does** — [Features](#features)
 
 **Setting up** — [Server Compatibility](#server-compatibility) · [Build](#build) · [Configuration](#configuration) · [Permissions](#permissions) · [Commands](#commands)
 
