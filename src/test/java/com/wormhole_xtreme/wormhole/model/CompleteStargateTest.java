@@ -13,7 +13,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -25,6 +24,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.events.GateEvents;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Turning a detected gate into a registered one.
@@ -43,9 +43,7 @@ class CompleteStargateTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         player = mock(Player.class);
         when(player.getName()).thenReturn("builder");
@@ -58,9 +56,7 @@ class CompleteStargateTest
     void tearDown() throws Exception
     {
         clearRegistry();
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginTestSupport.remove();
     }
 
     private static void clearRegistry()

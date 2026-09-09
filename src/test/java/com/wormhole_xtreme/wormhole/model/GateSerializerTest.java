@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.junit.jupiter.api.Test;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 class GateSerializerTest
 {
@@ -155,11 +156,7 @@ class GateSerializerTest
         // one without.
         final com.wormhole_xtreme.wormhole.WormholeXTreme plugin =
             mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class);
-        final java.lang.reflect.Field f =
-            com.wormhole_xtreme.wormhole.WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        final Object previous = f.get(null);
-        f.set(null, plugin);
+        PluginTestSupport.install(plugin);
         try
         {
             final World w = mockWorld();
@@ -180,7 +177,7 @@ class GateSerializerTest
         }
         finally
         {
-            f.set(null, previous);
+            PluginTestSupport.remove();
         }
     }
 

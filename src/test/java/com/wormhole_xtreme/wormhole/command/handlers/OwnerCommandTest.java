@@ -12,7 +12,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -26,6 +25,7 @@ import org.mockito.MockedStatic;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Who a gate belongs to, and who is allowed to change that.
@@ -42,9 +42,7 @@ class OwnerCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         sender = mock(Player.class);
         when(sender.getName()).thenReturn("admin");

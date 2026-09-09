@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -25,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.DataUtils;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * What a version 4 and a version 5 gate come back as.
@@ -75,9 +75,7 @@ class LegacyGateFidelityV4V5Test
 
     private static void setPlugin(final WormholeXTreme value) throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, value);
+        PluginTestSupport.install(value);
     }
 
     private Block blockAt(final int x, final int y, final int z)

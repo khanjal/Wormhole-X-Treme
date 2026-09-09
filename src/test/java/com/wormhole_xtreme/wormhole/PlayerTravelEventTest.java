@@ -30,6 +30,7 @@ import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * Letting another plugin watch, and stop, a player travelling through a gate.
@@ -59,16 +60,12 @@ class PlayerTravelEventTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field pf = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pf.setAccessible(true);
-        pf.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         final org.bukkit.scheduler.BukkitScheduler scheduler =
             mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
-        final java.lang.reflect.Field sf = WormholeXTreme.class.getDeclaredField("scheduler");
-        sf.setAccessible(true);
-        sf.set(null, scheduler);
+        PluginTestSupport.scheduler(scheduler);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -92,9 +89,7 @@ class PlayerTravelEventTest
         origin.setGateActive(true);
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 1.5));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.addBlockIndex(portal, origin);
         StargateManager.registerStargate(origin);
 

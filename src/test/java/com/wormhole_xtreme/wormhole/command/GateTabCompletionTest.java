@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +16,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Tab completion for {@code /wormhole gate}.
@@ -36,9 +36,7 @@ class GateTabCompletionTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
         clearGates();
 
         // Shapes are read off disk when the plugin enables, so the registry is empty in a
@@ -54,9 +52,7 @@ class GateTabCompletionTest
         clearGates();
         StargateShapeRegistry.getStargateShapes().clear();
         StargateShapeRegistry.getStargateShapes().putAll(savedShapes);
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

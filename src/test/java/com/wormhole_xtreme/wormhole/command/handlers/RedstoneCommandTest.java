@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import org.bukkit.command.CommandSender;
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Turning a gate's redstone wiring on and off, and reading it back.
@@ -37,9 +37,7 @@ class RedstoneCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, mock(WormholeXTreme.class));
+        PluginTestSupport.install(mock(WormholeXTreme.class));
 
         // Not a player, so the admin node is not asked for -- the permission branch is its
         // own concern and is covered where the permission itself is.
@@ -51,9 +49,7 @@ class RedstoneCommandTest
     void tearDown() throws Exception
     {
         clearGates();
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginTestSupport.remove();
     }
 
     private static void clearGates()

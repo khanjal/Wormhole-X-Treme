@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -28,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * Tests for vehicle teleport dispatch/behavior (occupied vs unoccupied).
@@ -43,15 +43,11 @@ class WormholeXTremeVehicleListenerEventTest
         mockScheduler = mock(BukkitScheduler.class);
         when(mockScheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
 
-        final Field schedField = WormholeXTreme.class.getDeclaredField("scheduler");
-        schedField.setAccessible(true);
-        schedField.set(null, mockScheduler);
+        PluginTestSupport.scheduler(mockScheduler);
 
         // Install a mock plugin instance so prettyLog() calls do not NPE.
         final WormholeXTreme mockPlugin = mock(WormholeXTreme.class);
-        final Field pluginField = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pluginField.setAccessible(true);
-        pluginField.set(null, mockPlugin);
+        PluginTestSupport.install(mockPlugin);
         // ensure spatial index / gate registry is clean
         GateSpatialIndex.clear();
     }
@@ -124,9 +120,7 @@ class WormholeXTremeVehicleListenerEventTest
         target.setGateFacing(BlockFace.NORTH);
         target.setGateIrisActive(true);
 
-        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
@@ -185,9 +179,7 @@ class WormholeXTremeVehicleListenerEventTest
         target.setGateFacing(BlockFace.NORTH);
         target.setGateIrisActive(true);
 
-        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
@@ -241,9 +233,7 @@ class WormholeXTremeVehicleListenerEventTest
         target.setGateFacing(BlockFace.NORTH);
 
         // set the target via reflection (setGateTarget is package-private)
-        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         // Portal membership comes from the gate's block list, not the block's material.
@@ -293,9 +283,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 200.5, 80.0, 300.5));
         target.setGateFacing(BlockFace.EAST);
-        final java.lang.reflect.Field gateTargetField2 = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField2.setAccessible(true);
-        gateTargetField2.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         // Portal membership comes from the gate's block list, not the block's material.
@@ -372,9 +360,7 @@ class WormholeXTremeVehicleListenerEventTest
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 300.5, 90.0, 400.5));
         target.setGateFacing(BlockFace.SOUTH);
-        final java.lang.reflect.Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));

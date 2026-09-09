@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * An operator may do anything with a gate.
@@ -28,9 +29,7 @@ class OperatorPermissionTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         op = mock(Player.class);
         when(op.getName()).thenReturn("admin");

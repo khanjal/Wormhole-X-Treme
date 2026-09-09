@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Shapes left in the old {@code 3d} and {@code 2d} folders are brought up to the top.
@@ -30,9 +31,7 @@ class LegacyShapeFolderTest
     void setUp() throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginTestSupport.install(plugin);
     }
 
     private File writeShape(final String subdirectory, final String name, final String body) throws Exception

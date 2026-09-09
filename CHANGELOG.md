@@ -81,6 +81,48 @@ confidence.
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
+### Installing the plugin singleton, seventy-eight times over
+
+Almost everything in this plugin reaches the running instance through
+`WormholeXTreme.getThisPlugin()`, and almost nothing works without one. So a test that
+exercises any of it has to put an instance there first and take it away afterwards, and the
+only way in is a private static field.
+
+Seventy-eight test classes were doing that for themselves, in a hundred and fifteen places, by
+the same three lines of reflection each time -- 102 of the 139 reflective field accesses in
+the whole test tree, all reaching for the same field.
+
+`PluginTestSupport.install()` and `remove()` are those three lines with a name on them. A setup
+that ran to four lines of `getDeclaredField`, `setAccessible` and `set` is one line that says
+what it is doing, and the suite lost 250 lines net.
+
+Two things came out of doing it rather than reading it. `remove()` puts back whatever was
+there before the matching install, instead of writing null: two classes were already careful
+enough to do that by hand, and everywhere else it comes to the same thing, because a class
+that cleans up leaves null behind for the next one anyway. And three classes did not fit the
+pattern at all -- one wrapped the reflection in a helper that swallowed the checked exception,
+one saved and restored around a single test, one handed the `Field` object itself to its call
+sites to reset in a `finally`. Those were done by hand, and the sweep was written to report
+what it could not match rather than guess at it.
+
+PMD found the rest: forty-four `java.lang.reflect.Field` imports the change orphaned, plus a
+helper that no longer had callers and an import that only its javadoc had been using.
+
+The other idiom was pointing one gate at another, fifteen times across nine classes, and it
+turned out not to need reflection at all. `Stargate.setGateTarget` exists; it is
+package-private because only dialling and shutdown have any business setting a target, and
+both do a good deal else besides -- chevrons, portal blocks, the far end's state. A public
+setter would invite a gate that looks dialled and is not. The tests were not in that package,
+so they went around the modifier rather than through it.
+
+`StargateTestSupport` is in the package, so it calls the setter. No reflection, which means a
+rename is a compile error rather than a test that fails somewhere else much later. It lives
+there for the same reason `ConfigTestSupport` lives in the config package: the thing it needs
+is package-private and it is only for tests.
+
+Reflective access across the tests: 139 sites in 87 files down to 8 in 7. Two of the eight are
+the helper itself. The rest are one-offs reaching for something no other test wants.
+
 ### Nine unchecked casts in the tests, and three different reasons for them
 
 `YamlMaps` took the production count from thirteen to one. The tests kept theirs, and had
@@ -173,7 +215,6 @@ Four assertions in `RingPairingTest` turned out to be asserting nothing.
 `assertTrue(pairWith(...))` could never fail, because `completePair` always returned true, and
 three of the four sit in tests about the pairing being *refused*, where a green `true` reads as
 though it succeeded. Each already asserted what mattered on the following line.
-
 
 ### Tab completion could not see your own beam places
 
@@ -874,7 +915,6 @@ version. The exposure is days and no tagged release, but it is real, and a commi
 replacement would start clean. And any commission **must assign copyright to the project**, since
 if the artist keeps it none of this is the project's to decide.
 
-
 ### The licence badge said GPL-3.0 on its own authority
 
 The README's licence badge was `img.shields.io/badge/license-GPL--3.0-blue` -- a static image with
@@ -1284,7 +1324,6 @@ why -- a birch boat should come back a birch boat, and `EntityType.BOAT` stopped
 1.21.3 when boats were split per wood. The two paths were near-copies of each other and only
 one had learned that. They are one path now, so both have.
 
-
 ### A dead null check made seven permission calls look like crashes
 
 `WXPermissions.checkWXPermissions` opened with `if (player == null) return false;`. No caller
@@ -1473,7 +1512,6 @@ Ten places computed block coordinates in `int` and let the result widen -- `maxX
 Minecraft's coordinate limits, so this is tidying rather than a fix; the casts just put the
 widening before the arithmetic instead of after.
 
-
 ### A hand-edited config line without a colon could end the parse
 
 `getValueFromSetting` split each line on `:` and read `[1]` without checking there was one.
@@ -1502,7 +1540,6 @@ update at all and only cleared a cooldown.
 
 That action has moved to the one line of scheduling it needed, and the constructor is gone. The
 gate field is now never null, and the null check the log line carried went with it.
-
 
 ### Beaming hid the traveller and left their gear standing in the column
 
@@ -2670,7 +2707,6 @@ difference between this time and last.
 
 </details>
 
-
 ## 1.4.0 (2026-09-05)
 
 Beaming: a third way to travel, with no structure to build and nothing to dial. Three large gate
@@ -3195,7 +3231,6 @@ to observe a sound call, so a regression here fails a fast, Bukkit-free test ins
 being noticed by someone dialing a gate and not hearing anything.
 
 </details>
-
 
 ## 1.3.0 (2026-09-03)
 
@@ -3900,7 +3935,6 @@ rewrote cooldown timers and read a stub that always returned -1.
 - Fixed erroneous messages sent when a plugin is attached to already and WXT receives
   a plugin event for it. Cosmetic bug, fixed.
 
-
 ## 0.830 (4/4/11 @ 01:12 PST)
 
 - Water now will not flow over Stargate anythings. No more broken levers and magic
@@ -4047,7 +4081,6 @@ rewrote cooldown timers and read a stub that always returned -1.
 - The '/wormhole simple' command now refreshes Help entries to the proper permissions after
   being set.
 
-
 ## 0.811 (3/21/11 @ 20:27 PST)
 
 - Came up with a proximity based check for stargates in the lava & fire event
@@ -4190,7 +4223,6 @@ rewrote cooldown timers and read a stub that always returned -1.
   will clear the IDC. This command is available to OPs, wormhole.config, the console, 
   and the owner of the gate.
 
-
 ## 0.755 (3/4/11 @ 16:51 PST)
 
 - Added /wxbuild, /wxlist, and /wxremove commands as short form of their /wormhole 
@@ -4217,8 +4249,6 @@ rewrote cooldown timers and read a stub that always returned -1.
   Most useful for debugging.
   
 - Closed a potential file descriptor leak in configuration code.
-
-
 
 ## 0.754 (3/3/11 @ 00:54 PST)
 
@@ -4291,8 +4321,6 @@ rewrote cooldown timers and read a stub that always returned -1.
 - getLogLevel() added to ConfigManager for getting Log Level from the config. 
   getLevel() added to Settings for pulling the Level data from the ConfigKeys.
 
-
-
 ## 0.740 (2/21/11 @ 05:45 PST)
 
 - Initial revamp of config system. Now with 100% less chances of a dereference 
@@ -4315,7 +4343,6 @@ rewrote cooldown timers and read a stub that always returned -1.
 - DeleteTeleportSign() and ResetTeleportSign() added. Delete nukes the sign 
   altogether. Reset sets the name on it back to the old name of the Stargate and
   wipes all other lines of text. No more gates accidentally named -gatename-.
-
 
 ## 0.736 (2/20/11 @ 03:20 MST)
 - Added configurable WOOSH_DEPTH for custom gate shapes.
@@ -4392,7 +4419,6 @@ In Progress/Partially working:
 - Log output has been totally revamped. Now it should be easier to tell what we are doing in the logs.
 - Fixed the ability to use the craftbukkit /reload command without giving an NPE.
 - Removed a few potential file descriptor, memory, and database performance leaks.
-
 
 ## 0.725 (2/13/11 @ 21:15 MST)
 - Iris and IDC is now completed for non-sign gates!
@@ -4555,7 +4581,6 @@ Configuration options are now available
 /wormhole material <MATERIAL> : Gets or sets your portal material (air, water, lava, etc)
 Possible performance improvement using ConcurrentHashMap instead of locking and using HashMap.
 Iris is still in progress 
-
 
 ## Notes
 

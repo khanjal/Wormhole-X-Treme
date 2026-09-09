@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
 import com.wormhole_xtreme.wormhole.model.StargateShapeLayer;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * A gate can show where its chevrons are before any of them light.
@@ -58,9 +59,7 @@ class UnlitChevronTest
         throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         final List<String> lines = Files.readAllLines(SHAPE_DIR.resolve(name + ".shape"));
         final List<String> out = new ArrayList<>();

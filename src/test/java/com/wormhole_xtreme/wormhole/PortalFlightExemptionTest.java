@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * Standing in a portal without being kicked for flying.
@@ -97,9 +98,7 @@ class PortalFlightExemptionTest
         clearFlightGrants();
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field pf = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pf.setAccessible(true);
-        pf.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -124,9 +123,7 @@ class PortalFlightExemptionTest
         origin.setGateWorld(world);
         origin.setGateActive(true);
         origin.setGatePlayerTeleportLocation(new Location(world, 500, 70, 500));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
 
         player = mock(Player.class);

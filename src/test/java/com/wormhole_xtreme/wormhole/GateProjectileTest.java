@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * How arrows and other projectiles cross a gate.
@@ -50,16 +51,12 @@ class GateProjectileTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field pf = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pf.setAccessible(true);
-        pf.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
         when(scheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
             .thenAnswer(inv -> { inv.getArgument(1, Runnable.class).run(); return 1; });
-        final java.lang.reflect.Field sf = WormholeXTreme.class.getDeclaredField("scheduler");
-        sf.setAccessible(true);
-        sf.set(null, scheduler);
+        PluginTestSupport.scheduler(scheduler);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");
@@ -78,9 +75,7 @@ class GateProjectileTest
         origin.setGateActive(true);
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
 
         // An arrow in flight, sitting in the origin gate's portal block.

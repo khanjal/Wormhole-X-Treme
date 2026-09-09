@@ -19,6 +19,7 @@ import com.wormhole_xtreme.wormhole.command.CommandUtilities;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * The events are raised by the operations they describe.
@@ -40,9 +41,7 @@ class GateEventDispatchTest
     {
         GateSpatialIndex.clear();
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field pf = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pf.setAccessible(true);
-        pf.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         world = mock(World.class);
         when(world.getName()).thenReturn("w");

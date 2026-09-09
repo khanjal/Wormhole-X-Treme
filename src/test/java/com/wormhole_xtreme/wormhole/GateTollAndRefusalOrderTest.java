@@ -35,6 +35,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.permissions.StargateRestrictions;
 import com.wormhole_xtreme.wormhole.plugin.EconomySupport;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * What a gate refuses you, in what order, and when it takes your money.
@@ -93,7 +94,7 @@ class GateTollAndRefusalOrderTest
         dst.setGateName("dst");
         dst.setGateFacing(BlockFace.EAST);
         dst.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
-        setTarget(src, dst);
+        StargateTestSupport.target(src, dst);
 
         StargateManager.addBlockIndex(portal, src);
         src.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
@@ -137,13 +138,6 @@ class GateTollAndRefusalOrderTest
         final Field f = WormholeXTreme.class.getDeclaredField(name);
         f.setAccessible(true);
         f.set(null, value);
-    }
-
-    private static void setTarget(final Stargate from, final Stargate to) throws Exception
-    {
-        final Field f = Stargate.class.getDeclaredField("gateTarget");
-        f.setAccessible(true);
-        f.set(from, to);
     }
 
     /**

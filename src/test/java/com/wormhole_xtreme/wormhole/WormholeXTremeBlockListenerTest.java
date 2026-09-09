@@ -31,9 +31,7 @@ class WormholeXTremeBlockListenerTest
         final WormholeXTreme pluginMock = mock(WormholeXTreme.class);
         try
         {
-            final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, pluginMock);
+            PluginTestSupport.install(pluginMock);
         }
         catch (final Throwable ignore) { /* the stub server is only needed by some paths */ }
     }

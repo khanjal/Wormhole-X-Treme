@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * {@link ShapeFileValidator} catches the two bug classes that actually shipped in this
@@ -50,9 +51,7 @@ class ShapeFileValidatorTest
     private static ShapeFileValidator.Result validate(final String[] lines) throws Exception
     {
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
-        final java.lang.reflect.Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginTestSupport.install(plugin);
         return ShapeFileValidator.validate(lines);
     }
 

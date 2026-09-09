@@ -3,7 +3,6 @@ package com.wormhole_xtreme.wormhole;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.lang.reflect.Field;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * Tests for player-mounted entities teleport/reattach behavior (horses, pigs, camels).
@@ -39,15 +39,11 @@ class WormholeXTremePlayerListenerMountTest
         mockScheduler = mock(BukkitScheduler.class);
         when(mockScheduler.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong())).thenReturn(1);
 
-        final Field schedField = WormholeXTreme.class.getDeclaredField("scheduler");
-        schedField.setAccessible(true);
-        schedField.set(null, mockScheduler);
+        PluginTestSupport.scheduler(mockScheduler);
 
         // Install a mock plugin instance so prettyLog() calls do not NPE.
         final WormholeXTreme mockPlugin = mock(WormholeXTreme.class);
-        final Field pluginField = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        pluginField.setAccessible(true);
-        pluginField.set(null, mockPlugin);
+        PluginTestSupport.install(mockPlugin);
 
         GateSpatialIndex.clear();
     }
@@ -82,9 +78,7 @@ class WormholeXTremePlayerListenerMountTest
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
         target.setGateFacing(BlockFace.NORTH);
-        final Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         // isPortalBlock checks getGatePortalBlocks(), so register the block there too.
@@ -180,9 +174,7 @@ class WormholeXTremePlayerListenerMountTest
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 100.5, 70.0, 200.5));
         target.setGateFacing(BlockFace.NORTH);
-        final Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(portal, src);
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));
@@ -248,9 +240,7 @@ class WormholeXTremePlayerListenerMountTest
         final Stargate target = new Stargate();
         target.setGatePlayerTeleportLocation(new Location(world, 500.5, 70.0, 600.5));
         target.setGateFacing(BlockFace.NORTH);
-        final Field gateTargetField = Stargate.class.getDeclaredField("gateTarget");
-        gateTargetField.setAccessible(true);
-        gateTargetField.set(src, target);
+        StargateTestSupport.target(src, target);
 
         StargateManager.addBlockIndex(ch, src);
         src.getGatePortalBlocks().add(new Location(world, bx, by, bz));

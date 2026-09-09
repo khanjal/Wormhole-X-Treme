@@ -8,7 +8,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
@@ -19,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Reading beam.yml back at startup.
@@ -44,9 +44,7 @@ class BeamLoadAllTest
         final WormholeXTreme plugin = mock(WormholeXTreme.class);
         when(plugin.getDataFolder()).thenReturn(dataFolder);
 
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, plugin);
+        PluginTestSupport.install(plugin);
 
         BeamManager.clear();
     }
@@ -55,9 +53,7 @@ class BeamLoadAllTest
     void tearDown() throws Exception
     {
         BeamManager.clear();
-        final Field f = WormholeXTreme.class.getDeclaredField("thisPlugin");
-        f.setAccessible(true);
-        f.set(null, null);
+        PluginTestSupport.remove();
     }
 
     /** Writes beam.yml where getBeamFile will look for it. */

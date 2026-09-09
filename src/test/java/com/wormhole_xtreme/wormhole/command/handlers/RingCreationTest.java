@@ -36,6 +36,7 @@ import com.wormhole_xtreme.wormhole.model.ring.RingManager;
 import com.wormhole_xtreme.wormhole.model.ring.RingPattern;
 import com.wormhole_xtreme.wormhole.model.ring.RingPermissions;
 import com.wormhole_xtreme.wormhole.model.ring.RingYamlManager;
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
 /**
  * Laying the first ring of a pair, and everything that refuses to let you.
@@ -61,14 +62,14 @@ class RingCreationTest
     private MockedStatic<RingYamlManager> yaml;
 
     @BeforeEach
-    void setUp()
+    void setUp() throws Exception
     {
         RingManager.clear();
         GateSpatialIndex.clear();
         blocks.clear();
         // StargateManager.addBlockIndex logs what it indexed, so the gate-overlap test needs a
         // plugin to log through.
-        setPlugin(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
+        PluginTestSupport.install();
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);
@@ -99,28 +100,13 @@ class RingCreationTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         yaml.close();
         config.close();
         GateSpatialIndex.clear();
         RingManager.clear();
-        setPlugin(null);
-    }
-
-    private static void setPlugin(final com.wormhole_xtreme.wormhole.WormholeXTreme value)
-    {
-        try
-        {
-            final java.lang.reflect.Field f =
-                com.wormhole_xtreme.wormhole.WormholeXTreme.class.getDeclaredField("thisPlugin");
-            f.setAccessible(true);
-            f.set(null, value);
-        }
-        catch (final ReflectiveOperationException e)
-        {
-            throw new IllegalStateException(e);
-        }
+        PluginTestSupport.remove();
     }
 
     /** Air unless something has been laid there. */
