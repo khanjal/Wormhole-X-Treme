@@ -61,7 +61,7 @@ and works without either.
 **Economy, optionally** — [charge for building or travelling](#economy) through Vault. Vault
 absent simply means nothing is charged; there is no hard dependency.
 
-**Hooks for other plugins** — [five events](docs/API.md), two of them cancellable, so another
+**Hooks for other plugins** — [five events](docs/API.md#events), two of them cancellable, so another
 plugin can watch travel or veto it.
 
 **Storage you can read** — [one YAML file per gate](#storage), no database to install or migrate.
