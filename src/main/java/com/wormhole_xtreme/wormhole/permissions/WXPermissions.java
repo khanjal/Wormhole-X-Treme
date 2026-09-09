@@ -5,8 +5,10 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 
 
 /**
- * The Class WXPermissions.
- * 
+ * Whether a player may take a given action, on a given gate or network -- operator status,
+ * gate ownership, simple mode (no permissions plugin) and the permission-plugin nodes, checked
+ * in that order.
+ *
  * @author alron
  */
 public class WXPermissions
@@ -18,7 +20,7 @@ public class WXPermissions
 
 
     /**
-     * The Enum PermissionType.
+     * One thing a player might be checked for permission to do.
      */
     public enum PermissionType
     {
@@ -57,13 +59,15 @@ public class WXPermissions
     private static final String PUBLIC_NETWORK = "Public";
 
     /**
-     * Check wx permissions.
-     * 
+     * Whether the player may take this action where no gate and no network are involved --
+     * {@code /wormhole list} or {@code /wormhole config}, say, where nothing gate-specific is
+     * being asked about.
+     *
      * @param player
-     *            the player
+     *            who is asking
      * @param permissiontype
-     *            the permissiontype
-     * @return true, if successful
+     *            the action being attempted
+     * @return true if the player may
      */
     public static boolean checkWXPermissions(final Player player, final PermissionType permissiontype)
     {
@@ -71,15 +75,16 @@ public class WXPermissions
     }
 
     /**
-     * Check wx permisssions.
-     * 
+     * Whether the player may take this action on this specific gate -- the gate's own network,
+     * owner and settings all bear on the answer.
+     *
      * @param player
-     *            the player
+     *            who is asking
      * @param stargate
-     *            the stargate
+     *            the gate the action would be taken on
      * @param permissionstype
-     *            the permissionstype
-     * @return true, if successful
+     *            the action being attempted
+     * @return true if the player may
      */
     public static boolean checkWXPermissions(final Player player, final Stargate stargate, final PermissionType permissionstype)
     {
@@ -87,17 +92,20 @@ public class WXPermissions
     }
 
     /**
-     * Check wx permissions.
-     * 
+     * The full check every overload above narrows down to: operator status, gate ownership,
+     * simple mode, and finally the permission-plugin nodes for the action and its network.
+     *
      * @param player
-     *            the player
+     *            who is asking
      * @param stargate
-     *            the stargate
+     *            the gate the action would be taken on, or null when there is none yet -- a
+     *            build check run before the gate is registered, for instance
      * @param network
-     *            the network
+     *            the network to check when there is no gate to read one from; ignored once a
+     *            gate is given, since the gate's own network always wins
      * @param permissiontype
-     *            the permissiontype
-     * @return true, if successful
+     *            the action being attempted
+     * @return true if the player may
      */
     private static boolean checkWXPermissions(final Player player, final Stargate stargate, final String network, final PermissionType permissiontype)
     {
@@ -254,15 +262,17 @@ public class WXPermissions
 
 
     /**
-     * Check wx permissions.
-     * 
+     * Whether the player may take this action against a named network directly, for a check
+     * that needs to run before any gate exists to read a network off of -- {@code /wormhole
+     * complete}'s build check, which names the network the gate will join once it is.
+     *
      * @param player
-     *            the player
+     *            who is asking
      * @param network
-     *            the network
+     *            the network to check against, in place of a gate's own
      * @param permissiontype
-     *            the permissiontype
-     * @return true, if successful
+     *            the action being attempted
+     * @return true if the player may
      */
     public static boolean checkWXPermissions(final Player player, final String network, final PermissionType permissiontype)
     {
