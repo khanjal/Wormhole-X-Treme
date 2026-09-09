@@ -28,6 +28,9 @@ public final class EconomySupport
         try
         {
             final Class<?> ecoClass = Class.forName("net.milkbowl.vault.economy.Economy");
+            // Vault is optional, so its Economy type is looked up by name rather than
+            // imported -- and a Class<?> found that way carries no type for the provider
+            // it registers, which is what leaves this cast with nothing to check against.
             @SuppressWarnings("unchecked")
             final RegisteredServiceProvider<Object> rsp =
                 (RegisteredServiceProvider<Object>) WormholeXTreme.getThisPlugin()

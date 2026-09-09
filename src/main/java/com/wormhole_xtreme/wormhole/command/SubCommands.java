@@ -1039,6 +1039,9 @@ public final class SubCommands
      */
     private static boolean worthOffering(final org.bukkit.Material material, final boolean slabsOnly)
     {
+        // isLegacy() is deprecated because the materials it identifies are, which is exactly
+        // what makes it the thing to ask: there is no undeprecated way to spot one, and a
+        // completion list offering LEGACY_ variants would be offering names nothing accepts.
         if (material.isLegacy()
             || !com.wormhole_xtreme.wormhole.utils.MaterialUtils.isBlockOrUnknown(material))
         {
