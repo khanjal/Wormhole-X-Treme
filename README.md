@@ -1261,8 +1261,8 @@ on this page about naming, volume and `none` applies to those too.
 
 **Sounds are named, not chosen from a list.** Anything the client already knows works, which
 means a resource pack's own sounds can be named here with no code involved. A name the client
-does not recognise is simply silent — the same thing the client does with one — so a typo
-costs you that sound and nothing else.
+does not recognise is simply silent — exactly what setting it to `none` would have done — so a
+typo costs you that sound and nothing else.
 
 Volume doubles as range: Bukkit ties the two together, so `1.0` carries about sixteen blocks
 and `1.5` about twenty-four. Turning a volume down makes a sound more local, not just quieter.
