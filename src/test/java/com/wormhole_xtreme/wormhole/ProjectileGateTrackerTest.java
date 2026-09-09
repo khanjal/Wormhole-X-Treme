@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * Catching a projectile at the moment it reaches a gate.
@@ -85,9 +86,7 @@ class ProjectileGateTrackerTest
         origin.setGateActive(true);
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.addBlockIndex(portal, origin);
         StargateManager.registerStargate(origin);
 

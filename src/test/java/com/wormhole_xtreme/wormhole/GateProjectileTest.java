@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * How arrows and other projectiles cross a gate.
@@ -74,9 +75,7 @@ class GateProjectileTest
         origin.setGateActive(true);
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ + 0.5));
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
 
         // An arrow in flight, sitting in the origin gate's portal block.

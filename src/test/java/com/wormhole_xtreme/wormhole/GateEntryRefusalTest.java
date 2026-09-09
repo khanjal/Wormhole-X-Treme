@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * How a player is held out of the exit end of an open wormhole.
@@ -70,9 +71,7 @@ class GateEntryRefusalTest
         origin.setGateWorld(world);
         origin.setGateActive(true);
         origin.setGatePlayerTeleportLocation(new Location(world, 500, 70, 500));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
 
         player = mock(Player.class);

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * A wormhole runs one way, and these tests pin that.
@@ -74,13 +75,6 @@ class GateOneWayTest
         return gate;
     }
 
-    private static void setTarget(final Stargate gate, final Stargate target) throws Exception
-    {
-        final java.lang.reflect.Field f = Stargate.class.getDeclaredField("gateTarget");
-        f.setAccessible(true);
-        f.set(gate, target);
-    }
-
     /**
      * A zombie standing at these coordinates, travelling north.
      *
@@ -128,7 +122,7 @@ class GateOneWayTest
         // makes the previous test meaningful rather than vacuously green.
         final Stargate destination = gateAt("destination", 99, 70, 99);
         final Stargate origin = gateAt("origin", 10, 64, 20);
-        setTarget(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
         final Entity zombie = zombieIn(10, 64, 20);
         try
@@ -147,7 +141,7 @@ class GateOneWayTest
     {
         final Stargate destination = gateAt("destination", 99, 70, 99);
         final Stargate origin = gateAt("origin", 10, 64, 20);
-        setTarget(origin, destination);
+        StargateTestSupport.target(origin, destination);
         origin.setGateActive(false);
         StargateManager.registerStargate(origin);
         final Entity zombie = zombieIn(10, 64, 20);
@@ -170,7 +164,7 @@ class GateOneWayTest
         final Stargate destination = gateAt("destination", 99, 70, 99);
         destination.setGateFacing(BlockFace.EAST);
         final Stargate origin = gateAt("origin", 10, 64, 20);
-        setTarget(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.registerStargate(origin);
         final Entity zombie = zombieIn(10, 64, 20);
         try
@@ -204,7 +198,7 @@ class GateOneWayTest
         final Stargate origin = gateAt("origin", 10, 64, 20);
         try
         {
-            setTarget(origin, destination);
+            StargateTestSupport.target(origin, destination);
         }
         catch (final Exception e)
         {

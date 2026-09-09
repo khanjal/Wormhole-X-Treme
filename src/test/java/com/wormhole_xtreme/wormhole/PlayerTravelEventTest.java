@@ -30,6 +30,7 @@ import com.wormhole_xtreme.wormhole.events.StargatePlayerTravelEvent;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.StargateTestSupport;
 
 /**
  * Letting another plugin watch, and stop, a player travelling through a gate.
@@ -88,9 +89,7 @@ class PlayerTravelEventTest
         origin.setGateActive(true);
         origin.getGatePortalBlocks().add(new Location(world, BX, BY, BZ));
         origin.setGatePlayerTeleportLocation(new Location(world, BX + 0.5, BY, BZ - 1.5));
-        final java.lang.reflect.Field tf = Stargate.class.getDeclaredField("gateTarget");
-        tf.setAccessible(true);
-        tf.set(origin, destination);
+        StargateTestSupport.target(origin, destination);
         StargateManager.addBlockIndex(portal, origin);
         StargateManager.registerStargate(origin);
 

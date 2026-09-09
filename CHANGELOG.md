@@ -108,9 +108,20 @@ what it could not match rather than guess at it.
 PMD found the rest: forty-four `java.lang.reflect.Field` imports the change orphaned, plus a
 helper that no longer had callers and an import that only its javadoc had been using.
 
-Reflective access across the tests is 139 sites in 87 files down to 23 in 15. What is left is
-mostly `gateTarget`, which is a different idiom -- pointing one gate at another -- and worth
-its own look rather than being swept along with this.
+The other idiom was pointing one gate at another, fifteen times across nine classes, and it
+turned out not to need reflection at all. `Stargate.setGateTarget` exists; it is
+package-private because only dialling and shutdown have any business setting a target, and
+both do a good deal else besides -- chevrons, portal blocks, the far end's state. A public
+setter would invite a gate that looks dialled and is not. The tests were not in that package,
+so they went around the modifier rather than through it.
+
+`StargateTestSupport` is in the package, so it calls the setter. No reflection, which means a
+rename is a compile error rather than a test that fails somewhere else much later. It lives
+there for the same reason `ConfigTestSupport` lives in the config package: the thing it needs
+is package-private and it is only for tests.
+
+Reflective access across the tests: 139 sites in 87 files down to 8 in 7. Two of the eight are
+the helper itself. The rest are one-offs reaching for something no other test wants.
 
 ### Nine unchecked casts in the tests, and three different reasons for them
 
