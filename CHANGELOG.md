@@ -3234,6 +3234,63 @@ being noticed by someone dialing a gate and not hearing anything.
 
 ## 1.3.0 (2026-09-03)
 
+Transport rings: local, point-to-point travel that needs no structure above the floor and
+nothing to dial. Gates stay the long-haul option. Alongside them, twenty-two subcommands
+became four, gates can be imported from any other Wormhole X-Treme's database, and gate
+management turned out never to have been permission-gated at all.
+
+**Upgrading:** every old command name still works -- they are registered as hidden entries
+and dispatch exactly as before, so nothing in a command block or a script breaks. One
+breaking change for plugin developers: `StargateMinecartTeleportEvent` moved from
+`com.wormhole_xtreme.wormhole.event` to `...events`, joining every other event.
+
+### Added
+
+- **Transport rings** -- an invisible, permanently paired pad set into a floor or
+  ceiling. Walk in, and after a countdown both ends swap everything standing in them.
+- `/wormhole ring create|cancel|list|remove|edit|allow|deny|owner`, with two ring shapes,
+  per-end materials and deploy style, and four permission nodes of its own.
+- `/wormhole gate import` reads the SQLite database every build descended from the 2011
+  original writes, and converts those gates into this fork's storage. Nothing is written back
+  to the old database and nothing is deleted.
+- `/wormhole gate regenerate -all` recomputes every gate's arrival point in one pass and
+  reports how many needed it.
+- `gate edit <gate> <field> [value]` gains a `group` field that sets a whole material group
+  at once rather than three materials one at a time.
+- `compass reset` puts the compass back to pointing at world spawn, and `compass` now
+  explains itself when nothing will show the result.
+- Ring sounds: the pad opening, one per ring as the stack builds, the transport itself at
+  both ends, the pad closing, and a refusal heard only by the player it concerns.
+- `RingTravelEvent`, fired once per travelling player, cancellable, after both ends are read
+  and before either is written.
+- Tab completion for gate shape names on `gate build`, and every setting name on `config`.
+- **docs/API.md** -- the events, what each carries, when each fires, and worked examples.
+
+### Fixed
+
+- **Gate management was never actually permission-gated.** Any player who could run
+  `/wormhole` could reconfigure or reassign *any* gate on the server, and change server-wide
+  settings that are not even per-gate. All of it now requires `wormhole.config`.
+- Holding forward against a gate you cannot enter no longer fills chat with identical
+  lines. The move is still refused every time; only the repeated message is suppressed.
+- Ring block positions are packed into a `long`, and `y` lived where a plain mask loses its
+  sign -- so a ring below y=0 would have restored its blocks thousands of blocks away.
+- A registry question in `Ring`'s static initialiser could fail during plugin load on
+  1.20.6 and later, which would have left rings dead for the rest of that server's run.
+
+### Changed
+
+- **Twenty-two subcommands became four:** `gate`, `ring`, `config` and `compass`. Nothing
+  was re-implemented -- every verb hands off to the handler that already owned it.
+- `config <setting> [value]` reaches every setting, not the four that had commands, and
+  takes effect as it is typed rather than needing a restart.
+- `gate regenerate` also recomputes a gate's arrival point from its portal blocks and
+  facing, so a gate that landed travellers at its side can be corrected.
+- The README is now for server owners; the plugin-developer material moved to docs/API.md.
+
+<details>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
 ### Holding forward against a locked gate no longer spams chat
 
 Cancelling a move event returns the player to `event.getFrom()` -- the exact spot they tried
@@ -3553,7 +3610,46 @@ failed, so a single early call would have left rings dead for the rest of that s
 The check was redundant anyway. Tab completion asks the same thing for real, and now probes
 once and offers everything rather than nothing when there is no registry to ask.
 
+</details>
+
 ## 1.2.0 (2026-09-02)
+
+One jar covers Minecraft 1.20 through 1.21.10, and the range is measured rather than
+assumed: every published `spigot-api` version was built against to find both ends.
+
+**Upgrading:** nothing to do. Note that **Minecraft 1.20.5 and later require the server to
+run Java 21** -- that is the server's requirement, not this plugin's, and the jar remains Java
+17 bytecode.
+
+### Added
+
+- Support for Minecraft **1.20 through 1.21.10** from a single jar. CI builds and tests the
+  floor, the ceiling, and the versions between them where the API actually changed.
+- A test checks every material named in `config.yml` and the shape files against whatever
+  API the build targets, so a renamed or removed material surfaces at build time.
+- `spigot.api.version` in `pom.xml` selects the API, so CI can point a build at a different
+  server version without editing anything.
+
+### Fixed
+
+- A boat that failed to teleport was respawned as `EntityType.BOAT`, which stopped existing
+  in 1.21.3 when boats split per wood type. It now respawns as whatever the original boat
+  was, which also stops a birch boat coming back oak.
+
+### Changed
+
+- The jar is compiled against the **oldest** supported server rather than the newest, so the
+  compiler enforces the floor instead of a player finding the gap.
+- `EntityDismountEvent` changed package mid-range, so there is a small listener for each and
+  only the one the running server can load is registered.
+
+### Known limits
+
+Nothing here has been runtime-verified on a live server of any version. CI proves the plugin
+compiles and its tests pass against each API, not that a gate behaves correctly in game.
+
+<details>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
 ### Minecraft 1.20 through 1.21.10
 
@@ -3598,6 +3694,8 @@ server version without editing anything.
 Nothing here has been runtime-verified on a live server of any version. CI proves the plugin
 compiles and its tests pass against each API, not that a gate behaves correctly in game.
 
+</details>
+
 ## 1.1.0 (2026-09-01)
 
 First published release. The original project ended at 0.854; 1.0.0 was an internal
@@ -3605,6 +3703,62 @@ milestone of this fork and was never tagged or released.
 
 Requires **Java 17** and a **Minecraft 1.20.4** server. Runs on CraftBukkit, Spigot, Paper,
 Purpur and Pufferfish from a single jar. Folia is not supported.
+
+Gates stop writing to the world, start making noise, and carry riders, vehicles and
+projectiles again. The jar drops from 15.3 MB to under 300 KB.
+
+**Upgrading:** gates are read from their existing storage and rewritten as one YAML file
+each. `StandardAtlantis.shape` and `StandardUniverse.shape` are removed -- both were
+`Standard.shape` with four lines changed, and the palettes they provided are now material
+groups in `config.yml`, chosen by what a gate is built from.
+
+### Added
+
+- **Gate sounds:** one as a gate begins to dial, one per chevron as it locks, one as the
+  wormhole establishes, one as it closes, an iris pair, and an ambient loop while it stands
+  open. Configured by name, so anything the client knows works.
+- **Material groups.** Shapes describe geometry; `config.yml` describes palettes, selected by
+  the material a gate is actually built from. One shape file now builds a Standard, Atlantis
+  or Universe gate.
+- Travellers surface on arrival -- a moment of water at eye height, drawn to that player
+  only. `gate-arrival-splash-ticks: 0` turns it off.
+- `/wormhole custom -clean` clears material overrides snapshotted by the old custom mode.
+
+### Fixed
+
+- Travellers no longer drown or float in a water gate: portal interiors are server-side
+  `AIR` with the material drawn to nearby clients.
+- Minecarts and boats teleport again -- they had stopped entirely. Ridden animals travel
+  with their rider, and riderless mounts can walk through on their own.
+- Projectiles cross gates and keep flying, retaining their shooter so kills stay credited.
+- Redstone gates can actually be built: the shipped shapes marked their redstone cells one
+  block off, so a gate watched a wall for a signal that never came.
+- Travellers can walk out of the gate they arrived at, rather than being held in the ring
+  and eventually disconnected.
+- Standing in a portal no longer gets a player kicked for flying.
+- A closed gate could keep showing its portal to anyone who was out of range when it shut.
+- Arrival points that sat inside the portal are moved clear of it on load.
+- The version the server reports now comes from the build; `plugin.yml` had drifted, so a
+  jar built as 1.1.0 announced itself as 1.0.0.
+- An NPE on every move event for a gate that was activated but never dialled.
+
+### Changed
+
+- **Nothing a gate does is written to the world any more.** Chevrons and the woosh are
+  drawings sent to nearby clients, like the portal already was -- so a server stopped mid-dial
+  can no longer leave lit chevrons welded into a frame. The one thing given up is real light.
+- **Storage is one YAML file per gate.** HSQLDB and SQLite are gone, along with the storage
+  abstraction and the `mysql`/`postgres` options that were advertised but never implemented.
+  Custom materials are persisted by name rather than enum ordinal.
+- Permission checks go through `Player.hasPermission()`, so LuckPerms and anything else
+  Bukkit-compatible works with no glue. The legacy built-in permission system is removed.
+- One registry drives dispatch, tab completion and help. Nine subcommands were offered by
+  completion and dispatched by nothing.
+- The jar bundles nothing and has no runtime dependencies: **15.3 MB to under 300 KB**.
+- Shutdown logs one summary line rather than one per gate.
+
+<details>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
 ### Gates
 
@@ -3794,13 +3948,20 @@ rewrote cooldown timers and read a stub that always returned -1.
 - The version the server reports comes from the build. `plugin.yml` carried its own copy and
   had drifted, so a jar built as 1.1.0 announced itself as 1.0.0.
 
+</details>
+
 ## 1.0.0 (2026-05-14)
 
-### Bug fixes
+An internal milestone of this fork. Never tagged and never released -- the first published
+release is 1.1.0, and much of the storage work below was removed again there.
+
+### Fixed
+
 - Fixed DHD activation to recognise all button material variants (oak, spruce, birch, jungle, acacia, dark oak, mangrove, cherry, bamboo, crimson, warped, stone, polished blackstone) via new `LegacyCompat.isButton()` helper.
 - Fixed 2D gate exit location search in Nether/End dimensions: replaced `Material.AIR` equality check with `isAir()` so `CAVE_AIR` (present in Nether/End) is correctly treated as traversable.
 
-### New features
+### Added
+
 - **Vault Economy integration** — optional gate use and build costs configurable via `economy-enabled`, `economy-use-cost`, and `economy-build-cost` in `config.yml`. Gracefully no-ops when Vault or an economy provider is absent.
 - Added `LegacyCompat` utility class consolidating modern-Bukkit material/block compatibility shims.
 - Added pluggable storage backend support and config keys (`storage-backend`, `storage-sqlite-path`, `storage-jdbc-*`).
@@ -3809,7 +3970,8 @@ rewrote cooldown timers and read a stub that always returned -1.
 - Added `StorageMigrator` to export existing DB gates to per-gate YAML files (non-destructive by default).
 - Added two new default gate shapes: `StandardAtlantis` and `StandardUniverse` (bundled in resources).
 
-### Improvements
+### Changed
+
 - `ConfigurationYAML` migration now excludes legacy permission keys and preserves storage keys when writing `config.yml`.
 - Removed legacy `SimplePermission` support; Vault/LuckPerms recommended.
 - Improved startup diagnostics and storage initialization logging.
