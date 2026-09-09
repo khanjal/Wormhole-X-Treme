@@ -85,6 +85,31 @@ class DialRefusalTest
         verify(gate, never()).setGateTarget(any());
     }
 
+    /**
+     * A target somebody took the blocks out of is refused.
+     *
+     * <p>Issue #54, and the reason it needs checking here rather than reacting to an event:
+     * WorldEdit writes blocks straight into the world and fires none of the ones this plugin
+     * protects with, so a gate can be fully registered with nothing standing. Dialling is one of
+     * the two moments the damage can be noticed, and the traveller is the reason it matters --
+     * they would arrive inside whatever replaced the frame.
+     */
+    @Test
+    void aTargetWhoseFrameHasBeenRemovedIsRefused()
+    {
+        final Stargate target = dialableTarget();
+        final World targetWorld = mock(World.class);
+        when(targetWorld.isChunkLoaded(anyInt(), anyInt())).thenReturn(Boolean.TRUE);
+        final Block gone = mock(Block.class);
+        when(gone.getType()).thenReturn(org.bukkit.Material.AIR);
+        final Location where = new Location(targetWorld, 8, 64, 8);
+        when(targetWorld.getBlockAt(where)).thenReturn(gone);
+        when(target.getGateStructureBlocks()).thenReturn(Collections.singletonList(where));
+
+        assertFalse(StargateDialManager.dialStargate(gate, target, false));
+        verify(gate, never()).setGateTarget(any());
+    }
+
     /** A closed iris is the whole point of an iris. */
     @Test
     void aTargetWithItsIrisClosedIsRefused()

@@ -4,6 +4,50 @@ All notable changes to this project are documented in this file.
 
 ## 1.5.0 (unreleased)
 
+### A gate taken apart by WorldEdit now says so
+
+Gate blocks are protected by `BlockBreakEvent` and the physics handlers, and nothing that goes
+through those can take a gate apart. WorldEdit does not go through those. `//set`, `//replace`
+and `//cut` write blocks straight into the world and fire none of them, so `//replace obsidian
+air` across a gate leaves it fully registered with nothing standing. The gate does not break --
+it goes quietly dead, which is what the ancestor forks' trackers reported in 2011 and 2012 and
+what #54 tracks here.
+
+There is no event to react to and no Bukkit-visible hook WorldEdit offers, so the damage gets
+noticed at the two moments that do exist.
+
+**Redrawing a dial sign.** `updateDialSign` read the sign back off its block on every redraw and
+returned silently when the block was no longer a sign. That silence is the bug: the gate keeps
+accepting incoming dials and keeps refusing to change target, and says nothing about why -- the
+2011 report exactly. It logs a warning naming the gate now. Every caller on that path is a load,
+a refresh, a peer leaving the network or the redstone listener, so none of them has a player to
+tell; the server log is where the news can actually go.
+
+**Dialling.** A target with any of its recorded frame blocks missing is refused, alongside the
+existing refusals for a closed iris, a gate already active, and one another gate is mid-connection
+with. The traveller is the reason: they would arrive inside whatever replaced the frame.
+
+Two decisions worth stating, because both could reasonably have gone the other way.
+
+*Only air counts as missing*, not "not the frame material any more". A gate can be built of
+whatever its shape allows and its material can be changed under it deliberately, so the stricter
+reading would refuse to dial gates that are perfectly fine.
+
+*A gate in an unloaded chunk reads as intact rather than being checked.* Reading a block pulls
+its chunk into memory and this runs on the dial path, so the check stops at the chunk boundary
+rather than find out. "Cannot tell" has to mean "fine" here: guessing the other way would refuse
+to dial every gate whose far end nobody has visited yet.
+
+Air is tested with `MaterialUtils.isAirMaterial`, not `Material.isAir()`. The version matrix is
+what found that: `isAir()` resolves through `org.bukkit.Registry` from 1.20.6 on, so it answers
+on 1.20 and 1.20.1 and throws `NoClassDefFoundError` from 1.20.6 -- fine on a live server, fatal
+under test on four of the seven supported versions. Comparing the three air constants is exactly
+as correct and asks nothing of the server. `README.md` and `docs/API.md` named the old method as
+the convention and now name this one.
+
+This is the first two of the four things #54 asks for. Reattaching an unbound sign on regenerate
+and a `validate` command are still open, both waiting on what #42 settles about regenerate.
+
 ### Three fields that were never swapped together
 
 `MaterialGroupRegistry` kept its palettes in three `volatile` fields -- by name, by frame
