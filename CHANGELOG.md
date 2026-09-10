@@ -155,12 +155,54 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
   casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
   nobody read, which took ten class-level warning suppressions off the classes they were hiding
   real findings in.
-- Tests: **1326 at 1.5.0, 1460 so far**.
+- The four-step order that decides what block a gate shows -- per-gate override, then the
+  shape's own declaration, then the palette, then the shape default -- is written down once
+  rather than in each of the five accessors, and the two materials that deliberately skip a
+  step say so ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
+- Tests: **1326 at 1.5.0, 1484 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### The material resolution order is written down once (#45)
+
+Five accessors -- portal, iris, light, sign, frame -- each wrote out the same four-step chain:
+a per-gate override an admin set, then a material the shape names in its own file, then the
+gate's palette, then the shape's default. Stated five times, so changing the order meant five
+edits and a divergence between two of them would be invisible.
+
+They go through one `resolveMaterial` now, with each material a row in a `MaterialRole` enum.
+
+**This did not make the file shorter.** It is 43 lines longer: five short if-chains become an
+enum, a helper and five delegates. The gain is not line count, it is that the order exists in
+one place and that the two materials which do *not* follow it stop being invisible. Both were
+previously things you noticed only by reading all five accessors and spotting what was missing
+from two of them; they are documented rows now:
+
+- **Sign** has no per-gate override, because no such field has ever existed. Shape then palette.
+- **Frame** never consults the shape's declaration, and `hasExplicitStructureMaterial()` is
+  deliberately not called even though it exists. The frame is not a styling choice the shape
+  gets to state -- it is what the player actually built the gate out of, and that is what chose
+  the palette. Preferring the shape's declaration reports `OBSIDIAN` for a gate made of lapis,
+  and `StargateAnimator` uses this value to rebuild chevrons after the lighting animation.
+
+Chevrons stay their own function. That one answers null when neither shape nor palette names a
+material, and detection has to ask it before there is a gate to ask -- a different contract, and
+folding it in would have meant giving the shared helper a nullable mode for one caller.
+
+The refactor also found an untested rule, which is the part worth keeping whatever anyone
+thinks of the enum. Swapping the first two steps -- letting a shape's declaration outrank an
+admin's per-gate override -- left all 1483 tests green. Every existing test set an override on a
+shape that named nothing, so the two orderings were indistinguishable. In game that is an admin
+giving one gate a particular iris, on a gate whose shape asks for glass, and the gate keeping
+the glass with no error. `aPerGateOverrideBeatsAShapeThatNamesTheMaterialItself` now fails
+against that swap.
+
+The frame asymmetry was already guarded: making it consult the shape declaration fails
+`frameMaterialFollowsThePaletteNotTheShapeDeclaration` with `expected LAPIS_BLOCK but was
+OBSIDIAN`, which is the bug its comment describes, reproduced exactly.
 
 ### Our data left the folder it was sharing with another fork's database (#247)
 
