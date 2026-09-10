@@ -311,6 +311,38 @@ class GatePortalInteriorBuildTest
     }
 
     /**
+     * A placement with no player behind it gets no bypass.
+     *
+     * <p>A dispenser, a command block or another plugin placing on nobody's behalf has no
+     * permissions to check, and "cannot tell" must not read as "allowed" for the one branch
+     * that decides whether the opening stays clear.
+     */
+    @Test
+    void aPlacementWithNoPlayerBehindItGetsNoBypass()
+    {
+        assertFalse(WormholeXTremeBlockListener.mayBuildInOpening(null, gate),
+            "nobody is not an admin");
+    }
+
+    /**
+     * Neither does a permissions plugin that throws.
+     *
+     * <p>The check runs through whatever permissions plugin the server has installed, and a
+     * broken or half-loaded one can throw rather than answer. Failing open there would hand
+     * the bypass to everybody on the server at exactly the moment nothing can be verified.
+     */
+    @Test
+    void aPermissionsPluginThatThrowsDoesNotGrantTheBypass()
+    {
+        when(player.isOp()).thenThrow(new IllegalStateException("permissions plugin not loaded"));
+
+        assertFalse(WormholeXTremeBlockListener.mayBuildInOpening(player, gate),
+            "an unanswerable permission check is a refusal, not a pass");
+        assertTrue(placeRefused(portalCell(Material.COBBLESTONE)),
+            "and the placement it guards is still refused");
+    }
+
+    /**
      * What an admin leaves in the opening is still anybody's to break.
      *
      * <p>The bypass lets the block be placed; it does not make it part of the gate. Treating
