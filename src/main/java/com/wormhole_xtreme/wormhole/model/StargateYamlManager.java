@@ -176,13 +176,12 @@ public class StargateYamlManager
             return;
         }
         s.setGateShapeName(shapeName);
-        if (WormholeXTreme.getThisPlugin() != null)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Gate \"" + gateName + "\" was built from shape \"" + shapeName
-                    + "\", which is not in the shapes folder. The gate still works; its shape"
-                    + " name is kept as it is, and it cannot be regenerated until the shape is back.");
-        }
+        // PluginLog rather than a guarded prettyLog: #249 added it to carry the null-plugin
+        // check once instead of at every call site, which is the asymmetry #45 reported.
+        PluginLog.log(Level.WARNING,
+            "Gate \"" + gateName + "\" was built from shape \"" + shapeName
+                + "\", which is not in the shapes folder. The gate still works; its shape"
+                + " name is kept as it is, and it cannot be regenerated until the shape is back.");
     }
 
     /**
