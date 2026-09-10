@@ -2705,6 +2705,31 @@ regex found the delegation a second time and dropped its `false` a second time. 
 diff caught it, and the third test would have caught it a moment later -- which is the whole
 difference between this time and last.
 
+### `/wormhole gate validate`, the third of the four things #54 asked for
+
+"A gate taken apart by WorldEdit now says so", earlier in this file, covers the first two: a
+dial refuses a target with missing frame blocks, and a redrawn dial sign logs when the sign
+itself is gone. Both fire only when something happens to the gate -- a click, a dial. Neither
+helps an admin who wants to ask the question directly, about a gate nobody has approached
+since whatever broke it.
+
+`gate validate <gate>` asks `GateIntegrity` the same thing dialling already asks, and says the
+answer out loud instead of only refusing or logging: how many frame blocks are missing, and
+whether the dial sign is still a sign. `gate validate -all` sweeps every gate and names only
+the ones with something wrong, the same restraint `gate regenerate -all` uses -- a server with
+hundreds of gates and one broken one should not scroll past hundreds of "fine" lines to find
+it.
+
+`GateIntegrity` gained one method for this, `isDialSignMissing`, asked from outside rather than
+only inline in `updateDialSign`. It is guarded the same way `missingStructureBlocks` already
+is: only in a chunk already loaded, so asking on a gate nobody has visited in a while never
+loads a chunk just to answer it, and a gate that genuinely cannot be checked reads as fine
+rather than broken.
+
+Reattaching an unbound sign on `regenerate` is still open -- item 2 of #54 -- and still waits
+on what #42 settles about that command; it needs a decision about `regenerate`'s own shape that
+this did not.
+
 </details>
 
 ## 1.4.0 (2026-09-05)

@@ -196,4 +196,15 @@ class GateTabCompletionTest
         assertTrue(complete("gate", "regen", "").contains("-all"),
             "the short form completes the same way");
     }
+
+    /** {@code validate} takes the same slot {@code regenerate} does: a gate name, or -all. */
+    @Test
+    void validateOffersGateNamesAndAllTogether()
+    {
+        gateNamed("alpha");
+
+        final List<String> candidates = complete("gate", "validate", "");
+        assertTrue(candidates.contains("alpha"), "got " + candidates);
+        assertTrue(candidates.contains("-all"), "got " + candidates);
+    }
 }

@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
@@ -71,5 +73,36 @@ public final class GateIntegrity
     private static boolean isLoaded(final World world, final int blockX, final int blockZ)
     {
         return (world != null) && world.isChunkLoaded(blockX >> 4, blockZ >> 4);
+    }
+
+    /**
+     * Whether this gate's dial sign has been taken out from under it.
+     *
+     * <p>{@code updateDialSign} already notices this the moment it matters -- a click, a load,
+     * a refresh -- and logs it there. This is the same question asked from the outside, for
+     * {@code /wormhole gate validate}, which may be checking a gate nobody has approached in a
+     * while. Guarded the same way {@link #missingStructureBlocks} is: only in a chunk already
+     * loaded, so asking never pulls one in just to answer.
+     *
+     * <p>A gate with no dial sign recorded at all -- one dialled only by lever, button or
+     * redstone -- has nothing to lose here, so it reports as not missing.
+     *
+     * @param gate
+     *            the gate to check
+     * @return true if a dial sign is recorded, its chunk is loaded, and the block is no longer
+     *         a sign
+     */
+    public static boolean isDialSignMissing(final Stargate gate)
+    {
+        final Block signBlock = gate.getGateDialSignBlock();
+        if (signBlock == null)
+        {
+            return false;
+        }
+        if (!isLoaded(signBlock.getWorld(), signBlock.getX(), signBlock.getZ()))
+        {
+            return false;
+        }
+        return !(signBlock.getState() instanceof Sign);
     }
 }
