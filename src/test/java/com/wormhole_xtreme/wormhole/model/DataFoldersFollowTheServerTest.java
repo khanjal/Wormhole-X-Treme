@@ -75,7 +75,7 @@ class DataFoldersFollowTheServerTest
     @Test
     void gatesAreReadFromTheServersPluginFolder()
     {
-        assertEquals(new File(new File(dataFolder, "WormholeXTremeDB"), "gates"),
+        assertEquals(new File(new File(dataFolder, "data"), "gates"),
             StargateYamlManager.getGatesDir(),
             "gates and the shapes they name have to come from one tree");
     }
@@ -83,7 +83,7 @@ class DataFoldersFollowTheServerTest
     @Test
     void ringsAreReadFromTheServersPluginFolder()
     {
-        assertEquals(new File(new File(dataFolder, "WormholeXTremeDB"), "rings"),
+        assertEquals(new File(new File(dataFolder, "data"), "rings"),
             RingYamlManager.getRingsDir(),
             "rings written to one tree and read from another would look like a wiped world");
     }
@@ -91,7 +91,7 @@ class DataFoldersFollowTheServerTest
     @Test
     void beamDestinationsAreReadFromTheServersPluginFolder()
     {
-        assertEquals(new File(new File(dataFolder, "WormholeXTremeDB"), "beam.yml"),
+        assertEquals(new File(new File(dataFolder, "data"), "beam.yml"),
             BeamYamlManager.getBeamFile(),
             "beam destinations are one file, so the wrong tree loses all of them at once");
     }

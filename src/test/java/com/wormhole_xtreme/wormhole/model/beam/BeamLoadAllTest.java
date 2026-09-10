@@ -59,7 +59,7 @@ class BeamLoadAllTest
     /** Writes beam.yml where getBeamFile will look for it. */
     private void writeBeamFile(final String yaml) throws Exception
     {
-        final File db = new File(dataFolder, "WormholeXTremeDB");
+        final File db = new File(dataFolder, "data");
         assertTrue(db.mkdirs() || db.isDirectory());
         Files.write(new File(db, "beam.yml").toPath(), yaml.getBytes(StandardCharsets.UTF_8));
     }
