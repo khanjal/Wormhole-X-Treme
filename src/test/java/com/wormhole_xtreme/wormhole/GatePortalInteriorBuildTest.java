@@ -293,6 +293,42 @@ class GatePortalInteriorBuildTest
     }
 
     /**
+     * And an admin holding the remove-all node, the other half of the DAMAGE set.
+     *
+     * <p>`wormhole.config` and `wormhole.remove.all` reach the bypass by different branches of
+     * {@code checkAgainstNodes}, so covering one says nothing about the other. Both are
+     * documented as carrying it, so both are pinned.
+     */
+    @Test
+    void anAdminHoldingTheRemoveAllNodeMayBuildInTheOpening()
+    {
+        gate.setGateOwner(UUID.randomUUID().toString());
+        when(player.hasPermission("wormhole.remove.all")).thenReturn(Boolean.TRUE);
+
+        assertFalse(placeRefused(portalCell(Material.COBBLESTONE)),
+            "whoever may remove any gate may build inside one");
+    }
+
+    /**
+     * `wormhole.remove.own` carries nothing on its own, and cannot.
+     *
+     * <p>It is part of the DAMAGE node set, so it looks like a third way in. It is not:
+     * `REMOVE_OWN` checks `isOwner` as well as the node, and an owner has already been let
+     * through further up by `isOwnerAction` before any node is consulted. So the node only
+     * ever fires for somebody who did not need it. This is why the README lists op, the owner,
+     * `wormhole.config` and `wormhole.remove.all` -- and not this one.
+     */
+    @Test
+    void theRemoveOwnNodeAloneDoesNotCarryTheBypass()
+    {
+        gate.setGateOwner(UUID.randomUUID().toString());
+        when(player.hasPermission("wormhole.remove.own")).thenReturn(Boolean.TRUE);
+
+        assertTrue(placeRefused(portalCell(Material.COBBLESTONE)),
+            "remove.own without ownership is not a bypass");
+    }
+
+    /**
      * But `wormhole.build` is not enough, and that is the whole point of choosing DAMAGE.
      *
      * <p>BUILD reads more naturally for placing a block, and was the first candidate. It is

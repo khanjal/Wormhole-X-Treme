@@ -282,8 +282,10 @@ Notes:
   since those commands now require it too.
 - Nothing can be built inside a gate's opening -- the ring of portal cells the gate
   teleports through. Anyone who may take a gate's blocks apart may build in there anyway:
-  operators, the gate's owner, and holders of `wormhole.config`, `wormhole.remove.all` or
-  `wormhole.remove.own`. `wormhole.build` deliberately does not carry it, since that node is
+  operators, the gate's owner, and holders of `wormhole.config` or `wormhole.remove.all`.
+  (`wormhole.remove.own` is in that set too, but it checks ownership as well as the node, and
+  an owner is already through -- so it never grants this on its own.) `wormhole.build`
+  deliberately does not carry it, since that node is
   for raising new gates and is commonly granted on the Public network. A block left in the
   opening this way is still not part of the gate, so anyone can break it back out.
 - Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed. One cooldown applies to everyone, set with `use-cooldown-seconds` in `config.yml` or `/wormhole cooldown <seconds>`, and switched on with `use-cooldown-enabled`.
