@@ -228,6 +228,36 @@ class RegenerateExecuteTest
     {
         assertDeclineMentions(GateRederivation.Result.NO_ANCHOR, "records no dial button");
         assertDeclineMentions(GateRederivation.Result.NOT_DETECTED, "no longer matches shape");
+        // NO_SHAPE covers two causes -- a shape that is not in the folder, and one that is
+        // there but 2D -- so the message must not assert the first. A 2D shape file is any
+        // without Version=2, which this release still loads, so an admin with one would
+        // otherwise be sent looking for a file sitting in front of them.
+        assertDeclineMentions(GateRederivation.Result.NO_SHAPE, "is not a 3D shape");
+        assertDeclineDoesNotSay(GateRederivation.Result.NO_SHAPE, "is not in the shapes folder");
+    }
+
+    /**
+     * Runs regenerate against a stubbed decline and checks it does <em>not</em> say something.
+     *
+     * @param result
+     *            how re-derivation declined
+     * @param forbidden
+     *            wording the message must not carry
+     */
+    private void assertDeclineDoesNotSay(final GateRederivation.Result result, final String forbidden)
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.getGateShapeName()).thenReturn("Bespoke");
+
+        try (MockedStatic<GateRederivation> rederive = mockStatic(GateRederivation.class))
+        {
+            rederive.when(() -> GateRederivation.rederive(gate))
+                .thenReturn(new GateRederivation.Outcome(result, List.of()));
+
+            assertTrue(run("regenerate", "alpha"));
+        }
+
+        verify(sender, never()).sendMessage(contains(forbidden));
     }
 
     /**

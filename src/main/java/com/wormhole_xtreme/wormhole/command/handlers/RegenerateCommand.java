@@ -131,9 +131,16 @@ public class RegenerateCommand implements SubCommand
     {
         switch (outcome.result())
         {
+            // Deliberately does not claim the file is missing. This branch is also reached by a
+            // shape that resolved perfectly well and is simply 2D -- any shape file without
+            // Version=2, which StargateShapeFactory still builds as a plain StargateShape and
+            // this release still supports. Telling that admin to go and find a file sitting in
+            // front of them would send them looking for the wrong problem.
             case NO_SHAPE -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Cannot re-read the shape of " + s.getGateName() + ": \"" + s.getGateShapeName()
-                + "\" is not in the shapes folder. Markers left as they are.");
+                + "\" is not a 3D shape to re-derive from -- either it is missing from the shapes"
+                + " folder, or it is an older 2D shape file with no Version=2 line."
+                + " Markers left as they are.");
             case NO_ANCHOR -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + s.getGateName() + " records no dial button, so its shape cannot be re-read."
                 + " Markers left as they are.");
