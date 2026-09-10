@@ -26,6 +26,8 @@ its current value.
 - `HorizontalSignDial` could not be built at all.
 - Choosing a sign dial cost the gate its iris.
 - Redstone wiring inside a gate could never be taken back up without removing the gate.
+- A block could be dropped into a gate's opening and then never broken out again
+  ([#243](https://github.com/khanjal/Wormhole-X-Treme/issues/243)).
 - A ring pair in a room too short to hold it fired anyway.
 - Tab completion after `beam to` offered only public destinations, never your own places.
 - Beaming hid the traveller but left their gear standing in the column.
@@ -2729,6 +2731,49 @@ rather than broken.
 Reattaching an unbound sign on `regenerate` is still open -- item 2 of #54 -- and still waits
 on what #42 settles about that command; it needs a decision about `regenerate`'s own shape that
 this did not.
+
+### Nothing builds in the gate opening, and nothing is stuck there either (#243)
+
+Two halves of one bug, and they had to be fixed together.
+
+The plugin had no `BlockPlaceEvent` handler at all. Not a weak one -- none. So the ring of a
+gate that was not open was as buildable as ordinary air, and a player could drop cobblestone
+straight into the circle.
+
+Breaking it out again was refused. A portal cell is indexed to its gate in `allGateBlocks`
+exactly as the frame is, so the break came back as "This block is part of the registered gate
+`<name>`. Run `/wormhole remove <name>` ...". On a survival server `onBlockDamage` stopped the
+first swing before that even, for anyone without the DAMAGE node. Place allowed, break refused,
+in a gate the player very often had no permission to remove either -- so an admin's only
+recourse was to tear the gate down and rebuild it.
+
+`onBlockPlace` now refuses placement in a gate's portal cells and says why, rather than letting
+the block vanish with no explanation. It refuses on the portal block list, not on the gate
+index: a gate indexes its frame, its DHD and the redstone cells an admin is expected to wire by
+hand, and refusing on the index would have stopped that wiring -- the same mistake that made
+redstone unremovable earlier in this file.
+
+The break turns on the fact that a portal is never a real block. `fillGateInterior` leaves AIR
+on the server whether the gate is open or shut, because the portal is drawn in each nearby
+client and a traveller standing in a lava one should not burn. So anything solid found in a
+portal cell was put there by a player, and is theirs to take back out.
+
+The exception is a closed iris, which occupies the very same cells and, unlike the portal, is
+real blocks -- `fillGateIris` places them precisely so nobody can walk through a sealed gate.
+Reading "solid block in a portal cell" as "somebody's stray block" without checking
+`isGateIrisActive` would have handed anyone a pickaxe key to a closed iris. That check is what
+separates the two.
+
+`onBlockDamage` had to learn the same distinction. The first version only changed
+`onBlockBreak`, which on a survival server would have been no fix at all: the damage handler
+cancels the first swing on any indexed block for a player without the DAMAGE node, so the break
+the plugin now allows could never have been started. The test for it is what surfaced that; it
+is in the suite as `hittingAStrayBlockInTheOpeningIsNotStoppedByTheDamageCheck`.
+
+Nine tests in `GatePortalInteriorBuildTest`, four of which fail against the old behaviour --
+confirmed by putting the bug back. The other five pin what did not change: the frame stays
+protected from both breaking and hitting, a closed iris stays protected, and placement outside
+the opening is left alone.
 
 </details>
 
