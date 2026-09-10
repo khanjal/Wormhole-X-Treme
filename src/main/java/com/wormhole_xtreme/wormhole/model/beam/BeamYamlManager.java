@@ -18,6 +18,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
@@ -35,20 +36,7 @@ public final class BeamYamlManager
 
     public static File getBeamFile()
     {
-        try
-        {
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                return new File(WormholeXTreme.getThisPlugin().getDataFolder(),
-                    "WormholeXTremeDB" + File.separator + "beam.yml");
-            }
-        }
-        catch (final RuntimeException e)
-        {
-            // Fall through to the relative path below.
-        }
-        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator
-            + "WormholeXTremeDB" + File.separator + "beam.yml");
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "WormholeXTremeDB", "beam.yml");
     }
 
     /**

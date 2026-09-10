@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -34,10 +35,14 @@ class ConfigLoadTest
     @TempDir
     File directory;
 
+    /** Kept so a test can stub it; installing a second one would outlive the teardown. */
+    private WormholeXTreme plugin;
+
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
     }
 
@@ -152,5 +157,25 @@ class ConfigLoadTest
             "an unreadable file leaves the built-in default in place");
         assertEquals(List.of("just a sentence"), configLines(),
             "and the file itself is left exactly as it was, not appended to");
+    }
+
+    /**
+     * config.yml is read from the folder the server names, not the working directory.
+     *
+     * <p>It used to be built as {@code plugins/<name>/} regardless of what the server said,
+     * which on a stock install is the same folder and everywhere else is not. The failure was
+     * silent in the worst way: a server whose plugin folder had moved read no config at all
+     * and ran on defaults, with the admin's real file sitting unopened in another tree and
+     * nothing in the log to suggest it existed.
+     */
+    @Test
+    void configIsReadFromTheServersPluginFolder(@TempDir final File dataFolder) throws Exception
+    {
+        when(plugin.getDataFolder()).thenReturn(dataFolder);
+
+        assertEquals(new File(dataFolder, "config.yml"),
+            ConfigurationYAML.getConfigFile("WormholeXTreme"),
+            "reading config from the working directory means an admin's settings are ignored "
+            + "with no error, which looks exactly like the settings not working");
     }
 }
