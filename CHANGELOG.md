@@ -159,7 +159,6 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
   shape's own declaration, then the palette, then the shape default -- is written down once
   rather than in each of the five accessors, and the two materials that deliberately skip a
   step say so ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
-- Tests: **1326 at 1.5.0, 1484 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
@@ -197,7 +196,7 @@ folding it in would have meant giving the shared helper a nullable mode for one 
 
 The refactor also found an untested rule, which is the part worth keeping whatever anyone
 thinks of the enum. Swapping the first two steps -- letting a shape's declaration outrank an
-admin's per-gate override -- left all 1483 tests green. Every existing test set an override on a
+admin's per-gate override -- left the entire suite green. Every existing test set an override on a
 shape that named nothing, so the two orderings were indistinguishable. In game that is an admin
 giving one gate a particular iris, on a gate whose shape asks for glass, and the gate keeping
 the glass with no error. `aPerGateOverrideBeatsAShapeThatNamesTheMaterialItself` now fails
