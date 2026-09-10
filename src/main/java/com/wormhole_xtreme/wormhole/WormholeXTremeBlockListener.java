@@ -127,7 +127,9 @@ class WormholeXTremeBlockListener implements Listener
         }
         catch (final RuntimeException ignore)
         {
-            // on failure fall through to the protective default
+            // "Not a portal cell" points opposite ways in the two callers: it refuses the
+            // break, which falls through to the frame refusal, but allows the placement.
+            // Only reachable if a Bukkit accessor throws on a block already indexed to a gate.
             return false;
         }
     }
