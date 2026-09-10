@@ -79,7 +79,7 @@ class BeamSaveAllTest
      * one of them would miss the other entirely.
      */
     @Test
-    void publicDestinationsAndPrivatePlacesBothSurviveTheRoundTrip() throws Exception
+    void publicDestinationsAndPrivatePlacesBothSurviveTheRoundTrip()
     {
         BeamManager.setPublicDestination(at("spawn", 1.0, null));
         BeamManager.setPlace(OWNER, at("home", 2.0, null));
@@ -98,7 +98,7 @@ class BeamSaveAllTest
 
     /** Every coordinate survives, not just the name that indexes it. */
     @Test
-    void aDestinationComesBackAtTheSamePointItWentInAt() throws Exception
+    void aDestinationComesBackAtTheSamePointItWentInAt()
     {
         BeamManager.setPublicDestination(new BeamDestination("far",
             new BeamPoint("nether", -1234.5, 31.0, 6789.25, 177.5f, -22.5f), null));
@@ -142,7 +142,7 @@ class BeamSaveAllTest
 
     /** A cost that was set is written, including one deliberately set to free. */
     @Test
-    void aCostThatWasSetSurvives() throws Exception
+    void aCostThatWasSetSurvives()
     {
         BeamManager.setPublicDestination(at("paid", 1.0, Double.valueOf(12.5)));
         BeamManager.setPublicDestination(at("free", 2.0, Double.valueOf(0.0)));
@@ -183,7 +183,7 @@ class BeamSaveAllTest
      * the move did not happen and the real file is whatever was there before.
      */
     @Test
-    void savingLeavesNoTemporaryFileBehind() throws Exception
+    void savingLeavesNoTemporaryFileBehind()
     {
         BeamManager.setPublicDestination(at("spawn", 1.0, null));
 
@@ -197,7 +197,7 @@ class BeamSaveAllTest
 
     /** The data directory is created rather than the save being lost for want of one. */
     @Test
-    void theDataDirectoryIsCreatedIfItIsNotThereYet() throws Exception
+    void theDataDirectoryIsCreatedIfItIsNotThereYet()
     {
         final File dir = BeamYamlManager.getBeamFile().getParentFile();
         assertFalse(dir.exists(), "the temp folder starts without one, which is the case under test");
