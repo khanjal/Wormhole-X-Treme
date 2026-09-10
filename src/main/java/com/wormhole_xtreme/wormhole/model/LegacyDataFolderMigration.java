@@ -32,11 +32,18 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  *
  * <h2>What it will not do</h2>
  *
- * <p>Nothing is deleted and nothing is overwritten. A file already at the destination wins,
- * because that is the one being loaded. Files are moved rather than copied, so there is never
- * a second copy to edit by mistake. A move that fails is reported by name rather than passed
- * over -- the file is still in the old folder, so the recovery is to move it by hand, and that
- * is only possible if the log says which one.
+ * <p>Nothing is deleted and nothing is overwritten. A file that moves is moved rather than
+ * copied, so in the ordinary case there is one of it and it is in {@code data/}.
+ *
+ * <p>Two cases deliberately leave a file in the old folder, and both mean there are then two
+ * copies of it on disk. A file already at the destination wins -- that is the one being loaded
+ * -- so the one in the old folder stays where it is, inert. And a move that fails is reported
+ * by name rather than passed over, because the file is still in the old folder and the recovery
+ * is to move it by hand, which is only possible if the log says which one.
+ *
+ * <p>In both cases {@code data/} holds the copy the plugin reads and the old folder holds one
+ * nothing will look at again. Worth knowing before editing a gate file in there and wondering
+ * why nothing changed.
  */
 public final class LegacyDataFolderMigration
 {

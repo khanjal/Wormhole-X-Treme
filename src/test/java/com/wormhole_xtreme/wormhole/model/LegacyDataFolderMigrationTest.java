@@ -392,7 +392,7 @@ class LegacyDataFolderMigrationTest
 
     /** An empty gates folder is not worth creating a destination for. */
     @Test
-    void anEmptyGatesFolderMovesNothing() throws Exception
+    void anEmptyGatesFolderMovesNothing()
     {
         new File(legacy, "gates").mkdirs();
 
