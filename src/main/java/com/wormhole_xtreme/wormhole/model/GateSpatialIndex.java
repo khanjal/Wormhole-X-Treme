@@ -133,8 +133,8 @@ public final class GateSpatialIndex
      * <p>The two radii are checked separately because a gate is tall and thin: callers want
      * the neighbours beside them, not the ones forty blocks up the same column.
      *
-     * <p>The world is checked again per location even though the buckets are already keyed
-     * by world name. The two are redundant with each other on purpose -- either alone keeps
+     * <p>The world is checked again per location even though the buckets are already keyed by
+     * the world. The two are redundant with each other on purpose -- either alone keeps
      * another world's gates out of the answer.
      *
      * @param out
