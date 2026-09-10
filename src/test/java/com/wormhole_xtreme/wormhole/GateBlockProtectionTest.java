@@ -271,11 +271,12 @@ class GateBlockProtectionTest
     }
 
     /**
-     * Breaking and damage are the two that stay guarded, and it is now declared not coded.
+     * Breaking, damage and placement are the ones that stay guarded, declared not coded.
      *
      * <p>The other half of #53. {@code handleBlockBreak} sends two chat lines before it
      * returns, so running it on a break another plugin already stopped would tell somebody this
-     * plugin denied them when it did not. Same for the damage refusal.
+     * plugin denied them when it did not. Same for the damage refusal, and for the placement
+     * refusal that joined them.
      *
      * <p>Checked by reading the annotation rather than by calling the handler, and that is the
      * point rather than a shortcut: {@code ignoreCancelled} is enforced by Bukkit's dispatcher,
@@ -285,12 +286,14 @@ class GateBlockProtectionTest
      * declaration that now carries it.
      */
     @Test
-    void theTwoHandlersThatTalkToThePlayerIgnoreCancelledEvents() throws Exception
+    void theHandlersThatTalkToThePlayerIgnoreCancelledEvents() throws Exception
     {
         assertTrue(ignoresCancelled("onBlockBreak", org.bukkit.event.block.BlockBreakEvent.class),
             "a break somebody else stopped is not this plugin's to comment on");
         assertTrue(ignoresCancelled("onBlockDamage", BlockDamageEvent.class),
             "nor is a hit somebody else stopped");
+        assertTrue(ignoresCancelled("onBlockPlace", org.bukkit.event.block.BlockPlaceEvent.class),
+            "nor a placement somebody else stopped");
     }
 
     /**
