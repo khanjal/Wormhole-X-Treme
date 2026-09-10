@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
+import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 
 /**
@@ -42,12 +43,12 @@ public class ConfigurationYAML
      * instead of a name and be run against somewhere other than a live server.
      *
      * @param pluginName
-     *            the plugin's folder name
+     *            the plugin's folder name, used only if there is no plugin to ask
      * @return its directory, which may not exist yet
      */
     static File pluginDirectory(final String pluginName)
     {
-        return new File("plugins" + File.separator + pluginName + File.separator);
+        return PluginDirectory.resolve(pluginName);
     }
 
     /**
