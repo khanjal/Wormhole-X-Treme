@@ -182,11 +182,14 @@ previously things you noticed only by reading all five accessors and spotting wh
 from two of them; they are documented rows now:
 
 - **Sign** has no per-gate override, because no such field has ever existed. Shape then palette.
-- **Frame** never consults the shape's declaration, and `hasExplicitStructureMaterial()` is
-  deliberately not called even though it exists. The frame is not a styling choice the shape
-  gets to state -- it is what the player actually built the gate out of, and that is what chose
-  the palette. Preferring the shape's declaration reports `OBSIDIAN` for a gate made of lapis,
-  and `StargateAnimator` uses this value to rebuild chevrons after the lighting animation.
+- **Frame** never lets the shape's declaration outrank the palette, and
+  `hasExplicitStructureMaterial()` is deliberately not called even though it exists. The frame
+  is not a styling choice the shape gets to state -- it is what the player actually built the
+  gate out of, and that is what chose the palette. Preferring the shape's declaration reports
+  `OBSIDIAN` for a gate made of lapis, and `StargateAnimator` uses this value to rebuild
+  chevrons after the lighting animation. The shape is still the last resort for a gate with no
+  palette at all, the same as for every other material; only the step that would put it ahead
+  of the palette is skipped.
 
 Chevrons stay their own function. That one answers null when neither shape nor palette names a
 material, and detection has to ask it before there is a gate to ask -- a different contract, and

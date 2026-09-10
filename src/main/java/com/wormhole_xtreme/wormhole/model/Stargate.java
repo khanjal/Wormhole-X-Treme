@@ -626,8 +626,9 @@ public class Stargate
             Material.OAK_WALL_SIGN),
 
         /**
-         * Never consults the shape's declaration, and {@code hasExplicitStructureMaterial()}
-         * is deliberately not called here even though it exists.
+         * The only role that never lets the shape's declaration outrank the palette:
+         * {@code hasExplicitStructureMaterial()} is deliberately not called here, even though
+         * it exists.
          *
          * <p>The frame is not a styling choice the shape gets to state: it is whatever the
          * player actually built the gate out of, and that is precisely what selected the
@@ -635,6 +636,10 @@ public class Stargate
          * lapis, and {@code StargateAnimator} uses this value to restore light blocks after
          * the lighting animation -- so it would rebuild that gate's chevrons in the wrong
          * material.
+         *
+         * <p>The shape is still the last resort, the same as for every other role: a gate
+         * with no palette at all falls back to {@code getShapeStructureMaterial()}. What is
+         * skipped is only the step that would put the shape ahead of the palette.
          */
         STRUCTURE(gate -> gate.gateCustomStructureMaterial, shape -> false,
             StargateShape::getShapeStructureMaterial, MaterialGroup::getStructureMaterial,
@@ -795,8 +800,8 @@ public class Stargate
     /**
      * Gets the material the gate frame is built from.
      *
-     * <p>This one never consults the shape's declaration; {@link MaterialRole#STRUCTURE} says
-     * why.
+     * <p>This one never lets the shape's declaration outrank the palette;
+     * {@link MaterialRole#STRUCTURE} says why.
      *
      * @return the structure material, never null
      */
