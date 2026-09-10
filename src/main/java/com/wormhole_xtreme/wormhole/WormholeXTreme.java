@@ -375,6 +375,19 @@ public class WormholeXTreme extends JavaPlugin
             prettyLog(Level.WARNING, "Caught Exception while trying to load support plugins.", e);
         }
         registerEvents(true);
+        // Before anything reads a stored file. Gates, rings and beam destinations used to
+        // live in the same folder as another fork's database; this moves ours out of it, and
+        // reading them first would find nothing and load an empty server.
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.LegacyDataFolderMigration.migrate();
+        }
+        // A migration that throws must not stop the plugin: nothing is deleted, so the files
+        // are still in the old folder and the operator has something to recover from.
+        catch (final RuntimeException e)
+        {
+            prettyLog(Level.SEVERE, "Failed to move stored files into the data folder", e);
+        }
         // Load stargates.
         prettyLog(Level.INFO, true, "Loading stargates.");
         try

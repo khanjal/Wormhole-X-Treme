@@ -11,7 +11,7 @@ import java.util.logging.Level;
 
 import org.yaml.snakeyaml.Yaml;
 
-import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
+import com.wormhole_xtreme.wormhole.utils.DataLayout;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 import com.wormhole_xtreme.wormhole.utils.YamlStore;
@@ -31,7 +31,7 @@ public final class BeamYamlManager
 
     public static File getBeamFile()
     {
-        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "WormholeXTremeDB", "beam.yml");
+        return DataLayout.beamFile();
     }
 
     /**

@@ -159,7 +159,7 @@ property of the pair rather than of each end.
 world's single file:
 
 ```
-plugins/WormholeXTreme/WormholeXTremeDB/rings/<world>.yml
+plugins/WormholeXTreme/data/rings/<world>.yml
 ```
 
 ```yaml

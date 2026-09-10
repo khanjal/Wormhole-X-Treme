@@ -64,7 +64,7 @@ whole life. The field lives on the shared type rather than on a public-only subt
 Everything in one file:
 
 ```
-plugins/WormholeXTreme/WormholeXTremeDB/beam.yml
+plugins/WormholeXTreme/data/beam.yml
 ```
 
 ```yaml

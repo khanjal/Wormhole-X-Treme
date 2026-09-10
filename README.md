@@ -375,6 +375,12 @@ Nothing is written back to the old database and nothing is deleted, so a failed 
 nothing and running it twice does not duplicate anything. If gates are found on startup and
 you have none of your own, the log says so once.
 
+`WormholeXTremeDB/` keeps its name for exactly this reason. It is not ours to rename — it is
+what every fork in that line calls the folder, and how the import finds a database at all. This
+plugin's own files moved out of it into `data/`, and the database is deliberately left where it
+is: renaming the folder would have taken it along and quietly stopped the import being offered,
+with your old server's gates sitting in a file nothing looks at any more.
+
 One requirement: your server needs a SQLite driver. It is not shipped here — thirteen
 megabytes of native libraries for a one-time import would be a poor trade for every server
 that never runs it — but any server that *wrote* one of these databases already has one,
@@ -1392,12 +1398,28 @@ the same notes in reverse, so it falls on the way home without being told to.
 
 ## Storage
 
-Gates are stored as one YAML file each, under
-`plugins/WormholeXTreme/WormholeXTremeDB/gates/`. Back them up by copying the folder; edit
-them by hand if you need to.
+Everything this plugin stores lives under `data/` in its own folder:
 
-Rings are stored one file per *world*, under
-`plugins/WormholeXTreme/WormholeXTremeDB/rings/`, with every pair in that world inside it.
+```
+plugins/WormholeXTreme/
+├── config.yml
+├── shapes/gate/*.shape
+└── data/
+    ├── gates/<name>.yml
+    ├── rings/<world>.yml
+    └── beam.yml
+```
+
+Back it up by copying `data/`; edit anything in it by hand if you need to.
+
+This used to sit in `WormholeXTremeDB/`, which is the folder *other* forks keep their SQLite
+database in — so one directory was both their database and our files. Your files are moved into
+`data/` on the first startup after upgrading, and nothing is deleted. See
+[Coming from another Wormhole X-Treme](#coming-from-another-wormhole-x-treme) for what stays
+behind and why.
+
+Gates are one YAML file each. Rings are one file per *world*, with every pair in that world
+inside it.
 Per world rather than per pair because a pair can never span two — so the layout enforces
 the rule — and because it cuts startup to one read per world instead of one per pair. A pair
 that will not parse is logged and skipped, and the rest of the world still loads.
@@ -1432,7 +1454,7 @@ Economy integration is optional and requires **[Vault](https://www.spigotmc.org/
 
 ## Troubleshooting
 
-- If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
+- If gates disappear after restart: check for the per-gate YAML files under `plugins/WormholeXTreme/data/gates/`.
 - Check logs for storage initialization errors; increased logging was added for storage backend diagnostics.
 - If a gate name, owner name or iris deactivation code came back with a `?` in place of an accented character, that is a pre-1.5.0 bug: files were written in the host's default charset and read back as UTF-8, which only differ on a server whose locale is not UTF-8 (a minimal container with a POSIX/C locale, typically). 1.5.0 writes UTF-8 everywhere, but it cannot undo damage already on disk -- the original character is not in the file to recover. A gate already carrying a `?` has to be rebuilt under the name you want, and an iris code that stopped being accepted has to be set again.
 
