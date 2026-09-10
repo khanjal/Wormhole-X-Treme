@@ -12,7 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
-import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
+import com.wormhole_xtreme.wormhole.utils.DataLayout;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
 import com.wormhole_xtreme.wormhole.utils.YamlStore;
@@ -34,7 +34,7 @@ public class StargateYamlManager
 
     public static File getGatesDir()
     {
-        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "WormholeXTremeDB", "gates");
+        return DataLayout.gates();
     }
 
     public static void loadStargates(final Server server)

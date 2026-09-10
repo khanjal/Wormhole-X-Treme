@@ -12,10 +12,16 @@ actually released on the day.
 
 **Upgrading:** nothing to do, with two things worth knowing.
 
-Your gate shapes move. `GateShapes/` becomes `shapes/gate/`, on the first startup, without being
-asked. Files are moved rather than copied, a file already at the destination wins, every move is
-logged, and nothing is deleted -- so putting 1.5.0's jar back finds the old folder as it was. If
-you are far enough back to still have `GateShapes/3d/`, both moves happen in the same startup.
+Files move, on the first startup, without being asked. Gate shapes go from `GateShapes/` to
+`shapes/gate/`, and your gates, rings and beam destinations go from `WormholeXTremeDB/` into
+`data/`. In both cases files are moved rather than copied, a file already at the destination
+wins, every move is logged, and nothing is deleted -- so putting 1.5.0's jar back finds the old
+folders as they were. If you are far enough back to still have `GateShapes/3d/`, that hop
+happens in the same startup too.
+
+`WormholeXTremeDB/` stays where it is and keeps its name, because it is also where another
+fork's SQLite database lives and `/wormhole gate import` finds it by that name. Only this
+plugin's own files come out of it.
 
 And if your plugin folder is not `./plugins` -- a start script that changes directory first, or a
 launcher that puts plugins somewhere else -- this build reads `config.yml` and the gate shapes
@@ -55,6 +61,10 @@ been running on defaults will start reading the file you have been editing.
   mirrors have somewhere to go when they arrive. Your shapes are moved there on first
   startup, from either previous layout, and nothing is deleted
   ([#246](https://github.com/khanjal/Wormhole-X-Treme/issues/246)).
+- Gates, rings and beam destinations live in the plugin's `data/` folder rather than sharing
+  `WormholeXTremeDB/` with another fork's database. Yours are moved on first startup; the
+  database stays where it is, so `/wormhole gate import` still finds it
+  ([#247](https://github.com/khanjal/Wormhole-X-Treme/issues/247)).
 
 ### Performance
 
@@ -145,12 +155,64 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
   casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
   nobody read, which took ten class-level warning suppressions off the classes they were hiding
   real findings in.
-- Tests: **1326 at 1.5.0, 1440 so far**.
+- Tests: **1326 at 1.5.0, 1460 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### Our data left the folder it was sharing with another fork's database (#247)
+
+```
+<plugin folder>/
+├── data/                         ours
+│   ├── gates/<name>.yml
+│   ├── rings/<world>.yml
+│   └── beam.yml
+└── WormholeXTremeDB/             theirs, read by the importer, never written
+    └── WormholeXTreme.sqlite
+```
+
+`WormholeXTremeDB` is the folder every build descended from the 2011 original keeps its SQLite
+database in, and `/wormhole gate import` finds it by that name. This fork does not use that
+database -- it stores a file per gate -- but it had been keeping those files, and the rings and
+the beam destinations, in the same folder. So one directory was both the import source from
+other forks and this fork's live storage, and nothing about the layout said which was which.
+`LegacyDatabaseImporter`'s own class comment had been saying so for a while: "because the two
+use the same folder, with their old data sitting right next to the new empty one".
+
+The costs were real rather than tidiness. The README told operators to back gates up by copying
+the folder, which swept up a stale foreign database that would then be offered for import again
+on restore. And the state "I have imported" and "I have not" looked nearly identical on disk.
+
+**The obvious implementation is the wrong one.** Renaming `WormholeXTremeDB` to `data` would
+carry the foreign database along, and the importer looks for it by name in the folder other
+forks write it to -- so someone who had not yet imported would find the offer had quietly
+stopped appearing, with their old server's gates sitting in a file the plugin no longer reads.
+The migration therefore moves a known list -- `gates/`, `rings/`, `beam.yml` -- and steps over
+everything else, including files it has never heard of, which belong to whoever put them there.
+
+Nothing is deleted and nothing is overwritten. A file already in `data/` wins, because that is
+the one being loaded. A move that fails is named in the log rather than passed over: the file is
+still in the old folder, the recovery is to move it by hand, and that is only possible if the
+log says which one. It runs in `onEnable` before `loadStargates`, because reading the stores
+before moving them would find nothing and load an empty server.
+
+`DataLayout` came out of the same work. The folder name was written out in four separate files,
+so moving it meant four edits and one missed edit meant gates read from one folder and written
+to another. It is one line now, and the class doubles as the one place that answers what the
+plugin folder contains -- which is the shape [#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)'s
+`YamlStore` and #245's `PluginDirectory` were already heading towards.
+
+Fourteen tests, and the mutation checking earned its place twice over. Widening the migratable
+list so it carries the database turns four of them red, which is the property that matters most
+here. But removing the "a file already there wins" guard turned *nothing* red at first --
+`File.renameTo` overwrites an existing destination on POSIX and refuses on Windows, so on a
+Windows machine deleting that guard changed nothing a content assertion could see. The test had
+quietly become a test of the filesystem. It now also asserts the reported outcome -- keeping an
+existing copy is neither a move nor a failure -- which fails on either platform, and the comment
+above it says why so nobody simplifies the assertions away again.
 
 ### Gate shapes moved to `shapes/gate/` (#246)
 

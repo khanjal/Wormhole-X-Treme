@@ -20,7 +20,7 @@ import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
-import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
+import com.wormhole_xtreme.wormhole.utils.DataLayout;
 
 public final class StargateShapeRegistry
 {
@@ -45,7 +45,7 @@ public final class StargateShapeRegistry
      */
     static File shapeDirectory()
     {
-        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "gate");
+        return DataLayout.gateShapes();
     }
 
     /**
@@ -58,7 +58,7 @@ public final class StargateShapeRegistry
      */
     static File legacyShapeDirectory()
     {
-        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "GateShapes");
+        return DataLayout.legacyGateShapes();
     }
 
     public static StargateShape getStargateShape(final String name)

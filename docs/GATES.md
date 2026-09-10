@@ -167,7 +167,7 @@ animation waves and the arrival point are deliberately not copied: rewriting tho
 ## Storage
 
 One YAML file per gate, in
-`plugins/WormholeXTreme/WormholeXTremeDB/gates/`:
+`plugins/WormholeXTreme/data/gates/`:
 
 ```yaml
 Name: Base
