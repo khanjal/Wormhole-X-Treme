@@ -14,6 +14,7 @@ import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 
@@ -28,13 +29,14 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 /**
  * WormholeXTreme Block Listener.
  *
- * <p>Four of the six handlers here deliberately run on events that arrive already cancelled.
+ * <p>Four of the seven handlers here deliberately run on events that arrive already cancelled.
  * Bukkit lets a later listener un-cancel, and these are all plain {@code @EventHandler} and so
  * NORMAL priority -- one that skipped has said nothing at all by the time a plugin at HIGH calls
  * {@code setCancelled(false)}, and the block goes through with no protection ever having run.
  * They only ever cancel, so running them on a cancelled event costs nothing and skipping costs a
- * gate. {@code onBlockBreak} and {@code onBlockDamage} carry {@code ignoreCancelled} instead,
- * because both tell the player they were refused and that would be a lie. See #53.
+ * gate. {@code onBlockBreak}, {@code onBlockDamage} and {@code onBlockPlace} carry
+ * {@code ignoreCancelled} instead, because they tell the player they were refused and that
+ * would be a lie. See #53.
  *
  * @author Ben Echols (Lologarithm)
  * @author Dean Bailey (alron)
@@ -92,8 +94,67 @@ class WormholeXTremeBlockListener implements Listener
         {
             return false;
         }
+        if (isStrayBlockInPortal(stargate, block))
+        {
+            return false;
+        }
         refuseBreak(player, stargate);
         return true;
+    }
+
+    /**
+     * Whether a block sits in one of the gate's portal cells.
+     *
+     * <p>Asks the gate's own portal block list rather than the world, because an open
+     * portal is a drawing in each nearby client and the server keeps the cell as AIR.
+     *
+     * @param stargate
+     *            the gate the cell belongs to
+     * @param block
+     *            the block to place in the ring
+     * @return true if the block is inside the gate's portal interior
+     */
+    static boolean isPortalInterior(final Stargate stargate, final Block block)
+    {
+        if ((stargate == null) || (block == null))
+        {
+            return false;
+        }
+        try
+        {
+            final Location at = block.getLocation();
+            return stargate.isGatePortalBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ());
+        }
+        catch (final RuntimeException ignore)
+        {
+            // "Not a portal cell" points opposite ways in the two callers: it refuses the
+            // break, which falls through to the frame refusal, but allows the placement.
+            // Only reachable if a Bukkit accessor throws on a block already indexed to a gate.
+            return false;
+        }
+    }
+
+    /**
+     * Whether a block in the portal ring is somebody's, rather than the gate's.
+     *
+     * <p>The portal itself is never a real block -- {@code fillGateInterior} leaves AIR on
+     * the server whether the gate is open or shut. So anything solid standing in a portal
+     * cell was put there by a player, and until now they could not take it back out: the
+     * cell is indexed to the gate, so the break was refused as gate structure and the block
+     * was stuck there for good. See #243.
+     *
+     * <p>The one thing that really is a gate block in these cells is a closed iris, which
+     * {@code fillGateIris} places for real precisely so nobody can walk through it.
+     *
+     * @param stargate
+     *            the gate the cell belongs to
+     * @param block
+     *            the block being broken
+     * @return true if the break should be allowed
+     */
+    static boolean isStrayBlockInPortal(final Stargate stargate, final Block block)
+    {
+        return isPortalInterior(stargate, block) && !stargate.isGateIrisActive();
     }
 
     /**
@@ -207,6 +268,48 @@ class WormholeXTremeBlockListener implements Listener
         }
     }
 
+    /** Tells whoever placed it that the gate opening is not somewhere to build. */
+    private static void refusePlace(final Player player, final Stargate stargate)
+    {
+        if (player == null)
+        {
+            return;
+        }
+        final String name = (stargate != null) ? stargate.getGateName() : "unknown";
+        try
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "You cannot build inside the gate '" + name + "'.");
+        }
+        catch (final RuntimeException ignore)
+        {
+            // the placement is already refused; only the explanation is missing
+        }
+    }
+
+    /**
+     * Keeps the gate opening clear.
+     *
+     * <p>Nothing stopped a block being placed in the ring before, and once there it could
+     * not be broken again: the cell is indexed to the gate, so the break came back as gate
+     * structure. Refusing the placement is the half of that pair that was missing. See #243.
+     *
+     * @param event
+     *            the placement
+     */
+    // ignoreCancelled, unlike the other four: this one talks to the player. #53.
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockPlace(final BlockPlaceEvent event)
+    {
+        final Block block = event.getBlockPlaced();
+        final Stargate stargate = StargateManager.getGateFromBlock(block);
+        if ((stargate != null) && isPortalInterior(stargate, block))
+        {
+            event.setCancelled(true);
+            refusePlace(event.getPlayer(), stargate);
+        }
+    }
+
     /* (non-Javadoc)
      * @see org.bukkit.event.block.BlockListener#onBlockBurn(org.bukkit.event.block.BlockBurnEvent)
      */
@@ -237,7 +340,10 @@ class WormholeXTremeBlockListener implements Listener
     {
         final Stargate stargate = StargateManager.getGateFromBlock(event.getBlock());
         final Player player = event.getPlayer();
-        if ((stargate != null) && (player != null) && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE))
+        // A stray block in the ring is not the gate's, so DAMAGE does not gate it -- and
+        // without this the break onBlockBreak now allows could never be started. #243.
+        if ((stargate != null) && (player != null) && !isStrayBlockInPortal(stargate, event.getBlock())
+            && !WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE))
         {
             event.setCancelled(true);
             WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Player: " + player.getName() + " denied damage on: " + stargate.getGateName());
