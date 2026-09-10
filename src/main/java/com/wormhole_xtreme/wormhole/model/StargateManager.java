@@ -845,11 +845,6 @@ public class StargateManager
     }
 
     /**
-     * Gets the opening animation blocks.
-     * 
-     * @return the opening animation blocks
-     */
-    /**
      * Normalize a location to its block coordinates (integer XYZ) while preserving world.
      * Use this when storing/retrieving map keys that represent block positions.
      */
