@@ -50,6 +50,9 @@ class GateEntryRefusalTest
 
         final Block portal = mock(Block.class);
         when(portal.getLocation()).thenReturn(new Location(world, BX, BY, BZ));
+        when(portal.getX()).thenReturn(Integer.valueOf(BX));
+        when(portal.getY()).thenReturn(Integer.valueOf(BY));
+        when(portal.getZ()).thenReturn(Integer.valueOf(BZ));
         when(portal.getWorld()).thenReturn(world);
         when(portal.getType()).thenReturn(Material.AIR);
         when(world.getBlockAt(BX, BY, BZ)).thenReturn(portal);

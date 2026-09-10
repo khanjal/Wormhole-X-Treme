@@ -148,13 +148,9 @@ public class Dial implements CommandExecutor
             {
                 return true;
             }
-            for (final Stargate s : StargateManager.getAllGates())
-            {
-                if ((s != null) && (s != start) && (s.getGateTarget() == target) && s.isGateActive())
-                {
-                    return true;
-                }
-            }
+            // Only an open gate can be dialled into the target, so this asks the open gates
+            // rather than copying and sorting every gate on the server to find out.
+            return StargateManager.hasIncomingConnection(target, start);
         }
         catch (final RuntimeException ignore)
         {

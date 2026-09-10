@@ -66,6 +66,85 @@ been running on defaults will start reading the file you have been editing.
   database stays where it is, so `/wormhole gate import` still finds it
   ([#247](https://github.com/khanjal/Wormhole-X-Treme/issues/247)).
 
+### Performance
+
+A pass over what this plugin costs a busy server. Nothing here changes what it does; all of it
+changes how much it costs to do it, and every item was chosen for scaling badly rather than for
+being slow in isolation — a thing that costs a little per gate, per block update or per player
+move is the thing that hurts once a server has thousands of the first and hundreds of the last.
+
+**Two per-second sweeps scaled with how many gates exist, not how many are open.** The loose-
+entity sweep and the projectile tracker's "is anything open" check both walked every gate on the
+server. On a world with three thousand built gates and two wormholes open, that was three
+thousand checks a second to do two gates' worth of work. Both now read the open-gate set the
+plugin already maintains, so their cost tracks how much travelling is happening rather than how
+much has ever been built. The README already described the sweep as looking "only at gates that
+are currently open"; that is now what it does rather than what it worked out.
+
+**The block index no longer allocates to answer a question.** `getGateFromBlock` is the
+most-called method in the plugin — every player move, every vehicle move, every tracked
+projectile every tick — and `isBlockInGate` is reached from `BlockPhysicsEvent`, which a server
+raises for every water flow, every falling block and every redstone update in a loaded world.
+Both were keyed on `Location`, so both built a `Location` to use as a key and threw it away
+again. They are now keyed by world and then by a packed block position, the way the ring index
+already was; the packing moved to a shared `BlockKey` rather than being written twice. The same
+change to a gate's own portal-block set removes another allocation from the same paths, and the
+gate spatial index stopped building a `world:x:z` string per lookup.
+
+**A gate deleted while its wormhole was open never left the open set.** Nothing on the removal
+path cleared it, so it stayed for the life of the server — and the ambient hum, the portal
+redraw on every player's chunk crossing and the entity sweep all walk exactly that set. A
+deleted gate went on humming and drawing a portal onto clients. With the sweep change above it
+would have gone on collecting entities to send somewhere too, which is how this was found.
+
+**Six static maps kept every player who had ever left.** They are keyed by `Player` rather than
+by id, and nothing removed from them on logout, so a server accumulated one Player object — and
+with it an entity, an inventory and a world reference — for everyone who had ever half-built a
+gate, activated one, chosen a build shape, travelled through a wormhole or armed a refresh. That
+is the leak that matters on a large server, because it grows with how many people have ever
+played rather than with how many are playing. Nothing observable is taken away: Bukkit issues a
+fresh Player object on the next login, so a stale entry could never have been matched to its
+owner again.
+
+**Asking which chunk a block is in was loading that chunk.** `scheduleChunkLoad` and
+`scheduleChunkUnload` both started with `Block.getChunk()`, which loads the chunk if the server
+does not have it — so by the time `isChunkLoaded` was consulted the answer was always yes. The
+guard was unreachable and the work happened anyway, outside the branch that existed to decide
+whether it should. The unload path was the worse of the two: it pulled back a chunk the server
+had already released, purely so it could ask for it to be released again. Both now shift the
+block's own coordinates, which is what the move path already does for the same reason.
+
+**Three log lines on hot paths were built whether or not anyone was listening.** The one that
+mattered was `getGateFromBlock`'s miss branch — the path taken by nearly every call — which
+concatenated a `Location` into a string on every block a player walked over. The hit branch had
+been guarded; the miss branch had not.
+
+Two dead maps went with this. `isBlockInGate` consulted a pair of "blocks in an active
+animation" maps that nothing has ever written to, so the second lookup on the plugin's hottest
+path was a permanently empty map being asked, forever.
+
+**A second pass found four more of the same shape.** Every fire, fire-tick and lava damage
+event asked which gate was closest by walking — and sorting — every gate on the server, to
+answer a question about anything within four blocks; it now does the local lookup the
+block-ignite guard beside it already did. Every explosion asked the index twice about each of
+its blocks, and a single charge can list hundreds. Two places asked "is any gate dialled into
+this one" by copying and sorting the whole gate list, one of them on every block boundary
+somebody crossed while standing in an arrival gate; both now walk the open gates, which is the
+only place the answer can be.
+
+Underneath the first of those, the distance measurement had no idea what a world was. It
+compared three coordinates and nothing else, so a gate standing at the same x/y/z in the Nether
+measured as zero blocks from somebody in the Overworld — and what reads it is the guard that
+stops a lava gate setting fire to what is beside it. That guard could fire on the wrong side of
+a portal. Fixed, and it is now the cheapest possible answer for a gate that is somewhere else
+entirely. It also stopped calling `Math.pow(x, 2)` three times per gate block to square a
+number.
+
+**Deliberately not changed:** the ring check on the player move path still runs on every move
+event rather than only on block boundaries. A ring has to re-arm for somebody who stayed inside
+it after a trip, and that player crosses no block boundaries — guarding it would have been a
+small win in exchange for a documented behaviour. It early-outs on servers with no rings instead.
+
 ### Under the hood
 
 - Three copies of the YAML write path, and three "is there a plugin to log through" checks that

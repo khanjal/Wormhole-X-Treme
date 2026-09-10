@@ -391,18 +391,15 @@ class WormholeXTremePlayerListener implements Listener
     private static boolean handleMoveAtArrivalGate(final PlayerMoveEvent event, final Player player,
                                                    final Stargate stargate)
     {
-        // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
+        // Gate is active but has no local target: check whether it's the destination of an
+        // active incoming connection. Only an open gate can be dialled into this one, so the
+        // question is asked of those rather than of a freshly copied and sorted list of every
+        // gate on the server -- which is what this did, on every block boundary somebody
+        // crossed while standing in an arrival gate.
         boolean incomingActive = false;
         try
         {
-            for (final Stargate s : StargateManager.getAllGates())
-            {
-                if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
-                {
-                    incomingActive = true;
-                    break;
-                }
-            }
+            incomingActive = StargateManager.hasIncomingConnection(stargate, null);
         }
         catch (final RuntimeException ignore) { /* treat an unreadable gate as not incoming */ }
 
@@ -1088,6 +1085,14 @@ class WormholeXTremePlayerListener implements Listener
         {
             return;
         }
+        // Deliberately not behind a "did the block change" guard, unlike gate detection: a
+        // ring has to re-arm for somebody who stayed inside it after a trip, and that player
+        // is crossing no block boundaries. The cost of asking is one hash lookup, and on a
+        // server with no rings at all it is not even that.
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingIndex.hasAny())
+        {
+            return;
+        }
         final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end =
             com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
                 to.getWorld().getName(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
@@ -1238,6 +1243,14 @@ class WormholeXTremePlayerListener implements Listener
         try
         {
             final boolean inPortal = isInsideOpenPortal(at);
+            // Every move event reaches here, including the rotation-only ones a player
+            // generates just by looking around, and on a server where nobody is standing in
+            // a wormhole both halves below are no-ops. Answering that before asking the
+            // player for their id keeps the common case to one empty-set check.
+            if (!inPortal && portalFlightGranted.isEmpty())
+            {
+                return;
+            }
             final java.util.UUID id = player.getUniqueId();
 
             if (inPortal)
@@ -1371,6 +1384,12 @@ class WormholeXTremePlayerListener implements Listener
         // that account gets fresh chunks anyway.
         com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(
             event.getPlayer().getUniqueId());
+        // The Player-keyed state, which the id-keyed lines above are not. Nothing was
+        // clearing it, so every person who had ever half-built or activated a gate stayed
+        // in memory — with their entity, inventory and world — until the server stopped.
+        com.wormhole_xtreme.wormhole.model.StargateManager.forgetPlayer(event.getPlayer());
+        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.forgetPlayer(event.getPlayer());
+        com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(event.getPlayer());
     }
 
     /**

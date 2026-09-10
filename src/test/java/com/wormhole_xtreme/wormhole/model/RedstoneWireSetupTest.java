@@ -54,6 +54,10 @@ class RedstoneWireSetupTest
         final Block b = mock(Block.class);
         when(b.getType()).thenReturn(type);
         when(b.getLocation()).thenReturn(new Location(world, 1, 64, 1));
+        when(b.getWorld()).thenReturn(world);
+        when(b.getX()).thenReturn(Integer.valueOf(1));
+        when(b.getY()).thenReturn(Integer.valueOf(64));
+        when(b.getZ()).thenReturn(Integer.valueOf(1));
         return b;
     }
 

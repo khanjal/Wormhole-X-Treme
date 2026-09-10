@@ -56,6 +56,10 @@ class WormholeXTremeBlockListenerTest
 
         final Block block = mock(Block.class);
         when(block.getLocation()).thenReturn(new Location(world, x, y, z));
+        when(block.getWorld()).thenReturn(world);
+        when(block.getX()).thenReturn(Integer.valueOf(x));
+        when(block.getY()).thenReturn(Integer.valueOf(y));
+        when(block.getZ()).thenReturn(Integer.valueOf(z));
         when(block.getType()).thenReturn(org.bukkit.Material.AIR);
 
         final Player player = mock(Player.class);
@@ -83,6 +87,10 @@ class WormholeXTremeBlockListenerTest
 
         final Block adj = mock(Block.class);
         when(adj.getLocation()).thenReturn(new Location(world, x + 1, y, z));
+        when(adj.getWorld()).thenReturn(world);
+        when(adj.getX()).thenReturn(Integer.valueOf(x + 1));
+        when(adj.getY()).thenReturn(Integer.valueOf(y));
+        when(adj.getZ()).thenReturn(Integer.valueOf(z));
         when(adj.getType()).thenReturn(org.bukkit.Material.AIR);
 
         final Player player = mock(Player.class);
@@ -109,6 +117,7 @@ class WormholeXTremeBlockListenerTest
         // Dial block (wall-mounted button)
         final Block dial = mock(Block.class);
         when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getWorld()).thenReturn(world);
         when(dial.getX()).thenReturn(dx);
         when(dial.getY()).thenReturn(dy);
         when(dial.getZ()).thenReturn(dz);
@@ -119,16 +128,19 @@ class WormholeXTremeBlockListenerTest
         final Block irisCandidate = mock(Block.class);
 
         when(backing.getLocation()).thenReturn(new Location(world, dx - 1, dy, dz));
+        when(backing.getWorld()).thenReturn(world);
         when(backing.getX()).thenReturn(dx - 1);
         when(backing.getY()).thenReturn(dy);
         when(backing.getZ()).thenReturn(dz);
 
         when(dhdBase.getLocation()).thenReturn(new Location(world, dx - 1, dy - 1, dz));
+        when(dhdBase.getWorld()).thenReturn(world);
         when(dhdBase.getX()).thenReturn(dx - 1);
         when(dhdBase.getY()).thenReturn(dy - 1);
         when(dhdBase.getZ()).thenReturn(dz);
 
         when(irisCandidate.getLocation()).thenReturn(new Location(world, dx - 1, dy - 1, dz + 1));
+        when(irisCandidate.getWorld()).thenReturn(world);
         when(irisCandidate.getX()).thenReturn(dx - 1);
         when(irisCandidate.getY()).thenReturn(dy - 1);
         when(irisCandidate.getZ()).thenReturn(dz + 1);
@@ -177,6 +189,7 @@ class WormholeXTremeBlockListenerTest
 
         final Block dial = mock(Block.class);
         when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getWorld()).thenReturn(world);
         when(dial.getX()).thenReturn(dx);
         when(dial.getY()).thenReturn(dy);
         when(dial.getZ()).thenReturn(dz);
@@ -184,6 +197,7 @@ class WormholeXTremeBlockListenerTest
         // The block under the dial is the iris position, and this time it holds a lever.
         final Block belowDial = mock(Block.class);
         when(belowDial.getLocation()).thenReturn(new Location(world, dx, dy - 1, dz));
+        when(belowDial.getWorld()).thenReturn(world);
         when(belowDial.getX()).thenReturn(dx);
         when(belowDial.getY()).thenReturn(dy - 1);
         when(belowDial.getZ()).thenReturn(dz);
@@ -231,12 +245,14 @@ class WormholeXTremeBlockListenerTest
 
         final Block dial = mock(Block.class);
         when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getWorld()).thenReturn(world);
         when(dial.getX()).thenReturn(dx);
         when(dial.getY()).thenReturn(dy);
         when(dial.getZ()).thenReturn(dz);
 
         final Block belowDial = mock(Block.class);
         when(belowDial.getLocation()).thenReturn(new Location(world, dx, dy - 1, dz));
+        when(belowDial.getWorld()).thenReturn(world);
         when(belowDial.getX()).thenReturn(dx);
         when(belowDial.getY()).thenReturn(dy - 1);
         when(belowDial.getZ()).thenReturn(dz);

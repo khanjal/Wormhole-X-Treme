@@ -82,9 +82,18 @@ class ProjectileGateTracker implements Listener
 
     private static void refreshAnyGateOpen()
     {
-        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+        // The open set, not every gate. This ran once a second over the whole gate list to
+        // answer a question about the handful of gates that were open, which made a quiet
+        // server with thousands of built gates pay thousands of checks a second for an
+        // answer that was almost always the same.
+        //
+        // Still asked of the registry, though: the open set follows the active flag alone, so
+        // it can hold a gate the server does not have -- one still being detected, or one
+        // built in a test. Filtering the registry is what this did before and a projectile
+        // cannot cross a gate nobody can reach.
+        for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (gate.isGateActive() && (gate.getGateTarget() != null))
+            if ((gate.getGateTarget() != null) && StargateManager.isRegistered(gate))
             {
                 anyGateOpen = true;
                 return;

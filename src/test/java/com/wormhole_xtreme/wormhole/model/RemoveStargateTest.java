@@ -147,6 +147,35 @@ class RemoveStargateTest
         assertFalse(StargateManager.isBlockInGate(dialSign), "so is the dial sign");
     }
 
+    /**
+     * A gate deleted while its wormhole was open leaves the open set.
+     *
+     * <p>The open set is written only by {@code setGateActive}, and nothing on the removal
+     * path called it -- so a gate removed while lit stayed in that set for the life of the
+     * server. It is not an idle entry: the ambient hum sweep, the portal redraw on every
+     * player's chunk crossing, and the periodic entity sweep all walk exactly this set, so a
+     * deleted gate went on humming, went on drawing a portal onto clients, and went on being
+     * offered entities to send somewhere. It also pinned the gate object and every block
+     * location it holds.
+     */
+    @Test
+    void aGateRemovedWhileOpenIsNoLongerAnOpenGate()
+    {
+        final Stargate gate = builtGate("alpha");
+        gate.setGateActive(true);
+
+        assertTrue(StargateManager.getOpenGates().contains(gate), "open before removal");
+
+        try (MockedStatic<StargateDBManager> db = mockStatic(StargateDBManager.class))
+        {
+            StargateManager.removeStargate(gate);
+        }
+
+        assertFalse(StargateManager.getOpenGates().contains(gate),
+            "a deleted gate that is still in the open set keeps humming, keeps drawing its"
+                + " portal, and keeps being swept for entities to send through it");
+    }
+
     /** The gate leaves its network's lists. */
     @Test
     void aRemovedGateLeavesItsNetwork()

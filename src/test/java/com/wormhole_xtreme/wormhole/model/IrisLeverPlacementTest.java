@@ -50,6 +50,7 @@ class IrisLeverPlacementTest
         when(b.getY()).thenReturn(y);
         when(b.getZ()).thenReturn(z);
         when(b.getLocation()).thenReturn(new Location(world, x, y, z));
+        when(b.getWorld()).thenReturn(world);
         return b;
     }
 

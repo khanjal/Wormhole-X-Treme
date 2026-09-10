@@ -25,12 +25,13 @@ import com.wormhole_xtreme.wormhole.model.StargateManager;
  * <p>Players and vehicles are handled by their own events and are skipped here; this
  * exists only for entities that generate no event when they drift into a portal.
  *
- * <p>The sweep is deliberately shaped around the "many gates, many players" case. Per
- * tick interval it does one entity query per <em>active</em> gate, not one per portal
- * block: a Standard gate has 21 portal blocks, so the naive version issued 21 spatial
- * queries per gate and 1,000+ across a server with 50 open wormholes. Everything that
- * does not depend on the entity — the destination, the arrival location — is computed
- * once per gate rather than once per entity.
+ * <p>The sweep is deliberately shaped around the "many gates, many players" case. It walks
+ * the open gates rather than every gate, so its cost tracks how many wormholes are in use
+ * rather than how many gates a server has built. Per tick interval it does one entity query
+ * per open gate, not one per portal block: a Standard gate has 21 portal blocks, so the
+ * naive version issued 21 spatial queries per gate and 1,000+ across a server with 50 open
+ * wormholes. Everything that does not depend on the entity — the destination, the arrival
+ * location — is computed once per gate rather than once per entity.
  */
 public final class GateEntityScanner implements Runnable
 {
@@ -51,9 +52,14 @@ public final class GateEntityScanner implements Runnable
     {
         try
         {
-            // Unsorted: this is a filter loop, and sorting every gate by name on each
-            // tick interval is pure waste once a server has hundreds of them.
-            for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+            // Only the gates actually showing a portal, not every gate on the server. A
+            // gate that is not open has nothing to sweep, and walking the whole list to
+            // find that out scaled this task with how many gates a server has built rather
+            // than with how many are in use — on a world with three thousand gates and two
+            // wormholes open, that was three thousand checks a second to do two gates'
+            // worth of work. StargateManager keeps the open set as gates open and close, so
+            // reading it costs nothing to maintain.
+            for (final Stargate gate : StargateManager.getOpenGates())
             {
                 sweepGateQuietly(gate);
             }
@@ -94,7 +100,14 @@ public final class GateEntityScanner implements Runnable
      */
     private static void sweepGate(final Stargate gate)
     {
-        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null)
+        // The caller only offers open gates, but the checks stay. The set is read live, so a
+        // gate can shut down between being handed over and being swept -- and the set follows
+        // the active flag alone, so it can also hold a gate the registry has never heard of:
+        // one still being detected, or one built in a test. Sweeping filtered the registry
+        // before and must go on excluding those, or an entity gets sent through a gate that
+        // is not on the server.
+        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null
+            || !StargateManager.isRegistered(gate))
         {
             return;
         }

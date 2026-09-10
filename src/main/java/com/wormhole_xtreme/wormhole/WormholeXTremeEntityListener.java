@@ -37,10 +37,16 @@ class WormholeXTremeEntityListener implements Listener
         final List<Block> eb = explodeBlocks;
         for (int i = 0; i < eb.size(); i++)
         {
-            if (StargateManager.isBlockInGate(eb.get(i)))
+            // One lookup per block, not two. isBlockInGate and getGateFromBlock ask the index
+            // the same question, and this asked both of every block of every explosion -- and
+            // a single charge can list hundreds of blocks.
+            final Stargate s = StargateManager.getGateFromBlock(eb.get(i));
+            if (s != null)
             {
-                final Stargate s = StargateManager.getGateFromBlock(eb.get(i));
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Creeper Explosion on Stargate: \"" + s.getGateName() + "\"");
+                if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Creeper Explosion on Stargate: \"" + s.getGateName() + "\"");
+                }
                 return true;
             }
         }
@@ -58,13 +64,26 @@ class WormholeXTremeEntityListener implements Listener
     {
         final Player p = (Player) event.getEntity();
         final Location current = p.getLocation();
-        final Stargate closest = StargateManager.findClosestStargate(current);
+        // A local lookup against the indexed gate blocks, not a walk of every gate on the
+        // server. This runs on every fire, fire-tick and lava damage event for every player,
+        // so a burning crowd was paying a full scan of the gate list several times a second
+        // each -- and the old scan sorted the list on the way, since findClosestStargate goes
+        // through getAllGates.
+        //
+        // Bounded at the same radius the block-ignite guard beside it uses, which is the same
+        // guard on the same question. Ten blocks comfortably covers what the test below can
+        // match: a custom woosh depth is capped at 5 by the command that sets it, and the
+        // fallback is 16 -- four blocks.
+        final Stargate closest = StargateManager.findNearestGateByBlock(current, 10, 5);
         if ((closest != null) && (((closest.getEffectivePortalMaterial()) == Material.LAVA) || ((closest.getGateTarget() != null) && ((closest.getGateTarget().getEffectivePortalMaterial()) == Material.LAVA))))
         {
             final double blockDistanceSquared = StargateManager.distanceSquaredToClosestGateBlock(current, closest);
             if ((closest.isGateActive() || closest.isGateRecentlyActive()) && (((blockDistanceSquared <= (closest.getEffectiveWooshDepthSquared())) && ((closest.getEffectiveWooshDepth()) != 0)) || (blockDistanceSquared <= 16)))
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Event: \"" + event.getCause().toString() + "\" On: \"" + p.getName() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
+                if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Blocked Gate: \"" + closest.getGateName() + "\" Proximity Event: \"" + event.getCause().toString() + "\" On: \"" + p.getName() + "\" Distance Squared: \"" + blockDistanceSquared + "\"");
+                }
                 p.setFireTicks(0);
                 return true;
             }

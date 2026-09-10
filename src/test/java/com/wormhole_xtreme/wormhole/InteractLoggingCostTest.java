@@ -68,6 +68,9 @@ class InteractLoggingCostTest
         when(clicked.getType()).thenReturn(Material.STONE);
         when(clicked.getWorld()).thenReturn(world);
         when(clicked.getLocation()).thenReturn(new Location(world, 1, 64, 1));
+        when(clicked.getX()).thenReturn(Integer.valueOf(1));
+        when(clicked.getY()).thenReturn(Integer.valueOf(64));
+        when(clicked.getZ()).thenReturn(Integer.valueOf(1));
 
         clicker = mock(Player.class);
         when(clicker.getName()).thenReturn("clicker");
@@ -105,6 +108,9 @@ class InteractLoggingCostTest
         when(signBlock.getType()).thenReturn(Material.OAK_WALL_SIGN);
         when(signBlock.getWorld()).thenReturn(world);
         when(signBlock.getLocation()).thenReturn(new Location(world, 2, 64, 2));
+        when(signBlock.getX()).thenReturn(Integer.valueOf(2));
+        when(signBlock.getY()).thenReturn(Integer.valueOf(64));
+        when(signBlock.getZ()).thenReturn(Integer.valueOf(2));
 
         final Stargate gate = new Stargate();
         gate.setGateName("someone-elses");

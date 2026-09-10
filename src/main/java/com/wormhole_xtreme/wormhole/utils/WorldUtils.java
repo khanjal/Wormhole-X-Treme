@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.utils;
 
 import java.util.logging.Level;
 
-import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -195,17 +194,44 @@ public class WorldUtils
         {
             for (int dz = -1; dz <= 1; dz++)
             {
-                try
-                {
-                    if (!w.isChunkLoaded(cx + dx, cz + dz))
-                    {
-                        WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Pre-loading destination chunk (" + (cx + dx) + "," + (cz + dz) + ") on: " + w.getName());
-                        w.loadChunk(cx + dx, cz + dz);
-                    }
-                }
-                catch (final RuntimeException ignore) { /* pre-loading is an optimisation, not a requirement */ }
+                loadChunkQuietly(w, cx + dx, cz + dz);
             }
         }
+    }
+
+    /**
+     * Loads one chunk if the server does not already have it, and keeps going if it cannot.
+     *
+     * <p>Its own method rather than a third level of nesting inside the loop above. Guarding
+     * the log line -- which is worth doing, since the line was built on every pass whether or
+     * not anybody was listening -- put an {@code if} inside an {@code if} inside two loops
+     * inside a {@code try}, which is more shape than nine chunk loads deserve.
+     *
+     * <p>Each chunk keeps its own {@code try}, exactly as it had one inside the loop before:
+     * one chunk that cannot be loaded must not stop the eight around it from being.
+     *
+     * @param w
+     *            the world to load in
+     * @param chunkX
+     *            chunk x
+     * @param chunkZ
+     *            chunk z
+     */
+    private static void loadChunkQuietly(final World w, final int chunkX, final int chunkZ)
+    {
+        try
+        {
+            if (w.isChunkLoaded(chunkX, chunkZ))
+            {
+                return;
+            }
+            if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Pre-loading destination chunk (" + chunkX + "," + chunkZ + ") on: " + w.getName());
+            }
+            w.loadChunk(chunkX, chunkZ);
+        }
+        catch (final RuntimeException ignore) { /* pre-loading is an optimisation, not a requirement */ }
     }
 
 
@@ -298,39 +324,55 @@ public class WorldUtils
     }
 
     /**
-     * Schedule chunk load.
-     * 
+     * Makes sure the chunk holding a block is resident.
+     *
+     * <p>The chunk coordinates come from the block's own, shifted, rather than from
+     * {@code Block.getChunk()}. Asking a block for its chunk <em>loads</em> that chunk, which
+     * made the guard below unreachable -- by the time {@code isChunkLoaded} was asked, the
+     * answer was always yes, because asking the question had already done the loading. The
+     * work still happened; it just happened outside the branch that was there to decide
+     * whether it should.
+     *
      * @param b
-     *            the b
+     *            a block in the chunk to load
      */
     public static void scheduleChunkLoad(final Block b)
     {
         final World w = b.getWorld();
-        final Chunk c = b.getChunk();
-        final int cX = c.getX();
-        final int cZ = c.getZ();
+        final int cX = b.getX() >> 4;
+        final int cZ = b.getZ() >> 4;
         if ( !w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Loading chunk: " + c.toString() + " on: " + w.getName());
+            if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Loading chunk: " + cX + "," + cZ + " on: " + w.getName());
+            }
             w.loadChunk(cX, cZ);
         }
     }
 
     /**
-     * Schedule chunk unload.
-     * 
+     * Releases the chunk holding a block, if the server still has it.
+     *
+     * <p>Shifted coordinates rather than {@code Block.getChunk()} for the reason given on
+     * {@link #scheduleChunkLoad}, and here the old version was actively counterproductive:
+     * asking the block for its chunk loaded a chunk that had already been unloaded, purely so
+     * this could ask the server to unload it again.
+     *
      * @param b
-     *            the b
+     *            a block in the chunk to release
      */
     public static void scheduleChunkUnload(final Block b)
     {
         final World w = b.getWorld();
-        final Chunk c = b.getChunk();
-        final int cX = c.getX();
-        final int cZ = c.getZ();
+        final int cX = b.getX() >> 4;
+        final int cZ = b.getZ() >> 4;
         if (w.isChunkLoaded(cX, cZ))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Scheduling chunk unload: " + c.toString() + " on: " + w.getName());
+            if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Scheduling chunk unload: " + cX + "," + cZ + " on: " + w.getName());
+            }
             w.unloadChunkRequest(cX, cZ);
         }
     }

@@ -59,6 +59,7 @@ class NamelessGateYamlTest
             when(b.getY()).thenReturn(Integer.valueOf(y));
             when(b.getZ()).thenReturn(Integer.valueOf(z));
             when(b.getLocation()).thenReturn(new Location(world, x, y, z));
+            when(b.getWorld()).thenReturn(world);
             return b;
         });
     }

@@ -106,6 +106,9 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         when(ch.getType()).thenReturn(Material.AIR);
         when(ch.getWorld()).thenReturn(world);
@@ -165,6 +168,9 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         when(ch.getType()).thenReturn(Material.AIR);
         when(ch.getWorld()).thenReturn(world);
@@ -217,6 +223,9 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         // An open portal is AIR on the server; the portal material is drawn to clients
         // only. Stubbing WATER here is what let the material-comparison bug pass tests
@@ -269,6 +278,9 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         // An open portal is AIR on the server; the portal material is drawn to clients
         // only. Stubbing WATER here is what let the material-comparison bug pass tests
@@ -349,6 +361,9 @@ class WormholeXTremeVehicleListenerEventTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         when(ch.getType()).thenReturn(Material.AIR);
         when(ch.getWorld()).thenReturn(world);

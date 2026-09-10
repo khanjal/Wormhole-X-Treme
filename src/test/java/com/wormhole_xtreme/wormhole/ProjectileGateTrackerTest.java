@@ -63,10 +63,16 @@ class ProjectileGateTrackerTest
 
         final Block portal = mock(Block.class);
         when(portal.getLocation()).thenReturn(new Location(world, BX, BY, BZ));
+        when(portal.getX()).thenReturn(Integer.valueOf(BX));
+        when(portal.getY()).thenReturn(Integer.valueOf(BY));
+        when(portal.getZ()).thenReturn(Integer.valueOf(BZ));
         when(portal.getWorld()).thenReturn(world);
         when(portal.getType()).thenReturn(org.bukkit.Material.AIR);
         final Block elsewhere = mock(Block.class);
         when(elsewhere.getLocation()).thenReturn(new Location(world, 0, 0, 0));
+        when(elsewhere.getX()).thenReturn(Integer.valueOf(0));
+        when(elsewhere.getY()).thenReturn(Integer.valueOf(0));
+        when(elsewhere.getZ()).thenReturn(Integer.valueOf(0));
         when(elsewhere.getWorld()).thenReturn(world);
         when(elsewhere.getType()).thenReturn(org.bukkit.Material.AIR);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(elsewhere);

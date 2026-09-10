@@ -19,7 +19,9 @@ import java.util.concurrent.ConcurrentMap;
  * afford to walk the world's pairs.
  *
  * <p>Coordinates are packed into a long the way Minecraft packs block positions, so a lookup
- * allocates one boxed key rather than building a string.
+ * allocates one boxed key rather than building a string. The packing itself lives in
+ * {@link com.wormhole_xtreme.wormhole.utils.BlockKey}, which the gate indexes share; the
+ * wrappers below stay so this class's own tests keep naming it where it is used.
  */
 public final class RingIndex
 {
@@ -92,7 +94,7 @@ public final class RingIndex
      */
     static long pack(final int x, final int y, final int z)
     {
-        return ((x & 0x3FFFFFFL) << 38) | ((z & 0x3FFFFFFL) << 12) | (y & 0xFFFL);
+        return com.wormhole_xtreme.wormhole.utils.BlockKey.pack(x, y, z);
     }
 
     /**
@@ -107,7 +109,7 @@ public final class RingIndex
      */
     static int unpackX(final long packed)
     {
-        return (int) (packed >> 38);
+        return com.wormhole_xtreme.wormhole.utils.BlockKey.unpackX(packed);
     }
 
     /**
@@ -128,7 +130,7 @@ public final class RingIndex
      */
     static int unpackY(final long packed)
     {
-        return (int) ((packed << 52) >> 52);
+        return com.wormhole_xtreme.wormhole.utils.BlockKey.unpackY(packed);
     }
 
     /**
@@ -140,7 +142,7 @@ public final class RingIndex
      */
     static int unpackZ(final long packed)
     {
-        return (int) ((packed << 26) >> 38);
+        return com.wormhole_xtreme.wormhole.utils.BlockKey.unpackZ(packed);
     }
 
     /**
@@ -331,6 +333,20 @@ public final class RingIndex
             return null;
         }
         return edge.get(Long.valueOf(pack(x, y, z)));
+    }
+
+    /**
+     * Whether any ring is indexed at all.
+     *
+     * <p>For the move path to ask before it does anything else. Most servers running this
+     * plugin have gates and no rings, and this turns the ring half of every player's every
+     * move into one check of an empty map.
+     *
+     * @return true if at least one world holds an indexed ring
+     */
+    public static boolean hasAny()
+    {
+        return !volumes.isEmpty();
     }
 
     /**
