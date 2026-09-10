@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -150,10 +151,13 @@ class ValidateCommandTest
     void aGateMissingFrameBlocksNamesHowMany()
     {
         final Stargate gate = registeredGate("alpha");
-        when(gate.getGateStructureBlocks()).thenReturn(Arrays.asList(
+        // Built first: these stub mocks of their own, and doing that inside an open
+        // when(...) leaves the outer stubbing unfinished.
+        final List<Location> frame = Arrays.asList(
             blockAt(0, 64, 0, Material.AIR),
             blockAt(1, 64, 0, Material.OBSIDIAN),
-            blockAt(2, 64, 0, Material.AIR)));
+            blockAt(2, 64, 0, Material.AIR));
+        when(gate.getGateStructureBlocks()).thenReturn(frame);
 
         assertTrue(run("validate", "alpha"));
 
@@ -165,7 +169,8 @@ class ValidateCommandTest
     void aGateMissingItsDialSignSaysSo()
     {
         final Stargate gate = registeredGate("alpha");
-        when(gate.getGateDialSignBlock()).thenReturn(dialSignBlock(false));
+        final Block sign = dialSignBlock(false);
+        when(gate.getGateDialSignBlock()).thenReturn(sign);
 
         assertTrue(run("validate", "alpha"));
 
@@ -177,7 +182,8 @@ class ValidateCommandTest
     void aGateWithItsDialSignStillThereIsClean()
     {
         final Stargate gate = registeredGate("alpha");
-        when(gate.getGateDialSignBlock()).thenReturn(dialSignBlock(true));
+        final Block sign = dialSignBlock(true);
+        when(gate.getGateDialSignBlock()).thenReturn(sign);
 
         assertTrue(run("validate", "alpha"));
 
@@ -189,8 +195,10 @@ class ValidateCommandTest
     void bothProblemsAtOnceAreReportedTogether()
     {
         final Stargate gate = registeredGate("alpha");
-        when(gate.getGateStructureBlocks()).thenReturn(Arrays.asList(blockAt(0, 64, 0, Material.AIR)));
-        when(gate.getGateDialSignBlock()).thenReturn(dialSignBlock(false));
+        final List<Location> frame = Arrays.asList(blockAt(0, 64, 0, Material.AIR));
+        final Block sign = dialSignBlock(false);
+        when(gate.getGateStructureBlocks()).thenReturn(frame);
+        when(gate.getGateDialSignBlock()).thenReturn(sign);
 
         assertTrue(run("validate", "alpha"));
 
@@ -208,7 +216,8 @@ class ValidateCommandTest
     {
         registeredGate("clean");
         final Stargate broken = registeredGate("broken");
-        when(broken.getGateStructureBlocks()).thenReturn(Arrays.asList(blockAt(5, 64, 5, Material.AIR)));
+        final List<Location> frame = Arrays.asList(blockAt(5, 64, 5, Material.AIR));
+        when(broken.getGateStructureBlocks()).thenReturn(frame);
 
         assertTrue(run("validate", "-all"));
 
