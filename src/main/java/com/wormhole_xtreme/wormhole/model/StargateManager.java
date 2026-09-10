@@ -432,6 +432,41 @@ public class StargateManager
     }
 
     /**
+     * Whether an open gate is currently dialled into this one.
+     *
+     * <p>Walks the gates that are open rather than every gate on the server. The question
+     * only has one possible answer among open gates -- a gate that is not lit has dialled
+     * nowhere -- so filtering the whole registry for it scaled a per-move question with how
+     * many gates a server had ever built.
+     *
+     * <p>Registration is checked because the open set does not check it: it follows the
+     * active flag alone, so it can hold a gate the registry has never heard of, and the
+     * callers here were filtering the registry before.
+     *
+     * @param destination
+     *            the gate being dialled into
+     * @param ignoring
+     *            a gate to disregard, or null to consider all of them
+     * @return true if some other open, registered gate is targeting the destination
+     */
+    public static boolean hasIncomingConnection(final Stargate destination, final Stargate ignoring)
+    {
+        if (destination == null)
+        {
+            return false;
+        }
+        for (final Stargate s : getOpenGates())
+        {
+            if ((s != null) && (s != ignoring) && (s.getGateTarget() == destination)
+                && s.isGateActive() && isRegistered(s))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Find the closest stargate.
      * 
      * @param self
@@ -743,6 +778,10 @@ public class StargateManager
      */
     public static List<Stargate> getAllGates()
     {
+        // Copies every gate into a new list and sorts it. That is what a listing wants and
+        // what anything merely looking for a gate should avoid: use getAllGatesUnsorted for
+        // a scan, or one of the indexes for a lookup. A sort is not free once a server has
+        // thousands of gates, and nothing scanning for a match needs them in order.
         final ArrayList<Stargate> gates = new ArrayList<>();
 
         final Enumeration<Stargate> keys = getStargateList().elements();
@@ -864,12 +903,28 @@ public class StargateManager
      */
     private static double getSquaredDistance(final Location self, final Location target)
     {
-        double distance = Double.MAX_VALUE;
-        if ((self != null) && (target != null))
+        if ((self == null) || (target == null))
         {
-            distance = Math.pow(self.getX() - target.getX(), 2) + Math.pow(self.getY() - target.getY(), 2) + Math.pow(self.getZ() - target.getZ(), 2);
+            return Double.MAX_VALUE;
         }
-        return distance;
+        // Two places in different worlds are not near each other, however their coordinates
+        // compare. Without this a gate in the Nether at the same x/y/z as somebody standing
+        // in the Overworld measured as zero blocks away, and the proximity guards that read
+        // this -- the ones that stop a lava gate setting fire to what is beside it -- would
+        // act on the wrong side of a portal. It is also the cheapest possible answer for the
+        // overwhelmingly common case of a gate that is somewhere else entirely.
+        if ((self.getWorld() != null) && (target.getWorld() != null)
+            && !self.getWorld().equals(target.getWorld()))
+        {
+            return Double.MAX_VALUE;
+        }
+        // Multiplied rather than Math.pow(x, 2). This is called once per gate block by the
+        // proximity guards, which a burning player reaches on every damage tick, and pow is
+        // a general-purpose call that no compiler is obliged to turn back into a multiply.
+        final double dx = self.getX() - target.getX();
+        final double dy = self.getY() - target.getY();
+        final double dz = self.getZ() - target.getZ();
+        return (dx * dx) + (dy * dy) + (dz * dz);
     }
 
     /**

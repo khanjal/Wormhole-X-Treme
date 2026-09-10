@@ -61,6 +61,23 @@ Two dead maps went with this. `isBlockInGate` consulted a pair of "blocks in an 
 animation" maps that nothing has ever written to, so the second lookup on the plugin's hottest
 path was a permanently empty map being asked, forever.
 
+**A second pass found four more of the same shape.** Every fire, fire-tick and lava damage
+event asked which gate was closest by walking — and sorting — every gate on the server, to
+answer a question about anything within four blocks; it now does the local lookup the
+block-ignite guard beside it already did. Every explosion asked the index twice about each of
+its blocks, and a single charge can list hundreds. Two places asked "is any gate dialled into
+this one" by copying and sorting the whole gate list, one of them on every block boundary
+somebody crossed while standing in an arrival gate; both now walk the open gates, which is the
+only place the answer can be.
+
+Underneath the first of those, the distance measurement had no idea what a world was. It
+compared three coordinates and nothing else, so a gate standing at the same x/y/z in the Nether
+measured as zero blocks from somebody in the Overworld — and what reads it is the guard that
+stops a lava gate setting fire to what is beside it. That guard could fire on the wrong side of
+a portal. Fixed, and it is now the cheapest possible answer for a gate that is somewhere else
+entirely. It also stopped calling `Math.pow(x, 2)` three times per gate block to square a
+number.
+
 **Deliberately not changed:** the ring check on the player move path still runs on every move
 event rather than only on block boundaries. A ring has to re-arm for somebody who stayed inside
 it after a trip, and that player crosses no block boundaries — guarding it would have been a

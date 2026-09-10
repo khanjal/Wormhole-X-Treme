@@ -391,18 +391,15 @@ class WormholeXTremePlayerListener implements Listener
     private static boolean handleMoveAtArrivalGate(final PlayerMoveEvent event, final Player player,
                                                    final Stargate stargate)
     {
-        // Gate is active but has no local target: check whether it's the destination of an active incoming connection.
+        // Gate is active but has no local target: check whether it's the destination of an
+        // active incoming connection. Only an open gate can be dialled into this one, so the
+        // question is asked of those rather than of a freshly copied and sorted list of every
+        // gate on the server -- which is what this did, on every block boundary somebody
+        // crossed while standing in an arrival gate.
         boolean incomingActive = false;
         try
         {
-            for (final Stargate s : StargateManager.getAllGates())
-            {
-                if ((s != null) && (s.getGateTarget() != null) && (s.getGateTarget() == stargate) && s.isGateActive())
-                {
-                    incomingActive = true;
-                    break;
-                }
-            }
+            incomingActive = StargateManager.hasIncomingConnection(stargate, null);
         }
         catch (final RuntimeException ignore) { /* treat an unreadable gate as not incoming */ }
 
