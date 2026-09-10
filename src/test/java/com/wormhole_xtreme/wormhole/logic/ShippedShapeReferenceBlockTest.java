@@ -47,9 +47,29 @@ class ShippedShapeReferenceBlockTest
     /** How many shapes ship. A glob that silently matched nothing would pass every test below. */
     private static final int SHIPPED_COUNT = 11;
 
-    /** A marker definition line, e.g. "#    [S] = Stargate Material" or "#    :A = ...". */
+    /**
+     * A marker definition line, e.g. "#    [S] = Stargate Material" or "#    :A = ...".
+     *
+     * <p>The bracket part allows two letters, not one. The first version of this pattern
+     * matched {@code [A-Z]} only, which quietly excluded {@code [RD]}, {@code [RS]} and
+     * {@code [RA]} -- the three redstone markers, and the likeliest of all of them to be
+     * described differently from one shape to the next, since which redstone points a shape
+     * can carry depends on its geometry. The test compared a marker set with a hole in it and
+     * passed.
+     */
     private static final Pattern MARKER_DEFINITION =
-        Pattern.compile("^#\\s+(\\[[A-Z]\\]|:[A-Z]{1,2})\\s*=", Pattern.MULTILINE);
+        Pattern.compile("^#\\s+(\\[[A-Z]{1,2}\\]|:[A-Z]{1,2})\\s*=", Pattern.MULTILINE);
+
+    /**
+     * Markers every shipped shape must define, checked outright rather than only compared.
+     *
+     * <p>Comparing each file against {@code Standard.shape} catches drift between them, but
+     * would say nothing if a marker went missing from all eleven at once -- and it is a
+     * reference block, so an edit that touches every copy is exactly the kind that happens.
+     */
+    private static final Set<String> REQUIRED_MARKERS = new TreeSet<>(java.util.Arrays.asList(
+        "[I]", "[S]", "[P]", "[C]", "[RD]", "[RS]", "[RA]",
+        ":N", ":EP", ":EM", ":A", ":D", ":IA", ":L", ":W"));
 
     /**
      * A word that looks like one of this project's shape names.
@@ -129,6 +149,31 @@ class ShippedShapeReferenceBlockTest
         assertTrue(drifted.isEmpty(),
             "the reference block has drifted apart; each of these differs from Standard.shape: "
             + drifted);
+    }
+
+    /**
+     * Every shipped shape defines every marker the plugin actually understands.
+     *
+     * <p>The comparison above is relative: it catches one file falling out of step with the
+     * others, and says nothing at all if a marker disappears from every copy in the same edit.
+     * On a block that is maintained by copying between eleven files, that is not a remote
+     * possibility. This one names them.
+     */
+    @Test
+    void everyShippedShapeDefinesEveryMarker() throws IOException
+    {
+        final List<String> incomplete = new ArrayList<>();
+        for (final Path shape : shippedShapes())
+        {
+            final Set<String> missing = new TreeSet<>(REQUIRED_MARKERS);
+            missing.removeAll(markersIn(read(shape)));
+            if (!missing.isEmpty())
+            {
+                incomplete.add(shape.getFileName() + " missing " + missing);
+            }
+        }
+        assertTrue(incomplete.isEmpty(),
+            "a marker the plugin understands is undocumented in: " + incomplete);
     }
 
     /**
