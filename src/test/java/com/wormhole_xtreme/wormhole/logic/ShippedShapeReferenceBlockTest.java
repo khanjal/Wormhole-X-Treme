@@ -18,7 +18,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -65,10 +64,12 @@ class ShippedShapeReferenceBlockTest
     {
         try (Stream<Path> files = Files.list(SHAPE_DIR))
         {
+            // toList() rather than collect(toList()): nothing here modifies the result, and
+            // an unmodifiable one says so.
             final List<Path> shapes = files
                 .filter(p -> p.getFileName().toString().endsWith(".shape"))
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
             assertEquals(SHIPPED_COUNT, shapes.size(),
                 "expected " + SHIPPED_COUNT + " shipped shapes; a wrong directory or a changed "
                 + "extension would leave these tests asserting nothing at all. Found: " + shapes);
