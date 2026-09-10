@@ -74,12 +74,16 @@ public class RegenerateCommand implements SubCommand
         // exactly the same reason: the shape file they came from can change underneath
         // them. Re-derive before placing anything, so what follows places blocks where
         // today's shape says they go rather than where the shape said when the gate was
-        // built. Wires already down come up first, since a marker that has moved would
-        // otherwise leave its old wire behind.
-        if (s.isGateRedstonePowered())
-        {
-            s.setupRedstone(false);
-        }
+        // built.
+        //
+        // Nothing is taken up first, deliberately. Lifting the wires would mean lifting
+        // the [RA] lever with them, and that lever is an output whose powered state is
+        // live: setupRedstone puts back a fresh, unpowered one, so an open gate would
+        // stop reporting itself open and whatever it powers would shut while the wormhole
+        // was still running. setupRedstone already leaves an occupied cell alone, so a
+        // marker that has not moved is untouched either way. A marker that has moved
+        // leaves its old wire standing, which is cosmetic, visible, and named in the
+        // report -- the better trade of the two.
         reportRederivation(sender, s, GateRederivation.rederive(s));
 
         s.toggleDialLeverState(true);

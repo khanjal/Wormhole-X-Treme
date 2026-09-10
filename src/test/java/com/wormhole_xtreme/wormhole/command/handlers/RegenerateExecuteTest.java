@@ -310,6 +310,34 @@ class RegenerateExecuteTest
         verify(sender, never()).sendMessage(contains("and moved:"));
     }
 
+    /**
+     * Regenerate never lifts a gate's redstone before re-deriving it.
+     *
+     * <p>An earlier draft of the re-derivation took the wires up first, so a marker that had
+     * moved would not leave its old wire behind. That is wrong, and the reason is the
+     * {@code [RA]} lever: {@code setupRedstone} lifts it along with the dust, and puts back a
+     * fresh, unpowered one. The dust is stateless, but that lever is an <em>output</em> --
+     * "this block will provide redstone charge when the gate is activated" -- so on a gate
+     * that happened to be open, regenerating it would have switched off whatever the gate was
+     * powering while the wormhole was still running, and nothing in the command syncs it back
+     * ({@code toggleRedstoneGateActivatedPower} is not called from here).
+     *
+     * <p>{@code setupRedstone} already declines to overwrite an occupied cell, so a marker
+     * that has not moved needs no lifting anyway. A stale wire left by one that has is
+     * cosmetic and gets named in the report; a dead output on a live gate is not.
+     */
+    @Test
+    void regenerateNeverLiftsTheRedstoneItIsAboutToReplace()
+    {
+        final Stargate gate = registeredGate("alpha");
+        when(gate.isGateRedstonePowered()).thenReturn(true);
+
+        assertTrue(run("regenerate", "alpha"));
+
+        verify(gate, never()).setupRedstone(false);
+        verify(gate).setupRedstone(true);
+    }
+
     /** A player without the admin node may not regenerate anything. */
     @Test
     void aPlayerWithoutTheConfigNodeIsRefused()
