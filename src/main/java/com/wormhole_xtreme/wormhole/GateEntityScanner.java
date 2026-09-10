@@ -100,9 +100,14 @@ public final class GateEntityScanner implements Runnable
      */
     private static void sweepGate(final Stargate gate)
     {
-        // The caller only offers open gates, but the check stays: the set is read live and a
-        // gate can shut down between being handed over and being swept.
-        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null)
+        // The caller only offers open gates, but the checks stay. The set is read live, so a
+        // gate can shut down between being handed over and being swept -- and the set follows
+        // the active flag alone, so it can also hold a gate the registry has never heard of:
+        // one still being detected, or one built in a test. Sweeping filtered the registry
+        // before and must go on excluding those, or an entity gets sent through a gate that
+        // is not on the server.
+        if (gate == null || !gate.isGateActive() || gate.getGateTarget() == null
+            || !StargateManager.isRegistered(gate))
         {
             return;
         }

@@ -75,11 +75,11 @@ public class StargateManager
     // would scale that work with the number of gates on the server; this scales with the
     // number of gates actually open, which is nearly always a handful.
     //
-    // "Registered" is part of what it means, not an accident of how it is filled: the entity
-    // sweep and the projectile tracker read this set instead of filtering the gate list, and
-    // they must not find a gate the registry has never heard of. setGateOpenState and
-    // addStargate between them keep that true whichever order a gate is registered and
-    // activated in.
+    // The set follows the gateActive flag exactly and says nothing about whether the registry
+    // holds the gate. That is the contract the redraw path needs -- a portal is drawn on
+    // clients the moment a gate lights up -- and PortalVisualRefreshTest states it outright.
+    // Readers that want the narrower "and the server actually has this gate" ask isRegistered
+    // for themselves; the entity sweep and the projectile tracker both do.
     /** The gates currently showing a portal. */
     private static final java.util.Set<Stargate> openGates =
         java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -203,11 +203,6 @@ public class StargateManager
     protected static void addStargate(final Stargate s)
     {
         getStargateList().put(normalizeGateName(s.getGateName()), s);
-        // setGateOpenState refuses a gate the registry does not hold, so a gate that was made
-        // active before it got here would never have joined the open set. This is where it
-        // does. Registering an inactive gate that is somehow in the set takes it back out,
-        // so the two cannot disagree in either direction.
-        setGateOpenState(s, s.isGateActive());
         for (final Location b : s.getGateStructureBlocks())
         {
             indexBlockLocation(b, s);
@@ -627,25 +622,28 @@ public class StargateManager
      */
     static void setGateOpenState(final Stargate gate, final boolean open)
     {
-        if (!open)
-        {
-            openGates.remove(gate);
-            return;
-        }
-        // Only a gate the server actually has. A Stargate object that is not in the registry
-        // is one still being detected, or one somebody built in a test -- either way it is
-        // not a gate anybody can walk into, and the sweeps that read this set would be
-        // humming at it, drawing a portal for it and offering it entities to send somewhere.
-        // A gate that is made active before it is registered is picked up by addStargate,
-        // which is the other half of this and runs when the registry learns about it.
-        if (isRegistered(gate))
+        if (open)
         {
             openGates.add(gate);
+        }
+        else
+        {
+            openGates.remove(gate);
         }
     }
 
     /**
      * Whether the registry holds this exact gate under its own name.
+     *
+     * <p>The open set follows {@code gateActive} exactly and says nothing about registration,
+     * which is right for what it was built for -- the portal is drawn on clients the moment a
+     * gate lights up, and it has to be redrawn whether or not the registry has caught up.
+     *
+     * <p>The sweeps want a narrower thing. They used to filter the registry, so a gate object
+     * that was active without being registered -- one still being detected, or one built in a
+     * test -- was invisible to them, and reading the open set instead handed them exactly
+     * those. This is how they keep asking the question they were asking before, at the cost of
+     * one hash lookup per open gate rather than a walk of every gate on the server.
      *
      * <p>Identity rather than name alone: two gate objects can carry one name while a gate is
      * being replaced, and the one in the registry is the real one.
@@ -654,7 +652,7 @@ public class StargateManager
      *            the gate to look for
      * @return true if this object is the registered gate of that name
      */
-    private static boolean isRegistered(final Stargate gate)
+    public static boolean isRegistered(final Stargate gate)
     {
         if ((gate == null) || (gate.getGateName() == null))
         {
