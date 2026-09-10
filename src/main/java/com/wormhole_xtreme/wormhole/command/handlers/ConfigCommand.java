@@ -4,12 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * Reads and writes any setting, by name.
@@ -33,10 +31,8 @@ public class ConfigCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 

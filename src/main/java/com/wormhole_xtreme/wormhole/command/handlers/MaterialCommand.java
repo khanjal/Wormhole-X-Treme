@@ -11,14 +11,12 @@ import java.util.function.Function;
 
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * Handler for the three per-gate material overrides.
@@ -172,10 +170,8 @@ public class MaterialCommand implements SubCommand
         // reassign any gate on the server. wormhole.config is what an admin already needs
         // for /wormhole config, so it is reused here rather than inventing a second
         // admin-only node that would mean the same thing.
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 

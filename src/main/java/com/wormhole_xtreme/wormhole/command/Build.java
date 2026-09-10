@@ -8,8 +8,6 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * The Class Build.
@@ -32,22 +30,18 @@ public class Build implements CommandExecutor
     {
         if (args.length == 1)
         {
-            if (WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+            if (CommandHandlerUtils.lacksConfigPermission(player))
             {
-
-                if (StargateHelper.isStargateShape(args[0]))
-                {
-                    StargateManager.addPlayerBuilderShape(player, StargateHelper.getStargateShape(args[0]));
-                    player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + args[0]);
-                }
-                else
-                {
-                    player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shape: " + args[0]);
-                }
+                return true;
+            }
+            if (StargateHelper.isStargateShape(args[0]))
+            {
+                StargateManager.addPlayerBuilderShape(player, StargateHelper.getStargateShape(args[0]));
+                player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + args[0]);
             }
             else
             {
-                player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shape: " + args[0]);
             }
             return true;
         }
