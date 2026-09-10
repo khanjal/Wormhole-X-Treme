@@ -54,6 +54,11 @@ class GateShapeRestoredOnLoadTest
 
         world = mock(World.class);
         when(world.getName()).thenReturn("gw");
+        // Saving writes WorldEnvironment, and only a gate that has been through a load has a
+        // world to ask. GateYamlRoundTripTest never re-saves a loaded gate, so its own mock
+        // gets away without this; the two tests below that save-load-save do not, and an
+        // unstubbed mock hands back null rather than an environment.
+        when(world.getEnvironment()).thenReturn(World.Environment.NORMAL);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(call -> {
             final int x = call.getArgument(0);
             final int y = call.getArgument(1);
