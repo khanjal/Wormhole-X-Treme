@@ -254,4 +254,64 @@ class WorldUtilsTest {
 
         verify(world).loadChunk(-2, -1);
     }
+
+    /**
+     * A destination pre-load covers the whole 3x3 neighbourhood around the arrival chunk.
+     *
+     * <p>Nine chunks, not one: a player arriving on a chunk edge can see and fall into the
+     * ones beside it before the server has them.
+     */
+    @Test
+    void preLoadingADestinationCoversTheNineChunksAroundIt() {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+
+        WorldUtils.forceLoadDestinationChunks(new Location(world, 0, 64, 0));
+
+        for (int cx = -1; cx <= 1; cx++) {
+            for (int cz = -1; cz <= 1; cz++) {
+                verify(world).loadChunk(cx, cz);
+            }
+        }
+    }
+
+    /**
+     * One chunk that will not load does not cost the other eight.
+     *
+     * <p>Every chunk gets its own attempt and its own failure. This is the property that made
+     * the try sit inside the loop rather than around it, and the one an extraction of the loop
+     * body could quietly lose -- a single throw would then abandon the rest of the
+     * neighbourhood, leaving a traveller looking at the holes it did not get to.
+     */
+    @Test
+    void oneChunkThatWillNotLoadDoesNotStopTheRest() {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        doThrow(new IllegalStateException("chunk is being generated")).when(world).loadChunk(0, 0);
+
+        assertDoesNotThrow(() -> WorldUtils.forceLoadDestinationChunks(new Location(world, 0, 64, 0)));
+
+        // The centre threw; the eight around it were still asked for.
+        verify(world).loadChunk(-1, -1);
+        verify(world).loadChunk(1, 1);
+        verify(world, times(9)).loadChunk(anyInt(), anyInt());
+    }
+
+    /**
+     * A chunk the server already has is left alone.
+     *
+     * <p>Pre-loading is meant to fill gaps, not to churn what is already resident.
+     */
+    @Test
+    void preLoadingSkipsChunksTheServerAlreadyHas() {
+        final World world = mock(World.class);
+        when(world.getName()).thenReturn("w");
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+
+        WorldUtils.forceLoadDestinationChunks(new Location(world, 0, 64, 0));
+
+        verify(world, never()).loadChunk(anyInt(), anyInt());
+    }
 }

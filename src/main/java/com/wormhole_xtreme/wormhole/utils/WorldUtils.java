@@ -194,20 +194,44 @@ public class WorldUtils
         {
             for (int dz = -1; dz <= 1; dz++)
             {
-                try
-                {
-                    if (!w.isChunkLoaded(cx + dx, cz + dz))
-                    {
-                        if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
-                        {
-                            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Pre-loading destination chunk (" + (cx + dx) + "," + (cz + dz) + ") on: " + w.getName());
-                        }
-                        w.loadChunk(cx + dx, cz + dz);
-                    }
-                }
-                catch (final RuntimeException ignore) { /* pre-loading is an optimisation, not a requirement */ }
+                loadChunkQuietly(w, cx + dx, cz + dz);
             }
         }
+    }
+
+    /**
+     * Loads one chunk if the server does not already have it, and keeps going if it cannot.
+     *
+     * <p>Its own method rather than a third level of nesting inside the loop above. Guarding
+     * the log line -- which is worth doing, since the line was built on every pass whether or
+     * not anybody was listening -- put an {@code if} inside an {@code if} inside two loops
+     * inside a {@code try}, which is more shape than nine chunk loads deserve.
+     *
+     * <p>Each chunk keeps its own {@code try}, exactly as it had one inside the loop before:
+     * one chunk that cannot be loaded must not stop the eight around it from being.
+     *
+     * @param w
+     *            the world to load in
+     * @param chunkX
+     *            chunk x
+     * @param chunkZ
+     *            chunk z
+     */
+    private static void loadChunkQuietly(final World w, final int chunkX, final int chunkZ)
+    {
+        try
+        {
+            if (w.isChunkLoaded(chunkX, chunkZ))
+            {
+                return;
+            }
+            if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Pre-loading destination chunk (" + chunkX + "," + chunkZ + ") on: " + w.getName());
+            }
+            w.loadChunk(chunkX, chunkZ);
+        }
+        catch (final RuntimeException ignore) { /* pre-loading is an optimisation, not a requirement */ }
     }
 
 
