@@ -15,7 +15,7 @@ mvn -DskipTests=false test
 mvn -DskipTests=true package
 ```
 
-The resulting shaded JAR will be in `target/`, named from the version in `pom.xml` (e.g. `target/WormholeXTreme-1.5.0.jar`).
+The resulting shaded JAR will be in `target/`, named from the version in `pom.xml` (e.g. `target/WormholeXTreme-1.6.0.jar`).
 
 ## Tests
 - Unit tests use JUnit 5 + Mockito. Run all tests with `mvn test`.
