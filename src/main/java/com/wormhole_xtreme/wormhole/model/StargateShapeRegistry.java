@@ -26,10 +26,17 @@ public final class StargateShapeRegistry
 {
     private static final ConcurrentHashMap<String, StargateShape> stargateShapes = new ConcurrentHashMap<>();
 
+    /** What makes a file in the shapes folder a shape rather than somebody's notes. */
+    private static final String SHAPE_SUFFIX = ".shape";
+
     private StargateShapeRegistry() {}
 
     /**
-     * The GateShapes directory, the same one {@link #loadShapes()} reads from.
+     * The directory gate shapes are read from.
+     *
+     * <p>{@code shapes/gate} rather than {@code GateShapes}, so that a quantum mirror -- which
+     * is also a built construct a {@code .shape} file can describe -- has somewhere to go that
+     * is neither a folder named for gates nor a second top-level folder beside it.
      *
      * <p>Package-private rather than private so a test can check it lands under the folder
      * the server names, which is the whole point of resolving it through the plugin.
@@ -37,6 +44,19 @@ public final class StargateShapeRegistry
      * @return the directory, which may not exist yet
      */
     static File shapeDirectory()
+    {
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "gate");
+    }
+
+    /**
+     * Where gate shapes used to live.
+     *
+     * <p>Read on startup only to empty it into {@link #shapeDirectory()}. Nothing loads from
+     * here any more.
+     *
+     * @return the old directory, which on a new install never exists
+     */
+    static File legacyShapeDirectory()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "GateShapes");
     }
@@ -126,7 +146,7 @@ public final class StargateShapeRegistry
      */
     private static void liftOneShape(final File directory, final String legacy, final File shape)
     {
-        if (!shape.isFile() || !shape.getName().endsWith(".shape"))
+        if (!shape.isFile() || !shape.getName().endsWith(SHAPE_SUFFIX))
         {
             return;
         }
@@ -142,7 +162,7 @@ public final class StargateShapeRegistry
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO,
                 "Moved gate shape " + shape.getName() + " out of " + legacy
-                + File.separator + "; shapes are read from one folder now.");
+                + File.separator + "; gate shapes are read from " + directory.getPath() + " now.");
         }
         else
         {
@@ -154,7 +174,75 @@ public final class StargateShapeRegistry
 
     public static void loadShapes()
     {
+        migrateLegacyShapeFolder(legacyShapeDirectory(), shapeDirectory());
         loadShapes(shapeDirectory());
+    }
+
+    /**
+     * Empties the old {@code GateShapes} folder into {@code shapes/gate}.
+     *
+     * <p>An upgrading server can be at any of three starting points, because the folder being
+     * emptied here may itself still have the {@code 3d} and {@code 2d} subfolders an earlier
+     * version used:
+     *
+     * <pre>
+     * GateShapes/3d/*.shape ─┐
+     * GateShapes/2d/*.shape ─┴─&gt; GateShapes/*.shape ─&gt; shapes/gate/*.shape
+     * </pre>
+     *
+     * <p>So the old lift runs first, against the old folder, and then everything flat in it
+     * moves across. Running both in order covers all three with no special cases.
+     *
+     * <p>The rules are the ones the {@code 3d}/{@code 2d} lift already established: files are
+     * moved rather than copied, a file already at the destination wins because that is the one
+     * that has been loading, every move is logged, and the emptied folder is left where it is.
+     * Nothing is deleted, so an operator who has to put an older jar back still finds their
+     * shapes.
+     *
+     * @param legacy
+     *            the old GateShapes directory, which on a new install does not exist
+     * @param target
+     *            the directory shapes are read from now
+     */
+    static void migrateLegacyShapeFolder(final File legacy, final File target)
+    {
+        if (!legacy.isDirectory())
+        {
+            return;
+        }
+        liftShapesOutOfLegacySubdirectories(legacy);
+        final File[] shapes = legacy.listFiles();
+        if ((shapes == null) || !anyShapeIn(shapes) || !ensureDirectory(target))
+        {
+            return;
+        }
+        for (final File shape : shapes)
+        {
+            liftOneShape(target, legacy.getName(), shape);
+        }
+    }
+
+    /**
+     * Whether a directory listing holds anything worth creating the target for.
+     *
+     * <p>An operator who has already migrated is left with an empty {@code GateShapes} folder,
+     * or one holding only their own notes. Checking first means that case does not create
+     * directories or log anything on every startup for ever.
+     *
+     * @param files
+     *            the listing to look through
+     * @return true if at least one is a shape file
+     */
+    private static boolean anyShapeIn(final File[] files)
+    {
+        for (final File file : files)
+        {
+            if (file.isFile() && file.getName().endsWith(SHAPE_SUFFIX))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -174,7 +262,6 @@ public final class StargateShapeRegistry
         {
             return;
         }
-        liftShapesOutOfLegacySubdirectories(directory);
         restoreMissingDefaults(directory);
         readShapesIn(directory);
 
@@ -248,7 +335,7 @@ public final class StargateShapeRegistry
     /** Copies one shipped shape out of the jar. */
     private static void restoreDefault(final String shape, final File defaultShapeFile)
     {
-        try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/" + shape))
+        try (final InputStream is = WormholeXTreme.class.getResourceAsStream("/shapes/gate/" + shape))
         {
             if (is == null)
             {
@@ -277,7 +364,7 @@ public final class StargateShapeRegistry
     private static void readShapesIn(final File directory)
     {
         final File[] shapeFiles = directory.listFiles(
-            (dir, name) -> !name.startsWith(".") && name.endsWith(".shape"));
+            (dir, name) -> !name.startsWith(".") && name.endsWith(SHAPE_SUFFIX));
         if (shapeFiles == null)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,

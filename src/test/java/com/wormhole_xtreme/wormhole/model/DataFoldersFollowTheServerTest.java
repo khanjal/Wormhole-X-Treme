@@ -55,9 +55,20 @@ class DataFoldersFollowTheServerTest
     @Test
     void shapesAreReadFromTheServersPluginFolder()
     {
-        assertEquals(new File(dataFolder, "GateShapes"), StargateShapeRegistry.shapeDirectory(),
+        assertEquals(new File(new File(dataFolder, "shapes"), "gate"),
+            StargateShapeRegistry.shapeDirectory(),
             "shapes read from anywhere but the plugin folder leave every gate built from a "
             + "custom shape undetectable, with nothing in the log to say why");
+    }
+
+    /** The folder shapes are migrated out of has to be found the same way. */
+    @Test
+    void theOldShapeFolderIsLookedForInTheServersPluginFolderToo()
+    {
+        assertEquals(new File(dataFolder, "GateShapes"),
+            StargateShapeRegistry.legacyShapeDirectory(),
+            "a migration that looks in the working directory finds nothing to move, and an "
+            + "upgrading server loses its custom shapes with nothing in the log to say why");
     }
 
     /** Gates, which were already right, and are what shapes have to agree with. */
