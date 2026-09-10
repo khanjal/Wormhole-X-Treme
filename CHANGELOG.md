@@ -10,10 +10,16 @@ in it. Two player-facing fixes and a new command among them, and none of it is i
 1.5.0 jar. They are here instead, and 1.5.0's notes below are back to describing what was
 actually released on the day.
 
-**Upgrading:** nothing to do so far, with one thing worth knowing. If your plugin folder is not
-`./plugins` -- a start script that changes directory first, or a launcher that puts plugins
-somewhere else -- this build reads `config.yml` and the gate shapes from the folder the server
-names, where 1.5.0 read them from a guess. Nothing moves on disk, but a server that had quietly
+**Upgrading:** nothing to do, with two things worth knowing.
+
+Your gate shapes move. `GateShapes/` becomes `shapes/gate/`, on the first startup, without being
+asked. Files are moved rather than copied, a file already at the destination wins, every move is
+logged, and nothing is deleted -- so putting 1.5.0's jar back finds the old folder as it was. If
+you are far enough back to still have `GateShapes/3d/`, both moves happen in the same startup.
+
+And if your plugin folder is not `./plugins` -- a start script that changes directory first, or a
+launcher that puts plugins somewhere else -- this build reads `config.yml` and the gate shapes
+from the folder the server names, where 1.5.0 read them from a guess. A server that had quietly
 been running on defaults will start reading the file you have been editing.
 
 ### Added
@@ -43,6 +49,13 @@ been running on defaults will start reading the file you have been editing.
   `IRIS_MATERIAL=GLASS` because you look down through that gate, and a loaded gate resolved
   its iris through the palette instead.
 
+### Changed
+
+- Gate shapes live in the plugin's `shapes/gate/` folder rather than `GateShapes/`, so
+  mirrors have somewhere to go when they arrive. Your shapes are moved there on first
+  startup, from either previous layout, and nothing is deleted
+  ([#246](https://github.com/khanjal/Wormhole-X-Treme/issues/246)).
+
 ### Under the hood
 
 - Three copies of the YAML write path, and three "is there a plugin to log through" checks that
@@ -53,12 +66,62 @@ been running on defaults will start reading the file you have been editing.
   casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
   nobody read, which took ten class-level warning suppressions off the classes they were hiding
   real findings in.
-- Tests: **1326 at 1.5.0, 1421 so far**.
+- Tests: **1326 at 1.5.0, 1440 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### Gate shapes moved to `shapes/gate/` (#246)
+
+```
+<plugin folder>/GateShapes/  ->  <plugin folder>/shapes/gate/
+```
+
+(`plugins/WormholeXTreme/` on a stock install, but the entry above this one is precisely about
+that not being safe to assume.)
+
+The old name was fine while gates were the only thing with shapes. [#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
+adds quantum mirrors, and a mirror is also a built construct that a `.shape` file can describe
+-- so it would have had to go either into a folder named `GateShapes` alongside the gates, or
+into a second top-level `MirrorShapes` beside it, and that second choice repeats itself again
+for whatever comes after. Splitting by what the shape describes costs one folder level now and
+nothing later.
+
+This does look like the reverse of flattening `3d/` and `2d/` away, so it is worth saying why
+it is not. Those divided one kind of shape by an attribute of its geometry, which meant a
+lookup had to know which of two folders a gate shape was in -- genuinely worse than one folder.
+`gate/` and `mirror/` divide shapes by what they are for, and they are read by different
+subsystems that never look in each other's folder. One flat namespace is right for a set of
+interchangeable things and wrong for two sets that are not.
+
+**Nothing is lost on upgrade, from either of the two previous layouts.** Both migrations run on
+startup, chained, so a server old enough to still have `GateShapes/3d/` makes both hops at once:
+
+```
+GateShapes/3d/*.shape ─┐
+GateShapes/2d/*.shape ─┴─> GateShapes/*.shape ─> shapes/gate/*.shape
+```
+
+The rules are the ones the earlier lift established. Files are moved rather than copied; a file
+already at the destination wins, because that is the one that has been loading; every move is
+logged; nothing is deleted, so putting an older jar back still finds the old folder intact. An
+operator who migrated long ago has an empty `GateShapes` folder, and that case is checked for
+first -- it creates no directories and logs nothing, on every startup for ever.
+
+The shipped shapes moved inside the jar too, `/GateShapes/` to `/shapes/gate/`. Leaving the jar
+disagreeing with the disk would have been a trap for the next person, at the cost of ten test
+files that named the resource path -- worth paying once.
+
+Nine tests in `ShapeFolderMigrationTest`, mutation-checked: dropping the chained `3d`/`2d` hop
+turns two of them red, which is the case that would otherwise have stranded the oldest servers'
+shapes one folder short of where they are now read.
+
+One test caught the move on its own without being asked to. `DataFoldersFollowTheServerTest`,
+added a few entries above for a different reason, asserts every store lands under the folder
+the server names -- so it failed the moment `shapeDirectory()` changed, reporting the old path
+against the new one. That is what that test was for.
 
 ### One write path and one logger, where there were three of each (#45)
 
@@ -2973,6 +3036,32 @@ hand the sweep was re-run against the merged tree. It walked straight into the s
 regex found the delegation a second time and dropped its `false` a second time. Reading the
 diff caught it, and the third test would have caught it a moment later -- which is the whole
 difference between this time and last.
+
+### An admin may build in a gate's opening after all (#243)
+
+The placement refusal that landed with #243 applied to everybody, operators included. That is
+the right default and the wrong absolute: an admin fitting a gate out by hand -- a decorative
+block behind the ring, something dropped in deliberately -- had no way past it.
+
+`onBlockPlace` now lets the placement through for anyone who passes the DAMAGE check on that
+gate: operators, the gate's owner, and holders of `wormhole.config`, `wormhole.remove.all` or
+`wormhole.remove.own`.
+
+DAMAGE rather than BUILD, and the choice matters more than it looks. BUILD reads more naturally
+for placing a block and was the first candidate, but it is the node for raising a *new* gate,
+and most servers grant it to ordinary players on the Public network -- so using it would have
+left the opening open to nearly everyone and made the original fix meaningless. DAMAGE is what
+`onBlockDamage` already asks about these very blocks, so the same people who may take a gate
+apart may build inside it, and nobody else. `theGateBuildingNodeIsNotEnoughToBuildInTheOpening`
+pins that, and swapping the node back to BUILD fails it.
+
+What an admin leaves in there is still not part of the gate, so anyone can break it back out.
+Treating a deliberate placement as gate structure would put the original bug straight back, in
+the one case where somebody actually meant to leave a block there.
+
+Five more tests, fourteen in `GatePortalInteriorBuildTest` now. Three mutations were run
+against them: removing the bypass fails four, making it always-true fails three, and swapping
+DAMAGE for BUILD fails two -- one from each direction of the choice.
 
 </details>
 

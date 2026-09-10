@@ -62,7 +62,7 @@ class ShippedMaterialsExistTest
         {
             files.add(config);
         }
-        final Path shapes = Paths.get("src/main/resources/GateShapes");
+        final Path shapes = Paths.get("src/main/resources/shapes/gate");
         if (Files.isDirectory(shapes))
         {
             // try-with-resources: Files.list holds an open directory handle until closed.

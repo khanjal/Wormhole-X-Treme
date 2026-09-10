@@ -57,7 +57,7 @@ object rather than something built.
 
 ## Shapes
 
-Shapes live in `plugins/WormholeXTreme/GateShapes/` as `.shape` files, eleven of them
+Shapes live in `plugins/WormholeXTreme/shapes/gate/` as `.shape` files, eleven of them
 shipped. A shape is a stack of numbered layers, each a grid of bracketed cells, and a
 handful of `KEY=value` lines. The user-facing format is documented in the
 [README](../README.md#shapes); the design notes are these.

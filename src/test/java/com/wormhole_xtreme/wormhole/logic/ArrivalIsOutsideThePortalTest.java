@@ -37,7 +37,7 @@ class ArrivalIsOutsideThePortalTest
     private static List<Path> shippedShapes() throws IOException
     {
         final List<Path> found = new ArrayList<>();
-        final Path dir = Paths.get("src/main/resources/GateShapes");
+        final Path dir = Paths.get("src/main/resources/shapes/gate");
         if (Files.isDirectory(dir))
         {
             try (java.util.stream.Stream<Path> listing = Files.list(dir))
