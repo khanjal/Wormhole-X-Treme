@@ -185,4 +185,27 @@ class RingIndexTest
         assertNotEquals(RingIndex.pack(-1, -60, -1), RingIndex.pack(1, -60, 1));
         assertNotEquals(RingIndex.pack(-2000000, 300, -2000000), RingIndex.pack(2000000, 300, 2000000));
     }
+
+    /**
+     * An index holding nothing says so, and one holding a pair says so too.
+     *
+     * <p>The move path asks this before it does anything else with rings. Most servers running
+     * this plugin have gates and no rings at all, and on those every player's every move --
+     * including the rotation-only ones somebody generates just by looking around -- reached the
+     * ring index and asked it about a world it had never heard of. Getting this answer wrong in
+     * the other direction is worse than a wasted lookup: a ring that exists but reports an
+     * empty index would simply stop firing.
+     */
+    @Test
+    void anEmptyIndexIsRecognisedWithoutALookup()
+    {
+        RingIndex.clear();
+        assertFalse(RingIndex.hasAny(), "nothing indexed, so the move path has nothing to ask");
+
+        RingIndex.add(pair(RingOrientation.FLOOR), 1);
+        assertTrue(RingIndex.hasAny(), "one indexed pair is enough to make the question worth asking");
+
+        RingIndex.clear();
+        assertFalse(RingIndex.hasAny(), "and clearing puts it back");
+    }
 }

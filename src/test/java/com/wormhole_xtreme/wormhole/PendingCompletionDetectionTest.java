@@ -64,6 +64,9 @@ class PendingCompletionDetectionTest
         when(clicked.getType()).thenReturn(Material.STONE_BUTTON);
         when(clicked.getWorld()).thenReturn(world);
         when(clicked.getLocation()).thenReturn(new Location(world, 5, 64, 5));
+        when(clicked.getX()).thenReturn(Integer.valueOf(5));
+        when(clicked.getY()).thenReturn(Integer.valueOf(64));
+        when(clicked.getZ()).thenReturn(Integer.valueOf(5));
         when(clicked.getRelative(any(BlockFace.class))).thenReturn(clicked);
     }
 

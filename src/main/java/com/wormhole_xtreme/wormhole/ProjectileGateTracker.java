@@ -82,9 +82,13 @@ class ProjectileGateTracker implements Listener
 
     private static void refreshAnyGateOpen()
     {
-        for (final Stargate gate : StargateManager.getAllGatesUnsorted())
+        // The open set, not every gate. This ran once a second over the whole gate list to
+        // answer a question about the handful of gates that were open, which made a quiet
+        // server with thousands of built gates pay thousands of checks a second for an
+        // answer that was almost always the same.
+        for (final Stargate gate : StargateManager.getOpenGates())
         {
-            if (gate.isGateActive() && (gate.getGateTarget() != null))
+            if (gate.getGateTarget() != null)
             {
                 anyGateOpen = true;
                 return;

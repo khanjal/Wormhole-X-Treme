@@ -89,6 +89,7 @@ class Utf8GateStorageTest
             when(b.getY()).thenReturn(y);
             when(b.getZ()).thenReturn(z);
             when(b.getLocation()).thenReturn(new Location(w, x, y, z));
+            when(b.getWorld()).thenReturn(w);
             return b;
         });
         return w;
@@ -103,6 +104,7 @@ class Utf8GateStorageTest
         when(dial.getY()).thenReturn(64);
         when(dial.getZ()).thenReturn(20);
         when(dial.getLocation()).thenReturn(new Location(w, 10, 64, 20));
+        when(dial.getWorld()).thenReturn(w);
         s.setGateDialLeverBlock(dial);
         s.setGatePlayerTeleportLocation(new Location(w, 65.0, 65.0, 65.0));
         s.setGateFacing(org.bukkit.block.BlockFace.NORTH);

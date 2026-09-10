@@ -66,6 +66,9 @@ class WormholeXTremePlayerListenerMountTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(ch.getWorld()).thenReturn(world);
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         when(ch.getType()).thenReturn(Material.WATER);
@@ -152,6 +155,9 @@ class WormholeXTremePlayerListenerMountTest
         // The portal block — where the mount is standing.
         final Block portal = mock(Block.class);
         when(portal.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(portal.getX()).thenReturn(Integer.valueOf(bx));
+        when(portal.getY()).thenReturn(Integer.valueOf(by));
+        when(portal.getZ()).thenReturn(Integer.valueOf(bz));
         when(portal.getWorld()).thenReturn(world);
         when(portal.getType()).thenReturn(Material.WATER);
         when(world.getBlockAt(bx, by, bz)).thenReturn(portal);
@@ -162,6 +168,9 @@ class WormholeXTremePlayerListenerMountTest
         {
             final Block air = mock(Block.class);
             when(air.getLocation()).thenReturn(new Location(world, bx, by + dy, bz));
+            when(air.getX()).thenReturn(Integer.valueOf(bx));
+            when(air.getY()).thenReturn(Integer.valueOf(by + dy));
+            when(air.getZ()).thenReturn(Integer.valueOf(bz));
             when(air.getWorld()).thenReturn(world);
             when(air.getType()).thenReturn(Material.AIR);
             when(world.getBlockAt(bx, by + dy, bz)).thenReturn(air);
@@ -229,6 +238,9 @@ class WormholeXTremePlayerListenerMountTest
 
         final Block ch = mock(Block.class);
         when(ch.getLocation()).thenReturn(new Location(world, bx, by, bz));
+        when(ch.getX()).thenReturn(Integer.valueOf(bx));
+        when(ch.getY()).thenReturn(Integer.valueOf(by));
+        when(ch.getZ()).thenReturn(Integer.valueOf(bz));
         when(ch.getWorld()).thenReturn(world);
         when(world.getBlockAt(bx, by, bz)).thenReturn(ch);
         when(ch.getType()).thenReturn(Material.WATER);

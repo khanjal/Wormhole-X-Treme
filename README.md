@@ -227,6 +227,27 @@ which is optional and detected at runtime).
 deliberately outranks a negated node: on a server where someone has been given op, that is
 taken as the final word.
 
+### What this costs a busy server
+
+There is one repeating task per subsystem and no background threads. What they cost scales
+with how much travelling is happening, not with how much has been built: a world holding
+three thousand gates costs the same per tick as one holding three, as long as the same
+number of wormholes are open. Building more gates does not make the server slower.
+
+- **Entity sweep** — every `entity-scan-interval-ticks` (default 20), one entity query per
+  *open* gate. Raise it if you have many wormholes open at once and would rather items and
+  mobs took a moment longer to be carried through.
+- **Projectile tracking** — per tick, but only for projectiles in flight while at least one
+  wormhole is open, and only for the couple of seconds after they are fired. With nothing
+  open it costs one check of an empty map.
+- **Ambient hum** — every `gate-sound-ambient-ticks`, one sound per open gate. Setting
+  `gate-sounds-enabled: false` removes it entirely.
+
+Everything else is event-driven, and the events the plugin listens on are answered by a hash
+lookup keyed on the block position — including `BlockPhysicsEvent`, which your server raises
+for every water flow, falling block and redstone update in a loaded world. A world with no
+gates in it stops at the first of two lookups, so gates in one world cost the others nothing.
+
 ## Permissions
 
 The plugin uses permission nodes for feature access. Permissions are intended to be managed by a permissions plugin (Vault/LuckPerms recommended).

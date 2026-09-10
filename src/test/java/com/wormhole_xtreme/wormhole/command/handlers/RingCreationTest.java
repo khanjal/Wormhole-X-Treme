@@ -116,6 +116,10 @@ class RingCreationTest
             final Block b = mock(Block.class);
             when(b.getType()).thenReturn(Material.AIR);
             when(b.getLocation()).thenReturn(new Location(world, x, y, z));
+            when(b.getWorld()).thenReturn(world);
+            when(b.getX()).thenReturn(Integer.valueOf(x));
+            when(b.getY()).thenReturn(Integer.valueOf(y));
+            when(b.getZ()).thenReturn(Integer.valueOf(z));
             return b;
         });
     }

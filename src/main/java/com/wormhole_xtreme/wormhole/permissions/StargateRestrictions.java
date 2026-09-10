@@ -100,6 +100,29 @@ public class StargateRestrictions
     // playerUseCooldownStart alone.
 
     /**
+     * Drops everything remembered about a player who has left.
+     *
+     * <p>Both maps here are keyed by {@link Player}, and both are emptied by a scheduled task
+     * rather than by anything the player does -- so a cooldown set to a very long wait, or an
+     * arrival whose task was lost to a restart of the scheduler, kept a Player object alive
+     * with it. Bukkit hands out a fresh Player object on the next login, so neither entry
+     * could ever be matched again anyway: this takes nothing away from anyone, including the
+     * cooldown a returning player would already have been given a clean slate on.
+     *
+     * @param player
+     *            the player who has gone
+     */
+    public static void forgetPlayer(final Player player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+        getPlayerUseCooldownStart().remove(player);
+        getPlayerRecentArrival().remove(player);
+    }
+
+    /**
      * Gets the player use cooldown list.
      * 
      * @return the player use cooldown list

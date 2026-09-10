@@ -12,20 +12,41 @@ import java.util.concurrent.ConcurrentMap;
 import org.bukkit.Location;
 import org.bukkit.World;
 
+import com.wormhole_xtreme.wormhole.utils.BlockKey;
+
+/**
+ * Where gate blocks are, bucketed by chunk, so "what gate is near here" is a short walk
+ * rather than a scan of every gate on the server.
+ *
+ * <p>Keyed by world name and then by packed chunk position. It used to be one map keyed by a
+ * {@code world + ':' + chunkX + ':' + chunkZ} string, which meant every lookup built a
+ * string and every radius query built one per chunk it touched -- on a path reached from
+ * {@code BlockPhysicsEvent}, which a busy server raises thousands of times a second for
+ * water, falling blocks and redstone anywhere in a loaded world. A packed long costs a box
+ * at worst and nothing at all inside the per-chunk loop.
+ *
+ * <p>Splitting the world out of the key rather than prefixing it also means a query for a
+ * world holding no gates stops at the first lookup, which is the common case on a server
+ * where gates live in one world and most block activity does not.
+ */
 public final class GateSpatialIndex
 {
-    private static final ConcurrentMap<String, Set<Location>> index = new ConcurrentHashMap<>();
+    /** Indexed gate block locations, by world name and then by packed chunk position. */
+    private static final ConcurrentMap<String, ConcurrentMap<Long, Set<Location>>> index =
+        new ConcurrentHashMap<>();
 
     private GateSpatialIndex() {}
 
-    private static String chunkKey(final World w, final int chunkX, final int chunkZ)
+    /**
+     * The chunk bucket key for a block location.
+     *
+     * @param loc
+     *            the location
+     * @return the packed chunk position holding it
+     */
+    private static long chunkKey(final Location loc)
     {
-        return w.getName() + ':' + chunkX + ':' + chunkZ;
-    }
-
-    private static String chunkKey(final Location loc)
-    {
-        return chunkKey(loc.getWorld(), loc.getBlockX() >> 4, loc.getBlockZ() >> 4);
+        return BlockKey.packChunk(loc.getBlockX() >> 4, loc.getBlockZ() >> 4);
     }
 
     public static void add(final Location loc)
@@ -34,9 +55,9 @@ public final class GateSpatialIndex
         {
             return;
         }
-        final String key = chunkKey(loc);
-        final Set<Location> set = index.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet());
-        set.add(loc);
+        index.computeIfAbsent(loc.getWorld().getName(), k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(Long.valueOf(chunkKey(loc)), k -> ConcurrentHashMap.newKeySet())
+            .add(loc);
     }
 
     public static void remove(final Location loc)
@@ -45,14 +66,23 @@ public final class GateSpatialIndex
         {
             return;
         }
-        final String key = chunkKey(loc);
-        final Set<Location> set = index.get(key);
-        if (set != null)
+        final ConcurrentMap<Long, Set<Location>> buckets = index.get(loc.getWorld().getName());
+        if (buckets == null)
         {
-            set.remove(loc);
-            if (set.isEmpty())
+            return;
+        }
+        final Long key = Long.valueOf(chunkKey(loc));
+        final Set<Location> inChunk = buckets.get(key);
+        if (inChunk != null)
+        {
+            inChunk.remove(loc);
+            if (inChunk.isEmpty())
             {
-                index.remove(key);
+                buckets.remove(key);
+                if (buckets.isEmpty())
+                {
+                    index.remove(loc.getWorld().getName());
+                }
             }
         }
     }
@@ -65,6 +95,13 @@ public final class GateSpatialIndex
             return out;
         }
         final World world = center.getWorld();
+        final ConcurrentMap<Long, Set<Location>> buckets = index.get(world.getName());
+        // A world with no gates in it is the common case for most block activity on a
+        // server, and this is the whole cost of answering for one.
+        if (buckets == null)
+        {
+            return out;
+        }
 
         final int minChunkX = (center.getBlockX() - radiusXZ) >> 4;
         final int maxChunkX = (center.getBlockX() + radiusXZ) >> 4;
@@ -75,7 +112,7 @@ public final class GateSpatialIndex
         {
             for (int cz = minChunkZ; cz <= maxChunkZ; cz++)
             {
-                final Set<Location> inChunk = index.get(chunkKey(world, cx, cz));
+                final Set<Location> inChunk = buckets.get(Long.valueOf(BlockKey.packChunk(cx, cz)));
                 if (inChunk != null)
                 {
                     addWithinRadius(out, inChunk, center, radiusXZ, radiusY);
@@ -91,9 +128,9 @@ public final class GateSpatialIndex
      * <p>The two radii are checked separately because a gate is tall and thin: callers want
      * the neighbours beside them, not the ones forty blocks up the same column.
      *
-     * <p>The world is checked again per location even though the chunk key is already
-     * prefixed with the world name. The two are redundant with each other on purpose --
-     * either alone keeps another world's gates out of the answer.
+     * <p>The world is checked again per location even though the buckets are already keyed
+     * by world name. The two are redundant with each other on purpose -- either alone keeps
+     * another world's gates out of the answer.
      *
      * @param out
      *            the set being built

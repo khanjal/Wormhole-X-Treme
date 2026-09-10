@@ -58,6 +58,7 @@ class LegacySaveVersionTest
             when(b.getY()).thenReturn(Integer.valueOf(y));
             when(b.getZ()).thenReturn(Integer.valueOf(z));
             when(b.getLocation()).thenReturn(new Location(w, x, y, z));
+            when(b.getWorld()).thenReturn(w);
             return b;
         });
         return w;

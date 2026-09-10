@@ -8,13 +8,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable;
 import com.wormhole_xtreme.wormhole.logic.StargateUpdateRunnable.ActionToTake;
+import com.wormhole_xtreme.wormhole.utils.BlockKey;
 
 /**
  * WormholeXtreme Stargate Manager.
@@ -28,13 +28,26 @@ public class StargateManager
     {
     }
 
-    // A list of all blocks contained by all stargates. Makes for easy indexing when a player is trying
-    // to enter a gate or if water is trying to flow out, also will contain the stone buttons used to activate.
-    /** The all_gate_blocks. */
-    private static final ConcurrentHashMap<Location, Stargate> allGateBlocks = new ConcurrentHashMap<>();
+    // Every block contained by every stargate, so entering a gate, or water trying to flow out
+    // of one, is a hash lookup rather than a search. Also holds the buttons and levers that
+    // work a gate, which are not part of its shape but do have to resolve back to it.
+    //
+    // Keyed by world name and then by packed block position rather than by Location. This is
+    // the most-read structure in the plugin -- every player move, every vehicle move, every
+    // tracked projectile every tick, and BlockPhysicsEvent, which a busy server raises for
+    // every water flow, falling block and redstone update in a loaded world. A Location key
+    // meant allocating a Location to ask each of those questions and throwing it away again;
+    // a packed long costs a box at worst. Splitting the world out also lets a question about
+    // a world holding no gates stop at the first lookup.
+    /** Every gate block, by world name and then by packed block position. */
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Stargate>> gateBlocksByWorld =
+        new ConcurrentHashMap<>();
     // List of All stargates indexed by name. Useful for dialing and such
     /** The stargate_list. */
     private static final ConcurrentHashMap<String, Stargate> stargateList = new ConcurrentHashMap<>();
+    /** The read-only view of every registered gate; see openGatesView for why it is held. */
+    private static final java.util.Collection<Stargate> allGatesView =
+        java.util.Collections.unmodifiableCollection(stargateList.values());
     // List of stargates built but not named. Indexed by the player that built it.
     /** The incomplete_stargates. */
     private static final ConcurrentHashMap<Player, Stargate> incompleteStargates = new ConcurrentHashMap<>();
@@ -58,11 +71,14 @@ public class StargateManager
     private static final java.util.Set<Stargate> openGates =
         java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    // List of blocks that are part of an active animation. Only use this to make sure water doesn't flow everywhere.
-    /** The Constant opening_animation_blocks. */
-    private static final ConcurrentHashMap<Location, Block> openingAnimationBlocks = new ConcurrentHashMap<>();
-    // Keep the original material for each animated block so we can restore it after the woosh
-    private static final ConcurrentHashMap<Location, Material> openingAnimationOriginalMaterials = new ConcurrentHashMap<>();
+    // The read-only views handed out by getOpenGates() and getAllGatesUnsorted(). Held rather
+    // than wrapped afresh on each call: both are read from per-move and per-tick paths, and a
+    // wrapper is an allocation that says nothing the one before it did not. Each still reads
+    // through to the live collection, so nothing about what a caller sees changes.
+    /** The read-only view of the open gates. */
+    private static final java.util.Set<Stargate> openGatesView =
+        java.util.Collections.unmodifiableSet(openGates);
+
 
     /**
      * This method adds a stargate that has been activated but not dialed by a player.
@@ -91,12 +107,13 @@ public class StargateManager
     {
         if ((b != null) && (s != null))
         {
-            final Location norm = normalizeBlockLocation(b.getLocation());
-            getAllGateBlocks().put(norm, s);
-            GateSpatialIndex.add(norm);
+            indexBlockLocation(b.getLocation(), s);
             try
             {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
+                if (WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+                {
+                    WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Indexed gate block: gate=" + s.getGateName() + " loc=" + b.getLocation().toString() + " type=" + b.getType().toString());
+                }
             }
             catch (final Exception e)
             {
@@ -175,15 +192,11 @@ public class StargateManager
         getStargateList().put(normalizeGateName(s.getGateName()), s);
         for (final Location b : s.getGateStructureBlocks())
         {
-            final Location norm = normalizeBlockLocation(b);
-            getAllGateBlocks().put(norm, s);
-            GateSpatialIndex.add(norm);
+            indexBlockLocation(b, s);
         }
         for (final Location b : s.getGatePortalBlocks())
         {
-            final Location norm = normalizeBlockLocation(b);
-            getAllGateBlocks().put(norm, s);
-            GateSpatialIndex.add(norm);
+            indexBlockLocation(b, s);
         }
         // Index explicit activation-related blocks so player interactions find the gate.
         try
@@ -460,7 +473,7 @@ public class StargateManager
         double bestDist = Double.MAX_VALUE;
         for (final Location l : candidates)
         {
-            final Stargate s = getAllGateBlocks().get(l);
+            final Stargate s = gateAt(l.getWorld(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
             if (s == null)
             {
                 continue;
@@ -486,13 +499,84 @@ public class StargateManager
     }
 
     /**
-     * Gets the all gate blocks.
-     * 
-     * @return the all gate blocks
+     * The gate that owns a block position, without allocating anything to ask.
+     *
+     * <p>Two lookups and no garbage: the world's own index, then the packed position within
+     * it. Everything on a hot path goes through here rather than building a {@link Location}
+     * to use as a key. A world holding no gates at all stops at the first of the two, which is
+     * the common case for block activity on a server whose gates live in one world.
+     *
+     * @param world
+     *            the world the block is in
+     * @param x
+     *            block x
+     * @param y
+     *            block y
+     * @param z
+     *            block z
+     * @return the gate that block belongs to, or null
      */
-    private static ConcurrentHashMap<Location, Stargate> getAllGateBlocks()
+    private static Stargate gateAt(final org.bukkit.World world, final int x, final int y, final int z)
     {
-        return allGateBlocks;
+        if (world == null)
+        {
+            return null;
+        }
+        final ConcurrentHashMap<Long, Stargate> inWorld = gateBlocksByWorld.get(world.getName());
+        return (inWorld == null) ? null : inWorld.get(Long.valueOf(BlockKey.pack(x, y, z)));
+    }
+
+    /**
+     * Records that a block position belongs to a gate, in both indexes.
+     *
+     * <p>The location is normalised before either index sees it, so what
+     * {@link #unindexBlockLocation} later hands the spatial index is equal to what went in.
+     * The spatial index holds Locations and removes them by equality, so an un-normalised
+     * remove against a normalised add silently does nothing and leaves the block pointing at
+     * a gate that no longer exists.
+     *
+     * @param loc
+     *            where the block is
+     * @param s
+     *            the gate it belongs to
+     */
+    private static void indexBlockLocation(final Location loc, final Stargate s)
+    {
+        if ((loc == null) || (loc.getWorld() == null) || (s == null))
+        {
+            return;
+        }
+        final Location norm = normalizeBlockLocation(loc);
+        gateBlocksByWorld
+            .computeIfAbsent(norm.getWorld().getName(), k -> new ConcurrentHashMap<>())
+            .put(Long.valueOf(BlockKey.pack(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ())), s);
+        GateSpatialIndex.add(norm);
+    }
+
+    /**
+     * Releases a block position from both indexes.
+     *
+     * @param loc
+     *            where the block is
+     */
+    private static void unindexBlockLocation(final Location loc)
+    {
+        if ((loc == null) || (loc.getWorld() == null))
+        {
+            return;
+        }
+        final Location norm = normalizeBlockLocation(loc);
+        final String worldName = norm.getWorld().getName();
+        final ConcurrentHashMap<Long, Stargate> inWorld = gateBlocksByWorld.get(worldName);
+        if (inWorld != null)
+        {
+            inWorld.remove(Long.valueOf(BlockKey.pack(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ())));
+            if (inWorld.isEmpty())
+            {
+                gateBlocksByWorld.remove(worldName);
+            }
+        }
+        GateSpatialIndex.remove(norm);
     }
 
     /**
@@ -510,7 +594,7 @@ public class StargateManager
      */
     public static java.util.Collection<Stargate> getAllGatesUnsorted()
     {
-        return java.util.Collections.unmodifiableCollection(getStargateList().values());
+        return allGatesView;
     }
 
     /**
@@ -547,7 +631,7 @@ public class StargateManager
      */
     public static java.util.Set<Stargate> getOpenGates()
     {
-        return java.util.Collections.unmodifiableSet(openGates);
+        return openGatesView;
     }
 
     /**
@@ -641,29 +725,20 @@ public class StargateManager
      */
     public static Stargate getGateFromBlock(final Block b)
     {
-        final Location key = normalizeBlockLocation(b.getLocation());
-        final boolean contains = getAllGateBlocks().containsKey(key);
-        // Guarded because this is the most-called method in the plugin — every player
-        // move, every vehicle move, and every tracked projectile every tick. Unguarded it
-        // built two Location strings and a Material name per call and discarded them all.
-        if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
+        // This is the most-called method in the plugin — every player move, every vehicle
+        // move, and every tracked projectile every tick. One lookup, no Location built to
+        // ask with, and nothing logged unless somebody is listening. The miss branch used to
+        // build its line unguarded, which meant the one path taken by nearly every call was
+        // the one that always paid for a string.
+        final Stargate s = gateAt(b.getWorld(), b.getX(), b.getY(), b.getZ());
+        final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
+        if ((plugin != null) && plugin.isLoggable(Level.FINE))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate lookup: loc=" + b.getLocation() + " type=" + b.getType() + " indexed=" + contains);
+            plugin.prettyLog(Level.FINE, "Gate lookup: loc=" + b.getLocation()
+                + " type=" + b.getType()
+                + (s == null ? " miss" : " hit gate=" + s.getGateName()));
         }
-        if (contains)
-        {
-            final Stargate s = getAllGateBlocks().get(key);
-            if (WormholeXTreme.getThisPlugin() != null && WormholeXTreme.getThisPlugin().isLoggable(Level.FINE))
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate lookup hit: gate=" + (s != null ? s.getGateName() : "null") + " for loc=" + b.getLocation());
-            }
-            return s;
-        }
-        if (WormholeXTreme.getThisPlugin() != null)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Gate lookup miss for loc=" + b.getLocation().toString());
-        }
-        return null;
+        return s;
     }
 
     /**
@@ -694,16 +769,6 @@ public class StargateManager
      * 
      * @return the opening animation blocks
      */
-    protected static ConcurrentHashMap<Location, Block> getOpeningAnimationBlocks()
-    {
-        return openingAnimationBlocks;
-    }
-
-    protected static ConcurrentHashMap<Location, Material> getOpeningAnimationOriginalMaterials()
-    {
-        return openingAnimationOriginalMaterials;
-    }
-
     /**
      * Normalize a location to its block coordinates (integer XYZ) while preserving world.
      * Use this when storing/retrieving map keys that represent block positions.
@@ -834,15 +899,22 @@ public class StargateManager
     // Also used to stop flow of water, and prevent portal physics
     /**
      * Checks if is block in gate.
-     * 
+     *
+     * <p>Reached from {@code BlockPhysicsEvent}, which is the highest-frequency question this
+     * plugin ever answers, so it is one hash lookup and nothing allocated to ask it.
+     *
+     * <p>It used to also consult a pair of "blocks in an active animation" maps. Nothing ever
+     * wrote to those maps -- the woosh has drawn and undrawn its own blocks for a long time --
+     * so the second lookup was a permanently empty map being asked on that path forever. Both
+     * maps and their accessors are gone.
+     *
      * @param b
      *            the b
      * @return true, if is block in gate
      */
     public static boolean isBlockInGate(final Block b)
     {
-        final Location key = normalizeBlockLocation(b.getLocation());
-        return getAllGateBlocks().containsKey(key) || getOpeningAnimationBlocks().containsKey(key);
+        return gateAt(b.getWorld(), b.getX(), b.getY(), b.getZ()) != null;
     }
 
     /**
@@ -858,13 +930,12 @@ public class StargateManager
         {
             return false;
         }
-        final Location norm = normalizeBlockLocation(b.getLocation());
-        final Stargate s = getAllGateBlocks().get(norm);
+        final Stargate s = gateAt(b.getWorld(), b.getX(), b.getY(), b.getZ());
         if (s == null)
         {
             return false;
         }
-        return s.isGatePortalBlockAt(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ());
+        return s.isGatePortalBlockAt(b.getX(), b.getY(), b.getZ());
     }
 
     /**
@@ -939,10 +1010,35 @@ public class StargateManager
     {
         if (b != null)
         {
-            final Location norm = normalizeBlockLocation(b.getLocation());
-            getAllGateBlocks().remove(norm);
-            GateSpatialIndex.remove(norm);
+            unindexBlockLocation(b.getLocation());
         }
+    }
+
+    /**
+     * Drops everything remembered about a player who has left.
+     *
+     * <p>Three of this class's indexes are keyed by {@link Player} rather than by id, and
+     * nothing was removing from them when somebody logged out. A Player object is not a
+     * light thing to hold: it reaches the entity, its inventory and the world it was in, and
+     * a server with real churn accumulated one per person who ever started a gate, activated
+     * one, or picked a shape to build with, for as long as it stayed up.
+     *
+     * <p>Nothing observable changes. Bukkit hands out a fresh Player object on the next
+     * login, so a stale entry could never be found again by the person it belonged to — it
+     * was unreachable state being kept alive, not state anybody was still using.
+     *
+     * @param p
+     *            the player who has gone
+     */
+    public static void forgetPlayer(final Player p)
+    {
+        if (p == null)
+        {
+            return;
+        }
+        getIncompleteStargates().remove(p);
+        getActivatedStargates().remove(p);
+        getPlayerBuilders().remove(p);
     }
 
     /**
@@ -1007,6 +1103,12 @@ public class StargateManager
             com.wormhole_xtreme.wormhole.events.GateEvents.fireRemoved(s, remover);
         }
         getStargateList().remove(normalizeGateName(s.getGateName()));
+        // A gate deleted while its wormhole was open would otherwise stay in the open set
+        // for the life of the server: nothing on the removal path cleared it, and the set is
+        // only written by setGateActive. That pinned the gate object and everything it holds,
+        // and left the sweeps that walk the open gates working on something that no longer
+        // exists — humming, redrawing a portal, and now sending entities through it.
+        s.setGateActive(false);
         StargateDBManager.removeStargate(s);
         detachFromNetwork(s);
         unindexGateBlocks(s);
@@ -1081,13 +1183,11 @@ public class StargateManager
     {
         for (final Location b : s.getGateStructureBlocks())
         {
-            getAllGateBlocks().remove(b);
-            GateSpatialIndex.remove(b);
+            unindexBlockLocation(b);
         }
         for (final Location b : s.getGatePortalBlocks())
         {
-            getAllGateBlocks().remove(b);
-            GateSpatialIndex.remove(b);
+            unindexBlockLocation(b);
         }
     }
 

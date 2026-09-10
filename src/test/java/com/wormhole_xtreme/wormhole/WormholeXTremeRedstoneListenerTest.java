@@ -57,6 +57,7 @@ class WormholeXTremeRedstoneListenerTest
         // Dial block
         final Block dial = mock(Block.class);
         when(dial.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(dial.getWorld()).thenReturn(world);
         when(dial.getX()).thenReturn(dx);
         when(dial.getY()).thenReturn(dy);
         when(dial.getZ()).thenReturn(dz);
@@ -64,6 +65,7 @@ class WormholeXTremeRedstoneListenerTest
         // Redstone wire block adjacent to the dial
         final Block wire = mock(Block.class);
         when(wire.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(wire.getWorld()).thenReturn(world);
         when(wire.getX()).thenReturn(dx + 1);
         when(wire.getY()).thenReturn(dy);
         when(wire.getZ()).thenReturn(dz);
@@ -123,6 +125,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block cycle = mock(Block.class);
         when(cycle.getLocation()).thenReturn(new Location(world, cx, cy, cz));
+        when(cycle.getWorld()).thenReturn(world);
         when(cycle.getX()).thenReturn(cx);
         when(cycle.getY()).thenReturn(cy);
         when(cycle.getZ()).thenReturn(cz);
@@ -130,6 +133,7 @@ class WormholeXTremeRedstoneListenerTest
         // The lever one block over and one block up: the [RA] position relative to [RS].
         final Block lever = mock(Block.class);
         when(lever.getLocation()).thenReturn(new Location(world, cx + 1, cy + 1, cz));
+        when(lever.getWorld()).thenReturn(world);
         when(lever.getX()).thenReturn(cx + 1);
         when(lever.getY()).thenReturn(cy + 1);
         when(lever.getZ()).thenReturn(cz);
@@ -190,6 +194,7 @@ class WormholeXTremeRedstoneListenerTest
         // RD wire block at the gate
         final Block rdBlock = mock(Block.class);
         when(rdBlock.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(rdBlock.getWorld()).thenReturn(world);
         when(rdBlock.getX()).thenReturn(dx);
         when(rdBlock.getY()).thenReturn(dy);
         when(rdBlock.getZ()).thenReturn(dz);
@@ -236,6 +241,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block rdBlock = mock(Block.class);
         when(rdBlock.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(rdBlock.getWorld()).thenReturn(world);
         when(rdBlock.getX()).thenReturn(dx);
         when(rdBlock.getY()).thenReturn(dy);
         when(rdBlock.getZ()).thenReturn(dz);
@@ -244,6 +250,7 @@ class WormholeXTremeRedstoneListenerTest
         // The block that actually changes power — never the RD block itself.
         final Block source = mock(Block.class);
         when(source.getLocation()).thenReturn(new Location(world, dx + offX, dy + offY, dz + offZ));
+        when(source.getWorld()).thenReturn(world);
         when(source.getX()).thenReturn(dx + offX);
         when(source.getY()).thenReturn(dy + offY);
         when(source.getZ()).thenReturn(dz + offZ);
@@ -321,6 +328,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block button = mock(Block.class);
         when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(dx);
         when(button.getY()).thenReturn(dy);
         when(button.getZ()).thenReturn(dz);
@@ -328,6 +336,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block source = mock(Block.class);
         when(source.getLocation()).thenReturn(new Location(world, dx + offX, dy + offY, dz + offZ));
+        when(source.getWorld()).thenReturn(world);
         when(source.getX()).thenReturn(dx + offX);
         when(source.getY()).thenReturn(dy + offY);
         when(source.getZ()).thenReturn(dz + offZ);
@@ -440,6 +449,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block lever = mock(Block.class);
         when(lever.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(lever.getWorld()).thenReturn(world);
         when(lever.getX()).thenReturn(dx);
         when(lever.getY()).thenReturn(dy);
         when(lever.getZ()).thenReturn(dz);
@@ -448,6 +458,7 @@ class WormholeXTremeRedstoneListenerTest
         // The dust the player wired to the DHD, which the lever powers as the gate opens.
         final Block dust = mock(Block.class);
         when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getWorld()).thenReturn(world);
         when(dust.getX()).thenReturn(dx + 1);
         when(dust.getY()).thenReturn(dy);
         when(dust.getZ()).thenReturn(dz);
@@ -538,6 +549,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block button = mock(Block.class);
         when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(dx);
         when(button.getY()).thenReturn(dy);
         when(button.getZ()).thenReturn(dz);
@@ -545,6 +557,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block dust = mock(Block.class);
         when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getWorld()).thenReturn(world);
         when(dust.getX()).thenReturn(dx + 1);
         when(dust.getY()).thenReturn(dy);
         when(dust.getZ()).thenReturn(dz);
@@ -613,6 +626,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block button = mock(Block.class);
         when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(dx);
         when(button.getY()).thenReturn(dy);
         when(button.getZ()).thenReturn(dz);
@@ -621,6 +635,7 @@ class WormholeXTremeRedstoneListenerTest
         // Two different dust blocks, both within reach of the DHD, as a real run would be.
         final Block dustLow = mock(Block.class);
         when(dustLow.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dustLow.getWorld()).thenReturn(world);
         when(dustLow.getX()).thenReturn(dx + 1);
         when(dustLow.getY()).thenReturn(dy);
         when(dustLow.getZ()).thenReturn(dz);
@@ -628,6 +643,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block dustHigh = mock(Block.class);
         when(dustHigh.getLocation()).thenReturn(new Location(world, dx + 1, dy + 1, dz));
+        when(dustHigh.getWorld()).thenReturn(world);
         when(dustHigh.getX()).thenReturn(dx + 1);
         when(dustHigh.getY()).thenReturn(dy + 1);
         when(dustHigh.getZ()).thenReturn(dz);
@@ -717,6 +733,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block button = mock(Block.class);
         when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(dx);
         when(button.getY()).thenReturn(dy);
         when(button.getZ()).thenReturn(dz);
@@ -724,6 +741,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block dust = mock(Block.class);
         when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getWorld()).thenReturn(world);
         when(dust.getX()).thenReturn(dx + 1);
         when(dust.getY()).thenReturn(dy);
         when(dust.getZ()).thenReturn(dz);
@@ -776,6 +794,7 @@ class WormholeXTremeRedstoneListenerTest
         // signal has to land within GATE_SEARCH_RADIUS of something indexed to be attributed.
         final Block button = mock(Block.class);
         when(button.getLocation()).thenReturn(new Location(world, dx + 2, dy, dz));
+        when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(dx + 2);
         when(button.getY()).thenReturn(dy);
         when(button.getZ()).thenReturn(dz);
@@ -783,6 +802,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block monitored = mock(Block.class);
         when(monitored.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(monitored.getWorld()).thenReturn(world);
         when(monitored.getX()).thenReturn(dx);
         when(monitored.getY()).thenReturn(dy);
         when(monitored.getZ()).thenReturn(dz);
@@ -828,6 +848,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block button = mock(Block.class);
         when(button.getLocation()).thenReturn(new Location(world, dx, dy, dz));
+        when(button.getWorld()).thenReturn(world);
         when(button.getX()).thenReturn(dx);
         when(button.getY()).thenReturn(dy);
         when(button.getZ()).thenReturn(dz);
@@ -835,6 +856,7 @@ class WormholeXTremeRedstoneListenerTest
 
         final Block dust = mock(Block.class);
         when(dust.getLocation()).thenReturn(new Location(world, dx + 1, dy, dz));
+        when(dust.getWorld()).thenReturn(world);
         when(dust.getX()).thenReturn(dx + 1);
         when(dust.getY()).thenReturn(dy);
         when(dust.getZ()).thenReturn(dz);

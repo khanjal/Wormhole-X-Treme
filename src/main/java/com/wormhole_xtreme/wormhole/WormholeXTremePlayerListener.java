@@ -1088,6 +1088,14 @@ class WormholeXTremePlayerListener implements Listener
         {
             return;
         }
+        // Deliberately not behind a "did the block change" guard, unlike gate detection: a
+        // ring has to re-arm for somebody who stayed inside it after a trip, and that player
+        // is crossing no block boundaries. The cost of asking is one hash lookup, and on a
+        // server with no rings at all it is not even that.
+        if (!com.wormhole_xtreme.wormhole.model.ring.RingIndex.hasAny())
+        {
+            return;
+        }
         final com.wormhole_xtreme.wormhole.model.ring.RingIndex.RingEnd end =
             com.wormhole_xtreme.wormhole.model.ring.RingIndex.volumeAt(
                 to.getWorld().getName(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
@@ -1238,6 +1246,14 @@ class WormholeXTremePlayerListener implements Listener
         try
         {
             final boolean inPortal = isInsideOpenPortal(at);
+            // Every move event reaches here, including the rotation-only ones a player
+            // generates just by looking around, and on a server where nobody is standing in
+            // a wormhole both halves below are no-ops. Answering that before asking the
+            // player for their id keeps the common case to one empty-set check.
+            if (!inPortal && portalFlightGranted.isEmpty())
+            {
+                return;
+            }
             final java.util.UUID id = player.getUniqueId();
 
             if (inPortal)
@@ -1371,6 +1387,12 @@ class WormholeXTremePlayerListener implements Listener
         // that account gets fresh chunks anyway.
         com.wormhole_xtreme.wormhole.model.StargateManager.forgetPortalVisuals(
             event.getPlayer().getUniqueId());
+        // The Player-keyed state, which the id-keyed lines above are not. Nothing was
+        // clearing it, so every person who had ever half-built or activated a gate stayed
+        // in memory — with their entity, inventory and world — until the server stopped.
+        com.wormhole_xtreme.wormhole.model.StargateManager.forgetPlayer(event.getPlayer());
+        com.wormhole_xtreme.wormhole.permissions.StargateRestrictions.forgetPlayer(event.getPlayer());
+        com.wormhole_xtreme.wormhole.command.Refresh.removePendingRefresh(event.getPlayer());
     }
 
     /**

@@ -7,9 +7,29 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+
 class WorldUtilsTest {
+
+    /**
+     * The chunk helpers log at FINE before touching the world, and reach the running plugin to
+     * ask whether anybody is listening. Nothing else in this class needs one, but a mock costs
+     * nothing and a missing one is an NPE from inside production code rather than a failed
+     * assertion.
+     */
+    @BeforeEach
+    void installPlugin() throws Exception {
+        PluginTestSupport.install();
+    }
+
+    @AfterEach
+    void removePlugin() throws Exception {
+        PluginTestSupport.remove();
+    }
 
     /**
      * A world whose only solid ground is the single block layer at {@code solidTop} -- every
@@ -164,5 +184,74 @@ class WorldUtilsTest {
         final Location noWorld = new Location(null, 5, 64, 9);
         assertSame(noWorld, WorldUtils.findSafePlayerLocation(noWorld),
             "with no world to search, the original location is returned as-is");
+    }
+
+    /** A block at the given coordinates, in a world that reports every chunk unloaded. */
+    private static Block blockInUnloadedChunk(final World world, final int x, final int y, final int z) {
+        when(world.getName()).thenReturn("w");
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
+        final Block b = mock(Block.class);
+        when(b.getWorld()).thenReturn(world);
+        when(b.getX()).thenReturn(x);
+        when(b.getY()).thenReturn(y);
+        when(b.getZ()).thenReturn(z);
+        return b;
+    }
+
+    /**
+     * Working out which chunk a block is in must not load that chunk.
+     *
+     * <p>Both of these used to start with {@code block.getChunk()}, which loads the chunk if
+     * the server does not have it -- so by the time {@code isChunkLoaded} was asked, the answer
+     * was always yes. The guard was unreachable and the loading happened anyway, outside the
+     * branch that existed to decide whether it should.
+     *
+     * <p>Shifting the block's own coordinates asks the same question without touching the
+     * world, which is what {@code hasChangedChunk} on the move path already does for the same
+     * reason.
+     */
+    @Test
+    void findingAChunkToLoadDoesNotItselfLoadIt() {
+        final World world = mock(World.class);
+        final Block b = blockInUnloadedChunk(world, 33, 64, -17);
+
+        WorldUtils.scheduleChunkLoad(b);
+
+        verify(b, never()).getChunk();
+        verify(world).loadChunk(2, -2);
+    }
+
+    /**
+     * Releasing a chunk must not load it first.
+     *
+     * <p>The unload path was the worse of the two: asking the block for its chunk pulled back
+     * in a chunk the server had already let go, purely so this could ask it to let go again.
+     * With no chunk resident there is nothing to unload, and nothing should happen at all.
+     */
+    @Test
+    void releasingAChunkThatIsNotLoadedDoesNothingAtAll() {
+        final World world = mock(World.class);
+        final Block b = blockInUnloadedChunk(world, 33, 64, -17);
+
+        WorldUtils.scheduleChunkUnload(b);
+
+        verify(b, never()).getChunk();
+        verify(world, never()).unloadChunkRequest(anyInt(), anyInt());
+    }
+
+    /**
+     * A negative block coordinate lands in the chunk below the origin, not above it.
+     *
+     * <p>{@code -17 >> 4} is -2, while {@code -17 / 16} is -1. Dividing would name the wrong
+     * chunk for every block west or north of the origin -- which is half the world.
+     */
+    @Test
+    void aChunkWestOfTheOriginIsFoundByShiftingNotDividing() {
+        final World world = mock(World.class);
+        final Block b = blockInUnloadedChunk(world, -17, 64, -1);
+
+        WorldUtils.scheduleChunkLoad(b);
+
+        verify(world).loadChunk(-2, -1);
     }
 }

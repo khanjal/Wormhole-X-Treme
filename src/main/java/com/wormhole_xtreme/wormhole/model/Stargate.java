@@ -198,8 +198,18 @@ public class Stargate
     /** The gate custom woosh depth squared. */
     private int gateCustomWooshDepthSquared = -1;
 
-    /** Portal block coordinates as a set, for O(1) containment. Built lazily. */
-    private java.util.Set<Location> gatePortalBlockLookup = null;
+    /**
+     * Portal block positions as a set, for O(1) containment. Built lazily.
+     *
+     * <p>Packed positions rather than {@link Location} keys. This set is asked on every
+     * player move that lands on a gate block, on every entity the periodic sweep finds near
+     * an active gate, and once per open gate whenever any player crosses a block boundary --
+     * and a Location key meant allocating a Location to ask the question. The world is not
+     * part of the key because the set belongs to one gate, which is in one world; the world
+     * was never actually discriminating here, since the old key was always built with this
+     * gate's own {@code gateWorld}.
+     */
+    private java.util.Set<Long> gatePortalBlockLookup = null;
 
     /** Bounding box enclosing every portal block, for one-shot entity queries. Built lazily. */
     private org.bukkit.util.BoundingBox gatePortalBounds = null;
@@ -220,7 +230,7 @@ public class Stargate
         {
             return;
         }
-        final java.util.Set<Location> lookup =
+        final java.util.Set<Long> lookup =
             new java.util.HashSet<>(Math.max(16, gatePortalBlocks.size() * 2));
         final Extents extents = new Extents();
         for (final Location l : gatePortalBlocks)
@@ -229,7 +239,8 @@ public class Stargate
             {
                 continue;
             }
-            lookup.add(new Location(gateWorld, l.getBlockX(), l.getBlockY(), l.getBlockZ()));
+            lookup.add(Long.valueOf(com.wormhole_xtreme.wormhole.utils.BlockKey.pack(
+                l.getBlockX(), l.getBlockY(), l.getBlockZ())));
             extents.include(l);
         }
         gatePortalBlockLookup = lookup;
@@ -287,9 +298,11 @@ public class Stargate
     /**
      * Checks whether the given block coordinates are one of this gate's portal blocks.
      *
-     * <p>Backed by a set rather than a scan of the portal block list. This is called on
-     * every player move that lands on a gate block, and once per entity found near an
-     * active gate, so the linear version showed up on both hot paths.
+     * <p>Backed by a set of packed positions rather than a scan of the portal block list.
+     * This is called on every player move that lands on a gate block, and once per entity
+     * found near an active gate, so the linear version showed up on both hot paths -- and
+     * the set version allocated a {@link Location} per question until the key became a
+     * primitive.
      *
      * @param x
      *            block x
@@ -302,7 +315,8 @@ public class Stargate
     public boolean isGatePortalBlockAt(final int x, final int y, final int z)
     {
         refreshPortalCaches();
-        return gatePortalBlockLookup.contains(new Location(gateWorld, x, y, z));
+        return gatePortalBlockLookup.contains(Long.valueOf(
+            com.wormhole_xtreme.wormhole.utils.BlockKey.pack(x, y, z)));
     }
 
     /**

@@ -60,6 +60,7 @@ class GateYamlRoundTripTest
             when(b.getY()).thenReturn(y);
             when(b.getZ()).thenReturn(z);
             when(b.getLocation()).thenReturn(new Location(world, x, y, z));
+            when(b.getWorld()).thenReturn(world);
             return b;
         });
 
@@ -102,6 +103,7 @@ class GateYamlRoundTripTest
         when(dial.getY()).thenReturn(64);
         when(dial.getZ()).thenReturn(20);
         when(dial.getLocation()).thenReturn(new Location(world, 10, 64, 20));
+        when(dial.getWorld()).thenReturn(world);
         s.setGateDialLeverBlock(dial);
         s.setGatePlayerTeleportLocation(new Location(world, 65.0, 65.0, 65.0));
         s.setGateFacing(BlockFace.NORTH);
