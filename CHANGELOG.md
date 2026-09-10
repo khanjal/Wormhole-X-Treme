@@ -2910,6 +2910,48 @@ shapes one, each reporting the old value -- `plugins\WormholeXTreme\GateShapes` 
 server had named a temporary directory. The fourth resolver test covers the fallback branch
 itself and correctly stayed green under that mutation.
 
+### One write path and one logger, where there were three of each (#45)
+
+Gates, rings and beam destinations each carried their own copy of the same YAML write: the
+same `DumperOptions`, a temp file beside the target, `Files.move(..., ATOMIC_MOVE)`. Three
+copies of a write path is three places for a storage bug to be fixed in two of. They go through
+`utils/YamlStore` now, which throws rather than logging, so each manager keeps its own wording
+for a failed write.
+
+The logging was the half that had actually gone wrong. Each manager also had its own "is there
+a plugin to log through" check, and they did not agree:
+
+| | With no plugin |
+| --- | --- |
+| `BeamYamlManager` | fell back to `java.util.logging` |
+| `RingYamlManager` | returned, silently |
+| `StargateYamlManager` | returned, silently |
+
+Which messages those are is what makes it worth more than a tidy-up. They are the ones saying a
+ring file would not write, or a gate could not be saved -- so two of the three managers dropped
+exactly the messages that only ever exist because something had already gone wrong. It also
+meant the same storage failure was observable in one manager's tests and unobservable in
+another's, so a test there could pass by waiting for a message that was never coming.
+
+`utils/PluginLog` falls back, which is the behaviour worth keeping, and all three now use it.
+
+One thing came along on the way. `saveStargate`'s FINE line built `"Saved gate to YAML: "` plus
+an absolute path with no `isLoggable` guard, and `onDisable` calls it once per gate on every
+shutdown -- so a server with dozens of gates did that concatenation dozens of times per restart
+to throw every result away. `prettyLog` takes a `String`, so the guard has to be at the call
+site. That is the third time this exact shape has turned up in this codebase.
+
+Ten tests, mutation-checked: `PluginLog` put back to dropping the message silently turns two of
+them red, and `YamlStore` switched to inline flow style turns another red, reporting the
+`{World: overworld, X: 1.5}` it would have written into a file server owners hand-edit.
+
+PMD caught two dead `java.nio.file.Files` imports the extraction left behind, which a
+hand-rolled check for unused imports had missed -- `listFiles` and a fully-qualified
+`java.nio.file.Files.deleteIfExists` both look like uses of the import to a regex, and neither
+is one.
+
+Nothing about the files on disk changes. Same format, same names, same places.
+
 </details>
 
 ## 1.4.0 (2026-09-05)
