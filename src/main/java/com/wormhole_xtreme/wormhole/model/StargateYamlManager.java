@@ -1,12 +1,7 @@
 package com.wormhole_xtreme.wormhole.model;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Locale;
@@ -15,11 +10,12 @@ import java.util.UUID;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
-import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
+import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
 /**
  * Simple per-gate YAML manager.
@@ -280,36 +276,26 @@ public class StargateYamlManager
         }
         map.put("GateData", Base64.getEncoder().encodeToString(data));
 
-        final DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setIndent(2);
-        final Yaml yaml = new Yaml(options);
-
-        // atomic write: write to temp file then move
         try
         {
-            final File tmp = new File(outFile.getAbsolutePath() + ".tmp");
-            try (BufferedWriter w = new BufferedWriter(new FileWriter(tmp, StandardCharsets.UTF_8)))
-            {
-                yaml.dump(map, w);
-            }
-            Files.move(tmp.toPath(), outFile.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            YamlStore.write(outFile, map);
         }
         catch (final IOException e)
         {
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Failed to write YAML gate file " + outFile.getName(), e);
-            }
+            PluginLog.log(Level.WARNING, "Failed to write YAML gate file " + outFile.getName(), e);
         }
         // FINE rather than INFO: this fires once per gate, and onDisable() calls it for
         // every gate on every shutdown whether or not anything changed. At INFO that is
         // one console line per gate on every restart -- for a server with dozens of
         // gates, that is dozens of lines nobody reads, forever. The load-time summary
         // above stays at INFO because "N loaded" is one line regardless of gate count.
-        if (WormholeXTreme.getThisPlugin() != null)
+        //
+        // Guarded because the message is built before prettyLog is called, so an
+        // unguarded line pays for getAbsolutePath() and a concatenation per gate per
+        // shutdown to throw the result away.
+        if (PluginLog.isLoggable(Level.FINE))
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE, "Saved gate to YAML: " + outFile.getAbsolutePath());
+            PluginLog.log(Level.FINE, "Saved gate to YAML: " + outFile.getAbsolutePath());
         }
     }
 
