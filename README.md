@@ -280,6 +280,14 @@ Notes:
   narrowly (e.g. only to yourself), check that trusted builders who used to run
   `/wormhole portalmaterial`, `/wormhole custom`, or `/wormhole owner` freely still have it,
   since those commands now require it too.
+- Nothing can be built inside a gate's opening -- the ring of portal cells the gate
+  teleports through. Anyone who may take a gate's blocks apart may build in there anyway:
+  operators, the gate's owner, and holders of `wormhole.config` or `wormhole.remove.all`.
+  (`wormhole.remove.own` is in that set too, but it checks ownership as well as the node, and
+  an owner is already through -- so it never grants this on its own.) `wormhole.build`
+  deliberately does not carry it, since that node is
+  for raising new gates and is commonly granted on the Public network. A block left in the
+  opening this way is still not part of the gate, so anyone can break it back out.
 - Per-group cooldown/build permission nodes (legacy `one`/`two`/`three`) have been removed. One cooldown applies to everyone, set with `use-cooldown-seconds` in `config.yml` or `/wormhole cooldown <seconds>`, and switched on with `use-cooldown-enabled`.
 - The `HelpSupport` integration (attach to the external `Help` plugin) will register many of the above nodes with the help system when present.
 
@@ -382,6 +390,21 @@ because the plugin that wrote it needed the same driver.
 is built and then stored, so a gate that landed travellers at its side kept doing it; this is
 the command to reach for. It cannot fix a gate whose *facing* is wrong — if the woosh and the
 sign are on the wrong face too, that one needs rebuilding.
+
+**`gate regenerate <gate>` re-reads the gate's shape file.** A gate's markers — its redstone
+hookup, its iris lever, its dial sign, its name sign — are worked out once when the gate is
+built and then stored, and go stale for exactly the same reason the arrival point does: the
+shape file they came from can change underneath them. A gate built before its shape gained a
+`[RD]` marker has no dial-activation block recorded, and no amount of wiring will ever fire
+it. Regenerating re-runs detection against the shape as it is now, moves whatever the file has
+moved, saves the gate, and tells you what it changed.
+
+Markers are only ever added or moved, never taken away: a shape that has *lost* a marker
+leaves the block standing where it is rather than having it disappear without explanation. And
+if the gate no longer matches its shape at all — somebody rebuilt the frame, or the shape file
+is not in the folder any more — nothing is touched and the command says which of those it is.
+This is the one thing `regenerate -all` deliberately does not do, since it reads the world and
+an unattended sweep across every gate on the server is a different proposition.
 
 **`gate regenerate -all`** does the same recompute across every gate in one pass, and reports
 how many actually needed it — recomputing is deterministic, so a gate that was already correct

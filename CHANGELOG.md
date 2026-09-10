@@ -43,6 +43,17 @@ been running on defaults will start reading the file you have been editing.
   the server names, so a server whose plugin folder is not `./plugins` read half its files from
   one tree and half from another, silently
   ([#245](https://github.com/khanjal/Wormhole-X-Treme/issues/245)).
+- A gate came back from a restart not knowing which shape it was built from, and the next
+  save wrote `GateShape: Standard` over whatever it really was
+  ([#42](https://github.com/khanjal/Wormhole-X-Treme/issues/42)).
+- A gate built before its shape file gained a marker could never pick it up. `/wormhole gate
+  regenerate <gate>` now re-reads the shape and moves the gate's redstone hookup, iris lever,
+  dial sign and name sign to where the file says they go today
+  ([#42](https://github.com/khanjal/Wormhole-X-Treme/issues/42),
+  [#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
+- A shape that pins a material lost it after a restart. `HorizontalSignDial` sets
+  `IRIS_MATERIAL=GLASS` because you look down through that gate, and a loaded gate resolved
+  its iris through the palette instead.
 
 ### Changed
 
@@ -65,7 +76,7 @@ been running on defaults will start reading the file you have been editing.
   casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
   nobody read, which took ten class-level warning suppressions off the classes they were hiding
   real findings in.
-- Tests: **1326 at 1.5.0, 1427 so far**.
+- Tests: **1326 at 1.5.0, 1460 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
@@ -468,6 +479,55 @@ Four assertions in `RingPairingTest` turned out to be asserting nothing.
 `assertTrue(pairWith(...))` could never fail, because `completePair` always returned true, and
 three of the four sit in tests about the pairing being *refused*, where a green `true` reads as
 though it succeeded. Each already asserted what mattered on the following line.
+
+### A gate forgot its shape overnight, and the next save wrote the loss to disk (#42)
+
+The shape name has been written into every gate file for as long as gate files have existed,
+and nothing ever read it back. `Stargate`'s constructor installs a placeholder shape, and that
+placeholder calls itself `Standard`, so every gate that came off disk reported itself as a
+Standard gate whatever it had really been built from.
+
+That would be merely wrong if it stopped at reporting. It did not: the save path wrote
+`getGateShape().getShapeName()`, which for a loaded gate was the placeholder's name. So one
+restart and one ordinary save -- and a shutdown is enough -- rewrote `GateShape: Standard` over
+the real name in the file. The name was the only record of what the gate was, and afterwards
+there was nothing left to say what it had been. On a server with custom shapes that is
+unrecoverable by hand.
+
+A gate now resolves its recorded name through the shape registry on load, which is safe because
+shapes are read in `onLoad` and gates in `onEnable`. A name the folder cannot resolve -- an
+admin renaming a shape file, or moving one aside for an afternoon -- is *kept* rather than
+replaced, with a warning saying so: the recorded name is still true even when the shape it names
+is not there, and writing `Standard` over it would destroy the only thing that could put it
+back. That also fixes a pinned material quietly going missing, because `IRIS_MATERIAL=GLASS` in
+`HorizontalSignDial` lives on the shape object rather than on the name.
+
+### Re-deriving a gate whose shape file changed under it (#42, #54)
+
+A gate records where its markers are once, at detection, and never looks at the shape again.
+That was fine until a shape file gained a marker: #28 added `[RD]` and `[RA]` to two shipped
+shapes, and every gate already standing kept the empty marker set it had been detected with. No
+amount of wiring will fire such a gate. `setupRedstone` places blocks at positions that are
+already known and derives none, and `regenerate` guarded that call with `isGateRedstonePowered()`
+-- which is false on exactly the gates that need fixing.
+
+Detection already knows how to work the markers out, and the gate stores both of its inputs: the
+block the player clicked, and the way it faces. Handing those back to `checkStargate` with the
+shape *as it is now* reproduces the original detection against today's file. `/wormhole gate
+regenerate <gate>` does that first, then places blocks as before, and names each marker it moved.
+
+Two lines are drawn deliberately. Only the furniture is copied -- the three redstone markers,
+the iris lever, the dial sign, the name sign holder -- not the frame, the portal, the animation
+waves or the arrival point: rewriting those is what `/wormhole gate refresh` is for, and that is
+a player standing at one gate asking for it. And a marker is only ever added or moved, never
+cleared, so a shape that has *lost* a marker leaves the block standing rather than taking it up
+under an admin who only asked for a regenerate. What moved is reported, and that decision is
+left to whoever reads it.
+
+The gate is also never lifted before it is replaced. `[RA]` is an output -- it is what a gate
+powers while it is open -- so taking the redstone up and putting a fresh unpowered marker back
+would have cut whatever the gate was driving, mid-wormhole, on any open gate. There is a test
+pinning that it does not.
 
 </details>
 
@@ -3038,6 +3098,32 @@ hand the sweep was re-run against the merged tree. It walked straight into the s
 regex found the delegation a second time and dropped its `false` a second time. Reading the
 diff caught it, and the third test would have caught it a moment later -- which is the whole
 difference between this time and last.
+
+### An admin may build in a gate's opening after all (#243)
+
+The placement refusal that landed with #243 applied to everybody, operators included. That is
+the right default and the wrong absolute: an admin fitting a gate out by hand -- a decorative
+block behind the ring, something dropped in deliberately -- had no way past it.
+
+`onBlockPlace` now lets the placement through for anyone who passes the DAMAGE check on that
+gate: operators, the gate's owner, and holders of `wormhole.config`, `wormhole.remove.all` or
+`wormhole.remove.own`.
+
+DAMAGE rather than BUILD, and the choice matters more than it looks. BUILD reads more naturally
+for placing a block and was the first candidate, but it is the node for raising a *new* gate,
+and most servers grant it to ordinary players on the Public network -- so using it would have
+left the opening open to nearly everyone and made the original fix meaningless. DAMAGE is what
+`onBlockDamage` already asks about these very blocks, so the same people who may take a gate
+apart may build inside it, and nobody else. `theGateBuildingNodeIsNotEnoughToBuildInTheOpening`
+pins that, and swapping the node back to BUILD fails it.
+
+What an admin leaves in there is still not part of the gate, so anyone can break it back out.
+Treating a deliberate placement as gate structure would put the original bug straight back, in
+the one case where somebody actually meant to leave a block there.
+
+Five more tests, fourteen in `GatePortalInteriorBuildTest` now. Three mutations were run
+against them: removing the bypass fails four, making it always-true fails three, and swapping
+DAMAGE for BUILD fails two -- one from each direction of the choice.
 
 </details>
 

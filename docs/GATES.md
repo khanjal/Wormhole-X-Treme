@@ -154,6 +154,16 @@ geometry from scratch, keeping the name, owner, IDC and network, and re-saves. N
 touched, and no removal event is raised — a refresh is not the gate going away, so listeners
 are not told to discard what they know about it.
 
+`/wormhole gate regenerate <gate>` re-derives the narrower thing, by name and without a click.
+`GateRederivation` hands the gate's own stored dial-lever block and facing back to
+`checkStargate` with the shape as it is now, and copies the markers off the result: the three
+redstone blocks, the iris lever, the dial sign and the name sign. It copies markers rather than
+swapping the gate object, which is what keeps the gate's identity, network, owner, IDC and open
+state — none of which detection knows anything about — and it is why this can run from a
+command while `refresh` needs a player standing at the gate. The frame, the portal, the
+animation waves and the arrival point are deliberately not copied: rewriting those is what
+`refresh` is for, and the arrival point has its own recompute in the same command.
+
 ## Storage
 
 One YAML file per gate, in
@@ -172,6 +182,11 @@ GateData: <base64>
 
 The readable fields are what a server owner might want to edit or grep. `GateData` is the
 geometry: every block position, the arrival points, the facing, the flags, packed as bytes.
+
+**`GateShape` is read back on load**, and is the only record of which shape a gate was built
+from — `GateData` does not carry it. A name that no longer matches any shape in the folder is
+kept rather than resolved, and logged: the gate still works from its stored geometry, but it
+cannot be re-derived until the shape is back. Nothing rewrites the name it could not resolve.
 
 **`GateData` carries nine save versions.** Files written by any Wormhole X-Treme since
 version 3 still load. This is legacy weight the rings deliberately did not inherit — they are

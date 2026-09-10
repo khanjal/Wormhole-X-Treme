@@ -288,11 +288,48 @@ class WormholeXTremeBlockListener implements Listener
     }
 
     /**
+     * Whether this player is trusted enough to build in a gate's opening anyway.
+     *
+     * <p>DAMAGE rather than BUILD, which reads more naturally for placing a block but is the
+     * wrong set of people: BUILD is the node for raising a new gate, and on most servers
+     * ordinary players hold it on the Public network, which would leave the opening open to
+     * nearly everyone. DAMAGE is what {@code onBlockDamage} already asks about these very
+     * blocks -- operators, the gate's owner, and whoever holds {@code wormhole.config} or
+     * either remove node -- so the same people who may take a gate apart may build inside it,
+     * and nobody else.
+     *
+     * @param player
+     *            who is placing, or null if this was not a player
+     * @param stargate
+     *            the gate whose opening is being built in
+     * @return true if the placement should be allowed through
+     */
+    static boolean mayBuildInOpening(final Player player, final Stargate stargate)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+        try
+        {
+            return WXPermissions.checkWXPermissions(player, stargate, PermissionType.DAMAGE);
+        }
+        catch (final RuntimeException ignore)
+        {
+            // A permissions plugin that throws is not a reason to open the gate up.
+            return false;
+        }
+    }
+
+    /**
      * Keeps the gate opening clear.
      *
      * <p>Nothing stopped a block being placed in the ring before, and once there it could
      * not be broken again: the cell is indexed to the gate, so the break came back as gate
      * structure. Refusing the placement is the half of that pair that was missing. See #243.
+     *
+     * <p>An admin may build in there anyway -- see {@link #mayBuildInOpening}. What they
+     * leave behind stays breakable by anyone, because it is still not part of the gate.
      *
      * @param event
      *            the placement
@@ -303,10 +340,11 @@ class WormholeXTremeBlockListener implements Listener
     {
         final Block block = event.getBlockPlaced();
         final Stargate stargate = StargateManager.getGateFromBlock(block);
-        if ((stargate != null) && isPortalInterior(stargate, block))
+        final Player player = event.getPlayer();
+        if ((stargate != null) && isPortalInterior(stargate, block) && !mayBuildInOpening(player, stargate))
         {
             event.setCancelled(true);
-            refusePlace(event.getPlayer(), stargate);
+            refusePlace(player, stargate);
         }
     }
 
