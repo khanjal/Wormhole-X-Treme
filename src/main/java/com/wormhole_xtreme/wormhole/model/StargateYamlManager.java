@@ -140,7 +140,64 @@ public class StargateYamlManager
         }
         applyOwner(s, ownerIdFrom(map), (String) map.getOrDefault("OwnerName", ""));
         applyNetwork(s, (String) map.getOrDefault("Network", ""));
+        applyShape(s, (String) map.getOrDefault("GateShape", ""), name);
         return s;
+    }
+
+    /**
+     * Puts the gate's shape back, by the name the file records.
+     *
+     * <p>The name has always been written; nothing ever read it. So every gate came back
+     * from disk carrying the placeholder shape {@link Stargate}'s constructor installs --
+     * which reports itself as "Standard" and is not a {@link Stargate3DShape} at all. Three
+     * things followed from that, all of them silent:
+     *
+     * <ul>
+     * <li>Saving the gate again wrote {@code GateShape: Standard} over whatever it really
+     * was, so one restart and one save turned every gate on the server into a Standard one
+     * as far as its file was concerned.</li>
+     * <li>A shape that pins a material lost it. {@code HorizontalSignDial} sets
+     * {@code IRIS_MATERIAL=GLASS} because you look down through that gate, and the
+     * placeholder names no material outright, so after a restart the iris resolved through
+     * the palette like any other gate's.</li>
+     * <li>Woosh and light timings fell back to the placeholder's rather than the shape's,
+     * and every {@code instanceof Stargate3DShape} test in the plugin was false for a loaded
+     * gate.</li>
+     * </ul>
+     *
+     * <p>A name that no longer matches any shape in the folder is kept rather than resolved
+     * -- an admin who renames a shape file should not find their gates rewritten to
+     * "Standard" as the price -- and said out loud, because a gate whose shape is missing
+     * cannot be re-derived by {@code /wormhole regenerate} and that is worth knowing before
+     * somebody tries.
+     *
+     * @param s
+     *            the gate being loaded
+     * @param shapeName
+     *            the shape name the file records, or empty for a file too old to have one
+     * @param gateName
+     *            the gate's name, for the log line
+     */
+    private static void applyShape(final Stargate s, final String shapeName, final String gateName)
+    {
+        if ((shapeName == null) || shapeName.isEmpty())
+        {
+            return;
+        }
+        final StargateShape shape = StargateShapeRegistry.getStargateShape(shapeName);
+        if (shape != null)
+        {
+            s.setGateShape(shape);
+            return;
+        }
+        s.setGateShapeName(shapeName);
+        if (WormholeXTreme.getThisPlugin() != null)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                "Gate \"" + gateName + "\" was built from shape \"" + shapeName
+                    + "\", which is not in the shapes folder. The gate still works; its shape"
+                    + " name is kept as it is, and it cannot be regenerated until the shape is back.");
+        }
     }
 
     /**
@@ -280,7 +337,7 @@ public class StargateYamlManager
         map.put("Network", s.getGateNetwork() != null ? s.getGateNetwork().getNetworkName() : "");
         map.put("WorldName", s.getGateWorld() != null ? s.getGateWorld().getName() : "");
         map.put("WorldEnvironment", s.getGateWorld() != null ? s.getGateWorld().getEnvironment().toString() : "");
-        map.put("GateShape", s.getGateShape() != null ? s.getGateShape().getShapeName() : "Standard");
+        map.put("GateShape", s.getGateShapeName());
         final byte[] data = GateSerializer.stargateToBinary(s);
         if (data == null)
         {

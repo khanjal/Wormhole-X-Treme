@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- A gate came back from a restart not knowing which shape it was built from, and the next
+  save wrote `GateShape: Standard` over whatever it really was
+  ([#42](https://github.com/khanjal/Wormhole-X-Treme/issues/42)).
+- A gate built before its shape file gained a marker could never pick it up. `/wormhole gate
+  regenerate <gate>` now re-reads the shape and moves the gate's redstone hookup, iris lever,
+  dial sign and name sign to where the file says they go today
+  ([#42](https://github.com/khanjal/Wormhole-X-Treme/issues/42),
+  [#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
+- A shape that pins a material lost it after a restart. `HorizontalSignDial` sets
+  `IRIS_MATERIAL=GLASS` because you look down through that gate, and a loaded gate resolved
+  its iris through the palette instead.
+
 ## 1.5.0 (2026-09-09)
 
 Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that

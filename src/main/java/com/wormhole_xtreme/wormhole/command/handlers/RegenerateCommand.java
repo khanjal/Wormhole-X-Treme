@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
+import com.wormhole_xtreme.wormhole.logic.GateRederivation;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
@@ -68,6 +69,19 @@ public class RegenerateCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Arrival point recomputed for " + s.getGateName() + ".");
         }
+        // Markers -- redstone, the iris lever, the dial sign -- are worked out once at
+        // detection and stored, exactly like the arrival point above, and go stale for
+        // exactly the same reason: the shape file they came from can change underneath
+        // them. Re-derive before placing anything, so what follows places blocks where
+        // today's shape says they go rather than where the shape said when the gate was
+        // built. Wires already down come up first, since a marker that has moved would
+        // otherwise leave its old wire behind.
+        if (s.isGateRedstonePowered())
+        {
+            s.setupRedstone(false);
+        }
+        reportRederivation(sender, s, GateRederivation.rederive(s));
+
         s.toggleDialLeverState(true);
         if ((s.getGateIrisDeactivationCode() != null) && !s.getGateIrisDeactivationCode().isEmpty())
         {
@@ -85,6 +99,69 @@ public class RegenerateCommand implements SubCommand
         }
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
             + "Regenerating Gate: " + s.getGateName());
+    }
+
+    /**
+     * Says what re-deriving the gate's markers came to, and saves the gate if anything moved.
+     *
+     * <p>Saving matters as much as the message. Marker positions live in the gate file, so a
+     * re-derivation nobody wrote down would be undone by the next restart -- and the admin
+     * who ran the command would have watched it work and then stop working, which is worse
+     * than it never having worked.
+     *
+     * <p>The three ways it can decline all name something the admin can act on. A gate with
+     * no shape has had its shape file renamed or removed since it was built, and the loader
+     * has already said so once at startup. A gate with no anchor predates the dial lever
+     * being recorded. A gate that no longer detects has had its frame changed -- which is
+     * information, not a failure, and nothing was touched either way.
+     *
+     * @param sender
+     *            who to tell
+     * @param s
+     *            the gate
+     * @param outcome
+     *            what re-derivation came to
+     */
+    private static void reportRederivation(final CommandSender sender, final Stargate s,
+        final GateRederivation.Outcome outcome)
+    {
+        switch (outcome.result())
+        {
+            case NO_SHAPE -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + "Cannot re-read the shape of " + s.getGateName() + ": \"" + s.getGateShapeName()
+                + "\" is not in the shapes folder. Markers left as they are.");
+            case NO_ANCHOR -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + s.getGateName() + " records no dial button, so its shape cannot be re-read."
+                + " Markers left as they are.");
+            case NOT_DETECTED -> sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + s.getGateName() + " no longer matches shape \"" + s.getGateShapeName()
+                + "\", so its markers were left alone. Check the frame is still standing.");
+            case REDERIVED -> reportRederived(sender, s, outcome);
+            default -> { /* every Result is covered above */ }
+        }
+    }
+
+    /**
+     * Reports a successful re-derivation, and saves when it actually changed something.
+     *
+     * @param sender
+     *            who to tell
+     * @param s
+     *            the gate
+     * @param outcome
+     *            what moved
+     */
+    private static void reportRederived(final CommandSender sender, final Stargate s,
+        final GateRederivation.Outcome outcome)
+    {
+        if (!outcome.changedAnything())
+        {
+            return;
+        }
+        StargateDBManager.saveStargate(s);
+        sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + "Re-read shape \"" + s.getGateShapeName() + "\" for " + s.getGateName()
+            + " and moved: " + String.join(", ", outcome.changes()) + ".");
     }
 
     /**
