@@ -2,94 +2,275 @@
 
 All notable changes to this project are documented in this file.
 
-## 1.5.0 (2026-09-09)
+## 1.6.0 (unreleased)
 
-Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that
-went back over all of it. Twenty-odd player-facing bugs are fixed, several of them older than
-this fork, and the tree went through a quality pass that took SonarCloud from 893 open issues to
-none and the test suite from about 490 tests to 1326.
+Not out yet, and still collecting. 1.5.0 was tagged on 9 September and the work carried straight
+on -- sixteen commits, whose notes were written into 1.5.0's section as though they had shipped
+in it. Two player-facing fixes and a new command among them, and none of it is in the published
+1.5.0 jar. They are here instead, and 1.5.0's notes below are back to describing what was
+actually released on the day.
 
-**Upgrading:** nothing to do. Gate, ring and beam files load unchanged and every setting keeps
-its current value.
+**Upgrading:** nothing to do, with two things worth knowing.
+
+Your gate shapes move. `GateShapes/` becomes `shapes/gate/`, on the first startup, without being
+asked. Files are moved rather than copied, a file already at the destination wins, every move is
+logged, and nothing is deleted -- so putting 1.5.0's jar back finds the old folder as it was. If
+you are far enough back to still have `GateShapes/3d/`, both moves happen in the same startup.
+
+And if your plugin folder is not `./plugins` -- a start script that changes directory first, or a
+launcher that puts plugins somewhere else -- this build reads `config.yml` and the gate shapes
+from the folder the server names, where 1.5.0 read them from a guess. A server that had quietly
+been running on defaults will start reading the file you have been editing.
+
+### Added
+
+- `/wormhole gate validate <gate>` says what a gate is missing -- how many frame blocks are gone,
+  and whether the dial sign is still a sign -- rather than only refusing to dial and logging
+  about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
+  something wrong ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
 
 ### Fixed
 
-- Gate protection no longer stops working when another plugin cancels the event first, which
-  could let lava out of a gate frame ([#53](https://github.com/khanjal/Wormhole-X-Treme/issues/53)).
-- A gate whose blocks WorldEdit removed now refuses to be dialled and says why, rather than
-  going quietly dead ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
-- Beaming off a horse left the horse behind; your mount comes with you now.
-- A chevron was invisible while a gate sat idle.
-- A closing iris no longer buries whoever is standing in the gate.
-- A sign gate wired to redstone dialled twice on one press.
-- A sign gate ignored its own sign until somebody cycled it by hand.
-- `HorizontalSignDial` could not be built at all.
-- Choosing a sign dial cost the gate its iris.
-- Redstone wiring inside a gate could never be taken back up without removing the gate.
 - A block could be dropped into a gate's opening and then never broken out again
   ([#243](https://github.com/khanjal/Wormhole-X-Treme/issues/243)).
 - Gate shapes and `config.yml` were looked for in the working directory rather than the folder
   the server names, so a server whose plugin folder is not `./plugins` read half its files from
   one tree and half from another, silently
   ([#245](https://github.com/khanjal/Wormhole-X-Treme/issues/245)).
-- A ring pair in a room too short to hold it fired anyway.
-- Tab completion after `beam to` offered only public destinations, never your own places.
-- Beaming hid the traveller but left their gear standing in the column.
-- A gate named with an accent came back as `Caf?` after a restart.
-- A gate's owner turned into a UUID.
-- One unwritable gate stopped every gate after it from being saved.
-- Saving the config destroyed the rest of the file, and a hand-edited line missing its colon
-  ended the parse.
-- `/wormhole ring edit` with nothing after it crashed.
-- Every feature permission under `/wormhole` was unreachable without `wormhole.config`.
-- A rider arrived facing the wrong way after a cart trip.
-- A minecart lost its own kind through a failed vehicle teleport.
-- `/wormhole cooldown` reported a setting it never saved, and `/wormhole restrict` did nothing
-  at all.
-- `/wormhole config` rejected settings spelled the way `config.yml` spells them, worked only in
-  English, and accepted values it could not read back.
-- A gate file that would not delete failed silently.
-- A powered lever or button lost its facing when an old gate was rebuilt.
 
 ### Changed
 
-- The name and logo are no longer covered by the GPL — see [TRADEMARK.md](TRADEMARK.md).
-- Dial signs are coloured and mark the selected destination, so it no longer looks identical to
-  the two either side.
-- Ring pads light as a redstone lamp rather than glowstone.
-- A redstone signal on an open gate extends it up to the existing maximum, instead of closing it.
-- Every sign gate takes redstone, not only the one with "Redstone" in its name, and the DHD
-  accepts a signal from any component rather than only from dust.
-- The kawoosh sounds like water rather than an explosion, and sign colours are quieter.
-- Gate, ring and beam sounds are each configurable, including to a resource pack's own sounds.
-- Gate shapes live in `plugins/WormholeXTreme/shapes/gate/` rather than `GateShapes/`, so
-  mirrors have somewhere to go when they arrive. Your shapes are moved there on first startup,
-  from either previous layout, and nothing is deleted
+- Gate shapes live in the plugin's `shapes/gate/` folder rather than `GateShapes/`, so
+  mirrors have somewhere to go when they arrive. Your shapes are moved there on first
+  startup, from either previous layout, and nothing is deleted
   ([#246](https://github.com/khanjal/Wormhole-X-Treme/issues/246)).
-
-### Documentation
-
-- `docs/GATES.md`, `docs/RINGS.md` and `docs/BEAMS.md` explain how each subsystem works and why.
-- The README gained a Features list, and its sound documentation is no longer filed inside the
-  transport rings section.
-- `/dial` is described correctly: it names a destination for a gate that has no dial sign, and
-  is not a fourth way to dial one.
 
 ### Under the hood
 
-None of this changes what the plugin does. It is why the list above could be written with any
-confidence.
-
-- SonarCloud: **893 open issues to 0**, with A ratings for reliability, security and
-  maintainability.
-- Tests: **about 490 to 1326**; line coverage 42.9% to 73%.
-- Every `catch (Throwable)` is gone, every YAML file is read and written as UTF-8, and the dead
-  `LegacyCompat` class plus nine unused helpers were deleted.
-- Three bugs in the list above were found by writing tests rather than by anybody hitting them.
-  Two more turned out to be in methods nothing called, which is how the dead code was noticed.
+- Three copies of the YAML write path, and three "is there a plugin to log through" checks that
+  did not agree, became one of each. Two of the three managers had been silently dropping the
+  messages that say a gate or a ring would not save
+  ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
+- Reflective field access in the tests: 139 sites across 87 files down to 8 across 7. Unchecked
+  casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
+  nobody read, which took ten class-level warning suppressions off the classes they were hiding
+  real findings in.
+- Tests: **1326 at 1.5.0, 1413 so far**.
+- The release workflow can be rehearsed without publishing, so it is no longer first run in
+  anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### Gate shapes moved to `shapes/gate/` (#246)
+
+```
+<plugin folder>/GateShapes/  ->  <plugin folder>/shapes/gate/
+```
+
+(`plugins/WormholeXTreme/` on a stock install, but the entry above this one is precisely about
+that not being safe to assume.)
+
+The old name was fine while gates were the only thing with shapes. [#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
+adds quantum mirrors, and a mirror is also a built construct that a `.shape` file can describe
+-- so it would have had to go either into a folder named `GateShapes` alongside the gates, or
+into a second top-level `MirrorShapes` beside it, and that second choice repeats itself again
+for whatever comes after. Splitting by what the shape describes costs one folder level now and
+nothing later.
+
+This does look like the reverse of flattening `3d/` and `2d/` away, so it is worth saying why
+it is not. Those divided one kind of shape by an attribute of its geometry, which meant a
+lookup had to know which of two folders a gate shape was in -- genuinely worse than one folder.
+`gate/` and `mirror/` divide shapes by what they are for, and they are read by different
+subsystems that never look in each other's folder. One flat namespace is right for a set of
+interchangeable things and wrong for two sets that are not.
+
+**Nothing is lost on upgrade, from either of the two previous layouts.** Both migrations run on
+startup, chained, so a server old enough to still have `GateShapes/3d/` makes both hops at once:
+
+```
+GateShapes/3d/*.shape ─┐
+GateShapes/2d/*.shape ─┴─> GateShapes/*.shape ─> shapes/gate/*.shape
+```
+
+The rules are the ones the earlier lift established. Files are moved rather than copied; a file
+already at the destination wins, because that is the one that has been loading; every move is
+logged; nothing is deleted, so putting an older jar back still finds the old folder intact. An
+operator who migrated long ago has an empty `GateShapes` folder, and that case is checked for
+first -- it creates no directories and logs nothing, on every startup for ever.
+
+The shipped shapes moved inside the jar too, `/GateShapes/` to `/shapes/gate/`. Leaving the jar
+disagreeing with the disk would have been a trap for the next person, at the cost of ten test
+files that named the resource path -- worth paying once.
+
+Nine tests in `ShapeFolderMigrationTest`, mutation-checked: dropping the chained `3d`/`2d` hop
+turns two of them red, which is the case that would otherwise have stranded the oldest servers'
+shapes one folder short of where they are now read.
+
+One test caught the move on its own without being asked to. `DataFoldersFollowTheServerTest`,
+added a few entries above for a different reason, asserts every store lands under the folder
+the server names -- so it failed the moment `shapeDirectory()` changed, reporting the old path
+against the new one. That is what that test was for.
+
+### One write path and one logger, where there were three of each (#45)
+
+Gates, rings and beam destinations each carried their own copy of the same YAML write: the
+same `DumperOptions`, a temp file beside the target, `Files.move(..., ATOMIC_MOVE)`. Three
+copies of a write path is three places for a storage bug to be fixed in two of. They go through
+`utils/YamlStore` now, which throws rather than logging, so each manager keeps its own wording
+for a failed write.
+
+The logging was the half that had actually gone wrong. Each manager also had its own "is there
+a plugin to log through" check, and they did not agree:
+
+| | With no plugin |
+| --- | --- |
+| `BeamYamlManager` | fell back to `java.util.logging` |
+| `RingYamlManager` | returned, silently |
+| `StargateYamlManager` | returned, silently |
+
+Which messages those are is what makes it worth more than a tidy-up. They are the ones saying a
+ring file would not write, or a gate could not be saved -- so two of the three managers dropped
+exactly the messages that only ever exist because something had already gone wrong. It also
+meant the same storage failure was observable in one manager's tests and unobservable in
+another's, so a test there could pass by waiting for a message that was never coming.
+
+`utils/PluginLog` falls back, which is the behaviour worth keeping, and all three now use it.
+
+One thing came along on the way. `saveStargate`'s FINE line built `"Saved gate to YAML: "` plus
+an absolute path with no `isLoggable` guard, and `onDisable` calls it once per gate on every
+shutdown -- so a server with dozens of gates did that concatenation dozens of times per restart
+to throw every result away. `prettyLog` takes a `String`, so the guard has to be at the call
+site. That is the third time this exact shape has turned up in this codebase.
+
+Ten tests, mutation-checked: `PluginLog` put back to dropping the message silently turns two of
+them red, and `YamlStore` switched to inline flow style turns another red, reporting the
+`{World: overworld, X: 1.5}` it would have written into a file server owners hand-edit.
+
+PMD caught two dead `java.nio.file.Files` imports the extraction left behind, which a
+hand-rolled check for unused imports had missed -- `listFiles` and a fully-qualified
+`java.nio.file.Files.deleteIfExists` both look like uses of the import to a regex, and neither
+is one.
+
+Nothing about the files on disk changes. Same format, same names, same places.
+
+### Half the files were found by asking the server, half by guessing (#245)
+
+Six stores sit in this plugin's folder: gates, rings, beam destinations, the shapes they are
+built from, `config.yml`, and the SQLite database the importer reads. Four of them found that
+folder by asking Bukkit. Two did not.
+
+```java
+// StargateShapeRegistry, before
+return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes");
+```
+
+That is not the plugin folder. It is whatever directory the JVM started in, with `plugins/`
+stuck on the front. On a stock install the two are the same folder, which is why this sat here
+for as long as it did. They stop being the same the moment a start script changes directory
+first, or a launcher points its plugins folder somewhere else.
+
+What makes it worth fixing is that the disagreement is silent. Nothing throws and nothing is
+logged. Gates load from the real folder and name the shapes they were built from; shapes load
+from a folder that turns out to be empty, so `restoreMissingDefaults` writes eleven fresh
+copies into the wrong tree and every gate built from a custom shape stops being detectable.
+`config.yml` splits the same way, and the server quietly runs on defaults with the admin's real
+file sitting unopened somewhere else.
+
+The fix is one resolver, `utils/PluginDirectory`, and all six stores go through it. Making it
+six rather than two was the point: the guarded plugin-then-relative-path idiom was already
+copied four times, and adding two more copies would have left the next store free to guess
+again. #45 proposes a `YamlStore` that collapses three of these managers; the directory half of
+that job is done here, so what is left there is the writing and the logging.
+
+The relative path survives as a fallback rather than an alternative: it runs only if a path is
+resolved before the plugin exists, which on a live server never happens.
+
+An earlier draft of this entry, and of two comments in the code, said the fallback was there
+because `JavaPlugin.getDataFolder()` is `final` and so cannot be stubbed. Half right. It is
+`final` -- `javap` on the API jar confirms it -- but this suite runs on Mockito's inline mock
+maker, which stubs final methods perfectly well, and the tests added here stub that exact one.
+Copilot caught the contradiction: the claim was sitting a few lines above tests doing the thing
+it called impossible. The package-private `File`-taking overloads these resolvers carry are
+explained by something simpler anyway -- pointing a test at a temporary directory beats
+standing up a plugin to ask, and running the real one would write into the project.
+
+Nothing moves on disk. This is where the files are looked for, not where they are kept.
+
+Ten new tests across three classes, and they were checked the way this project has taken to
+checking: the resolver was mutated to always take the fallback branch, and `shapeDirectory()`
+was put back to the literal above. Three of the four resolver tests went red, and so did the
+shapes one, each reporting the old value -- `plugins\WormholeXTreme\GateShapes` where the
+server had named a temporary directory. The fourth resolver test covers the fallback branch
+itself and correctly stayed green under that mutation.
+
+### Nothing builds in the gate opening, and nothing is stuck there either (#243)
+
+Two halves of one bug, and they had to be fixed together.
+
+The plugin had no `BlockPlaceEvent` handler at all. Not a weak one -- none. So the ring of a
+gate that was not open was as buildable as ordinary air, and a player could drop cobblestone
+straight into the circle.
+
+Breaking it out again was refused. A portal cell is indexed to its gate in `allGateBlocks`
+exactly as the frame is, so the break came back as "This block is part of the registered gate
+`<name>`. Run `/wormhole remove <name>` ...". On a survival server `onBlockDamage` stopped the
+first swing before that even, for anyone without the DAMAGE node. Place allowed, break refused,
+in a gate the player very often had no permission to remove either -- so an admin's only
+recourse was to tear the gate down and rebuild it.
+
+`onBlockPlace` now refuses placement in a gate's portal cells and says why, rather than letting
+the block vanish with no explanation. It refuses on the portal block list, not on the gate
+index: a gate indexes its frame, its DHD and the redstone cells an admin is expected to wire by
+hand, and refusing on the index would have stopped that wiring -- the same mistake that made
+redstone unremovable earlier in this file.
+
+The break turns on the fact that a portal is never a real block. `fillGateInterior` leaves AIR
+on the server whether the gate is open or shut, because the portal is drawn in each nearby
+client and a traveller standing in a lava one should not burn. So anything solid found in a
+portal cell was put there by a player, and is theirs to take back out.
+
+The exception is a closed iris, which occupies the very same cells and, unlike the portal, is
+real blocks -- `fillGateIris` places them precisely so nobody can walk through a sealed gate.
+Reading "solid block in a portal cell" as "somebody's stray block" without checking
+`isGateIrisActive` would have handed anyone a pickaxe key to a closed iris. That check is what
+separates the two.
+
+`onBlockDamage` had to learn the same distinction. The first version only changed
+`onBlockBreak`, which on a survival server would have been no fix at all: the damage handler
+cancels the first swing on any indexed block for a player without the DAMAGE node, so the break
+the plugin now allows could never have been started. The test for it is what surfaced that; it
+is in the suite as `hittingAStrayBlockInTheOpeningIsNotStoppedByTheDamageCheck`.
+
+Nine tests in `GatePortalInteriorBuildTest`, four of which fail against the old behaviour --
+confirmed by putting the bug back. The other five pin what did not change: the frame stays
+protected from both breaking and hitting, a closed iris stays protected, and placement outside
+the opening is left alone.
+
+### `/wormhole gate validate`, the third of the four things #54 asked for
+
+"A gate taken apart by WorldEdit now says so", earlier in this file, covers the first two: a
+dial refuses a target with missing frame blocks, and a redrawn dial sign logs when the sign
+itself is gone. Both fire only when something happens to the gate -- a click, a dial. Neither
+helps an admin who wants to ask the question directly, about a gate nobody has approached
+since whatever broke it.
+
+`gate validate <gate>` asks `GateIntegrity` the same thing dialling already asks, and says the
+answer out loud instead of only refusing or logging: how many frame blocks are missing, and
+whether the dial sign is still a sign. `gate validate -all` sweeps every gate and names only
+the ones with something wrong, the same restraint `gate regenerate -all` uses -- a server with
+hundreds of gates and one broken one should not scroll past hundreds of "fine" lines to find
+it.
+
+`GateIntegrity` gained one method for this, `isDialSignMissing`, asked from outside rather than
+only inline in `updateDialSign`. It is guarded the same way `missingStructureBlocks` already
+is: only in a chunk already loaded, so asking on a gate nobody has visited in a while never
+loads a chunk just to answer it, and a gate that genuinely cannot be checked reads as fine
+rather than broken.
+
+Reattaching an unbound sign on `regenerate` is still open -- item 2 of #54 -- and still waits
+on what #42 settles about that command; it needs a decision about `regenerate`'s own shape that
+this did not.
 
 ### Installing the plugin singleton, seventy-eight times over
 
@@ -225,6 +406,87 @@ Four assertions in `RingPairingTest` turned out to be asserting nothing.
 `assertTrue(pairWith(...))` could never fail, because `completePair` always returned true, and
 three of the four sit in tests about the pairing being *refused*, where a green `true` reads as
 though it succeeded. Each already asserted what mattered on the following line.
+
+</details>
+
+## 1.5.0 (2026-09-09)
+
+Not a feature release. Rings arrived in 1.3.0 and beaming in 1.4.0; this is the release that
+went back over all of it. Twenty-odd player-facing bugs are fixed, several of them older than
+this fork, and the tree went through a quality pass that took SonarCloud from 893 open issues to
+none and the test suite from about 490 tests to 1326.
+
+**Upgrading:** nothing to do. Gate, ring and beam files load unchanged and every setting keeps
+its current value.
+
+### Fixed
+
+- Gate protection no longer stops working when another plugin cancels the event first, which
+  could let lava out of a gate frame ([#53](https://github.com/khanjal/Wormhole-X-Treme/issues/53)).
+- A gate whose blocks WorldEdit removed now refuses to be dialled and says why, rather than
+  going quietly dead ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
+- Beaming off a horse left the horse behind; your mount comes with you now.
+- A chevron was invisible while a gate sat idle.
+- A closing iris no longer buries whoever is standing in the gate.
+- A sign gate wired to redstone dialled twice on one press.
+- A sign gate ignored its own sign until somebody cycled it by hand.
+- `HorizontalSignDial` could not be built at all.
+- Choosing a sign dial cost the gate its iris.
+- Redstone wiring inside a gate could never be taken back up without removing the gate.
+- A ring pair in a room too short to hold it fired anyway.
+- Tab completion after `beam to` offered only public destinations, never your own places.
+- Beaming hid the traveller but left their gear standing in the column.
+- A gate named with an accent came back as `Caf?` after a restart.
+- A gate's owner turned into a UUID.
+- One unwritable gate stopped every gate after it from being saved.
+- Saving the config destroyed the rest of the file, and a hand-edited line missing its colon
+  ended the parse.
+- `/wormhole ring edit` with nothing after it crashed.
+- Every feature permission under `/wormhole` was unreachable without `wormhole.config`.
+- A rider arrived facing the wrong way after a cart trip.
+- A minecart lost its own kind through a failed vehicle teleport.
+- `/wormhole cooldown` reported a setting it never saved, and `/wormhole restrict` did nothing
+  at all.
+- `/wormhole config` rejected settings spelled the way `config.yml` spells them, worked only in
+  English, and accepted values it could not read back.
+- A gate file that would not delete failed silently.
+- A powered lever or button lost its facing when an old gate was rebuilt.
+
+### Changed
+
+- The name and logo are no longer covered by the GPL — see [TRADEMARK.md](TRADEMARK.md).
+- Dial signs are coloured and mark the selected destination, so it no longer looks identical to
+  the two either side.
+- Ring pads light as a redstone lamp rather than glowstone.
+- A redstone signal on an open gate extends it up to the existing maximum, instead of closing it.
+- Every sign gate takes redstone, not only the one with "Redstone" in its name, and the DHD
+  accepts a signal from any component rather than only from dust.
+- The kawoosh sounds like water rather than an explosion, and sign colours are quieter.
+- Gate, ring and beam sounds are each configurable, including to a resource pack's own sounds.
+
+### Documentation
+
+- `docs/GATES.md`, `docs/RINGS.md` and `docs/BEAMS.md` explain how each subsystem works and why.
+- The README gained a Features list, and its sound documentation is no longer filed inside the
+  transport rings section.
+- `/dial` is described correctly: it names a destination for a gate that has no dial sign, and
+  is not a fourth way to dial one.
+
+### Under the hood
+
+None of this changes what the plugin does. It is why the list above could be written with any
+confidence.
+
+- SonarCloud: **893 open issues to 0**, with A ratings for reliability, security and
+  maintainability.
+- Tests: **about 490 to 1326**; line coverage 42.9% to 73%.
+- Every `catch (Throwable)` is gone, every YAML file is read and written as UTF-8, and the dead
+  `LegacyCompat` class plus nine unused helpers were deleted.
+- Three bugs in the list above were found by writing tests rather than by anybody hitting them.
+  Two more turned out to be in methods nothing called, which is how the dead code was noticed.
+
+<details>
+<summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
 
 ### Tab completion could not see your own beam places
 
@@ -2714,213 +2976,6 @@ hand the sweep was re-run against the merged tree. It walked straight into the s
 regex found the delegation a second time and dropped its `false` a second time. Reading the
 diff caught it, and the third test would have caught it a moment later -- which is the whole
 difference between this time and last.
-
-### `/wormhole gate validate`, the third of the four things #54 asked for
-
-"A gate taken apart by WorldEdit now says so", earlier in this file, covers the first two: a
-dial refuses a target with missing frame blocks, and a redrawn dial sign logs when the sign
-itself is gone. Both fire only when something happens to the gate -- a click, a dial. Neither
-helps an admin who wants to ask the question directly, about a gate nobody has approached
-since whatever broke it.
-
-`gate validate <gate>` asks `GateIntegrity` the same thing dialling already asks, and says the
-answer out loud instead of only refusing or logging: how many frame blocks are missing, and
-whether the dial sign is still a sign. `gate validate -all` sweeps every gate and names only
-the ones with something wrong, the same restraint `gate regenerate -all` uses -- a server with
-hundreds of gates and one broken one should not scroll past hundreds of "fine" lines to find
-it.
-
-`GateIntegrity` gained one method for this, `isDialSignMissing`, asked from outside rather than
-only inline in `updateDialSign`. It is guarded the same way `missingStructureBlocks` already
-is: only in a chunk already loaded, so asking on a gate nobody has visited in a while never
-loads a chunk just to answer it, and a gate that genuinely cannot be checked reads as fine
-rather than broken.
-
-Reattaching an unbound sign on `regenerate` is still open -- item 2 of #54 -- and still waits
-on what #42 settles about that command; it needs a decision about `regenerate`'s own shape that
-this did not.
-
-### Nothing builds in the gate opening, and nothing is stuck there either (#243)
-
-Two halves of one bug, and they had to be fixed together.
-
-The plugin had no `BlockPlaceEvent` handler at all. Not a weak one -- none. So the ring of a
-gate that was not open was as buildable as ordinary air, and a player could drop cobblestone
-straight into the circle.
-
-Breaking it out again was refused. A portal cell is indexed to its gate in `allGateBlocks`
-exactly as the frame is, so the break came back as "This block is part of the registered gate
-`<name>`. Run `/wormhole remove <name>` ...". On a survival server `onBlockDamage` stopped the
-first swing before that even, for anyone without the DAMAGE node. Place allowed, break refused,
-in a gate the player very often had no permission to remove either -- so an admin's only
-recourse was to tear the gate down and rebuild it.
-
-`onBlockPlace` now refuses placement in a gate's portal cells and says why, rather than letting
-the block vanish with no explanation. It refuses on the portal block list, not on the gate
-index: a gate indexes its frame, its DHD and the redstone cells an admin is expected to wire by
-hand, and refusing on the index would have stopped that wiring -- the same mistake that made
-redstone unremovable earlier in this file.
-
-The break turns on the fact that a portal is never a real block. `fillGateInterior` leaves AIR
-on the server whether the gate is open or shut, because the portal is drawn in each nearby
-client and a traveller standing in a lava one should not burn. So anything solid found in a
-portal cell was put there by a player, and is theirs to take back out.
-
-The exception is a closed iris, which occupies the very same cells and, unlike the portal, is
-real blocks -- `fillGateIris` places them precisely so nobody can walk through a sealed gate.
-Reading "solid block in a portal cell" as "somebody's stray block" without checking
-`isGateIrisActive` would have handed anyone a pickaxe key to a closed iris. That check is what
-separates the two.
-
-`onBlockDamage` had to learn the same distinction. The first version only changed
-`onBlockBreak`, which on a survival server would have been no fix at all: the damage handler
-cancels the first swing on any indexed block for a player without the DAMAGE node, so the break
-the plugin now allows could never have been started. The test for it is what surfaced that; it
-is in the suite as `hittingAStrayBlockInTheOpeningIsNotStoppedByTheDamageCheck`.
-
-Nine tests in `GatePortalInteriorBuildTest`, four of which fail against the old behaviour --
-confirmed by putting the bug back. The other five pin what did not change: the frame stays
-protected from both breaking and hitting, a closed iris stays protected, and placement outside
-the opening is left alone.
-
-### Half the files were found by asking the server, half by guessing (#245)
-
-Six stores sit in this plugin's folder: gates, rings, beam destinations, the shapes they are
-built from, `config.yml`, and the SQLite database the importer reads. Four of them found that
-folder by asking Bukkit. Two did not.
-
-```java
-// StargateShapeRegistry, before
-return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes");
-```
-
-That is not the plugin folder. It is whatever directory the JVM started in, with `plugins/`
-stuck on the front. On a stock install the two are the same folder, which is why this sat here
-for as long as it did. They stop being the same the moment a start script changes directory
-first, or a launcher points its plugins folder somewhere else.
-
-What makes it worth fixing is that the disagreement is silent. Nothing throws and nothing is
-logged. Gates load from the real folder and name the shapes they were built from; shapes load
-from a folder that turns out to be empty, so `restoreMissingDefaults` writes eleven fresh
-copies into the wrong tree and every gate built from a custom shape stops being detectable.
-`config.yml` splits the same way, and the server quietly runs on defaults with the admin's real
-file sitting unopened somewhere else.
-
-The fix is one resolver, `utils/PluginDirectory`, and all six stores go through it. Making it
-six rather than two was the point: the guarded plugin-then-relative-path idiom was already
-copied four times, and adding two more copies would have left the next store free to guess
-again. #45 proposes a `YamlStore` that collapses three of these managers; the directory half of
-that job is done here, so what is left there is the writing and the logging.
-
-The relative path survives as a fallback rather than an alternative: it runs only if a path is
-resolved before the plugin exists, which on a live server never happens.
-
-An earlier draft of this entry, and of two comments in the code, said the fallback was there
-because `JavaPlugin.getDataFolder()` is `final` and so cannot be stubbed. Half right. It is
-`final` -- `javap` on the API jar confirms it -- but this suite runs on Mockito's inline mock
-maker, which stubs final methods perfectly well, and the tests added here stub that exact one.
-Copilot caught the contradiction: the claim was sitting a few lines above tests doing the thing
-it called impossible. The package-private `File`-taking overloads these resolvers carry are
-explained by something simpler anyway -- pointing a test at a temporary directory beats
-standing up a plugin to ask, and running the real one would write into the project.
-
-Nothing moves on disk. This is where the files are looked for, not where they are kept.
-
-Ten new tests across three classes, and they were checked the way this project has taken to
-checking: the resolver was mutated to always take the fallback branch, and `shapeDirectory()`
-was put back to the literal above. Three of the four resolver tests went red, and so did the
-shapes one, each reporting the old value -- `plugins\WormholeXTreme\GateShapes` where the
-server had named a temporary directory. The fourth resolver test covers the fallback branch
-itself and correctly stayed green under that mutation.
-
-### One write path and one logger, where there were three of each (#45)
-
-Gates, rings and beam destinations each carried their own copy of the same YAML write: the
-same `DumperOptions`, a temp file beside the target, `Files.move(..., ATOMIC_MOVE)`. Three
-copies of a write path is three places for a storage bug to be fixed in two of. They go through
-`utils/YamlStore` now, which throws rather than logging, so each manager keeps its own wording
-for a failed write.
-
-The logging was the half that had actually gone wrong. Each manager also had its own "is there
-a plugin to log through" check, and they did not agree:
-
-| | With no plugin |
-| --- | --- |
-| `BeamYamlManager` | fell back to `java.util.logging` |
-| `RingYamlManager` | returned, silently |
-| `StargateYamlManager` | returned, silently |
-
-Which messages those are is what makes it worth more than a tidy-up. They are the ones saying a
-ring file would not write, or a gate could not be saved -- so two of the three managers dropped
-exactly the messages that only ever exist because something had already gone wrong. It also
-meant the same storage failure was observable in one manager's tests and unobservable in
-another's, so a test there could pass by waiting for a message that was never coming.
-
-`utils/PluginLog` falls back, which is the behaviour worth keeping, and all three now use it.
-
-One thing came along on the way. `saveStargate`'s FINE line built `"Saved gate to YAML: "` plus
-an absolute path with no `isLoggable` guard, and `onDisable` calls it once per gate on every
-shutdown -- so a server with dozens of gates did that concatenation dozens of times per restart
-to throw every result away. `prettyLog` takes a `String`, so the guard has to be at the call
-site. That is the third time this exact shape has turned up in this codebase.
-
-Ten tests, mutation-checked: `PluginLog` put back to dropping the message silently turns two of
-them red, and `YamlStore` switched to inline flow style turns another red, reporting the
-`{World: overworld, X: 1.5}` it would have written into a file server owners hand-edit.
-
-PMD caught two dead `java.nio.file.Files` imports the extraction left behind, which a
-hand-rolled check for unused imports had missed -- `listFiles` and a fully-qualified
-`java.nio.file.Files.deleteIfExists` both look like uses of the import to a regex, and neither
-is one.
-
-Nothing about the files on disk changes. Same format, same names, same places.
-
-### Gate shapes moved to `shapes/gate/` (#246)
-
-```
-plugins/WormholeXTreme/GateShapes/  ->  plugins/WormholeXTreme/shapes/gate/
-```
-
-The old name was fine while gates were the only thing with shapes. [#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)
-adds quantum mirrors, and a mirror is also a built construct that a `.shape` file can describe
--- so it would have had to go either into a folder named `GateShapes` alongside the gates, or
-into a second top-level `MirrorShapes` beside it, and that second choice repeats itself again
-for whatever comes after. Splitting by what the shape describes costs one folder level now and
-nothing later.
-
-This does look like the reverse of flattening `3d/` and `2d/` away, so it is worth saying why
-it is not. Those divided one kind of shape by an attribute of its geometry, which meant a
-lookup had to know which of two folders a gate shape was in -- genuinely worse than one folder.
-`gate/` and `mirror/` divide shapes by what they are for, and they are read by different
-subsystems that never look in each other's folder. One flat namespace is right for a set of
-interchangeable things and wrong for two sets that are not.
-
-**Nothing is lost on upgrade, from either of the two previous layouts.** Both migrations run on
-startup, chained, so a server old enough to still have `GateShapes/3d/` makes both hops at once:
-
-```
-GateShapes/3d/*.shape ─┐
-GateShapes/2d/*.shape ─┴─> GateShapes/*.shape ─> shapes/gate/*.shape
-```
-
-The rules are the ones the earlier lift established. Files are moved rather than copied; a file
-already at the destination wins, because that is the one that has been loading; every move is
-logged; nothing is deleted, so putting an older jar back still finds the old folder intact. An
-operator who migrated long ago has an empty `GateShapes` folder, and that case is checked for
-first -- it creates no directories and logs nothing, on every startup for ever.
-
-The shipped shapes moved inside the jar too, `/GateShapes/` to `/shapes/gate/`. Leaving the jar
-disagreeing with the disk would have been a trap for the next person, at the cost of ten test
-files that named the resource path -- worth paying once.
-
-Nine tests in `ShapeFolderMigrationTest`, mutation-checked: dropping the chained `3d`/`2d` hop
-turns two of them red, which is the case that would otherwise have stranded the oldest servers'
-shapes one folder short of where they are now read.
-
-One test caught the move on its own without being asked to. `DataFoldersFollowTheServerTest`,
-added a few entries above for a different reason, asserts every store lands under the folder
-the server names -- so it failed the moment `shapeDirectory()` changed, reporting the old path
-against the new one. That is what that test was for.
 
 </details>
 
