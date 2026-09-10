@@ -32,15 +32,22 @@ public class StargateManager
     // of one, is a hash lookup rather than a search. Also holds the buttons and levers that
     // work a gate, which are not part of its shape but do have to resolve back to it.
     //
-    // Keyed by world name and then by packed block position rather than by Location. This is
-    // the most-read structure in the plugin -- every player move, every vehicle move, every
+    // Keyed by world and then by packed block position rather than by Location. This is the
+    // most-read structure in the plugin -- every player move, every vehicle move, every
     // tracked projectile every tick, and BlockPhysicsEvent, which a busy server raises for
     // every water flow, falling block and redstone update in a loaded world. A Location key
     // meant allocating a Location to ask each of those questions and throwing it away again;
     // a packed long costs a box at worst. Splitting the world out also lets a question about
     // a world holding no gates stop at the first lookup.
-    /** Every gate block, by world name and then by packed block position. */
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, Stargate>> gateBlocksByWorld =
+    //
+    // The outer key is the World itself rather than its name. A name has to be read off the
+    // world on every lookup, hashes as a string, and can be null -- and a null key is not a
+    // miss in a ConcurrentHashMap, it is a NullPointerException, thrown here from inside a
+    // block physics handler. The object is its own identity, costs nothing to hash, and
+    // cannot be null on a block that exists. It pins no world that gates were not already
+    // pinning: every Stargate holds its own gateWorld regardless.
+    /** Every gate block, by world and then by packed block position. */
+    private static final ConcurrentHashMap<org.bukkit.World, ConcurrentHashMap<Long, Stargate>> gateBlocksByWorld =
         new ConcurrentHashMap<>();
     // List of All stargates indexed by name. Useful for dialing and such
     /** The stargate_list. */
@@ -61,12 +68,18 @@ public class StargateManager
     /** The player_builders. */
     private static final ConcurrentHashMap<Player, StargateShape> playerBuilders = new ConcurrentHashMap<>();
 
-    // Gates whose portal is currently drawn, kept as a set rather than found by filtering
-    // every gate. The portal is a client-side illusion that has to be redrawn whenever a
-    // player arrives or reloads a chunk, so this is read on player movement across chunk
-    // boundaries — a per-player, per-chunk event. Filtering the whole gate list there would
-    // scale that work with the number of gates on the server; this scales with the number
-    // of gates actually open, which is nearly always a handful.
+    // Registered gates whose portal is currently drawn, kept as a set rather than found by
+    // filtering every gate. The portal is a client-side illusion that has to be redrawn
+    // whenever a player arrives or reloads a chunk, so this is read on player movement across
+    // chunk boundaries — a per-player, per-chunk event. Filtering the whole gate list there
+    // would scale that work with the number of gates on the server; this scales with the
+    // number of gates actually open, which is nearly always a handful.
+    //
+    // "Registered" is part of what it means, not an accident of how it is filled: the entity
+    // sweep and the projectile tracker read this set instead of filtering the gate list, and
+    // they must not find a gate the registry has never heard of. setGateOpenState and
+    // addStargate between them keep that true whichever order a gate is registered and
+    // activated in.
     /** The gates currently showing a portal. */
     private static final java.util.Set<Stargate> openGates =
         java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -190,6 +203,11 @@ public class StargateManager
     protected static void addStargate(final Stargate s)
     {
         getStargateList().put(normalizeGateName(s.getGateName()), s);
+        // setGateOpenState refuses a gate the registry does not hold, so a gate that was made
+        // active before it got here would never have joined the open set. This is where it
+        // does. Registering an inactive gate that is somehow in the set takes it back out,
+        // so the two cannot disagree in either direction.
+        setGateOpenState(s, s.isGateActive());
         for (final Location b : s.getGateStructureBlocks())
         {
             indexBlockLocation(b, s);
@@ -522,7 +540,7 @@ public class StargateManager
         {
             return null;
         }
-        final ConcurrentHashMap<Long, Stargate> inWorld = gateBlocksByWorld.get(world.getName());
+        final ConcurrentHashMap<Long, Stargate> inWorld = gateBlocksByWorld.get(world);
         return (inWorld == null) ? null : inWorld.get(Long.valueOf(BlockKey.pack(x, y, z)));
     }
 
@@ -548,7 +566,7 @@ public class StargateManager
         }
         final Location norm = normalizeBlockLocation(loc);
         gateBlocksByWorld
-            .computeIfAbsent(norm.getWorld().getName(), k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(norm.getWorld(), k -> new ConcurrentHashMap<>())
             .put(Long.valueOf(BlockKey.pack(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ())), s);
         GateSpatialIndex.add(norm);
     }
@@ -566,14 +584,13 @@ public class StargateManager
             return;
         }
         final Location norm = normalizeBlockLocation(loc);
-        final String worldName = norm.getWorld().getName();
-        final ConcurrentHashMap<Long, Stargate> inWorld = gateBlocksByWorld.get(worldName);
+        final ConcurrentHashMap<Long, Stargate> inWorld = gateBlocksByWorld.get(norm.getWorld());
         if (inWorld != null)
         {
             inWorld.remove(Long.valueOf(BlockKey.pack(norm.getBlockX(), norm.getBlockY(), norm.getBlockZ())));
             if (inWorld.isEmpty())
             {
-                gateBlocksByWorld.remove(worldName);
+                gateBlocksByWorld.remove(norm.getWorld());
             }
         }
         GateSpatialIndex.remove(norm);
@@ -610,14 +627,40 @@ public class StargateManager
      */
     static void setGateOpenState(final Stargate gate, final boolean open)
     {
-        if (open)
+        if (!open)
+        {
+            openGates.remove(gate);
+            return;
+        }
+        // Only a gate the server actually has. A Stargate object that is not in the registry
+        // is one still being detected, or one somebody built in a test -- either way it is
+        // not a gate anybody can walk into, and the sweeps that read this set would be
+        // humming at it, drawing a portal for it and offering it entities to send somewhere.
+        // A gate that is made active before it is registered is picked up by addStargate,
+        // which is the other half of this and runs when the registry learns about it.
+        if (isRegistered(gate))
         {
             openGates.add(gate);
         }
-        else
+    }
+
+    /**
+     * Whether the registry holds this exact gate under its own name.
+     *
+     * <p>Identity rather than name alone: two gate objects can carry one name while a gate is
+     * being replaced, and the one in the registry is the real one.
+     *
+     * @param gate
+     *            the gate to look for
+     * @return true if this object is the registered gate of that name
+     */
+    private static boolean isRegistered(final Stargate gate)
+    {
+        if ((gate == null) || (gate.getGateName() == null))
         {
-            openGates.remove(gate);
+            return false;
         }
+        return getStargateList().get(normalizeGateName(gate.getGateName())) == gate;
     }
 
     /**

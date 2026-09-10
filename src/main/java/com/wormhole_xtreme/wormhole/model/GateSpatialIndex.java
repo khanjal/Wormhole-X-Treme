@@ -18,12 +18,17 @@ import com.wormhole_xtreme.wormhole.utils.BlockKey;
  * Where gate blocks are, bucketed by chunk, so "what gate is near here" is a short walk
  * rather than a scan of every gate on the server.
  *
- * <p>Keyed by world name and then by packed chunk position. It used to be one map keyed by a
+ * <p>Keyed by world and then by packed chunk position. It used to be one map keyed by a
  * {@code world + ':' + chunkX + ':' + chunkZ} string, which meant every lookup built a
  * string and every radius query built one per chunk it touched -- on a path reached from
  * {@code BlockPhysicsEvent}, which a busy server raises thousands of times a second for
  * water, falling blocks and redstone anywhere in a loaded world. A packed long costs a box
  * at worst and nothing at all inside the per-chunk loop.
+ *
+ * <p>The outer key is the {@link World} itself rather than its name: the object is its own
+ * identity, costs nothing to hash, and cannot be null, whereas a name has to be read off the
+ * world every time and a null one is a {@code NullPointerException} out of the map rather
+ * than a miss.
  *
  * <p>Splitting the world out of the key rather than prefixing it also means a query for a
  * world holding no gates stops at the first lookup, which is the common case on a server
@@ -31,8 +36,8 @@ import com.wormhole_xtreme.wormhole.utils.BlockKey;
  */
 public final class GateSpatialIndex
 {
-    /** Indexed gate block locations, by world name and then by packed chunk position. */
-    private static final ConcurrentMap<String, ConcurrentMap<Long, Set<Location>>> index =
+    /** Indexed gate block locations, by world and then by packed chunk position. */
+    private static final ConcurrentMap<World, ConcurrentMap<Long, Set<Location>>> index =
         new ConcurrentHashMap<>();
 
     private GateSpatialIndex() {}
@@ -55,7 +60,7 @@ public final class GateSpatialIndex
         {
             return;
         }
-        index.computeIfAbsent(loc.getWorld().getName(), k -> new ConcurrentHashMap<>())
+        index.computeIfAbsent(loc.getWorld(), k -> new ConcurrentHashMap<>())
             .computeIfAbsent(Long.valueOf(chunkKey(loc)), k -> ConcurrentHashMap.newKeySet())
             .add(loc);
     }
@@ -66,7 +71,7 @@ public final class GateSpatialIndex
         {
             return;
         }
-        final ConcurrentMap<Long, Set<Location>> buckets = index.get(loc.getWorld().getName());
+        final ConcurrentMap<Long, Set<Location>> buckets = index.get(loc.getWorld());
         if (buckets == null)
         {
             return;
@@ -81,7 +86,7 @@ public final class GateSpatialIndex
                 buckets.remove(key);
                 if (buckets.isEmpty())
                 {
-                    index.remove(loc.getWorld().getName());
+                    index.remove(loc.getWorld());
                 }
             }
         }
@@ -95,7 +100,7 @@ public final class GateSpatialIndex
             return out;
         }
         final World world = center.getWorld();
-        final ConcurrentMap<Long, Set<Location>> buckets = index.get(world.getName());
+        final ConcurrentMap<Long, Set<Location>> buckets = index.get(world);
         // A world with no gates in it is the common case for most block activity on a
         // server, and this is the whole cost of answering for one.
         if (buckets == null)
