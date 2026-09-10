@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -270,6 +271,80 @@ class GateRederivationTest
         assertEquals(GateRederivation.Result.REDERIVED, outcome.result());
         assertSame(wiredByHand, gate.getGateRedstoneDialActivationBlock(),
             "a marker the shape does not declare is left where it is, not cleared");
+    }
+
+    /**
+     * An iris lever the gate has lost is put back where the shape declares it.
+     *
+     * <p>Not hypothetical: 1.5.0 fixed three shipped sign shapes that carried no {@code :IA}
+     * at all, so every gate built from one of them before that has no iris lever recorded and
+     * cannot have an iris placed. Re-reading the shape is what reaches those gates.
+     */
+    @Test
+    void anIrisLeverTheGateHasLostIsPutBack() throws Exception
+    {
+        final Stargate gate = detected("MinimalSignDial");
+        assertNotNull(gate.getGateIrisLeverBlock(), "MinimalSignDial declares :IA");
+        gate.setGateIrisLeverBlock(null);
+
+        final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+        assertTrue(outcome.changes().contains("iris lever"),
+            "changes were: " + outcome.changes());
+        assertNotNull(gate.getGateIrisLeverBlock());
+    }
+
+    /**
+     * The name sign holder is re-derived too.
+     *
+     * <p>{@code Standard} declares {@code :N} and {@code MinimalSignDial} does not, which is
+     * why this one uses the other shape -- and is a reminder that these markers vary per
+     * shape rather than being a fixed set every gate has.
+     */
+    @Test
+    void aNameSignHolderIsReDerivedFromTheShape() throws Exception
+    {
+        final Stargate gate = detected("Standard");
+        assertNotNull(gate.getGateNameBlockHolder(), "Standard declares :N");
+        gate.setGateNameBlockHolder(null);
+
+        final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+        assertTrue(outcome.changes().contains("name sign"),
+            "changes were: " + outcome.changes());
+        assertNotNull(gate.getGateNameBlockHolder());
+    }
+
+    /**
+     * A marker held as a different World object of the same name has not moved.
+     *
+     * <p>This is why the comparison goes by world name rather than by reference. A gate
+     * reloaded from disk holds blocks resolved through whatever {@code World} the server
+     * handed the loader, and detection reads fresh ones out of the world now; comparing the
+     * objects would call every marker on every loaded gate "moved", so every regenerate would
+     * rewrite and re-save a gate that was perfectly correct.
+     */
+    @Test
+    void aMarkerHeldAsADifferentWorldObjectOfTheSameNameHasNotMoved() throws Exception
+    {
+        final Stargate gate = detected("MinimalSignDial");
+        final Block derived = gate.getGateIrisLeverBlock();
+        assertNotNull(derived, "MinimalSignDial declares :IA");
+
+        final World reloaded = mock(World.class);
+        when(reloaded.getName()).thenReturn("test");
+        final Block sameSpot = mock(Block.class);
+        when(sameSpot.getX()).thenReturn(Integer.valueOf(derived.getX()));
+        when(sameSpot.getY()).thenReturn(Integer.valueOf(derived.getY()));
+        when(sameSpot.getZ()).thenReturn(Integer.valueOf(derived.getZ()));
+        when(sameSpot.getWorld()).thenReturn(reloaded);
+        gate.setGateIrisLeverBlock(sameSpot);
+
+        final GateRederivation.Outcome outcome = GateRederivation.rederive(gate);
+
+        assertFalse(outcome.changes().contains("iris lever"),
+            "same coordinates and same world name is the same block, whatever World object"
+                + " is holding it; changes were: " + outcome.changes());
     }
 
     /**
