@@ -2814,7 +2814,7 @@ these resolvers already had a package-private overload taking a `File`.
 
 Nothing moves on disk. This is where the files are looked for, not where they are kept.
 
-Eight new tests across three classes, and they were checked the way this project has taken to
+Ten new tests across three classes, and they were checked the way this project has taken to
 checking: the resolver was mutated to always take the fallback branch, and `shapeDirectory()`
 was put back to the literal above. Three of the four resolver tests went red, and so did the
 shapes one, each reporting the old value -- `plugins\WormholeXTreme\GateShapes` where the
