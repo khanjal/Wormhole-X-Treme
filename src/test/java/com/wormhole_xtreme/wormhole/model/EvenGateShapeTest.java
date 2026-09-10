@@ -27,7 +27,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class EvenGateShapeTest
 {
-    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
+    private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     private static Stargate3DShape load(final String name) throws Exception
     {
