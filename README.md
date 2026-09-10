@@ -385,6 +385,21 @@ is built and then stored, so a gate that landed travellers at its side kept doin
 the command to reach for. It cannot fix a gate whose *facing* is wrong — if the woosh and the
 sign are on the wrong face too, that one needs rebuilding.
 
+**`gate regenerate <gate>` re-reads the gate's shape file.** A gate's markers — its redstone
+hookup, its iris lever, its dial sign, its name sign — are worked out once when the gate is
+built and then stored, and go stale for exactly the same reason the arrival point does: the
+shape file they came from can change underneath them. A gate built before its shape gained a
+`[RD]` marker has no dial-activation block recorded, and no amount of wiring will ever fire
+it. Regenerating re-runs detection against the shape as it is now, moves whatever the file has
+moved, saves the gate, and tells you what it changed.
+
+Markers are only ever added or moved, never taken away: a shape that has *lost* a marker
+leaves the block standing where it is rather than having it disappear without explanation. And
+if the gate no longer matches its shape at all — somebody rebuilt the frame, or the shape file
+is not in the folder any more — nothing is touched and the command says which of those it is.
+This is the one thing `regenerate -all` deliberately does not do, since it reads the world and
+an unattended sweep across every gate on the server is a different proposition.
+
 **`gate regenerate -all`** does the same recompute across every gate in one pass, and reports
 how many actually needed it — recomputing is deterministic, so a gate that was already correct
 comes back unchanged and is not counted. It is narrower than running `regenerate` on a single
