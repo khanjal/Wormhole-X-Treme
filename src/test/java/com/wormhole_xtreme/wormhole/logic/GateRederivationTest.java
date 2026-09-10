@@ -331,12 +331,19 @@ class GateRederivationTest
         final Block derived = gate.getGateIrisLeverBlock();
         assertNotNull(derived, "MinimalSignDial declares :IA");
 
+        // Read the coordinates out first. Calling derived.getX() inside thenReturn() would
+        // invoke one mock while the stubbing of another is still open, which Mockito refuses
+        // as unfinished stubbing rather than quietly getting it wrong.
+        final int x = derived.getX();
+        final int y = derived.getY();
+        final int z = derived.getZ();
+
         final World reloaded = mock(World.class);
         when(reloaded.getName()).thenReturn("test");
         final Block sameSpot = mock(Block.class);
-        when(sameSpot.getX()).thenReturn(Integer.valueOf(derived.getX()));
-        when(sameSpot.getY()).thenReturn(Integer.valueOf(derived.getY()));
-        when(sameSpot.getZ()).thenReturn(Integer.valueOf(derived.getZ()));
+        when(sameSpot.getX()).thenReturn(Integer.valueOf(x));
+        when(sameSpot.getY()).thenReturn(Integer.valueOf(y));
+        when(sameSpot.getZ()).thenReturn(Integer.valueOf(z));
         when(sameSpot.getWorld()).thenReturn(reloaded);
         gate.setGateIrisLeverBlock(sameSpot);
 
