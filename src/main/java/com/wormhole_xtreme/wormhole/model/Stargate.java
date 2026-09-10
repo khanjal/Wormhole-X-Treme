@@ -38,6 +38,19 @@ public class Stargate
      * This affects woosh depth and later materials
      */
     private StargateShape gateShape;
+
+    /**
+     * The name of the shape this gate was built from.
+     *
+     * <p>Kept apart from {@link #gateShape} because the two can disagree, and the name is
+     * the half worth trusting. A gate read back from disk starts with the placeholder shape
+     * the constructor installs, whose name is "Standard" whatever the gate was really built
+     * from; and a gate whose shape file an admin has renamed or removed resolves to no shape
+     * at all. In both cases the recorded name is still right, and it is what gets written
+     * back out -- so a shape the plugin cannot currently resolve survives a save instead of
+     * being quietly rewritten to "Standard".
+     */
+    private String gateShapeName = "Standard";
     /** The world this stargate is associated with. */
     private World gateWorld;
     /** Is this stargate already active? Can be active remotely and have no target of its own. */
@@ -2002,6 +2015,39 @@ public class Stargate
     public void setGateShape(final StargateShape gateShape)
     {
         this.gateShape = gateShape;
+        if (gateShape != null)
+        {
+            this.gateShapeName = gateShape.getShapeName();
+        }
+    }
+
+    /**
+     * Gets the name of the shape this gate was built from.
+     *
+     * @return the shape name, never null
+     */
+    public String getGateShapeName()
+    {
+        return gateShapeName;
+    }
+
+    /**
+     * Records the shape name for a gate whose shape could not be resolved.
+     *
+     * <p>Only the loader has any business calling this: it is how the name read out of a
+     * gate file survives when the shape it names is no longer in the shapes folder. Setting
+     * a real shape through {@link #setGateShape} records the name as well, so nothing else
+     * needs to.
+     *
+     * @param gateShapeName
+     *            the shape name read from the gate file
+     */
+    public void setGateShapeName(final String gateShapeName)
+    {
+        if ((gateShapeName != null) && !gateShapeName.isEmpty())
+        {
+            this.gateShapeName = gateShapeName;
+        }
     }
 
     /**
