@@ -2,8 +2,11 @@ package com.wormhole_xtreme.wormhole;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,6 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateSpatialIndex;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
@@ -49,6 +53,7 @@ class GatePortalInteriorBuildTest
     private World world;
     private Stargate gate;
     private Player player;
+    private boolean permissionsWereDisabled;
 
     @BeforeEach
     void setUp() throws Exception
@@ -69,11 +74,21 @@ class GatePortalInteriorBuildTest
 
         player = mock(Player.class);
         when(player.getName()).thenReturn("builder");
+        // A bare mock answers null to getUniqueId, and isOwner calls it. Give it one.
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        // Denied every node explicitly, so a test that passes does so because of op or
+        // ownership rather than a permission lookup quietly succeeding underneath.
+        when(player.hasPermission(anyString())).thenReturn(false);
+
+        permissionsWereDisabled = ConfigManager.getPermissionsSupportDisable();
+        // Node checks are only reached with a permissions plugin present.
+        ConfigManager.setPermissionsSupportDisable(false);
     }
 
     @AfterEach
     void tearDown() throws Exception
     {
+        ConfigManager.setPermissionsSupportDisable(permissionsWereDisabled);
         StargateManager.removeStargate(gate, null, false);
         GateSpatialIndex.clear();
         PluginTestSupport.remove();
@@ -234,5 +249,158 @@ class GatePortalInteriorBuildTest
     void placingWellAwayFromAGateIsLeftAlone()
     {
         assertFalse(placeRefused(blockAt(GX + 40, GY, GZ, Material.COBBLESTONE)));
+    }
+
+    /**
+     * An operator may build in the opening anyway.
+     *
+     * <p>Op is the final word everywhere else in this plugin, and an admin fitting a gate out
+     * by hand is the reason the bypass exists at all.
+     */
+    @Test
+    void anOperatorMayBuildInTheOpening()
+    {
+        when(player.isOp()).thenReturn(Boolean.TRUE);
+
+        assertFalse(placeRefused(portalCell(Material.COBBLESTONE)),
+            "op outranks the refusal here as it does everywhere else");
+    }
+
+    /** And so may the gate's owner, on their own gate. */
+    @Test
+    void theGateOwnerMayBuildInTheirOwnOpening()
+    {
+        gate.setGateOwner(player.getUniqueId().toString());
+
+        assertFalse(placeRefused(portalCell(Material.COBBLESTONE)),
+            "the owner may build in the gate they own");
+    }
+
+    /**
+     * And an admin holding the config node, who is neither op nor the owner.
+     *
+     * <p>This is the case the other two cannot stand in for: a server that runs its
+     * permissions through a plugin rather than by handing out op.
+     */
+    @Test
+    void anAdminHoldingTheConfigNodeMayBuildInTheOpening()
+    {
+        gate.setGateOwner(UUID.randomUUID().toString());
+        when(player.hasPermission("wormhole.config")).thenReturn(Boolean.TRUE);
+
+        assertFalse(placeRefused(portalCell(Material.COBBLESTONE)),
+            "wormhole.config is an admin on this server, op or not");
+    }
+
+    /**
+     * And an admin holding the remove-all node, the other half of the DAMAGE set.
+     *
+     * <p>`wormhole.config` and `wormhole.remove.all` reach the bypass by different branches of
+     * {@code checkAgainstNodes}, so covering one says nothing about the other. Both are
+     * documented as carrying it, so both are pinned.
+     */
+    @Test
+    void anAdminHoldingTheRemoveAllNodeMayBuildInTheOpening()
+    {
+        gate.setGateOwner(UUID.randomUUID().toString());
+        when(player.hasPermission("wormhole.remove.all")).thenReturn(Boolean.TRUE);
+
+        assertFalse(placeRefused(portalCell(Material.COBBLESTONE)),
+            "whoever may remove any gate may build inside one");
+    }
+
+    /**
+     * `wormhole.remove.own` carries nothing on its own, and cannot.
+     *
+     * <p>It is part of the DAMAGE node set, so it looks like a third way in. It is not:
+     * `REMOVE_OWN` checks `isOwner` as well as the node, and an owner has already been let
+     * through further up by `isOwnerAction` before any node is consulted. So the node only
+     * ever fires for somebody who did not need it. This is why the README lists op, the owner,
+     * `wormhole.config` and `wormhole.remove.all` -- and not this one.
+     */
+    @Test
+    void theRemoveOwnNodeAloneDoesNotCarryTheBypass()
+    {
+        gate.setGateOwner(UUID.randomUUID().toString());
+        when(player.hasPermission("wormhole.remove.own")).thenReturn(Boolean.TRUE);
+
+        assertTrue(placeRefused(portalCell(Material.COBBLESTONE)),
+            "remove.own without ownership is not a bypass");
+    }
+
+    /**
+     * But `wormhole.build` is not enough, and that is the whole point of choosing DAMAGE.
+     *
+     * <p>BUILD reads more naturally for placing a block, and was the first candidate. It is
+     * the wrong set of people: BUILD is the node for raising a new gate, and on most servers
+     * ordinary players hold it on the Public network -- so using it would have left the
+     * opening open to nearly everyone and made the fix above meaningless.
+     */
+    @Test
+    void theGateBuildingNodeIsNotEnoughToBuildInTheOpening()
+    {
+        gate.setGateOwner(UUID.randomUUID().toString());
+        when(player.hasPermission("wormhole.build")).thenReturn(Boolean.TRUE);
+
+        assertTrue(placeRefused(portalCell(Material.COBBLESTONE)),
+            "building gates is not the same permission as building inside one");
+    }
+
+    /**
+     * A placement with no player behind it gets no bypass.
+     *
+     * <p>A dispenser, a command block or another plugin placing on nobody's behalf has no
+     * permissions to check, and "cannot tell" must not read as "allowed" for the one branch
+     * that decides whether the opening stays clear.
+     */
+    @Test
+    void aPlacementWithNoPlayerBehindItGetsNoBypass()
+    {
+        assertFalse(WormholeXTremeBlockListener.mayBuildInOpening(null, gate),
+            "nobody is not an admin");
+    }
+
+    /**
+     * Neither does a permissions plugin that throws.
+     *
+     * <p>The check runs through whatever permissions plugin the server has installed, and a
+     * broken or half-loaded one can throw rather than answer. Failing open there would hand
+     * the bypass to everybody on the server at exactly the moment nothing can be verified.
+     */
+    @Test
+    void aPermissionsPluginThatThrowsDoesNotGrantTheBypass()
+    {
+        when(player.isOp()).thenThrow(new IllegalStateException("permissions plugin not loaded"));
+
+        assertFalse(WormholeXTremeBlockListener.mayBuildInOpening(player, gate),
+            "an unanswerable permission check is a refusal, not a pass");
+        assertTrue(placeRefused(portalCell(Material.COBBLESTONE)),
+            "and the placement it guards is still refused");
+    }
+
+    /**
+     * What an admin leaves in the opening is still anybody's to break.
+     *
+     * <p>The bypass lets the block be placed; it does not make it part of the gate. Treating
+     * a placement by an admin as gate structure would put the original bug straight back, in
+     * the one case where somebody deliberately meant to leave a block there.
+     */
+    @Test
+    void whatAnAdminLeavesInTheOpeningIsStillBreakableByAnybody()
+    {
+        when(player.isOp()).thenReturn(Boolean.TRUE);
+        assertFalse(placeRefused(portalCell(Material.COBBLESTONE)));
+
+        final Player ordinary = mock(Player.class);
+        when(ordinary.getName()).thenReturn("passerby");
+        when(ordinary.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(ordinary.hasPermission(anyString())).thenReturn(Boolean.FALSE);
+
+        final BlockBreakEvent event =
+            new BlockBreakEvent(portalCell(Material.COBBLESTONE), ordinary);
+        new WormholeXTremeBlockListener().onBlockBreak(event);
+
+        assertFalse(event.isCancelled(),
+            "an admin's block in the ring is still not gate structure");
     }
 }

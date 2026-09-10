@@ -2977,6 +2977,32 @@ regex found the delegation a second time and dropped its `false` a second time. 
 diff caught it, and the third test would have caught it a moment later -- which is the whole
 difference between this time and last.
 
+### An admin may build in a gate's opening after all (#243)
+
+The placement refusal that landed with #243 applied to everybody, operators included. That is
+the right default and the wrong absolute: an admin fitting a gate out by hand -- a decorative
+block behind the ring, something dropped in deliberately -- had no way past it.
+
+`onBlockPlace` now lets the placement through for anyone who passes the DAMAGE check on that
+gate: operators, the gate's owner, and holders of `wormhole.config`, `wormhole.remove.all` or
+`wormhole.remove.own`.
+
+DAMAGE rather than BUILD, and the choice matters more than it looks. BUILD reads more naturally
+for placing a block and was the first candidate, but it is the node for raising a *new* gate,
+and most servers grant it to ordinary players on the Public network -- so using it would have
+left the opening open to nearly everyone and made the original fix meaningless. DAMAGE is what
+`onBlockDamage` already asks about these very blocks, so the same people who may take a gate
+apart may build inside it, and nobody else. `theGateBuildingNodeIsNotEnoughToBuildInTheOpening`
+pins that, and swapping the node back to BUILD fails it.
+
+What an admin leaves in there is still not part of the gate, so anyone can break it back out.
+Treating a deliberate placement as gate structure would put the original bug straight back, in
+the one case where somebody actually meant to leave a block there.
+
+Five more tests, fourteen in `GatePortalInteriorBuildTest` now. Three mutations were run
+against them: removing the bypass fails four, making it always-true fails three, and swapping
+DAMAGE for BUILD fails two -- one from each direction of the choice.
+
 </details>
 
 ## 1.4.0 (2026-09-05)
