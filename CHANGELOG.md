@@ -20,8 +20,8 @@ been running on defaults will start reading the file you have been editing.
 
 - `/wormhole gate validate <gate>` says what a gate is missing -- how many frame blocks are gone,
   and whether the dial sign is still a sign -- rather than only refusing to dial and logging
-  about it. `gate validate -all` sweeps every gate and names only the ones with something wrong
-  ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
+  about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
+  something wrong ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
 
 ### Fixed
 
