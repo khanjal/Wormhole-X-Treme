@@ -157,7 +157,7 @@ are not told to discard what they know about it.
 ## Storage
 
 One YAML file per gate, in
-`plugins/WormholeXTreme/WormholeXTremeDB/gates/`:
+`plugins/WormholeXTreme/data/gates/`:
 
 ```yaml
 Name: Base

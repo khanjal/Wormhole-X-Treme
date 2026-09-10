@@ -8,7 +8,7 @@ This guide provides quick-start instructions and examples for server operators a
 
 ## Quick commands
 - Admin command namespace: `/wormhole` (alias `/wx`).
-- Gates are stored as one YAML file each under `plugins/WormholeXTreme/WormholeXTremeDB/gates/`.
+- Gates are stored as one YAML file each under `plugins/WormholeXTreme/data/gates/`.
   There is no database backend to configure or migrate.
 
 ## Common user actions
