@@ -3,11 +3,19 @@ package com.wormhole_xtreme.wormhole.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.logging.Level;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -337,5 +345,123 @@ class LegacyDataFolderMigrationTest
         assertTrue(new File(new File(legacy, "gates"), "Home.yml").isFile(),
             "and it is still where it was, rather than half-moved");
         assertTrue(result.didSomething(), "a failure is something to report, not silence");
+    }
+
+    /**
+     * A file whose destination folder cannot be created is reported, not lost track of.
+     *
+     * <p>Reaches the failure path in the single-file move rather than the directory one, by
+     * putting a plain file where {@code data/} itself needs to be. beam.yml is the single-file
+     * case, and it holds every destination on the server in one file.
+     */
+    @Test
+    void aFileWhoseParentCannotBeCreatedIsReported() throws Exception
+    {
+        write(legacy, "beam.yml", "Public: {}");
+        // A file, not a directory, exactly where data/ needs to be.
+        Files.write(target.toPath(), "in the way".getBytes(StandardCharsets.UTF_8));
+
+        final LegacyDataFolderMigration.Result result = migrate();
+
+        assertEquals(0, result.getMoved());
+        assertTrue(result.getFailed().contains("beam.yml"),
+            "the operator has to be told which file to move by hand: " + result.getFailed());
+        assertTrue(new File(legacy, "beam.yml").isFile(), "and it is still where it was");
+    }
+
+    /**
+     * A folder somebody made inside gates/ is theirs, and stays.
+     *
+     * <p>Only files are moved. A subdirectory is far more likely to be somebody's own backup
+     * than anything this plugin wrote, and moving it would be both a surprise and, if it were
+     * large, a slow one.
+     */
+    @Test
+    void aSubdirectoryInsideGatesIsNotMoved() throws Exception
+    {
+        write(new File(legacy, "gates"), "Home.yml", "Name: Home");
+        write(new File(new File(legacy, "gates"), "backup-2026-09"), "Old.yml", "Name: Old");
+
+        final LegacyDataFolderMigration.Result result = migrate();
+
+        assertEquals(1, result.getMoved(), "the gate file, and not the folder beside it");
+        assertTrue(new File(new File(new File(legacy, "gates"), "backup-2026-09"), "Old.yml").isFile(),
+            "somebody's backup folder is not ours to relocate");
+        assertFalse(new File(new File(target, "gates"), "backup-2026-09").exists());
+    }
+
+    /** An empty gates folder is not worth creating a destination for. */
+    @Test
+    void anEmptyGatesFolderMovesNothing() throws Exception
+    {
+        new File(legacy, "gates").mkdirs();
+
+        final LegacyDataFolderMigration.Result result = migrate();
+
+        assertFalse(result.didSomething(), "nothing in it, nothing to say");
+        assertFalse(new File(target, "gates").exists(),
+            "and no empty folder created at the destination");
+    }
+
+    // ---- the entry point, and what it says out loud ---------------------------------------
+
+    /**
+     * The real entry point resolves both folders through the plugin and reports what it did.
+     *
+     * <p>The tests above all call the two-argument form, which is the testable seam. That
+     * leaves the method {@code onEnable} actually calls -- and the reporting it does -- with
+     * nothing exercising it, which matters here more than usual: the log line is the entire
+     * mechanism by which an operator learns a file was left behind. A migration that moved
+     * nothing and said nothing looks exactly like one that worked.
+     */
+    @Test
+    void theRealEntryPointMovesFilesAndSaysSo() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(pluginFolder);
+        PluginTestSupport.install(plugin);
+        write(new File(legacy, "gates"), "Home.yml", "Name: Home");
+
+        LegacyDataFolderMigration.migrate();
+
+        assertTrue(new File(new File(target, "gates"), "Home.yml").isFile(),
+            "the no-argument form has to resolve the same two folders the tests above pass in");
+        verify(plugin).prettyLog(eq(Level.INFO), contains("Moved 1 file"));
+    }
+
+    /** And with nothing to do, it says nothing at all. */
+    @Test
+    void theRealEntryPointIsSilentWhenThereIsNothingToMove() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(pluginFolder);
+        PluginTestSupport.install(plugin);
+
+        LegacyDataFolderMigration.migrate();
+
+        verify(plugin, never()).prettyLog(any(Level.class), anyString());
+    }
+
+    /**
+     * A failure names every file, so the log is enough to recover from.
+     *
+     * <p>Through the real entry point, because the count and the names are assembled in the
+     * reporting step -- the part that had no test at all until this one.
+     */
+    @Test
+    void theRealEntryPointNamesEveryFileItCouldNotMove() throws Exception
+    {
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(pluginFolder);
+        PluginTestSupport.install(plugin);
+        write(new File(legacy, "gates"), "Home.yml", "Name: Home");
+        write(new File(legacy, "gates"), "Away.yml", "Name: Away");
+        target.mkdirs();
+        write(target, "gates", "in the way");
+
+        LegacyDataFolderMigration.migrate();
+
+        verify(plugin).prettyLog(eq(Level.SEVERE), contains("2 file(s) could not be moved"));
+        verify(plugin).prettyLog(eq(Level.SEVERE), contains("Home.yml"));
     }
 }
