@@ -27,7 +27,7 @@ public class ValidateCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        if (refusedForPermissions(sender))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
             return true;
         }
@@ -52,25 +52,6 @@ public class ValidateCommand implements SubCommand
         return true;
     }
 
-    /**
-     * Whether this sender may not validate gates.
-     *
-     * <p>Reuses {@code wormhole.config}, the same node {@code regenerate} checks: it is what an
-     * admin already needs for gate maintenance, and a second node meaning the same thing would
-     * only be one more permission to remember to grant.
-     *
-     * @param sender
-     *            who is asking
-     * @return true if they were refused and told so
-     */
-    private static boolean refusedForPermissions(final CommandSender sender)
-    {
-        if (CommandHandlerUtils.lacksConfigPermission(sender))
-        {
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Checks every gate on the server, and names only the ones with something wrong.
