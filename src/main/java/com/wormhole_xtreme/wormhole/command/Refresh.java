@@ -8,8 +8,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 
 /**
  * /wormhole refresh — puts the player in refresh mode.
@@ -47,9 +45,8 @@ public class Refresh implements CommandExecutor
             return true;
         }
         final Player player = (Player) sender;
-        if (!WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (CommandHandlerUtils.lacksConfigPermission(player))
         {
-            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         addPendingRefresh(player);

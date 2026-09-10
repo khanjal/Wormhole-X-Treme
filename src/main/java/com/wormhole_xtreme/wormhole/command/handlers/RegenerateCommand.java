@@ -2,7 +2,6 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
@@ -10,8 +9,7 @@ import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateDBManager;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * Handler for '/wormhole regenerate' (regen)
@@ -22,7 +20,7 @@ public class RegenerateCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        if (refusedForPermissions(sender))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
             return true;
         }
@@ -47,29 +45,6 @@ public class RegenerateCommand implements SubCommand
         return true;
     }
 
-    /**
-     * Whether this sender may not regenerate gates.
-     *
-     * <p>Gate management was never actually gated: none of these commands checked a
-     * permission at all, so any player able to run /wormhole could reconfigure or reassign
-     * any gate on the server. wormhole.config is what an admin already needs for
-     * /wormhole config, so it is reused rather than inventing a second node meaning the same
-     * thing. The console is not a player and is not asked.
-     *
-     * @param sender
-     *            who is asking
-     * @return true if they were refused and told so
-     */
-    private static boolean refusedForPermissions(final CommandSender sender)
-    {
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Redoes everything about one gate an admin is looking at.

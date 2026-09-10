@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.Build;
 import com.wormhole_xtreme.wormhole.command.Complete;
@@ -16,9 +15,7 @@ import com.wormhole_xtreme.wormhole.command.Refresh;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXList;
 import com.wormhole_xtreme.wormhole.command.WXRemove;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * Everything you do to a gate, under one name.
@@ -145,10 +142,8 @@ public class GateCommand implements SubCommand
         // Written fresh this session and given the same gap the rest of gate management
         // had: no permission check at all. Fixed at the same time as the others, on the
         // same node.
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
         final com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.Result result =

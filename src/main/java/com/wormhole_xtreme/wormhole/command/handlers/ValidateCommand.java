@@ -4,15 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.GateIntegrity;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * Handler for '/wormhole gate validate' -- the third of the four things #54 asked for.
@@ -29,7 +27,7 @@ public class ValidateCommand implements SubCommand
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
-        if (refusedForPermissions(sender))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
             return true;
         }
@@ -54,27 +52,6 @@ public class ValidateCommand implements SubCommand
         return true;
     }
 
-    /**
-     * Whether this sender may not validate gates.
-     *
-     * <p>Reuses {@code wormhole.config}, the same node {@code regenerate} checks: it is what an
-     * admin already needs for gate maintenance, and a second node meaning the same thing would
-     * only be one more permission to remember to grant.
-     *
-     * @param sender
-     *            who is asking
-     * @return true if they were refused and told so
-     */
-    private static boolean refusedForPermissions(final CommandSender sender)
-    {
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
-        {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Checks every gate on the server, and names only the ones with something wrong.

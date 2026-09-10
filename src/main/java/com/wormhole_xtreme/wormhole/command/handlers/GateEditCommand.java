@@ -8,13 +8,10 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.command.WXIDC;
-import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * One command for every per-gate setting.
@@ -180,10 +177,8 @@ public class GateEditCommand implements SubCommand
         // anything -- it is its own logic below -- so it had none at all until this. One
         // guard on the front door covers every field today and covers whatever field is
         // added next without relying on its author to remember this.
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
         // args: gate edit <gate> <field> [value]

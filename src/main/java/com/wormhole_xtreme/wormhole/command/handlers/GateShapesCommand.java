@@ -3,14 +3,12 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import java.util.Locale;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.model.StargateShapeRegistry;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
-import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 
 /**
  * {@code /wormhole gate shapes <reload|validate> [name]} -- checking and reloading a shape
@@ -36,10 +34,8 @@ public class GateShapesCommand implements SubCommand
         // Same node the rest of gate management already requires -- this reaches into the
         // GateShapes directory and changes what every future gate on the server can be built
         // from, not something to leave open to any player who can run /wormhole.
-        if ((sender instanceof Player player)
-            && !WXPermissions.checkWXPermissions(player, PermissionType.CONFIG))
+        if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
-            sender.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return true;
         }
 
