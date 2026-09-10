@@ -44,9 +44,9 @@ class PluginLogTest
         private final List<LogRecord> records = new ArrayList<>();
 
         @Override
-        public void publish(final LogRecord record)
+        public void publish(final LogRecord logged)
         {
-            records.add(record);
+            records.add(logged);
         }
 
         @Override
