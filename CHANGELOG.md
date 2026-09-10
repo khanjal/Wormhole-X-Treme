@@ -2808,9 +2808,17 @@ copied four times, and adding two more copies would have left the next store fre
 again. #45 proposes a `YamlStore` that collapses three of these managers; the directory half of
 that job is done here, so what is left there is the writing and the logging.
 
-The relative path survives as a fallback rather than an alternative, because
-`JavaPlugin.getDataFolder()` is `final` and cannot be stubbed -- which is also why every one of
-these resolvers already had a package-private overload taking a `File`.
+The relative path survives as a fallback rather than an alternative: it runs only if a path is
+resolved before the plugin exists, which on a live server never happens.
+
+An earlier draft of this entry, and of two comments in the code, said the fallback was there
+because `JavaPlugin.getDataFolder()` is `final` and so cannot be stubbed. Half right. It is
+`final` -- `javap` on the API jar confirms it -- but this suite runs on Mockito's inline mock
+maker, which stubs final methods perfectly well, and the tests added here stub that exact one.
+Copilot caught the contradiction: the claim was sitting a few lines above tests doing the thing
+it called impossible. The package-private `File`-taking overloads these resolvers carry are
+explained by something simpler anyway -- pointing a test at a temporary directory beats
+standing up a plugin to ask, and running the real one would write into the project.
 
 Nothing moves on disk. This is where the files are looked for, not where they are kept.
 

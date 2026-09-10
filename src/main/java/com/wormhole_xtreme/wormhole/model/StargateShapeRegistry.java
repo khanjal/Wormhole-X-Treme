@@ -161,9 +161,9 @@ public final class StargateShapeRegistry
      * Loads every shape in a given directory, restoring the shipped ones if they are missing.
      *
      * <p>Split out from {@link #loadShapes()} so a test can point it somewhere other than the
-     * live plugin folder: {@link #shapeDirectory()} resolves through {@code getDataFolder()},
-     * which is {@code final} and cannot be stubbed, and running the real one under test would
-     * write into the project.
+     * live plugin folder. Running the no-argument version under test would resolve to a real
+     * directory and write eleven shape files into it, so a test that only wants to load a
+     * shape needs somewhere harmless to point.
      *
      * @param directory
      *            the folder to load from, created if it is not there

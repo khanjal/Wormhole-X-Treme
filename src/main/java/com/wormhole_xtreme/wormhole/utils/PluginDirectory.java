@@ -17,9 +17,9 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * disagree nothing fails, the plugin simply reads half its files from one tree and half from
  * another.
  *
- * <p>The relative path survives as a fallback, not as an alternative: it is what the tests
- * get, since {@code JavaPlugin.getDataFolder()} is {@code final} and cannot be stubbed, and
- * it is what runs if this is ever called before the plugin exists.
+ * <p>The relative path survives as a fallback, not as an alternative. It is what runs if a
+ * path is ever resolved before the plugin exists -- during a failed startup, say, or from a
+ * test that has not installed one. A live server never reaches it.
  */
 public final class PluginDirectory
 {

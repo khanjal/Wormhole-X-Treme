@@ -50,9 +50,8 @@ public class StargateYamlManager
      * Reads every gate file in a given directory.
      *
      * <p>Split out from {@link #loadStargates(Server)} for the same reason
-     * {@link #saveStargate(Stargate, File)} was: {@link #getGatesDir()} resolves through
-     * {@code JavaPlugin.getDataFolder()}, which is final and cannot be stubbed, so a test
-     * needs somewhere else to point.
+     * {@link #saveStargate(Stargate, File)} was: {@link #getGatesDir()} resolves to a real
+     * directory, so a test that reads or writes gate files needs somewhere else to point.
      *
      * @param server
      *            the server, used to look worlds up by name
