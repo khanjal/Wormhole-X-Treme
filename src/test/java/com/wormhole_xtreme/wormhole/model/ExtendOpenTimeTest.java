@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -163,7 +162,7 @@ class ExtendOpenTimeTest
 
         assertTrue(StargateDialManager.extendOpenTime(gate), "an open gate should extend");
 
-        verify(scheduler, never()).cancelTask(eq(0));
+        verify(scheduler, never()).cancelTask(0);
         verify(gate).setGateShutdownTaskId(91);
     }
 }
