@@ -55,7 +55,7 @@ been running on defaults will start reading the file you have been editing.
   casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
   nobody read, which took ten class-level warning suppressions off the classes they were hiding
   real findings in.
-- Tests: **1326 at 1.5.0, 1413 so far**.
+- Tests: **1326 at 1.5.0, 1422 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
