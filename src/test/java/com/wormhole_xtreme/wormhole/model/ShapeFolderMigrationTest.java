@@ -178,7 +178,7 @@ class ShapeFolderMigrationTest
      * time.
      */
     @Test
-    void anEmptyOldFolderDoesNothing() throws Exception
+    void anEmptyOldFolderDoesNothing()
     {
         legacy.mkdirs();
 

@@ -26,6 +26,9 @@ public final class StargateShapeRegistry
 {
     private static final ConcurrentHashMap<String, StargateShape> stargateShapes = new ConcurrentHashMap<>();
 
+    /** What makes a file in the shapes folder a shape rather than somebody's notes. */
+    private static final String SHAPE_SUFFIX = ".shape";
+
     private StargateShapeRegistry() {}
 
     /**
@@ -143,7 +146,7 @@ public final class StargateShapeRegistry
      */
     private static void liftOneShape(final File directory, final String legacy, final File shape)
     {
-        if (!shape.isFile() || !shape.getName().endsWith(".shape"))
+        if (!shape.isFile() || !shape.getName().endsWith(SHAPE_SUFFIX))
         {
             return;
         }
@@ -234,7 +237,7 @@ public final class StargateShapeRegistry
     {
         for (final File file : files)
         {
-            if (file.isFile() && file.getName().endsWith(".shape"))
+            if (file.isFile() && file.getName().endsWith(SHAPE_SUFFIX))
             {
                 return true;
             }
@@ -361,7 +364,7 @@ public final class StargateShapeRegistry
     private static void readShapesIn(final File directory)
     {
         final File[] shapeFiles = directory.listFiles(
-            (dir, name) -> !name.startsWith(".") && name.endsWith(".shape"));
+            (dir, name) -> !name.startsWith(".") && name.endsWith(SHAPE_SUFFIX));
         if (shapeFiles == null)
         {
             WormholeXTreme.getThisPlugin().prettyLog(Level.SEVERE,
