@@ -38,7 +38,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class UnlitChevronTest
 {
-    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
+    private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     /**
      * Parses a shipped shape, optionally rewriting one cell on the way in.

@@ -47,7 +47,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class GateDetectionTest
 {
-    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
+    private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     private final Map<String, Material> placed = new HashMap<>();
     private final Map<String, Block> blocks = new HashMap<>();

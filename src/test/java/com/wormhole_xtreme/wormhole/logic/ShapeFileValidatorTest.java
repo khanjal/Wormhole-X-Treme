@@ -23,7 +23,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class ShapeFileValidatorTest
 {
-    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
+    private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     /**
      * The smallest possible legal 3x3, single-layer shape: a frame ring around one portal

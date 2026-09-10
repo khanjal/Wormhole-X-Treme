@@ -32,7 +32,7 @@ public class GateShapesCommand implements SubCommand
     public boolean execute(final CommandSender sender, final String[] args)
     {
         // Same node the rest of gate management already requires -- this reaches into the
-        // GateShapes directory and changes what every future gate on the server can be built
+        // shapes/gate directory and changes what every future gate on the server can be built
         // from, not something to leave open to any player who can run /wormhole.
         if (CommandHandlerUtils.lacksConfigPermission(sender))
         {
@@ -75,7 +75,7 @@ public class GateShapesCommand implements SubCommand
         {
             StargateShapeRegistry.reloadAllShapes();
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Reloaded every shape in the GateShapes directory.");
+                + "Reloaded every shape in the shapes/gate directory.");
             return;
         }
         report(sender, name, StargateShapeRegistry.reloadShapeFile(fileName(name)), true);

@@ -32,7 +32,7 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  */
 class ShippedShapeIrisTest
 {
-    private static final Path SHAPE_DIR = Paths.get("src/main/resources/GateShapes");
+    private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     @BeforeEach
     void setUp() throws Exception

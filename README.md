@@ -394,7 +394,7 @@ blocks and a dial sign that is no longer a sign; `-all` sweeps every gate and na
 ones with something wrong. A gate in a chunk nobody has loaded reads as fine rather than being
 checked — this never loads a chunk just to answer.
 
-**`gate shapes validate <name>`** checks a `.shape` file in the GateShapes directory for
+**`gate shapes validate <name>`** checks a `.shape` file in the `shapes/gate` directory for
 problems that will not throw on their own: a row one cell short of the width its first layer
 declared (every column after the gap silently lands one off), a skipped `Layer#N=` (a dead gap
 in the woosh recession), a duplicate `:EP`/`:A`/`:N`/etc. (the second one silently wins), a gap
@@ -442,12 +442,21 @@ alone.
 Gate shapes live under:
 
 ```
-plugins/WormholeXTreme/GateShapes/
+plugins/WormholeXTreme/shapes/gate/
 ```
 
-One flat folder. Earlier versions split shapes into `3d/` and `2d/` subfolders; those are no
-longer read, and anything found in them is moved up on startup so an upgrade does not
-silently lose a custom shape.
+Split by what the shape describes, not by its geometry — so a quantum mirror, when it arrives,
+gets `shapes/mirror/` rather than sharing a folder named for gates.
+
+Two earlier layouts are migrated on startup, and nothing is deleted from either:
+
+```
+GateShapes/3d/*.shape ─┐
+GateShapes/2d/*.shape ─┴─> GateShapes/*.shape ─> shapes/gate/*.shape
+```
+
+A shape already at the destination wins, because that is the one that has been loading. If you
+are upgrading from far enough back that both moves apply, both happen in the same startup.
 
 Default shapes are extracted from the jar on first run only — they will **not** overwrite user-customized files.
 
@@ -491,7 +500,7 @@ SIGN_MATERIAL=CRIMSON_WALL_SIGN
 
 1. Copy an existing `.shape` file as a starting point.
 2. Edit the block grid and material keys. Keep the filename unique with the `.shape` extension.
-3. Place it in `plugins/WormholeXTreme/GateShapes/` and restart the server.
+3. Place it in `plugins/WormholeXTreme/shapes/gate/` and restart the server.
 4. Use `/wormhole custom <gate> true` to assign the shape to a gate if needed.
 
 ## Material groups
@@ -706,7 +715,7 @@ An iris closes over the portal to block travel. When a remote gate's iris is act
 
 ### Setup
 
-- Build a gate from a shape that includes an `:IA` marker (most do; see `GateShapes/Standard.shape`).
+- Build a gate from a shape that includes an `:IA` marker (most do; see `shapes/gate/Standard.shape`).
 - Set an IDC (iris deactivation code) to allow callers to unlock the iris remotely:
   - `/wormhole complete <GateName> idc=<code>` — set IDC while completing.
   - `/wormhole idc <GateName> <code>` — set or change the IDC later.
