@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.logic.ShapeFileValidator;
 import com.wormhole_xtreme.wormhole.logic.StargateShapeFactory;
+import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
 
 public final class StargateShapeRegistry
 {
@@ -27,10 +28,17 @@ public final class StargateShapeRegistry
 
     private StargateShapeRegistry() {}
 
-    /** @return the GateShapes directory, the same one {@link #loadShapes()} reads from */
-    private static File shapeDirectory()
+    /**
+     * The GateShapes directory, the same one {@link #loadShapes()} reads from.
+     *
+     * <p>Package-private rather than private so a test can check it lands under the folder
+     * the server names, which is the whole point of resolving it through the plugin.
+     *
+     * @return the directory, which may not exist yet
+     */
+    static File shapeDirectory()
     {
-        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes" + File.separator);
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "GateShapes");
     }
 
     public static StargateShape getStargateShape(final String name)
@@ -153,8 +161,9 @@ public final class StargateShapeRegistry
      * Loads every shape in a given directory, restoring the shipped ones if they are missing.
      *
      * <p>Split out from {@link #loadShapes()} so a test can point it somewhere other than the
-     * live plugin folder: {@link #shapeDirectory()} is a fixed path relative to the working
-     * directory, and running the real one under test would write into the project.
+     * live plugin folder. Running the no-argument version under test would resolve to a real
+     * directory and write eleven shape files into it, so a test that only wants to load a
+     * shape needs somewhere harmless to point.
      *
      * @param directory
      *            the folder to load from, created if it is not there
@@ -180,7 +189,7 @@ public final class StargateShapeRegistry
     /**
      * Makes sure the shapes folder is there.
      *
-     * <p>mkdirs rather than mkdir: this is two levels below plugins/ and on a first run
+     * <p>mkdirs rather than mkdir: this sits below the plugin folder, and on a first run
      * neither level need exist yet. The result is checked, because failing to create a
      * directory returns false rather than throwing -- the old catch could never fire, and the
      * failure carried on to listFiles() returning null and shapes silently not loading.

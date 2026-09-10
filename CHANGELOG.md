@@ -44,6 +44,10 @@ its current value.
 - Redstone wiring inside a gate could never be taken back up without removing the gate.
 - A block could be dropped into a gate's opening and then never broken out again
   ([#243](https://github.com/khanjal/Wormhole-X-Treme/issues/243)).
+- Gate shapes and `config.yml` were looked for in the working directory rather than the folder
+  the server names, so a server whose plugin folder is not `./plugins` read half its files from
+  one tree and half from another, silently
+  ([#245](https://github.com/khanjal/Wormhole-X-Treme/issues/245)).
 - A ring pair in a room too short to hold it fired anyway.
 - Tab completion after `beam to` offered only public destinations, never your own places.
 - Beaming hid the traveller but left their gear standing in the column.
@@ -2790,6 +2794,98 @@ Nine tests in `GatePortalInteriorBuildTest`, four of which fail against the old 
 confirmed by putting the bug back. The other five pin what did not change: the frame stays
 protected from both breaking and hitting, a closed iris stays protected, and placement outside
 the opening is left alone.
+
+### Half the files were found by asking the server, half by guessing (#245)
+
+Six stores sit in this plugin's folder: gates, rings, beam destinations, the shapes they are
+built from, `config.yml`, and the SQLite database the importer reads. Four of them found that
+folder by asking Bukkit. Two did not.
+
+```java
+// StargateShapeRegistry, before
+return new File("plugins" + File.separator + "WormholeXTreme" + File.separator + "GateShapes");
+```
+
+That is not the plugin folder. It is whatever directory the JVM started in, with `plugins/`
+stuck on the front. On a stock install the two are the same folder, which is why this sat here
+for as long as it did. They stop being the same the moment a start script changes directory
+first, or a launcher points its plugins folder somewhere else.
+
+What makes it worth fixing is that the disagreement is silent. Nothing throws and nothing is
+logged. Gates load from the real folder and name the shapes they were built from; shapes load
+from a folder that turns out to be empty, so `restoreMissingDefaults` writes eleven fresh
+copies into the wrong tree and every gate built from a custom shape stops being detectable.
+`config.yml` splits the same way, and the server quietly runs on defaults with the admin's real
+file sitting unopened somewhere else.
+
+The fix is one resolver, `utils/PluginDirectory`, and all six stores go through it. Making it
+six rather than two was the point: the guarded plugin-then-relative-path idiom was already
+copied four times, and adding two more copies would have left the next store free to guess
+again. #45 proposes a `YamlStore` that collapses three of these managers; the directory half of
+that job is done here, so what is left there is the writing and the logging.
+
+The relative path survives as a fallback rather than an alternative: it runs only if a path is
+resolved before the plugin exists, which on a live server never happens.
+
+An earlier draft of this entry, and of two comments in the code, said the fallback was there
+because `JavaPlugin.getDataFolder()` is `final` and so cannot be stubbed. Half right. It is
+`final` -- `javap` on the API jar confirms it -- but this suite runs on Mockito's inline mock
+maker, which stubs final methods perfectly well, and the tests added here stub that exact one.
+Copilot caught the contradiction: the claim was sitting a few lines above tests doing the thing
+it called impossible. The package-private `File`-taking overloads these resolvers carry are
+explained by something simpler anyway -- pointing a test at a temporary directory beats
+standing up a plugin to ask, and running the real one would write into the project.
+
+Nothing moves on disk. This is where the files are looked for, not where they are kept.
+
+Ten new tests across three classes, and they were checked the way this project has taken to
+checking: the resolver was mutated to always take the fallback branch, and `shapeDirectory()`
+was put back to the literal above. Three of the four resolver tests went red, and so did the
+shapes one, each reporting the old value -- `plugins\WormholeXTreme\GateShapes` where the
+server had named a temporary directory. The fourth resolver test covers the fallback branch
+itself and correctly stayed green under that mutation.
+
+### One write path and one logger, where there were three of each (#45)
+
+Gates, rings and beam destinations each carried their own copy of the same YAML write: the
+same `DumperOptions`, a temp file beside the target, `Files.move(..., ATOMIC_MOVE)`. Three
+copies of a write path is three places for a storage bug to be fixed in two of. They go through
+`utils/YamlStore` now, which throws rather than logging, so each manager keeps its own wording
+for a failed write.
+
+The logging was the half that had actually gone wrong. Each manager also had its own "is there
+a plugin to log through" check, and they did not agree:
+
+| | With no plugin |
+| --- | --- |
+| `BeamYamlManager` | fell back to `java.util.logging` |
+| `RingYamlManager` | returned, silently |
+| `StargateYamlManager` | returned, silently |
+
+Which messages those are is what makes it worth more than a tidy-up. They are the ones saying a
+ring file would not write, or a gate could not be saved -- so two of the three managers dropped
+exactly the messages that only ever exist because something had already gone wrong. It also
+meant the same storage failure was observable in one manager's tests and unobservable in
+another's, so a test there could pass by waiting for a message that was never coming.
+
+`utils/PluginLog` falls back, which is the behaviour worth keeping, and all three now use it.
+
+One thing came along on the way. `saveStargate`'s FINE line built `"Saved gate to YAML: "` plus
+an absolute path with no `isLoggable` guard, and `onDisable` calls it once per gate on every
+shutdown -- so a server with dozens of gates did that concatenation dozens of times per restart
+to throw every result away. `prettyLog` takes a `String`, so the guard has to be at the call
+site. That is the third time this exact shape has turned up in this codebase.
+
+Ten tests, mutation-checked: `PluginLog` put back to dropping the message silently turns two of
+them red, and `YamlStore` switched to inline flow style turns another red, reporting the
+`{World: overworld, X: 1.5}` it would have written into a file server owners hand-edit.
+
+PMD caught two dead `java.nio.file.Files` imports the extraction left behind, which a
+hand-rolled check for unused imports had missed -- `listFiles` and a fully-qualified
+`java.nio.file.Files.deleteIfExists` both look like uses of the import to a regex, and neither
+is one.
+
+Nothing about the files on disk changes. Same format, same names, same places.
 
 </details>
 

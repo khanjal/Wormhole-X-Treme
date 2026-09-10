@@ -1,13 +1,8 @@
 package com.wormhole_xtreme.wormhole.model.ring;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -16,11 +11,12 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 import org.bukkit.Material;
-import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
+import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
 /**
  * Loads and saves ring pairs, one file per world.
@@ -53,20 +49,7 @@ public final class RingYamlManager
      */
     public static File getRingsDir()
     {
-        try
-        {
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                return new File(WormholeXTreme.getThisPlugin().getDataFolder(),
-                    "WormholeXTremeDB" + File.separator + "rings");
-            }
-        }
-        catch (final RuntimeException e)
-        {
-            // Fall through to the relative path below.
-        }
-        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator
-            + "WormholeXTremeDB" + File.separator + "rings");
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "WormholeXTremeDB", "rings");
     }
 
     /**
@@ -383,19 +366,9 @@ public final class RingYamlManager
      */
     private static void write(final File target, final Map<String, Object> root)
     {
-        final DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setIndent(2);
-        final Yaml yaml = new Yaml(options);
         try
         {
-            final File temp = new File(target.getAbsolutePath() + ".tmp");
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, StandardCharsets.UTF_8)))
-            {
-                yaml.dump(root, writer);
-            }
-            Files.move(temp.toPath(), target.toPath(),
-                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            YamlStore.write(target, root);
         }
         catch (final IOException e)
         {
@@ -574,7 +547,11 @@ public final class RingYamlManager
     }
 
     /**
-     * Logs through the plugin when there is one, and stays silent when there is not.
+     * Logs through the plugin when there is one, and through {@code java.util.logging} when
+     * there is not.
+     *
+     * <p>It used to stay silent in the second case. {@link PluginLog} falls back instead, so a
+     * ring file that will not write says so either way.
      *
      * @param level
      *            the severity
@@ -583,9 +560,6 @@ public final class RingYamlManager
      */
     private static void log(final Level level, final String message)
     {
-        if (WormholeXTreme.getThisPlugin() != null)
-        {
-            WormholeXTreme.getThisPlugin().prettyLog(level, message);
-        }
+        PluginLog.log(level, message);
     }
 }

@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
 
 /**
  * Brings gates in from a Wormhole X-Treme database.
@@ -83,10 +84,7 @@ public final class LegacyDatabaseImporter
      */
     public static File findDatabase()
     {
-        final File dir = (WormholeXTreme.getThisPlugin() != null)
-            ? new File(WormholeXTreme.getThisPlugin().getDataFolder(), "WormholeXTremeDB")
-            : new File("plugins" + File.separator + "WormholeXTreme" + File.separator
-                + "WormholeXTremeDB");
+        final File dir = PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "WormholeXTremeDB");
         final File db = new File(dir, DB_NAME);
         return db.isFile() ? db : null;
     }

@@ -1,24 +1,20 @@
 package com.wormhole_xtreme.wormhole.model.beam;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
-import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.utils.PluginDirectory;
+import com.wormhole_xtreme.wormhole.utils.PluginLog;
 import com.wormhole_xtreme.wormhole.utils.YamlMaps;
+import com.wormhole_xtreme.wormhole.utils.YamlStore;
 
 /**
  * Loads and saves beam destinations, in one file.
@@ -35,20 +31,7 @@ public final class BeamYamlManager
 
     public static File getBeamFile()
     {
-        try
-        {
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                return new File(WormholeXTreme.getThisPlugin().getDataFolder(),
-                    "WormholeXTremeDB" + File.separator + "beam.yml");
-            }
-        }
-        catch (final RuntimeException e)
-        {
-            // Fall through to the relative path below.
-        }
-        return new File("plugins" + File.separator + "WormholeXTreme" + File.separator
-            + "WormholeXTremeDB" + File.separator + "beam.yml");
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "WormholeXTremeDB", "beam.yml");
     }
 
     /**
@@ -246,19 +229,9 @@ public final class BeamYamlManager
             return;
         }
 
-        final DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setIndent(2);
-        final Yaml yaml = new Yaml(options);
         try
         {
-            final File temp = new File(target.getAbsolutePath() + ".tmp");
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, StandardCharsets.UTF_8)))
-            {
-                yaml.dump(root, writer);
-            }
-            Files.move(temp.toPath(), target.toPath(),
-                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            YamlStore.write(target, root);
         }
         catch (final IOException e)
         {
@@ -285,18 +258,6 @@ public final class BeamYamlManager
 
     private static void log(final Level level, final String message)
     {
-        try
-        {
-            if (WormholeXTreme.getThisPlugin() != null)
-            {
-                WormholeXTreme.getThisPlugin().prettyLog(level, message);
-                return;
-            }
-        }
-        catch (final RuntimeException e)
-        {
-            // Fall through to java.util.logging below, e.g. when running under a test.
-        }
-        java.util.logging.Logger.getLogger(BeamYamlManager.class.getName()).log(level, message);
+        PluginLog.log(level, message);
     }
 }
