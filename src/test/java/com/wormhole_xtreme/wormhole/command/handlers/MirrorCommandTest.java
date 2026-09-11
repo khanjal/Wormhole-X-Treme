@@ -10,6 +10,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -19,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -42,6 +45,16 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  */
 class MirrorCommandTest
 {
+    /**
+     * Where the command's saves go.
+     *
+     * <p>Every verb that changes a mirror calls saveAll, so without this the plugin mock's
+     * unstubbed data folder sends the file somewhere relative -- which meant these tests were
+     * writing a real data/mirror.yml into whatever directory the suite was run from.
+     */
+    @TempDir
+    File dataFolder;
+
     private Player player;
     private World here;
     private Location standing;
@@ -49,7 +62,9 @@ class MirrorCommandTest
     @BeforeEach
     void setUp() throws Exception
     {
-        PluginTestSupport.install(mock(WormholeXTreme.class));
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        when(plugin.getDataFolder()).thenReturn(dataFolder);
+        PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
         MirrorManager.clear();
 

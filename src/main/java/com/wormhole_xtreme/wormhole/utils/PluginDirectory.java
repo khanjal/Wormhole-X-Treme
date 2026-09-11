@@ -53,7 +53,13 @@ public final class PluginDirectory
         try
         {
             final WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
-            if (plugin != null)
+            // The data folder is checked as well as the plugin. A live server always has one,
+            // but a mock plugin that was never told about it answers null, and
+            // new File((File) null, "data") is a *relative* path rather than an error -- so a
+            // test that forgot to stub it writes real files into whatever directory the suite
+            // was run from. Treating that as "no usable plugin" sends it to the same fallback
+            // as having no plugin at all.
+            if ((plugin != null) && (plugin.getDataFolder() != null))
             {
                 return append(plugin.getDataFolder(), segments);
             }
