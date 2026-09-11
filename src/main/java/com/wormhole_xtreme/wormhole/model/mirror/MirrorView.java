@@ -92,18 +92,31 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         final int oy = at.getBlockY();
         final int oz = at.getBlockZ();
 
+        // The world's own floor and ceiling. Sampling outside them is not merely wasteful:
+        // some servers throw from getBlockAt on an out-of-range Y, and those that instead
+        // answer "air" are worse, because that air counts in the sample and drags the solid
+        // share down -- so a cave near bedrock would read as open sky rather than as indoors.
+        final int floor = world.getMinHeight();
+        final int ceiling = world.getMaxHeight() - 1;
+
         final Tally tally = new Tally();
         for (int x = -RADIUS; x <= RADIUS; x += STEP)
         {
-            for (int y = -BELOW; y <= ABOVE; y += STEP)
+            for (int dy = -BELOW; dy <= ABOVE; dy += STEP)
             {
+                final int y = oy + dy;
+                if ((y < floor) || (y > ceiling))
+                {
+                    continue;
+                }
                 for (int z = -RADIUS; z <= RADIUS; z += STEP)
                 {
-                    tally.add(world.getBlockAt(ox + x, oy + y, oz + z));
+                    tally.add(world.getBlockAt(ox + x, y, oz + z));
                 }
             }
         }
-        return new MirrorView(biomeNameAt(world, ox, oy, oz), topColours(tally.counts),
+        final int biomeY = Math.min(Math.max(oy, floor), ceiling);
+        return new MirrorView(biomeNameAt(world, ox, biomeY, oz), topColours(tally.counts),
             tally.enclosed());
     }
 

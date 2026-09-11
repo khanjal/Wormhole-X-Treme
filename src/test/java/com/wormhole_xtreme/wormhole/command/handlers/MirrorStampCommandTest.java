@@ -84,6 +84,10 @@ class MirrorStampCommandTest
         when(bannerWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(bannerBlock);
 
         farWorld = mock(World.class);
+        // An ordinary overworld's floor and ceiling. The sampler clamps to them, so a mock
+        // that answers 0 to both describes a world of no height and gets sampled nowhere.
+        when(farWorld.getMinHeight()).thenReturn(-64);
+        when(farWorld.getMaxHeight()).thenReturn(320);
         when(farWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
         {
             final Block block = mock(Block.class);

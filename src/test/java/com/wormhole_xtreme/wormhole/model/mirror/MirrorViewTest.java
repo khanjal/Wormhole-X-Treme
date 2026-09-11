@@ -116,6 +116,71 @@ class MirrorViewTest
         assertTrue(view.colours().isEmpty(), "clear glass shows nothing");
     }
 
+    /**
+     * A destination on the bedrock floor samples the world, and nothing below it.
+     *
+     * <p>Two things go wrong without the clamp. Some servers throw from {@code getBlockAt} on
+     * an out-of-range Y; the ones that answer "air" instead are worse, because that air counts
+     * in the sample and drags the solid share down -- so a sealed cave two blocks off bedrock
+     * reads as open sky, which is the opposite of the truth.
+     */
+    @Test
+    @DisplayName("a destination at the bottom of the world does not sample below it")
+    void staysInsideTheWorldFloor()
+    {
+        final MirrorPoint bottom = new MirrorPoint("far", 100, -63, 200, 0f, 0f);
+        final World world = mock(World.class);
+        final List<Integer> read = new java.util.ArrayList<>();
+        when(world.getMinHeight()).thenReturn(-64);
+        when(world.getMaxHeight()).thenReturn(320);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
+        {
+            read.add(invocation.<Integer>getArgument(1));
+            final Block block = mock(Block.class);
+            when(block.getType()).thenReturn(Material.DEEPSLATE);
+            return block;
+        });
+
+        final MirrorView view;
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(world);
+            view = MirrorView.look(bottom);
+        }
+
+        assertTrue(read.stream().allMatch(y -> y >= -64), "nothing below bedrock: " + read);
+        assertTrue(view.enclosed(),
+            "solid stone all round is a room, and the missing rows must not dilute that");
+        assertEquals(DyeColor.GRAY, view.dominant());
+    }
+
+    @Test
+    @DisplayName("a destination at the build limit does not sample above it")
+    void staysInsideTheWorldCeiling()
+    {
+        final MirrorPoint top = new MirrorPoint("far", 100, 318, 200, 0f, 0f);
+        final World world = mock(World.class);
+        final List<Integer> read = new java.util.ArrayList<>();
+        when(world.getMinHeight()).thenReturn(-64);
+        when(world.getMaxHeight()).thenReturn(320);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
+        {
+            read.add(invocation.<Integer>getArgument(1));
+            final Block block = mock(Block.class);
+            when(block.getType()).thenReturn(Material.AIR);
+            return block;
+        });
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(world);
+            MirrorView.look(top);
+        }
+
+        assertFalse(read.isEmpty(), "it should still sample the rows that are inside the world");
+        assertTrue(read.stream().allMatch(y -> y <= 319), "nothing above the ceiling: " + read);
+    }
+
     @Test
     @DisplayName("what comes out cannot be changed underneath the stamp")
     void isImmutable()
@@ -154,6 +219,10 @@ class MirrorViewTest
      */
     private static void stub(final World world, final MaterialAt materials)
     {
+        // An ordinary overworld. Without these the mock answers 0 to both, which would put the
+        // whole sample above a ceiling of -1 and quietly sample nothing at all.
+        when(world.getMinHeight()).thenReturn(-64);
+        when(world.getMaxHeight()).thenReturn(320);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
         {
             final int x = invocation.getArgument(0);
