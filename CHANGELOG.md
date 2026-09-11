@@ -33,7 +33,24 @@ been running on defaults will start reading the file you have been editing.
 - **Quantum mirrors**: a banner you right-click to arrive somewhere else, and the fourth way to
   travel. Nothing to build -- one banner, wall-mounted or freestanding. One-way by design and
   cross-world by default, so a mirror can open onto an archived world without anything being
-  added to it. `/wormhole mirror set|target|link|remove|list`
+  added to it. `/wormhole mirror set|target|link|stamp|remove|list`
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
+- **A mirror can look like where it goes.** `/wormhole mirror stamp <name>` reads the far side
+  and stamps the banner with what it found: the biome there picks the frame, and the three
+  commonest block colours around the arrival point become coarse squares under it. If the
+  destination is indoors -- more than half the sampled blocks solid -- the biome is beside the
+  point, so the room reads by its contents instead and the commonest block in it becomes the
+  cloth. A library comes back the brown of its shelves; a lava field comes back orange whatever
+  biome it sits in.
+
+  Not a window, and a banner cannot be made into one: six flat patterns over a dyed base is the
+  whole canvas. It is an impression, and it is a snapshot -- taken when you stamp and not
+  again, the same bargain `link` already makes.
+
+  Ten looks ship, in plain text files in `shapes/mirror/` beside the gate shapes, and
+  `stamp <name> <look>` applies one by hand with nothing sampled. Edit one and it stays edited,
+  delete one and it comes back, add your own and `stamp` offers it. Format and reasoning in
+  [docs/MIRRORS.md](docs/MIRRORS.md)
   ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - `/wormhole gate validate <gate>` says what a gate is missing -- how many frame blocks are gone,
   and whether the dial sign is still a sign -- rather than only refusing to dial and logging
@@ -239,6 +256,90 @@ Opening onto another *server* is [#257](https://github.com/khanjal/Wormhole-X-Tr
 deliberately separate. The short version of why: `/server` is the proxy's own command, so it
 needs no proxy code here at all -- but a server destination cannot name an arrival point, and
 that is a real loss rather than a detail.
+
+### Looking through the mirror (#22)
+
+The question the cosmetics grew out of: can a mirror show what is on the other side?
+
+Not literally, and that is settled by the canvas rather than by effort. A banner is a dyed base
+plus at most six flat patterns in sixteen colours, and nothing in Bukkit renders a view onto
+one. A real window means a map in an item frame or a display entity -- a different block, a
+render budget per viewer, and a question about refresh rate. Worth its own issue; not worth
+bolting onto a banner.
+
+What a banner can carry is an impression, and an impression is enough. `mirror stamp <name>`
+with no look named goes and reads the destination, and reduces it to two things. The biome at
+the arrival point picks the preset -- the base colour and the frame. Then the blocks in a
+13x7x13 box around the point are counted, mapped to the nearest dye colour, and the three
+commonest become coarse squares laid *under* that frame. The squares are the low-resolution
+part on purpose: three blocks of colour inside a border read as things seen through a doorway,
+where a blend of the same three reads as mud.
+
+**Indoors is the case that breaks the biome half**, and it is a common one -- a mirror into a
+library, a vault, a mineshaft. The biome there describes the ground the roof happens to stand
+on, which is not what anyone standing in the room would say about it. So the sampler also
+reports whether the place is enclosed, at better than half the sampled blocks solid, and when
+it is, the frame comes from `indoors.mirror` and the commonest block in the room becomes the
+cloth rather than a square on it. A library comes back the brown of its shelves with the grey
+of its walls beside them.
+
+Sampled once, at stamp time, and never again. Re-reading on every click would load a distant
+chunk on a click, and -- the stronger reason -- a banner that changed on its own would be worse
+to build with. A look an operator chose should stay chosen.
+
+**Two version traps, both found by checking the jars rather than by remembering.** They are
+the same trap twice, and both compile cleanly here and fail only on a server nobody tested on.
+`PatternType` is an enum through 1.20.6 and an interface from 1.21, so `PatternType.valueOf`
+compiled against this plugin's 1.20.4 target emits a class-method reference the JVM refuses
+against an interface -- `IncompatibleClassChangeError` on every server from 1.21 up.
+`Registry.BANNER_PATTERN` has the opposite problem: absent on 1.20. Reflection is the one route
+across the whole range, paid once per pattern name. `Biome` does the same thing at 1.21.4, so
+its name is read through `Keyed`, an interface throughout -- the key is the lower-case of the
+old enum name, which is exactly how the preset files spell it.
+
+A third in the same family, which the plugin has met before: `Material.isAir()` stopped being a
+switch at 1.20.6 and now goes through the live block registry. Harmless at stamp time, but it
+is the mechanism that once made `Material.isBlock()` throw when this plugin called it too early
+in startup, so the sampler compares names instead -- a few hundred times per stamp, and no
+registry needed to answer.
+
+**Reflection was only half of the `PatternType` fix, and the version matrix found the other
+half.** Three of the seven rows failed, and they were the right three. Going through reflection
+avoids the class-method reference the JVM refuses, but from 1.21 on `PatternType`'s own static
+initialiser builds its constants out of `Registry`, which needs a running server: the first
+attempt to resolve a pattern throws `ExceptionInInitializerError` and every attempt after it
+throws `NoClassDefFoundError`. Both are Errors, and the catch listed only exceptions, so both
+left a command handler by way of something nobody declared. A stamp run before the banner
+registry was ready threw rather than skipping the layer it could not build -- and "this server
+cannot tell me" is the same answer to the caller as "this server does not have it". Caught as
+`LinkageError` now, and the null it produces is cached, because a class whose initialiser has
+failed once is unusable for the life of the JVM.
+
+Two more came out of review. Preset load order was whatever `listFiles` returned -- roughly
+alphabetical on NTFS, hash order on ext4 -- while the registry's own javadoc claimed the order
+was kept and `forBiome` used it to decide which of two presets claiming one biome answers. It
+is sorted by file name now, so the same server restored onto a different filesystem resolves
+the tie the same way. And the sampler read `oy-2` to `oy+4` whatever world it was in: near
+bedrock or the build limit that is a throw on some servers, and on the ones that answer "air"
+instead it is worse than a throw, because the air counts in the sample but not toward the solid
+share -- a sealed cave two blocks off bedrock would have reported a quarter of its sample as
+empty sky, read as outdoors, and picked a biome frame instead of reading the room by its
+contents.
+
+The palette that turns a block into a colour matches on the material's **name**, not on
+`Material` constants, which is the only approach that survives the version range without a
+table per version -- and it keeps working when a new wood is added, because the new block is
+called what its family is called. The cost is that substrings collide, and the collisions are
+the whole test class: `AIR` is inside `OAK_STAIRS`, `LIGHT` inside `LIGHTNING_ROD`, `STONE`
+inside half the block names in the game. The first draft matched the ignore list by `contains`
+and would have dropped every wooden staircase in every castle out of every sample.
+
+Ten looks ship as plain text in `shapes/mirror/`, restored and reloaded exactly the way gate
+shapes are. Only the 34 pattern names present on every supported version are used in them, and
+a preset naming one this server lacks loses that layer with a log line rather than the file.
+Nine mutations were run to check the tests bite: laying the frame under the squares instead of
+over, making everywhere count as indoors, letting air count as solid, ordering the colours
+rarest-first, matching the ignore list loosely. Each one turns its own test red.
 
 ### The material resolution order is written down once (#45)
 

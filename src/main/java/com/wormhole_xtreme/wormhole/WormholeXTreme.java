@@ -498,6 +498,19 @@ public class WormholeXTreme extends JavaPlugin
         // Load our shapes and internal permissions. Stargates are loaded in onEnable
         // because world creation is not allowed during plugin startup (onLoad).
         StargateShapeRegistry.loadShapes();
+        // Mirror looks, beside gate shapes and read the same way. A failure here must not
+        // stop a server starting: a mirror with no look is still a working mirror.
+        try
+        {
+            final int presets =
+                com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load();
+            prettyLog(Level.INFO, true, LOADED + presets + " mirror look"
+                + (presets == 1 ? "" : "s") + ".");
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to load mirror looks", e);
+        }
         prettyLog(Level.INFO, true, "Load Completed.");
     }
 

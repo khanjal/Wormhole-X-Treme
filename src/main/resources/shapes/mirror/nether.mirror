@@ -1,0 +1,7 @@
+# A mirror onto the Nether. The format is documented in docs/MIRRORS.md.
+Name=nether
+Base=RED
+Biome=NETHER_WASTES,CRIMSON_FOREST,WARPED_FOREST,SOUL_SAND_VALLEY,BASALT_DELTAS
+Layer=BLACK TRIANGLES_BOTTOM
+Layer=ORANGE GRADIENT_UP
+Layer=BLACK BORDER

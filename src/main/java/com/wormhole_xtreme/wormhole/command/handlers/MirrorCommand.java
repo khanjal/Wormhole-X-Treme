@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,6 +19,10 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPreset;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorStamp;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
@@ -32,6 +37,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * mirror set &lt;name&gt;           look at a banner; it becomes a mirror by that name
  * mirror target &lt;name&gt;        stand where arrivals should land; point that mirror here
  * mirror link &lt;from&gt; &lt;to&gt;     point one mirror at the spot in front of another's banner
+ * mirror stamp &lt;name&gt; [look]  make the banner look like where it goes
  * mirror remove &lt;name&gt;        forget it; the banner becomes an ordinary banner again
  * mirror list                 what exists and where each one goes
  * </pre>
@@ -40,6 +46,12 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * an ordinary point, so nothing downstream knows a second mirror was involved. It is a
  * snapshot rather than a subscription -- move the target banner afterwards and the first
  * mirror still points where it used to.
+ *
+ * <p>{@code stamp} is the same kind of snapshot, and deliberately so. Named a look, it applies
+ * that look and nothing else. Given no look, it goes and reads the far side -- the biome there
+ * picks the frame, and the blocks around the arrival point become a few coarse squares in the
+ * colours that dominate. A corridor of stamped mirrors then reads as a row of labelled doors
+ * without anyone having chosen a label.
  *
  * <p>Every verb needs the config node, the same as gate and ring management: a mirror moves
  * players between worlds, which is not something to leave open to anyone who can run
@@ -52,7 +64,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 public class MirrorCommand implements SubCommand
 {
     /** What this command answers to, for the usage line and tab completion. */
-    private static final String[] VERBS = { "set", "target", "link", "remove", "list" };
+    private static final String[] VERBS = { "set", "target", "link", "stamp", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -75,6 +87,7 @@ public class MirrorCommand implements SubCommand
             case "set" -> set(sender, args);
             case "target" -> target(sender, args);
             case "link" -> link(sender, args);
+            case "stamp" -> stamp(sender, args);
             case "remove" -> remove(sender, args);
             case "list" -> list(sender);
             default -> usage(sender);
@@ -223,6 +236,181 @@ public class MirrorCommand implements SubCommand
         MirrorManager.add(pointed);
         MirrorYamlManager.saveAll();
         say(sender, "'" + mirror.name() + "' now opens onto " + describe(destination) + ".");
+    }
+
+    /**
+     * Makes a mirror's banner look like where it goes.
+     *
+     * <p>Named a preset, it applies that one. Named nothing, it looks through: the destination's
+     * biome picks the preset and the blocks around the arrival point become the squares. Both
+     * end at the same place -- patterns on a banner -- so the difference is only where the
+     * colours came from.
+     */
+    private static void stamp(final CommandSender sender, final String[] args)
+    {
+        if (!named(sender, args, "stamp <name> [" + presetChoices() + "]"))
+        {
+            return;
+        }
+        final QuantumMirror mirror = known(sender, args[2]);
+        if (mirror == null)
+        {
+            return;
+        }
+        final Block banner = bannerBlockOf(sender, mirror);
+        if (banner == null)
+        {
+            return;
+        }
+        if (args.length > 3)
+        {
+            stampWith(sender, mirror, banner, args[3]);
+            return;
+        }
+        stampFromDestination(sender, mirror, banner);
+    }
+
+    /** Applies one named preset, and says so or says why not. */
+    private static void stampWith(final CommandSender sender, final QuantumMirror mirror,
+        final Block banner, final String presetName)
+    {
+        final MirrorPreset preset = MirrorPresetRegistry.byName(presetName);
+        if (preset == null)
+        {
+            final String[] names = MirrorPresetRegistry.names();
+            say(sender, (names.length == 0)
+                ? "There are no looks loaded at all -- check the server log for what went"
+                    + " wrong reading shapes/mirror."
+                : "There is no look called '" + presetName + "'. Try one of: "
+                    + String.join(", ", names));
+            return;
+        }
+        if (MirrorStamp.apply(banner, preset))
+        {
+            say(sender, "'" + mirror.name() + "' looks like " + preset.name() + " now.");
+        }
+        else
+        {
+            say(sender, "That banner could not be stamped.");
+        }
+    }
+
+    /**
+     * Reads the far side and stamps what it found.
+     *
+     * <p>Refuses on an unpointed mirror rather than stamping a default. A banner that looks
+     * like somewhere when it goes nowhere is worse than one that still looks like a banner:
+     * the whole point of the look is that it tells you where the thing goes.
+     */
+    private static void stampFromDestination(final CommandSender sender,
+        final QuantumMirror mirror, final Block banner)
+    {
+        final MirrorPoint destination = mirror.destination();
+        if (destination == null)
+        {
+            say(sender, "'" + mirror.name() + "' does not go anywhere yet, so there is nothing");
+            say(sender, "to look at. Point it first, or name a look: /wormhole mirror stamp "
+                + mirror.name() + " " + firstPresetName());
+            return;
+        }
+        final MirrorView view = MirrorView.look(destination);
+        if (view == null)
+        {
+            say(sender, destination.worldName() + " is not loaded, so the far side cannot be"
+                + " read. Name a look instead, or try again once that world is up.");
+            return;
+        }
+        final MirrorPreset preset = view.enclosed()
+            ? MirrorPresetRegistry.indoors()
+            : MirrorPresetRegistry.forBiome(view.biome());
+        if (preset == null)
+        {
+            say(sender, "No mirror looks are loaded, so there is nothing to stamp with."
+                + " Check the server log for what went wrong reading shapes/mirror.");
+            return;
+        }
+        if (MirrorStamp.apply(banner, preset, view))
+        {
+            say(sender, "'" + mirror.name() + "' now shows " + describe(view, preset) + ".");
+        }
+        else
+        {
+            say(sender, "That banner could not be stamped.");
+        }
+    }
+
+    /**
+     * What was found over there, as a person would say it.
+     *
+     * <p>The colour is read once into a local rather than asked for twice. Null-checking one
+     * call and dereferencing another is only safe if the method is pure, which is true here and
+     * is exactly the kind of thing that stops being true later.
+     */
+    private static String describe(final MirrorView view, final MirrorPreset preset)
+    {
+        final DyeColor dominant = view.dominant();
+        final String where = whereItIs(view, preset);
+        return (dominant == null)
+            ? where
+            : where + ", mostly " + dominant.name().toLowerCase(Locale.ROOT);
+    }
+
+    /** Indoors reads as indoors; otherwise the biome, or the preset's name if it has none. */
+    private static String whereItIs(final MirrorView view, final MirrorPreset preset)
+    {
+        if (view.enclosed())
+        {
+            return "somewhere indoors";
+        }
+        return view.biome().isEmpty() ? preset.name() : view.biome().toLowerCase(Locale.ROOT);
+    }
+
+    /** @return a preset name to suggest, or a placeholder if none are loaded */
+    private static String firstPresetName()
+    {
+        final String[] names = MirrorPresetRegistry.names();
+        return (names.length == 0) ? "<look>" : names[0];
+    }
+
+    /**
+     * The looks on offer, for a usage line.
+     *
+     * <p>A placeholder when there are none, because {@code stamp <name> []} reads as an empty
+     * required argument rather than as an optional one nobody can currently fill.
+     *
+     * @return the names separated by bars, or {@code <look>}
+     */
+    private static String presetChoices()
+    {
+        final String[] names = MirrorPresetRegistry.names();
+        return (names.length == 0) ? "<look>" : String.join("|", names);
+    }
+
+    /**
+     * The live block a mirror's banner is, or null with the reason already sent.
+     *
+     * <p>Unlike {@code set}, this does not use what the player is looking at. Stamping is
+     * named, so it can be run from anywhere -- including on a mirror in another world, which
+     * is the case that makes a corridor of them worth stamping in the first place.
+     */
+    private static Block bannerBlockOf(final CommandSender sender, final QuantumMirror mirror)
+    {
+        final MirrorBlock at = mirror.banner();
+        final World world = Bukkit.getWorld(at.worldName());
+        if (world == null)
+        {
+            say(sender, "'" + mirror.name() + "' is in " + at.worldName()
+                + ", which is not loaded, so its banner cannot be stamped.");
+            return null;
+        }
+        final Block block = world.getBlockAt(at.x(), at.y(), at.z());
+        if (!block.getType().name().endsWith("BANNER"))
+        {
+            say(sender, "'" + mirror.name() + "' is not a banner any more. Put one back, or"
+                + " re-run mirror set on a banner that is there.");
+            return null;
+        }
+        return block;
     }
 
     private static void remove(final CommandSender sender, final String[] args)

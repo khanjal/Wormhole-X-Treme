@@ -86,7 +86,7 @@ across; it is a command you run, not something that happens to your data on star
 
 **Beaming** — [Overview](#beaming) · [Beam commands](#beam-commands) · [Beam settings](#beam-settings) · [Beam sounds](#beam-sounds)
 
-**Quantum mirrors** — [Overview](#quantum-mirrors) · [Setting one up](#setting-one-up)
+**Quantum mirrors** — [Overview](#quantum-mirrors) · [Setting one up](#setting-one-up) · [Making it look like where it goes](#making-it-look-like-where-it-goes)
 
 **Sound** — [Gate and ring sounds](#sounds)
 
@@ -94,7 +94,7 @@ across; it is a command you run, not something that happens to your data on star
 
 **Writing a plugin against this one** — [docs/API.md](docs/API.md)
 
-**How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md) · [docs/BEAMS.md](docs/BEAMS.md)
+**How it works inside** — [docs/GATES.md](docs/GATES.md) · [docs/RINGS.md](docs/RINGS.md) · [docs/BEAMS.md](docs/BEAMS.md) · [docs/MIRRORS.md](docs/MIRRORS.md)
 
 **Also** — [Developer notes](#developer-notes) · [Credits](#credits) · [Contributing](#contributing) · [Logo](docs/LOGO.md) · [Captures](docs/CAPTURES.md) · [Name and logo policy](TRADEMARK.md)
 
@@ -495,14 +495,17 @@ alone.
 
 ## Shapes
 
-Gate shapes live under:
+Shapes live under:
 
 ```
-plugins/WormholeXTreme/shapes/gate/
+plugins/WormholeXTreme/shapes/gate/      the shapes gates are built from
+plugins/WormholeXTreme/shapes/mirror/    the looks a mirror's banner can wear
 ```
 
-Split by what the shape describes, not by its geometry — so a quantum mirror, when it arrives,
-gets `shapes/mirror/` rather than sharing a folder named for gates.
+Split by what the shape describes, not by its geometry — which is why a mirror's looks got
+`shapes/mirror/` when they arrived rather than sharing a folder named for gates. Both folders
+work the same way: the shipped files are written out on first run, a deleted one comes back on
+the next startup, an edited one is left alone, and anything you add beside them is loaded.
 
 Two earlier layouts are migrated on startup, and nothing is deleted from either:
 
@@ -1376,6 +1379,7 @@ still opens onto where it used to be — run `link` again to follow it.
 | `mirror set <name>` | Makes the banner you are looking at a mirror by that name |
 | `mirror target <name>` | Points that mirror at where you are standing |
 | `mirror link <from> <to>` | Points one mirror at the spot in front of another's banner |
+| `mirror stamp <name> [look]` | Makes the banner look like where it goes |
 | `mirror remove <name>` | Forgets it; the banner becomes an ordinary banner again |
 | `mirror list` | Every mirror and where it opens onto |
 
@@ -1384,6 +1388,40 @@ between worlds, which is not something to leave open to anyone who can run `/wor
 
 Either kind of banner works: wall-mounted or freestanding on a post. A mirror whose far side is
 in an unloaded world says so when you click it, the same way a beam destination does.
+
+### Making it look like where it goes
+
+A corridor of plain white banners tells you nothing. `stamp` fixes that, and the interesting
+form is the one with no look named:
+
+```
+/wormhole mirror stamp museum
+```
+
+That goes and reads the destination. The biome there picks the frame — black and rising flame
+for the Nether, white crests over blue for an ocean — and the blocks around the arrival point
+become three coarse squares in whatever colours dominate, laid underneath it. A lava field
+comes back orange whatever biome it sits in.
+
+If the far side turns out to be **indoors**, the biome is beside the point: it describes the
+ground the roof stands on. So a room reads by its contents instead, and the commonest block in
+it becomes the banner's own colour. A library comes back the brown of its shelves, with the
+grey of its walls beside them.
+
+It is not a live window — a banner cannot render one. It is a snapshot, taken when you stamp
+and not again, the same bargain `link` makes. Rebuild the far side and stamp it again.
+
+Or name a look and get exactly that, with nothing sampled:
+
+```
+/wormhole mirror stamp museum cavern
+```
+
+Ten ship with the plugin — `nether`, `end`, `ocean`, `forest`, `desert`, `frozen`, `cavern`,
+`mountain`, `overworld` and `indoors` — and they are plain text files in `shapes/mirror/`,
+beside the gate shapes. Edit one and it stays edited; delete one and it comes back on the next
+startup. Add your own and `stamp` offers it. The format and the reasoning behind all of this
+are in [MIRRORS.md](docs/MIRRORS.md).
 
 ## Sounds
 
