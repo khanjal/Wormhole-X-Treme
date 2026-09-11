@@ -91,6 +91,20 @@ public final class DataLayout
     }
 
     /**
+     * The single file holding every quantum mirror.
+     *
+     * <p>One file rather than one per world, matching beam rather than rings. Rings shard by
+     * world because a pair can never span two, so the layout enforces the rule; a mirror is
+     * required to span two by default, so there is no world it would belong to.
+     *
+     * @return the mirror file
+     */
+    public static File mirrorFile()
+    {
+        return new File(data(), "mirror.yml");
+    }
+
+    /**
      * The folder this fork's data used to share with another fork's database.
      *
      * <p>Still read, for two reasons that have nothing to do with each other: the importer

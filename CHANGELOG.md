@@ -30,6 +30,11 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **Quantum mirrors**: a banner you right-click to arrive somewhere else, and the fourth way to
+  travel. Nothing to build -- one banner, wall-mounted or freestanding. One-way by design and
+  cross-world by default, so a mirror can open onto an archived world without anything being
+  added to it. `/wormhole mirror set|target|link|remove|list`
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - `/wormhole gate validate <gate>` says what a gate is missing -- how many frame blocks are gone,
   and whether the dial sign is still a sign -- rather than only refusing to dial and logging
   about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
@@ -168,6 +173,72 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### A fourth way to travel, and the first one you can see (#22)
+
+A quantum mirror is a banner. Right-click it and you are somewhere else.
+
+That is the whole build. No ring of blocks, no pad to pair, no dialling -- which is the point:
+a corridor lined with one banner per archived world is practical in a way a corridor of gates
+is not. Gates, rings and beaming are all invisible or abstract by design, and this is the one
+a player can walk up to and recognise.
+
+**One-way, deliberately.** A mirror sends you to a place, and that place does not know a mirror
+points at it. A return trip is a second mirror at the far end, bound home. This is what lets a
+mirror open onto a world you would rather not build in at all -- an archived snapshot needs
+nothing added to it to be somewhere a mirror can reach, which is exactly the case #22 was filed
+for.
+
+That also settled what a destination *is*. Binding mirrors to each other reads better -- step
+through one, come out of the other -- but it makes a banner on the far side mandatory, which is
+the requirement one-way exists to avoid. So a destination is a plain point. `mirror link` gets
+the ergonomics back without the cost: it works out the spot in front of a target banner once
+and stores an ordinary point, so nothing downstream knows a second mirror was ever involved.
+Worth knowing that it is a snapshot rather than a subscription -- move the target banner and
+the first mirror still opens onto where it used to be.
+
+**Cross-world by default, and it refuses otherwise.** This is the opposite polarity to gates,
+where `same-world-only` lets an admin restrict travel and defaults to not restricting. A mirror
+is the bridge *between* two worlds; that is what separates it from a beam place, which is how
+you name a point in the world you are already in. `mirror-allow-same-world` relaxes it for an
+admin who wants one anyway. One world can still hold any number of mirrors, each onto a
+different world -- the rule is about a single mirror's own two ends.
+
+Binding is two steps, which differs from what the issue describes and has to. You must be
+looking at the banner to say which one it is, and standing at the arrival spot to say where it
+goes, and no single command can be in both places. The cross-world refusal therefore lands at
+`target`/`link` time rather than at `set` time: a mirror named but not yet pointed has only one
+world, so there is nothing yet to compare.
+
+**The click path was the part that needed care.** It runs on every right-click of every block
+on the server. The first version asked the registry straight away, which meant building a key,
+which meant `getWorld()` on the block -- and `InteractLoggingCostTest`, which exists to fail
+when that path touches the world, duly failed. The block's own type is checked first now,
+against a set of banner materials built once at class-init. Derived from `Material.values()` by
+name rather than listed out, because sixteen colours times two families is precisely the list
+that gets written down as fourteen entries; and not `Tag.BANNERS`, which is a registry lookup
+at a point in startup this project has been bitten at before.
+
+Both banner families work. A wall banner is `Directional` and faces one of four cardinals, a
+freestanding one is `Rotatable` and faces one of sixteen, and there is no interface in common --
+reading only the first works on every banner on a wall and fails silently on every banner on a
+post, which is most of a museum corridor.
+
+Thirty-one tests. The two mutations that matter both land: recognising only `WALL_BANNER` turns
+the freestanding test red, and removing the type gate turns *two* tests red -- one of them the
+project's own hot-path guard. That second one is worth noting, because dropping the gate leaves
+mirrors working perfectly; only a cost test can defend it.
+
+Mirrors are their own registry and their own file, `data/mirror.yml`, the way gates, rings and
+beam are each their own. Not an entry bolted onto beaming -- #22 is emphatic that a mirror is
+not beaming wearing a banner as a costume, and the only things reused are the plumbing beaming
+already proved: the shape of a named point that resolves a world by name, and
+`WorldUtils.findSafePlayerLocation` for the arrival.
+
+Opening onto another *server* is [#257](https://github.com/khanjal/Wormhole-X-Treme/issues/257),
+deliberately separate. The short version of why: `/server` is the proxy's own command, so it
+needs no proxy code here at all -- but a server destination cannot name an arrival point, and
+that is a real loss rather than a detail.
 
 ### The material resolution order is written down once (#45)
 

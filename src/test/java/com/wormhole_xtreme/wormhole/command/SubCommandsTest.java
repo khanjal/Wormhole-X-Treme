@@ -32,17 +32,19 @@ class SubCommandsTest
     }
 
     @Test
-    void whatIsAdvertisedIsTheFiveNamesAndNothingElse()
+    void whatIsAdvertisedIsTheSixNamesAndNothingElse()
     {
-        // The commands were restructured under nouns that behave alike (gate, ring, beam --
-        // three ways to travel), the settings, and the one thing that is neither. Twenty-two
-        // names at the top level was how a plugin ends up with a help message nobody reads.
+        // The commands were restructured under nouns that behave alike -- four ways to travel
+        // now (gate, ring, beam, mirror), the settings, and the one thing that is neither.
+        // Twenty-two names at the top level was how a plugin ends up with a help message
+        // nobody reads, and the guard against drifting back is that this list is exact: a new
+        // noun has to be added here deliberately rather than appearing unnoticed.
+        final List<String> expected =
+            java.util.Arrays.asList("gate", "ring", "beam", "mirror", "compass", "config");
         final List<String> offered = SubCommands.namesMatching("");
-        assertEquals(java.util.Arrays.asList("gate", "ring", "beam", "compass", "config"),
-            offered.stream().sorted(java.util.Comparator.comparing(
-                n -> java.util.Arrays.asList("gate", "ring", "beam", "compass", "config").indexOf(n)))
-                .toList(),
-            "the advertised list should be exactly the five nouns");
+        assertEquals(expected,
+            offered.stream().sorted(java.util.Comparator.comparing(expected::indexOf)).toList(),
+            "the advertised list should be exactly the six nouns");
     }
 
     @Test

@@ -98,7 +98,8 @@ class DefaultSettings
         new Setting(ConfigKeys.BEAM_FADE_TICKS, 8, "How long, in ticks, the column takes to fade out once it has deposited the traveller.", SECTION),
         new Setting(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED, false, "Whether beam travel has a per-player cooldown at all.", SECTION),
         new Setting(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between beams, when the cooldown above is enabled.", SECTION),
-        new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. Set to 0.0 to disable. Uses the same Vault connection as gate costs -- ECONOMY_ENABLED must also be true.", SECTION)
+        new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. Set to 0.0 to disable. Uses the same Vault connection as gate costs -- ECONOMY_ENABLED must also be true.", SECTION),
+        new Setting(ConfigKeys.MIRROR_ALLOW_SAME_WORLD, false, "Whether a quantum mirror may point somewhere in the world it stands in. False by default: a mirror is the bridge between two worlds, which is what separates it from a beam place. Turn this on if you want a mirror that connects two points in one world anyway.", SECTION)
     };
 
 }

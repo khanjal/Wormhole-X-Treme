@@ -934,6 +934,15 @@ class WormholeXTremePlayerListener implements Listener
         {
             event.setCancelled(true);
             logClick(event, "Cancelled Player: \"");
+            return;
+        }
+        // Mirrors after gates, and only if the gate handler did not claim the click. The two
+        // never want the same block -- a dial sign is not a banner -- but asking in a fixed
+        // order means that if one ever did, the older mechanic keeps the behaviour it has.
+        if (com.wormhole_xtreme.wormhole.model.mirror.MirrorInteraction.handle(event))
+        {
+            event.setCancelled(true);
+            logClick(event, "Cancelled Player: \"");
         }
     }
 
