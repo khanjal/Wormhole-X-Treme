@@ -122,38 +122,17 @@ public final class MirrorStamp
     }
 
     /**
-     * A banner state wearing a look, not written to the world.
-     *
-     * <p>{@code Block.getState()} hands back a copy, so dressing it and never calling
-     * {@code update()} produces exactly what a per-player packet needs: an appearance that
-     * exists only for whoever it is sent to.
-     *
-     * <p>Used to put a proximity mirror's look <em>back</em> for somebody who has been shown
-     * the blank. The world's own banner is stamped throughout -- it is
-     * {@link #blankState(Block)} that makes the temporary copy, not this.
-     *
-     * @param block
-     *            the banner block
-     * @param look
-     *            what to dress the copy in
-     * @return the detached state, or null if that block is not a banner or there is no look
-     */
-    public static Banner lookState(final Block block, final MirrorLook look)
-    {
-        if ((look == null) || look.isEmpty())
-        {
-            return null;
-        }
-        return dress(block, look.preset(), look.view());
-    }
-
-    /**
      * A banner state with every pattern taken off, not written to the world.
      *
-     * <p>What a proximity mirror looks like to somebody too far away to have been shown it.
-     * Detached, like {@link #lookState}, because the world's own banner stays stamped -- the
-     * patterns are vanilla data and outlive this plugin, so the blank is the illusion and the
-     * stamped banner is the truth, not the other way round.
+     * <p>What a proximity mirror looks like to somebody too far away to have been shown it,
+     * and the only detached state this makes. {@code Block.getState()} hands back a copy, so
+     * undressing it and never calling {@code update()} produces exactly what a per-player
+     * packet needs: an appearance that exists for one viewer and changes nothing.
+     *
+     * <p>There is no matching "dressed copy" method, and there should not be. Putting the look
+     * back for somebody means sending them the block as it really is -- the world's own banner
+     * is stamped throughout, because the patterns are vanilla data and outlive this plugin. So
+     * the blank is the illusion and the stamped banner is the truth, not the other way round.
      *
      * <p>The base colour is left alone rather than forced to white: it is whatever banner the
      * operator hung there, and a mirror that is off should still look like the thing they
