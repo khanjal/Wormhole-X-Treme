@@ -303,6 +303,29 @@ is the mechanism that once made `Material.isBlock()` throw when this plugin call
 in startup, so the sampler compares names instead -- a few hundred times per stamp, and no
 registry needed to answer.
 
+**Reflection was only half of the `PatternType` fix, and the version matrix found the other
+half.** Three of the seven rows failed, and they were the right three. Going through reflection
+avoids the class-method reference the JVM refuses, but from 1.21 on `PatternType`'s own static
+initialiser builds its constants out of `Registry`, which needs a running server: the first
+attempt to resolve a pattern throws `ExceptionInInitializerError` and every attempt after it
+throws `NoClassDefFoundError`. Both are Errors, and the catch listed only exceptions, so both
+left a command handler by way of something nobody declared. A stamp run before the banner
+registry was ready threw rather than skipping the layer it could not build -- and "this server
+cannot tell me" is the same answer to the caller as "this server does not have it". Caught as
+`LinkageError` now, and the null it produces is cached, because a class whose initialiser has
+failed once is unusable for the life of the JVM.
+
+Two more came out of review. Preset load order was whatever `listFiles` returned -- roughly
+alphabetical on NTFS, hash order on ext4 -- while the registry's own javadoc claimed the order
+was kept and `forBiome` used it to decide which of two presets claiming one biome answers. It
+is sorted by file name now, so the same server restored onto a different filesystem resolves
+the tie the same way. And the sampler read `oy-2` to `oy+4` whatever world it was in: near
+bedrock or the build limit that is a throw on some servers, and on the ones that answer "air"
+instead it is worse than a throw, because the air counts in the sample but not toward the solid
+share -- a sealed cave two blocks off bedrock would have reported a quarter of its sample as
+empty sky, read as outdoors, and picked a biome frame instead of reading the room by its
+contents.
+
 The palette that turns a block into a colour matches on the material's **name**, not on
 `Material` constants, which is the only approach that survives the version range without a
 table per version -- and it keeps working when a new wood is added, because the new block is
