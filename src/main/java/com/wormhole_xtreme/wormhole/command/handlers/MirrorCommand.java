@@ -199,7 +199,7 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final String thisName = (args.length > 3) ? args[3] : args[2] + "-return";
+        final String thisName = (args.length > 3) ? args[3] : freeNameFrom(args[2] + "-return");
         if (thisName.equalsIgnoreCase(other.name()))
         {
             say(sender, "A mirror cannot open onto itself.");
@@ -225,6 +225,31 @@ public class MirrorCommand implements SubCommand
             say(sender, "'" + here.name() + "' and '" + other.name()
                 + "' now open onto each other.");
         }
+    }
+
+    /**
+     * A name nobody is using, starting from the one derived for this side.
+     *
+     * <p>Only for the derived name. A name given on purpose may well be an existing mirror --
+     * that is how two banners already bound get tied together -- but a derived one silently
+     * landing on somebody else's mirror would repoint a banner the operator never mentioned,
+     * in a command they ran while looking at a different one entirely.
+     *
+     * @param wanted
+     *            the name derived from the other side
+     * @return that name, or the first numbered variant of it that is free
+     */
+    private static String freeNameFrom(final String wanted)
+    {
+        String candidate = wanted;
+        // Two is where a human starts counting a second one of something.
+        int suffix = 2;
+        while (MirrorManager.byName(candidate) != null)
+        {
+            candidate = wanted + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
     }
 
     /**

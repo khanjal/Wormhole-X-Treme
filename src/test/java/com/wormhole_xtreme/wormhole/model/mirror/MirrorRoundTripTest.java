@@ -213,6 +213,46 @@ class MirrorRoundTripTest
         assertEquals(100.5, arrival.z(), 0.001);
     }
 
+    /**
+     * A derived name already in use does not quietly repoint somebody else's mirror.
+     *
+     * <p>The nasty shape: an unrelated mirror already called {@code nether-return} would have
+     * been picked up and re-pointed, in a command run while looking at a different banner
+     * entirely. The banner in front of the operator is what they meant; the derived name just
+     * has to be one nobody is using.
+     */
+    @Test
+    void aDerivedNameAlreadyTakenDoesNotRepointTheMirrorThatHasIt()
+    {
+        final Block unrelated = banner(overworld, 50, 64, 50, BlockFace.EAST);
+        MirrorManager.add(new QuantumMirror("nether-return",
+            new MirrorBlock("world", 50, 64, 50), null));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(overworld);
+            bukkit.when(() -> Bukkit.getWorld("world_nether")).thenReturn(nether);
+
+            standingAt(overworld, 10, 64, 12);
+            lookingAt(overworldBanner);
+            run("mirror", "set", "nether");
+
+            standingAt(nether, 100, 32, 98);
+            lookingAt(netherBanner);
+            assertTrue(run("mirror", "link", "nether"));
+        }
+
+        assertNull(MirrorManager.byName("nether-return").destination(),
+            "the mirror that already had the derived name should be left alone");
+        assertNotNull(MirrorManager.byName("nether-return-2"),
+            "the banner being looked at should get the next free name");
+        assertEquals("world", MirrorManager.byName("nether-return-2").destination().worldName());
+        assertEquals(new MirrorBlock("world_nether", 100, 32, 100),
+            MirrorManager.byName("nether-return-2").banner(),
+            "and it should be the banner the operator was actually looking at");
+        assertNotNull(unrelated, "the unrelated banner is still just a banner");
+    }
+
     /** A name for this side can still be given, for somebody who wants to choose it. */
     @Test
     void aNameForThisSideCanBeGivenInstead()
