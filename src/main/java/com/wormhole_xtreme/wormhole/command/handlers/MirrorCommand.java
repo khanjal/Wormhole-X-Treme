@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -24,7 +26,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  *
  * <p>Binding is two steps because the two pieces of information are in two places: you have to
  * be looking at the banner to say which one it is, and standing at the arrival spot to say
- * where it goes. No single command can be in both places.
+ * where it goes. No single command can be in both.
  *
  * <pre>
  * mirror set &lt;name&gt;           look at a banner; it becomes a mirror by that name
@@ -37,11 +39,15 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * <p>{@code link} is sugar over {@code target}: it works the arrival spot out once and stores
  * an ordinary point, so nothing downstream knows a second mirror was involved. It is a
  * snapshot rather than a subscription -- move the target banner afterwards and the first
- * mirror still points where it used to be.
+ * mirror still points where it used to.
  *
  * <p>Every verb needs the config node, the same as gate and ring management: a mirror moves
  * players between worlds, which is not something to leave open to anyone who can run
  * {@code /wormhole}.
+ *
+ * <p>The helpers below return {@code void} rather than the {@code true} that would let each
+ * caller write {@code return helper(...)} on one line. That boolean would carry nothing, and
+ * this project already went through thirty-four helpers that had it and took it out.
  */
 public class MirrorCommand implements SubCommand
 {
@@ -54,6 +60,8 @@ public class MirrorCommand implements SubCommand
         return VERBS.clone();
     }
 
+    /** True means handled, which is what Bukkit wants; every path here has handled it. */
+    @SuppressWarnings("java:S3516")
     @Override
     public boolean execute(final CommandSender sender, final String[] args)
     {
@@ -64,42 +72,36 @@ public class MirrorCommand implements SubCommand
         final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "";
         switch (verb)
         {
-            case "set":
-                return set(sender, args);
-            case "target":
-                return target(sender, args);
-            case "link":
-                return link(sender, args);
-            case "remove":
-                return remove(sender, args);
-            case "list":
-                return list(sender);
-            default:
-                return usage(sender);
+            case "set" -> set(sender, args);
+            case "target" -> target(sender, args);
+            case "link" -> link(sender, args);
+            case "remove" -> remove(sender, args);
+            case "list" -> list(sender);
+            default -> usage(sender);
         }
+        return true;
     }
 
-    private static boolean usage(final CommandSender sender)
+    private static void usage(final CommandSender sender)
     {
         say(sender, "Usage: /wormhole mirror <" + String.join("|", VERBS) + ">");
         say(sender, "A mirror is a banner you click to travel. Name one with 'set' while");
         say(sender, "looking at it, then point it with 'target' or 'link'.");
-        return true;
     }
 
     /** Names the banner the player is looking at. */
-    private static boolean set(final CommandSender sender, final String[] args)
+    private static void set(final CommandSender sender, final String[] args)
     {
         final Player player = asPlayer(sender);
         if ((player == null) || !named(sender, args, "set <name>"))
         {
-            return true;
+            return;
         }
         final String name = args[2];
         final Block block = lookedAtBanner(player);
         if (block == null)
         {
-            return true;
+            return;
         }
         final QuantumMirror existing = MirrorManager.byName(name);
         final MirrorPoint keep = (existing == null) ? null : existing.destination();
@@ -116,42 +118,47 @@ public class MirrorCommand implements SubCommand
             say(sender, "Mirror '" + name + "' is this banner now, still pointing at "
                 + describe(keep) + ".");
         }
-        return true;
     }
 
     /** Points a named mirror at where the player is standing. */
-    private static boolean target(final CommandSender sender, final String[] args)
+    private static void target(final CommandSender sender, final String[] args)
     {
         final Player player = asPlayer(sender);
         if ((player == null) || !named(sender, args, "target <name>"))
         {
-            return true;
+            return;
         }
         final QuantumMirror mirror = known(sender, args[2]);
-        return (mirror == null) || point(sender, mirror, MirrorPoint.of(player.getLocation()));
+        if (mirror != null)
+        {
+            point(sender, mirror, MirrorPoint.of(player.getLocation()));
+        }
     }
 
     /** Points one mirror at the spot in front of another mirror's banner. */
-    private static boolean link(final CommandSender sender, final String[] args)
+    private static void link(final CommandSender sender, final String[] args)
     {
         if (args.length < 4)
         {
             say(sender, "Usage: /wormhole mirror link <from> <to>");
-            return true;
+            return;
         }
         final QuantumMirror from = known(sender, args[2]);
         final QuantumMirror to = known(sender, args[3]);
         if ((from == null) || (to == null))
         {
-            return true;
+            return;
         }
         if (from.name().equalsIgnoreCase(to.name()))
         {
             say(sender, "A mirror cannot open onto itself.");
-            return true;
+            return;
         }
         final Location arrival = arrivalAt(sender, to);
-        return (arrival == null) || point(sender, from, MirrorPoint.of(arrival));
+        if (arrival != null)
+        {
+            point(sender, from, MirrorPoint.of(arrival));
+        }
     }
 
     /**
@@ -159,14 +166,19 @@ public class MirrorCommand implements SubCommand
      *
      * <p>Needs the banner's own world loaded, because the facing has to be read off the live
      * block -- there is nowhere else it is recorded. A mirror in an unloaded world can still
-     * be the *source* of a link; it just cannot be the target of one until its world is up.
+     * be the <em>source</em> of a link; it just cannot be the target of one until its world is
+     * up.
      *
+     * @param sender
+     *            who to tell if it cannot be worked out
+     * @param to
+     *            the mirror being linked to
      * @return the arrival location, or null with the reason already sent
      */
     private static Location arrivalAt(final CommandSender sender, final QuantumMirror to)
     {
         final MirrorBlock banner = to.banner();
-        final org.bukkit.World world = org.bukkit.Bukkit.getWorld(banner.worldName());
+        final World world = Bukkit.getWorld(banner.worldName());
         if (world == null)
         {
             say(sender, "'" + to.name() + "' is in " + banner.worldName()
@@ -189,9 +201,14 @@ public class MirrorCommand implements SubCommand
      * <p>The refusal is here rather than at {@code set} time because this is the first moment
      * both worlds are known -- a mirror named but not yet pointed has only one.
      *
-     * @return always true; the command was handled either way
+     * @param sender
+     *            who to tell
+     * @param mirror
+     *            the mirror being pointed
+     * @param destination
+     *            where it should open onto
      */
-    private static boolean point(final CommandSender sender, final QuantumMirror mirror,
+    private static void point(final CommandSender sender, final QuantumMirror mirror,
         final MirrorPoint destination)
     {
         final QuantumMirror pointed = mirror.withDestination(destination);
@@ -201,32 +218,30 @@ public class MirrorCommand implements SubCommand
                 + mirror.name() + "' are in " + destination.worldName() + ".");
             say(sender, "Use a gate, a ring, or a beam place for travel inside one world --");
             say(sender, "or set mirror-allow-same-world to true if you want this anyway.");
-            return true;
+            return;
         }
         MirrorManager.add(pointed);
         MirrorYamlManager.saveAll();
         say(sender, "'" + mirror.name() + "' now opens onto " + describe(destination) + ".");
-        return true;
     }
 
-    private static boolean remove(final CommandSender sender, final String[] args)
+    private static void remove(final CommandSender sender, final String[] args)
     {
         if (!named(sender, args, "remove <name>"))
         {
-            return true;
+            return;
         }
         final QuantumMirror removed = MirrorManager.remove(args[2]);
         if (removed == null)
         {
             say(sender, "There is no mirror called '" + args[2] + "'.");
-            return true;
+            return;
         }
         MirrorYamlManager.saveAll();
         say(sender, "'" + removed.name() + "' is an ordinary banner again.");
-        return true;
     }
 
-    private static boolean list(final CommandSender sender)
+    private static void list(final CommandSender sender)
     {
         final List<String> lines = new ArrayList<>();
         for (final QuantumMirror mirror : MirrorManager.all())
@@ -237,11 +252,10 @@ public class MirrorCommand implements SubCommand
         if (lines.isEmpty())
         {
             say(sender, "No mirrors yet. Look at a banner and run /wormhole mirror set <name>.");
-            return true;
+            return;
         }
         say(sender, lines.size() + " mirror(s):");
-        lines.forEach(line -> sender.sendMessage(line));
-        return true;
+        lines.forEach(sender::sendMessage);
     }
 
     /** A destination as a person would read it. */
@@ -256,6 +270,10 @@ public class MirrorCommand implements SubCommand
      *
      * <p>Both banner families are accepted. Requiring a wall would rule out a banner on a post
      * in the middle of a room, which is most of what a museum corridor is made of.
+     *
+     * @param player
+     *            whoever is looking
+     * @return the banner block, or null
      */
     private static Block lookedAtBanner(final Player player)
     {

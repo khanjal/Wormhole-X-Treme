@@ -49,6 +49,9 @@ public class WormholeXTreme extends JavaPlugin
     /** The This plugin. */
     private static WormholeXTreme thisPlugin = null;
 
+    /** Opens the one-line count each subsystem logs once it has read its files. */
+    private static final String LOADED = "Loaded ";
+
     /** The log. */
     private static Logger log = null;
 
@@ -426,7 +429,7 @@ public class WormholeXTreme extends JavaPlugin
             final int rings = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadAll(
                 ConfigManager.getRingReach());
             final int waiting = com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.loadPending();
-            prettyLog(Level.INFO, true, "Loaded " + rings + " transport ring pairs"
+            prettyLog(Level.INFO, true, LOADED + rings + " transport ring pairs"
                 + ((waiting > 0) ? (" and " + waiting + " half-built ones.") : "."));
         }
         // A ring subsystem that cannot load must not stop the gates from working.
@@ -438,7 +441,7 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             final int destinations = com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.loadAll();
-            prettyLog(Level.INFO, true, "Loaded " + destinations + " beam destination"
+            prettyLog(Level.INFO, true, LOADED + destinations + " beam destination"
                 + (destinations == 1 ? "" : "s") + ".");
         }
         catch (final Exception e)
@@ -449,7 +452,7 @@ public class WormholeXTreme extends JavaPlugin
         try
         {
             final int mirrors = com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
-            prettyLog(Level.INFO, true, "Loaded " + mirrors + " quantum mirror"
+            prettyLog(Level.INFO, true, LOADED + mirrors + " quantum mirror"
                 + (mirrors == 1 ? "" : "s") + ".");
         }
         catch (final Exception e)

@@ -36,6 +36,23 @@ public final class ConfigTestSupport
     }
 
     /**
+     * Turns one boolean setting on or off, as a config file would have.
+     *
+     * <p>For a test outside this package that needs a specific setting set. {@link Setting}
+     * and the settings map are both package-private, so without this the test's only options
+     * are to load every default it does not care about, or to go through reflection.
+     *
+     * @param key
+     *            the setting to set
+     * @param value
+     *            what it should read as
+     */
+    public static void set(final ConfigManager.ConfigKeys key, final boolean value)
+    {
+        ConfigManager.getConfigurations().put(key, new Setting(key, value, "test", "WormholeXTreme"));
+    }
+
+    /**
      * Empties the settings map again.
      *
      * <p>The default {@link Setting} objects are shared statics, so a test that changes one
