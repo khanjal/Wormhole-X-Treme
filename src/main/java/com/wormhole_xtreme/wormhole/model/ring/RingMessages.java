@@ -4,8 +4,7 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import com.wormhole_xtreme.wormhole.utils.ActionBar;
 
 /**
  * What a transport ring tells the people standing in it.
@@ -45,15 +44,7 @@ public final class RingMessages
      */
     private static void status(final Player player, final String message)
     {
-        try
-        {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
-        }
-        // Cosmetic. A client or fork that will not take an action bar must not break a trip.
-        catch (final RuntimeException ignored)
-        {
-            // deliberately silent
-        }
+        ActionBar.send(player, message);
     }
 
     /**

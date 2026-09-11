@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
@@ -35,12 +37,16 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.invocation.Invocation;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
 
 /**
  * The sweep that lets a mirror go dark until somebody walks up to it.
@@ -97,6 +103,110 @@ class MirrorProximityTest
         MirrorProximity.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * A mirror says what it is when somebody walks into range.
+     *
+     * <p>The complaint this answers: a stamped banner looks like scenery, and nothing about it
+     * says it is a door until somebody happens to right click it -- which players do to signs
+     * and not to wall hangings.
+     *
+     * <p>Run on the most ordinary mirror there is, with no proximity and no dynamic mode,
+     * because that is the one the sweep had no other reason to visit and therefore the one an
+     * implementation could easily leave out.
+     */
+    @Test
+    void anOrdinaryMirrorNamesItselfWhenSomebodyWalksUp()
+    {
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        ordinaryBoundMirror();
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            when(walker.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 10.0));
+            MirrorProximity.tick();
+        });
+
+        final List<String> said = actionBarOf(walker);
+        assertEquals(1, said.size(), "walking up to a mirror should say one thing: " + said);
+        assertTrue(said.get(0).contains("museum"), "it should name the mirror: " + said);
+        assertTrue(said.get(0).contains("far"), "and say where it goes: " + said);
+    }
+
+    /**
+     * Standing in front of one is silent.
+     *
+     * <p>The same rule the packets follow, and for the same reason: this runs on a timer for
+     * the life of the server, so a line per sweep would make a player who stopped to look at a
+     * mirror unable to read anything else.
+     */
+    @Test
+    void saysNothingMoreToSomebodyWhoIsAlreadyStandingThere()
+    {
+        final Player standing = playerAt(11.0);
+        when(world.getPlayers()).thenReturn(List.of(standing));
+        ordinaryBoundMirror();
+
+        tickTwice();
+
+        assertEquals(1, actionBarOf(standing).size(),
+            "the second sweep found nobody new, so it should have said nothing");
+    }
+
+    /**
+     * A mirror that goes nowhere keeps quiet.
+     *
+     * <p>Announcing one would be the plugin nagging about half-built work in front of everyone
+     * who walked past. The click already says what to do about it, to the one person who asked.
+     */
+    @Test
+    void aMirrorThatGoesNowhereSaysNothingToAnybody()
+    {
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10), null));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            when(walker.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 10.0));
+            MirrorProximity.tick();
+        });
+
+        assertTrue(actionBarOf(walker).isEmpty(),
+            "an unpointed mirror has nothing to announce");
+    }
+
+    /**
+     * Turned off, it is silent and costs nothing.
+     *
+     * <p>Both halves matter, and the second is why this asserts on the block rather than only
+     * on the message. The approach message is the reason the sweep visits an ordinary mirror
+     * at all, so switching it off has to put back the older and cheaper behaviour of not
+     * looking at one -- not merely build the line and throw it away.
+     */
+    @Test
+    void turningTheApproachMessageOffStopsTheSweepVisitingOrdinaryMirrors()
+    {
+        ConfigTestSupport.set(
+            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_APPROACH_MESSAGE,
+            false);
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        ordinaryBoundMirror();
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            when(walker.getLocation()).thenReturn(new Location(world, 11.0, 64.0, 10.0));
+            MirrorProximity.tick();
+        });
+
+        assertTrue(actionBarOf(walker).isEmpty(), "switched off means switched off");
+        verify(world, never()).getBlockAt(10, 64, 10);
     }
 
     @Test
@@ -822,6 +932,41 @@ class MirrorProximityTest
         verify((Banner) sent, never()).setPatterns(anyList());
     }
 
+    /**
+     * A plain mirror that goes somewhere: no proximity, no dynamic, nothing stamped.
+     *
+     * <p>Deliberately the most ordinary mirror there is. Before the approach message the sweep
+     * never visited one of these at all, so it is the case where a mistake would be invisible
+     * to every other test in this class.
+     */
+    private void ordinaryBoundMirror()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)));
+    }
+
+    /**
+     * Everything said to one player's action bar.
+     *
+     * <p>Read back off the Spigot handle rather than off the player, because that is where
+     * this actually goes -- and a bare mock answers null to {@code spigot()}, which the
+     * sending code swallows. A test that forgot this would pass whether or not anything was
+     * ever sent.
+     *
+     * @param player
+     *            whose hotbar to read
+     * @return what landed there, in order
+     */
+    private static List<String> actionBarOf(final Player player)
+    {
+        final ArgumentCaptor<BaseComponent> said = ArgumentCaptor.forClass(BaseComponent.class);
+        verify(player.spigot(), atLeast(0))
+            .sendMessage(eq(ChatMessageType.ACTION_BAR), said.capture());
+        final List<String> lines = new ArrayList<>();
+        said.getAllValues().forEach(component -> lines.add(component.toPlainText()));
+        return lines;
+    }
+
     /** Two sweeps with nothing moving in between, which is the no-change case. */
     private void tickTwice()
     {
@@ -905,6 +1050,12 @@ class MirrorProximityTest
         when(player.getName()).thenReturn("someone");
         when(player.getLocation()).thenReturn(new Location(world, x, 64.0, 10.0));
         when(player.getWorld()).thenReturn(world);
+        // The action bar goes through this handle, and an unstubbed mock answers null -- which
+        // the sending code catches and swallows, exactly as it would for a client that will
+        // not take one. Stubbed here rather than per test so no test can accidentally assert
+        // silence that came from the mock rather than from the sweep.
+        final Player.Spigot hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
         return player;
     }
 }

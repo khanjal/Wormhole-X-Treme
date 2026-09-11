@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.List;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -25,6 +28,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -113,7 +117,8 @@ class MirrorSettingsCommandTest
 
         assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
             "a refused setting must not half-apply");
-        verify(sender, atLeastOnce()).sendMessage(contains("'sideways'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "sideways"));
     }
 
     @Test
@@ -122,7 +127,8 @@ class MirrorSettingsCommandTest
         run("mirror", "mode", "museum", "interpretive");
 
         assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
-        verify(sender, atLeastOnce()).sendMessage(contains("'interpretive'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "interpretive"));
     }
 
     @Test
@@ -141,7 +147,8 @@ class MirrorSettingsCommandTest
         run("mirror", "display", "nosuch", "proximity");
         run("mirror", "mode", "nosuch", "dynamic");
 
-        verify(sender, atLeastOnce()).sendMessage(contains("no mirror called 'nosuch'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
     }
 
     /**
@@ -181,6 +188,31 @@ class MirrorSettingsCommandTest
         run("mirror", "list");
 
         verify(sender, atLeastOnce()).sendMessage(contains("(proximity, dynamic)"));
+    }
+
+    /**
+     * A list row carries its colour from its first character.
+     *
+     * <p>These rows are the one thing this command sends without the header, so nothing else
+     * puts them in the body colour. A row that starts with an uncoloured indent renders those
+     * first characters in the default white -- which is what the code did while its own comment
+     * claimed otherwise.
+     */
+    @Test
+    void everyListRowStartsInTheBodyColour()
+    {
+        run("mirror", "list");
+
+        final ArgumentCaptor<String> said = ArgumentCaptor.forClass(String.class);
+        verify(sender, atLeastOnce()).sendMessage(said.capture());
+        final List<String> rows = said.getAllValues().stream()
+            .filter(line -> line.contains("museum")).toList();
+        assertFalse(rows.isEmpty(), "the one mirror should have been listed");
+        for (final String row : rows)
+        {
+            assertTrue(row.startsWith(MirrorText.BODY_COLOUR),
+                "a row has to open in the body colour, indent included: " + row);
+        }
     }
 
     @Test

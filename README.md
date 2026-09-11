@@ -1470,6 +1470,25 @@ The two are independent — a mirror can be proximity and static, always and dyn
 An `always` + `dynamic` mirror is one that is permanently visible and quietly keeps itself up
 to date.
 
+### Saying what it is
+
+A stamped banner still looks like scenery. Walk within `mirror-proximity-radius` blocks of a
+mirror that goes somewhere and it names itself above the hotbar, along with the world on the
+far side — the one thing you cannot see from standing in front of it:
+
+```
+:: museum -- click to travel to nether.
+```
+
+Above the hotbar rather than in chat, like the transport rings: it replaces itself and then
+goes, instead of leaving a line behind for every banner you walked past. Only on arriving in
+range, so standing in front of one is silent, and only for mirrors that actually go somewhere —
+announcing a half-built one would be nagging about unfinished work in front of everybody who
+walked past.
+
+Set `mirror-approach-message: false` to turn it off. Doing so also puts back the older and
+cheaper sweep, which never looked at an ordinary mirror at all.
+
 ## Sounds
 
 Gates and rings make noise, and both are configured the same way. Everything below is

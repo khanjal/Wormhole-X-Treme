@@ -153,8 +153,12 @@ class MirrorInteractionTest
         assertTrue(MirrorInteraction.handle(click(banner)), "a mirror claims its own click");
         verify(player, never()).teleport(any(org.bukkit.Location.class));
         verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
-        verify(player, atLeastOnce()).sendMessage(contains("/wormhole mirror link Museum"));
-        verify(player, atLeastOnce()).sendMessage(contains("/wormhole mirror target Museum"));
+        verify(player, atLeastOnce()).sendMessage(contains(
+            MirrorText.COMMAND_COLOUR + "/wormhole mirror link "
+                + MirrorText.NAME_COLOUR + "Museum"));
+        verify(player, atLeastOnce()).sendMessage(contains(
+            MirrorText.COMMAND_COLOUR + "/wormhole mirror target "
+                + MirrorText.NAME_COLOUR + "Museum"));
     }
 
     /**

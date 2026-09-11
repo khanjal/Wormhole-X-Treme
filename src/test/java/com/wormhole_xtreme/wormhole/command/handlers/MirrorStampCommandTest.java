@@ -38,6 +38,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -117,7 +118,8 @@ class MirrorStampCommandTest
         }
         verify(banner).setBaseColor(DyeColor.RED);
         verify(banner).update(anyBoolean());
-        verify(sender, atLeastOnce()).sendMessage(contains("looks like nether"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("looks like " + MirrorText.NAME_COLOUR + "nether"));
     }
 
     @Test
@@ -131,7 +133,8 @@ class MirrorStampCommandTest
             run("mirror", "stamp", "museum", "chartreuse");
         }
         verify(banner, never()).update(anyBoolean());
-        verify(sender, atLeastOnce()).sendMessage(contains("no look called 'chartreuse'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("no look called '" + MirrorText.NAME_COLOUR + "chartreuse"));
         verify(sender, atLeastOnce()).sendMessage(contains("nether"));
     }
 
@@ -204,7 +207,8 @@ class MirrorStampCommandTest
     {
         run("mirror", "stamp", "nosuch", "nether");
 
-        verify(sender, atLeastOnce()).sendMessage(contains("no mirror called 'nosuch'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
     }
 
     @Test
