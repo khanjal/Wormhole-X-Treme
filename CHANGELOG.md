@@ -39,6 +39,10 @@ been running on defaults will start reading the file you have been editing.
 
 - A block could be dropped into a gate's opening and then never broken out again
   ([#243](https://github.com/khanjal/Wormhole-X-Treme/issues/243)).
+- The marker reference at the top of the shipped shape files said different things in
+  different files: the `[C]` chevron marker was documented in one of the eleven, and
+  `StandardSignDial.shape` told you to use a shape retired two releases ago
+  ([#233](https://github.com/khanjal/Wormhole-X-Treme/issues/233)).
 - Gate shapes and `config.yml` were looked for in the working directory rather than the folder
   the server names, so a server whose plugin folder is not `./plugins` read half its files from
   one tree and half from another, silently
@@ -155,12 +159,52 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
   casts in the tests: nine to one. Thirty-four command helpers stopped returning a `true` that
   nobody read, which took ten class-level warning suppressions off the classes they were hiding
   real findings in.
-- Tests: **1326 at 1.5.0, 1460 so far**.
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>
+
+### The shape files stopped disagreeing with each other about what the markers mean (#233)
+
+Every shipped `.shape` file opens with the same commented reference block -- what `[S]`, `[P]`,
+`:A`, `:IA`, `[RD]` and the rest mean. It is copied into all eleven rather than living anywhere
+central, and it is what a shape author actually reads, because it is in the file they opened to
+copy from.
+
+Eleven hand-maintained copies is eleven chances to drift, and two of them had.
+
+`[C]`, the chevron marker, was documented in `Standard.shape` and in none of the other ten. It
+is a real marker -- chevron material, distinct from `[S]` so chevrons are visible before they
+light, and meaning exactly `[S]` where no chevron material is set -- but no shipped shape uses
+it in its grid, so the documentation *is* the feature as far as an author is concerned. Ten of
+the eleven files somebody might copy from did not mention it exists.
+
+`StandardSignDial.shape` told the reader to "use MinimalSignDialRedstone if you want redstone
+target cycling as well". That shape was retired when redstone stopped being a shape choice and
+every sign gate gained it, so the sentence named a file that is not shipped and described a step
+nobody needs. The paragraph around it is still right and stayed: `[RD]` and `[RS]` adjacent
+would have one player's dust working the other, which is why this shape carries no `[RS]`. Only
+the advice changed, to what actually works now -- copy the shape and put an `[RS]` somewhere not
+adjacent to the `[RD]`.
+
+Fixing the two drifts by hand would leave eleven copies free to drift again, which the issue
+called the real defect. So there are three tests: every shipped shape defines the same marker
+set, every one explains `[C]`, and none names a shape that is not shipped. They read the files
+rather than the parsed shapes, because the drift is in the comments and a parser never looks at
+those.
+
+All three were checked by putting each defect back. Removing `[C]` from one file turns two of
+them red, naming the file and the missing marker; writing `MinimalSignDialRedstone` back in
+turns the third red and prints the eleven shapes that do ship. The count of files read is
+asserted too -- a glob that quietly matched nothing would otherwise let all three pass while
+checking no files at all.
+
+The question the issue raised underneath -- whether the block should be generated at build time
+from one source, or trimmed to a pointer at `docs/GATES.md` -- is left open on purpose. The
+block being present is most of what makes these files self-documenting to someone who has never
+read the docs, and a pointer is worth less than the thing. The tests mean a future drift is
+caught either way.
 
 ### Our data left the folder it was sharing with another fork's database (#247)
 

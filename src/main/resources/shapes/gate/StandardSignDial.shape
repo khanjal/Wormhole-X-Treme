@@ -12,6 +12,11 @@ Version=2
 #    [I] = Ignored
 #    [S] = Stargate Material
 #    [P] = Air blocks that will turn into the portal material when activated.
+#    [C] = Chevron Material. Like [S], but must be built from the chevron material
+#          rather than the gate material, so the chevrons can be seen before they
+#          light. The chevron material comes from the gate's palette (the `chevron`
+#          key in config.yml), or from CHEVRON_MATERIAL below to pin it to this shape.
+#          Where neither names one, [C] means exactly the same as [S].
 
 #    Extra parameters:
 #   --- These parameters are 1 of each per gate ---
@@ -34,6 +39,9 @@ Version=2
 #    :L = Blocks that will light when gate is activated
 #       Optionally you may add a #number after L to indicate the order it lights.
 #       Defaults to 1 if there is no #
+#       Where a chevron material is set, an [S:L] cell may be built from EITHER the gate
+#       material or the chevron material, so gates built before it was set keep working.
+#       Use [C:L] instead if you want to require the chevron material.
 #    :W = Blocks that will woosh when gate is activated
 #       Optionally you may add a #number after W to indicate the order it wooshes in.
 #       Defaults to 1 if there is no # and the wait between numbers is configurable below. 
@@ -53,8 +61,10 @@ Version=2
 #      [RD] redstone dust on top of the activation block  -> dials the sign's target
 #      [RA] a lever on the side of the bottom pillar block -> switched on while open
 #    There is no [RS] here: the only free spot left is beside [RD], and adjacent dust
-#    connects, so a pulse would cycle the destination and then dial it. Use
-#    MinimalSignDialRedstone if you want redstone target cycling as well.
+#    connects, so a pulse would cycle the destination and then dial it. If you want
+#    redstone target cycling as well, copy this shape and put an [RS] somewhere that is
+#    not adjacent to the [RD] -- every sign-dial shape takes redstone now, so there is
+#    no separate redstone-flavoured shape to reach for.
 
 GateShape=
 
