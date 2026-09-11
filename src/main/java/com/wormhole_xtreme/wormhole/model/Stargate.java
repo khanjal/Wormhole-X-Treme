@@ -2,6 +2,8 @@ package com.wormhole_xtreme.wormhole.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -592,32 +594,129 @@ public class Stargate
     }
 
     /**
-     * Gets the material the gate interior shows while a wormhole is open.
+     * One material's place in the resolution order, held as data.
      *
-     * <p>Resolution order is the same for every effective-material accessor: an explicit
-     * per-gate override set by an admin wins, then the gate's material palette, then the
-     * shape's own default.
+     * <p>Five accessors used to write the same four-step chain out in full, which meant the
+     * order was stated five times and the two places it does *not* apply were visible only by
+     * reading all five and noticing what was missing. Both exceptions are rows here instead:
+     * see {@link #SIGN} and {@link #STRUCTURE}.
+     *
+     * <p>Chevrons are deliberately not in this list. That one answers null when neither the
+     * shape nor the palette names a material, and detection has to ask it before there is a
+     * gate to ask -- a different contract, kept as its own function in
+     * {@link Stargate#resolveChevronMaterial}.
+     */
+    private enum MaterialRole
+    {
+        PORTAL(gate -> gate.gateCustomPortalMaterial, StargateShape::hasExplicitPortalMaterial,
+            StargateShape::getShapePortalMaterial, MaterialGroup::getPortalMaterial, Material.WATER),
+
+        IRIS(gate -> gate.gateCustomIrisMaterial, StargateShape::hasExplicitIrisMaterial,
+            StargateShape::getShapeIrisMaterial, MaterialGroup::getIrisMaterial, Material.STONE),
+
+        LIGHT(gate -> gate.gateCustomLightMaterial, StargateShape::hasExplicitLightMaterial,
+            StargateShape::getShapeLightMaterial, MaterialGroup::getLightMaterial, Material.GLOWSTONE),
+
+        /**
+         * No per-gate override, because there is no field for one -- a gate's name sign has
+         * never been settable per gate. So this resolves shape-then-palette only.
+         */
+        SIGN(gate -> null, StargateShape::hasExplicitSignMaterial,
+            StargateShape::getShapeSignMaterial, MaterialGroup::getSignMaterial,
+            Material.OAK_WALL_SIGN),
+
+        /**
+         * The only role that never lets the shape's declaration outrank the palette:
+         * {@code hasExplicitStructureMaterial()} is deliberately not called here, even though
+         * it exists.
+         *
+         * <p>The frame is not a styling choice the shape gets to state: it is whatever the
+         * player actually built the gate out of, and that is precisely what selected the
+         * palette. Preferring the shape's declaration reports OBSIDIAN for a gate made of
+         * lapis, and {@code StargateAnimator} uses this value to restore light blocks after
+         * the lighting animation -- so it would rebuild that gate's chevrons in the wrong
+         * material.
+         *
+         * <p>The shape is still the last resort, the same as for every other role: a gate
+         * with no palette at all falls back to {@code getShapeStructureMaterial()}. What is
+         * skipped is only the step that would put the shape ahead of the palette.
+         */
+        STRUCTURE(gate -> gate.gateCustomStructureMaterial, shape -> false,
+            StargateShape::getShapeStructureMaterial, MaterialGroup::getStructureMaterial,
+            Material.OBSIDIAN);
+
+        /** The per-gate override, or null for a material that has no such field. */
+        private final Function<Stargate, Material> custom;
+
+        /** Whether the shape's own file names this material explicitly. */
+        private final Predicate<StargateShape> shapeDeclares;
+
+        /** The shape's value, whether declared or defaulted. */
+        private final Function<StargateShape, Material> fromShape;
+
+        /** The palette's value. */
+        private final Function<MaterialGroup, Material> fromGroup;
+
+        /** What a gate with no shape and no palette shows. */
+        private final Material fallback;
+
+        MaterialRole(final Function<Stargate, Material> custom,
+            final Predicate<StargateShape> shapeDeclares,
+            final Function<StargateShape, Material> fromShape,
+            final Function<MaterialGroup, Material> fromGroup,
+            final Material fallback)
+        {
+            this.custom = custom;
+            this.shapeDeclares = shapeDeclares;
+            this.fromShape = fromShape;
+            this.fromGroup = fromGroup;
+            this.fallback = fallback;
+        }
+    }
+
+    /**
+     * Works out one material for this gate, in the one place the order is written down.
+     *
+     * <p>An explicit per-gate override set by an admin wins. Then a shape that names the
+     * material in its own file, which outranks the palette -- geometry authored around a
+     * particular block should not lose it to a palette that never considered it. Then the
+     * palette, which supplies what the shape left unsaid. Then the shape's default, and
+     * finally a built-in for a gate that has neither.
+     *
+     * @param role
+     *            which material to resolve
+     * @return the material, never null
+     */
+    private Material resolveMaterial(final MaterialRole role)
+    {
+        if (gateCustom)
+        {
+            final Material override = role.custom.apply(this);
+            if (override != null)
+            {
+                return override;
+            }
+        }
+        if ((gateShape != null) && role.shapeDeclares.test(gateShape))
+        {
+            return role.fromShape.apply(gateShape);
+        }
+        final MaterialGroup group = getGateMaterialGroup();
+        if (group != null)
+        {
+            return role.fromGroup.apply(group);
+        }
+        return (gateShape != null) ? role.fromShape.apply(gateShape) : role.fallback;
+    }
+
+    /**
+     * Gets the material the gate interior shows while a wormhole is open.
      *
      * @return the portal material, never null
      */
     public Material getEffectivePortalMaterial()
     {
-        if (gateCustom && (gateCustomPortalMaterial != null))
-        {
-            return gateCustomPortalMaterial;
-        }
-        // A shape that names this material in its own file outranks the palette; the
-        // palette only supplies what the shape left unsaid.
-        if (gateShape != null && gateShape.hasExplicitPortalMaterial())
-        {
-            return gateShape.getShapePortalMaterial();
-        }
-        final MaterialGroup group = getGateMaterialGroup();
-        if (group != null)
-        {
-            return group.getPortalMaterial();
-        }
-        return gateShape != null ? gateShape.getShapePortalMaterial() : Material.WATER;
+        return resolveMaterial(MaterialRole.PORTAL);
     }
 
     /**
@@ -627,22 +726,7 @@ public class Stargate
      */
     public Material getEffectiveIrisMaterial()
     {
-        if (gateCustom && (gateCustomIrisMaterial != null))
-        {
-            return gateCustomIrisMaterial;
-        }
-        // A shape that names this material in its own file outranks the palette; the
-        // palette only supplies what the shape left unsaid.
-        if (gateShape != null && gateShape.hasExplicitIrisMaterial())
-        {
-            return gateShape.getShapeIrisMaterial();
-        }
-        final MaterialGroup group = getGateMaterialGroup();
-        if (group != null)
-        {
-            return group.getIrisMaterial();
-        }
-        return gateShape != null ? gateShape.getShapeIrisMaterial() : Material.STONE;
+        return resolveMaterial(MaterialRole.IRIS);
     }
 
     /**
@@ -652,22 +736,7 @@ public class Stargate
      */
     public Material getEffectiveLightMaterial()
     {
-        if (gateCustom && (gateCustomLightMaterial != null))
-        {
-            return gateCustomLightMaterial;
-        }
-        // A shape that names this material in its own file outranks the palette; the
-        // palette only supplies what the shape left unsaid.
-        if (gateShape != null && gateShape.hasExplicitLightMaterial())
-        {
-            return gateShape.getShapeLightMaterial();
-        }
-        final MaterialGroup group = getGateMaterialGroup();
-        if (group != null)
-        {
-            return group.getLightMaterial();
-        }
-        return gateShape != null ? gateShape.getShapeLightMaterial() : Material.GLOWSTONE;
+        return resolveMaterial(MaterialRole.LIGHT);
     }
 
     /**
@@ -725,41 +794,20 @@ public class Stargate
      */
     public Material getEffectiveSignMaterial()
     {
-        if (gateShape != null && gateShape.hasExplicitSignMaterial())
-        {
-            return gateShape.getShapeSignMaterial();
-        }
-        final MaterialGroup group = getGateMaterialGroup();
-        if (group != null)
-        {
-            return group.getSignMaterial();
-        }
-        return gateShape != null ? gateShape.getShapeSignMaterial() : Material.OAK_WALL_SIGN;
+        return resolveMaterial(MaterialRole.SIGN);
     }
 
     /**
      * Gets the material the gate frame is built from.
      *
+     * <p>This one never lets the shape's declaration outrank the palette;
+     * {@link MaterialRole#STRUCTURE} says why.
+     *
      * @return the structure material, never null
      */
     public Material getEffectiveStructureMaterial()
     {
-        if (gateCustom && (gateCustomStructureMaterial != null))
-        {
-            return gateCustomStructureMaterial;
-        }
-        // Unlike the other materials, the frame is not a styling choice the shape gets to
-        // state: it is whatever the player actually built the gate out of, and that is
-        // precisely what selected the palette. Preferring the shape's declaration here
-        // reports OBSIDIAN for a gate made of lapis, and StargateAnimator uses this value
-        // to restore light blocks after the lighting animation — so it would rebuild that
-        // gate's chevrons in the wrong material.
-        final MaterialGroup group = getGateMaterialGroup();
-        if (group != null)
-        {
-            return group.getStructureMaterial();
-        }
-        return gateShape != null ? gateShape.getShapeStructureMaterial() : Material.OBSIDIAN;
+        return resolveMaterial(MaterialRole.STRUCTURE);
     }
 
     /**

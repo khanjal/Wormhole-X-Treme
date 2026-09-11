@@ -68,6 +68,37 @@ class StargateEffectiveMaterialTest
         assertEquals(Material.SEA_LANTERN, gate.getEffectiveLightMaterial());
     }
 
+    /**
+     * An admin's per-gate override beats a shape that names the material in its own file.
+     *
+     * <p>The step below it -- a shape declaration beating the palette -- has been covered
+     * since it was a regression. This is the step above, and it had nothing: every existing
+     * test set an override on a shape that named nothing, so the two could not be told apart.
+     * Swapping the first two steps of the resolution order left all 1483 tests green, which is
+     * how this gap was found.
+     *
+     * <p>What it would look like in game: an admin runs the command to give one gate a
+     * particular iris, on a gate whose shape asks for glass, and the gate keeps the glass with
+     * no error and no explanation.
+     */
+    @Test
+    void aPerGateOverrideBeatsAShapeThatNamesTheMaterialItself()
+    {
+        final StargateShape shape = new StargateShape();
+        shape.setShapeStructureMaterial(Material.OBSIDIAN);
+        shape.setShapeIrisMaterial(Material.GLASS);
+
+        final Stargate gate = new Stargate();
+        gate.setGateShape(shape);
+        gate.setGateMaterialGroup(MaterialGroupRegistry.getGroup("Atlantis"));
+        gate.setGateCustom(true);
+        gate.setGateCustomIrisMaterial(Material.BEDROCK);
+
+        assertEquals(Material.BEDROCK, gate.getEffectiveIrisMaterial(),
+            "the admin asked for this gate specifically; the shape file speaks for every gate "
+            + "built from it, and the more specific answer wins");
+    }
+
     @Test
     void customFlagWithNoOverrideFallsThroughInsteadOfReturningNull()
     {
