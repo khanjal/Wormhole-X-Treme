@@ -154,7 +154,18 @@ public class ConfigManager
         /** Seconds a player must wait between beams, when the above is true. */
         BEAM_USE_COOLDOWN_SECONDS,
         /** Cost in currency units charged to beam. 0 = free. */
-        BEAM_ECONOMY_USE_COST
+        BEAM_ECONOMY_USE_COST,
+
+        /**
+         * Whether a quantum mirror may point somewhere in the world it stands in.
+         *
+         * <p>The opposite polarity to {@link #SAME_WORLD_ONLY}, which lets an admin
+         * <em>restrict</em> gates to one world and defaults to not restricting. A mirror is
+         * cross-world by default and this relaxes it, because being the bridge between two
+         * worlds is what separates a mirror from a beam place -- which is the mechanic for
+         * naming a point in the world you are already standing in.
+         */
+        MIRROR_ALLOW_SAME_WORLD
     }
 
     /**
@@ -1295,6 +1306,21 @@ public class ConfigManager
     public static boolean isUseCooldownEnabled()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.USE_COOLDOWN_ENABLED);
+        return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * Whether a quantum mirror is allowed to point somewhere in its own world.
+     *
+     * <p>False by default, so binding one refuses when both ends share a world and says why.
+     * The opposite polarity to {@link #isSameWorldOnly()}: that one lets an admin restrict
+     * gates to a single world and defaults to off, this one relaxes a restriction that is on.
+     *
+     * @return true if a mirror may connect two points in the same world
+     */
+    public static boolean isMirrorAllowSameWorld()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ALLOW_SAME_WORLD);
         return (s != null) && s.getBooleanValue();
     }
 

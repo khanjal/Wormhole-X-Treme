@@ -269,6 +269,11 @@ public final class SubCommands
                 com.wormhole_xtreme.wormhole.command.handlers.GateCommand.verbs()) + ">",
             new com.wormhole_xtreme.wormhole.command.handlers.GateCommand(), false,
             SubCommands::completeGate);
+        register("mirror", aliases("mirrors"),
+            "/wormhole mirror <" + String.join("|",
+                com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs()) + ">",
+            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand(), false,
+            SubCommands::completeMirror);
         register("config", aliases("set"), "/wormhole config <setting> [value]",
             new com.wormhole_xtreme.wormhole.command.handlers.ConfigCommand(), false, (sender, args) ->
             {
@@ -385,6 +390,44 @@ public final class SubCommands
             return materialNames(typed, false);
         }
         return none();
+    }
+
+    /**
+     * Completions for {@code /wormhole mirror <verb> [name] [name]}.
+     *
+     * <p>{@code set} is not completed from existing mirrors: naming a new one is the common
+     * case, and offering the existing names there would invite rebinding one by accident.
+     * Every other verb names a mirror that already exists, and {@code link} names two.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeMirror(final CommandSender sender, final String[] args)
+    {
+        if (args.length == 2)
+        {
+            return prefixed(args[1],
+                com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs());
+        }
+        final String verb = (args.length > 1) ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
+        if ("set".equals(verb) || "list".equals(verb))
+        {
+            return none();
+        }
+        if ((args.length == 3) || ((args.length == 4) && "link".equals(verb)))
+        {
+            return prefixed(args[args.length - 1], mirrorNames());
+        }
+        return none();
+    }
+
+    /** @return every registered mirror's name */
+    private static String[] mirrorNames()
+    {
+        return com.wormhole_xtreme.wormhole.model.mirror.MirrorManager.all().stream()
+            .map(com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror::name)
+            .toArray(String[]::new);
     }
 
     /**

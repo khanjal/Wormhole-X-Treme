@@ -245,6 +245,7 @@ public class WormholeXTreme extends JavaPlugin
 
                 saveRings();
                 saveBeams();
+                saveMirrors();
                 StargateDBManager.shutdown();
                 disableEconomyQuietly();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
@@ -292,6 +293,25 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Failed to save beam destinations", e);
+        }
+    }
+
+    /**
+     * Writes the quantum mirrors out, and keeps shutting down if it cannot.
+     *
+     * <p>Belt and braces rather than the only write: every command that changes a mirror saves
+     * immediately, so a server killed rather than stopped does not lose one. This catches the
+     * case where something changed them without going through a command.
+     */
+    private void saveMirrors()
+    {
+        try
+        {
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.saveAll();
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to save quantum mirrors", e);
         }
     }
 
@@ -424,6 +444,17 @@ public class WormholeXTreme extends JavaPlugin
         catch (final Exception e)
         {
             prettyLog(Level.WARNING, "Failed to load beam destinations", e);
+        }
+        // Likewise a mirror subsystem that cannot load must not stop the other three.
+        try
+        {
+            final int mirrors = com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
+            prettyLog(Level.INFO, true, "Loaded " + mirrors + " quantum mirror"
+                + (mirrors == 1 ? "" : "s") + ".");
+        }
+        catch (final Exception e)
+        {
+            prettyLog(Level.WARNING, "Failed to load quantum mirrors", e);
         }
         registerEvents(false);
         registerCommands();
