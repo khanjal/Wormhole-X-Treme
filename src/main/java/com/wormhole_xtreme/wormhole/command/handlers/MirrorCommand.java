@@ -46,11 +46,11 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * mirror list                 what exists and where each one goes
  * </pre>
  *
- * <p>{@code link} is sugar over {@code target}, applied twice: it works out the spot in front
- * of each banner and stores two ordinary points, so nothing downstream knows a second mirror
- * was involved. Two ways rather than one, because a pair of banners is what somebody hanging
- * two of them means -- pointing only the first was the commonest way to end up with a banner
- * that did nothing when clicked.
+ * <p>{@code link} is sugar over {@code target}, applied twice: it works out where each banner
+ * stands and stores two ordinary points, so nothing downstream knows a second mirror was
+ * involved. Two ways rather than one, because a pair of banners is what somebody hanging two
+ * of them means -- pointing only the first was the commonest way to end up with a banner that
+ * did nothing when clicked.
  *
  * <p>It is a snapshot rather than a subscription -- move either banner afterwards and the
  * other still opens onto where it used to be. One-way binding is still {@code target}, which
@@ -72,6 +72,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  */
 public class MirrorCommand implements SubCommand
 {
+    /** How every "this banner is now a mirror" line opens. */
+    private static final String MIRROR_IS = "Mirror '";
+
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS =
         { "set", "target", "link", "stamp", "display", "mode", "remove", "list" };
@@ -135,14 +138,14 @@ public class MirrorCommand implements SubCommand
 
         if (keep == null)
         {
-            say(sender, "Mirror '" + name + "' is this banner. It goes nowhere yet.");
+            say(sender, MIRROR_IS + name + "' is this banner. It goes nowhere yet.");
             say(sender, "Hang a banner at the far end, look at it, and run");
             say(sender, "/wormhole mirror link " + name + " -- or stand where arrivals should");
             say(sender, "land and run /wormhole mirror target " + name);
         }
         else
         {
-            say(sender, "Mirror '" + name + "' is this banner now, still pointing at "
+            say(sender, MIRROR_IS + name + "' is this banner now, still pointing at "
                 + describe(keep) + ".");
         }
     }
@@ -256,7 +259,7 @@ public class MirrorCommand implements SubCommand
         final QuantumMirror bound = new QuantumMirror(name, MirrorBlock.of(block), null);
         MirrorManager.add(bound);
         MirrorYamlManager.saveAll();
-        say(sender, "Mirror '" + name + "' is this banner.");
+        say(sender, MIRROR_IS + name + "' is this banner.");
         return bound;
     }
 
@@ -288,8 +291,8 @@ public class MirrorCommand implements SubCommand
             MirrorArrival.atTheBanner(world.getBlockAt(banner.x(), banner.y(), banner.z()));
         if (arrival == null)
         {
-            say(sender, "'" + to.name() + "' is no longer a banner, so there is no front to"
-                + " arrive in. Put one back, or re-run mirror set on a banner that is there.");
+            say(sender, "'" + to.name() + "' is no longer a banner, so there is nowhere to"
+                + " arrive. Put one back, or re-run mirror set on a banner that is there.");
         }
         return arrival;
     }

@@ -127,14 +127,6 @@ class MirrorArrivalTest
     }
 
     /**
-     * The arrival is the block in front, not two blocks away and diagonal.
-     *
-     * <p>The trap here is Bukkit's own geometry. Its sixteen-point faces are built by adding
-     * two cardinals together, so {@code NORTH_NORTH_EAST} carries modX 1 and modZ -2 --
-     * {@code getRelative} on one lands a knight's move away rather than in front of the
-     * banner. Each axis is reduced to its sign, which is always an adjacent block.
-     */
-    /**
      * A sixteen-point facing still yields a sensible yaw, and no neighbour is consulted.
      *
      * <p>Arriving is the banner's own block now, so the old hazard -- Bukkit's sixteen-point

@@ -140,6 +140,13 @@ public final class MirrorProximity
      * a blanked banner on their client until something makes the server resend that chunk --
      * which on a plugin that has just been disabled may be a long time, and looks exactly like
      * the plugin having eaten their banners.
+     *
+     * <p>A mirror whose chunk is not loaded is skipped rather than loaded, and that is
+     * deliberate. Plugins are disabled before worlds are unloaded, so a chunk that is already
+     * gone at this point is one nobody is near -- and a client that far away has dropped the
+     * chunk too, so it will be sent a fresh and correct copy when the player returns. Loading
+     * chunks during shutdown to repaint banners nobody can see would be a poor trade for a
+     * case that heals itself.
      */
     public static void restoreAll()
     {
