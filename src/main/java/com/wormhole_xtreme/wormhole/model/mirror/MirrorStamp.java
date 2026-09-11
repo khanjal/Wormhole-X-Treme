@@ -126,8 +126,11 @@ public final class MirrorStamp
      *
      * <p>{@code Block.getState()} hands back a copy, so dressing it and never calling
      * {@code update()} produces exactly what a per-player packet needs: an appearance that
-     * exists only for whoever it is sent to. This is how a proximity mirror shows itself
-     * without the world's own block ever ceasing to be blank.
+     * exists only for whoever it is sent to.
+     *
+     * <p>Used to put a proximity mirror's look <em>back</em> for somebody who has been shown
+     * the blank. The world's own banner is stamped throughout -- it is
+     * {@link #blankState(Block)} that makes the temporary copy, not this.
      *
      * @param block
      *            the banner block

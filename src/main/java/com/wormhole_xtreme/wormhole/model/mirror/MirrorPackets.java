@@ -13,8 +13,9 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * Showing one player a block that is not what the world says it is.
  *
  * <p>{@code Player.sendBlockUpdate(Location, TileState)} is the whole mechanism behind a
- * proximity mirror: the banner in the world is blank, and whoever walks up to it is sent a
- * dressed copy that nobody else receives and nothing persists.
+ * proximity mirror. The banner in the world stays stamped -- banner patterns are vanilla data
+ * and outlive this plugin -- so what gets sent is the <em>blank</em>, to whoever is too far
+ * away to be shown the real thing. A copy nobody else receives and nothing persists.
  *
  * <p>Reached reflectively because it <strong>does not exist on plain 1.20</strong>, which this
  * plugin still supports -- present from 1.20.1 on, checked against the jars for all seven

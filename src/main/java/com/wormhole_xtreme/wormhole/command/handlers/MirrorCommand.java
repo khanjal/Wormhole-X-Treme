@@ -310,10 +310,21 @@ public class MirrorCommand implements SubCommand
      * and outlive this plugin -- disable it and the corridor an operator built is still there.
      * The mirror keeps them as data because a proximity mirror has to dress the banner again
      * after showing somebody the blank, and a dynamic one has to know what it last saw.
+     *
+     * <p>Re-read from the registry rather than trusting the copy this command started with, so
+     * anything changed in between survives -- and checked for null, because one of the things
+     * that can change in between is somebody else running {@code mirror remove}. The banner
+     * keeps the look it was just given either way; there is simply no longer a mirror to write
+     * it down against.
      */
     private static void remember(final QuantumMirror mirror, final MirrorLook look)
     {
-        MirrorManager.add(MirrorManager.byName(mirror.name()).withLook(look));
+        final QuantumMirror current = MirrorManager.byName(mirror.name());
+        if (current == null)
+        {
+            return;
+        }
+        MirrorManager.add(current.withLook(look));
         MirrorYamlManager.saveAll();
     }
 
