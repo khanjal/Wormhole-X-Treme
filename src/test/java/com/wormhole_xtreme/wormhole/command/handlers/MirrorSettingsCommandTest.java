@@ -115,7 +115,7 @@ class MirrorSettingsCommandTest
         assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
             "a refused setting must not half-apply");
         verify(sender, atLeastOnce())
-            .sendMessage(contains("'" + MirrorText.NAME + "sideways"));
+            .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "sideways"));
     }
 
     @Test
@@ -125,7 +125,7 @@ class MirrorSettingsCommandTest
 
         assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
         verify(sender, atLeastOnce())
-            .sendMessage(contains("'" + MirrorText.NAME + "interpretive"));
+            .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "interpretive"));
     }
 
     @Test
@@ -145,7 +145,7 @@ class MirrorSettingsCommandTest
         run("mirror", "mode", "nosuch", "dynamic");
 
         verify(sender, atLeastOnce())
-            .sendMessage(contains("no mirror called '" + MirrorText.NAME + "nosuch"));
+            .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
     }
 
     /**

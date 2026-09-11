@@ -370,7 +370,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror"));
 
         verify(player, atLeastOnce())
-            .sendMessage(contains("Usage: " + MirrorText.COMMAND + "/wormhole mirror"));
+            .sendMessage(contains("Usage: " + MirrorText.COMMAND_COLOUR + "/wormhole mirror"));
     }
 
     /** A verb that needs a name and was not given one says which form it wanted. */

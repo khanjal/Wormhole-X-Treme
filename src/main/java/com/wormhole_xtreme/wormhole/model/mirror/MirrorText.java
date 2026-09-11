@@ -24,7 +24,7 @@ import org.bukkit.DyeColor;
  * <li>Grey -- the prose around them, which is the header's own colour.</li>
  * </ul>
  *
- * <p>Every method here ends by returning to {@link #BODY}, so a fragment can be dropped into
+ * <p>Every method here ends by returning to {@link #BODY_COLOUR}, so a fragment can be dropped into
  * the middle of a sentence without the rest of that sentence inheriting its colour. Getting
  * that wrong is not a compile error and not a test failure; it is a line that looks fine until
  * somebody puts a word after it.
@@ -32,13 +32,13 @@ import org.bukkit.DyeColor;
 public final class MirrorText
 {
     /** The colour the header leaves behind, and the one every fragment returns to. */
-    public static final String BODY = "§7";
+    public static final String BODY_COLOUR = "§7";
 
     /** A name somebody typed or is about to: a mirror, a world, a look. */
-    public static final String NAME = "§b";
+    public static final String NAME_COLOUR = "§b";
 
     /** A line meant to be typed as it stands. */
-    public static final String COMMAND = "§f";
+    public static final String COMMAND_COLOUR = "§f";
 
     /** Static text only. */
     private MirrorText()
@@ -54,7 +54,7 @@ public final class MirrorText
      */
     public static String name(final String name)
     {
-        return NAME + name + BODY;
+        return NAME_COLOUR + name + BODY_COLOUR;
     }
 
     /**
@@ -71,7 +71,7 @@ public final class MirrorText
      */
     public static String quoted(final String name)
     {
-        return "'" + NAME + name + BODY + "'";
+        return "'" + NAME_COLOUR + name + BODY_COLOUR + "'";
     }
 
     /**
@@ -93,8 +93,8 @@ public final class MirrorText
      */
     public static String approach(final String name, final String worldName)
     {
-        return "§3:: " + NAME + name + BODY + " -- click to travel to " + NAME + worldName
-            + BODY + ".";
+        return "§3:: " + NAME_COLOUR + name + BODY_COLOUR + " -- click to travel to "
+            + NAME_COLOUR + worldName + BODY_COLOUR + ".";
     }
 
     /**
@@ -109,7 +109,7 @@ public final class MirrorText
      */
     public static String names(final String[] names)
     {
-        return NAME + String.join(BODY + ", " + NAME, names) + BODY;
+        return NAME_COLOUR + String.join(BODY_COLOUR + ", " + NAME_COLOUR, names) + BODY_COLOUR;
     }
 
     /**
@@ -121,7 +121,7 @@ public final class MirrorText
      */
     public static String command(final String line)
     {
-        return COMMAND + line + BODY;
+        return COMMAND_COLOUR + line + BODY_COLOUR;
     }
 
     /**
@@ -139,7 +139,7 @@ public final class MirrorText
      */
     public static String command(final String verb, final String name)
     {
-        return COMMAND + verb + " " + NAME + name + BODY;
+        return COMMAND_COLOUR + verb + " " + NAME_COLOUR + name + BODY_COLOUR;
     }
 
     /**
@@ -166,7 +166,7 @@ public final class MirrorText
     public static String dye(final DyeColor colour)
     {
         final String word = colour.name().toLowerCase(Locale.ROOT).replace('_', ' ');
-        return code(colour) + word + BODY;
+        return code(colour) + word + BODY_COLOUR;
     }
 
     /**
@@ -193,7 +193,7 @@ public final class MirrorText
             case GREEN -> "§2";
             case RED -> "§c";
             // LIGHT_GRAY lands here too, and is right to: it is the body colour already.
-            default -> BODY;
+            default -> BODY_COLOUR;
         };
     }
 }

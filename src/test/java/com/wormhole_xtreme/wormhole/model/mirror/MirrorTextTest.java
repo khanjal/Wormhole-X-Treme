@@ -33,9 +33,10 @@ class MirrorTextTest
     {
         final String painted = MirrorText.name("museum");
 
-        assertTrue(painted.startsWith(MirrorText.NAME), "the name should start in its colour");
+        assertTrue(painted.startsWith(MirrorText.NAME_COLOUR),
+            "the name should start in its colour");
         assertTrue(painted.contains("museum"), "the name itself should survive");
-        assertTrue(painted.endsWith(MirrorText.BODY), "and hand the sentence back");
+        assertTrue(painted.endsWith(MirrorText.BODY_COLOUR), "and hand the sentence back");
     }
 
     /** The quotes stay, because the server console has no colour to read instead. */
@@ -46,7 +47,8 @@ class MirrorTextTest
 
         assertTrue(painted.startsWith("'"), "the opening quote is outside the colour");
         assertTrue(painted.endsWith("'"), "and so is the closing one");
-        assertTrue(painted.contains(MirrorText.NAME + "museum"), "with the name coloured inside");
+        assertTrue(painted.contains(MirrorText.NAME_COLOUR + "museum"),
+            "with the name coloured inside");
     }
 
     /** A command is meant to be typed, so it is painted as one thing. */
@@ -55,8 +57,9 @@ class MirrorTextTest
     {
         final String painted = MirrorText.command("/wormhole mirror list");
 
-        assertTrue(painted.startsWith(MirrorText.COMMAND), "a command opens in the command colour");
-        assertTrue(painted.endsWith(MirrorText.BODY), "and hands the sentence back");
+        assertTrue(painted.startsWith(MirrorText.COMMAND_COLOUR),
+            "a command opens in the command colour");
+        assertTrue(painted.endsWith(MirrorText.BODY_COLOUR), "and hands the sentence back");
     }
 
     /**
@@ -70,11 +73,11 @@ class MirrorTextTest
     {
         final String painted = MirrorText.command("/wormhole mirror link", "museum");
 
-        assertTrue(painted.startsWith(MirrorText.COMMAND + "/wormhole mirror link "),
+        assertTrue(painted.startsWith(MirrorText.COMMAND_COLOUR + "/wormhole mirror link "),
             "the verb should be in the command colour");
-        assertTrue(painted.contains(MirrorText.NAME + "museum"),
+        assertTrue(painted.contains(MirrorText.NAME_COLOUR + "museum"),
             "and the name in the name colour");
-        assertTrue(painted.endsWith(MirrorText.BODY), "and the sentence handed back");
+        assertTrue(painted.endsWith(MirrorText.BODY_COLOUR), "and the sentence handed back");
     }
 
     /**
@@ -88,8 +91,8 @@ class MirrorTextTest
     {
         final String painted = MirrorText.names(new String[] { "nether", "cavern" });
 
-        assertEquals(MirrorText.NAME + "nether" + MirrorText.BODY + ", "
-            + MirrorText.NAME + "cavern" + MirrorText.BODY, painted);
+        assertEquals(MirrorText.NAME_COLOUR + "nether" + MirrorText.BODY_COLOUR + ", "
+            + MirrorText.NAME_COLOUR + "cavern" + MirrorText.BODY_COLOUR, painted);
     }
 
     /** One name is still a list, and must not grow a separator. */
@@ -121,8 +124,10 @@ class MirrorTextTest
     {
         final String line = MirrorText.approach("museum", "nether");
 
-        assertTrue(line.contains(MirrorText.NAME + "museum"), "the mirror, coloured: " + line);
-        assertTrue(line.contains(MirrorText.NAME + "nether"), "and the far world: " + line);
+        assertTrue(line.contains(MirrorText.NAME_COLOUR + "museum"),
+            "the mirror, coloured: " + line);
+        assertTrue(line.contains(MirrorText.NAME_COLOUR + "nether"),
+            "and the far world: " + line);
     }
 
     /** The word is what carries the meaning, so it has to be in there whatever the colour. */
@@ -132,7 +137,7 @@ class MirrorTextTest
         final String painted = MirrorText.dye(DyeColor.RED);
 
         assertTrue(painted.contains("red"), "the word itself is what a reader actually reads");
-        assertTrue(painted.endsWith(MirrorText.BODY), "and the sentence is handed back");
+        assertTrue(painted.endsWith(MirrorText.BODY_COLOUR), "and the sentence is handed back");
     }
 
     /** Underscores are a constant name, not something to say out loud. */
@@ -172,7 +177,7 @@ class MirrorTextTest
         {
             final String painted = MirrorText.dye(colour);
 
-            assertTrue(painted.endsWith(MirrorText.BODY),
+            assertTrue(painted.endsWith(MirrorText.BODY_COLOUR),
                 colour + " should hand the sentence back");
             assertTrue(painted.contains(colour.name().toLowerCase(java.util.Locale.ROOT)
                 .replace('_', ' ')), colour + " should still say its own name");

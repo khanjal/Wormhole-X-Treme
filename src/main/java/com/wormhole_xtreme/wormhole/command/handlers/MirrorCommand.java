@@ -76,9 +76,18 @@ public class MirrorCommand implements SubCommand
     /** How every "this banner is now a mirror" line opens. */
     private static final String MIRROR_IS = "Mirror ";
 
+    /** How every usage line opens, outside the colouring. */
+    private static final String USAGE = "Usage: ";
+
+    /** The two verbs that point a mirror, named in the verb list, the switch and the prose. */
+    private static final String TARGET = "target";
+
+    /** @see #TARGET */
+    private static final String LINK = "link";
+
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS =
-        { "set", "target", "link", "stamp", "display", "mode", "remove", "list" };
+        { "set", TARGET, LINK, "stamp", "display", "mode", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -99,8 +108,8 @@ public class MirrorCommand implements SubCommand
         switch (verb)
         {
             case "set" -> set(sender, args);
-            case "target" -> target(sender, args);
-            case "link" -> link(sender, args);
+            case TARGET -> target(sender, args);
+            case LINK -> link(sender, args);
             case "stamp" -> stamp(sender, args);
             case "display" -> display(sender, args);
             case "mode" -> mode(sender, args);
@@ -113,12 +122,12 @@ public class MirrorCommand implements SubCommand
 
     private static void usage(final CommandSender sender)
     {
-        say(sender, "Usage: " + MirrorText.command(
+        say(sender, USAGE + MirrorText.command(
             "/wormhole mirror <" + String.join("|", VERBS) + ">"));
         say(sender, "A mirror is a banner you click to travel. Name one with "
             + MirrorText.name("set") + " while");
-        say(sender, "looking at it, then point it with " + MirrorText.name("target") + " or "
-            + MirrorText.name("link") + ".");
+        say(sender, "looking at it, then point it with " + MirrorText.name(TARGET) + " or "
+            + MirrorText.name(LINK) + ".");
     }
 
     /** Names the banner the player is looking at. */
@@ -196,7 +205,7 @@ public class MirrorCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            say(sender, "Usage: "
+            say(sender, USAGE
                 + MirrorText.command("/wormhole mirror link <other> [name for this one]"));
             say(sender, "Run it looking at the banner you want to join to <other>.");
             return;
@@ -544,9 +553,9 @@ public class MirrorCommand implements SubCommand
         {
             return "somewhere indoors";
         }
-        return view.biome().isEmpty()
-            ? MirrorText.name(preset.name())
-            : MirrorText.name(view.biome().toLowerCase(Locale.ROOT));
+        return MirrorText.name(view.biome().isEmpty()
+            ? preset.name()
+            : view.biome().toLowerCase(Locale.ROOT));
     }
 
     /** @return a preset name to suggest, or a placeholder if none are loaded */
@@ -611,7 +620,7 @@ public class MirrorCommand implements SubCommand
     {
         if (args.length < 4)
         {
-            say(sender, "Usage: "
+            say(sender, USAGE
                 + MirrorText.command("/wormhole mirror display <name> <always|proximity>"));
             return;
         }
@@ -668,7 +677,7 @@ public class MirrorCommand implements SubCommand
     {
         if (args.length < 4)
         {
-            say(sender, "Usage: "
+            say(sender, USAGE
                 + MirrorText.command("/wormhole mirror mode <name> <static|dynamic>"));
             return;
         }
@@ -827,7 +836,7 @@ public class MirrorCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            say(sender, "Usage: " + MirrorText.command("/wormhole mirror " + form));
+            say(sender, USAGE + MirrorText.command("/wormhole mirror " + form));
             return false;
         }
         return true;

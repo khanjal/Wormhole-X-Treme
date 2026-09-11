@@ -119,7 +119,7 @@ class MirrorStampCommandTest
         verify(banner).setBaseColor(DyeColor.RED);
         verify(banner).update(anyBoolean());
         verify(sender, atLeastOnce())
-            .sendMessage(contains("looks like " + MirrorText.NAME + "nether"));
+            .sendMessage(contains("looks like " + MirrorText.NAME_COLOUR + "nether"));
     }
 
     @Test
@@ -134,7 +134,7 @@ class MirrorStampCommandTest
         }
         verify(banner, never()).update(anyBoolean());
         verify(sender, atLeastOnce())
-            .sendMessage(contains("no look called '" + MirrorText.NAME + "chartreuse"));
+            .sendMessage(contains("no look called '" + MirrorText.NAME_COLOUR + "chartreuse"));
         verify(sender, atLeastOnce()).sendMessage(contains("nether"));
     }
 
@@ -208,7 +208,7 @@ class MirrorStampCommandTest
         run("mirror", "stamp", "nosuch", "nether");
 
         verify(sender, atLeastOnce())
-            .sendMessage(contains("no mirror called '" + MirrorText.NAME + "nosuch"));
+            .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
     }
 
     @Test

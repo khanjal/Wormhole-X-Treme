@@ -1054,7 +1054,8 @@ class MirrorProximityTest
         // the sending code catches and swallows, exactly as it would for a client that will
         // not take one. Stubbed here rather than per test so no test can accidentally assert
         // silence that came from the mock rather than from the sweep.
-        when(player.spigot()).thenReturn(mock(Player.Spigot.class));
+        final Player.Spigot hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
         return player;
     }
 }
