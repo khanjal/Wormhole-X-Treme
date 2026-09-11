@@ -44,6 +44,20 @@ been running on defaults will start reading the file you have been editing.
   once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
   it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
   affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+- **A mirror says what it is when you walk up to it.** A stamped banner looks like scenery, and
+  a corridor of them looks like decoration -- nothing about one said it was a door until
+  somebody happened to right-click it, which players do to signs and not to wall hangings. Come
+  within `mirror-proximity-radius` blocks of a mirror that goes somewhere and it names itself
+  above the hotbar, along with the world on the far side, which is the one thing you cannot see
+  from in front of it.
+
+  Above the hotbar rather than in chat, like the transport rings: it replaces itself and then
+  goes, instead of leaving a line behind for every banner you walked past. Only on arriving in
+  range -- standing in front of one is silent -- and only for mirrors that actually go
+  somewhere, since announcing a half-built one would be nagging about unfinished work in front
+  of everybody. `mirror-approach-message: false` turns it off, and doing so puts back the older
+  and cheaper sweep that never visited an ordinary mirror at all
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - **Clicking a mirror that goes nowhere now says how to point it.** "This mirror does not open
   onto anywhere yet" was true and useless, and it was said at the one moment somebody had
   demonstrated they wanted that banner to work and was standing in front of it. It names the
@@ -125,6 +139,15 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **Mirror messages are no longer entirely grey.** Every line a mirror sent arrived in one
+  colour, so a sentence carrying a command to type, the name of a mirror and the name of a world
+  gave you no way to tell which was which without reading around them. Commands are now white,
+  names -- mirrors, worlds, looks -- are aqua, and the prose stays grey. The colours are the
+  ones this plugin already uses to tell you how to finish a stargate, on purpose: somebody who
+  has learned that white means "type this" at a gate should not have to learn it again at a
+  banner. A dye named in a `stamp` message is written in something close to that dye, since
+  "mostly red" is easier to believe when it is red
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - Gate shapes live in the plugin's `shapes/gate/` folder rather than `GateShapes/`, so
   mirrors have somewhere to go when they arrive. Your shapes are moved there on first
   startup, from either previous layout, and nothing is deleted

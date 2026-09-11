@@ -102,7 +102,8 @@ class DefaultSettings
         new Setting(ConfigKeys.MIRROR_ALLOW_SAME_WORLD, false, "Whether a quantum mirror may point somewhere in the world it stands in. False by default: a mirror is the bridge between two worlds, which is what separates it from a beam place. Turn this on if you want a mirror that connects two points in one world anyway.", SECTION),
         new Setting(ConfigKeys.MIRROR_PROXIMITY_RADIUS, 8, "How close a player must be, in blocks, before a mirror set to 'proximity' shows its look. Kept small on purpose: the point is that a corridor reads as blank cloth until you walk up to one.", SECTION),
         new Setting(ConfigKeys.MIRROR_PROXIMITY_TICKS, 20, "How often the proximity sweep runs, in ticks. 20 is once a second. The sweep skips mirrors whose world or chunk is not loaded before it touches anything.", SECTION),
-        new Setting(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS, 60, "Least time between two re-readings of one 'dynamic' mirror's far side. Re-reading loads a distant chunk, so this stops a player pacing in front of a mirror from asking for it every second.", SECTION)
+        new Setting(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS, 60, "Least time between two re-readings of one 'dynamic' mirror's far side. Re-reading loads a distant chunk, so this stops a player pacing in front of a mirror from asking for it every second.", SECTION),
+        new Setting(ConfigKeys.MIRROR_APPROACH_MESSAGE, true, "Whether a mirror names itself above the hotbar when a player walks within the proximity radius. Only mirrors that actually go somewhere say anything, and only on arriving in range -- standing in front of one is silent. Turn this off and the sweep stops visiting mirrors it has no other reason to visit.", SECTION)
     };
 
 }

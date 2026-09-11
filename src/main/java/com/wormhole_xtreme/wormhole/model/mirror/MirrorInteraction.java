@@ -113,7 +113,8 @@ public final class MirrorInteraction
         {
             // The name-based world lookup every store in this plugin uses. A world that is not
             // loaded, or one recreated under a different name, both land here.
-            say(player, "The far side of this mirror is in " + mirror.destination().worldName()
+            say(player, "The far side of this mirror is in "
+                + MirrorText.name(mirror.destination().worldName())
                 + ", which is not loaded.");
             return;
         }
@@ -140,15 +141,15 @@ public final class MirrorInteraction
      */
     private static void sayUnbound(final Player player, final QuantumMirror mirror)
     {
-        say(player, "'" + mirror.name() + "' does not open onto anywhere yet.");
+        say(player, MirrorText.quoted(mirror.name()) + " does not open onto anywhere yet.");
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG))
         {
             return;
         }
         say(player, "Hang a banner where it should lead, look at it, and run:");
-        say(player, "  /wormhole mirror link " + mirror.name());
+        say(player, "  " + MirrorText.command("/wormhole mirror link", mirror.name()));
         say(player, "Or stand where arrivals should land and run:");
-        say(player, "  /wormhole mirror target " + mirror.name());
+        say(player, "  " + MirrorText.command("/wormhole mirror target", mirror.name()));
     }
 
     /**

@@ -134,10 +134,52 @@ player walks down a corridor, which is not when that should be discovered.
 ### What the sweep is careful about
 
 It runs on a timer for the life of the server, so the order of its checks is the design. Before
-anything touches a block it has ruled out mirrors that are not proximity mirrors, mirrors with
-no look to show, worlds that are not loaded, and chunks that are not loaded — the chunk check
-comes before `getBlockAt`, which would load one. A server whose mirrors are all ordinary does no
-work here beyond walking the list.
+anything touches a block it has ruled out mirrors it has no reason to visit, worlds that are not
+loaded, and chunks that are not loaded — the chunk check comes before `getBlockAt`, which would
+load one.
+
+There were originally two reasons to visit a mirror, and both were narrow: hiding it, and
+keeping a dynamic one current. That meant a server whose mirrors were all ordinary did no work
+here beyond walking the list.
+
+The approach message below adds a third and gives that up, deliberately. An ordinary mirror that
+goes somewhere is now visited too, which costs one squared-distance comparison per player in its
+world per sweep. It is the cheapest check in the file and it happens once a second by default,
+but it is not nothing, and it is the first thing here that an operator pays for without having
+turned anything on. `mirror-approach-message: false` puts the old behaviour back exactly — the
+sweep stops visiting those mirrors rather than visiting them and staying quiet.
+
+## Saying what it is
+
+A stamped banner looks like scenery, and a corridor of them looks like decoration. Nothing about
+one said it was a door until somebody happened to right-click it, which is a thing players do to
+signs and not to wall hangings.
+
+So a mirror that goes somewhere names itself when somebody comes within
+`mirror-proximity-radius` blocks:
+
+```
+:: museum -- click to travel to nether.
+```
+
+Three decisions in that one line, none of them arbitrary.
+
+**Above the hotbar, not in chat.** The same call the transport rings use. It replaces itself and
+then goes, where chat would leave a line behind for every banner walked past — a corridor would
+cost a player their whole chat window to walk down.
+
+**On the crossing only.** The sweep already tracks who was in range last time, for the packets,
+and this rides on the same set. Standing in front of a mirror is silent; so is pacing in front
+of one, as long as you do not leave the radius. Announcing per sweep would be a line a second.
+
+**Only a mirror with a destination.** An unpointed one is a banner somebody is halfway through
+setting up, and announcing it would be the plugin telling everybody who walked past about
+unfinished work. Clicking it already says what to do, to the one person who asked.
+
+It carries the plugin's `::` header itself, unlike everything else a mirror says, because the
+action-bar path does not go through the call that prefixes it. Without that, a line appearing
+above the hotbar on a server running several plugins is a line the player cannot act on — they
+have no idea what put it there.
 
 ## The preset files
 

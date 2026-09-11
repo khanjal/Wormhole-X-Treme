@@ -34,6 +34,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -368,7 +369,8 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "frobnicate"));
         assertTrue(run(player, "mirror"));
 
-        verify(player, atLeastOnce()).sendMessage(contains("Usage: /wormhole mirror"));
+        verify(player, atLeastOnce())
+            .sendMessage(contains("Usage: " + MirrorText.COMMAND + "/wormhole mirror"));
     }
 
     /** A verb that needs a name and was not given one says which form it wanted. */

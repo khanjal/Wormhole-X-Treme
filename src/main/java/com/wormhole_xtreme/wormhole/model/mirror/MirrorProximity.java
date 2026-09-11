@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.utils.ActionBar;
 
 /**
  * Letting a mirror go dark until somebody walks towards it.
@@ -176,6 +177,13 @@ public final class MirrorProximity
      * <p>Where {@code sendBlockUpdate} is missing -- plain 1.20 -- nothing is ever hidden, and
      * a proximity mirror is simply always visible. That does not stop a dynamic one being kept
      * current there, because re-reading writes to the banner itself and needs no packet.
+     *
+     * <p>A third reason to visit one was added later and changes what this sweep costs. Before
+     * it, a server whose mirrors were all ordinary did no work here beyond walking the list;
+     * now an ordinary mirror that goes somewhere is visited too, which is one distance check
+     * per player in its world per sweep. That is the price of a mirror being able to say what
+     * it is, and it is refundable: turning off the approach message puts the old behaviour
+     * back exactly.
      */
     static void tick()
     {
@@ -189,7 +197,7 @@ public final class MirrorProximity
             // is either true or a lie.
             final boolean hides = (mirror.display() == MirrorDisplay.PROXIMITY)
                 && MirrorPackets.available();
-            if (hides || (mirror.mode() == MirrorMode.DYNAMIC))
+            if (hides || (mirror.mode() == MirrorMode.DYNAMIC) || announces(mirror))
             {
                 tickOne(mirror, hides);
             }
@@ -231,6 +239,7 @@ public final class MirrorProximity
         {
             sendCrossings(current, block, near, far, wasShowing, wasHiding);
         }
+        announceArrivals(current, near, wasShowing);
         // Replaced rather than merged, which is what drops a player who logged out or walked
         // into another world without this needing an event to hear about it. A mirror that
         // hides nothing tracks nobody as hidden, so there is nothing to hand back later.
@@ -305,6 +314,56 @@ public final class MirrorProximity
         }
     }
 
+    /**
+     * Whether this mirror would say anything to somebody walking up to it.
+     *
+     * <p>Only a mirror that goes somewhere. One that does not is a banner an operator has half
+     * built, and announcing it would be the plugin nagging about unfinished work in front of
+     * everybody who walked past -- the click already says what to do about it, to the one
+     * person who asked.
+     *
+     * @param mirror
+     *            the mirror being considered
+     * @return true if the sweep should visit it for this reason alone
+     */
+    private static boolean announces(final QuantumMirror mirror)
+    {
+        return ConfigManager.isMirrorApproachMessage() && (mirror.destination() != null);
+    }
+
+    /**
+     * Tells whoever has just come into range what this mirror is.
+     *
+     * <p>On the crossing only, and above the hotbar. A player standing in front of a mirror is
+     * told once; a player walking a corridor of them is told once per mirror as they reach it,
+     * each line replacing the last rather than stacking up in chat. Both of those follow from
+     * where this is called and from what it is sent to, and neither would survive being moved
+     * into chat or out of the crossing check.
+     *
+     * @param mirror
+     *            the mirror somebody walked up to
+     * @param near
+     *            everybody in range this sweep
+     * @param wasShowing
+     *            everybody who was in range last sweep
+     */
+    private static void announceArrivals(final QuantumMirror mirror, final List<Player> near,
+        final Set<UUID> wasShowing)
+    {
+        if (!announces(mirror))
+        {
+            return;
+        }
+        final String line = MirrorText.approach(mirror.name(), mirror.destination().worldName());
+        for (final Player player : near)
+        {
+            if (!wasShowing.contains(player.getUniqueId()))
+            {
+                ActionBar.send(player, line);
+            }
+        }
+    }
+
     /** @return the ids of those players, for the sets kept between sweeps */
     private static Set<UUID> ids(final List<Player> players)
     {
@@ -321,6 +380,11 @@ public final class MirrorProximity
      * when it says the mirror re-reads the far side on approach. Without the exception that
      * promise would hold only for a mirror somebody had already stamped by hand.
      *
+     * <p>Announcing is a second exception, and for a plainer reason: what a mirror says when
+     * you walk up to it is its name and where it goes, neither of which has anything to do
+     * with whether anybody got round to stamping it. An unstamped mirror that works is exactly
+     * the one a player is least likely to guess is a door.
+     *
      * @param mirror
      *            the mirror being considered
      * @return true if the sweep should leave it alone
@@ -331,7 +395,7 @@ public final class MirrorProximity
         final boolean unstamped = (look == null) || look.isEmpty();
         final boolean couldLearnOne =
             (mirror.mode() == MirrorMode.DYNAMIC) && (mirror.destination() != null);
-        return unstamped && !couldLearnOne;
+        return unstamped && !couldLearnOne && !announces(mirror);
     }
 
     /** The live banner block, or null if it cannot be reached or is no longer a banner. */

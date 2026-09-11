@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -113,7 +114,8 @@ class MirrorSettingsCommandTest
 
         assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
             "a refused setting must not half-apply");
-        verify(sender, atLeastOnce()).sendMessage(contains("'sideways'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("'" + MirrorText.NAME + "sideways"));
     }
 
     @Test
@@ -122,7 +124,8 @@ class MirrorSettingsCommandTest
         run("mirror", "mode", "museum", "interpretive");
 
         assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
-        verify(sender, atLeastOnce()).sendMessage(contains("'interpretive'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("'" + MirrorText.NAME + "interpretive"));
     }
 
     @Test
@@ -141,7 +144,8 @@ class MirrorSettingsCommandTest
         run("mirror", "display", "nosuch", "proximity");
         run("mirror", "mode", "nosuch", "dynamic");
 
-        verify(sender, atLeastOnce()).sendMessage(contains("no mirror called 'nosuch'"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("no mirror called '" + MirrorText.NAME + "nosuch"));
     }
 
     /**
