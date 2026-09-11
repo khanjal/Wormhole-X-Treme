@@ -44,6 +44,14 @@ been running on defaults will start reading the file you have been editing.
   once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
   it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
   affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+- **Clicking a mirror that goes nowhere now says how to point it.** "This mirror does not open
+  onto anywhere yet" was true and useless, and it was said at the one moment somebody had
+  demonstrated they wanted that banner to work and was standing in front of it. It names the
+  mirror and offers both routes -- `mirror link <name>` for a banner at the far end, and
+  `mirror target <name>` for arriving somewhere with no banner at all -- with the name filled in
+  so the line can be typed as it stands. Only to somebody who could run them; a visitor gets the
+  plain sentence rather than commands they have no permission for
+  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
 - **`mirror link <other>` joins the banner you are looking at to an existing mirror, both ways.**
   Two commands for a working pair: name the first banner, walk to the other world, look at a
   banner there and join it. It used to take two names and point only the first at the second,

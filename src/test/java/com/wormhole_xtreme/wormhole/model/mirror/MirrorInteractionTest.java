@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
  * Clicking a banner, and — mostly — clicking everything that is not one.
@@ -62,6 +64,7 @@ class MirrorInteractionTest
     void tearDown() throws Exception
     {
         MirrorManager.clear();
+        ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
 
@@ -129,14 +132,20 @@ class MirrorInteractionTest
     }
 
     /**
-     * A mirror that has been named but not pointed says so rather than doing nothing.
+     * A mirror that has been named but not pointed says so, and says what to do about it.
      *
      * <p>The event is still claimed, so the click does not fall through to placing a block
      * against the banner. "Nothing happened" on a block you just clicked is the least useful
-     * answer available.
+     * answer available -- and "this does not go anywhere yet", while true, is the second least,
+     * because it is said at the one moment somebody has demonstrated they want this banner to
+     * work and is standing in front of it.
+     *
+     * <p>Both routes, because they answer different questions: {@code link} for a banner at the
+     * far end, {@code target} for arriving somewhere with no banner at all. The mirror's own
+     * name goes in both, so the line can be typed as it stands.
      */
     @Test
-    void clickingAMirrorWithNoDestinationExplainsItself()
+    void clickingAMirrorWithNoDestinationSaysHowToPointIt()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
@@ -144,6 +153,32 @@ class MirrorInteractionTest
         assertTrue(MirrorInteraction.handle(click(banner)), "a mirror claims its own click");
         verify(player, never()).teleport(any(org.bukkit.Location.class));
         verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
+        verify(player, atLeastOnce()).sendMessage(contains("/wormhole mirror link Museum"));
+        verify(player, atLeastOnce()).sendMessage(contains("/wormhole mirror target Museum"));
+    }
+
+    /**
+     * A visitor who could not run those commands is not given them.
+     *
+     * <p>Handing somebody two commands they have no permission for reads as the plugin telling
+     * them to do something, and they would be right to try. They get the plain sentence, which
+     * still beats a click that does nothing.
+     *
+     * <p>Simple mode on purpose: it is the arrangement where a player may travel but not
+     * configure, which is exactly the split being tested. With a permissions plugin the same
+     * player would fail the USE check first and never reach this line.
+     */
+    @Test
+    void aPlayerWhoCannotConfigureIsNotToldToRunCommands()
+    {
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, true);
+        when(player.isOp()).thenReturn(false);
+        final Block banner = block(Material.WHITE_WALL_BANNER, 5);
+        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
+
+        assertTrue(MirrorInteraction.handle(click(banner)), "a mirror still claims its click");
+        verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
+        verify(player, never()).sendMessage(contains("/wormhole mirror"));
     }
 
     /**

@@ -105,7 +105,7 @@ public final class MirrorInteraction
         }
         if (mirror.destination() == null)
         {
-            say(player, "This mirror does not open onto anywhere yet.");
+            sayUnbound(player, mirror);
             return;
         }
         final Location destination = mirror.destination().toLocation();
@@ -119,6 +119,36 @@ public final class MirrorInteraction
         }
         final Location safe = WorldUtils.findSafePlayerLocation(destination);
         player.teleport((safe == null) ? destination : safe);
+    }
+
+    /**
+     * Says a mirror goes nowhere, and how to point it somewhere.
+     *
+     * <p>"This mirror does not open onto anywhere yet" is true and useless. It is said at the
+     * one moment somebody has demonstrated they want this banner to work, standing in front of
+     * it -- which is exactly when the next command is worth putting in front of them, spelled
+     * out with this mirror's own name so it can be typed as it stands.
+     *
+     * <p>Only for somebody who could run it. A visitor clicking a half-built mirror gets the
+     * plain sentence: handing them two commands they have no permission for would read as the
+     * plugin telling them to do something, and they would be right to try.
+     *
+     * <p>Both routes are offered because they answer different questions. {@code link} is for
+     * a banner at the far end, which is what most pairs are; {@code target} is for arriving
+     * somewhere with no banner at all, which is the archived-world case the whole feature was
+     * built for and the one nobody guesses.
+     */
+    private static void sayUnbound(final Player player, final QuantumMirror mirror)
+    {
+        say(player, "'" + mirror.name() + "' does not open onto anywhere yet.");
+        if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.CONFIG))
+        {
+            return;
+        }
+        say(player, "Hang a banner where it should lead, look at it, and run:");
+        say(player, "  /wormhole mirror link " + mirror.name());
+        say(player, "Or stand where arrivals should land and run:");
+        say(player, "  /wormhole mirror target " + mirror.name());
     }
 
     /**
