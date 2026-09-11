@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -233,6 +234,38 @@ class MirrorStampCommandTest
             "the fourth is a look");
         assertTrue(complete("mirror", "").contains("stamp"),
             "stamp should be offered as a verb");
+    }
+
+    /**
+     * A mirror removed while it is being stamped does not take the command down with it.
+     *
+     * <p>The look is written to the banner first and to the mirror second, and between those
+     * two somebody can run {@code mirror remove}. Simulated by removing it at the moment the
+     * banner's state is read, which is exactly where the gap is. The banner keeps the look --
+     * it is an ordinary banner now -- and there is simply no mirror left to write it against.
+     */
+    @Test
+    void survivesTheMirrorBeingRemovedPartWayThroughAStamp()
+    {
+        pointedMirror();
+        final Block vanishing = mock(Block.class);
+        when(vanishing.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(vanishing.getState()).thenAnswer(invocation ->
+        {
+            MirrorManager.remove("museum");
+            return banner;
+        });
+        when(bannerWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(vanishing);
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+
+            assertTrue(run("mirror", "stamp", "museum", "nether"),
+                "the command still reports itself handled rather than throwing");
+        }
+        verify(banner).setBaseColor(DyeColor.RED);
+        assertNull(MirrorManager.byName("museum"), "it really was removed mid-stamp");
     }
 
     /**

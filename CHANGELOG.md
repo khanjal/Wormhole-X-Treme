@@ -30,6 +30,35 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **Mirrors can go dark until you walk up to them, and keep themselves current.** Two settings,
+  independent of each other:
+
+  `/wormhole mirror display <name> proximity` makes a mirror appear off until somebody is within
+  `mirror-proximity-radius` blocks. Nothing is taken off the banner to do it -- the block in the
+  world stays stamped, and the *blank* is what gets sent to people too far away. That is the
+  whole reason it works this way round: banner patterns are vanilla data, so disabling this
+  plugin leaves a corridor of stamped banners rather than a row of plain white cloth. The
+  per-player call it needs arrived in 1.20.1, so on plain 1.20 the mirror simply stays visible.
+
+  `/wormhole mirror mode <name> dynamic` re-reads the far side when somebody walks up, at most
+  once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
+  it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
+  affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+- **`mirror link <other>` joins the banner you are looking at to an existing mirror, both ways.**
+  Two commands for a working pair: name the first banner, walk to the other world, look at a
+  banner there and join it. It used to take two names and point only the first at the second,
+  which meant the return banner did nothing at all when clicked -- and the argument order is
+  invisible once you have walked away from the banner. The joined side is named for you, or
+  named by you with a second argument. `target` is still the one-way form, and still the only
+  way to open onto a world you would rather not put a banner in
+  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+- **You arrive at the far banner itself**, rather than a block in front of it -- standing where
+  somebody who had just touched it would be, facing the way it faces. The block in front is one
+  the builder did not choose, and can be a wall, a drop or the far side of a doorway; the
+  banner's own block is the one place somebody deliberately put something, and a banner is
+  passable so a player can stand in it
+  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+
 - **Quantum mirrors**: a banner you right-click to arrive somewhere else, and the fourth way to
   travel. Nothing to build -- one banner, wall-mounted or freestanding. One-way by design and
   cross-world by default, so a mirror can open onto an archived world without anything being
@@ -42,6 +71,11 @@ been running on defaults will start reading the file you have been editing.
   point, so the room reads by its contents instead and the commonest block in it becomes the
   cloth. A library comes back the brown of its shelves; a lava field comes back orange whatever
   biome it sits in.
+
+  Except where being enclosed is not news. The Nether is solid rock with a ceiling on it and a
+  cave is a cave, so both read as enclosed for every mirror ever pointed at them -- which meant
+  a Nether mirror could never wear the Nether's look. A preset says `Sheltered=true` to keep its
+  own; `nether` and `cavern` do.
 
   Not a window, and a banner cannot be made into one: six flat patterns over a dyed base is the
   whole canvas. It is an impression, and it is a snapshot -- taken when you stamp and not

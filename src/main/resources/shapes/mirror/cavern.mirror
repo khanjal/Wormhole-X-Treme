@@ -1,5 +1,6 @@
 # A mirror onto the deep places. The format is documented in docs/MIRRORS.md.
 Name=cavern
+Sheltered=true
 Base=GRAY
 Biome=DRIPSTONE_CAVES,LUSH_CAVES,DEEP_DARK
 Layer=BLACK TRIANGLES_TOP

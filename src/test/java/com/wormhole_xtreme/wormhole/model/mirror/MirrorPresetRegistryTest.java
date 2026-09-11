@@ -214,4 +214,60 @@ class MirrorPresetRegistryTest
         assertEquals("aaa", MirrorPresetRegistry.forBiome("TEST_BIOME").name(),
             "aaa-claimant.mirror sorts first, so it is the one that answers");
     }
+
+    /**
+     * A mirror into the Nether wears the Nether's look, not the indoor one.
+     *
+     * <p>Reported from real play: the banner "doesn't look right". The Nether is solid rock
+     * with a ceiling on it, so the sampler reports enclosed for every mirror ever pointed
+     * there -- and the rule written for libraries then replaced the Nether's look with the
+     * indoor one, every time. Some places are enclosed by their nature and say so.
+     */
+    @Test
+    void keepsTheNethersLookEvenThoughTheNetherIsAlwaysEnclosed()
+    {
+        MirrorPresetRegistry.load(folder);
+        final MirrorView inTheNether = new MirrorView("NETHER_WASTES",
+            List.of(DyeColor.RED, DyeColor.BLACK), true);
+
+        assertEquals("nether", MirrorLook.seen(inTheNether).preset().name(),
+            "an enclosed Nether reading should still be the Nether");
+    }
+
+    @Test
+    void keepsACavesLookForTheSameReason()
+    {
+        MirrorPresetRegistry.load(folder);
+        final MirrorView inACave = new MirrorView("DRIPSTONE_CAVES",
+            List.of(DyeColor.GRAY), true);
+
+        assertEquals("cavern", MirrorLook.seen(inACave).preset().name());
+    }
+
+    /**
+     * A room in ordinary country still reads as a room, which is what the rule is for.
+     *
+     * <p>The library case. Plains is not enclosed by its nature, so finding it enclosed is
+     * real information and the indoor look is the right answer.
+     */
+    @Test
+    void stillReadsARoomInOrdinaryCountryAsIndoors()
+    {
+        MirrorPresetRegistry.load(folder);
+        final MirrorView library = new MirrorView("PLAINS",
+            List.of(DyeColor.BROWN, DyeColor.GRAY), true);
+
+        assertEquals("indoors", MirrorLook.seen(library).preset().name());
+    }
+
+    @Test
+    void readsOpenCountryAsItsBiomeWhetherOrNotThatBiomeIsSheltered()
+    {
+        MirrorPresetRegistry.load(folder);
+
+        assertEquals("nether", MirrorLook.seen(
+            new MirrorView("NETHER_WASTES", List.of(DyeColor.RED), false)).preset().name());
+        assertEquals("overworld", MirrorLook.seen(
+            new MirrorView("PLAINS", List.of(DyeColor.GREEN), false)).preset().name());
+    }
 }

@@ -31,8 +31,12 @@ import org.bukkit.DyeColor;
  * @param biomes
  *            biome names this preset is the answer for, upper-cased; empty if it is only ever
  *            chosen by hand
+ * @param sheltered
+ *            true if this kind of place is enclosed anyway, so finding it enclosed says
+ *            nothing new and must not replace this look with the indoor one
  */
-public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<String> biomes)
+public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<String> biomes,
+    boolean sheltered)
 {
     /**
      * One pattern in one colour.
@@ -91,6 +95,7 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
         DyeColor base = null;
         final List<Layer> layers = new ArrayList<>();
         final Set<String> biomes = new LinkedHashSet<>();
+        boolean sheltered = false;
 
         for (final String raw : (lines == null) ? Collections.<String>emptyList() : lines)
         {
@@ -105,10 +110,11 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
                 case "BASE" -> base = colour(setting.value());
                 case "BIOME" -> addBiomes(biomes, setting.value());
                 case "LAYER" -> addLayer(layers, setting.value());
+                case "SHELTERED" -> sheltered = Boolean.parseBoolean(setting.value());
                 default -> { /* not a key this understands; somebody's own note */ }
             }
         }
-        return (base == null) ? null : new MirrorPreset(name, base, layers, biomes);
+        return (base == null) ? null : new MirrorPreset(name, base, layers, biomes, sheltered);
     }
 
     /**

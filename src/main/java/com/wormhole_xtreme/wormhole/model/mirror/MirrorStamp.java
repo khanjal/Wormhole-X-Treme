@@ -94,19 +94,89 @@ public final class MirrorStamp
     public static boolean apply(final Block block, final MirrorPreset preset,
         final MirrorView view)
     {
-        if ((block == null) || (preset == null))
+        final Banner banner = dress(block, preset, view);
+        if (banner == null)
         {
             return false;
+        }
+        banner.update(true);
+        return true;
+    }
+
+    /**
+     * Puts a remembered look onto a banner, in the world.
+     *
+     * @param block
+     *            the banner block
+     * @param look
+     *            what it should look like
+     * @return true if the banner was changed
+     */
+    public static boolean applyLook(final Block block, final MirrorLook look)
+    {
+        if ((look == null) || look.isEmpty())
+        {
+            return false;
+        }
+        return apply(block, look.preset(), look.view());
+    }
+
+    /**
+     * A banner state with every pattern taken off, not written to the world.
+     *
+     * <p>What a proximity mirror looks like to somebody too far away to have been shown it,
+     * and the only detached state this makes. {@code Block.getState()} hands back a copy, so
+     * undressing it and never calling {@code update()} produces exactly what a per-player
+     * packet needs: an appearance that exists for one viewer and changes nothing.
+     *
+     * <p>There is no matching "dressed copy" method, and there should not be. Putting the look
+     * back for somebody means sending them the block as it really is -- the world's own banner
+     * is stamped throughout, because the patterns are vanilla data and outlive this plugin. So
+     * the blank is the illusion and the stamped banner is the truth, not the other way round.
+     *
+     * <p>The base colour is left alone rather than forced to white: it is whatever banner the
+     * operator hung there, and a mirror that is off should still look like the thing they
+     * built.
+     *
+     * @param block
+     *            the banner block
+     * @return the undressed copy, or null if that block is not a banner
+     */
+    public static Banner blankState(final Block block)
+    {
+        if (block == null)
+        {
+            return null;
         }
         final BlockState state = block.getState();
         if (!(state instanceof Banner banner))
         {
-            return false;
+            return null;
+        }
+        banner.setPatterns(new ArrayList<>());
+        return banner;
+    }
+
+    /**
+     * A banner state dressed in a preset and a view, not yet written anywhere.
+     *
+     * @return the dressed copy, or null if that block is not a banner
+     */
+    private static Banner dress(final Block block, final MirrorPreset preset,
+        final MirrorView view)
+    {
+        if ((block == null) || (preset == null))
+        {
+            return null;
+        }
+        final BlockState state = block.getState();
+        if (!(state instanceof Banner banner))
+        {
+            return null;
         }
         banner.setBaseColor(baseFor(preset, view));
         banner.setPatterns(patternsFor(preset, view));
-        banner.update(true);
-        return true;
+        return banner;
     }
 
     /**

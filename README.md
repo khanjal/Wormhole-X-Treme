@@ -1365,21 +1365,37 @@ where it goes.
 /wormhole mirror target museum     # while standing where people should arrive
 ```
 
-Or point one mirror at another, which works out the spot in front of that banner for you:
+Two banners that go to each other take two commands. Name the first, walk to the other world,
+look at a banner there, and join it:
 
 ```
-/wormhole mirror link lobby museum
+/wormhole mirror set nether      # looking at the banner in the overworld
+/wormhole mirror link nether     # looking at the banner in the nether
 ```
 
-`link` is a snapshot, not a subscription. Move the target banner afterwards and the first mirror
-still opens onto where it used to be — run `link` again to follow it.
+That is the whole job. The second banner is bound for you — called `nether-return` unless you
+give it a name of your own (`/wormhole mirror link nether home`) — and the two are pointed at
+each other, so you can walk back the way you came.
+
+**You arrive at the far banner itself**, standing where somebody who had just reached out and
+touched it would be, looking out into the room. Not a block in front: that is a block the
+builder did not choose, and it can be a wall, a drop, or the far side of a doorway. The banner's
+own block is the one place somebody deliberately put something.
+
+`target` is still there for the one-way case — pointing a mirror at a place with no banner in
+it, which is how you open onto an archived world you would rather not build in.
+
+`link` is a snapshot, not a subscription. Move either banner afterwards and the other still
+opens onto where it used to be — run `link` again to follow it.
 
 | Command | What it does |
 | --- | --- |
 | `mirror set <name>` | Makes the banner you are looking at a mirror by that name |
 | `mirror target <name>` | Points that mirror at where you are standing |
-| `mirror link <from> <to>` | Points one mirror at the spot in front of another's banner |
+| `mirror link <other> [name]` | Joins the banner you are looking at to that mirror, both ways |
 | `mirror stamp <name> [look]` | Makes the banner look like where it goes |
+| `mirror display <name> <always\|proximity>` | Whether it shows its look always, or only up close |
+| `mirror mode <name> <static\|dynamic>` | Whether the look stays put, or re-reads the far side |
 | `mirror remove <name>` | Forgets it; the banner becomes an ordinary banner again |
 | `mirror list` | Every mirror and where it opens onto |
 
@@ -1422,6 +1438,32 @@ Ten ship with the plugin — `nether`, `end`, `ocean`, `forest`, `desert`, `froz
 beside the gate shapes. Edit one and it stays edited; delete one and it comes back on the next
 startup. Add your own and `stamp` offers it. The format and the reasoning behind all of this
 are in [MIRRORS.md](docs/MIRRORS.md).
+
+### Going dark, and keeping up
+
+A corridor of lit banners is just a corridor of lit banners. Two settings change that:
+
+```
+/wormhole mirror display museum proximity   # dark until somebody walks up to it
+/wormhole mirror mode museum dynamic        # re-reads the far side when they do
+```
+
+**`proximity`** makes the mirror appear off until a player is within `mirror-proximity-radius`
+blocks. Nothing is taken off the banner to do it: the block in the world stays stamped, and the
+*blank* is what gets sent to people who are too far away. That matters — banner patterns are
+vanilla data, so if you ever disable this plugin your corridor is still there, stamped, rather
+than reverting to plain white cloth. On plain 1.20 the mirror just stays visible, because the
+per-player call this needs arrived in 1.20.1; the setting starts working when you upgrade.
+
+**`dynamic`** re-reads the destination when somebody walks up, at most once every
+`mirror-dynamic-resample-seconds`. Rebuild the far side and the mirror follows it. A mirror
+nobody visits is never re-read at all, which is what keeps it cheap. This one writes to the
+banner itself, so it works on every supported version — 1.20 included — and on a mirror that
+never hides.
+
+The two are independent — a mirror can be proximity and static, always and dynamic, or both.
+An `always` + `dynamic` mirror is one that is permanently visible and quietly keeps itself up
+to date.
 
 ## Sounds
 
