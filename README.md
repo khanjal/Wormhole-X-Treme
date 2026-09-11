@@ -1405,6 +1405,11 @@ between worlds, which is not something to leave open to anyone who can run `/wor
 Either kind of banner works: wall-mounted or freestanding on a post. A mirror whose far side is
 in an unloaded world says so when you click it, the same way a beam destination does.
 
+Click a mirror you have named but not yet pointed and it tells you how to point it, with its own
+name already filled in — the two commands above, ready to type. Only if you could run them: a
+visitor is told `'museum' does not open onto anywhere yet` and nothing more, rather than
+instructions they have no permission for.
+
 ### Making it look like where it goes
 
 A corridor of plain white banners tells you nothing. `stamp` fixes that, and the interesting
