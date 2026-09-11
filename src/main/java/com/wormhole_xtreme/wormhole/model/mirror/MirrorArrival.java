@@ -12,11 +12,11 @@ import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 /**
  * Where a player arrives when a mirror is pointed at another mirror's banner.
  *
- * <p>{@code mirror link} is sugar: it works out the spot in front of the target banner once,
- * at link time, and stores an ordinary {@link MirrorPoint}. Nothing about the stored form
- * knows a second mirror was involved, which is deliberate -- the point stays valid if the
- * target mirror is later renamed or removed, and there is no second kind of destination for
- * the file format or the click path to understand.
+ * <p>{@code mirror link} is sugar: it works out where each banner is once, at link time, and
+ * stores two ordinary {@link MirrorPoint}s. Nothing about the stored form knows a second
+ * mirror was involved, which is deliberate -- the points stay valid if either mirror is later
+ * renamed or removed, and there is no second kind of destination for the file format or the
+ * click path to understand.
  *
  * <p>The consequence, worth knowing: linking is a snapshot, not a subscription. Move the
  * target banner and the first mirror still sends people to where it used to be. Re-running
@@ -56,22 +56,27 @@ public final class MirrorArrival
     }
 
     /**
-     * The spot a player should land in when stepping out of this banner.
+     * Where a player lands when a mirror opens onto this banner.
      *
-     * <p>One block out in the direction the banner faces, looking the same way -- a player
-     * steps *through* a mirror and comes out facing away from it, rather than turning round to
-     * look back at the banner they just left.
+     * <p>The banner's own block, facing the way the banner faces. A banner is passable, so a
+     * player can stand in one -- and arriving there puts them exactly where somebody who had
+     * just reached out and touched it would be, looking out into the room rather than at the
+     * cloth.
      *
-     * <p>Handed to {@link WorldUtils#findSafePlayerLocation} afterwards, the same as a gate's
-     * exit and a beam's destination: the block in front of a banner is very often a wall, a
-     * drop, or the inside of whatever the banner is mounted on, and that helper is what the
-     * other two mechanics already use to correct for it.
+     * <p>It used to be the block in front, which reads the same in an open room and badly
+     * everywhere else: one block of clearance the builder did not choose is one block that can
+     * be a wall, a drop, a fence or the far side of a doorway. The banner's own block is the
+     * one place somebody deliberately put something, so it is the one place known to be clear.
+     *
+     * <p>Handed to {@link WorldUtils#findSafePlayerLocation} afterwards all the same, the way a
+     * gate's exit and a beam's destination are. A banner hung high on a wall has nothing under
+     * it, and that helper is what the other two mechanics already use to correct for it.
      *
      * @param banner
-     *            the banner block being linked to
+     *            the banner block being arrived at
      * @return where to arrive, or null if the block is not a banner this can read a facing from
      */
-    public static Location inFrontOf(final Block banner)
+    public static Location atTheBanner(final Block banner)
     {
         if (banner == null)
         {
@@ -82,13 +87,7 @@ public final class MirrorArrival
         {
             return null;
         }
-        // Signum rather than getRelative(facing). Bukkit's sixteen-point faces are built by
-        // adding two cardinals together, so NORTH_NORTH_EAST carries modX 1 and modZ -2 --
-        // getRelative on one lands two blocks away and diagonally, not in front of the
-        // banner. Reducing each axis to -1, 0 or 1 always gives an adjacent block.
-        final Block ahead = banner.getRelative(Integer.signum(facing.getModX()),
-            Integer.signum(facing.getModY()), Integer.signum(facing.getModZ()));
-        final Location standing = ahead.getLocation().add(0.5, 0.0, 0.5);
+        final Location standing = banner.getLocation().add(0.5, 0.0, 0.5);
         standing.setYaw(yawOf(facing));
         standing.setPitch(0.0f);
         final Location safe = WorldUtils.findSafePlayerLocation(standing);

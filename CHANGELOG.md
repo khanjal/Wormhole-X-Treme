@@ -44,11 +44,19 @@ been running on defaults will start reading the file you have been editing.
   once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
   it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
   affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
-- **`mirror link` ties two banners together both ways.** It used to point only the first at the
-  second, which meant the return banner did nothing when clicked unless you also ran it the
-  other way round -- and the argument order is invisible once you have walked away from the
-  banner. One command binds the pair now. `target` is still the one-way form, and still the only
+- **`mirror link <other>` joins the banner you are looking at to an existing mirror, both ways.**
+  Two commands for a working pair: name the first banner, walk to the other world, look at a
+  banner there and join it. It used to take two names and point only the first at the second,
+  which meant the return banner did nothing at all when clicked -- and the argument order is
+  invisible once you have walked away from the banner. The joined side is named for you, or
+  named by you with a second argument. `target` is still the one-way form, and still the only
   way to open onto a world you would rather not put a banner in
+  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+- **You arrive at the far banner itself**, rather than a block in front of it -- standing where
+  somebody who had just touched it would be, facing the way it faces. The block in front is one
+  the builder did not choose, and can be a wall, a drop or the far side of a doorway; the
+  banner's own block is the one place somebody deliberately put something, and a banner is
+  passable so a player can stand in it
   ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
 
 - **Quantum mirrors**: a banner you right-click to arrive somewhere else, and the fourth way to

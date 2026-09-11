@@ -3,7 +3,9 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -132,51 +134,64 @@ class MirrorArrivalTest
      * {@code getRelative} on one lands a knight's move away rather than in front of the
      * banner. Each axis is reduced to its sign, which is always an adjacent block.
      */
+    /**
+     * A sixteen-point facing still yields a sensible yaw, and no neighbour is consulted.
+     *
+     * <p>Arriving is the banner's own block now, so the old hazard -- Bukkit's sixteen-point
+     * faces are built by adding two cardinals, so NORTH_NORTH_EAST carries modX 1 and modZ -2,
+     * and getRelative on one lands two blocks away diagonally -- cannot arise at all. The yaw
+     * still has to answer for all sixteen, which is what this pins.
+     */
     @Test
-    void arrivalIsTheAdjacentBlockEvenForASixteenPointFacing()
+    void aSixteenPointFacingGivesItsOwnYawAndConsultsNoNeighbour()
     {
         final Rotatable data = mock(Rotatable.class);
         when(data.getRotation()).thenReturn(BlockFace.NORTH_NORTH_EAST);
 
         final World world = mock(World.class);
-        final Block ahead = mock(Block.class);
-        when(ahead.getLocation()).thenReturn(new Location(world, 1.0, 64.0, -1.0));
-
         final Block banner = mock(Block.class);
         when(banner.getBlockData()).thenReturn(data);
-        when(banner.getRelative(1, 0, -1)).thenReturn(ahead);
+        when(banner.getLocation()).thenReturn(new Location(world, 1.0, 64.0, 1.0));
 
-        final Location arrival = MirrorArrival.inFrontOf(banner);
+        final Location arrival = MirrorArrival.atTheBanner(banner);
 
-        assertNotNull(arrival, "a banner with a readable facing has a front to stand in");
-        verify(banner).getRelative(1, 0, -1);
+        assertNotNull(arrival, "a banner with a readable facing is somewhere to arrive");
+        verify(banner, never()).getRelative(anyInt(), anyInt(), anyInt());
         assertEquals(202.5f, arrival.getYaw(), 0.01f,
             "and faces the way the banner does, not due south");
         assertEquals(0.0f, arrival.getPitch(), 0.01f, "looking level, not at the floor");
     }
 
-    /** Centred in the block rather than on its corner. */
+    /**
+     * Arriving is the banner's own block, centred in it.
+     *
+     * <p>Not the block in front, which reads the same in an open room and badly everywhere
+     * else: one block of clearance the builder did not choose can be a wall, a drop or the far
+     * side of a doorway. The banner's own block is the one place somebody deliberately put
+     * something, so it is the one known to be clear -- and a banner is passable, so a player
+     * can stand in it.
+     */
     @Test
-    void arrivalIsCentredInTheBlock()
+    void arrivalIsTheBannersOwnBlockCentredInIt()
     {
         final Directional data = mock(Directional.class);
         when(data.getFacing()).thenReturn(BlockFace.SOUTH);
 
         final World world = mock(World.class);
-        final Block ahead = mock(Block.class);
-        when(ahead.getLocation()).thenReturn(new Location(world, 10.0, 64.0, 10.0));
-
         final Block banner = mock(Block.class);
         when(banner.getBlockData()).thenReturn(data);
-        when(banner.getRelative(0, 0, 1)).thenReturn(ahead);
+        when(banner.getLocation()).thenReturn(new Location(world, 10.0, 64.0, 10.0));
 
-        final Location arrival = MirrorArrival.inFrontOf(banner);
+        final Location arrival = MirrorArrival.atTheBanner(banner);
 
         assertEquals(10.5, arrival.getX(), 0.001, "standing in the middle of the block, not its edge");
+        assertEquals(64.0, arrival.getY(), 0.001, "and at the banner's own height");
         assertEquals(10.5, arrival.getZ(), 0.001);
+        assertEquals(0.0f, arrival.getYaw(), 0.01f,
+            "looking out the way the banner faces, not back at the cloth");
     }
 
-    /** A block that is not a banner has no front, and says so by answering null. */
+    /** A block with no facing is nowhere to arrive, and says so by answering null. */
     @Test
     void aBlockWithNoFacingHasNoArrival()
     {
@@ -184,8 +199,8 @@ class MirrorArrivalTest
         final Block notABanner = mock(Block.class);
         when(notABanner.getBlockData()).thenReturn(plainBlock);
 
-        assertNull(MirrorArrival.inFrontOf(notABanner));
-        assertNull(MirrorArrival.inFrontOf(null));
+        assertNull(MirrorArrival.atTheBanner(notABanner));
+        assertNull(MirrorArrival.atTheBanner(null));
     }
 
     /**

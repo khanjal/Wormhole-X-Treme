@@ -1365,17 +1365,25 @@ where it goes.
 /wormhole mirror target museum     # while standing where people should arrive
 ```
 
-Or name a banner at each end and tie the pair together — one command, both directions:
+Two banners that go to each other take two commands. Name the first, walk to the other world,
+look at a banner there, and join it:
 
 ```
-/wormhole mirror set lobby     # looking at the banner here
-/wormhole mirror set museum    # looking at the banner at the far end
-/wormhole mirror link lobby museum
+/wormhole mirror set nether      # looking at the banner in the overworld
+/wormhole mirror link nether     # looking at the banner in the nether
 ```
 
-Each now opens onto the spot in front of the other's banner, so you can walk back the way you
-came. `target` is still there for the one-way case: pointing a mirror at a place with no banner
-in it, which is how you open onto an archived world you would rather not build in.
+That is the whole job. The second banner is bound for you — called `nether-return` unless you
+give it a name of your own (`/wormhole mirror link nether home`) — and the two are pointed at
+each other, so you can walk back the way you came.
+
+**You arrive at the far banner itself**, standing where somebody who had just reached out and
+touched it would be, looking out into the room. Not a block in front: that is a block the
+builder did not choose, and it can be a wall, a drop, or the far side of a doorway. The banner's
+own block is the one place somebody deliberately put something.
+
+`target` is still there for the one-way case — pointing a mirror at a place with no banner in
+it, which is how you open onto an archived world you would rather not build in.
 
 `link` is a snapshot, not a subscription. Move either banner afterwards and the other still
 opens onto where it used to be — run `link` again to follow it.
@@ -1384,7 +1392,7 @@ opens onto where it used to be — run `link` again to follow it.
 | --- | --- |
 | `mirror set <name>` | Makes the banner you are looking at a mirror by that name |
 | `mirror target <name>` | Points that mirror at where you are standing |
-| `mirror link <one> <other>` | Ties two banners together, each opening onto the other |
+| `mirror link <other> [name]` | Joins the banner you are looking at to that mirror, both ways |
 | `mirror stamp <name> [look]` | Makes the banner look like where it goes |
 | `mirror display <name> <always\|proximity>` | Whether it shows its look always, or only up close |
 | `mirror mode <name> <static\|dynamic>` | Whether the look stays put, or re-reads the far side |

@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -150,6 +151,89 @@ class MirrorRoundTripTest
         assertEquals("world", MirrorManager.byName("hell").destination().worldName());
     }
 
+    /**
+     * The whole job in two commands, which is what an operator actually wants to type.
+     *
+     * <p>Name the first banner after where it goes, walk to the other world, look at a banner
+     * there and join it. No second name, no walking back, and no argument order to get wrong.
+     */
+    @Test
+    void namingOneBannerAndJoiningTheOtherIsTheWholeJob()
+    {
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(overworld);
+            bukkit.when(() -> Bukkit.getWorld("world_nether")).thenReturn(nether);
+
+            standingAt(overworld, 10, 64, 12);
+            lookingAt(overworldBanner);
+            assertTrue(run("mirror", "set", "nether"));
+
+            standingAt(nether, 100, 32, 98);
+            lookingAt(netherBanner);
+            assertTrue(run("mirror", "link", "nether"));
+        }
+
+        // The banner that was named, and the one that joined it under a derived name.
+        assertNotNull(MirrorManager.byName("nether").destination(),
+            "the first banner should open onto the second");
+        assertNotNull(MirrorManager.byName("nether-return"),
+            "the banner that was looked at should have been bound");
+        assertNotNull(MirrorManager.byName("nether-return").destination(),
+            "and should open back onto the first");
+
+        assertEquals("world_nether", MirrorManager.byName("nether").destination().worldName());
+        assertEquals("world", MirrorManager.byName("nether-return").destination().worldName());
+
+        // Both answer to a click, which is what doing nothing at all looked like before.
+        assertNotNull(MirrorManager.at(new MirrorBlock("world", 10, 64, 10)));
+        assertNotNull(MirrorManager.at(new MirrorBlock("world_nether", 100, 32, 100)));
+    }
+
+    /** Arriving is the far banner's own block, so you land where somebody touched it. */
+    @Test
+    void arrivingPutsYouAtTheFarBannerItself()
+    {
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(overworld);
+            bukkit.when(() -> Bukkit.getWorld("world_nether")).thenReturn(nether);
+
+            standingAt(overworld, 10, 64, 12);
+            lookingAt(overworldBanner);
+            run("mirror", "set", "nether");
+            standingAt(nether, 100, 32, 98);
+            lookingAt(netherBanner);
+            run("mirror", "link", "nether");
+        }
+
+        final MirrorPoint arrival = MirrorManager.byName("nether").destination();
+        assertEquals(100.5, arrival.x(), 0.001, "the nether banner's own block, centred");
+        assertEquals(32.0, arrival.y(), 0.001);
+        assertEquals(100.5, arrival.z(), 0.001);
+    }
+
+    /** A name for this side can still be given, for somebody who wants to choose it. */
+    @Test
+    void aNameForThisSideCanBeGivenInstead()
+    {
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(overworld);
+            bukkit.when(() -> Bukkit.getWorld("world_nether")).thenReturn(nether);
+
+            standingAt(overworld, 10, 64, 12);
+            lookingAt(overworldBanner);
+            run("mirror", "set", "nether");
+            standingAt(nether, 100, 32, 98);
+            lookingAt(netherBanner);
+            assertTrue(run("mirror", "link", "nether", "home"));
+        }
+
+        assertNotNull(MirrorManager.byName("home"), "named rather than derived");
+        assertNull(MirrorManager.byName("nether-return"), "so no derived name was used");
+    }
+
     private boolean run(final String... args)
     {
         return new MirrorCommand().execute(player, args);
@@ -189,12 +273,8 @@ class MirrorRoundTripTest
         when(block.getZ()).thenReturn(z);
         when(block.getBlockData()).thenReturn(data);
 
-        final int ax = x + Integer.signum(facing.getModX());
-        final int az = z + Integer.signum(facing.getModZ());
-        final Block ahead = mock(Block.class);
-        when(ahead.getLocation()).thenReturn(new Location(where, ax, y, az));
-        when(block.getRelative(Integer.signum(facing.getModX()), 0,
-            Integer.signum(facing.getModZ()))).thenReturn(ahead);
+        // Its own location, because arriving is the banner's own block now.
+        when(block.getLocation()).thenReturn(new Location(where, x, y, z));
 
         when(where.getBlockAt(x, y, z)).thenReturn(block);
         when(where.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);

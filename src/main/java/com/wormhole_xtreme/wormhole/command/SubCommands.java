@@ -417,6 +417,7 @@ public final class SubCommands
         // which reads as though the typo were a real command.
         final boolean takesOneName = "target".equals(verb) || REMOVE.equals(verb)
             || "display".equals(verb) || "mode".equals(verb);
+        // link takes the existing mirror first now, and an optional name for this side.
         final boolean takesTwoNames = "link".equals(verb);
         final boolean stamp = "stamp".equals(verb);
         if ((args.length == 3) && (takesOneName || takesTwoNames || stamp))

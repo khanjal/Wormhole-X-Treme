@@ -40,7 +40,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * <pre>
  * mirror set &lt;name&gt;           look at a banner; it becomes a mirror by that name
  * mirror target &lt;name&gt;        stand where arrivals should land; point that mirror here
- * mirror link &lt;one&gt; &lt;other&gt;   tie two banners together, each opening onto the other
+ * mirror link &lt;other&gt;         join the banner you are looking at to that mirror
  * mirror stamp &lt;name&gt; [look]  make the banner look like where it goes
  * mirror remove &lt;name&gt;        forget it; the banner becomes an ordinary banner again
  * mirror list                 what exists and where each one goes
@@ -136,9 +136,9 @@ public class MirrorCommand implements SubCommand
         if (keep == null)
         {
             say(sender, "Mirror '" + name + "' is this banner. It goes nowhere yet.");
-            say(sender, "Name a banner at the far end too, then tie the pair together with");
-            say(sender, "/wormhole mirror link " + name + " <other> -- or stand where arrivals");
-            say(sender, "should land and run /wormhole mirror target " + name);
+            say(sender, "Hang a banner at the far end, look at it, and run");
+            say(sender, "/wormhole mirror link " + name + " -- or stand where arrivals should");
+            say(sender, "land and run /wormhole mirror target " + name);
         }
         else
         {
@@ -163,50 +163,101 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Ties two mirrors together, each opening onto the front of the other's banner.
+     * Ties the banner you are looking at to a mirror that already exists.
      *
-     * <p>Both ways, which is what somebody hanging two banners means by linking them. It used
-     * to point only the first at the second, and the commonest way to end up with a banner
-     * that does nothing was to run it once and expect a return trip -- the argument order is
-     * invisible once you have walked away from the banner.
+     * <pre>
+     * mirror set nether            at the first banner, wherever you want to come back to
+     * mirror link nether           at the second, in the other world -- that is the whole job
+     * </pre>
      *
-     * <p>One way is still reachable, by pointing a mirror at a place rather than at a banner:
-     * that is what {@code target} is for, and it is the only way to open onto a world you do
-     * not want to put a banner in.
+     * <p>One argument, because by the time you are hanging the second banner the only thing
+     * you still have to say is which one it joins. The banner you are looking at becomes the
+     * other half, and both are pointed at each other.
+     *
+     * <p>A second name is accepted for the case where both banners already exist, or where you
+     * want to choose what this side is called rather than take the derived name. Naming it is
+     * the only way to get something other than {@code <other>-return}.
+     *
+     * <p>Both ways, always. Pointing only one was the commonest way to end up with a banner
+     * that did nothing when clicked, and the argument order was invisible once you had walked
+     * away from it. One-way binding is still {@code target}, which is also the only way to open
+     * onto a world you would rather not put a banner in.
      */
     private static void link(final CommandSender sender, final String[] args)
     {
-        if (args.length < 4)
+        if (args.length < 3)
         {
-            say(sender, "Usage: /wormhole mirror link <one> <other>");
+            say(sender, "Usage: /wormhole mirror link <other> [name for this one]");
+            say(sender, "Run it looking at the banner you want to join to <other>.");
             return;
         }
-        final QuantumMirror first = known(sender, args[2]);
-        final QuantumMirror second = known(sender, args[3]);
-        if ((first == null) || (second == null))
+        final QuantumMirror other = known(sender, args[2]);
+        if (other == null)
         {
             return;
         }
-        if (first.name().equalsIgnoreCase(second.name()))
+        final String thisName = (args.length > 3) ? args[3] : args[2] + "-return";
+        if (thisName.equalsIgnoreCase(other.name()))
         {
             say(sender, "A mirror cannot open onto itself.");
             return;
         }
-        // Both fronts are worked out before either is stored, so a pair that cannot be tied
-        // both ways is not left tied one way -- which is the state this change exists to stop
-        // people ending up in.
-        final Location toSecond = arrivalAt(sender, second);
-        final Location toFirst = arrivalAt(sender, first);
-        if ((toSecond == null) || (toFirst == null))
+        final QuantumMirror here = existingOrLookedAt(sender, thisName);
+        if (here == null)
         {
             return;
         }
-        if (point(sender, first, MirrorPoint.of(toSecond))
-            && point(sender, second, MirrorPoint.of(toFirst)))
+        // Both arrivals are worked out before either is stored, so a pair that cannot be tied
+        // both ways is not left tied one way -- the state this command exists to stop people
+        // ending up in.
+        final Location toOther = arrivalAt(sender, other);
+        final Location toHere = arrivalAt(sender, here);
+        if ((toOther == null) || (toHere == null))
         {
-            say(sender, "'" + first.name() + "' and '" + second.name()
+            return;
+        }
+        if (point(sender, here, MirrorPoint.of(toOther))
+            && point(sender, other, MirrorPoint.of(toHere)))
+        {
+            say(sender, "'" + here.name() + "' and '" + other.name()
                 + "' now open onto each other.");
         }
+    }
+
+    /**
+     * A mirror by that name, or the banner the player is looking at bound under it.
+     *
+     * <p>What makes {@code link} usable from the far end of a journey. A name nobody has yet is
+     * not a mistake here -- it is the second banner, and the player is standing in front of it.
+     *
+     * @param sender
+     *            who ran it, and who gets told what went wrong
+     * @param name
+     *            the name for this side, given or derived
+     * @return the mirror, or null with the reason already sent
+     */
+    private static QuantumMirror existingOrLookedAt(final CommandSender sender, final String name)
+    {
+        final QuantumMirror existing = MirrorManager.byName(name);
+        if (existing != null)
+        {
+            return existing;
+        }
+        final Player player = asPlayer(sender);
+        if (player == null)
+        {
+            return null;
+        }
+        final Block block = lookedAtBanner(player);
+        if (block == null)
+        {
+            return null;
+        }
+        final QuantumMirror bound = new QuantumMirror(name, MirrorBlock.of(block), null);
+        MirrorManager.add(bound);
+        MirrorYamlManager.saveAll();
+        say(sender, "Mirror '" + name + "' is this banner.");
+        return bound;
     }
 
     /**
@@ -234,7 +285,7 @@ public class MirrorCommand implements SubCommand
             return null;
         }
         final Location arrival =
-            MirrorArrival.inFrontOf(world.getBlockAt(banner.x(), banner.y(), banner.z()));
+            MirrorArrival.atTheBanner(world.getBlockAt(banner.x(), banner.y(), banner.z()));
         if (arrival == null)
         {
             say(sender, "'" + to.name() + "' is no longer a banner, so there is no front to"
