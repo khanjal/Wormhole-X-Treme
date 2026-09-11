@@ -1407,8 +1407,8 @@ in an unloaded world says so when you click it, the same way a beam destination 
 
 Click a mirror you have named but not yet pointed and it tells you how to point it, with its own
 name already filled in — the two commands above, ready to type. Only if you could run them: a
-visitor gets the plain "this does not open onto anywhere yet" rather than instructions they have
-no permission for.
+visitor is told `'museum' does not open onto anywhere yet` and nothing more, rather than
+instructions they have no permission for.
 
 ### Making it look like where it goes
 
