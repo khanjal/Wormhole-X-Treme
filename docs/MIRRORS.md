@@ -49,7 +49,15 @@ than from the biome, and the commonest block in the room becomes the cloth itsel
 square on it. A library comes back the brown of its shelves, with the grey of its walls beside
 them. A room of copper comes back orange.
 
-That threshold is a judgement and nothing more. At 55% a cave reads as indoors, which is
+**Except where being enclosed is not news.** The Nether is solid rock with a ceiling on it; a
+cave is a cave. The sampler reports those as enclosed for every mirror ever pointed at them, so
+the rule as first written meant no mirror into the Nether could ever wear the Nether's look —
+reported from real play as "the banner doesn't look right", and quite right too. A preset says
+`Sheltered=true` to mean "this kind of place is enclosed anyway" and keeps its own look; the
+shipped `nether` and `cavern` both do. What is left for the indoor rule is a room somewhere it
+is *not* normal to be inside one, which is the library it was written for.
+
+The threshold is a judgement and nothing more. At 55% a cellar reads as indoors, which is
 right, and a forest does not, which is also right.
 
 ### Static and dynamic
@@ -156,6 +164,7 @@ Layer=BLACK BORDER
 | `Base` | The banner's own colour, one of the sixteen `DyeColor` names. Required. |
 | `Biome` | Biomes this preset answers for, comma-separated. May repeat. Optional. |
 | `Layer` | `COLOUR PATTERN`, laid on in order. May repeat. Optional. |
+| `Sheltered` | `true` if this kind of place is enclosed anyway, so the indoor look must not replace it. Optional, default false. |
 
 **Leniency is the design, not an oversight.** A line it cannot read is skipped, a preset with
 no layers still dyes the banner, and a file with no `Base` is skipped with a warning rather

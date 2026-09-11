@@ -223,29 +223,40 @@ class MirrorCommandTest
     }
 
     /**
-     * Linking points one mirror at the spot in front of another's banner.
+     * Linking ties two mirrors together, each opening onto the front of the other's banner.
      *
-     * <p>The whole reason {@code link} exists: two commands instead of walking to the far end
-     * and running {@code target} there. What it stores is an ordinary point, so nothing
-     * downstream knows a second mirror was involved -- which is also why moving the target
+     * <p>The whole reason {@code link} exists: two commands instead of walking to both ends
+     * and running {@code target} at each. What it stores is a pair of ordinary points, so
+     * nothing downstream knows a second mirror was involved -- which is also why moving either
      * banner afterwards does not follow.
+     *
+     * <p>Both ways since two-way linking replaced one-way. Pointing only the first was the
+     * commonest way to end up with a banner that did nothing when clicked, because the
+     * argument order is invisible once you have walked away from it.
      */
     @Test
-    void linkPointsOneMirrorAtTheFrontOfAnothersBanner()
+    void linkTiesTwoMirrorsTogetherBothWays()
     {
         final World snapshot = mock(World.class);
         when(snapshot.getName()).thenReturn("snapshot");
 
-        final Directional facing = mock(Directional.class);
-        when(facing.getFacing()).thenReturn(BlockFace.SOUTH);
-
-        final Block ahead = mock(Block.class);
-        when(ahead.getLocation()).thenReturn(new Location(snapshot, 5.0, 64.0, 6.0));
-
+        final Block farAhead = mock(Block.class);
+        when(farAhead.getLocation()).thenReturn(new Location(snapshot, 5.0, 64.0, 6.0));
+        final Directional farFacing = mock(Directional.class);
+        when(farFacing.getFacing()).thenReturn(BlockFace.SOUTH);
         final Block farBanner = mock(Block.class);
-        when(farBanner.getBlockData()).thenReturn(facing);
-        when(farBanner.getRelative(0, 0, 1)).thenReturn(ahead);
+        when(farBanner.getBlockData()).thenReturn(farFacing);
+        when(farBanner.getRelative(0, 0, 1)).thenReturn(farAhead);
         when(snapshot.getBlockAt(5, 64, 5)).thenReturn(farBanner);
+
+        final Block nearAhead = mock(Block.class);
+        when(nearAhead.getLocation()).thenReturn(new Location(here, 0.0, 64.0, -1.0));
+        final Directional nearFacing = mock(Directional.class);
+        when(nearFacing.getFacing()).thenReturn(BlockFace.NORTH);
+        final Block nearBanner = mock(Block.class);
+        when(nearBanner.getBlockData()).thenReturn(nearFacing);
+        when(nearBanner.getRelative(0, 0, -1)).thenReturn(nearAhead);
+        when(here.getBlockAt(0, 64, 0)).thenReturn(nearBanner);
 
         MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 0, 64, 0), null));
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("snapshot", 5, 64, 5), null));
@@ -253,16 +264,24 @@ class MirrorCommandTest
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("snapshot")).thenReturn(snapshot);
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(here);
 
             assertTrue(run(player, "mirror", "link", "lobby", "museum"));
         }
 
-        final MirrorPoint destination = MirrorManager.byName("lobby").destination();
-        assertNotNull(destination, "lobby should now open onto the front of museum's banner");
-        assertEquals("snapshot", destination.worldName());
-        assertEquals(5.5, destination.x(), 0.001, "centred in the block in front");
-        assertEquals(6.5, destination.z(), 0.001);
-        assertEquals(0.0f, destination.yaw(), 0.01f, "facing the way that banner faces");
+        final MirrorPoint outbound = MirrorManager.byName("lobby").destination();
+        assertNotNull(outbound, "lobby should open onto the front of museum's banner");
+        assertEquals("snapshot", outbound.worldName());
+        assertEquals(5.5, outbound.x(), 0.001, "centred in the block in front");
+        assertEquals(6.5, outbound.z(), 0.001);
+        assertEquals(0.0f, outbound.yaw(), 0.01f, "facing the way that banner faces");
+
+        final MirrorPoint back = MirrorManager.byName("museum").destination();
+        assertNotNull(back, "and museum should open back onto the front of lobby's banner");
+        assertEquals("world", back.worldName());
+        assertEquals(0.5, back.x(), 0.001);
+        assertEquals(-0.5, back.z(), 0.001);
+        assertEquals(180.0f, back.yaw(), 0.01f);
     }
 
     /**

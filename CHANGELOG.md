@@ -44,6 +44,13 @@ been running on defaults will start reading the file you have been editing.
   once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
   it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
   affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+- **`mirror link` ties two banners together both ways.** It used to point only the first at the
+  second, which meant the return banner did nothing when clicked unless you also ran it the
+  other way round -- and the argument order is invisible once you have walked away from the
+  banner. One command binds the pair now. `target` is still the one-way form, and still the only
+  way to open onto a world you would rather not put a banner in
+  ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
+
 - **Quantum mirrors**: a banner you right-click to arrive somewhere else, and the fourth way to
   travel. Nothing to build -- one banner, wall-mounted or freestanding. One-way by design and
   cross-world by default, so a mirror can open onto an archived world without anything being
@@ -56,6 +63,11 @@ been running on defaults will start reading the file you have been editing.
   point, so the room reads by its contents instead and the commonest block in it becomes the
   cloth. A library comes back the brown of its shelves; a lava field comes back orange whatever
   biome it sits in.
+
+  Except where being enclosed is not news. The Nether is solid rock with a ceiling on it and a
+  cave is a cave, so both read as enclosed for every mirror ever pointed at them -- which meant
+  a Nether mirror could never wear the Nether's look. A preset says `Sheltered=true` to keep its
+  own; `nether` and `cavern` do.
 
   Not a window, and a banner cannot be made into one: six flat patterns over a dyed base is the
   whole canvas. It is an impression, and it is a snapshot -- taken when you stamp and not

@@ -1365,20 +1365,26 @@ where it goes.
 /wormhole mirror target museum     # while standing where people should arrive
 ```
 
-Or point one mirror at another, which works out the spot in front of that banner for you:
+Or name a banner at each end and tie the pair together — one command, both directions:
 
 ```
+/wormhole mirror set lobby     # looking at the banner here
+/wormhole mirror set museum    # looking at the banner at the far end
 /wormhole mirror link lobby museum
 ```
 
-`link` is a snapshot, not a subscription. Move the target banner afterwards and the first mirror
-still opens onto where it used to be — run `link` again to follow it.
+Each now opens onto the spot in front of the other's banner, so you can walk back the way you
+came. `target` is still there for the one-way case: pointing a mirror at a place with no banner
+in it, which is how you open onto an archived world you would rather not build in.
+
+`link` is a snapshot, not a subscription. Move either banner afterwards and the other still
+opens onto where it used to be — run `link` again to follow it.
 
 | Command | What it does |
 | --- | --- |
 | `mirror set <name>` | Makes the banner you are looking at a mirror by that name |
 | `mirror target <name>` | Points that mirror at where you are standing |
-| `mirror link <from> <to>` | Points one mirror at the spot in front of another's banner |
+| `mirror link <one> <other>` | Ties two banners together, each opening onto the other |
 | `mirror stamp <name> [look]` | Makes the banner look like where it goes |
 | `mirror display <name> <always\|proximity>` | Whether it shows its look always, or only up close |
 | `mirror mode <name> <static\|dynamic>` | Whether the look stays put, or re-reads the far side |

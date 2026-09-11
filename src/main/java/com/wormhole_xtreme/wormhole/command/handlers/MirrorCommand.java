@@ -40,16 +40,21 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * <pre>
  * mirror set &lt;name&gt;           look at a banner; it becomes a mirror by that name
  * mirror target &lt;name&gt;        stand where arrivals should land; point that mirror here
- * mirror link &lt;from&gt; &lt;to&gt;     point one mirror at the spot in front of another's banner
+ * mirror link &lt;one&gt; &lt;other&gt;   tie two banners together, each opening onto the other
  * mirror stamp &lt;name&gt; [look]  make the banner look like where it goes
  * mirror remove &lt;name&gt;        forget it; the banner becomes an ordinary banner again
  * mirror list                 what exists and where each one goes
  * </pre>
  *
- * <p>{@code link} is sugar over {@code target}: it works the arrival spot out once and stores
- * an ordinary point, so nothing downstream knows a second mirror was involved. It is a
- * snapshot rather than a subscription -- move the target banner afterwards and the first
- * mirror still points where it used to.
+ * <p>{@code link} is sugar over {@code target}, applied twice: it works out the spot in front
+ * of each banner and stores two ordinary points, so nothing downstream knows a second mirror
+ * was involved. Two ways rather than one, because a pair of banners is what somebody hanging
+ * two of them means -- pointing only the first was the commonest way to end up with a banner
+ * that did nothing when clicked.
+ *
+ * <p>It is a snapshot rather than a subscription -- move either banner afterwards and the
+ * other still opens onto where it used to be. One-way binding is still {@code target}, which
+ * is also the only way to open onto a world you would rather not put a banner in.
  *
  * <p>{@code stamp} is the same kind of snapshot, and deliberately so. Named a look, it applies
  * that look and nothing else. Given no look, it goes and reads the far side -- the biome there
@@ -130,8 +135,10 @@ public class MirrorCommand implements SubCommand
 
         if (keep == null)
         {
-            say(sender, "Mirror '" + name + "' is this banner. It goes nowhere yet -- stand where");
-            say(sender, "you want arrivals to land and run /wormhole mirror target " + name);
+            say(sender, "Mirror '" + name + "' is this banner. It goes nowhere yet.");
+            say(sender, "Name a banner at the far end too, then tie the pair together with");
+            say(sender, "/wormhole mirror link " + name + " <other> -- or stand where arrivals");
+            say(sender, "should land and run /wormhole mirror target " + name);
         }
         else
         {
@@ -151,33 +158,54 @@ public class MirrorCommand implements SubCommand
         final QuantumMirror mirror = known(sender, args[2]);
         if (mirror != null)
         {
-            point(sender, mirror, MirrorPoint.of(player.getLocation()));
+            pointAndSay(sender, mirror, MirrorPoint.of(player.getLocation()));
         }
     }
 
-    /** Points one mirror at the spot in front of another mirror's banner. */
+    /**
+     * Ties two mirrors together, each opening onto the front of the other's banner.
+     *
+     * <p>Both ways, which is what somebody hanging two banners means by linking them. It used
+     * to point only the first at the second, and the commonest way to end up with a banner
+     * that does nothing was to run it once and expect a return trip -- the argument order is
+     * invisible once you have walked away from the banner.
+     *
+     * <p>One way is still reachable, by pointing a mirror at a place rather than at a banner:
+     * that is what {@code target} is for, and it is the only way to open onto a world you do
+     * not want to put a banner in.
+     */
     private static void link(final CommandSender sender, final String[] args)
     {
         if (args.length < 4)
         {
-            say(sender, "Usage: /wormhole mirror link <from> <to>");
+            say(sender, "Usage: /wormhole mirror link <one> <other>");
             return;
         }
-        final QuantumMirror from = known(sender, args[2]);
-        final QuantumMirror to = known(sender, args[3]);
-        if ((from == null) || (to == null))
+        final QuantumMirror first = known(sender, args[2]);
+        final QuantumMirror second = known(sender, args[3]);
+        if ((first == null) || (second == null))
         {
             return;
         }
-        if (from.name().equalsIgnoreCase(to.name()))
+        if (first.name().equalsIgnoreCase(second.name()))
         {
             say(sender, "A mirror cannot open onto itself.");
             return;
         }
-        final Location arrival = arrivalAt(sender, to);
-        if (arrival != null)
+        // Both fronts are worked out before either is stored, so a pair that cannot be tied
+        // both ways is not left tied one way -- which is the state this change exists to stop
+        // people ending up in.
+        final Location toSecond = arrivalAt(sender, second);
+        final Location toFirst = arrivalAt(sender, first);
+        if ((toSecond == null) || (toFirst == null))
         {
-            point(sender, from, MirrorPoint.of(arrival));
+            return;
+        }
+        if (point(sender, first, MirrorPoint.of(toSecond))
+            && point(sender, second, MirrorPoint.of(toFirst)))
+        {
+            say(sender, "'" + first.name() + "' and '" + second.name()
+                + "' now open onto each other.");
         }
     }
 
@@ -228,7 +256,7 @@ public class MirrorCommand implements SubCommand
      * @param destination
      *            where it should open onto
      */
-    private static void point(final CommandSender sender, final QuantumMirror mirror,
+    private static boolean point(final CommandSender sender, final QuantumMirror mirror,
         final MirrorPoint destination)
     {
         final QuantumMirror pointed = mirror.withDestination(destination);
@@ -238,11 +266,29 @@ public class MirrorCommand implements SubCommand
                 + mirror.name() + "' are in " + destination.worldName() + ".");
             say(sender, "Use a gate, a ring, or a beam place for travel inside one world --");
             say(sender, "or set mirror-allow-same-world to true if you want this anyway.");
-            return;
+            return false;
         }
         MirrorManager.add(pointed);
         MirrorYamlManager.saveAll();
-        say(sender, "'" + mirror.name() + "' now opens onto " + describe(destination) + ".");
+        return true;
+    }
+
+    /**
+     * Points one mirror and says so.
+     *
+     * <p>Separate from {@link #point} because {@code link} points two and wants one line about
+     * the pair rather than two about the halves. The boolean {@code point} returns is not the
+     * {@code true} this project took out of thirty-four helpers -- it says whether the
+     * cross-world rule allowed it, which is the one thing a caller pointing two mirrors has to
+     * know before it claims both worked.
+     */
+    private static void pointAndSay(final CommandSender sender, final QuantumMirror mirror,
+        final MirrorPoint destination)
+    {
+        if (point(sender, mirror, destination))
+        {
+            say(sender, "'" + mirror.name() + "' now opens onto " + describe(destination) + ".");
+        }
     }
 
     /**

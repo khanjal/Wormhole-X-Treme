@@ -63,8 +63,17 @@ public record MirrorLook(String presetName, MirrorView view)
      * The preset this look wears.
      *
      * <p>A named look resolves to that preset and nothing else, so an operator who names one
-     * and then edits the preset file sees the edit. A seen look resolves the way stamping does:
-     * indoors if the far side was enclosed, otherwise whatever the biome answers for.
+     * and then edits the preset file sees the edit.
+     *
+     * <p>A seen look asks the biome first, and only falls to the indoor look when being
+     * enclosed actually tells you something. Some places are enclosed by their nature -- the
+     * Nether is solid rock with a ceiling on it, a cave is a cave -- and for those the sampler
+     * reports {@code enclosed} for every mirror ever pointed there, so treating that as "this
+     * is a room" would mean no mirror into the Nether could ever wear the Nether's look. Those
+     * presets say {@link MirrorPreset#sheltered()} and keep it.
+     *
+     * <p>What is left is a room somewhere it is not normal to be enclosed, which is the
+     * library case this rule was written for.
      *
      * @return the preset, or null if there is none to be had
      */
@@ -78,8 +87,11 @@ public record MirrorLook(String presetName, MirrorView view)
         {
             return null;
         }
-        return view.enclosed()
-            ? MirrorPresetRegistry.indoors()
-            : MirrorPresetRegistry.forBiome(view.biome());
+        final MirrorPreset byBiome = MirrorPresetRegistry.forBiome(view.biome());
+        if (!view.enclosed() || ((byBiome != null) && byBiome.sheltered()))
+        {
+            return byBiome;
+        }
+        return MirrorPresetRegistry.indoors();
     }
 }
