@@ -195,7 +195,7 @@ class MirrorPresetRegistryTest
      */
     @Test
     @DisplayName("load order is by file name, whatever order the filesystem hands them back")
-    void loadOrderIsByFileName() throws IOException
+    void loadOrderIsByFileName()
     {
         MirrorPresetRegistry.load(folder);
 
