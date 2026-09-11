@@ -414,7 +414,7 @@ public final class SubCommands
         // Named rather than excluded. Falling through for anything that is not set or list
         // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
         // which reads as though the typo were a real command.
-        final boolean takesOneName = "target".equals(verb) || "remove".equals(verb);
+        final boolean takesOneName = "target".equals(verb) || REMOVE.equals(verb);
         final boolean takesTwoNames = "link".equals(verb);
         if ((args.length == 3) && (takesOneName || takesTwoNames))
         {
