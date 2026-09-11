@@ -411,13 +411,18 @@ public final class SubCommands
                 com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs());
         }
         final String verb = (args.length > 1) ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
-        if ("set".equals(verb) || "list".equals(verb))
+        // Named rather than excluded. Falling through for anything that is not set or list
+        // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
+        // which reads as though the typo were a real command.
+        final boolean takesOneName = "target".equals(verb) || "remove".equals(verb);
+        final boolean takesTwoNames = "link".equals(verb);
+        if ((args.length == 3) && (takesOneName || takesTwoNames))
         {
-            return none();
+            return prefixed(args[2], mirrorNames());
         }
-        if ((args.length == 3) || ((args.length == 4) && "link".equals(verb)))
+        if ((args.length == 4) && takesTwoNames)
         {
-            return prefixed(args[args.length - 1], mirrorNames());
+            return prefixed(args[3], mirrorNames());
         }
         return none();
     }

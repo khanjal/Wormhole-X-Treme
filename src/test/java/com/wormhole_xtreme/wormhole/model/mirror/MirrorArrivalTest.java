@@ -180,8 +180,9 @@ class MirrorArrivalTest
     @Test
     void aBlockWithNoFacingHasNoArrival()
     {
+        final BlockData plainBlock = mock(BlockData.class);
         final Block notABanner = mock(Block.class);
-        when(notABanner.getBlockData()).thenReturn(mock(BlockData.class));
+        when(notABanner.getBlockData()).thenReturn(plainBlock);
 
         assertNull(MirrorArrival.inFrontOf(notABanner));
         assertNull(MirrorArrival.inFrontOf(null));

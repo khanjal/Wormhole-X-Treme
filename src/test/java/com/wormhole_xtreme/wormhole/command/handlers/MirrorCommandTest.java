@@ -7,21 +7,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Directional;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
@@ -215,6 +220,73 @@ class MirrorCommandTest
         run(player, "mirror", "link", "museum", "MUSEUM");
 
         verify(player, atLeastOnce()).sendMessage(contains("cannot open onto itself"));
+    }
+
+    /**
+     * Linking points one mirror at the spot in front of another's banner.
+     *
+     * <p>The whole reason {@code link} exists: two commands instead of walking to the far end
+     * and running {@code target} there. What it stores is an ordinary point, so nothing
+     * downstream knows a second mirror was involved -- which is also why moving the target
+     * banner afterwards does not follow.
+     */
+    @Test
+    void linkPointsOneMirrorAtTheFrontOfAnothersBanner()
+    {
+        final World snapshot = mock(World.class);
+        when(snapshot.getName()).thenReturn("snapshot");
+
+        final Directional facing = mock(Directional.class);
+        when(facing.getFacing()).thenReturn(BlockFace.SOUTH);
+
+        final Block ahead = mock(Block.class);
+        when(ahead.getLocation()).thenReturn(new Location(snapshot, 5.0, 64.0, 6.0));
+
+        final Block farBanner = mock(Block.class);
+        when(farBanner.getBlockData()).thenReturn(facing);
+        when(farBanner.getRelative(0, 0, 1)).thenReturn(ahead);
+        when(snapshot.getBlockAt(5, 64, 5)).thenReturn(farBanner);
+
+        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 0, 64, 0), null));
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("snapshot", 5, 64, 5), null));
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("snapshot")).thenReturn(snapshot);
+
+            assertTrue(run(player, "mirror", "link", "lobby", "museum"));
+        }
+
+        final MirrorPoint destination = MirrorManager.byName("lobby").destination();
+        assertNotNull(destination, "lobby should now open onto the front of museum's banner");
+        assertEquals("snapshot", destination.worldName());
+        assertEquals(5.5, destination.x(), 0.001, "centred in the block in front");
+        assertEquals(6.5, destination.z(), 0.001);
+        assertEquals(0.0f, destination.yaw(), 0.01f, "facing the way that banner faces");
+    }
+
+    /**
+     * Linking to a mirror whose world is not loaded says so.
+     *
+     * <p>The facing has to be read off the live block -- it is recorded nowhere else -- so a
+     * mirror in a world that is not up cannot be the target of a link. It can still be the
+     * source of one, which is why the message names the world rather than refusing the mirror.
+     */
+    @Test
+    void linkRefusesWhenTheTargetsWorldIsNotLoaded()
+    {
+        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 0, 64, 0), null));
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("archive", 5, 64, 5), null));
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("archive")).thenReturn(null);
+
+            run(player, "mirror", "link", "lobby", "museum");
+        }
+
+        assertNull(MirrorManager.byName("lobby").destination());
+        verify(player, atLeastOnce()).sendMessage(contains("archive"));
     }
 
     /** Removing gives the banner back. */
