@@ -190,7 +190,18 @@ public final class MirrorStamp
     }
 
     /**
-     * A pattern type by name, or null if this server has no such pattern.
+     * A pattern type by name, or null if this server cannot give one.
+     *
+     * <p>Catching {@code LinkageError} alongside the exceptions is load-bearing rather than
+     * defensive. From 1.21 on, {@code PatternType}'s own static initialiser builds its constants
+     * out of {@code Registry}, which needs a running server -- so the first call on a server
+     * that has not finished starting throws {@code ExceptionInInitializerError}, and every call
+     * after it throws {@code NoClassDefFoundError}. Both are Errors, both would otherwise leave
+     * a command handler by way of an exception nobody declared, and both mean exactly what a
+     * missing pattern means to the caller: there is no type to be had, so skip the layer.
+     *
+     * <p>Caching that null is deliberate too. A class whose initialiser has failed once is
+     * unusable for the life of the JVM, so there is nothing to be gained by asking again.
      *
      * @param name
      *            the pattern's name, as Bukkit spells it
@@ -213,7 +224,7 @@ public final class MirrorStamp
         {
             type = (PatternType) VALUE_OF.invoke(null, name);
         }
-        catch (final ReflectiveOperationException | RuntimeException notThere)
+        catch (final ReflectiveOperationException | RuntimeException | LinkageError notThere)
         {
             type = null;
         }
@@ -228,10 +239,10 @@ public final class MirrorStamp
         {
             return PatternType.class.getMethod("valueOf", String.class);
         }
-        catch (final NoSuchMethodException | RuntimeException e)
+        catch (final NoSuchMethodException | RuntimeException | LinkageError e)
         {
-            PluginLog.log(Level.WARNING, "This server's PatternType has no valueOf(String);"
-                + " mirrors will not be stamped with patterns.", e);
+            PluginLog.log(Level.WARNING, "This server's PatternType has no usable"
+                + " valueOf(String); mirrors will not be stamped with patterns.", e);
             return null;
         }
     }
