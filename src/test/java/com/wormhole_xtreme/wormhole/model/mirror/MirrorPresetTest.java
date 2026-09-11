@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.bukkit.DyeColor;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -22,8 +21,7 @@ import org.junit.jupiter.api.Test;
 class MirrorPresetTest
 {
     @Test
-    @DisplayName("reads name, base, biomes and layers in order")
-    void readsAWholeFile()
+    void readsTheNameBaseBiomesAndLayersInOrder()
     {
         final MirrorPreset preset = MirrorPreset.parse("fallback", List.of(
             "# a comment",
@@ -44,15 +42,13 @@ class MirrorPresetTest
     }
 
     @Test
-    @DisplayName("falls back to the file's own name when the file does not say")
-    void usesTheFallbackName()
+    void fallsBackToTheFilesOwnNameWhenTheFileDoesNotSayOne()
     {
         assertEquals("cavern", MirrorPreset.parse("cavern", List.of("Base=GRAY")).name());
     }
 
     @Test
-    @DisplayName("no base colour means no preset")
-    void refusesWithoutABase()
+    void refusesAPresetWithNoUsableBaseColour()
     {
         assertNull(MirrorPreset.parse("x", List.of("Name=x", "Layer=RED BORDER")),
             "a preset with nothing to dye the banner is not a preset");
@@ -61,8 +57,7 @@ class MirrorPresetTest
     }
 
     @Test
-    @DisplayName("a bad line costs only itself")
-    void skipsWhatItCannotRead()
+    void skipsALineItCannotReadWithoutLosingTheRest()
     {
         final MirrorPreset preset = MirrorPreset.parse("x", List.of(
             "Base=GREEN",
@@ -79,8 +74,7 @@ class MirrorPresetTest
     }
 
     @Test
-    @DisplayName("biomes may be spread over several lines, and blanks are dropped")
-    void collectsBiomesAcrossLines()
+    void collectsBiomesAcrossSeveralLinesAndDropsBlanks()
     {
         final MirrorPreset preset = MirrorPreset.parse("x", List.of(
             "Base=BLUE",
@@ -93,8 +87,7 @@ class MirrorPresetTest
     }
 
     @Test
-    @DisplayName("no lines, and a null line, are both survivable")
-    void toleratesNothing()
+    void toleratesNoLinesAtAllAndANullLineAmongThem()
     {
         assertNull(MirrorPreset.parse("x", null), "nothing to read is no preset");
 
@@ -105,8 +98,7 @@ class MirrorPresetTest
     }
 
     @Test
-    @DisplayName("what comes out cannot be changed underneath the registry")
-    void isImmutable()
+    void returnsListsThatCannotBeChangedUnderneathTheRegistry()
     {
         final MirrorPreset preset = MirrorPreset.parse("x", List.of("Base=RED",
             "Biome=PLAINS", "Layer=BLUE BORDER"));
@@ -119,8 +111,7 @@ class MirrorPresetTest
     }
 
     @Test
-    @DisplayName("a null biome matches nothing")
-    void nullBiomeMatchesNothing()
+    void matchesNoPresetForANullBiome()
     {
         assertFalse(MirrorPreset.parse("x", List.of("Base=RED", "Biome=PLAINS"))
             .answersFor(null));

@@ -10,8 +10,11 @@ import java.util.Map;
 import org.bukkit.DyeColor;
 import org.bukkit.Keyed;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 
 /**
  * What is on the other side of a mirror, reduced to something a banner can show.
@@ -132,17 +135,24 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         /** How many of those were anything at all. */
         private int solid;
 
-        /** Counts one block. */
+        /**
+         * Counts one block.
+         *
+         * <p>Air is found through {@link MaterialUtils#isAirMaterial}, which this plugin
+         * already keeps for the reason that matters here: it compares the three constants
+         * rather than calling {@code Material.isAir()}, which from 1.20.6 on goes through the
+         * live block registry. This runs a few hundred times per stamp.
+         */
         void add(final Block block)
         {
             sampled++;
-            final String material = block.getType().name();
-            if (isAir(material))
+            final Material material = block.getType();
+            if (MaterialUtils.isAirMaterial(material))
             {
                 return;
             }
             solid++;
-            final DyeColor colour = MirrorPalette.of(material);
+            final DyeColor colour = MirrorPalette.of(material.name());
             if (colour != null)
             {
                 counts.merge(colour, 1, Integer::sum);
@@ -153,25 +163,6 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         boolean enclosed()
         {
             return (sampled > 0) && (((double) solid / sampled) >= ENCLOSED_SHARE);
-        }
-
-        /**
-         * Whether a block is one of the three kinds of nothing.
-         *
-         * <p>By name, rather than {@code Material.isAir()}, and that is not style. From 1.20.6
-         * on {@code isAir()} is no longer a switch -- it goes through {@code asBlockType()}
-         * into the live block registry, which is the same mechanism that made
-         * {@code Material.isBlock()} throw when it was called too early in this plugin's
-         * startup. This runs a few hundred times per stamp and needs no registry to answer.
-         *
-         * @param material
-         *            the material's name
-         * @return true if there is nothing there
-         */
-        private static boolean isAir(final String material)
-        {
-            return "AIR".equals(material) || "CAVE_AIR".equals(material)
-                || "VOID_AIR".equals(material);
         }
     }
 

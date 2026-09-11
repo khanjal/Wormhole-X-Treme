@@ -17,7 +17,6 @@ import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -36,8 +35,7 @@ class MirrorViewTest
     private static final MirrorPoint POINT = new MirrorPoint("far", 100, 64, 200, 0f, 0f);
 
     @Test
-    @DisplayName("a world that is not loaded cannot be looked at")
-    void unloadedWorld()
+    void cannotLookAtAWorldThatIsNotLoaded()
     {
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -49,8 +47,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("open sky over grass reads green, and not as indoors")
-    void aMeadow()
+    void readsOpenSkyOverGrassAsGreenAndNotAsIndoors()
     {
         final MirrorView view = look(Material.GRASS_BLOCK, Material.AIR, y -> y < 64);
 
@@ -59,8 +56,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("a room full of shelves reads brown, and as indoors")
-    void aLibrary()
+    void readsARoomFullOfShelvesAsBrownAndAsIndoors()
     {
         final MirrorView view = look(Material.BOOKSHELF, Material.STONE, y -> y != 64);
 
@@ -70,8 +66,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("the colours come back commonest first, and no more than three")
-    void ordersAndTrims()
+    void returnsTheColoursCommonestFirstAndNoMoreThanThree()
     {
         // Four colours in descending quantity: two layers of stone, one of water, one of
         // leaves with a single lava block in it. The lava is the fourth and should be dropped.
@@ -96,8 +91,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("nothing but air has no colours and is not a room")
-    void emptySpace()
+    void findsNoColoursAndNoRoomInNothingButAir()
     {
         final MirrorView view = look(Material.AIR, Material.AIR, y -> true);
 
@@ -107,8 +101,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("solid blocks with no colour still count as a room")
-    void enclosedByColourlessBlocks()
+    void countsSolidBlocksWithNoColourAsARoomAllTheSame()
     {
         final MirrorView view = look(Material.GLASS, Material.GLASS, y -> true);
 
@@ -125,8 +118,7 @@ class MirrorViewTest
      * reads as open sky, which is the opposite of the truth.
      */
     @Test
-    @DisplayName("a destination at the bottom of the world does not sample below it")
-    void staysInsideTheWorldFloor()
+    void doesNotSampleBelowTheWorldsOwnFloor()
     {
         final MirrorPoint bottom = new MirrorPoint("far", 100, -63, 200, 0f, 0f);
         final World world = mock(World.class);
@@ -155,8 +147,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("a destination at the build limit does not sample above it")
-    void staysInsideTheWorldCeiling()
+    void doesNotSampleAboveTheWorldsOwnCeiling()
     {
         final MirrorPoint top = new MirrorPoint("far", 100, 318, 200, 0f, 0f);
         final World world = mock(World.class);
@@ -182,8 +173,7 @@ class MirrorViewTest
     }
 
     @Test
-    @DisplayName("what comes out cannot be changed underneath the stamp")
-    void isImmutable()
+    void returnsAColourListThatCannotBeChangedUnderneathTheStamp()
     {
         final MirrorView view = new MirrorView("PLAINS", new java.util.ArrayList<>(), false);
         final List<DyeColor> colours = view.colours();
@@ -192,7 +182,7 @@ class MirrorViewTest
             () -> colours.add(DyeColor.RED));
     }
 
-    /** Looks at a world where {@code when} picks the first material and everything else the second. */
+    /** A world where {@code when} picks the first material and everything else the second. */
     private static MirrorView look(final Material yes, final Material no, final IntPredicate when)
     {
         final World world = mock(World.class);

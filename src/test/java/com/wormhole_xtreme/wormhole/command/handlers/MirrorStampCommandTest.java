@@ -26,7 +26,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -105,8 +104,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("a named look is applied without looking at the destination at all")
-    void appliesANamedPreset()
+    void appliesANamedLookWithoutLookingAtTheDestination()
     {
         pointedMirror();
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
@@ -122,8 +120,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("a look nobody has lists the ones that exist")
-    void refusesAnUnknownPreset()
+    void listsTheLooksThatExistWhenGivenOneNobodyHas()
     {
         pointedMirror();
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
@@ -138,8 +135,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("with no look named it reads the far side and says what it found")
-    void readsTheDestination()
+    void readsTheFarSideAndSaysWhatItFoundWhenNoLookIsNamed()
     {
         pointedMirror();
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
@@ -156,8 +152,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("a mirror that goes nowhere has nothing to look at, and is told so")
-    void refusesAnUnpointedMirror()
+    void refusesAMirrorThatGoesNowhereAndHasNothingToLookAt()
     {
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
@@ -171,8 +166,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("a destination world that is down says so rather than stamping a guess")
-    void refusesWhenTheFarWorldIsNotLoaded()
+    void refusesRatherThanGuessWhenTheDestinationWorldIsDown()
     {
         pointedMirror();
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
@@ -187,8 +181,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("a banner somebody took down is not stamped over whatever replaced it")
-    void refusesWhenTheBannerIsGone()
+    void refusesToStampOverWhatReplacedABannerTakenDown()
     {
         pointedMirror();
         final Block stone = mock(Block.class);
@@ -206,8 +199,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("an unknown mirror is named in the refusal")
-    void refusesAnUnknownMirror()
+    void namesTheUnknownMirrorInItsRefusal()
     {
         run("mirror", "stamp", "nosuch", "nether");
 
@@ -215,8 +207,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("stamp with no mirror named offers the looks in its usage line")
-    void usageListsTheLooks()
+    void offersTheLooksInItsUsageLineWhenNoMirrorIsNamed()
     {
         assertTrue(run("mirror", "stamp"));
 
@@ -232,8 +223,7 @@ class MirrorStampCommandTest
      * list whatever the code did.
      */
     @Test
-    @DisplayName("stamp completes a mirror, then a look")
-    void completesMirrorsThenLooks()
+    void completesAMirrorAndThenALook()
     {
         pointedMirror();
 
@@ -252,8 +242,7 @@ class MirrorStampCommandTest
      * empty, which is a different and more confusing thing than an optional argument.
      */
     @Test
-    @DisplayName("with no looks loaded the usage line says <look> rather than []")
-    void usageWithNoPresets() throws IOException
+    void saysLookRatherThanEmptyBracketsWithNoLooksLoaded() throws IOException
     {
         emptyRegistry();
 
@@ -263,8 +252,7 @@ class MirrorStampCommandTest
     }
 
     @Test
-    @DisplayName("with no looks loaded, naming one says so rather than listing nothing")
-    void namingALookWithNoPresets() throws IOException
+    void saysSoRatherThanListNothingWhenNamingALookWithNoneLoaded() throws IOException
     {
         emptyRegistry();
         pointedMirror();

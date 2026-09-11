@@ -20,7 +20,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.banner.Pattern;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -43,8 +42,8 @@ import org.mockito.ArgumentCaptor;
  *
  * <p>What does <em>not</em> hide behind the assumption is the behaviour that matters when
  * patterns cannot be resolved: the banner is still dyed, and the stamp still reports success.
- * {@link #stampsTheClothWhenNoPatternResolves} asserts exactly that, on every version, and it
- * is the case the 1.21 rows were failing on before {@code LinkageError} was caught.
+ * {@link #stillDyesTheClothWhenNoPatternResolvesAtAll} asserts exactly that, on every version,
+ * and it is the case the 1.21 rows were failing on before {@code LinkageError} was caught.
  */
 class MirrorStampTest
 {
@@ -74,8 +73,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("a preset alone dyes the banner and lays on its own layers")
-    void presetAlone()
+    void dyesTheBannerAndLaysOnThePresetsOwnLayers()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -90,8 +88,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("the sampled squares go on under the preset's frame")
-    void viewGoesUnderTheFrame()
+    void putsTheSampledSquaresUnderThePresetsFrame()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -109,8 +106,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("indoors the commonest block becomes the cloth, not a square on it")
-    void indoorsDyesTheCloth()
+    void makesTheCommonestBlockTheClothIndoorsNotASquareOnIt()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -129,8 +125,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("indoors with nothing sampled falls back to the preset's own colour")
-    void indoorsWithNothingToSee()
+    void fallsBackToThePresetsColourIndoorsWithNothingSampled()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -142,8 +137,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("never more than the six a banner can show")
-    void stopsAtSix()
+    void neverLaysOnMoreThanTheSixPatternsABannerCanShow()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -157,8 +151,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("only three colours are drawn however many were sampled")
-    void threeSquaresAtMost()
+    void drawsOnlyThreeColoursHoweverManyWereSampled()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -171,8 +164,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("a pattern this server does not have is skipped, not fatal")
-    void skipsUnknownPatterns()
+    void skipsAPatternThisServerDoesNotHaveRatherThanFailing()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");
@@ -193,8 +185,7 @@ class MirrorStampTest
      * stamp still reports success, and nothing escapes to the command handler.
      */
     @Test
-    @DisplayName("with no pattern resolvable at all, the cloth is still dyed and it still works")
-    void stampsTheClothWhenNoPatternResolves()
+    void stillDyesTheClothWhenNoPatternResolvesAtAll()
     {
         assertTrue(MirrorStamp.apply(block,
             preset("RED", "BLACK NO_SUCH_PATTERN", "ORANGE ALSO_NOT_A_PATTERN")),
@@ -206,8 +197,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("a block that is not a banner is left alone")
-    void notABanner()
+    void leavesABlockThatIsNotABannerAlone()
     {
         final BlockState notABanner = mock(BlockState.class);
         when(block.getState()).thenReturn(notABanner);
@@ -216,8 +206,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("nothing to stamp, or nothing to stamp with, is a no")
-    void nothingToDo()
+    void refusesWithNothingToStampOrNothingToStampWith()
     {
         assertFalse(MirrorStamp.apply(null, preset("RED")));
         assertFalse(MirrorStamp.apply(block, null));
@@ -225,8 +214,7 @@ class MirrorStampTest
     }
 
     @Test
-    @DisplayName("pattern names resolve across the versions where PatternType changed kind")
-    void resolvesPatternNames()
+    void resolvesPatternNamesWherePatternTypeChangedKind()
     {
         assumeTrue(patternsAvailable(),
             "this jar cannot build a pattern outside a running server");

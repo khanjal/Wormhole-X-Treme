@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.bukkit.DyeColor;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -22,7 +21,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 class MirrorPaletteTest
 {
     @ParameterizedTest(name = "{0} is {1}")
-    @DisplayName("the specific entry wins over the general one it is a substring of")
     @CsvSource({
         "SOUL_SAND, BROWN",          // not SAND -> YELLOW
         "GLOWSTONE, YELLOW",         // not STONE -> GRAY
@@ -39,13 +37,13 @@ class MirrorPaletteTest
         "BLUE_ICE, BLUE",            // the dye prefix, before ICE -> LIGHT_BLUE
         "PACKED_ICE, LIGHT_BLUE"
     })
-    void resolvesCollisions(final String material, final DyeColor expected)
+    void prefersTheSpecificEntryOverTheGeneralOneItIsASubstringOf(final String material,
+        final DyeColor expected)
     {
         assertEquals(expected, MirrorPalette.of(material));
     }
 
     @ParameterizedTest(name = "{0} is not mistaken for something ignored")
-    @DisplayName("AIR and LIGHT are matched exactly, not as substrings")
     @CsvSource({
         "OAK_STAIRS, BROWN",         // contains AIR
         "DEEPSLATE_STAIRS, GRAY",    // contains AIR
@@ -53,14 +51,14 @@ class MirrorPaletteTest
         "LIGHT_GRAY_CONCRETE, LIGHT_GRAY",
         "LIGHT_BLUE_WOOL, LIGHT_BLUE"
     })
-    void doesNotIgnoreBySubstring(final String material, final DyeColor expected)
+    void matchesAirAndLightExactlyRatherThanAsSubstrings(final String material,
+        final DyeColor expected)
     {
         assertEquals(expected, MirrorPalette.of(material));
     }
 
     @Test
-    @DisplayName("plain glass shows nothing, stained glass shows its colour")
-    void glass()
+    void showsNothingForPlainGlassAndItsColourForStainedGlass()
     {
         assertNull(MirrorPalette.of("GLASS"), "clear glass has no colour of its own");
         assertNull(MirrorPalette.of("GLASS_PANE"));
@@ -70,8 +68,7 @@ class MirrorPaletteTest
     }
 
     @Test
-    @DisplayName("a room full of shelves reads brown")
-    void aLibrary()
+    void readsARoomFullOfShelvesAsBrown()
     {
         assertEquals(DyeColor.BROWN, MirrorPalette.of("BOOKSHELF"));
         assertEquals(DyeColor.BROWN, MirrorPalette.of("CHISELED_BOOKSHELF"));
@@ -79,8 +76,7 @@ class MirrorPaletteTest
     }
 
     @Test
-    @DisplayName("air and the blocks nobody can see are not colours")
-    void ignored()
+    void treatsAirAndTheBlocksNobodyCanSeeAsNoColour()
     {
         assertNull(MirrorPalette.of("AIR"));
         assertNull(MirrorPalette.of("CAVE_AIR"));
@@ -90,8 +86,7 @@ class MirrorPaletteTest
     }
 
     @Test
-    @DisplayName("a block nothing in the table knows about has no colour rather than a wrong one")
-    void unknown()
+    void givesABlockItHasNeverHeardOfNoColourRatherThanAWrongOne()
     {
         assertNull(MirrorPalette.of("SOMETHING_FROM_A_FUTURE_VERSION"));
         assertNull(MirrorPalette.of(null));
@@ -99,15 +94,13 @@ class MirrorPaletteTest
     }
 
     @Test
-    @DisplayName("case does not matter")
-    void caseInsensitive()
+    void ignoresTheCaseOfTheMaterialName()
     {
         assertEquals(MirrorPalette.of("BOOKSHELF"), MirrorPalette.of("bookshelf"));
     }
 
     @Test
-    @DisplayName("the families that catch a block added in a newer version still answer")
-    void generalEntriesStillCatch()
+    void stillAnswersForABlockAddedInANewerVersion()
     {
         assertNotNull(MirrorPalette.of("SOME_NEW_LOG"), "a new wood should land on wood");
         assertNotNull(MirrorPalette.of("SOME_NEW_LEAVES"), "a new tree should land on leaves");

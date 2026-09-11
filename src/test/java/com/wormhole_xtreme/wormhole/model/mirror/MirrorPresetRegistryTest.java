@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.bukkit.DyeColor;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -37,8 +36,7 @@ class MirrorPresetRegistryTest
     File folder;
 
     @Test
-    @DisplayName("a first run writes out every shipped preset and reads them back")
-    void restoresTheShippedOnes()
+    void writesOutEveryShippedPresetOnAFirstRunAndReadsThemBack()
     {
         final int loaded = MirrorPresetRegistry.load(folder);
 
@@ -60,8 +58,7 @@ class MirrorPresetRegistryTest
      * sees it -- which is the quieter and worse of the two.
      */
     @Test
-    @DisplayName("the shipped list and the files in the jar name the same presets")
-    void theShippedListMatchesTheResources() throws IOException, URISyntaxException
+    void listsExactlyThePresetFilesThatShipInTheJar() throws IOException, URISyntaxException
     {
         for (final String name : MirrorPresetRegistry.shippedNames())
         {
@@ -83,8 +80,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("a preset an operator edited is left alone, and a deleted one comes back")
-    void doesNotOverwriteWhatIsThere() throws IOException
+    void leavesAnEditedPresetAloneAndBringsADeletedOneBack() throws IOException
     {
         MirrorPresetRegistry.load(folder);
         final File nether = new File(folder, "nether.mirror");
@@ -99,8 +95,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("one unreadable preset does not cost the others")
-    void oneBadFileIsSkipped() throws IOException
+    void skipsOneUnreadablePresetWithoutCostingTheOthers() throws IOException
     {
         MirrorPresetRegistry.load(folder);
         Files.writeString(new File(folder, "broken.mirror").toPath(),
@@ -114,8 +109,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("a biome picks the preset that names it")
-    void picksByBiome()
+    void picksThePresetThatNamesTheBiome()
     {
         MirrorPresetRegistry.load(folder);
 
@@ -125,8 +119,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("a biome nothing names still gets a preset")
-    void fallsBackRatherThanFailing()
+    void stillGivesAPresetForABiomeNothingNames()
     {
         MirrorPresetRegistry.load(folder);
 
@@ -138,8 +131,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("with no preset called overworld, any preset beats none")
-    void fallsBackAgainWhenTheFallbackIsMissing() throws IOException
+    void fallsBackToAnyPresetWhenNoneIsCalledOverworld() throws IOException
     {
         // The file has to exist or the restore puts the shipped one back; renaming what is
         // inside it is how an operator makes the fallback name genuinely absent.
@@ -156,8 +148,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("a folder that cannot be made means nothing offered, rather than a crash")
-    void unusableFolder() throws IOException
+    void offersNothingRatherThanCrashingWhenTheFolderCannotBeMade() throws IOException
     {
         // A plain file where the directory should be. mkdirs cannot make one, which is the
         // same position the plugin is in when the folder is not writable.
@@ -175,8 +166,7 @@ class MirrorPresetRegistryTest
     }
 
     @Test
-    @DisplayName("presets keep the order they loaded in")
-    void keepsLoadOrder()
+    void keepsTheOrderThePresetsLoadedIn()
     {
         MirrorPresetRegistry.load(folder);
 
@@ -194,8 +184,7 @@ class MirrorPresetRegistryTest
      * on a server and the other way on its backup.
      */
     @Test
-    @DisplayName("load order is by file name, whatever order the filesystem hands them back")
-    void loadOrderIsByFileName()
+    void loadsByFileNameWhateverOrderTheFilesystemHandsThemBack()
     {
         MirrorPresetRegistry.load(folder);
 
@@ -213,8 +202,7 @@ class MirrorPresetRegistryTest
      * Without the sort this passes or fails depending on what the filesystem feels like.
      */
     @Test
-    @DisplayName("when two presets claim one biome, the earlier file name wins")
-    void ties() throws IOException
+    void letsTheEarlierFileNameWinWhenTwoPresetsClaimOneBiome() throws IOException
     {
         Files.writeString(new File(folder, "zzz-claimant.mirror").toPath(),
             "Name=zzz\nBase=RED\nBiome=TEST_BIOME\n", StandardCharsets.UTF_8);
