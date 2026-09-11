@@ -165,7 +165,34 @@ public class ConfigManager
          * worlds is what separates a mirror from a beam place -- which is the mechanic for
          * naming a point in the world you are already standing in.
          */
-        MIRROR_ALLOW_SAME_WORLD
+        MIRROR_ALLOW_SAME_WORLD,
+
+        /**
+         * How close a player must be for a proximity mirror to show its look, in blocks.
+         *
+         * <p>Compared squared, so this never costs a square root. Small on purpose: the point
+         * of a proximity mirror is that a corridor reads as blank cloth until you walk up to
+         * one, and a radius wide enough to light the whole corridor at once defeats it.
+         */
+        MIRROR_PROXIMITY_RADIUS,
+
+        /**
+         * How often the proximity sweep runs, in ticks.
+         *
+         * <p>Twenty is once a second, which is fast enough that walking up to a mirror feels
+         * immediate and slow enough that the sweep is not worth optimising further. The sweep
+         * skips mirrors in unloaded worlds and unloaded chunks before touching anything.
+         */
+        MIRROR_PROXIMITY_TICKS,
+
+        /**
+         * Least time between two re-readings of one dynamic mirror's far side, in seconds.
+         *
+         * <p>Re-reading means loading a distant chunk, so a player pacing in front of a mirror
+         * must not be able to ask for it every second. Nothing re-reads on a timer: a mirror
+         * nobody walks up to is never sampled at all, however dynamic it is.
+         */
+        MIRROR_DYNAMIC_RESAMPLE_SECONDS
     }
 
     /**
@@ -1322,6 +1349,43 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ALLOW_SAME_WORLD);
         return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * How close a player must be for a proximity mirror to show its look.
+     *
+     * @return the radius in blocks, never below one
+     */
+    public static int getMirrorProximityRadius()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_RADIUS);
+        return (s == null) ? 8 : Math.max(1, s.getIntValue());
+    }
+
+    /**
+     * How often the proximity sweep runs.
+     *
+     * <p>Floored at one tick rather than zero: a period of zero asks Bukkit to reschedule
+     * forever without advancing, which is a hung server rather than a fast mirror.
+     *
+     * @return the period in ticks, never below one
+     */
+    public static long getMirrorProximityTicks()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_TICKS);
+        return (s == null) ? 20L : Math.max(1L, s.getIntValue());
+    }
+
+    /**
+     * Least time between two re-readings of one dynamic mirror's far side.
+     *
+     * @return the interval in seconds, never below zero
+     */
+    public static int getMirrorDynamicResampleSeconds()
+    {
+        final Setting s =
+            ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS);
+        return (s == null) ? 60 : Math.max(0, s.getIntValue());
     }
 
     /**

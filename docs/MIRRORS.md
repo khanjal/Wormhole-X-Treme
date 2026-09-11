@@ -52,17 +52,74 @@ them. A room of copper comes back orange.
 That threshold is a judgement and nothing more. At 55% a cave reads as indoors, which is
 right, and a forest does not, which is also right.
 
-### What it is not
+### Static and dynamic
 
-The sample is taken **once**, when the mirror is stamped, and never again. Two reasons, and the
+A **static** mirror is sampled once, when it is stamped, and never again. Two reasons, and the
 second is the stronger one:
 
 - Re-reading the far side on every click would mean loading a distant chunk on a click.
 - A banner that changed on its own would be worse to build with. A look an operator chose
   should stay chosen.
 
-Rebuild the far side and the mirror still shows the old place until somebody stamps it again.
-That is the same bargain `mirror link` already makes: a snapshot, not a subscription.
+Rebuild the far side and it still shows the old place until somebody stamps it again. That is
+the same bargain `mirror link` already makes: a snapshot, not a subscription.
+
+A **dynamic** mirror re-reads the far side, but only when somebody walks up to it and only
+after `mirror-dynamic-resample-seconds` have passed since the last read. That is what makes it
+affordable: sampling still loads a distant chunk, so a mirror nobody visits is never sampled at
+all, and a player pacing in front of one gets the same answer until the interval is up.
+
+The re-read look is kept in memory and written to the banner, but not saved to `mirror.yml` on
+every approach — a busy corridor would otherwise be a stream of file writes, and a dynamic
+mirror re-reads on the next approach anyway. The worst a restart costs is one sample.
+
+## Always and proximity
+
+A corridor of lit banners is a corridor of lit banners. `mirror display <name> proximity` makes
+one go dark until somebody comes within `mirror-proximity-radius` blocks of it.
+
+### The banner in the world is never the blank one
+
+This is the part worth being careful about, and the design follows from a single fact: **banner
+patterns are vanilla data.** Disable this plugin, or remove it, and a stamped banner is still a
+stamped banner. So the world's block keeps the look, always, whatever `display` says — and what
+a proximity mirror actually does is send the *blank* to players who are too far away, and take
+that illusion back when they come close.
+
+The other way round would have been easier. Keeping the world's block blank and sending the
+look to whoever is near would be self-healing: any chunk resend shows blank, which is what a
+distant player should see anyway. It was rejected because it makes this plugin the only thing
+standing between an operator and a corridor of plain white cloth.
+
+Two consequences fall out of that choice, and the sweep carries both:
+
+- Being far away is not a state that arranges itself. Everyone in the world is sent the blank
+  once, after which only crossings are sent — a corridor with somebody standing still in it
+  sends nothing at all.
+- The illusion has to be handed back when the plugin stops. It is, on disable: otherwise
+  whoever was standing far off keeps a blanked banner on their client until something makes the
+  server resend that chunk, which looks exactly like the plugin having eaten their banners.
+
+### The version boundary
+
+`Player.sendBlockUpdate(Location, TileState)` is the whole mechanism, and it **does not exist
+on plain 1.20** — present from 1.20.1 on, checked against the jars for all seven versions the
+matrix builds. On that one version a proximity mirror simply stays visible, which is a cosmetic
+loss on the oldest supported server rather than a mirror that never shows anything. Setting it
+there is not wasted: the banner keeps its look either way, and the setting starts working when
+the server is upgraded.
+
+It is reached reflectively for the same reason `PatternType` is. Calling it directly would
+compile against the 1.20.4 target and throw `NoSuchMethodError` on 1.20 — at the moment a
+player walks down a corridor, which is not when that should be discovered.
+
+### What the sweep is careful about
+
+It runs on a timer for the life of the server, so the order of its checks is the design. Before
+anything touches a block it has ruled out mirrors that are not proximity mirrors, mirrors with
+no look to show, worlds that are not loaded, and chunks that are not loaded — the chunk check
+comes before `getBlockAt`, which would load one. A server whose mirrors are all ordinary does no
+work here beyond walking the list.
 
 ## The preset files
 

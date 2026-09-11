@@ -99,7 +99,10 @@ class DefaultSettings
         new Setting(ConfigKeys.BEAM_USE_COOLDOWN_ENABLED, false, "Whether beam travel has a per-player cooldown at all.", SECTION),
         new Setting(ConfigKeys.BEAM_USE_COOLDOWN_SECONDS, 120, "Seconds a player must wait between beams, when the cooldown above is enabled.", SECTION),
         new Setting(ConfigKeys.BEAM_ECONOMY_USE_COST, 0.0, "Amount charged to a player each time they beam. Set to 0.0 to disable. Uses the same Vault connection as gate costs -- ECONOMY_ENABLED must also be true.", SECTION),
-        new Setting(ConfigKeys.MIRROR_ALLOW_SAME_WORLD, false, "Whether a quantum mirror may point somewhere in the world it stands in. False by default: a mirror is the bridge between two worlds, which is what separates it from a beam place. Turn this on if you want a mirror that connects two points in one world anyway.", SECTION)
+        new Setting(ConfigKeys.MIRROR_ALLOW_SAME_WORLD, false, "Whether a quantum mirror may point somewhere in the world it stands in. False by default: a mirror is the bridge between two worlds, which is what separates it from a beam place. Turn this on if you want a mirror that connects two points in one world anyway.", SECTION),
+        new Setting(ConfigKeys.MIRROR_PROXIMITY_RADIUS, 8, "How close a player must be, in blocks, before a mirror set to 'proximity' shows its look. Kept small on purpose: the point is that a corridor reads as blank cloth until you walk up to one.", SECTION),
+        new Setting(ConfigKeys.MIRROR_PROXIMITY_TICKS, 20, "How often the proximity sweep runs, in ticks. 20 is once a second. The sweep skips mirrors whose world or chunk is not loaded before it touches anything.", SECTION),
+        new Setting(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS, 60, "Least time between two re-readings of one 'dynamic' mirror's far side. Re-reading loads a distant chunk, so this stops a player pacing in front of a mirror from asking for it every second.", SECTION)
     };
 
 }

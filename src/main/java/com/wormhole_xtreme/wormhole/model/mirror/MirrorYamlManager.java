@@ -3,11 +3,15 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.bukkit.DyeColor;
 import org.yaml.snakeyaml.Yaml;
 
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
@@ -33,6 +37,27 @@ public final class MirrorYamlManager
 
     /** The section holding where clicking it sends you. */
     private static final String DESTINATION = "Destination";
+
+    /** Whether the look is in the block for everyone, or sent to whoever comes close. */
+    private static final String DISPLAY = "Display";
+
+    /** Whether the look was chosen once or is re-read from the far side. */
+    private static final String MODE = "Mode";
+
+    /** The section holding what it looks like. */
+    private static final String LOOK = "Look";
+
+    /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
+    private static final String PRESET = "Preset";
+
+    /** Inside {@link #LOOK}: what was found on the far side, if it was ever read. */
+    private static final String BIOME = "Biome";
+
+    /** Inside {@link #LOOK}: the colours that dominated over there. */
+    private static final String COLOURS = "Colours";
+
+    /** Inside {@link #LOOK}: whether the far side was a room rather than open country. */
+    private static final String ENCLOSED = "Enclosed";
 
     private MirrorYamlManager() {}
 
@@ -116,7 +141,12 @@ public final class MirrorYamlManager
                 PluginLog.log(Level.WARNING, "Skipping mirror with an unreadable banner: " + name);
                 return null;
             }
-            return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)));
+            // Anything unreadable among the three below defaults rather than failing the
+            // mirror. A mirror that travels is worth keeping even if its cosmetics are not
+            // legible, and every one of these settings has a sensible "as it always was".
+            return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
+                MirrorDisplay.of(text(map.get(DISPLAY))), MirrorMode.of(text(map.get(MODE))),
+                readLook(map.get(LOOK)));
         }
         catch (final RuntimeException e)
         {
@@ -154,6 +184,81 @@ public final class MirrorYamlManager
     private static double number(final Object value)
     {
         return (value instanceof Number n) ? n.doubleValue() : 0.0;
+    }
+
+    /** @return the value as text, or null when it is absent rather than the string "null" */
+    private static String text(final Object value)
+    {
+        return (value == null) ? null : String.valueOf(value);
+    }
+
+    /**
+     * Reads what a mirror looks like, which most mirrors do not have.
+     *
+     * <p>A mirror that has never been stamped has no Look section at all, and that is the
+     * ordinary case rather than a broken one.
+     *
+     * @param value
+     *            the Look section, or null
+     * @return the look, or null if there is none worth having
+     */
+    private static MirrorLook readLook(final Object value)
+    {
+        if (!(value instanceof Map))
+        {
+            return null;
+        }
+        final Map<String, Object> map = YamlMaps.asMap(value);
+        final String preset = text(map.get(PRESET));
+        final MirrorLook look = new MirrorLook(preset, readView(map));
+        return look.isEmpty() ? null : look;
+    }
+
+    /**
+     * Reads the remembered sample, if there was one.
+     *
+     * <p>A look named by an operator has no view, so absent colours and an absent biome mean
+     * "nobody looked", not "the far side was empty".
+     */
+    private static MirrorView readView(final Map<String, Object> map)
+    {
+        final String biome = text(map.get(BIOME));
+        final Object colours = map.get(COLOURS);
+        if ((biome == null) && !(colours instanceof Iterable))
+        {
+            return null;
+        }
+        final List<DyeColor> found = new ArrayList<>();
+        if (colours instanceof Iterable<?> each)
+        {
+            for (final Object colour : each)
+            {
+                final DyeColor dye = dye(text(colour));
+                if (dye != null)
+                {
+                    found.add(dye);
+                }
+            }
+        }
+        return new MirrorView((biome == null) ? "" : biome, found,
+            Boolean.TRUE.equals(map.get(ENCLOSED)));
+    }
+
+    /** A dye colour by name, or null; an unreadable one costs its own square and no more. */
+    private static DyeColor dye(final String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        try
+        {
+            return DyeColor.valueOf(name.trim().toUpperCase(Locale.ROOT));
+        }
+        catch (final IllegalArgumentException notAColour)
+        {
+            return null;
+        }
     }
 
     /** Writes every registered mirror back to disk, atomically. */
@@ -211,6 +316,41 @@ public final class MirrorYamlManager
             destination.put("Pitch", point.pitch());
             map.put(DESTINATION, destination);
         }
+        // Written only when they are not the default, so a file full of ordinary mirrors reads
+        // the way it did before any of this existed.
+        if (mirror.display() != MirrorDisplay.ALWAYS)
+        {
+            map.put(DISPLAY, mirror.display().lower());
+        }
+        if (mirror.mode() != MirrorMode.STATIC)
+        {
+            map.put(MODE, mirror.mode().lower());
+        }
+        writeLook(map, mirror.look());
         return map;
+    }
+
+    /** Adds the Look section, when there is one. */
+    private static void writeLook(final Map<String, Object> map, final MirrorLook look)
+    {
+        if ((look == null) || look.isEmpty())
+        {
+            return;
+        }
+        final Map<String, Object> section = new LinkedHashMap<>();
+        if (look.presetName() != null)
+        {
+            section.put(PRESET, look.presetName());
+        }
+        final MirrorView view = look.view();
+        if (view != null)
+        {
+            section.put(BIOME, view.biome());
+            final List<String> colours = new ArrayList<>();
+            view.colours().forEach(colour -> colours.add(colour.name()));
+            section.put(COLOURS, colours);
+            section.put(ENCLOSED, view.enclosed());
+        }
+        map.put(LOOK, section);
     }
 }

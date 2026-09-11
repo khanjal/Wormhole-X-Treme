@@ -221,6 +221,18 @@ public class WormholeXTreme extends JavaPlugin
     @Override
     public void onDisable()
     {
+            // Before anything else, and outside the save: whoever was standing far from a
+            // proximity mirror is holding a blanked banner that only this plugin was going to
+            // take back. Left alone it looks exactly like the plugin having eaten their
+            // banners, which is the one impression a shutdown must not leave.
+            try
+            {
+                com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.restoreAll();
+            }
+            catch (final Exception e)
+            {
+                prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
+            }
             try
             {
                 // Persist current runtime configuration to YAML on shutdown
@@ -477,6 +489,12 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.GateSounds::tickAmbient,
             20L, ConfigManager.getGateSoundAmbientTicks());
+        // Mirrors set to proximity go dark until somebody walks up to them. One sweep over
+        // the registered mirrors, which does nothing at all on a server whose mirrors are
+        // all ordinary, and nothing on 1.20 where per-player block updates do not exist.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.createTicker(),
+            40L, ConfigManager.getMirrorProximityTicks());
         // Said after gates have loaded, so it can tell an empty server from a full one.
         com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");

@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
@@ -8,8 +9,10 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.bukkit.DyeColor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -241,5 +244,106 @@ class MirrorYamlManagerTest
 
         assertNotNull(mirror, "the mirror itself is still readable");
         assertNull(mirror.destination());
+    }
+
+    /**
+     * A mirror written before any of this existed reads back exactly as it behaved.
+     *
+     * <p>The whole point of defaulting in the record rather than at each use. An old file has
+     * no Display, no Mode and no Look, and the mirror it produces has to be an ordinary
+     * always-visible static one rather than something with null settings that the sweep and
+     * the stamp then have to guess about.
+     */
+    @Test
+    void aMirrorFromAnOlderFileIsAnOrdinaryOne()
+    {
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("Banner", "world:1:2:3");
+
+        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
+
+        assertEquals(MirrorDisplay.ALWAYS, mirror.display());
+        assertEquals(MirrorMode.STATIC, mirror.mode());
+        assertNull(mirror.look(), "it has never been stamped");
+    }
+
+    @Test
+    void keepsDisplayModeAndANamedLookAcrossARoundTrip()
+    {
+        final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
+            null).withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC)
+            .withLook(MirrorLook.named("cavern"));
+
+        final QuantumMirror after =
+            MirrorYamlManager.readMirror("M", MirrorYamlManager.writeMirror(before));
+
+        assertEquals(MirrorDisplay.PROXIMITY, after.display());
+        assertEquals(MirrorMode.DYNAMIC, after.mode());
+        assertEquals("cavern", after.look().presetName());
+        assertNull(after.look().view(), "a named look has nothing sampled behind it");
+    }
+
+    @Test
+    void keepsASampledLookAcrossARoundTrip()
+    {
+        final MirrorView seen = new MirrorView("DRIPSTONE_CAVES",
+            List.of(DyeColor.GRAY, DyeColor.BROWN), true);
+        final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
+            null).withLook(MirrorLook.seen(seen));
+
+        final QuantumMirror after =
+            MirrorYamlManager.readMirror("M", MirrorYamlManager.writeMirror(before));
+
+        assertEquals(seen, after.look().view(), "biome, colours and enclosed should all survive");
+        assertNull(after.look().presetName());
+    }
+
+    /**
+     * The two settings are written only when they are not the default.
+     *
+     * <p>So a server full of ordinary mirrors has a file that reads the way it always did,
+     * rather than one where every entry has grown two lines that say nothing.
+     */
+    @Test
+    void writesNothingExtraForAnOrdinaryMirror()
+    {
+        final Map<String, Object> written = MirrorYamlManager.writeMirror(
+            new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null));
+
+        assertFalse(written.containsKey("Display"));
+        assertFalse(written.containsKey("Mode"));
+        assertFalse(written.containsKey("Look"));
+    }
+
+    @Test
+    void skipsAColourItCannotReadWithoutLosingTheRestOfTheLook()
+    {
+        final Map<String, Object> look = new LinkedHashMap<>();
+        look.put("Biome", "PLAINS");
+        look.put("Colours", List.of("GREEN", "CHARTREUSE", "BLUE"));
+        look.put("Enclosed", false);
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("Banner", "world:1:2:3");
+        map.put("Look", look);
+
+        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
+
+        assertEquals(List.of(DyeColor.GREEN, DyeColor.BLUE), mirror.look().view().colours(),
+            "an unreadable colour costs its own square and no more");
+    }
+
+    @Test
+    void treatsAnUnreadableDisplayOrModeAsTheDefault()
+    {
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("Banner", "world:1:2:3");
+        map.put("Display", "sideways");
+        map.put("Mode", "interpretive");
+
+        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
+
+        assertNotNull(mirror, "a typo in the cosmetics must not cost a working mirror");
+        assertEquals(MirrorDisplay.ALWAYS, mirror.display());
+        assertEquals(MirrorMode.STATIC, mirror.mode());
     }
 }

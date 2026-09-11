@@ -17,10 +17,14 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPreset;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorStamp;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
@@ -64,7 +68,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 public class MirrorCommand implements SubCommand
 {
     /** What this command answers to, for the usage line and tab completion. */
-    private static final String[] VERBS = { "set", "target", "link", "stamp", "remove", "list" };
+    private static final String[] VERBS =
+        { "set", "target", "link", "stamp", "display", "mode", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -88,6 +93,8 @@ public class MirrorCommand implements SubCommand
             case "target" -> target(sender, args);
             case "link" -> link(sender, args);
             case "stamp" -> stamp(sender, args);
+            case "display" -> display(sender, args);
+            case "mode" -> mode(sender, args);
             case "remove" -> remove(sender, args);
             case "list" -> list(sender);
             default -> usage(sender);
@@ -287,12 +294,27 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset))
         {
+            remember(mirror, MirrorLook.named(preset.name()));
             say(sender, "'" + mirror.name() + "' looks like " + preset.name() + " now.");
         }
         else
         {
             say(sender, "That banner could not be stamped.");
         }
+    }
+
+    /**
+     * Writes the look down beside the banner that is already wearing it.
+     *
+     * <p>Both copies, on purpose. The banner keeps the patterns because they are vanilla data
+     * and outlive this plugin -- disable it and the corridor an operator built is still there.
+     * The mirror keeps them as data because a proximity mirror has to dress the banner again
+     * after showing somebody the blank, and a dynamic one has to know what it last saw.
+     */
+    private static void remember(final QuantumMirror mirror, final MirrorLook look)
+    {
+        MirrorManager.add(MirrorManager.byName(mirror.name()).withLook(look));
+        MirrorYamlManager.saveAll();
     }
 
     /**
@@ -331,6 +353,7 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset, view))
         {
+            remember(mirror, MirrorLook.seen(view));
             say(sender, "'" + mirror.name() + "' now shows " + describe(view, preset) + ".");
         }
         else
@@ -413,6 +436,89 @@ public class MirrorCommand implements SubCommand
         return block;
     }
 
+    /**
+     * Says when a mirror shows its look: always, or only to whoever comes close.
+     *
+     * <p>Nothing is written to the banner either way. The stamped banner stays stamped in the
+     * world whatever this is set to -- banner patterns are vanilla data and outlive this
+     * plugin, so turning a mirror down to proximity must not be a way to lose the look an
+     * operator built. What changes is only who gets sent a blank instead.
+     */
+    private static void display(final CommandSender sender, final String[] args)
+    {
+        if (args.length < 4)
+        {
+            say(sender, "Usage: /wormhole mirror display <name> <always|proximity>");
+            return;
+        }
+        final QuantumMirror mirror = known(sender, args[2]);
+        if (mirror == null)
+        {
+            return;
+        }
+        final MirrorDisplay wanted = MirrorDisplay.of(args[3]);
+        if (wanted == null)
+        {
+            say(sender, "A mirror is shown 'always' or by 'proximity', not '" + args[3] + "'.");
+            return;
+        }
+        MirrorManager.add(mirror.withDisplay(wanted));
+        MirrorYamlManager.saveAll();
+        MirrorProximity.clear();
+        sayDisplay(sender, mirror.name(), wanted);
+    }
+
+    /** What changed, and the one thing about it worth warning an operator over. */
+    private static void sayDisplay(final CommandSender sender, final String name,
+        final MirrorDisplay wanted)
+    {
+        if (wanted == MirrorDisplay.ALWAYS)
+        {
+            say(sender, "'" + name + "' shows its look to everyone, from anywhere.");
+            return;
+        }
+        say(sender, "'" + name + "' goes dark until somebody comes within "
+            + ConfigManager.getMirrorProximityRadius() + " blocks.");
+        if (!MirrorProximity.canHide())
+        {
+            say(sender, "This server has no Player.sendBlockUpdate, which arrived in 1.20.1,");
+            say(sender, "so it will stay visible until you upgrade. Nothing is lost by setting");
+            say(sender, "it now -- the banner keeps its look either way.");
+        }
+    }
+
+    /** Says whether a mirror keeps the look it was given or re-reads the far side. */
+    private static void mode(final CommandSender sender, final String[] args)
+    {
+        if (args.length < 4)
+        {
+            say(sender, "Usage: /wormhole mirror mode <name> <static|dynamic>");
+            return;
+        }
+        final QuantumMirror mirror = known(sender, args[2]);
+        if (mirror == null)
+        {
+            return;
+        }
+        final MirrorMode wanted = MirrorMode.of(args[3]);
+        if (wanted == null)
+        {
+            say(sender, "A mirror is 'static' or 'dynamic', not '" + args[3] + "'.");
+            return;
+        }
+        MirrorManager.add(mirror.withMode(wanted));
+        MirrorYamlManager.saveAll();
+        if (wanted == MirrorMode.STATIC)
+        {
+            say(sender, "'" + mirror.name() + "' keeps the look it was given.");
+            return;
+        }
+        say(sender, "'" + mirror.name() + "' re-reads the far side when somebody walks up to");
+        say(sender, "it, at most every " + ConfigManager.getMirrorDynamicResampleSeconds()
+            + " seconds. Set it to proximity as well if you want");
+        say(sender, "it to go dark in between.");
+    }
+
     private static void remove(final CommandSender sender, final String[] args)
     {
         if (!named(sender, args, "remove <name>"))
@@ -435,7 +541,8 @@ public class MirrorCommand implements SubCommand
         for (final QuantumMirror mirror : MirrorManager.all())
         {
             lines.add("  " + mirror.name() + " -- " + mirror.banner().worldName() + " -> "
-                + ((mirror.destination() == null) ? "nowhere yet" : describe(mirror.destination())));
+                + ((mirror.destination() == null) ? "nowhere yet" : describe(mirror.destination()))
+                + settingsOf(mirror));
         }
         if (lines.isEmpty())
         {
@@ -444,6 +551,31 @@ public class MirrorCommand implements SubCommand
         }
         say(sender, lines.size() + " mirror(s):");
         lines.forEach(sender::sendMessage);
+    }
+
+    /**
+     * The non-default settings, or nothing at all.
+     *
+     * <p>Silent for an ordinary mirror on purpose: a list where most entries end in
+     * "(always, static)" is a list nobody reads to the end of, and those two words carry no
+     * information when they are what everything says.
+     *
+     * @param mirror
+     *            the mirror being listed
+     * @return a trailing note, or an empty string
+     */
+    private static String settingsOf(final QuantumMirror mirror)
+    {
+        final List<String> notes = new ArrayList<>();
+        if (mirror.display() != MirrorDisplay.ALWAYS)
+        {
+            notes.add(mirror.display().lower());
+        }
+        if (mirror.mode() != MirrorMode.STATIC)
+        {
+            notes.add(mirror.mode().lower());
+        }
+        return notes.isEmpty() ? "" : " (" + String.join(", ", notes) + ")";
     }
 
     /** A destination as a person would read it. */
