@@ -726,6 +726,37 @@ class MirrorProximityTest
         }
     }
 
+    /**
+     * Setting a mirror to the display it already has changes nothing at all.
+     *
+     * <p>Releasing forgets who is currently near, so doing it on the way in would make the
+     * next sweep read everybody as a fresh arrival -- a reveal for people who never moved, and
+     * a dynamic mirror asked to re-read a far side nobody walked up to. Running a command
+     * should not be a way to fake an approach.
+     */
+    @Test
+    void settingTheDisplayItAlreadyHasIsANoOp()
+    {
+        assumeTrue(MirrorProximity.canHide(), "nothing is tracked without the API");
+        final Player far = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(far));
+        proximityMirror();
+        final Player admin = mock(Player.class);
+        when(admin.isOp()).thenReturn(true);
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
+                new String[] { "mirror", "display", "museum", "proximity" });
+            MirrorProximity.tick();
+        });
+
+        // The blank, once. Re-setting the same value must not undo it and send it again.
+        assertEquals(1, blockUpdatesTo(far).size(),
+            "re-setting the display a mirror already has should send nothing");
+    }
+
     @Test
     void offersATickerToSchedule()
     {
