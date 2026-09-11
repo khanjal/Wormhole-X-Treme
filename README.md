@@ -46,6 +46,10 @@ No frame to build and no dialling: step on, and the rings come down.
 **Beaming** — point-to-point travel with no structure at all. Staff curate public destinations;
 each player keeps their own private [places](#beaming).
 
+**Quantum mirrors** — a banner you can walk up to and click, and you are in another world. No
+structure at all, one-way by design, and cross-world by default. A corridor of them is a
+practical way to line up doors into archived worlds. [Setting one up](#quantum-mirrors)
+
 **Sound** — [fifteen sounds](#sounds) — seven for gates, five for rings, three for beaming — and
 every one of them is a setting rather than a hardcoded choice. Each subsystem has its own
 on/off switch and volume, so rings can be silent while gates are not.
@@ -81,6 +85,8 @@ across; it is a command you run, not something that happens to your data on star
 **Transport rings** — [Overview](#transport-rings) · [Building a ring pair](#building-a-ring-pair) · [Using rings](#using-rings) · [Ring settings](#ring-settings) · [Ring permissions](#ring-permissions)
 
 **Beaming** — [Overview](#beaming) · [Beam commands](#beam-commands) · [Beam settings](#beam-settings) · [Beam sounds](#beam-sounds)
+
+**Quantum mirrors** — [Overview](#quantum-mirrors) · [Setting one up](#setting-one-up)
 
 **Sound** — [Gate and ring sounds](#sounds)
 
@@ -1324,6 +1330,61 @@ are vanilla teleport sounds rather than anything invented.
 
 The full design and the reasoning behind each decision is in [docs/BEAMS.md](docs/BEAMS.md).
 
+## Quantum mirrors
+
+A **quantum mirror** is the fourth way to travel, and the only one you can see coming. It is a
+banner. You walk up to it, right-click, and you are somewhere else.
+
+Nothing is built. No ring of blocks, no pad to pair, no command to type — one banner, which is
+why a corridor lined with them is practical in a way a corridor of gates is not.
+
+Mirrors are **one-way by design**. A mirror sends you to a place; that place does not know a
+mirror points at it. If you want to come back, put a second mirror at the far end and point it
+home. That is what lets a mirror open onto a world you would rather not build in at all — an
+archived snapshot needs nothing added to it to be somewhere a mirror can reach.
+
+They are also **cross-world by default, and refuse otherwise**. A mirror is the bridge between
+two worlds; that is what separates it from a beam place, which is how you name a point in the
+world you are already standing in. If you want one anyway, set `mirror-allow-same-world` to
+`true`.
+
+One world can hold as many mirrors as you like, each opening onto a different one. The rule is
+about a single mirror's own two ends, not a limit per world.
+
+### Setting one up
+
+Binding takes two steps, because the two pieces of information are in two places — you have to
+be looking at the banner to say which one it is, and standing where arrivals should land to say
+where it goes.
+
+```
+/wormhole mirror set museum        # while looking at the banner
+/wormhole mirror target museum     # while standing where people should arrive
+```
+
+Or point one mirror at another, which works out the spot in front of that banner for you:
+
+```
+/wormhole mirror link lobby museum
+```
+
+`link` is a snapshot, not a subscription. Move the target banner afterwards and the first mirror
+still opens onto where it used to be — run `link` again to follow it.
+
+| Command | What it does |
+| --- | --- |
+| `mirror set <name>` | Makes the banner you are looking at a mirror by that name |
+| `mirror target <name>` | Points that mirror at where you are standing |
+| `mirror link <from> <to>` | Points one mirror at the spot in front of another's banner |
+| `mirror remove <name>` | Forgets it; the banner becomes an ordinary banner again |
+| `mirror list` | Every mirror and where it opens onto |
+
+All of them need the same permission as gate and ring management — a mirror moves players
+between worlds, which is not something to leave open to anyone who can run `/wormhole`.
+
+Either kind of banner works: wall-mounted or freestanding on a post. A mirror whose far side is
+in an unloaded world says so when you click it, the same way a beam destination does.
+
 ## Sounds
 
 Gates and rings make noise, and both are configured the same way. Everything below is
@@ -1428,7 +1489,8 @@ plugins/WormholeXTreme/
 └── data/
     ├── gates/<name>.yml
     ├── rings/<world>.yml
-    └── beam.yml
+    ├── beam.yml
+    └── mirror.yml
 ```
 
 Back it up by copying `data/`; edit anything in it by hand if you need to.
