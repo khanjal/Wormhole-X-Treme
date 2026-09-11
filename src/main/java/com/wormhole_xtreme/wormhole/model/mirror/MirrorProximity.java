@@ -1,7 +1,9 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -189,45 +191,101 @@ public final class MirrorProximity
         {
             return;
         }
-        final World world = block.getWorld();
-        final Location centre = block.getLocation();
-        final double reach = reachSquared();
+        final List<Player> near = new ArrayList<>();
+        final List<Player> far = new ArrayList<>();
+        split(block, near, far);
 
-        final Set<UUID> showing = new HashSet<>();
-        final Set<UUID> hiding = new HashSet<>();
         final Set<UUID> wasShowing = SHOWING.getOrDefault(mirror.name(), Set.of());
         final Set<UUID> wasHiding = HIDING.getOrDefault(mirror.name(), Set.of());
-        QuantumMirror current = mirror;
+        // Once per sweep rather than once per arriving player. The throttle would swallow the
+        // extra calls anyway, but asking once says plainly that a re-read belongs to the
+        // mirror and not to whoever happened to walk up to it.
+        final QuantumMirror current = anybodyNew(near, wasShowing) ? resampled(mirror) : mirror;
 
-        for (final Player player : world.getPlayers())
+        if (hides)
         {
-            final UUID id = player.getUniqueId();
-            if (player.getLocation().distanceSquared(centre) <= reach)
-            {
-                showing.add(id);
-                if (!wasShowing.contains(id))
-                {
-                    // Arriving is what triggers a re-read, whether or not this mirror hides.
-                    current = resampled(current);
-                    if (hides)
-                    {
-                        reveal(current, block, player);
-                    }
-                }
-            }
-            else if (hides)
-            {
-                hiding.add(id);
-                if (!wasHiding.contains(id))
-                {
-                    hide(block, player);
-                }
-            }
+            sendCrossings(current, block, near, far, wasShowing, wasHiding);
         }
         // Replaced rather than merged, which is what drops a player who logged out or walked
-        // into another world without this needing an event to hear about it.
-        put(SHOWING, mirror.name(), showing);
-        put(HIDING, mirror.name(), hiding);
+        // into another world without this needing an event to hear about it. A mirror that
+        // hides nothing tracks nobody as hidden, so there is nothing to hand back later.
+        put(SHOWING, mirror.name(), ids(near));
+        put(HIDING, mirror.name(), hides ? ids(far) : Set.of());
+    }
+
+    /**
+     * Sorts everybody in the banner's world by whether they are close enough to see it.
+     *
+     * @param block
+     *            the banner
+     * @param near
+     *            filled with those within reach
+     * @param far
+     *            filled with everybody else
+     */
+    private static void split(final Block block, final List<Player> near, final List<Player> far)
+    {
+        final Location centre = block.getLocation();
+        final double reach = reachSquared();
+        for (final Player player : block.getWorld().getPlayers())
+        {
+            // Same world by construction, so distanceSquared cannot throw here.
+            if (player.getLocation().distanceSquared(centre) <= reach)
+            {
+                near.add(player);
+            }
+            else
+            {
+                far.add(player);
+            }
+        }
+    }
+
+    /** @return true if somebody in range was not in range last sweep */
+    private static boolean anybodyNew(final List<Player> near, final Set<UUID> wasShowing)
+    {
+        for (final Player player : near)
+        {
+            if (!wasShowing.contains(player.getUniqueId()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sends to the people who crossed the line since the last sweep, and nobody else.
+     *
+     * <p>This is what keeps a corridor of mirrors quiet. Standing still in front of one costs
+     * nothing at all; only walking in or out of range is a packet.
+     */
+    private static void sendCrossings(final QuantumMirror mirror, final Block block,
+        final List<Player> near, final List<Player> far, final Set<UUID> wasShowing,
+        final Set<UUID> wasHiding)
+    {
+        for (final Player player : near)
+        {
+            if (!wasShowing.contains(player.getUniqueId()))
+            {
+                reveal(mirror, block, player);
+            }
+        }
+        for (final Player player : far)
+        {
+            if (!wasHiding.contains(player.getUniqueId()))
+            {
+                hide(block, player);
+            }
+        }
+    }
+
+    /** @return the ids of those players, for the sets kept between sweeps */
+    private static Set<UUID> ids(final List<Player> players)
+    {
+        final Set<UUID> found = new HashSet<>();
+        players.forEach(player -> found.add(player.getUniqueId()));
+        return found;
     }
 
     /**
