@@ -504,7 +504,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             final int presets =
                 com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load();
-            prettyLog(Level.INFO, true, "Loaded " + presets + " mirror look"
+            prettyLog(Level.INFO, true, LOADED + presets + " mirror look"
                 + (presets == 1 ? "" : "s") + ".");
         }
         catch (final Exception e)

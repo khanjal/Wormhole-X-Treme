@@ -94,28 +94,45 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
 
         for (final String raw : (lines == null) ? Collections.<String>emptyList() : lines)
         {
-            final String line = (raw == null) ? "" : raw.trim();
-            if (line.isEmpty() || line.startsWith("#"))
+            final String[] pair = keyAndValue(raw);
+            if (pair == null)
             {
                 continue;
             }
-            final int equals = line.indexOf('=');
-            if (equals <= 0)
+            switch (pair[0])
             {
-                continue;
-            }
-            final String key = line.substring(0, equals).trim().toUpperCase(Locale.ROOT);
-            final String value = line.substring(equals + 1).trim();
-            switch (key)
-            {
-                case "NAME" -> name = value.isEmpty() ? name : value;
-                case "BASE" -> base = colour(value);
-                case "BIOME" -> addBiomes(biomes, value);
-                case "LAYER" -> addLayer(layers, value);
+                case "NAME" -> name = pair[1].isEmpty() ? name : pair[1];
+                case "BASE" -> base = colour(pair[1]);
+                case "BIOME" -> addBiomes(biomes, pair[1]);
+                case "LAYER" -> addLayer(layers, pair[1]);
                 default -> { /* not a key this understands; somebody's own note */ }
             }
         }
         return (base == null) ? null : new MirrorPreset(name, base, layers, biomes);
+    }
+
+    /**
+     * Splits one line into its key and its value.
+     *
+     * @param raw
+     *            the line as read, which may be null
+     * @return the upper-cased key and the trimmed value, or null for a blank, a comment, or a
+     *         line with nothing before an equals sign
+     */
+    private static String[] keyAndValue(final String raw)
+    {
+        final String line = (raw == null) ? "" : raw.trim();
+        if (line.isEmpty() || line.startsWith("#"))
+        {
+            return null;
+        }
+        final int equals = line.indexOf('=');
+        if (equals <= 0)
+        {
+            return null;
+        }
+        return new String[] { line.substring(0, equals).trim().toUpperCase(Locale.ROOT),
+            line.substring(equals + 1).trim() };
     }
 
     private static void addBiomes(final Set<String> into, final String value)

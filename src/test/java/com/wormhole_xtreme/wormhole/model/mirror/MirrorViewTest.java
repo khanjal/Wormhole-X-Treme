@@ -121,9 +121,10 @@ class MirrorViewTest
     void isImmutable()
     {
         final MirrorView view = new MirrorView("PLAINS", new java.util.ArrayList<>(), false);
+        final List<DyeColor> colours = view.colours();
 
         org.junit.jupiter.api.Assertions.assertThrows(UnsupportedOperationException.class,
-            () -> view.colours().add(DyeColor.RED));
+            () -> colours.add(DyeColor.RED));
     }
 
     /** Looks at a world where {@code when} picks the first material and everything else the second. */

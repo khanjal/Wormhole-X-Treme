@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.DyeColor;
@@ -23,6 +24,18 @@ import org.bukkit.DyeColor;
  */
 final class MirrorPalette
 {
+    /**
+     * One fragment of a material name, and what colour it means.
+     *
+     * @param fragment
+     *            the piece of the name to look for, upper-case
+     * @param colour
+     *            what a block whose name contains it counts as
+     */
+    private record Rule(String fragment, DyeColor colour)
+    {
+    }
+
     /** Dye colour names longest first, so LIGHT_BLUE is tested before BLUE. */
     private static final DyeColor[] BY_PREFIX = byLongestName();
 
@@ -46,60 +59,74 @@ final class MirrorPalette
      * Name fragment to colour, in order. First match wins.
      *
      * <p>Read it top to bottom as a list of special cases before general ones. The general
-     * ones at the bottom -- STONE, LOG, PLANKS, LEAVES -- are what catch a block added in a
+     * ones near the bottom -- STONE, LOG, PLANKS, LEAVES -- are what catch a block added in a
      * version this table has never heard of.
      */
-    private static final String[][] BY_FRAGMENT =
-    {
+    private static final List<Rule> BY_FRAGMENT = List.of(
         // The deep and the dark.
-        { "SCULK", "BLACK" }, { "OBSIDIAN", "BLACK" }, { "BLACKSTONE", "BLACK" },
-        { "BASALT", "BLACK" }, { "COAL", "BLACK" },
+        rule("SCULK", DyeColor.BLACK), rule("OBSIDIAN", DyeColor.BLACK),
+        rule("BLACKSTONE", DyeColor.BLACK), rule("BASALT", DyeColor.BLACK),
+        rule("COAL", DyeColor.BLACK),
         // The Nether, which is mostly one colour and reads as it.
-        { "NETHERRACK", "RED" }, { "NETHER_WART", "RED" }, { "NETHER", "RED" },
-        { "CRIMSON", "RED" }, { "MAGMA", "ORANGE" }, { "LAVA", "ORANGE" },
-        { "WARPED", "CYAN" }, { "SOUL", "BROWN" },
+        rule("NETHERRACK", DyeColor.RED), rule("NETHER_WART", DyeColor.RED),
+        rule("NETHER", DyeColor.RED), rule("CRIMSON", DyeColor.RED),
+        rule("MAGMA", DyeColor.ORANGE), rule("LAVA", DyeColor.ORANGE),
+        rule("WARPED", DyeColor.CYAN), rule("SOUL", DyeColor.BROWN),
         // Water and ice.
-        { "WATER", "BLUE" }, { "BLUE_ICE", "BLUE" }, { "ICE", "LIGHT_BLUE" },
-        { "SNOW", "WHITE" }, { "PRISMARINE", "CYAN" }, { "SEA_LANTERN", "CYAN" },
-        { "KELP", "GREEN" }, { "SEAGRASS", "GREEN" }, { "CORAL", "PINK" },
+        rule("WATER", DyeColor.BLUE), rule("BLUE_ICE", DyeColor.BLUE),
+        rule("ICE", DyeColor.LIGHT_BLUE), rule("SNOW", DyeColor.WHITE),
+        rule("PRISMARINE", DyeColor.CYAN), rule("SEA_LANTERN", DyeColor.CYAN),
+        rule("KELP", DyeColor.GREEN), rule("SEAGRASS", DyeColor.GREEN),
+        rule("CORAL", DyeColor.PINK),
         // The End.
-        { "PURPUR", "MAGENTA" }, { "CHORUS", "PURPLE" }, { "END_STONE", "YELLOW" },
-        { "END_ROD", "WHITE" },
+        rule("PURPUR", DyeColor.MAGENTA), rule("CHORUS", DyeColor.PURPLE),
+        rule("END_STONE", DyeColor.YELLOW), rule("END_ROD", DyeColor.WHITE),
         // Ores and the metals out of them, before the stone they sit in.
-        { "REDSTONE", "RED" }, { "GLOWSTONE", "YELLOW" }, { "LAPIS", "BLUE" },
-        { "AMETHYST", "PURPLE" }, { "EMERALD", "GREEN" }, { "DIAMOND", "LIGHT_BLUE" },
-        { "GOLD", "YELLOW" }, { "OXIDIZED", "CYAN" }, { "WEATHERED", "CYAN" },
-        { "COPPER", "ORANGE" }, { "LIGHTNING_ROD", "ORANGE" }, { "IRON", "LIGHT_GRAY" },
-        { "QUARTZ", "WHITE" },
+        rule("REDSTONE", DyeColor.RED), rule("GLOWSTONE", DyeColor.YELLOW),
+        rule("LAPIS", DyeColor.BLUE), rule("AMETHYST", DyeColor.PURPLE),
+        rule("EMERALD", DyeColor.GREEN), rule("DIAMOND", DyeColor.LIGHT_BLUE),
+        rule("GOLD", DyeColor.YELLOW), rule("OXIDIZED", DyeColor.CYAN),
+        rule("WEATHERED", DyeColor.CYAN), rule("COPPER", DyeColor.ORANGE),
+        rule("LIGHTNING_ROD", DyeColor.ORANGE), rule("IRON", DyeColor.LIGHT_GRAY),
+        rule("QUARTZ", DyeColor.WHITE),
         // Stone in its many names, and the sand it weathers to.
-        { "SANDSTONE", "YELLOW" }, { "SAND", "YELLOW" }, { "GRAVEL", "LIGHT_GRAY" },
-        { "DEEPSLATE", "GRAY" }, { "COBBLESTONE", "GRAY" }, { "STONE_BRICK", "GRAY" },
-        { "ANDESITE", "LIGHT_GRAY" }, { "DIORITE", "WHITE" }, { "GRANITE", "BROWN" },
-        { "CALCITE", "WHITE" }, { "TUFF", "GRAY" }, { "DRIPSTONE", "BROWN" },
-        { "BEDROCK", "GRAY" }, { "STONE", "GRAY" },
+        rule("SANDSTONE", DyeColor.YELLOW), rule("SAND", DyeColor.YELLOW),
+        rule("GRAVEL", DyeColor.LIGHT_GRAY), rule("DEEPSLATE", DyeColor.GRAY),
+        rule("COBBLESTONE", DyeColor.GRAY), rule("STONE_BRICK", DyeColor.GRAY),
+        rule("ANDESITE", DyeColor.LIGHT_GRAY), rule("DIORITE", DyeColor.WHITE),
+        rule("GRANITE", DyeColor.BROWN), rule("CALCITE", DyeColor.WHITE),
+        rule("TUFF", DyeColor.GRAY), rule("DRIPSTONE", DyeColor.BROWN),
+        rule("BEDROCK", DyeColor.GRAY), rule("STONE", DyeColor.GRAY),
         // Growing things.
-        { "CHERRY", "PINK" }, { "BAMBOO", "LIME" }, { "AZALEA", "GREEN" },
-        { "MOSS", "GREEN" }, { "GRASS", "GREEN" }, { "LEAVES", "GREEN" },
-        { "VINE", "GREEN" }, { "FERN", "GREEN" }, { "CACTUS", "GREEN" },
-        { "MELON", "LIME" }, { "PUMPKIN", "ORANGE" }, { "HAY", "YELLOW" },
-        { "MUSHROOM", "RED" }, { "MYCELIUM", "PURPLE" }, { "FLOWER", "PINK" },
+        rule("CHERRY", DyeColor.PINK), rule("BAMBOO", DyeColor.LIME),
+        rule("AZALEA", DyeColor.GREEN), rule("MOSS", DyeColor.GREEN),
+        rule("GRASS", DyeColor.GREEN), rule("LEAVES", DyeColor.GREEN),
+        rule("VINE", DyeColor.GREEN), rule("FERN", DyeColor.GREEN),
+        rule("CACTUS", DyeColor.GREEN), rule("MELON", DyeColor.LIME),
+        rule("PUMPKIN", DyeColor.ORANGE), rule("HAY", DyeColor.YELLOW),
+        rule("MUSHROOM", DyeColor.RED), rule("MYCELIUM", DyeColor.PURPLE),
+        rule("FLOWER", DyeColor.PINK),
         // Wood, and the furniture made of it -- a library's shelves land here.
-        { "BOOKSHELF", "BROWN" }, { "LECTERN", "BROWN" }, { "BARREL", "BROWN" },
-        { "CHEST", "BROWN" }, { "CRAFTING", "BROWN" }, { "LOG", "BROWN" },
-        { "PLANKS", "BROWN" }, { "STEM", "BROWN" }, { "WOOD", "BROWN" },
-        { "SCAFFOLDING", "BROWN" },
+        rule("BOOKSHELF", DyeColor.BROWN), rule("LECTERN", DyeColor.BROWN),
+        rule("BARREL", DyeColor.BROWN), rule("CHEST", DyeColor.BROWN),
+        rule("CRAFTING", DyeColor.BROWN), rule("LOG", DyeColor.BROWN),
+        rule("PLANKS", DyeColor.BROWN), rule("STEM", DyeColor.BROWN),
+        rule("WOOD", DyeColor.BROWN), rule("SCAFFOLDING", DyeColor.BROWN),
         // The species, which is what a stair or a fence is called -- OAK_STAIRS says neither
         // LOG nor PLANKS nor WOOD, so without these a wooden staircase has no colour at all.
-        { "OAK", "BROWN" }, { "SPRUCE", "BROWN" }, { "BIRCH", "BROWN" },
-        { "JUNGLE", "BROWN" }, { "ACACIA", "ORANGE" }, { "MANGROVE", "RED" },
+        rule("OAK", DyeColor.BROWN), rule("SPRUCE", DyeColor.BROWN),
+        rule("BIRCH", DyeColor.BROWN), rule("JUNGLE", DyeColor.BROWN),
+        rule("ACACIA", DyeColor.ORANGE), rule("MANGROVE", DyeColor.RED),
         // Ground.
-        { "PODZOL", "BROWN" }, { "DIRT", "BROWN" }, { "FARMLAND", "BROWN" },
-        { "MUD", "BROWN" }, { "CLAY", "LIGHT_GRAY" }, { "TERRACOTTA", "ORANGE" },
+        rule("PODZOL", DyeColor.BROWN), rule("DIRT", DyeColor.BROWN),
+        rule("FARMLAND", DyeColor.BROWN), rule("MUD", DyeColor.BROWN),
+        rule("CLAY", DyeColor.LIGHT_GRAY), rule("TERRACOTTA", DyeColor.ORANGE),
         // Built, and lit.
-        { "BRICK", "RED" }, { "TORCH", "YELLOW" }, { "LANTERN", "YELLOW" },
-        { "CAMPFIRE", "ORANGE" }, { "FIRE", "ORANGE" }, { "BONE", "WHITE" },
-        { "WOOL", "WHITE" }, { "CANDLE", "WHITE" }, { "ORE", "GRAY" }
-    };
+        rule("BRICK", DyeColor.RED), rule("TORCH", DyeColor.YELLOW),
+        rule("LANTERN", DyeColor.YELLOW), rule("CAMPFIRE", DyeColor.ORANGE),
+        rule("FIRE", DyeColor.ORANGE), rule("BONE", DyeColor.WHITE),
+        rule("WOOL", DyeColor.WHITE), rule("CANDLE", DyeColor.WHITE),
+        rule("ORE", DyeColor.GRAY));
 
     /** Static helpers only. */
     private MirrorPalette()
@@ -132,14 +159,20 @@ final class MirrorPalette
         {
             return null;
         }
-        for (final String[] entry : BY_FRAGMENT)
+        for (final Rule entry : BY_FRAGMENT)
         {
-            if (name.contains(entry[0]))
+            if (name.contains(entry.fragment()))
             {
-                return DyeColor.valueOf(entry[1]);
+                return entry.colour();
             }
         }
         return null;
+    }
+
+    /** Reads as a table row, and keeps the colour an enum constant rather than a string. */
+    private static Rule rule(final String fragment, final DyeColor colour)
+    {
+        return new Rule(fragment, colour);
     }
 
     /** @return true if this is one of the blocks with nothing to show */

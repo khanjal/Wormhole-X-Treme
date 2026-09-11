@@ -92,33 +92,55 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         final int oy = at.getBlockY();
         final int oz = at.getBlockZ();
 
-        final Map<DyeColor, Integer> counts = new EnumMap<>(DyeColor.class);
-        int solid = 0;
-        int sampled = 0;
+        final Tally tally = new Tally();
         for (int x = -RADIUS; x <= RADIUS; x += STEP)
         {
             for (int y = -BELOW; y <= ABOVE; y += STEP)
             {
                 for (int z = -RADIUS; z <= RADIUS; z += STEP)
                 {
-                    final Block block = world.getBlockAt(ox + x, oy + y, oz + z);
-                    sampled++;
-                    final String material = block.getType().name();
-                    if (isAir(material))
-                    {
-                        continue;
-                    }
-                    solid++;
-                    final DyeColor colour = MirrorPalette.of(material);
-                    if (colour != null)
-                    {
-                        counts.merge(colour, 1, Integer::sum);
-                    }
+                    tally.add(world.getBlockAt(ox + x, oy + y, oz + z));
                 }
             }
         }
-        final boolean enclosed = (sampled > 0) && ((double) solid / sampled) >= ENCLOSED_SHARE;
-        return new MirrorView(biomeNameAt(world, ox, oy, oz), topColours(counts), enclosed);
+        return new MirrorView(biomeNameAt(world, ox, oy, oz), topColours(tally.counts),
+            tally.enclosed());
+    }
+
+    /** What the sweep found: how much of it was solid, and what colours were in it. */
+    private static final class Tally
+    {
+        /** How many of each colour were seen. */
+        private final Map<DyeColor, Integer> counts = new EnumMap<>(DyeColor.class);
+
+        /** How many blocks were looked at, air included. */
+        private int sampled;
+
+        /** How many of those were anything at all. */
+        private int solid;
+
+        /** Counts one block. */
+        void add(final Block block)
+        {
+            sampled++;
+            final String material = block.getType().name();
+            if (isAir(material))
+            {
+                return;
+            }
+            solid++;
+            final DyeColor colour = MirrorPalette.of(material);
+            if (colour != null)
+            {
+                counts.merge(colour, 1, Integer::sum);
+            }
+        }
+
+        /** @return true if enough of the sample was solid to call this a room */
+        boolean enclosed()
+        {
+            return (sampled > 0) && (((double) solid / sampled) >= ENCLOSED_SHARE);
+        }
     }
 
     /**

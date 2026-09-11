@@ -110,10 +110,12 @@ class MirrorPresetTest
     {
         final MirrorPreset preset = MirrorPreset.parse("x", List.of("Base=RED",
             "Biome=PLAINS", "Layer=BLUE BORDER"));
+        final List<MirrorPreset.Layer> layers = preset.layers();
+        final java.util.Set<String> biomes = preset.biomes();
+        final MirrorPreset.Layer extra = new MirrorPreset.Layer(DyeColor.RED, "BORDER");
 
-        assertThrows(UnsupportedOperationException.class,
-            () -> preset.layers().add(new MirrorPreset.Layer(DyeColor.RED, "BORDER")));
-        assertThrows(UnsupportedOperationException.class, () -> preset.biomes().add("SWAMP"));
+        assertThrows(UnsupportedOperationException.class, () -> layers.add(extra));
+        assertThrows(UnsupportedOperationException.class, () -> biomes.add("SWAMP"));
     }
 
     @Test

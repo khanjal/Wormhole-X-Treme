@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -335,15 +336,30 @@ public class MirrorCommand implements SubCommand
         }
     }
 
-    /** What was found over there, as a person would say it. */
+    /**
+     * What was found over there, as a person would say it.
+     *
+     * <p>The colour is read once into a local rather than asked for twice. Null-checking one
+     * call and dereferencing another is only safe if the method is pure, which is true here and
+     * is exactly the kind of thing that stops being true later.
+     */
     private static String describe(final MirrorView view, final MirrorPreset preset)
     {
-        final String where = view.enclosed()
-            ? "somewhere indoors"
-            : (view.biome().isEmpty() ? preset.name() : view.biome().toLowerCase(Locale.ROOT));
-        return (view.dominant() == null)
+        final DyeColor dominant = view.dominant();
+        final String where = whereItIs(view, preset);
+        return (dominant == null)
             ? where
-            : where + ", mostly " + view.dominant().name().toLowerCase(Locale.ROOT);
+            : where + ", mostly " + dominant.name().toLowerCase(Locale.ROOT);
+    }
+
+    /** Indoors reads as indoors; otherwise the biome, or the preset's name if it has none. */
+    private static String whereItIs(final MirrorView view, final MirrorPreset preset)
+    {
+        if (view.enclosed())
+        {
+            return "somewhere indoors";
+        }
+        return view.biome().isEmpty() ? preset.name() : view.biome().toLowerCase(Locale.ROOT);
     }
 
     /** @return a preset name to suggest, or a placeholder if none are loaded */

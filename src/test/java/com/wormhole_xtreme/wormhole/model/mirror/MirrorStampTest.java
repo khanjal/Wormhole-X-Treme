@@ -209,7 +209,8 @@ class MirrorStampTest
     @DisplayName("a block that is not a banner is left alone")
     void notABanner()
     {
-        when(block.getState()).thenReturn(mock(BlockState.class));
+        final BlockState notABanner = mock(BlockState.class);
+        when(block.getState()).thenReturn(notABanner);
 
         assertFalse(MirrorStamp.apply(block, preset("RED", "BLACK BORDER")));
     }
