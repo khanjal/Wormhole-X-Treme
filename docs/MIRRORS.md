@@ -69,6 +69,16 @@ after `mirror-dynamic-resample-seconds` have passed since the last read. That is
 affordable: sampling still loads a distant chunk, so a mirror nobody visits is never sampled at
 all, and a player pacing in front of one gets the same answer until the interval is up.
 
+This is independent of `display`, and genuinely so — for a while it was not, which is worth
+recording because the mistake is an easy one to make again. The sweep visited only proximity
+mirrors and gave up entirely on a server without per-player block updates, so `always` plus
+`dynamic` never re-read anything and `dynamic` did nothing at all on 1.20. The two are separate
+because their costs are separate: hiding needs a packet per player and therefore a server that
+can send one, while re-reading writes to the banner everybody already sees and needs neither.
+
+A dynamic mirror that has never been stamped will take its first look on the first approach.
+Otherwise `mode dynamic` would describe something only `stamp` could start.
+
 The re-read look is kept in memory and written to the banner, but not saved to `mirror.yml` on
 every approach — a busy corridor would otherwise be a stream of file writes, and a dynamic
 mirror re-reads on the next approach anyway. The worst a restart costs is one sample.

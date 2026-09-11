@@ -1443,9 +1443,13 @@ per-player call this needs arrived in 1.20.1; the setting starts working when yo
 
 **`dynamic`** re-reads the destination when somebody walks up, at most once every
 `mirror-dynamic-resample-seconds`. Rebuild the far side and the mirror follows it. A mirror
-nobody visits is never re-read at all, which is what keeps it cheap.
+nobody visits is never re-read at all, which is what keeps it cheap. This one writes to the
+banner itself, so it works on every supported version — 1.20 included — and on a mirror that
+never hides.
 
 The two are independent — a mirror can be proximity and static, always and dynamic, or both.
+An `always` + `dynamic` mirror is one that is permanently visible and quietly keeps itself up
+to date.
 
 ## Sounds
 

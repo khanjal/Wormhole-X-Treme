@@ -144,32 +144,43 @@ public final class MirrorProximity
     }
 
     /**
-     * One pass over every proximity mirror.
+     * One pass over every mirror the sweep has a reason to visit.
      *
-     * <p>Does nothing at all where {@code sendBlockUpdate} is missing, which is plain 1.20.
-     * There the stamped banner is simply always visible, which is the documented behaviour on
-     * that version rather than a failure.
+     * <p>Where {@code sendBlockUpdate} is missing -- plain 1.20 -- nothing is ever hidden, and
+     * a proximity mirror is simply always visible. That does not stop a dynamic one being kept
+     * current there, because re-reading writes to the banner itself and needs no packet.
      */
     static void tick()
     {
-        if (!MirrorPackets.available())
-        {
-            return;
-        }
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            if (mirror.display() == MirrorDisplay.PROXIMITY)
+            // Two separate reasons to visit a mirror, and they are not the same reason.
+            // Hiding needs per-player block updates, so it needs a server that has them.
+            // Re-reading the far side needs only somebody to walk up, and writes its result
+            // to the banner everybody can see -- so it works on 1.20, and on a mirror that
+            // never hides. The two settings are documented as independent; this is where that
+            // is either true or a lie.
+            final boolean hides = (mirror.display() == MirrorDisplay.PROXIMITY)
+                && MirrorPackets.available();
+            if (hides || (mirror.mode() == MirrorMode.DYNAMIC))
             {
-                tickOne(mirror);
+                tickOne(mirror, hides);
             }
         }
     }
 
-    /** One mirror, cheapest checks first. */
-    private static void tickOne(final QuantumMirror mirror)
+    /**
+     * One mirror, cheapest checks first.
+     *
+     * @param mirror
+     *            the mirror to visit
+     * @param hides
+     *            whether this one sends the blank to people who are far away, as opposed to
+     *            being visited only to keep its look current
+     */
+    private static void tickOne(final QuantumMirror mirror, final boolean hides)
     {
-        final MirrorLook look = mirror.look();
-        if ((look == null) || look.isEmpty())
+        if (nothingToDo(mirror))
         {
             return;
         }
@@ -196,11 +207,15 @@ public final class MirrorProximity
                 showing.add(id);
                 if (!wasShowing.contains(id))
                 {
+                    // Arriving is what triggers a re-read, whether or not this mirror hides.
                     current = resampled(current);
-                    reveal(current, block, player);
+                    if (hides)
+                    {
+                        reveal(current, block, player);
+                    }
                 }
             }
-            else
+            else if (hides)
             {
                 hiding.add(id);
                 if (!wasHiding.contains(id))
@@ -213,6 +228,27 @@ public final class MirrorProximity
         // into another world without this needing an event to hear about it.
         put(SHOWING, mirror.name(), showing);
         put(HIDING, mirror.name(), hiding);
+    }
+
+    /**
+     * Whether this mirror has nothing for the sweep to do.
+     *
+     * <p>A mirror with no look has nothing to hide and nothing to reveal. A dynamic one is the
+     * exception: it can go and get its first look, which is what {@code mode dynamic} promises
+     * when it says the mirror re-reads the far side on approach. Without the exception that
+     * promise would hold only for a mirror somebody had already stamped by hand.
+     *
+     * @param mirror
+     *            the mirror being considered
+     * @return true if the sweep should leave it alone
+     */
+    private static boolean nothingToDo(final QuantumMirror mirror)
+    {
+        final MirrorLook look = mirror.look();
+        final boolean unstamped = (look == null) || look.isEmpty();
+        final boolean couldLearnOne =
+            (mirror.mode() == MirrorMode.DYNAMIC) && (mirror.destination() != null);
+        return unstamped && !couldLearnOne;
     }
 
     /** The live banner block, or null if it cannot be reached or is no longer a banner. */

@@ -530,6 +530,75 @@ class MirrorProximityTest
         }
     }
 
+    /**
+     * A mirror that never hides is still kept current, and on a server that cannot hide.
+     *
+     * <p>The two settings are documented as independent, and for a while they were not: the
+     * sweep visited only proximity mirrors and gave up entirely without per-player updates, so
+     * {@code always} plus {@code dynamic} never re-read anything and {@code dynamic} did
+     * nothing at all on 1.20. Re-reading writes to the banner everybody can see, so it needs
+     * no packet and belongs to neither of those conditions.
+     *
+     * <p>No assumption on this one: the point is that it holds on every version.
+     */
+    @Test
+    void keepsAnAlwaysVisibleMirrorCurrentWithoutHidingAnything()
+    {
+        final World destination = destinationWorld();
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        MirrorManager.add(stamped(new QuantumMirror("museum",
+            new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
+            .withMode(MirrorMode.DYNAMIC));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
+            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
+
+            MirrorProximity.tick();
+            walkUpTo(walker);
+            MirrorProximity.tick();
+        }
+
+        assertNotNull(MirrorManager.byName("museum").look().view(),
+            "an always-visible dynamic mirror should still read the far side on approach");
+        assertTrue(blockUpdatesTo(walker).isEmpty(),
+            "and should hide nothing from anybody while doing it");
+    }
+
+    /**
+     * A dynamic mirror nobody has stamped can go and find its own first look.
+     *
+     * <p>{@code mode dynamic} says the mirror re-reads the far side when somebody walks up. If
+     * that only held for a mirror already stamped by hand, the message would be describing a
+     * different command's work.
+     */
+    @Test
+    void givesAnUnstampedDynamicMirrorItsFirstLook()
+    {
+        final World destination = destinationWorld();
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)).withMode(MirrorMode.DYNAMIC));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
+            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
+
+            walkUpTo(walker);
+            MirrorProximity.tick();
+        }
+
+        assertNotNull(MirrorManager.byName("museum").look(),
+            "walking up to it should be enough to give it a look");
+    }
+
     @Test
     void offersATickerToSchedule()
     {
