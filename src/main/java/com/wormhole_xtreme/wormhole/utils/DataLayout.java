@@ -16,7 +16,8 @@ import java.io.File;
  * &lt;plugin folder&gt;/
  * ├── config.yml
  * ├── shapes/
- * │   └── gate/*.shape           the shapes gates are built from
+ * │   ├── gate/*.shape           the shapes gates are built from
+ * │   └── mirror/*.mirror        the looks a mirror's banner can be stamped with
  * ├── data/
  * │   ├── gates/&lt;name&gt;.yml       one file per gate
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
@@ -58,6 +59,12 @@ public final class DataLayout
     public static File gateShapes()
     {
         return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "gate");
+    }
+
+    /** @return the directory mirror presets are read from */
+    public static File mirrorShapes()
+    {
+        return PluginDirectory.resolve(PluginDirectory.PLUGIN_FOLDER, "shapes", "mirror");
     }
 
     /** @return the directory gate shapes used to be read from, emptied on startup */

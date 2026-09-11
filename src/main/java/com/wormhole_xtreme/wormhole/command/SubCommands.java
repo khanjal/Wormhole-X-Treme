@@ -397,7 +397,8 @@ public final class SubCommands
      *
      * <p>{@code set} is not completed from existing mirrors: naming a new one is the common
      * case, and offering the existing names there would invite rebinding one by accident.
-     * Every other verb names a mirror that already exists, and {@code link} names two.
+     * Every other verb names a mirror that already exists, {@code link} names two, and
+     * {@code stamp} takes a mirror and then a preset.
      *
      * @param args
      *            the full argument array
@@ -416,13 +417,21 @@ public final class SubCommands
         // which reads as though the typo were a real command.
         final boolean takesOneName = "target".equals(verb) || REMOVE.equals(verb);
         final boolean takesTwoNames = "link".equals(verb);
-        if ((args.length == 3) && (takesOneName || takesTwoNames))
+        final boolean stamp = "stamp".equals(verb);
+        if ((args.length == 3) && (takesOneName || takesTwoNames || stamp))
         {
             return prefixed(args[2], mirrorNames());
         }
         if ((args.length == 4) && takesTwoNames)
         {
             return prefixed(args[3], mirrorNames());
+        }
+        // Presets, not mirrors, and the empty offer is the point: leaving it blank is what
+        // makes stamp read the far side rather than apply a look somebody picked.
+        if ((args.length == 4) && stamp)
+        {
+            return prefixed(args[3],
+                com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.names());
         }
         return none();
     }
