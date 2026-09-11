@@ -66,14 +66,13 @@ public record MirrorLook(String presetName, MirrorView view)
      * and then edits the preset file sees the edit.
      *
      * <p>A seen look asks the biome first, and only falls to the indoor look when being
-     * enclosed actually tells you something. Some places are enclosed by their nature -- the
-     * Nether is solid rock with a ceiling on it, a cave is a cave -- and for those the sampler
-     * reports {@code enclosed} for every mirror ever pointed there, so treating that as "this
-     * is a room" would mean no mirror into the Nether could ever wear the Nether's look. Those
-     * presets say {@link MirrorPreset#sheltered()} and keep it.
+     * enclosed actually tells you something -- which is
+     * {@link MirrorPreset#readsAsARoom(MirrorView)}, and is asked rather than worked out here.
+     * This method used to carry its own copy of that test, and a copy is how the rule came to
+     * be applied to the choice of frame and to none of the three decisions that follow it.
      *
-     * <p>What is left is a room somewhere it is not normal to be enclosed, which is the
-     * library case this rule was written for.
+     * <p>What is left for the indoor look is a room somewhere it is not normal to be enclosed,
+     * which is the library case the rule was written for.
      *
      * @return the preset, or null if there is none to be had
      */
@@ -88,10 +87,14 @@ public record MirrorLook(String presetName, MirrorView view)
             return null;
         }
         final MirrorPreset byBiome = MirrorPresetRegistry.forBiome(view.biome());
-        if (!view.enclosed() || ((byBiome != null) && byBiome.sheltered()))
+        if (byBiome == null)
         {
-            return byBiome;
+            // Only ever when no looks are loaded at all: forBiome falls back to the generic
+            // preset and then to any preset there is, so it answers null only from an empty
+            // folder -- and an empty folder makes indoors() null too. There is nothing to
+            // choose between here, which the caller reports as "no looks loaded".
+            return null;
         }
-        return MirrorPresetRegistry.indoors();
+        return byBiome.readsAsARoom(view) ? MirrorPresetRegistry.indoors() : byBiome;
     }
 }
