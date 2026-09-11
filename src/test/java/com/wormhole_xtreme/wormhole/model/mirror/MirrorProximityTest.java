@@ -428,6 +428,37 @@ class MirrorProximityTest
     }
 
     /**
+     * Removing a proximity mirror hands the banner back too.
+     *
+     * <p>The same gap as turning the setting off, in the other command that stops the sweep
+     * ever visiting a mirror again. It matters more here, because {@code remove} says out loud
+     * that the banner is an ordinary banner again -- which would be untrue for exactly the
+     * players standing furthest away, who would be left unable to see it at all.
+     */
+    @Test
+    void handsTheBannerBackWhenTheCommandRemovesTheMirror()
+    {
+        assumeTrue(MirrorProximity.canHide(), "nothing is ever hidden without the API");
+        final Player far = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(far));
+        proximityMirror();
+        final Player admin = mock(Player.class);
+        when(admin.isOp()).thenReturn(true);
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
+                new String[] { "mirror", "remove", "museum" });
+        });
+
+        final List<TileState> sent = sentTo(far, 2);
+        assertWasBlanked(sent.get(0));
+        assertWasNotBlanked(sent.get(1));
+        assertNull(MirrorManager.byName("museum"));
+    }
+
+    /**
      * A player who walked into another world is not sent a block update for this one.
      *
      * <p>A block update names a coordinate, not a world. The tracked set can be several sweeps

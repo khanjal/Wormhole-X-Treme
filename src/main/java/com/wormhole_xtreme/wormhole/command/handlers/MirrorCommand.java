@@ -546,6 +546,11 @@ public class MirrorCommand implements SubCommand
             say(sender, "There is no mirror called '" + args[2] + "'.");
             return;
         }
+        // The same reason display() releases before it changes the setting: anybody who was
+        // being shown the blank is still holding it, and nothing will visit this mirror again
+        // to take it back. Without this the line below would be untrue for exactly the players
+        // standing furthest away -- an ordinary banner they cannot see.
+        MirrorProximity.release(removed);
         MirrorYamlManager.saveAll();
         say(sender, "'" + removed.name() + "' is an ordinary banner again.");
     }

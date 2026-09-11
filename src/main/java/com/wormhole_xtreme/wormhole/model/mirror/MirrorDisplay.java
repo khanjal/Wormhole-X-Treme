@@ -12,11 +12,16 @@ import java.util.Locale;
  */
 public enum MirrorDisplay
 {
-    /** The look is in the block, and everyone sees it from wherever they are. */
+    /** Nothing is hidden from anybody: the stamped banner is what every player sees. */
     ALWAYS,
 
     /**
-     * The block is blank and the look is sent to whoever comes close.
+     * Players too far away are sent a blank copy, and get the real banner back on approach.
+     *
+     * <p>That way round, not the other. The banner in the world stays stamped -- patterns are
+     * vanilla data and outlive this plugin -- so the blank is the illusion and the stamped
+     * banner is the truth. Disabling the plugin leaves the corridor an operator built, rather
+     * than a row of plain cloth.
      *
      * <p>Needs {@code Player.sendBlockUpdate}, which plain 1.20 does not have -- on that one
      * version a proximity mirror behaves as {@link #ALWAYS} rather than never showing anything.
