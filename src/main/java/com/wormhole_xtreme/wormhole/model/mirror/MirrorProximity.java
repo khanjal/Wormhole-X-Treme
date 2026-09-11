@@ -103,7 +103,6 @@ public final class MirrorProximity
     {
         final Set<UUID> hidden = HIDING.remove(mirror.name());
         SHOWING.remove(mirror.name());
-        SAMPLED.remove(mirror.name());
         if ((hidden == null) || hidden.isEmpty() || !MirrorPackets.available())
         {
             return;
@@ -113,6 +112,25 @@ public final class MirrorProximity
         {
             hidden.forEach(id -> sendTrue(block, Bukkit.getPlayer(id)));
         }
+    }
+
+    /**
+     * Releases a mirror and forgets everything else about it, for one being removed.
+     *
+     * <p>The difference from {@link #release} is the re-sample clock, and it matters because
+     * {@code mirror display} releases a mirror that is still there. Clearing the clock on that
+     * path would make a dynamic mirror eligible to re-read the far side the moment its display
+     * setting was touched, however recently it had read -- which is not what "at most every so
+     * many seconds" says. A mirror being removed has no clock worth keeping, and leaving one
+     * behind would hand it to whatever is next given that name.
+     *
+     * @param mirror
+     *            the mirror being removed
+     */
+    public static void forget(final QuantumMirror mirror)
+    {
+        release(mirror);
+        SAMPLED.remove(mirror.name());
     }
 
     /**

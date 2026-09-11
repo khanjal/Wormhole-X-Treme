@@ -596,7 +596,11 @@ public class MirrorCommand implements SubCommand
         // being shown the blank is still holding it, and nothing will visit this mirror again
         // to take it back. Without this the line below would be untrue for exactly the players
         // standing furthest away -- an ordinary banner they cannot see.
-        MirrorProximity.release(removed);
+        //
+        // forget rather than release, because this one really is gone: its re-sample clock has
+        // nothing left to throttle, and left behind it would be inherited by whatever is named
+        // after it next.
+        MirrorProximity.forget(removed);
         MirrorYamlManager.saveAll();
         say(sender, "'" + removed.name() + "' is an ordinary banner again.");
     }

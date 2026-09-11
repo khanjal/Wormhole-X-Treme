@@ -599,6 +599,133 @@ class MirrorProximityTest
             "walking up to it should be enough to give it a look");
     }
 
+    /**
+     * Changing the display setting does not hand a dynamic mirror a fresh re-sample clock.
+     *
+     * <p>{@code mirror display} releases a mirror that is still there, so if releasing forgot
+     * the clock, touching that setting would make the mirror eligible to re-read the far side
+     * however recently it had read -- which is not what "at most every so many seconds" says,
+     * and would be an accidental way to force a sample by running an unrelated command.
+     */
+    @Test
+    void keepsTheResampleClockWhenOnlyTheDisplaySettingChanges()
+    {
+        final World destination = destinationWorld();
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        MirrorManager.add(stamped(new QuantumMirror("museum",
+            new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
+            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
+            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
+
+            walkUpTo(walker);
+            MirrorProximity.tick();
+            final int afterFirst = sampleCount(destination);
+
+            // An unrelated setting changes, and the mirror is released as part of it.
+            MirrorProximity.release(MirrorManager.byName("museum"));
+
+            // Leave and come back: a fresh arrival, but inside the interval.
+            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
+            MirrorProximity.tick();
+            walkUpTo(walker);
+            MirrorProximity.tick();
+
+            assertEquals(afterFirst, sampleCount(destination),
+                "releasing must not reset the clock -- only removing the mirror does");
+        }
+    }
+
+    /** A removed mirror leaves no clock behind for whatever is named after it. */
+    @Test
+    void forgettingAMirrorDropsItsResampleClockToo()
+    {
+        final World destination = destinationWorld();
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        MirrorManager.add(stamped(new QuantumMirror("museum",
+            new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
+            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
+            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
+
+            walkUpTo(walker);
+            MirrorProximity.tick();
+            final int afterFirst = sampleCount(destination);
+
+            MirrorProximity.forget(MirrorManager.byName("museum"));
+
+            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
+            MirrorProximity.tick();
+            walkUpTo(walker);
+            MirrorProximity.tick();
+
+            assertTrue(sampleCount(destination) > afterFirst,
+                "a name reused after a removal should not inherit the old mirror's throttle");
+        }
+    }
+
+    /**
+     * And {@code mirror remove} is what has to reach for it, which is its own thing to get right.
+     *
+     * <p>Driven through the command, because {@code forget} doing the right thing is worth
+     * nothing if {@code remove} calls {@code release} instead -- a mutation that survived until
+     * this test existed. The observable consequence is a name reused after a removal
+     * inheriting the old mirror's throttle and refusing to read its own far side.
+     */
+    @Test
+    void aNameReusedAfterRemovalDoesNotInheritTheOldThrottle()
+    {
+        final World destination = destinationWorld();
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        final Player admin = mock(Player.class);
+        when(admin.isOp()).thenReturn(true);
+        MirrorManager.add(stamped(new QuantumMirror("museum",
+            new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
+            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
+            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
+
+            walkUpTo(walker);
+            MirrorProximity.tick();
+            final int afterFirst = sampleCount(destination);
+
+            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
+                new String[] { "mirror", "remove", "museum" });
+
+            // Somebody hangs a new banner and gives it the same name.
+            MirrorManager.add(stamped(new QuantumMirror("museum",
+                new MirrorBlock("world", 10, 64, 10),
+                new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
+                .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
+
+            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
+            MirrorProximity.tick();
+            walkUpTo(walker);
+            MirrorProximity.tick();
+
+            assertTrue(sampleCount(destination) > afterFirst,
+                "the new mirror should read its own far side, not wait out the old one's clock");
+        }
+    }
+
     @Test
     void offersATickerToSchedule()
     {
