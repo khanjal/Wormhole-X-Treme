@@ -3,6 +3,7 @@ package com.wormhole_xtreme.wormhole.command.handlers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
@@ -39,6 +40,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorView;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
@@ -153,6 +155,61 @@ class MirrorStampCommandTest
         // the cloth. What matters is that it sampled at all rather than applying a default.
         verify(banner).setBaseColor(DyeColor.YELLOW);
         verify(sender, atLeastOnce()).sendMessage(contains("now shows"));
+    }
+
+    /**
+     * Stamping a mirror onto the Nether by hand gives it the Nether's look.
+     *
+     * <p>The bug this guards. {@code stamp} carried its own copy of "enclosed means indoors",
+     * which is right for a library and wrong for the Nether -- and the rule that knows the
+     * difference lived only in {@code MirrorLook}. So stamping a Nether mirror by hand dressed
+     * it as somebody's room, while the very same mirror corrected itself to the Nether's look
+     * the first time a player walked up to it in dynamic mode. One banner, two appearances,
+     * depending on which code touched it last.
+     *
+     * <p>The view is stubbed rather than sampled because producing a Nether one for real means
+     * naming a {@code Biome} constant, and those resolve through a registry needing a live
+     * server from 1.21.4 on. What is under test is the decision, not the sampler, and
+     * {@code MirrorViewTest} covers the sampler.
+     */
+    @Test
+    void stampingAMirrorOntoTheNetherDoesNotDressItAsARoom()
+    {
+        pointedMirror();
+        final MirrorView nether =
+            new MirrorView("NETHER_WASTES", java.util.List.of(DyeColor.BROWN), true);
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            final MockedStatic<MirrorView> views = mockStatic(MirrorView.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+            views.when(() -> MirrorView.look(any(MirrorPoint.class))).thenReturn(nether);
+
+            assertTrue(run("mirror", "stamp", "museum"));
+        }
+        // The nether preset's own red, not the brown of whatever the sample happened to be
+        // mostly made of. Both halves of the old bug land on this one assertion: the wrong
+        // look was picked, and then its colour was overwritten as well.
+        verify(banner).setBaseColor(DyeColor.RED);
+        verify(sender, never()).sendMessage(contains("somewhere indoors"));
+    }
+
+    /** And a room in an ordinary world still reads as one, so the fix did not go too far. */
+    @Test
+    void stampingAMirrorOntoARoomStillDressesItAsARoom()
+    {
+        pointedMirror();
+        final MirrorView library =
+            new MirrorView("FOREST", java.util.List.of(DyeColor.BROWN), true);
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+            final MockedStatic<MirrorView> views = mockStatic(MirrorView.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+            views.when(() -> MirrorView.look(any(MirrorPoint.class))).thenReturn(library);
+
+            assertTrue(run("mirror", "stamp", "museum"));
+        }
+        verify(banner).setBaseColor(DyeColor.BROWN);
+        verify(sender, atLeastOnce()).sendMessage(contains("somewhere indoors"));
     }
 
     @Test

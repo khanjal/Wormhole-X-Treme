@@ -115,6 +115,16 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A mirror onto the Nether was still dressed as somebody's living room.** The rule that says
+  some places are enclosed by their nature -- the Nether is rock with a roof on it, a cave is a
+  cave, and a preset marks itself `Sheltered=true` -- had been applied to only one of the four
+  decisions that ask whether the far side is enclosed. So the banner could pick the Nether's
+  frame and then lose the red it exists to be, replaced by whatever netherrack averaged to in
+  that sample; and `/wormhole mirror stamp` kept its own second copy of the frame rule without
+  the flag at all, which meant stamping a Nether mirror by hand dressed it as a room while the
+  same mirror in `dynamic` mode corrected itself the next time somebody walked up to it. One
+  banner, two appearances, depending on which code touched it last. All four questions now go
+  through one place ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - A block could be dropped into a gate's opening and then never broken out again
   ([#243](https://github.com/khanjal/Wormhole-X-Treme/issues/243)).
 - The marker reference at the top of the shipped shape files said different things in

@@ -39,6 +39,29 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
     boolean sheltered)
 {
     /**
+     * Whether a sampled view of somewhere wearing this look should be read as a room.
+     *
+     * <p>The sampler can say one thing about a destination -- that more than half of what is
+     * around it is solid -- and three separate decisions used to take that as meaning "this is
+     * a building". It does not always. The Nether is solid rock with a roof on it and a cave is
+     * a cave, so for those the sampler reports enclosed for every mirror ever pointed there,
+     * and a preset that says {@link #sheltered()} is one that already knows.
+     *
+     * <p>Four places asked this question and only one of them asked it correctly, which is why
+     * it now lives here: the look was picked with the rule and then the base colour and the
+     * squares were chosen without it, so a mirror onto the Nether wore the Nether's frame over
+     * whatever colour netherrack happened to average to.
+     *
+     * @param view
+     *            what the far side looked like, or null if it was never sampled
+     * @return true if being enclosed over there is news
+     */
+    public boolean readsAsARoom(final MirrorView view)
+    {
+        return (view != null) && view.enclosed() && !sheltered;
+    }
+
+    /**
      * One pattern in one colour.
      *
      * <p>The pattern is kept as a name rather than a {@code PatternType}, and resolved when it
