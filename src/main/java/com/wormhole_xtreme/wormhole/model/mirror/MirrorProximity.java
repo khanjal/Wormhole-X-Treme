@@ -87,6 +87,33 @@ public final class MirrorProximity
     }
 
     /**
+     * Takes back one mirror's illusion, and forgets it.
+     *
+     * <p>For the moment a mirror stops being a proximity mirror. Without this the sweep simply
+     * skips it from then on, and whoever had been sent the blank keeps it -- indefinitely, or
+     * until something happens to resend that chunk. Turning the setting off would be a way of
+     * making a banner disappear for exactly the people who were furthest from it.
+     *
+     * @param mirror
+     *            the mirror no longer being hidden
+     */
+    public static void release(final QuantumMirror mirror)
+    {
+        final Set<UUID> hidden = HIDING.remove(mirror.name());
+        SHOWING.remove(mirror.name());
+        SAMPLED.remove(mirror.name());
+        if ((hidden == null) || hidden.isEmpty() || !MirrorPackets.available())
+        {
+            return;
+        }
+        final Block block = bannerOf(mirror);
+        if (block != null)
+        {
+            hidden.forEach(id -> sendTrue(block, Bukkit.getPlayer(id)));
+        }
+    }
+
+    /**
      * Takes every illusion back, so the world is what everybody sees.
      *
      * <p>Called as the plugin stops. Without it, whoever was standing far from a mirror keeps
@@ -250,12 +277,16 @@ public final class MirrorProximity
         {
             return mirror;
         }
-        SAMPLED.put(mirror.name(), System.currentTimeMillis());
         final MirrorView seen = MirrorView.look(mirror.destination());
         if (seen == null)
         {
+            // Stamped only on a real reading. Recording the attempt would mean a destination
+            // world that happened to be down when somebody walked up stayed stale for another
+            // whole interval after it came back -- and a look that returned nothing costs
+            // nothing, because look() gives up the moment it finds no world.
             return mirror;
         }
+        SAMPLED.put(mirror.name(), System.currentTimeMillis());
         final QuantumMirror updated = mirror.withLook(MirrorLook.seen(seen));
         MirrorManager.add(updated);
         // The world's banner is the copy that survives this plugin, so it is kept current too.
@@ -284,10 +315,19 @@ public final class MirrorProximity
         }
     }
 
-    /** Sends one player the block's own state, undoing any blank they were shown. */
+    /**
+     * Sends one player the block's own state, undoing any blank they were shown.
+     *
+     * <p>Only if they are still in that world. The tracked players come from a set that may
+     * have been built several sweeps ago -- {@link #restoreAll} and {@link #release} both work
+     * from one -- and a block update names a coordinate, not a world. Sent to somebody who has
+     * since walked through a gate, it would paint a banner onto whatever stands at those
+     * coordinates where they are now.
+     */
     private static void sendTrue(final Block block, final Player player)
     {
-        if ((player == null) || !(block.getState() instanceof Banner banner))
+        if ((player == null) || !player.getWorld().equals(block.getWorld())
+            || !(block.getState() instanceof Banner banner))
         {
             return;
         }

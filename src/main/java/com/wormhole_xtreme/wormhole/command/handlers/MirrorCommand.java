@@ -473,9 +473,13 @@ public class MirrorCommand implements SubCommand
             say(sender, "A mirror is shown 'always' or by 'proximity', not '" + args[3] + "'.");
             return;
         }
+        // Before the setting changes, while the sweep still knows who was sent the blank.
+        // Afterwards it skips this mirror entirely, and anybody holding the blank would keep
+        // it -- so turning proximity off would hide the banner from exactly the people who
+        // were furthest away.
+        MirrorProximity.release(mirror);
         MirrorManager.add(mirror.withDisplay(wanted));
         MirrorYamlManager.saveAll();
-        MirrorProximity.clear();
         sayDisplay(sender, mirror.name(), wanted);
     }
 

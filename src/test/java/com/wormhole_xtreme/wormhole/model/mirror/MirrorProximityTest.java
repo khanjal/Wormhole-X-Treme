@@ -111,8 +111,7 @@ class MirrorProximityTest
         tickTwice();
 
         // Once, not once per sweep: a corridor of mirrors with somebody standing still in it
-        // must not be a stream of packets.
-        // Once, and blanked: the two things that matter, read off what was really called.
+        // must not be a stream of packets. And blanked, which sentTo cannot tell on its own.
         assertWasBlanked(sentTo(far, 1).get(0));
     }
 
@@ -372,6 +371,134 @@ class MirrorProximityTest
         return false;
     }
 
+    /**
+     * Turning proximity off hands the banner back to whoever was being shown the blank.
+     *
+     * <p>Without it the sweep simply stops visiting this mirror, and anybody holding the blank
+     * keeps it -- so the setting meant to make a banner appear on approach would, switched off,
+     * make it vanish for exactly the people standing furthest away.
+     */
+    @Test
+    void handsTheBannerBackWhenAMirrorStopsBeingAProximityOne()
+    {
+        assumeTrue(MirrorProximity.canHide(), "nothing is ever hidden without the API");
+        final Player far = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(far));
+        proximityMirror();
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            MirrorProximity.release(MirrorManager.byName("museum"));
+        });
+
+        final List<TileState> sent = sentTo(far, 2);
+        assertWasBlanked(sent.get(0));
+        assertWasNotBlanked(sent.get(1));
+    }
+
+    /**
+     * And the command is what has to call it, which is a separate thing to get right.
+     *
+     * <p>{@code release} doing the right thing is worth nothing if {@code mirror display} does
+     * not reach for it -- an earlier version cleared the sweep's memory instead, which is the
+     * same bug wearing a tidier name. Driven through the command for that reason.
+     */
+    @Test
+    void handsTheBannerBackWhenTheCommandTurnsProximityOff()
+    {
+        assumeTrue(MirrorProximity.canHide(), "nothing is ever hidden without the API");
+        final Player far = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(far));
+        proximityMirror();
+        final Player admin = mock(Player.class);
+        when(admin.isOp()).thenReturn(true);
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
+                new String[] { "mirror", "display", "museum", "always" });
+        });
+
+        final List<TileState> sent = sentTo(far, 2);
+        assertWasBlanked(sent.get(0));
+        assertWasNotBlanked(sent.get(1));
+        assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display());
+    }
+
+    /**
+     * A player who walked into another world is not sent a block update for this one.
+     *
+     * <p>A block update names a coordinate, not a world. The tracked set can be several sweeps
+     * old, so somebody in it may have gone through a gate since -- and sending then would paint
+     * a banner onto whatever happens to stand at those coordinates where they are now.
+     */
+    @Test
+    void doesNotSendAcrossWorldsToSomebodyWhoHasMovedOn()
+    {
+        assumeTrue(MirrorProximity.canHide(), "nothing is ever sent without the API");
+        final Player traveller = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(traveller));
+        proximityMirror();
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            // Through a gate, between the sweep that hid it and the restore.
+            final World elsewhere = mock(World.class);
+            when(traveller.getWorld()).thenReturn(elsewhere);
+            MirrorProximity.restoreAll();
+        });
+
+        // The blank, and nothing after it: the restore had nowhere safe to send.
+        assertEquals(1, blockUpdatesTo(traveller).size(),
+            "a cross-world block update would land on an unrelated block");
+    }
+
+    /**
+     * A destination world that was down does not use up the throttle.
+     *
+     * <p>The timestamp marks a reading, not an attempt. Recording the attempt would leave a
+     * dynamic mirror stale for another whole interval after its world came back -- and an
+     * attempt that finds no world costs nothing, because the sampler gives up immediately.
+     */
+    @Test
+    void doesNotSpendTheThrottleOnADestinationWorldThatIsDown()
+    {
+        assumeTrue(MirrorProximity.canHide(), "the sweep does nothing without the API");
+        final World destination = destinationWorld();
+        final Player walker = playerAt(200.0);
+        when(world.getPlayers()).thenReturn(List.of(walker));
+        MirrorManager.add(stamped(new QuantumMirror("museum",
+            new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
+            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
+
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
+            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
+            // Arrives while the far world is down, so there is nothing to read.
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
+            walkUpTo(walker);
+            MirrorProximity.tick();
+            assertNull(MirrorManager.byName("museum").look().view(),
+                "nothing was read, so it still wears the name it was given");
+
+            // The world comes back, and the next arrival should read it rather than wait out
+            // an interval it never actually used.
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
+            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
+            MirrorProximity.tick();
+            walkUpTo(walker);
+            MirrorProximity.tick();
+
+            assertNotNull(MirrorManager.byName("museum").look().view(),
+                "the far side should be read as soon as its world is back");
+        }
+    }
+
     @Test
     void offersATickerToSchedule()
     {
@@ -519,6 +646,7 @@ class MirrorProximityTest
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getName()).thenReturn("someone");
         when(player.getLocation()).thenReturn(new Location(world, x, 64.0, 10.0));
+        when(player.getWorld()).thenReturn(world);
         return player;
     }
 }
