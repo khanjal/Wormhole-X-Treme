@@ -3,11 +3,15 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,6 +22,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 
@@ -44,6 +49,11 @@ class MirrorInteractionTest
         PluginTestSupport.install(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
         MirrorManager.clear();
         player = mock(Player.class);
+        // Travel is behind the USE node. Without this the handler refuses on permission and
+        // returns before reaching anything below -- which still claims the click and still
+        // does not teleport, so a test asserting only those two would pass for the wrong
+        // reason and never exercise the path it names.
+        when(player.isOp()).thenReturn(true);
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
     }
@@ -133,6 +143,7 @@ class MirrorInteractionTest
 
         assertTrue(MirrorInteraction.handle(click(banner)), "a mirror claims its own click");
         verify(player, never()).teleport(any(org.bukkit.Location.class));
+        verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
     }
 
     /**
@@ -150,6 +161,34 @@ class MirrorInteractionTest
         assertFalse(MirrorInteraction.handle(new PlayerInteractEvent(
             player, Action.LEFT_CLICK_BLOCK, null, banner, BlockFace.UP)));
         verify(player, never()).teleport(any(org.bukkit.Location.class));
+    }
+
+    /**
+     * A mirror whose far side is in an unloaded world names the world rather than failing.
+     *
+     * <p>The most likely way a working mirror stops working: the archive world it opens onto
+     * is not started this session. Every store in this plugin resolves a world by name, so
+     * this is also what a world renamed out from under it looks like -- and either way the
+     * mirror stays in the registry and refuses, rather than being dropped.
+     */
+    @Test
+    void clickingAMirrorIntoAnUnloadedWorldNamesTheWorld()
+    {
+        final Block banner = block(Material.WHITE_WALL_BANNER, 5);
+        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
+            new MirrorPoint("a_world_nobody_started", 0, 64, 0, 0, 0)));
+
+        // MirrorPoint resolves its world through Bukkit, so the static has to answer for the
+        // "not loaded" branch to be reachable at all -- the same idiom OwnerCommandTest uses.
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("a_world_nobody_started")).thenReturn(null);
+
+            assertTrue(MirrorInteraction.handle(click(banner)), "the mirror still claims the click");
+        }
+
+        verify(player, never()).teleport(any(org.bukkit.Location.class));
+        verify(player, atLeastOnce()).sendMessage(contains("a_world_nobody_started"));
     }
 
     /** Clicking the air has no block to look up. */

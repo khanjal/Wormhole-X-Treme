@@ -152,7 +152,6 @@ class MirrorYamlManagerTest
      */
     @Test
     void mirrorsSurviveAWriteAndReadThroughTheRealFile(@TempDir final File dataFolder)
-        throws Exception
     {
         when(plugin.getDataFolder()).thenReturn(dataFolder);
 
@@ -176,7 +175,7 @@ class MirrorYamlManagerTest
 
     /** A server with no mirror file yet is a first run, not a failure. */
     @Test
-    void aMissingFileLoadsNothingAndSaysNothing(@TempDir final File dataFolder) throws Exception
+    void aMissingFileLoadsNothingAndSaysNothing(@TempDir final File dataFolder)
     {
         when(plugin.getDataFolder()).thenReturn(dataFolder);
         MirrorManager.clear();

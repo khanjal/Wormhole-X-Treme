@@ -1,13 +1,18 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
@@ -117,6 +122,69 @@ class MirrorArrivalTest
             assertEquals(WorldUtils.getDegreesFromBlockFace(cardinal), MirrorArrival.yawOf(cardinal),
                 0.01f, cardinal + " should agree with the gate-side helper");
         }
+    }
+
+    /**
+     * The arrival is the block in front, not two blocks away and diagonal.
+     *
+     * <p>The trap here is Bukkit's own geometry. Its sixteen-point faces are built by adding
+     * two cardinals together, so {@code NORTH_NORTH_EAST} carries modX 1 and modZ -2 --
+     * {@code getRelative} on one lands a knight's move away rather than in front of the
+     * banner. Each axis is reduced to its sign, which is always an adjacent block.
+     */
+    @Test
+    void arrivalIsTheAdjacentBlockEvenForASixteenPointFacing()
+    {
+        final Rotatable data = mock(Rotatable.class);
+        when(data.getRotation()).thenReturn(BlockFace.NORTH_NORTH_EAST);
+
+        final World world = mock(World.class);
+        final Block ahead = mock(Block.class);
+        when(ahead.getLocation()).thenReturn(new Location(world, 1.0, 64.0, -1.0));
+
+        final Block banner = mock(Block.class);
+        when(banner.getBlockData()).thenReturn(data);
+        when(banner.getRelative(1, 0, -1)).thenReturn(ahead);
+
+        final Location arrival = MirrorArrival.inFrontOf(banner);
+
+        assertNotNull(arrival, "a banner with a readable facing has a front to stand in");
+        verify(banner).getRelative(1, 0, -1);
+        assertEquals(202.5f, arrival.getYaw(), 0.01f,
+            "and faces the way the banner does, not due south");
+        assertEquals(0.0f, arrival.getPitch(), 0.01f, "looking level, not at the floor");
+    }
+
+    /** Centred in the block rather than on its corner. */
+    @Test
+    void arrivalIsCentredInTheBlock()
+    {
+        final Directional data = mock(Directional.class);
+        when(data.getFacing()).thenReturn(BlockFace.SOUTH);
+
+        final World world = mock(World.class);
+        final Block ahead = mock(Block.class);
+        when(ahead.getLocation()).thenReturn(new Location(world, 10.0, 64.0, 10.0));
+
+        final Block banner = mock(Block.class);
+        when(banner.getBlockData()).thenReturn(data);
+        when(banner.getRelative(0, 0, 1)).thenReturn(ahead);
+
+        final Location arrival = MirrorArrival.inFrontOf(banner);
+
+        assertEquals(10.5, arrival.getX(), 0.001, "standing in the middle of the block, not its edge");
+        assertEquals(10.5, arrival.getZ(), 0.001);
+    }
+
+    /** A block that is not a banner has no front, and says so by answering null. */
+    @Test
+    void aBlockWithNoFacingHasNoArrival()
+    {
+        final Block notABanner = mock(Block.class);
+        when(notABanner.getBlockData()).thenReturn(mock(BlockData.class));
+
+        assertNull(MirrorArrival.inFrontOf(notABanner));
+        assertNull(MirrorArrival.inFrontOf(null));
     }
 
     /**
