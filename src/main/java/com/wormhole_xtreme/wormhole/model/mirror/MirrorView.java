@@ -141,25 +141,25 @@ public record MirrorView(String biome, List<DyeColor> colours, boolean enclosed)
         {
             return (sampled > 0) && (((double) solid / sampled) >= ENCLOSED_SHARE);
         }
-    }
 
-    /**
-     * Whether a block is one of the three kinds of nothing.
-     *
-     * <p>By name, rather than {@code Material.isAir()}, and that is not style. From 1.20.6 on
-     * {@code isAir()} is no longer a switch -- it goes through {@code asBlockType()} into the
-     * live block registry, which is the same mechanism that made {@code Material.isBlock()}
-     * throw when it was called too early in this plugin's startup. This runs a few hundred
-     * times per stamp and needs no registry to answer.
-     *
-     * @param material
-     *            the material's name
-     * @return true if there is nothing there
-     */
-    private static boolean isAir(final String material)
-    {
-        return "AIR".equals(material) || "CAVE_AIR".equals(material)
-            || "VOID_AIR".equals(material);
+        /**
+         * Whether a block is one of the three kinds of nothing.
+         *
+         * <p>By name, rather than {@code Material.isAir()}, and that is not style. From 1.20.6
+         * on {@code isAir()} is no longer a switch -- it goes through {@code asBlockType()}
+         * into the live block registry, which is the same mechanism that made
+         * {@code Material.isBlock()} throw when it was called too early in this plugin's
+         * startup. This runs a few hundred times per stamp and needs no registry to answer.
+         *
+         * @param material
+         *            the material's name
+         * @return true if there is nothing there
+         */
+        private static boolean isAir(final String material)
+        {
+            return "AIR".equals(material) || "CAVE_AIR".equals(material)
+                || "VOID_AIR".equals(material);
+        }
     }
 
     /** The most common colours, most common first, at most {@link #WANTED} of them. */

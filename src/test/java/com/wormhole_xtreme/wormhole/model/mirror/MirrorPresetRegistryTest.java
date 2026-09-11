@@ -184,4 +184,46 @@ class MirrorPresetRegistryTest
         assertEquals(names.size(), MirrorPresetRegistry.all().size());
         assertEquals(names, MirrorPresetRegistry.all().stream().map(MirrorPreset::name).toList());
     }
+
+    /**
+     * The order is by file name, and has to be the same everywhere.
+     *
+     * <p>{@code listFiles} promises nothing about order -- roughly alphabetical on NTFS, hash
+     * order on ext4 -- so before this was sorted the class's own "order is kept" guarantee held
+     * only by luck of the filesystem, and two presets claiming one biome could resolve one way
+     * on a server and the other way on its backup.
+     */
+    @Test
+    @DisplayName("load order is by file name, whatever order the filesystem hands them back")
+    void loadOrderIsByFileName() throws IOException
+    {
+        MirrorPresetRegistry.load(folder);
+
+        final List<String> loaded = MirrorPresetRegistry.all().stream()
+            .map(MirrorPreset::name).toList();
+        final List<String> byFileName = MirrorPresetRegistry.shippedNames().stream()
+            .sorted().map(name -> name.substring(0, name.length() - ".mirror".length())).toList();
+        assertEquals(byFileName, loaded, "the shipped ten should load in file-name order");
+    }
+
+    /**
+     * The first preset to claim a biome wins, and which one that is must not move.
+     *
+     * <p>Two files claiming PLAINS, named so that file order and creation order disagree.
+     * Without the sort this passes or fails depending on what the filesystem feels like.
+     */
+    @Test
+    @DisplayName("when two presets claim one biome, the earlier file name wins")
+    void ties() throws IOException
+    {
+        Files.writeString(new File(folder, "zzz-claimant.mirror").toPath(),
+            "Name=zzz\nBase=RED\nBiome=TEST_BIOME\n", StandardCharsets.UTF_8);
+        Files.writeString(new File(folder, "aaa-claimant.mirror").toPath(),
+            "Name=aaa\nBase=BLUE\nBiome=TEST_BIOME\n", StandardCharsets.UTF_8);
+
+        MirrorPresetRegistry.load(folder);
+
+        assertEquals("aaa", MirrorPresetRegistry.forBiome("TEST_BIOME").name(),
+            "aaa-claimant.mirror sorts first, so it is the one that answers");
+    }
 }

@@ -248,8 +248,7 @@ public class MirrorCommand implements SubCommand
      */
     private static void stamp(final CommandSender sender, final String[] args)
     {
-        if (!named(sender, args, "stamp <name> [" + String.join("|",
-            MirrorPresetRegistry.names()) + "]"))
+        if (!named(sender, args, "stamp <name> [" + presetChoices() + "]"))
         {
             return;
         }
@@ -278,8 +277,12 @@ public class MirrorCommand implements SubCommand
         final MirrorPreset preset = MirrorPresetRegistry.byName(presetName);
         if (preset == null)
         {
-            say(sender, "There is no look called '" + presetName + "'. Try one of: "
-                + String.join(", ", MirrorPresetRegistry.names()));
+            final String[] names = MirrorPresetRegistry.names();
+            say(sender, (names.length == 0)
+                ? "There are no looks loaded at all -- check the server log for what went"
+                    + " wrong reading shapes/mirror."
+                : "There is no look called '" + presetName + "'. Try one of: "
+                    + String.join(", ", names));
             return;
         }
         if (MirrorStamp.apply(banner, preset))
@@ -367,6 +370,20 @@ public class MirrorCommand implements SubCommand
     {
         final String[] names = MirrorPresetRegistry.names();
         return (names.length == 0) ? "<look>" : names[0];
+    }
+
+    /**
+     * The looks on offer, for a usage line.
+     *
+     * <p>A placeholder when there are none, because {@code stamp <name> []} reads as an empty
+     * required argument rather than as an optional one nobody can currently fill.
+     *
+     * @return the names separated by bars, or {@code <look>}
+     */
+    private static String presetChoices()
+    {
+        final String[] names = MirrorPresetRegistry.names();
+        return (names.length == 0) ? "<look>" : String.join("|", names);
     }
 
     /**

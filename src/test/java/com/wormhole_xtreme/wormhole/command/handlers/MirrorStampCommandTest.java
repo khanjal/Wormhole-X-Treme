@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -12,6 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
@@ -235,6 +239,53 @@ class MirrorStampCommandTest
             "the fourth is a look");
         assertTrue(complete("mirror", "").contains("stamp"),
             "stamp should be offered as a verb");
+    }
+
+    /**
+     * With nothing loaded, the usage line must not read as an empty required argument.
+     *
+     * <p>{@code stamp <name> []} looks like a list of choices that exists and happens to be
+     * empty, which is a different and more confusing thing than an optional argument.
+     */
+    @Test
+    @DisplayName("with no looks loaded the usage line says <look> rather than []")
+    void usageWithNoPresets() throws IOException
+    {
+        emptyRegistry();
+
+        assertTrue(run("mirror", "stamp"));
+
+        verify(sender, atLeastOnce()).sendMessage(contains("stamp <name> [<look>]"));
+    }
+
+    @Test
+    @DisplayName("with no looks loaded, naming one says so rather than listing nothing")
+    void namingALookWithNoPresets() throws IOException
+    {
+        emptyRegistry();
+        pointedMirror();
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+
+            run("mirror", "stamp", "museum", "nether");
+        }
+        verify(banner, never()).update(anyBoolean());
+        verify(sender, atLeastOnce()).sendMessage(contains("no looks loaded at all"));
+    }
+
+    /**
+     * Leaves the registry with nothing in it.
+     *
+     * <p>By pointing it at a plain file, which mkdirs cannot turn into a directory -- the same
+     * position the plugin is in when its folder is not writable. Deleting the files after a
+     * load would not do it, because the next load restores them.
+     */
+    private void emptyRegistry() throws IOException
+    {
+        final File notADirectory = new File(presets, "in-the-way");
+        Files.writeString(notADirectory.toPath(), "not a directory", StandardCharsets.UTF_8);
+        assertEquals(0, MirrorPresetRegistry.load(notADirectory));
     }
 
     /** A mirror in "world" pointing into "far". */

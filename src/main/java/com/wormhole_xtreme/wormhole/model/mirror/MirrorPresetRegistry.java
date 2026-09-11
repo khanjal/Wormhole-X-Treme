@@ -10,7 +10,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -29,8 +31,10 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * them is picked up without touching the jar. A shipped file they delete comes back; a shipped
  * file they edit does not get overwritten, because the restore only writes what is missing.
  *
- * <p>Order is kept. {@link #forBiome(String)} walks the presets in the order they loaded, so
- * two presets claiming the same biome resolve the same way every time rather than by hash.
+ * <p>Order is by file name, and that is load-bearing rather than tidy. {@link #forBiome(String)}
+ * walks the presets in the order they loaded, so two presets claiming the same biome resolve by
+ * that order -- which has to be the same order on every server, not whatever order the
+ * filesystem happened to hand back.
  */
 public final class MirrorPresetRegistry
 {
@@ -93,6 +97,11 @@ public final class MirrorPresetRegistry
                 + "; no mirror presets will be loaded.");
             return 0;
         }
+        // Sorted, because listFiles makes no promise about order -- it is roughly alphabetical
+        // on NTFS and hash order on ext4. Without this the "presets keep their load order"
+        // guarantee below holds only by luck of the filesystem, and two presets claiming the
+        // same biome could resolve one way on a server and the other way on its backup.
+        Arrays.sort(files, Comparator.comparing(File::getName));
         for (final File file : files)
         {
             register(file);

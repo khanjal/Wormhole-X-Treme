@@ -94,17 +94,17 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
 
         for (final String raw : (lines == null) ? Collections.<String>emptyList() : lines)
         {
-            final String[] pair = keyAndValue(raw);
-            if (pair == null)
+            final Setting setting = settingIn(raw);
+            if (setting == null)
             {
                 continue;
             }
-            switch (pair[0])
+            switch (setting.key())
             {
-                case "NAME" -> name = pair[1].isEmpty() ? name : pair[1];
-                case "BASE" -> base = colour(pair[1]);
-                case "BIOME" -> addBiomes(biomes, pair[1]);
-                case "LAYER" -> addLayer(layers, pair[1]);
+                case "NAME" -> name = setting.value().isEmpty() ? name : setting.value();
+                case "BASE" -> base = colour(setting.value());
+                case "BIOME" -> addBiomes(biomes, setting.value());
+                case "LAYER" -> addLayer(layers, setting.value());
                 default -> { /* not a key this understands; somebody's own note */ }
             }
         }
@@ -112,14 +112,26 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
     }
 
     /**
+     * One {@code Key=value} line, split.
+     *
+     * @param key
+     *            what is before the equals sign, trimmed and upper-cased
+     * @param value
+     *            what is after it, trimmed
+     */
+    private record Setting(String key, String value)
+    {
+    }
+
+    /**
      * Splits one line into its key and its value.
      *
      * @param raw
      *            the line as read, which may be null
-     * @return the upper-cased key and the trimmed value, or null for a blank, a comment, or a
-     *         line with nothing before an equals sign
+     * @return the setting, or null for a blank, a comment, or a line with nothing before an
+     *         equals sign
      */
-    private static String[] keyAndValue(final String raw)
+    private static Setting settingIn(final String raw)
     {
         final String line = (raw == null) ? "" : raw.trim();
         if (line.isEmpty() || line.startsWith("#"))
@@ -131,8 +143,8 @@ public record MirrorPreset(String name, DyeColor base, List<Layer> layers, Set<S
         {
             return null;
         }
-        return new String[] { line.substring(0, equals).trim().toUpperCase(Locale.ROOT),
-            line.substring(equals + 1).trim() };
+        return new Setting(line.substring(0, equals).trim().toUpperCase(Locale.ROOT),
+            line.substring(equals + 1).trim());
     }
 
     private static void addBiomes(final Set<String> into, final String value)
