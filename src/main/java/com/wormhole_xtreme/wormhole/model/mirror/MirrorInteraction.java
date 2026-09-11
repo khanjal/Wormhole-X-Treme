@@ -100,7 +100,7 @@ public final class MirrorInteraction
     {
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
-            say(player, ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
         if (mirror.destination() == null)
@@ -121,8 +121,14 @@ public final class MirrorInteraction
         player.teleport((safe == null) ? destination : safe);
     }
 
+    /**
+     * Says something to the player, prefixed the way the rest of the plugin prefixes things.
+     *
+     * <p>Without the header these lines arrive looking like something another plugin said.
+     * The permission refusal carries its own header already, so it is passed through as it is.
+     */
     private static void say(final Player player, final String message)
     {
-        player.sendMessage(message);
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER + message);
     }
 }

@@ -82,15 +82,56 @@ public final class MirrorArrival
         {
             return null;
         }
-        final Block ahead = banner.getRelative(facing);
+        // Signum rather than getRelative(facing). Bukkit's sixteen-point faces are built by
+        // adding two cardinals together, so NORTH_NORTH_EAST carries modX 1 and modZ -2 --
+        // getRelative on one lands two blocks away and diagonally, not in front of the
+        // banner. Reducing each axis to -1, 0 or 1 always gives an adjacent block.
+        final Block ahead = banner.getRelative(Integer.signum(facing.getModX()),
+            Integer.signum(facing.getModY()), Integer.signum(facing.getModZ()));
         final Location standing = ahead.getLocation().add(0.5, 0.0, 0.5);
-        final Float yaw = WorldUtils.getDegreesFromBlockFace(facing);
-        if (yaw != null)
-        {
-            standing.setYaw(yaw);
-        }
+        standing.setYaw(yawOf(facing));
         standing.setPitch(0.0f);
         final Location safe = WorldUtils.findSafePlayerLocation(standing);
         return (safe == null) ? standing : safe;
+    }
+
+    /**
+     * The yaw a player should face to be looking the way a banner faces.
+     *
+     * <p>Not {@code WorldUtils.getDegreesFromBlockFace}, which answers for the four cardinals
+     * and returns 0 -- due south -- for everything else. That is fine for a gate, whose parts
+     * only ever face a cardinal, and wrong here: a freestanding banner rotates through sixteen
+     * positions, so twelve of them would turn an arriving player south regardless of which way
+     * they had just stepped out of.
+     *
+     * <p>Minecraft yaw is 0 at south and increases clockwise, which is where these numbers
+     * come from rather than from a compass.
+     *
+     * @param facing
+     *            the direction the banner faces
+     * @return the yaw in degrees
+     */
+    static float yawOf(final BlockFace facing)
+    {
+        switch (facing)
+        {
+            case SOUTH: return 0.0f;
+            case SOUTH_SOUTH_WEST: return 22.5f;
+            case SOUTH_WEST: return 45.0f;
+            case WEST_SOUTH_WEST: return 67.5f;
+            case WEST: return 90.0f;
+            case WEST_NORTH_WEST: return 112.5f;
+            case NORTH_WEST: return 135.0f;
+            case NORTH_NORTH_WEST: return 157.5f;
+            case NORTH: return 180.0f;
+            case NORTH_NORTH_EAST: return 202.5f;
+            case NORTH_EAST: return 225.0f;
+            case EAST_NORTH_EAST: return 247.5f;
+            case EAST: return 270.0f;
+            case EAST_SOUTH_EAST: return 292.5f;
+            case SOUTH_EAST: return 315.0f;
+            case SOUTH_SOUTH_EAST: return 337.5f;
+            default: return 0.0f;
+        }
     }
 }

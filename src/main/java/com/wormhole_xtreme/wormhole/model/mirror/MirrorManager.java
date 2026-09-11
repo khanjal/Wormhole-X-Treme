@@ -53,7 +53,10 @@ public final class MirrorManager
      */
     public static void add(final QuantumMirror mirror)
     {
-        if (mirror == null)
+        // A nameless mirror cannot be keyed: ConcurrentHashMap rejects a null key, and the
+        // throw would come out of whatever was iterating the file. The reader refuses these
+        // first; this is the second line, so a future caller cannot reintroduce the abort.
+        if ((mirror == null) || (mirror.name() == null) || mirror.name().trim().isEmpty())
         {
             return;
         }

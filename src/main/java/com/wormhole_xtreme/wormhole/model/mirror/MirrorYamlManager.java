@@ -93,6 +93,15 @@ public final class MirrorYamlManager
      */
     static QuantumMirror readMirror(final String name, final Object value)
     {
+        // A YAML mapping can carry a null or empty key, and a mirror with no name cannot be
+        // put in the registry at all -- ConcurrentHashMap rejects a null key, which would
+        // throw out of loadAll and cost the server every other mirror in the file. Refusing
+        // it here is what makes "one bad entry costs itself" true rather than merely intended.
+        if ((name == null) || name.trim().isEmpty())
+        {
+            PluginLog.log(Level.WARNING, "Skipping a mirror with no name.");
+            return null;
+        }
         if (!(value instanceof Map))
         {
             PluginLog.log(Level.WARNING, "Skipping malformed mirror: " + name);
