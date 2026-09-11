@@ -737,16 +737,16 @@ public class MirrorCommand implements SubCommand
      * Every mirror and where it goes.
      *
      * <p>The rows are sent without the header the rest of this command uses, so they carry
-     * their own body colour: an uncoloured line arrives white, and a column of white would
-     * make the mirror names stop standing out at exactly the moment there are several to pick
-     * between.
+     * their own body colour -- from the first character, indent included. An uncoloured line
+     * arrives white, and a column of white would make the mirror names stop standing out at
+     * exactly the moment there are several to pick between.
      */
     private static void list(final CommandSender sender)
     {
         final List<String> lines = new ArrayList<>();
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            lines.add("  " + MirrorText.name(mirror.name()) + " -- "
+            lines.add(MirrorText.BODY_COLOUR + "  " + MirrorText.name(mirror.name()) + " -- "
                 + MirrorText.name(mirror.banner().worldName()) + " -> "
                 + ((mirror.destination() == null) ? "nowhere yet" : describe(mirror.destination()))
                 + settingsOf(mirror));

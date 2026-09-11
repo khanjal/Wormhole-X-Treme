@@ -13,10 +13,15 @@ import org.bukkit.DyeColor;
  * is which without reading the sentence around them, which is the job colour is for.
  *
  * <p>The three colours are not new. They are what this plugin already uses when it tells
- * somebody how to finish a stargate -- {@code Type '&fF/wormhole complete &fB<name>'} -- and
- * that is the whole reason for reusing them rather than picking nicer ones: a player who has
- * learned that white means "type this" at a gate should not have to learn it again at a
- * banner.
+ * somebody how to finish a stargate, in {@code GateInteractionHandler}:
+ *
+ * <pre>
+ * Type '&#167;F/wormhole complete &#167;B&lt;name&gt; &#167;6[idc=IDC] [net=NET]&#167;7' to complete.
+ * </pre>
+ *
+ * <p>White for the command, aqua for the name, and that is the whole reason for reusing them
+ * rather than picking nicer ones: a player who has learned that white means "type this" at a
+ * gate should not have to learn it again at a banner.
  *
  * <ul>
  * <li>White -- a line meant to be typed as it stands.</li>
