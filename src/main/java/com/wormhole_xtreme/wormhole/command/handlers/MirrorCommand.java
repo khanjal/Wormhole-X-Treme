@@ -175,6 +175,7 @@ public class MirrorCommand implements SubCommand
         final MirrorPoint keep = (existing == null) ? null : existing.destination();
         MirrorManager.add(new QuantumMirror(name, MirrorBlock.of(block), keep));
         MirrorYamlManager.saveAll();
+        sayWhereToClick(sender, block);
 
         if (keep == null)
         {
@@ -328,6 +329,7 @@ public class MirrorCommand implements SubCommand
         MirrorManager.add(bound);
         MirrorYamlManager.saveAll();
         say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner.");
+        sayWhereToClick(sender, block);
         return bound;
     }
 
@@ -987,6 +989,33 @@ public class MirrorCommand implements SubCommand
             }
         }
         return null;
+    }
+
+    /**
+     * Says where a banner on a post has to be clicked, at the moment one becomes a mirror.
+     *
+     * <p>A standing banner is drawn about two blocks tall and only its base can be clicked --
+     * the cloth above has nothing to hit, so a right-click aimed at it passes straight through
+     * to whatever is behind. The plugin never sees that click at all: there is no event to
+     * answer and nothing to say at the time, which makes it exactly the sort of silence that
+     * gets read as a broken mirror.
+     *
+     * <p>So it is said here instead, once, to somebody standing in front of the banner they
+     * just named. Only for the standing family; a wall banner is drawn inside its own block and
+     * can be clicked anywhere on it.
+     *
+     * <p>Not a refusal. A banner on a post in the middle of a room is most of what a museum
+     * corridor is made of, and the mechanic is worth keeping for it -- what was missing was
+     * anybody being told how it behaves.
+     */
+    private static void sayWhereToClick(final CommandSender sender, final Block block)
+    {
+        if (!isStandingBanner(block))
+        {
+            return;
+        }
+        say(sender, "That one stands on a post, so click near its base to travel -- the cloth"
+            + " above it cannot be clicked. A banner on a wall works anywhere on it.");
     }
 
     /**

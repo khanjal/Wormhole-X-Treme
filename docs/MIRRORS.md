@@ -323,6 +323,18 @@ the obvious part of it sends the ray straight through and out the other side. Ai
 works and nothing else does. No amount of searching the blocks the ray crossed helps, because
 the banner is not one of them — so the block under each is asked as a last pass.
 
+Travelling has the same problem and cannot be fixed the same way. `set` runs once and can afford
+a ray cast; the interact handler runs on every right-click of every block on the server, and the
+block it is handed for a click at the cloth is whatever was behind the banner — which has no
+cheap relationship to the banner itself. Recovering the aim there would mean a ray cast per
+click, which is the cost `InteractLoggingCostTest` exists to prevent.
+
+So a banner on a post is clicked at its base, and `set` and `link` say so at the moment one
+becomes a mirror — the only moment available, since a click at the cloth reaches the plugin as
+no event at all. Making the cloth genuinely clickable would mean giving it a hitbox: an
+`interaction` entity above each standing mirror, which is a feature with an entity lifecycle
+attached and belongs in its own issue.
+
 That last pass is for standing banners only. A wall banner is drawn inside its own block, and a
 "look one block down" rule applied to both families would let somebody name a wall banner by
 aiming at the wall above it, binding a mirror they never pointed at.

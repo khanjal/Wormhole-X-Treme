@@ -168,6 +168,19 @@ been running on defaults will start reading the file you have been editing.
   each one on the ray is asked too, and only for standing banners: a wall banner is drawn inside
   its own block, and the same rule there would let somebody name one by aiming at the wall above
   it.
+- **Naming a banner on a post now says where it has to be clicked.** The same two-blocks-tall
+  drawing that hid a standing banner from `set` also means only its base can be right-clicked to
+  travel: a click at the cloth passes through and reaches this plugin as no event at all, so
+  there is no later moment at which it could explain itself.
+
+  `set` and `link` say it when one becomes a mirror, to somebody standing in front of the banner
+  they just named, and say nothing for a wall banner -- which is drawn inside its own block and
+  works anywhere on it.
+
+  Not a refusal: a banner on a post in the middle of a room is most of what a museum corridor is
+  made of. Making the cloth genuinely clickable needs a hitbox up there -- an `interaction`
+  entity per standing mirror -- which is a feature with an entity lifecycle attached, and is not
+  this.
 - **A linked pair of mirrors sent you straight back where you came from.** Click the return
   banner, arrive in the other world, and be returned to the banner you started at inside a
   second -- which reads as a mirror that opens onto itself. Reported as "clicking the return

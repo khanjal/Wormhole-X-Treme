@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -509,6 +510,44 @@ class MirrorCommandTest
         when(wallAbove.getRelative(BlockFace.DOWN)).thenReturn(hanging);
 
         assertNull(MirrorCommand.bannerInSight(null, java.util.List.of(wallAbove)));
+    }
+
+    /**
+     * Naming a banner on a post says where it has to be clicked.
+     *
+     * <p>The one thing the plugin can say about a limitation it cannot fix. Only the base of a
+     * standing banner can be clicked; a right-click at the cloth passes through it, and no
+     * event reaches the plugin at all -- so there is no moment later at which it could explain
+     * itself. This is that moment, with the player standing in front of the banner they just
+     * named.
+     */
+    @Test
+    void namingABannerOnAPostSaysToClickItsBase()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(post);
+
+        assertTrue(run(player, "mirror", "set", "Post"));
+
+        verify(player, atLeastOnce()).sendMessage(contains("click near its base"));
+    }
+
+    /**
+     * A wall banner is not given advice it does not need.
+     *
+     * <p>It is drawn inside its own block and can be clicked anywhere on it. A line about
+     * bases on every mirror would be noise on the commonest one, and would teach people a
+     * restriction that is not true of what they just built.
+     */
+    @Test
+    void namingAWallBannerSaysNothingAboutBases()
+    {
+        final Block hanging = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(hanging);
+
+        assertTrue(run(player, "mirror", "set", "Hanging"));
+
+        verify(player, never()).sendMessage(contains("click near its base"));
     }
 
     /** A verb that needs a name and was not given one says which form it wanted. */
