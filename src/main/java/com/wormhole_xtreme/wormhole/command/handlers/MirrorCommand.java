@@ -79,6 +79,18 @@ public class MirrorCommand implements SubCommand
     /** How every usage line opens, outside the colouring. */
     private static final String USAGE = "Usage: ";
 
+    /**
+     * How long the bar-separated look list may get before the usage line stops printing it.
+     *
+     * <p>Measured on the list alone; the rest of the line is a further 39 characters. Default
+     * chat fits roughly 53, so 80 here means a usage line of about two chat lines at worst,
+     * which is what the ten shipped looks came to before there were seventeen. The list is
+     * worth its space while somebody can take it in -- four wrapped lines of bar-separated
+     * names is not a list any more, and the player reading it has already been told the one
+     * thing they needed, which is that the argument exists and is optional.
+     */
+    private static final int LOOK_LIST_BUDGET = 80;
+
     /** The two verbs that point a mirror, named in the verb list, the switch and the prose. */
     private static final String TARGET = "target";
 
@@ -401,8 +413,9 @@ public class MirrorCommand implements SubCommand
      */
     private static void stamp(final CommandSender sender, final String[] args)
     {
-        if (!named(sender, args, "stamp <name> [" + presetChoices() + "]"))
+        if (args.length < 3)
         {
+            stampUsage(sender);
             return;
         }
         final QuantumMirror mirror = known(sender, args[2]);
@@ -575,17 +588,50 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * The looks on offer, for a usage line.
+     * The usage line for {@code stamp}, listing the looks while they fit and counting them
+     * when they do not.
      *
-     * <p>A placeholder when there are none, because {@code stamp <name> []} reads as an empty
-     * required argument rather than as an optional one nobody can currently fill.
+     * <p>Listed, when it is short enough, because the looks are the interesting part of the
+     * command and an operator who has added their own wants to see it offered. Counted
+     * otherwise: the count says there is a real list to go and find, where a bare
+     * {@code <look>} would suggest a free-form argument, and tab completion is the discovery
+     * route anyway -- {@code SubCommands} offers every name at that position.
      *
-     * @return the names separated by bars, or {@code <look>}
+     * <p>{@code <look>} with no count at all is the no-presets-loaded case. There is nothing to
+     * count, and {@code stamp <name> []} would read as an empty required argument rather than
+     * as an optional one nobody can currently fill.
      */
-    private static String presetChoices()
+    private static void stampUsage(final CommandSender sender)
     {
         final String[] names = MirrorPresetRegistry.names();
-        return (names.length == 0) ? "<look>" : String.join("|", names);
+        if (looksFitTheUsageLine(names))
+        {
+            say(sender, USAGE + MirrorText.command(
+                "/wormhole mirror stamp <name> [" + String.join("|", names) + "]"));
+            return;
+        }
+        say(sender, USAGE + MirrorText.command("/wormhole mirror stamp <name> [<look>]"));
+        if (names.length > 0)
+        {
+            say(sender, names.length + " looks to choose from -- press tab for the list, or"
+                + " leave it out to sample the far side.");
+        }
+    }
+
+    /**
+     * Whether the looks are few enough to name in the usage line.
+     *
+     * <p>Package-private and taking the names rather than reading the registry, so a test can
+     * put it either side of the threshold. Going through the registry would only ever offer
+     * whatever happens to ship, which is one answer and not the interesting one.
+     *
+     * @param names
+     *            the loaded look names
+     * @return true to list them, false to count them instead
+     */
+    static boolean looksFitTheUsageLine(final String[] names)
+    {
+        return (names.length > 0) && (String.join("|", names).length() <= LOOK_LIST_BUDGET);
     }
 
     /**

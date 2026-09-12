@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -268,13 +269,50 @@ class MirrorStampCommandTest
             .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
     }
 
+    /**
+     * With every shipped look loaded the list is too long to print, so it is counted.
+     *
+     * <p>Seventeen names bar-separated is 130 characters, and the usage line around them
+     * another 39 -- four wrapped lines of chat for one usage message. The count still says
+     * there is a real list to go and find, where a bare {@code <look>} would read as a
+     * free-form argument, and tab completion is what actually offers the names.
+     */
     @Test
-    void offersTheLooksInItsUsageLineWhenNoMirrorIsNamed()
+    void countsTheLooksInItsUsageLineWhenThereAreTooManyToList()
     {
+        final int loaded = MirrorPresetRegistry.names().length;
+
         assertTrue(run("mirror", "stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("stamp <name>"));
-        verify(sender, atLeastOnce()).sendMessage(contains("nether"));
+        verify(sender, atLeastOnce()).sendMessage(contains("stamp <name> [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(contains(loaded + " looks to choose from"));
+        verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
+    }
+
+    /**
+     * The threshold itself, from both sides.
+     *
+     * <p>Through the decision rather than the command, because the registry only ever loads
+     * what ships -- one answer, and not the one that would catch the rule being inverted or
+     * the budget being set somewhere useless.
+     */
+    @Test
+    void listsAShortSetOfLooksAndCountsALongOne()
+    {
+        assertTrue(MirrorCommand.looksFitTheUsageLine(
+            new String[] { "nether", "end", "ocean", "forest", "desert" }),
+            "five short names are well inside the budget and should be listed");
+        assertFalse(MirrorCommand.looksFitTheUsageLine(MirrorPresetRegistry.names()),
+            "the shipped looks are past the budget and should be counted");
+        assertFalse(MirrorCommand.looksFitTheUsageLine(new String[0]),
+            "with none loaded there is nothing to list");
+
+        // Either side of the boundary by one character, so a budget moved anywhere useless
+        // fails here rather than quietly changing what players see.
+        assertTrue(MirrorCommand.looksFitTheUsageLine(new String[] { "a".repeat(80) }),
+            "a list exactly at the budget still fits");
+        assertFalse(MirrorCommand.looksFitTheUsageLine(new String[] { "a".repeat(81) }),
+            "one character past it does not");
     }
 
     /**
