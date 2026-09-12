@@ -179,7 +179,7 @@ been running on defaults will start reading the file you have been editing.
   correctly by `/wormhole mirror list`.
 
   The usual canceller is a world-access plugin. Multiverse intercepts other plugins' teleports
-  by default and applies `enforceaccess` to them, so a player without `multiverse.access.<world>`
+  by default and applies `enforce-access` to them, so a player without `multiverse.access.<world>`
   is turned back by a rule this plugin never sees; a land-claim plugin does the same thing for
   its own reasons.
 

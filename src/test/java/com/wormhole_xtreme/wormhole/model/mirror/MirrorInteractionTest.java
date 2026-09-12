@@ -8,8 +8,11 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -55,7 +58,7 @@ class MirrorInteractionTest
         // MirrorSettle keys on the UUID, and an unstubbed mock answers null for it -- which
         // reaches ConcurrentHashMap.get and throws from inside plugin code, in every test that
         // gets as far as travelling. A real Player always has one.
-        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         // Travel is behind the USE node. Without this the handler refuses on permission and
         // returns before reaching anything below -- which still claims the click and still
         // does not teleport, so a test asserting only those two would pass for the wrong
@@ -333,7 +336,7 @@ class MirrorInteractionTest
         travelTo(here, "museum_world");
         travelTo(there, "museum_world");
 
-        verify(player, org.mockito.Mockito.times(1)).teleport(any(org.bukkit.Location.class));
+        verify(player, times(1)).teleport(any(org.bukkit.Location.class));
         verify(player, atLeastOnce()).sendMessage(contains("settle for a moment"));
     }
 
@@ -360,7 +363,7 @@ class MirrorInteractionTest
         travelTo(there, "museum_world");
         travelTo(there, "museum_world");
 
-        verify(player, org.mockito.Mockito.times(1)).sendMessage(contains("settle for a moment"));
+        verify(player, times(1)).sendMessage(contains("settle for a moment"));
     }
 
     /**
@@ -381,7 +384,7 @@ class MirrorInteractionTest
         travelTo(banner, "museum_world");
         travelTo(banner, "museum_world");
 
-        verify(player, org.mockito.Mockito.times(2)).teleport(any(org.bukkit.Location.class));
+        verify(player, times(2)).teleport(any(org.bukkit.Location.class));
         verify(player, never()).sendMessage(contains("settle for a moment"));
     }
 

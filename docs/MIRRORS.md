@@ -334,7 +334,8 @@ correctly to each other.
 
 So the boolean `Player.teleport` returns is checked, and a refusal names the world and the two
 kinds of plugin that usually do this: world access (Multiverse intercepts other plugins'
-teleports by default and applies `enforceaccess`, wanting `multiverse.access.<world>`) and land
+teleports by default and applies `enforce-access` — spelled `enforceaccess` before Multiverse 5
+— wanting `multiverse.access.<world>`) and land
 claims. Nothing here tries to overrule the cancel. The mechanic is a banner somebody clicks, not
 a permission system, and a plugin whose whole job is deciding who may enter a world should win
 that argument — the bug was never that it won, only that nobody said so.
