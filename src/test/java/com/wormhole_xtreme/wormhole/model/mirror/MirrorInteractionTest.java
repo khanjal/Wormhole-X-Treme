@@ -50,7 +50,12 @@ class MirrorInteractionTest
         // WXPermissions rather than on anything they are actually about.
         PluginTestSupport.install(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
         MirrorManager.clear();
+        MirrorSettle.clear();
         player = mock(Player.class);
+        // MirrorSettle keys on the UUID, and an unstubbed mock answers null for it -- which
+        // reaches ConcurrentHashMap.get and throws from inside plugin code, in every test that
+        // gets as far as travelling. A real Player always has one.
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
         // Travel is behind the USE node. Without this the handler refuses on permission and
         // returns before reaching anything below -- which still claims the click and still
         // does not teleport, so a test asserting only those two would pass for the wrong
@@ -64,6 +69,7 @@ class MirrorInteractionTest
     void tearDown() throws Exception
     {
         MirrorManager.clear();
+        MirrorSettle.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -297,6 +303,86 @@ class MirrorInteractionTest
 
             assertTrue(MirrorInteraction.handle(click(banner)), "the mirror claims its click");
         }
+    }
+
+    /**
+     * The banner you arrive at does not fire the moment you land in front of it.
+     *
+     * <p>The bug this whole pair of mirrors was reported for. A mirror puts the player at the
+     * destination banner's own block, so they land inside or under it with that banner filling
+     * the screen; a right-click still being delivered -- a held button, or the client resolving
+     * the interaction again at the new position -- then lands on the far banner and sends them
+     * straight back. On a linked pair it is a round trip in under a second, and it reads as a
+     * mirror that returned you to where you started.
+     *
+     * <p>Two banners, both bound, exactly as a linked pair is: the trip out must be accepted
+     * and the immediate click on the far one must not travel. Asserting only one teleport is
+     * what distinguishes "the settle works" from "nothing travels at all".
+     */
+    @Test
+    void theBannerYouArriveAtDoesNotFireStraightBack()
+    {
+        final Block here = block(Material.WHITE_WALL_BANNER, 5);
+        final Block there = block(Material.WHITE_WALL_BANNER, 9);
+        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
+            new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum-return", MirrorBlock.of(there),
+            new MirrorPoint("museum_world", 5, 64, 0, 0, 0)));
+        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(true);
+
+        travelTo(here, "museum_world");
+        travelTo(there, "museum_world");
+
+        verify(player, org.mockito.Mockito.times(1)).teleport(any(org.bukkit.Location.class));
+        verify(player, atLeastOnce()).sendMessage(contains("settle for a moment"));
+    }
+
+    /**
+     * The explanation is said once per arrival, not once per repeat.
+     *
+     * <p>A held right-click repeats several times a second, so a line sent on every ignored
+     * click would put a column of the same sentence in chat for one press -- the same failure
+     * this project already fixed for a player holding forward against a locked gate.
+     */
+    @Test
+    void theSettleIsExplainedOnceNotOnEveryRepeat()
+    {
+        final Block here = block(Material.WHITE_WALL_BANNER, 5);
+        final Block there = block(Material.WHITE_WALL_BANNER, 9);
+        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
+            new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
+        MirrorManager.add(new QuantumMirror("Museum-return", MirrorBlock.of(there),
+            new MirrorPoint("museum_world", 5, 64, 0, 0, 0)));
+        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(true);
+
+        travelTo(here, "museum_world");
+        travelTo(there, "museum_world");
+        travelTo(there, "museum_world");
+        travelTo(there, "museum_world");
+
+        verify(player, org.mockito.Mockito.times(1)).sendMessage(contains("settle for a moment"));
+    }
+
+    /**
+     * A trip that never happened does not shut the mirror behind it.
+     *
+     * <p>The settle is armed on an accepted teleport only. Arming it at the click would mean a
+     * player whose trip another plugin refused is then told to step away from a banner they
+     * never left -- and has to wait out a window earned by a journey they did not take.
+     */
+    @Test
+    void aRefusedTripDoesNotStartTheSettle()
+    {
+        final Block banner = block(Material.WHITE_WALL_BANNER, 5);
+        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
+            new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
+        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(false);
+
+        travelTo(banner, "museum_world");
+        travelTo(banner, "museum_world");
+
+        verify(player, org.mockito.Mockito.times(2)).teleport(any(org.bukkit.Location.class));
+        verify(player, never()).sendMessage(contains("settle for a moment"));
     }
 
     /** Clicking the air has no block to look up. */

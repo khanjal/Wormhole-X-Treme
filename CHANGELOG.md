@@ -144,6 +144,33 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A linked pair of mirrors sent you straight back where you came from.** Click the return
+  banner, arrive in the other world, and be returned to the banner you started at inside a
+  second -- which reads as a mirror that opens onto itself. Reported as "clicking the return
+  mirror just takes me back to it instead of the one in world", on a pair `/wormhole mirror
+  list` showed bound correctly to each other.
+
+  The teleport was never the problem. A mirror arrives a player at the destination banner's
+  own block -- deliberately, because that is the one spot a builder guaranteed is clear -- so
+  they land inside or directly under the far banner with it filling the screen. A right-click
+  still being delivered when they get there, from a held button or the client resolving the
+  interaction again at the new position, lands on that banner and fires it. Two bound mirrors
+  make that a round trip.
+
+  The log that found it, from a diagnostic build, is the whole story in four lines: the trip
+  out accepted at `-107,109,-22` in `world`, and in the same second a fresh click on
+  `world:-108:110:-23` -- the far banner -- travelling back.
+
+  A mirror now ignores the player it has just carried, for two seconds. Not only the banner
+  they arrived at: the same click can be re-resolved against whatever banner is now in front
+  of them, which on a corridor of them need not be the one they came out of. It is armed only
+  once a teleport has actually been accepted, so a trip another plugin refused does not also
+  cost the player a wait. The first ignored click says why, and repeats say nothing -- one held
+  button would otherwise write a column of the same line, which is the chat-spam failure this
+  project already fixed for a player holding forward against a locked gate.
+
+  I spent a while certain this was Multiverse cancelling the teleport, and it was not; the
+  fix below is what proved it wasn't, by making a refusal say so and then not saying so.
 - **A mirror another plugin refused looked exactly like a mirror pointing at itself.** Cancel a
   `PlayerTeleportEvent` and the player stays precisely where they were -- and where they were is
   the banner they just clicked. `MirrorInteraction` threw away the boolean `Player.teleport`

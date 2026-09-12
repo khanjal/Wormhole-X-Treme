@@ -98,6 +98,18 @@ public final class MirrorInteraction
      */
     private static void travel(final Player player, final QuantumMirror mirror)
     {
+        // Before the permission check, because this is not about who they are: a player who
+        // may use mirrors is exactly the one who has just been carried by one, and is standing
+        // in the far banner with the click still arriving.
+        if (MirrorSettle.settling(player))
+        {
+            if (MirrorSettle.shouldExplain(player))
+            {
+                say(player, "Mirrors settle for a moment after one puts you down. Step away"
+                    + " from the banner and click again.");
+            }
+            return;
+        }
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
@@ -122,7 +134,11 @@ public final class MirrorInteraction
         if (!player.teleport((safe == null) ? destination : safe))
         {
             sayRefused(player, mirror);
+            return;
         }
+        // Only on a trip that actually happened. The far banner is now in front of them, and
+        // the click that sent them there may still have another event in it.
+        MirrorSettle.arrived(player);
     }
 
     /**

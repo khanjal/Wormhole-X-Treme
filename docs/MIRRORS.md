@@ -302,6 +302,29 @@ goes through the live block registry. Harmless here, but it is the same mechanis
 `Material.isBlock()` throw when this plugin called it too early in startup, so the sampler
 compares names instead — a few hundred times per stamp, and no registry needed to answer.
 
+## Arriving in the banner, and the bounce that cost
+
+Arrival is the destination banner's own block, for the reason `MirrorArrival` gives: a banner is
+passable, and it is the one spot in the room a builder deliberately left clear. The cost of that
+choice only showed up on a linked pair.
+
+A player lands inside or directly under the far banner, with it filling their view. A right-click
+still being delivered when they get there — a held button, or the client resolving the
+interaction again at the new position — lands on that banner and fires it. With both ends bound
+to each other, that is a round trip in under a second, and what the player sees is a mirror that
+returned them to where they started.
+
+So `MirrorSettle` shuts mirrors for two seconds for the player one has just carried. Every
+mirror, not only the banner they arrived at: the same click can be re-resolved against whatever
+is now in front of them, which on a corridor of banners need not be the one they came out of. It
+is armed on an accepted teleport only — a refused trip must not also cost a wait — and the
+explanation is said once per arrival rather than once per repeat.
+
+Moving the arrival back out in front of the banner would also have stopped it, and would have
+brought back every reason it stopped being the block in front: one block of clearance the
+builder did not choose is one block that can be a wall, a drop, a fence, or the far side of a
+doorway.
+
 ## When another plugin refuses the trip
 
 A cancelled `PlayerTeleportEvent` leaves the player exactly where they were, and on a mirror
