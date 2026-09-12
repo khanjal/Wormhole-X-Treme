@@ -1,4 +1,7 @@
 package com.wormhole_xtreme.wormhole;
+import java.io.Console;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -558,32 +561,148 @@ public class WormholeXTreme extends JavaPlugin
     }
 
     /**
+     * The gate ring seen face on, with the event horizon inside it.
+     *
+     * <p>Every glyph here is East-Asian-Width Ambiguous, and that is the constraint, not a
+     * coincidence: a terminal set to render Ambiguous as wide doubles them all together, so
+     * the ring comes out fat rather than torn. The earlier drawing mixed Ambiguous half
+     * blocks with Narrow {@code U+2590} and {@code U+2591}, and those terminals stretched
+     * the arcs to ten columns while the middle row stayed at eight.
+     */
+    private static final String[] RING_BLOCKS = { "  ▄▀▀▄", " █ ▒▒ █", "  ▀▄▄▀" };
+
+    /** The same ring for a console whose charset has no block glyphs at all. */
+    private static final String[] RING_ASCII = { "  ,-.", " ( o )", "  `-'" };
+
+    /** Column the text starts at, so both labels line up whichever ring is drawn. */
+    private static final int TEXT_COLUMN = 10;
+
+    /**
      * Prints the plugin's name, version and host to the console on startup.
      *
-     * <p>A gate ring seen face on, with the event horizon inside it. Kept to three lines
-     * because a banner is a courtesy in a log somebody is reading to find something else.
+     * <p>Kept to three lines because a banner is a courtesy in a log somebody is reading to
+     * find something else.
      *
      * <p>These go through the server logger rather than {@link #prettyLog}, which builds a
      * {@code [WormholeXTreme]} prefix onto every line and would push the drawing sideways.
-     *
-     * <p>The characters are half-block and shade glyphs from the same range other plugins
-     * draw their banners with. A console that cannot render them shows replacement marks
-     * rather than failing, and only the banner is affected.
      */
     private void logStartupBanner()
     {
+        if (!isLoggable(Level.INFO))
+        {
+            return;
+        }
         try
         {
-            final String version = getDescription().getVersion();
-            final String host = getServer().getName();
             getLog().info("");
-            getLog().info("  ▄▀▀▄");
-            getLog().info(() -> " ▐ ░░ ▌   Wormhole X-Treme v" + version);
-            getLog().info(() -> "  ▀▄▄▀    Running on " + host);
+            for (final String line : bannerLines(consoleCharset(), getDescription().getVersion(), getServer().getName()))
+            {
+                getLog().info(line);
+            }
             getLog().info("");
         }
         // Decoration only: a console that will not take it must not stop the plugin.
         catch (final RuntimeException ignore) { /* best effort */ }
+    }
+
+    /**
+     * Builds the three drawn lines of the startup banner.
+     *
+     * <p>Split out from the logging so the choice of ring can be tested without a server.
+     *
+     * @param charset
+     *            the charset the console will encode the lines with
+     * @param version
+     *            the plugin version, for the first label
+     * @param host
+     *            the server implementation name, for the second
+     * @return the three lines, art and label already joined
+     */
+    static String[] bannerLines(final Charset charset, final String version, final String host)
+    {
+        final String[] ring = canEncode(charset, RING_BLOCKS) ? RING_BLOCKS : RING_ASCII;
+        return new String[]
+        {
+            ring[0],
+            pad(ring[1]) + "Wormhole X-Treme v" + version,
+            pad(ring[2]) + "Running on " + host,
+        };
+    }
+
+    /**
+     * Pads a line of the drawing out to the column the labels start at.
+     *
+     * @param art
+     *            one line of the ring
+     * @return that line, padded
+     */
+    private static String pad(final String art)
+    {
+        final StringBuilder padded = new StringBuilder(art);
+        while (padded.length() < TEXT_COLUMN)
+        {
+            padded.append(' ');
+        }
+        return padded.toString();
+    }
+
+    /**
+     * Whether every line of a drawing survives this charset.
+     *
+     * <p>The block glyphs are all in CP437 but in none of the Latin-1 family, and a server
+     * whose console is piped through a panel frequently lands on CP1252.
+     *
+     * @param charset
+     *            the charset the console will encode the lines with
+     * @param art
+     *            the lines of the drawing
+     * @return true if the drawing can be written out as it stands
+     */
+    private static boolean canEncode(final Charset charset, final String[] art)
+    {
+        if (!charset.canEncode())
+        {
+            return false;
+        }
+        final CharsetEncoder encoder = charset.newEncoder();
+        for (final String line : art)
+        {
+            if (!encoder.canEncode(line))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The charset the console actually writes in, which on Windows is the active code page
+     * and not necessarily the JVM default.
+     *
+     * <p>Package-private so a test can drive the property lookup; there is no console under
+     * Surefire, so the tail of this method is all a test would otherwise reach.
+     *
+     * <p>The {@link Charset#defaultCharset()} at the end is not the mistake {@code
+     * PlatformCharsetIsNeverUsedTest} guards against. That one is about writing a file in one
+     * charset and reading it back in another. This is asking what the console will do with
+     * what we hand it, and with no console to ask, the platform default is the best guess
+     * available -- and guessing wrong only costs us the block glyphs.
+     *
+     * @return the console charset, or the platform default if there is no console
+     */
+    static Charset consoleCharset()
+    {
+        // Set by the JVM from the real stream encoding; the second name is the pre-19 spelling.
+        for (final String property : new String[] { "stdout.encoding", "sun.stdout.encoding" })
+        {
+            final String named = System.getProperty(property);
+            if ((named != null) && Charset.isSupported(named))
+            {
+                return Charset.forName(named);
+            }
+        }
+        final Console console = System.console();
+        return console != null ? console.charset() : Charset.defaultCharset();
     }
 
     /**
