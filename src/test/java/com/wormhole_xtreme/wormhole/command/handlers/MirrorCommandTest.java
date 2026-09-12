@@ -373,6 +373,88 @@ class MirrorCommandTest
             .sendMessage(contains("Usage: " + MirrorText.COMMAND_COLOUR + "/wormhole mirror"));
     }
 
+    /**
+     * A banner on a post, with nothing behind it, is still the banner you are looking at.
+     *
+     * <p>The bug this guards. {@code getTargetBlockExact} ray-traces against block shapes, and
+     * a freestanding banner is a thin post: standing beside one and looking at it, the ray can
+     * pass the shape entirely. Against a wall the miss is hidden, because the wall behind is
+     * hit and the player is told "that is a stone". On a post in the open the ray hits nothing
+     * at all, and a player standing right next to their banner was told to go and look at one
+     * within six blocks.
+     */
+    @Test
+    void aFreestandingBannerWithNothingBehindItIsStillFound()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+
+        assertEquals(post, MirrorCommand.bannerInSight(null, java.util.List.of(post)),
+            "a banner the ray missed but the line of sight crossed is the one meant");
+    }
+
+    /**
+     * Aiming at a banner picks that one, not whichever the ray reached first.
+     *
+     * <p>With two banners in a row -- a corridor of them is the case this feature was built
+     * for -- the one being pointed at is the one meant. Taking the first in the line of sight
+     * regardless would quietly bind the near one every time.
+     */
+    @Test
+    void theBannerYouAreAimedAtWinsOverTheOneInFront()
+    {
+        final Block aimed = banner(Material.WHITE_WALL_BANNER);
+        final Block nearer = banner(Material.MAGENTA_BANNER);
+
+        assertEquals(aimed, MirrorCommand.bannerInSight(aimed, java.util.List.of(nearer, aimed)));
+    }
+
+    /** A banner the ray passed through on its way to the wall behind it still counts. */
+    @Test
+    void aBannerInFrontOfTheBlockThatWasHitIsFound()
+    {
+        final Block wall = banner(Material.STONE);
+        final Block hanging = banner(Material.WHITE_WALL_BANNER);
+
+        assertEquals(hanging, MirrorCommand.bannerInSight(wall, java.util.List.of(hanging, wall)));
+    }
+
+    /**
+     * Looking at no banner at all is still no banner.
+     *
+     * <p>The other direction, and the one that keeps the fix from becoming "any banner
+     * anywhere": nothing in the line of sight means the refusal still happens. A mock with no
+     * line of sight answers null for it, which is also what a player in an unloaded chunk
+     * gives, so both are accepted as "nothing there".
+     */
+    @Test
+    void lookingAtNoBannerFindsNone()
+    {
+        final Block stone = banner(Material.STONE);
+
+        assertNull(MirrorCommand.bannerInSight(stone, java.util.List.of(stone)));
+        assertNull(MirrorCommand.bannerInSight(null, java.util.List.of()));
+        assertNull(MirrorCommand.bannerInSight(null, null));
+    }
+
+    /**
+     * The whole command binds a freestanding banner the ray trace missed.
+     *
+     * <p>The unit test above pins the decision; this pins that {@code set} actually asks the
+     * question that way. Without the line-of-sight route this refuses instead of naming
+     * anything, which is exactly what was reported.
+     */
+    @Test
+    void setBindsAFreestandingBannerTheRayTraceMissed()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(null);
+        when(player.getLineOfSight(null, 6)).thenReturn(java.util.List.of(post));
+
+        assertTrue(run(player, "mirror", "set", "Post"));
+
+        assertNotNull(MirrorManager.byName("Post"), "the banner on a post should have been named");
+    }
+
     /** A verb that needs a name and was not given one says which form it wanted. */
     @Test
     void aVerbMissingItsNameGetsThatVerbsUsage()

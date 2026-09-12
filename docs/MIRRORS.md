@@ -302,6 +302,21 @@ goes through the live block registry. Harmless here, but it is the same mechanis
 `Material.isBlock()` throw when this plugin called it too early in startup, so the sampler
 compares names instead — a few hundred times per stamp, and no registry needed to answer.
 
+## Which banner you are looking at
+
+`set` and `link` both have to turn "the banner in front of me" into a block, and one ray cast is
+not enough to do it.
+
+`getTargetBlockExact` traces against block shapes. A freestanding banner is a thin post, so from
+close up the ray can pass it by. Against a wall that goes unnoticed — the wall behind is hit, the
+command says "that is a stone", and the player aims again. On a post in the open there is nothing
+behind it, the ray hits nothing, and the refusal reads "look at a banner within six blocks" to
+somebody doing exactly that.
+
+So the aimed-at block is tried first, and `getLineOfSight` is the fallback: it steps through the
+blocks a ray crosses rather than their shapes, which is what makes a thin one findable. Order
+matters — in a corridor of banners the one being pointed at wins over the nearest one crossed.
+
 ## Arriving in the banner, and the bounce that cost
 
 Arrival is the destination banner's own block, for the reason `MirrorArrival` gives: a banner is

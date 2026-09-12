@@ -144,6 +144,21 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A banner on a post could not be named, from right next to it.** `/wormhole mirror set` and
+  `/wormhole mirror link` answered "Look at the banner you want to use, within six blocks" to
+  somebody standing in front of one.
+
+  Both find the banner with `getTargetBlockExact`, which ray-traces against block shapes, and a
+  freestanding banner is a thin post -- close up, the ray can pass the shape entirely. On a wall
+  banner the miss is invisible: the wall behind it gets hit instead, so the command says "that
+  is a stone" and the player aims again. On a post in the open there is nothing behind it, the
+  ray hits nothing at all, and the answer is a refusal that describes exactly what the player is
+  already doing.
+
+  It now falls back to `getLineOfSight`, which steps through the blocks a ray passes through
+  rather than their shapes, so the banner's own block is in the list either way. The aimed-at
+  block still wins when it is itself a banner -- in a corridor of them, the one you are pointing
+  at is the one you mean.
 - **A linked pair of mirrors sent you straight back where you came from.** Click the return
   banner, arrive in the other world, and be returned to the banner you started at inside a
   second -- which reads as a mirror that opens onto itself. Reported as "clicking the return
