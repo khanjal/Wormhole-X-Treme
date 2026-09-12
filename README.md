@@ -1438,11 +1438,22 @@ Or name a look and get exactly that, with nothing sampled:
 /wormhole mirror stamp museum cavern
 ```
 
-Ten ship with the plugin — `nether`, `end`, `ocean`, `forest`, `desert`, `frozen`, `cavern`,
-`mountain`, `overworld` and `indoors` — and they are plain text files in `shapes/mirror/`,
-beside the gate shapes. Edit one and it stays edited; delete one and it comes back on the next
-startup. Add your own and `stamp` offers it. The format and the reasoning behind all of this
-are in [MIRRORS.md](docs/MIRRORS.md).
+Seventeen ship with the plugin, in two groups.
+
+Twelve are places, and between them they name every biome in the game: `nether`, `end`,
+`ocean`, `forest`, `sparse_jungle`, `desert`, `frozen`, `cavern`, `mountain`, `pale_garden`,
+`overworld` and `indoors`. Point a mirror anywhere and one of them answers for it.
+
+Five are looks rather than places — `plain`, `hub`, `warning`, `private` and `arcane`. They
+name no biome, so nothing picks them on its own and `stamp` is the only way to get one. They
+are for what you want said about a mirror when it is not where it goes: the middle of a
+network, one that only runs one way, one that is not for general use. `plain` is the quiet one,
+for when the automatic look is wrong and you would rather the banner said nothing. None of them
+change what a mirror does — `private` is paint, not a permission.
+
+All seventeen are plain text files in `shapes/mirror/`, beside the gate shapes. Edit one and it
+stays edited; delete one and it comes back on the next startup. Add your own and `stamp` offers
+it. The format and the reasoning behind all of this are in [MIRRORS.md](docs/MIRRORS.md).
 
 ### Going dark, and keeping up
 
