@@ -60,7 +60,11 @@ class RingBuildCheckTest
     }
 
     /**
-     * The five refusals are told apart.
+     * The four refusals checked here are told apart.
+     *
+     * <p>Four, not five: {@link RingBlockage#CEILING_TOO_HIGH} quotes a config value and is
+     * left out for the reason given on {@link #CONFIG_FREE}. Its wording shares no phrasing
+     * with any of these, but that is asserted by reading it rather than by this loop.
      *
      * <p>The point of surveying at build time is that the builder knows what to change. Two
      * blockages sharing one message would mean digging out a ring that was fine and leaving a
