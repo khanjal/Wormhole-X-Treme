@@ -5,12 +5,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
+import org.bukkit.Server;
+import org.bukkit.plugin.PluginDescriptionFile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -180,6 +190,76 @@ class StartupBannerTest
 
         assertTrue(lines[1].endsWith("Wormhole X-Treme v9.9.9-SNAPSHOT"), "got: " + lines[1]);
         assertTrue(lines[2].endsWith("Running on Purpur"), "got: " + lines[2]);
+    }
+
+    /**
+     * The banner the plugin actually prints names the version as the version and the host as
+     * the host.
+     *
+     * <p>{@code bannerLines} takes two strings that look alike to the compiler, so handing it
+     * {@code getServer().getName()} and {@code getDescription().getVersion()} the wrong way
+     * round produces "Wormhole X-Treme vPaper / Running on 1.6.0" and builds perfectly. Every
+     * other test here calls {@code bannerLines} directly and so cannot see that; this one goes
+     * through {@code logStartupBanner}, which is the only place the two are fetched.
+     */
+    @Test
+    void theBannerTakesItsVersionAndHostFromThePluginTheRightWayRound() throws Exception
+    {
+        final List<String> logged = new ArrayList<>();
+        final Logger capturing = Logger.getAnonymousLogger();
+        capturing.setUseParentHandlers(false);
+        capturing.addHandler(new Handler()
+        {
+            @Override
+            public void publish(final LogRecord record)
+            {
+                logged.add(record.getMessage());
+            }
+
+            @Override
+            public void flush()
+            {
+            }
+
+            @Override
+            public void close()
+            {
+            }
+        });
+
+        final Object previousLog = PrivateStatics.of(WormholeXTreme.class, "log");
+        final WormholeXTreme plugin = mock(WormholeXTreme.class);
+        PluginTestSupport.install(plugin);
+        try
+        {
+            PrivateStatics.set(WormholeXTreme.class, "log", capturing);
+            final PluginDescriptionFile description = mock(PluginDescriptionFile.class);
+            when(description.getVersion()).thenReturn("1.6.0");
+            when(plugin.getDescription()).thenReturn(description);
+            final Server server = mock(Server.class);
+            when(server.getName()).thenReturn("Paper");
+            when(plugin.getServer()).thenReturn(server);
+            when(plugin.isLoggable(Level.INFO)).thenReturn(true);
+
+            final Method banner = WormholeXTreme.class.getDeclaredMethod("logStartupBanner");
+            banner.setAccessible(true);
+            banner.invoke(plugin);
+        }
+        finally
+        {
+            PrivateStatics.set(WormholeXTreme.class, "log", previousLog);
+            PluginTestSupport.remove();
+        }
+
+        final String printed = String.join("\n", logged);
+        assertEquals(5, logged.size(),
+            "the banner is a blank line, three drawn lines and a blank line. Nothing logged at "
+                + "all means the method returned early and the two assertions below would pass "
+                + "or fail for a reason that has nothing to do with the wiring. Got: " + logged);
+        assertTrue(printed.contains("Wormhole X-Treme v1.6.0"),
+            "the version label should carry the plugin version, not the server name. Got: " + printed);
+        assertTrue(printed.contains("Running on Paper"),
+            "the host label should carry the server name, not the plugin version. Got: " + printed);
     }
 
     /** The two property names {@code consoleCharset} reads, newest spelling first. */
