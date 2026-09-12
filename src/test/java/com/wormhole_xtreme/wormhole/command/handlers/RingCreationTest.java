@@ -73,6 +73,11 @@ class RingCreationTest
 
         world = mock(World.class);
         when(world.getName()).thenReturn(WORLD);
+        // A bare mock answers 0 to both, which describes a world zero blocks tall -- and
+        // since create now surveys the room before accepting a circle, that reads as "no
+        // headroom" and refuses every ring in this class. Give it the real modern range.
+        when(world.getMinHeight()).thenReturn(Integer.valueOf(-64));
+        when(world.getMaxHeight()).thenReturn(Integer.valueOf(320));
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(inv -> blockAt(
             inv.getArgument(0, Integer.class).intValue(),
             inv.getArgument(1, Integer.class).intValue(),
@@ -93,6 +98,7 @@ class RingCreationTest
         config.when(ConfigManager::getRingMinSeparation).thenReturn(Integer.valueOf(0));
         // Zero is how the config turns the quota off; the tests about it set their own.
         config.when(ConfigManager::getRingMaxPairsPerPlayer).thenReturn(Integer.valueOf(0));
+        config.when(ConfigManager::getRingMaxCeilingDrop).thenReturn(Integer.valueOf(10));
 
         yaml = mockStatic(RingYamlManager.class);
 
@@ -115,6 +121,9 @@ class RingCreationTest
         return blocks.computeIfAbsent(x + "," + y + "," + z, key -> {
             final Block b = mock(Block.class);
             when(b.getType()).thenReturn(Material.AIR);
+            // Air you can walk through. Unstubbed this answers false, which would make an
+            // empty room read as solid rock and refuse the ring for being obstructed.
+            when(b.isPassable()).thenReturn(Boolean.TRUE);
             when(b.getLocation()).thenReturn(new Location(world, x, y, z));
             when(b.getWorld()).thenReturn(world);
             when(b.getX()).thenReturn(Integer.valueOf(x));
@@ -140,6 +149,44 @@ class RingCreationTest
             when(slab.getType()).thenReturn(Slab.Type.BOTTOM);
             when(b.getType()).thenReturn(Material.STONE_SLAB);
             when(b.getBlockData()).thenReturn(slab);
+            when(b.isPassable()).thenReturn(Boolean.FALSE);
+        }
+        floorUnder(ax, ay, az);
+    }
+
+    /**
+     * Puts something solid under the circle, so nobody arrives over a hole.
+     *
+     * <p>The survey wants ground directly beneath every interior column. Without it a ring
+     * laid in mid-air is refused, which is correct and is not what any test in this class is
+     * about.
+     */
+    private void floorUnder(final int ax, final int ay, final int az)
+    {
+        for (final RingPattern.Offset offset : RingPattern.ODD.getInterior())
+        {
+            final Block below = blockAt(ax + offset.getDx(), ay - 1, az + offset.getDz());
+            when(below.getType()).thenReturn(Material.STONE);
+            when(below.isPassable()).thenReturn(Boolean.FALSE);
+        }
+    }
+
+    /**
+     * Lays a circle of top slabs, which the detector reads as a ceiling ring.
+     *
+     * <p>No floor is put under it: a ceiling ring's floor is found by searching downwards, and
+     * these tests are about what happens when there is not one within reach.
+     */
+    private void layCeilingRingAt(final int ax, final int ay, final int az)
+    {
+        for (final RingPattern.Offset offset : RingPattern.ODD.getPerimeter())
+        {
+            final Block b = blockAt(ax + offset.getDx(), ay, az + offset.getDz());
+            final Slab slab = mock(Slab.class);
+            when(slab.getType()).thenReturn(Slab.Type.TOP);
+            when(b.getType()).thenReturn(Material.STONE_SLAB);
+            when(b.getBlockData()).thenReturn(slab);
+            when(b.isPassable()).thenReturn(Boolean.FALSE);
         }
     }
 
@@ -151,6 +198,51 @@ class RingCreationTest
     private static com.wormhole_xtreme.wormhole.model.ring.RingManager.PendingRing waiting()
     {
         return RingManager.getPending(UUID.fromString(OWNER));
+    }
+
+    /**
+     * A ceiling ring with no floor within reach is refused as it is laid.
+     *
+     * <p>The survey always caught this, but only when somebody walked into the finished pair
+     * -- and by then the builder has gone. Worse, the failure it produced was a cycle that
+     * armed, carried nobody, was owed no cooldown and fired again, which reads as the rings
+     * being broken rather than as the room being wrong.
+     *
+     * <p>The refusal has to name the limit. "Too high" without a number is a message that
+     * sends somebody to the wiki to find out how high is too high.
+     */
+    @Test
+    void aCeilingRingTooFarAboveItsFloorIsRefusedWhenItIsLaid()
+    {
+        blocks.clear();
+        layCeilingRingAt(RX, RY, RZ);
+
+        create();
+
+        assertNull(waiting(), "a ceiling ring over a shaft should not be held as an end");
+        verify(builder).sendMessage(contains("10 blocks above its floor"));
+    }
+
+    /**
+     * A ring laid over a hole is refused as it is laid.
+     *
+     * <p>The other half of surveying at build time: the ground check is what stops somebody
+     * arriving in mid-air, and it is worth failing on the circle rather than on the traveller.
+     */
+    @Test
+    void aRingWithNoGroundUnderItIsRefusedWhenItIsLaid()
+    {
+        for (final RingPattern.Offset offset : RingPattern.ODD.getInterior())
+        {
+            final Block below = blockAt(RX + offset.getDx(), RY - 1, RZ + offset.getDz());
+            when(below.getType()).thenReturn(Material.AIR);
+            when(below.isPassable()).thenReturn(Boolean.TRUE);
+        }
+
+        create();
+
+        assertNull(waiting(), "a ring over a hole should not be held as an end");
+        verify(builder).sendMessage(contains("hole in its floor"));
     }
 
     /** A circle of slabs becomes the first end, held until its partner is laid. */

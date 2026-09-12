@@ -82,7 +82,10 @@ public final class RingTransit
 
         final int reach = ConfigManager.getRingReach();
         final BukkitRingWorld surroundings = new BukkitRingWorld(world, pair);
-        final RingCycle cycle = new RingCycle(pair, surroundings, reach);
+        // The same two numbers RingIndex arms the volume with. A cycle that looked less deep
+        // than the index armed would fire for somebody it then could not find.
+        final RingCycle cycle = new RingCycle(pair, surroundings, reach,
+            ConfigManager.getRingMaxCeilingDrop());
         // Both ends have to be loaded for the whole cycle. The far end is usually nowhere
         // near a player, and animating into an unloaded chunk writes blocks nobody will see
         // put back and lands travellers in terrain that has not been generated. Held before

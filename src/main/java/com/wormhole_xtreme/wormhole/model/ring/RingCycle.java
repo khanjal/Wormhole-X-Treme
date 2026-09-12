@@ -151,6 +151,16 @@ public class RingCycle
     private final int reach;
 
     /**
+     * The furthest below its plane a ceiling ring will look for the floor.
+     *
+     * <p>Held because a ceiling ring's passengers stand on that floor rather than on the
+     * plane, so {@link Ring#volumeDepth} needs it to say how deep to look. Without it this
+     * class used {@link #reach} raw, which armed a ring people were standing in and then
+     * carried nobody.
+     */
+    private final int maxDrop;
+
+    /**
      * The travelling rings, redrawn every frame.
      *
      * <p>Kept apart from the lights because the two have completely different lifetimes: this
@@ -197,9 +207,32 @@ public class RingCycle
      */
     public RingCycle(final RingPair pair, final Surroundings world, final int reach)
     {
+        this(pair, world, reach, Ring.MIN_CEILING_DROP);
+    }
+
+    /**
+     * Instantiates a cycle that knows how far a ceiling ring's floor may be.
+     *
+     * <p>This is the one to call from a running server. The three-argument form assumes the
+     * shallowest ceiling a ring can have, which is what {@link RingIndex} falls back to with
+     * no config loaded, and is right only for floor rings and for tests.
+     *
+     * @param pair
+     *            the pair to run
+     * @param world
+     *            how to reach the world
+     * @param reach
+     *            how deep a floor ring's trigger volume runs
+     * @param maxDrop
+     *            the furthest below its plane a ceiling ring will look for the floor
+     */
+    public RingCycle(final RingPair pair, final Surroundings world, final int reach,
+        final int maxDrop)
+    {
         this.pair = pair;
         this.world = world;
         this.reach = reach;
+        this.maxDrop = maxDrop;
     }
 
     /** @return the pair being run */
@@ -514,7 +547,7 @@ public class RingCycle
      */
     private List<RingPassenger> occupants(final Ring ring)
     {
-        return world.passengersIn(ring.triggerVolumeBlocks(reach));
+        return world.passengersIn(ring.triggerVolumeBlocks(ring.volumeDepth(reach, maxDrop)));
     }
 
     /**

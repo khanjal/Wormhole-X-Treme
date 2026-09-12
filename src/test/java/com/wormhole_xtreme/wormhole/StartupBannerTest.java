@@ -219,11 +219,14 @@ class StartupBannerTest
             @Override
             public void flush()
             {
+                // Nothing is buffered: publish appends to the list above.
             }
 
             @Override
             public void close()
             {
+                // Nothing to release, and the records have to outlive the handler so the
+                // assertions below can read them.
             }
         });
 
