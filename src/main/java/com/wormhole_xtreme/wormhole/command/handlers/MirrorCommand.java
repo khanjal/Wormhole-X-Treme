@@ -80,14 +80,19 @@ public class MirrorCommand implements SubCommand
     private static final String USAGE = "Usage: ";
 
     /**
-     * How long the bar-separated look list may get before the usage line stops printing it.
+     * How long the bar-separated look list may get before a message counts it instead.
      *
-     * <p>Measured on the list alone; the rest of the line is a further 39 characters. Default
-     * chat fits roughly 53, so 80 here means a usage line of about two chat lines at worst,
-     * which is what the ten shipped looks came to before there were seventeen. The list is
-     * worth its space while somebody can take it in -- four wrapped lines of bar-separated
-     * names is not a list any more, and the player reading it has already been told the one
-     * thing they needed, which is that the argument exists and is optional.
+     * <p>Measured on the list alone; the usage line around it is a further 39 characters and
+     * the refusal's opening about 40. Default chat fits roughly 53, so 80 here means about two
+     * chat lines at worst, which is what the ten shipped looks came to before there were
+     * seventeen. The list is worth its space while somebody can take it in -- four wrapped
+     * lines of names is not a list any more, and the count that replaces it still says there is
+     * a real list to go and find.
+     *
+     * <p>One number for both messages on purpose. They ask the same question -- are there few
+     * enough looks to name them all here -- and two budgets would be two things to keep in step
+     * and a player seeing the names in one message and a count in the other for no reason they
+     * could work out.
      */
     private static final int LOOK_LIST_BUDGET = 80;
 
@@ -443,12 +448,7 @@ public class MirrorCommand implements SubCommand
         final MirrorPreset preset = MirrorPresetRegistry.byName(presetName);
         if (preset == null)
         {
-            final String[] names = MirrorPresetRegistry.names();
-            say(sender, (names.length == 0)
-                ? "There are no looks loaded at all -- check the server log for what went"
-                    + " wrong reading shapes/mirror."
-                : "There is no look called " + MirrorText.quoted(presetName) + ". Try one of: "
-                    + MirrorText.names(names));
+            sayNoSuchLook(sender, presetName);
             return;
         }
         if (MirrorStamp.apply(banner, preset))
@@ -604,7 +604,7 @@ public class MirrorCommand implements SubCommand
     private static void stampUsage(final CommandSender sender)
     {
         final String[] names = MirrorPresetRegistry.names();
-        if (looksFitTheUsageLine(names))
+        if (looksFitInAMessage(names))
         {
             say(sender, USAGE + MirrorText.command(
                 "/wormhole mirror stamp <name> [" + String.join("|", names) + "]"));
@@ -619,17 +619,50 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Whether the looks are few enough to name in the usage line.
+     * Says that no look answers to that name, offering the others or counting them.
+     *
+     * <p>The same rule as the usage line, and the same threshold, because it is the same
+     * question asked twice -- are there few enough looks to name them all in one message. Two
+     * budgets would be two numbers to keep in step and a player seeing the list in one message
+     * and a count in the other for no reason they could work out.
+     *
+     * <p>Worth listing here for longer than in the usage line, if anything: somebody who has
+     * just named a look that does not exist is asking what does. But seventeen names is a wall
+     * either way, and the count plus tab is the answer that stays readable.
+     */
+    private static void sayNoSuchLook(final CommandSender sender, final String presetName)
+    {
+        final String[] names = MirrorPresetRegistry.names();
+        if (names.length == 0)
+        {
+            say(sender, "There are no looks loaded at all -- check the server log for what"
+                + " went wrong reading shapes/mirror.");
+            return;
+        }
+        final String opening = "There is no look called " + MirrorText.quoted(presetName) + ".";
+        say(sender, looksFitInAMessage(names)
+            ? opening + " Try one of: " + MirrorText.names(names)
+            : opening + " There are " + names.length + " to choose from -- press tab for the"
+                + " list.");
+    }
+
+    /**
+     * Whether the looks are few enough to name in one message.
      *
      * <p>Package-private and taking the names rather than reading the registry, so a test can
      * put it either side of the threshold. Going through the registry would only ever offer
      * whatever happens to ship, which is one answer and not the interesting one.
      *
+     * <p>Measured bar-separated, which is how the usage line renders them; the refusal joins
+     * them with ", " instead and so runs a character per name longer. That slack is inside the
+     * budget rather than worth a second one -- at the threshold it is the difference between
+     * two chat lines and two chat lines.
+     *
      * @param names
      *            the loaded look names
      * @return true to list them, false to count them instead
      */
-    static boolean looksFitTheUsageLine(final String[] names)
+    static boolean looksFitInAMessage(final String[] names)
     {
         return (names.length > 0) && (String.join("|", names).length() <= LOOK_LIST_BUDGET);
     }

@@ -178,16 +178,19 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
-- **`mirror stamp`'s usage line counts the looks once there are too many to list.** It named
-  every one, bar-separated, which was a reasonable thing to do at ten looks and stopped being
-  one at seventeen: 130 characters of names, plus another 39 of usage line around them, is four
-  wrapped lines of chat for the message you get when you mistype a command.
+- **`mirror stamp` counts the looks once there are too many to list.** Two messages named every
+  loaded look: the usage line, and the refusal you get for naming one that does not exist. That
+  was a reasonable thing to do at ten looks and stopped being one at seventeen -- 130 characters
+  of names, plus the message around them, is four wrapped lines of chat.
 
-  It now lists them while the names come to 80 characters or less and otherwise says how many
-  there are and to press tab. The count rather than a bare `<look>` on purpose -- "17 looks to
-  choose from" says there is a real list to go and find, where `<look>` alone reads as a
-  free-form argument you are expected to invent a value for. Tab completion was always the
-  thing that actually offered the names, and still is.
+  Both now list the looks while the names come to 80 characters or less, and otherwise say how
+  many there are and to press tab. The count rather than a bare `<look>` on purpose -- "17 looks
+  to choose from" says there is a real list to go and find, where `<look>` alone reads as a
+  free-form argument you are expected to invent a value for. Tab completion was always the thing
+  that actually offered the names, and still is.
+
+  One threshold for both, because they ask the same question and a player who saw the names in
+  one message and a count in the other would have no way to work out why.
 
   Nothing changes for an operator with a handful of looks in `shapes/mirror/`, which is the
   case the listing was written for and where it is still the friendlier answer
