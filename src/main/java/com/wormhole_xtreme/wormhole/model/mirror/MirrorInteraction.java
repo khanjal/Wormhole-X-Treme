@@ -119,7 +119,27 @@ public final class MirrorInteraction
             return;
         }
         final Location safe = WorldUtils.findSafePlayerLocation(destination);
-        player.teleport((safe == null) ? destination : safe);
+        if (!player.teleport((safe == null) ? destination : safe))
+        {
+            sayRefused(player, mirror);
+        }
+    }
+
+    /**
+     * Says that something else on the server stopped the trip.
+     *
+     * <p>A cancelled {@code PlayerTeleportEvent} puts the player back exactly where they were,
+     * which on a mirror is the banner they just clicked -- so a refusal nobody reports reads as
+     * the mirror opening onto itself. The commonest canceller is a world-access plugin
+     * (Multiverse's {@code enforce-access} wants {@code multiverse.access.<world>}); land
+     * claims are the other.
+     */
+    private static void sayRefused(final Player player, final QuantumMirror mirror)
+    {
+        say(player, "Something else on this server would not let you into "
+            + MirrorText.name(mirror.destination().worldName()) + ".");
+        say(player, "A world-access or land-claim plugin is the usual reason -- check that you"
+            + " are allowed into that world.");
     }
 
     /**

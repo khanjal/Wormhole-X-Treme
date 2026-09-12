@@ -302,6 +302,20 @@ goes through the live block registry. Harmless here, but it is the same mechanis
 `Material.isBlock()` throw when this plugin called it too early in startup, so the sampler
 compares names instead — a few hundred times per stamp, and no registry needed to answer.
 
+## When another plugin refuses the trip
+
+A cancelled `PlayerTeleportEvent` leaves the player exactly where they were, and on a mirror
+that is the banner they just clicked. Silently, it reads as a mirror that opens onto itself —
+which is how it was first reported, on a pair whose two ends `mirror list` showed bound
+correctly to each other.
+
+So the boolean `Player.teleport` returns is checked, and a refusal names the world and the two
+kinds of plugin that usually do this: world access (Multiverse intercepts other plugins'
+teleports by default and applies `enforceaccess`, wanting `multiverse.access.<world>`) and land
+claims. Nothing here tries to overrule the cancel. The mechanic is a banner somebody clicks, not
+a permission system, and a plugin whose whole job is deciding who may enter a world should win
+that argument — the bug was never that it won, only that nobody said so.
+
 ## What was considered and not done
 
 **A real window** — a map in an item frame, rendered from the far side. This is the only thing

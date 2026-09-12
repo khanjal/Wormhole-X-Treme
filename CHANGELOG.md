@@ -144,6 +144,21 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A mirror another plugin refused looked exactly like a mirror pointing at itself.** Cancel a
+  `PlayerTeleportEvent` and the player stays precisely where they were -- and where they were is
+  the banner they just clicked. `MirrorInteraction` threw away the boolean `Player.teleport`
+  returns, so a refused trip said nothing at all. Reported as a linked pair where clicking the
+  return banner "just takes me back to it instead of the one in world", with both ends listed
+  correctly by `/wormhole mirror list`.
+
+  The usual canceller is a world-access plugin. Multiverse intercepts other plugins' teleports
+  by default and applies `enforceaccess` to them, so a player without `multiverse.access.<world>`
+  is turned back by a rule this plugin never sees; a land-claim plugin does the same thing for
+  its own reasons.
+
+  A refusal now names the world and says who tends to be behind it. That is as far as this
+  plugin can go -- it cannot overrule another plugin's cancel, and should not try -- but "you
+  are not allowed into `world`" is an answer somebody can act on, where silence is not.
 - **A ceiling ring in a room deeper than four blocks fired over and over and took nobody.**
   The volume that arms a ring and the volume that decides who rides it were worked out two
   different ways. `RingIndex` armed a ceiling ring over `max-ceiling-drop + 2` layers -- twelve
