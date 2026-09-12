@@ -1,0 +1,6 @@
+# A mirror that should look as though it cost something to open. Stamped by hand; no biome
+# names it. The format is documented in docs/MIRRORS.md.
+Name=arcane
+Base=PURPLE
+Layer=MAGENTA FLOWER
+Layer=MAGENTA BORDER

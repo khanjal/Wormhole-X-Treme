@@ -240,6 +240,31 @@ Three layers is the working budget. A banner shows six patterns before clients s
 the extras, and three of those six are reserved for the sampled squares. A preset with more is
 cut from the end rather than refused.
 
+### What ships
+
+Seventeen files, in two groups, and the difference between them is the `Biome` line.
+
+**Twelve places.** `nether`, `end`, `ocean`, `forest`, `sparse_jungle`, `desert`, `frozen`,
+`cavern`, `mountain`, `pale_garden`, `overworld` and `indoors`. Between them they name every
+biome in the game bar none, so a mirror pointed anywhere gets a look chosen for where it goes
+rather than the generic one. `overworld` is still the fallback, and still earns it: a data
+pack's own biome names nothing, and neither does one added in a version newer than these files.
+
+`pale_garden` names a biome that exists only from 1.21.4 on. On an older server nothing ever
+matches it, which is the same non-event as any preset naming a biome the server has not heard
+of — the file loads, it just never wins.
+
+**Five looks.** `plain`, `hub`, `warning`, `private` and `arcane` name no biome at all, so
+nothing picks them automatically and `mirror stamp <name> <look>` is the only way to get one.
+They are for what an operator wants said about a mirror when it is not where it goes: the middle
+of a network, one that only runs one way, one that is not for general use. `plain` is the quiet
+one — a colour and a border and no charge — for when the automatic look is wrong and the build
+would rather the banner said nothing.
+
+None of the five carry any behaviour. `private` is a bar painted across a banner and not a
+permission; whether anybody may use that mirror is a question for the permission nodes, and a
+mirror wearing `warning` is exactly as dangerous as it was before it was stamped.
+
 ### Which patterns are safe
 
 Only the **34 pattern names present on every supported version** are used in the shipped files.
@@ -247,6 +272,14 @@ Only the **34 pattern names present on every supported version** are used in the
 a 1.21 server can name something a 1.20 server has never heard of. That layer is skipped with
 a log line and the rest of the banner is stamped — the same way an unrecognised sound name is
 skipped rather than silencing the plugin.
+
+Lenient is right for an operator's own file and wrong for one of ours, because the failure is
+so quiet: the banner stamps correctly on the version it was written on and comes out missing a
+layer on the other half of the range, and nothing says so loudly enough to connect the two. So
+the shipped files are held to the intersection by a test rather than by care — which is also
+the reason a design lifted straight out of a banner gallery is not safe to ship. Those galleries
+publish in Mojang's own pattern ids, on whatever version the site is running, and the seven
+renamed names are exactly the ones a transcription gets wrong.
 
 ## Two version traps, both real
 

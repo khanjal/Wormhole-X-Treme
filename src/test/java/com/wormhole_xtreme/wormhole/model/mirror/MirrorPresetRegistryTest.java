@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.bukkit.DyeColor;
@@ -27,11 +28,27 @@ import com.wormhole_xtreme.wormhole.WormholeXTreme;
  * Loading the presets folder.
  *
  * <p>Every test points the registry at a temporary directory. The no-argument {@code load()}
- * resolves the live plugin folder and writes ten files into it, which is how an earlier mirror
+ * resolves the live plugin folder and writes every shipped preset into it, which is how an earlier
  * test ended up committing {@code data/mirror.yml} into the repository.
  */
 class MirrorPresetRegistryTest
 {
+    /**
+     * The pattern names present in {@code PatternType} on every version this plugin supports.
+     *
+     * <p>The intersection of the 1.20 and 1.21.10 API jars: 41 names on the one, 43 on the
+     * other, 34 in common. Written out rather than computed, because the point is to fail when
+     * somebody adds a preset naming something outside it, and a set derived from whatever
+     * Bukkit is on the test classpath would happily agree with them.
+     */
+    private static final Set<String> STABLE_PATTERNS = Set.of("BASE", "BORDER", "BRICKS",
+        "CREEPER", "CROSS", "CURLY_BORDER", "DIAGONAL_LEFT", "DIAGONAL_RIGHT", "FLOWER",
+        "GLOBE", "GRADIENT", "GRADIENT_UP", "HALF_HORIZONTAL", "HALF_VERTICAL", "MOJANG",
+        "PIGLIN", "SKULL", "SQUARE_BOTTOM_LEFT", "SQUARE_BOTTOM_RIGHT", "SQUARE_TOP_LEFT",
+        "SQUARE_TOP_RIGHT", "STRAIGHT_CROSS", "STRIPE_BOTTOM", "STRIPE_CENTER",
+        "STRIPE_DOWNLEFT", "STRIPE_DOWNRIGHT", "STRIPE_LEFT", "STRIPE_MIDDLE", "STRIPE_RIGHT",
+        "STRIPE_TOP", "TRIANGLES_BOTTOM", "TRIANGLES_TOP", "TRIANGLE_BOTTOM", "TRIANGLE_TOP");
+
     @TempDir
     File folder;
 
@@ -105,7 +122,7 @@ class MirrorPresetRegistryTest
 
         assertNull(MirrorPresetRegistry.byName("broken"), "no base colour, so no preset");
         assertEquals(MirrorPresetRegistry.shippedNames().size(), loaded,
-            "the shipped ten should all still be there");
+            "every shipped preset should all still be there");
     }
 
     @Test
@@ -116,6 +133,69 @@ class MirrorPresetRegistryTest
         assertEquals("nether", MirrorPresetRegistry.forBiome("NETHER_WASTES").name());
         assertEquals("ocean", MirrorPresetRegistry.forBiome("deep_cold_ocean").name());
         assertEquals("forest", MirrorPresetRegistry.forBiome("BAMBOO_JUNGLE").name());
+        assertEquals("sparse_jungle", MirrorPresetRegistry.forBiome("SPARSE_JUNGLE").name(),
+            "thin jungle is its own look, not the woodland one");
+        assertEquals("pale_garden", MirrorPresetRegistry.forBiome("PALE_GARDEN").name());
+    }
+
+    /**
+     * Every pattern a shipped preset names has to exist on every version this plugin supports.
+     *
+     * <p>{@code PatternType} renamed seven constants between 1.20 and 1.21 -- {@code
+     * CIRCLE_MIDDLE} to {@code CIRCLE}, {@code STRIPE_SMALL} to {@code SMALL_STRIPES}, and the
+     * four {@code _MIRROR} ones -- and added {@code FLOW} and {@code GUSTER}. A preset naming
+     * one of those stamps correctly on the version it was written on and silently loses that
+     * layer on the other half of the range, because the name resolves to null and the layer is
+     * skipped. Nothing logs loudly enough for an operator to connect it to the banner being
+     * wrong, so the place to catch it is here -- which is also what makes a look copied out of
+     * a banner gallery dangerous to ship.
+     */
+    @Test
+    void namesOnlyPatternsThatExistOnEverySupportedVersion()
+    {
+        MirrorPresetRegistry.load(folder);
+        int layersChecked = 0;
+
+        for (final MirrorPreset preset : MirrorPresetRegistry.all())
+        {
+            for (final MirrorPreset.Layer layer : preset.layers())
+            {
+                assertTrue(STABLE_PATTERNS.contains(layer.pattern()),
+                    preset.name() + " names " + layer.pattern() + ", which is not a pattern"
+                        + " every supported version has");
+                layersChecked++;
+            }
+        }
+
+        assertEquals(MirrorPresetRegistry.shippedNames().size(),
+            MirrorPresetRegistry.all().size(), "every shipped preset should have been examined");
+        assertTrue(layersChecked >= MirrorPresetRegistry.all().size(),
+            "every preset has at least one layer, so this should have checked at least that"
+                + " many -- a loop that checked nothing would pass otherwise");
+    }
+
+    /**
+     * The looks that name no biome are reachable by name, and only that way.
+     *
+     * <p>They exist for what an operator wants said about a mirror when it is not where it
+     * goes -- the middle of a network, one that only runs one way. {@code arcane.mirror} sorts
+     * ahead of every place preset, so one of these answering for a biome would not answer for
+     * one biome, it would answer for the first one asked about.
+     */
+    @Test
+    void keepsTheStampOnlyLooksOutOfTheAutomaticChoice()
+    {
+        MirrorPresetRegistry.load(folder);
+
+        for (final String look : List.of("plain", "hub", "warning", "private", "arcane"))
+        {
+            final MirrorPreset preset = MirrorPresetRegistry.byName(look);
+            assertNotNull(preset, look + " should be loaded and stampable by name");
+            assertEquals(Set.of(), preset.biomes(), look + " should name no biome");
+        }
+
+        assertEquals("overworld", MirrorPresetRegistry.forBiome("PLAINS").name(),
+            "a place still gets its own look, not whichever preset sorts first");
     }
 
     @Test
@@ -192,7 +272,7 @@ class MirrorPresetRegistryTest
             .map(MirrorPreset::name).toList();
         final List<String> byFileName = MirrorPresetRegistry.shippedNames().stream()
             .sorted().map(name -> name.substring(0, name.length() - ".mirror".length())).toList();
-        assertEquals(byFileName, loaded, "the shipped ten should load in file-name order");
+        assertEquals(byFileName, loaded, "the shipped presets should load in file-name order");
     }
 
     /**

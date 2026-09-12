@@ -1,0 +1,8 @@
+# A mirror onto thin jungle -- one tree where the woodland look has a row of them. The format
+# is documented in docs/MIRRORS.md.
+Name=sparse_jungle
+Base=LIME
+Biome=SPARSE_JUNGLE
+Layer=GREEN TRIANGLE_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=GREEN BORDER

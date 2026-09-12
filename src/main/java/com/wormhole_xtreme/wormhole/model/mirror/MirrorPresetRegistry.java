@@ -41,10 +41,17 @@ public final class MirrorPresetRegistry
     /** What a preset file is called. */
     private static final String SUFFIX = ".mirror";
 
-    /** The looks that ship in the jar, restored whenever one is missing. */
+    /**
+     * The looks that ship in the jar, restored whenever one is missing.
+     *
+     * <p>The last five name no biome, so nothing ever picks them automatically -- they exist
+     * for {@code mirror stamp <name> <look>}, where what the operator wants said about a mirror
+     * is not where it goes.
+     */
     private static final String[] DEFAULTS = { "nether.mirror", "end.mirror", "ocean.mirror",
         "forest.mirror", "desert.mirror", "frozen.mirror", "cavern.mirror", "mountain.mirror",
-        "overworld.mirror", "indoors.mirror" };
+        "overworld.mirror", "indoors.mirror", "pale_garden.mirror", "sparse_jungle.mirror",
+        "plain.mirror", "hub.mirror", "warning.mirror", "private.mirror", "arcane.mirror" };
 
     /** The one used when nothing else matches, and when the far side is enclosed. */
     private static final String FALLBACK = "overworld";
@@ -74,8 +81,8 @@ public final class MirrorPresetRegistry
      * Reads every preset in a given directory.
      *
      * <p>Takes the directory so a test can point it somewhere harmless. The no-argument
-     * version resolves the live plugin folder and writes ten files into it, which is not
-     * something a test that only wants to parse one preset should do.
+     * version resolves the live plugin folder and writes every shipped preset into it, which
+     * is not something a test that only wants to parse one preset should do.
      *
      * @param directory
      *            the folder to read, created if it is not there
@@ -113,8 +120,8 @@ public final class MirrorPresetRegistry
      * Reads one file and registers what it declares.
      *
      * <p>Per file, and catching more than IOException, the same as the shape loader: the whole
-     * folder is read at startup, and one operator's malformed preset must not cost them the
-     * other nine.
+     * folder is read at startup, and one operator's malformed preset must not cost them every
+     * other one.
      */
     private static void register(final File file)
     {

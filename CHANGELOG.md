@@ -30,6 +30,35 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **Seven more looks a mirror's banner can wear, and no biome left without one.** Ten shipped;
+  there are seventeen.
+
+  Two of them are places the ten missed. `sparse_jungle` gets one tree where the woodland look
+  has a row of them, and `pale_garden` a pale trunk in grey fog. That biome exists only from
+  1.21.4 on, so on an older server the file loads and simply never wins, which is the same
+  non-event as any preset naming a biome the server has not heard of. With those two there is
+  no biome left in the game that falls through to the generic look.
+
+  They are new files rather than two lines added to `forest.mirror`, and that is the difference
+  between shipping and not shipping: the restore only writes out presets that are *missing*, so
+  a biome added to a preset an operator already has on disk would reach a fresh install and
+  never reach anybody upgrading. As its own file, `sparse_jungle` arrives on the next startup.
+
+  The other five are not places at all. `plain`, `hub`, `warning`, `private` and `arcane` name
+  no biome, so nothing picks them automatically and `mirror stamp <name> <look>` is the only
+  way to get one. They are for what you want said about a mirror when it is not where it goes:
+  the middle of a network, one that only runs one way, one that is not for general use. `plain`
+  is the quiet one -- a colour and a border and no charge -- for when the sampled look is wrong
+  and the build would rather the banner said nothing. None of the five carry any behaviour;
+  `private` is a bar painted across a banner, not a permission node.
+
+  The shipped files are now held by a test to the 34 pattern names that exist on every supported
+  version. `PatternType` renamed seven constants between 1.20 and 1.21 and gained two, and a
+  preset naming one of those stamps correctly on the version it was written on while quietly
+  losing that layer on the other half of the range -- nothing logs loudly enough to connect the
+  two. It is also exactly what a design transcribed out of one of the banner galleries does,
+  since those publish in Mojang's pattern ids on whatever version the site happens to run
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - **Mirrors can go dark until you walk up to them, and keep themselves current.** Two settings,
   independent of each other:
 
