@@ -195,14 +195,13 @@ public class ConfigManager
         MIRROR_DYNAMIC_RESAMPLE_SECONDS,
 
         /**
-         * Whether a mirror names itself above the hotbar when somebody walks up to it.
+         * Whether a mirror names itself above the hotbar to whoever is looking at it.
          *
          * <p>A stamped banner looks like scenery, and a corridor of them looks like
          * decoration. Nothing about a mirror says it is a door until somebody happens to right
          * click it, which is a thing players do to signs and not to wall hangings.
          *
-         * <p>Turning this off costs the sweep nothing: it stops visiting mirrors it has no
-         * other reason to visit.
+         * <p>Turning this off stops the signpost pass before it looks at anybody.
          */
         MIRROR_APPROACH_MESSAGE
     }
@@ -1389,14 +1388,14 @@ public class ConfigManager
     }
 
     /**
-     * Whether a mirror names itself above the hotbar when somebody walks up to it.
+     * Whether a mirror names itself above the hotbar to whoever is looking at it.
      *
      * <p>Defaults to true when the setting is missing, which is what an existing server's
      * config.yml looks like after an upgrade. A new thing that announces itself is the right
      * default here: the whole complaint this answers is that a mirror gives no sign of being
      * anything but a banner.
      *
-     * @return true if approaching a mirror says what it is
+     * @return true if looking at a mirror says what it is
      */
     public static boolean isMirrorApproachMessage()
     {

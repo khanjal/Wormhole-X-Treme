@@ -103,7 +103,7 @@ class DefaultSettings
         new Setting(ConfigKeys.MIRROR_PROXIMITY_RADIUS, 8, "How close a player must be, in blocks, before a mirror set to 'proximity' shows its look. Kept small on purpose: the point is that a corridor reads as blank cloth until you walk up to one.", SECTION),
         new Setting(ConfigKeys.MIRROR_PROXIMITY_TICKS, 20, "How often the proximity sweep runs, in ticks. 20 is once a second. The sweep skips mirrors whose world or chunk is not loaded before it touches anything.", SECTION),
         new Setting(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS, 60, "Least time between two re-readings of one 'dynamic' mirror's far side. Re-reading loads a distant chunk, so this stops a player pacing in front of a mirror from asking for it every second.", SECTION),
-        new Setting(ConfigKeys.MIRROR_APPROACH_MESSAGE, true, "Whether a mirror names itself above the hotbar when a player walks within the proximity radius. Only mirrors that actually go somewhere say anything, and only on arriving in range -- standing in front of one is silent. Turn this off and the sweep stops visiting mirrors it has no other reason to visit.", SECTION)
+        new Setting(ConfigKeys.MIRROR_APPROACH_MESSAGE, true, "Whether a mirror names itself above the hotbar, along with the world it opens onto, while a player is looking at it from within about six blocks. Only mirrors that actually go somewhere say anything. Looking at one rather than merely standing near it, because a corridor puts you near several at once and they would take turns in the one action bar slot.", SECTION)
     };
 
 }

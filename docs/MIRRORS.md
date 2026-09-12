@@ -151,16 +151,14 @@ anything touches a block it has ruled out mirrors it has no reason to visit, wor
 loaded, and chunks that are not loaded — the chunk check comes before `getBlockAt`, which would
 load one.
 
-There were originally two reasons to visit a mirror, and both were narrow: hiding it, and
-keeping a dynamic one current. That meant a server whose mirrors were all ordinary did no work
-here beyond walking the list.
+There are two reasons to visit a mirror and both are narrow: hiding it, and keeping a dynamic
+one current. So a server whose mirrors are all ordinary does no work here beyond walking the
+list.
 
-The approach message below adds a third and gives that up, deliberately. An ordinary mirror that
-goes somewhere is now visited too, which costs one squared-distance comparison per player in its
-world per sweep. It is the cheapest check in the file and it happens once a second by default,
-but it is not nothing, and it is the first thing here that an operator pays for without having
-turned anything on. `mirror-approach-message: false` puts the old behaviour back exactly — the
-sweep stops visiting those mirrors rather than visiting them and staying quiet.
+That was briefly untrue. When a mirror first learned to name itself it did so on approach, which
+meant this sweep had to visit every ordinary mirror to work out who was near it — a distance
+check per player per mirror. Moving the announcement to the player's own line of sight took the
+third reason away again, and with it the cost.
 
 ## Saying what it is
 
@@ -168,8 +166,7 @@ A stamped banner looks like scenery, and a corridor of them looks like decoratio
 one said it was a door until somebody happened to right-click it, which is a thing players do to
 signs and not to wall hangings.
 
-So a mirror that goes somewhere names itself when somebody comes within
-`mirror-proximity-radius` blocks:
+So a mirror that goes somewhere names itself to whoever is looking at it, from about six blocks:
 
 ```
 :: museum -- click to travel to nether.
@@ -181,13 +178,26 @@ Three decisions in that one line, none of them arbitrary.
 then goes, where chat would leave a line behind for every banner walked past — a corridor would
 cost a player their whole chat window to walk down.
 
-**On the crossing only.** The sweep already tracks who was in range last time, for the packets,
-and this rides on the same set. Standing in front of a mirror is silent; so is pacing in front
-of one, as long as you do not leave the radius. Announcing per sweep would be a line a second.
+**Looking at, not standing near.** This began the other way: sent once, on crossing into the
+proximity radius, which is how the rings announce themselves. For a ring that is right, because
+walking in starts something. A mirror is not started by arriving at it — it is looked at,
+considered, and then clicked — and an action bar line fades after about three seconds, so the
+message had come and gone by the moment it was wanted. You were told there was a door while
+walking towards it, and told nothing while stood in front of it deciding.
+
+Re-sending to everyone in range is worse than it sounds: a corridor puts a player within eight
+blocks of several mirrors at once, and they would take turns in the one action bar slot,
+flickering once a sweep. Looking at one picks exactly one, because a player has a single target
+block and there is nothing to arbitrate. The line is re-sent every sweep for as long as they
+keep looking, which is what a steady line means when the bar fades on its own.
+
+It also made the plugin cheaper. Asking every mirror who is near it is a distance check per
+player per mirror; asking each player what they are looking at is one question regardless of how
+many mirrors there are, and no question at all in a world that has none.
 
 **Only a mirror with a destination.** An unpointed one is a banner somebody is halfway through
-setting up, and announcing it would be the plugin telling everybody who walked past about
-unfinished work. Clicking it already says what to do, to the one person who asked.
+setting up, and announcing it would be the plugin telling whoever glanced at it about somebody
+else's unfinished work. Clicking it already says what to do, to the one person who asked.
 
 It carries the plugin's `::` header itself, unlike everything else a mirror says, because the
 action-bar path does not go through the call that prefixes it. Without that, a line appearing
