@@ -144,6 +144,43 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A ceiling ring in a room deeper than four blocks fired over and over and took nobody.**
+  The volume that arms a ring and the volume that decides who rides it were worked out two
+  different ways. `RingIndex` armed a ceiling ring over `max-ceiling-drop + 2` layers -- twelve
+  by default -- through `Ring.volumeDepth`. `RingCycle` looked for passengers over the raw
+  `ring.reach`, four layers, with no ceiling adjustment at all.
+
+  So in any room deeper than the reach, somebody standing on the floor under a ceiling ring was
+  inside the arming volume and outside the carrying one. The rings lit, rose, swapped nobody
+  and sank. And a cycle that carries nobody is deliberately owed no cooldown -- there was no
+  arrival to guard against -- so it re-armed on the spot, with the same person still standing
+  in the same place, and went again. Reported from a room with a seven-block ceiling as rings
+  that keep powering up and down.
+
+  `RingCycle` now asks `Ring.volumeDepth` the same question the index does. That method existed
+  for exactly this and had one caller; `triggerVolumeBlocks`'s own doc even states the failure
+  mode -- "a floor further below the ring than the reach means people standing on it are not in
+  the volume and will not travel."
+
+  Thirty `RingCycleTest` tests could not have caught it: their fake world matches a volume to a
+  ring by x and z and ignores y entirely, which is fine for the swap-and-restore behaviour they
+  were written for and blind to any question about depth. The new test carries somebody
+  standing seven blocks under a ceiling ring, which fails against the old code.
+- **A room that could never work is now refused when the ring is laid, not when somebody
+  stands in it.** The survey already knew how to say "that ceiling is too far above its floor";
+  it just never ran until a traveller arrived. By then the builder has walked away and paired
+  both ends, and what the next person sees is rings misbehaving rather than a room that was
+  never going to work.
+
+  `/wormhole ring create` now runs the same survey before it accepts a circle, and says which
+  of the five things is wrong with the numbers filled in -- "more than 10 blocks above its
+  floor", not "too high".
+
+  Writing that turned up a second thing. `RingCreationTest`'s mock world had never stubbed
+  `getMinHeight`, `getMaxHeight` or `isPassable`, so Mockito was answering 0, 0 and false: a
+  world zero blocks tall made of solid rock. Nothing had asked before. Five tests failed the
+  moment creation started surveying, and the honest fix was to give that world a real height
+  range, air you can walk through and a floor under the pad, rather than to loosen the check.
 - **The startup banner tore itself apart on some consoles and not others.** The gate ring was
   drawn with five glyphs out of the Block Elements range, and they did not all belong to the
   same East-Asian-Width class. `▄`, `▀` and `▌` are Ambiguous; `▐` and `░` are Narrow.

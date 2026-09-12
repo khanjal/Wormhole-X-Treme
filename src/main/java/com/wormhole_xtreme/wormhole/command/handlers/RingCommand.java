@@ -11,6 +11,9 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.ring.BukkitBlockProbe;
+import com.wormhole_xtreme.wormhole.model.ring.BukkitGround;
+import com.wormhole_xtreme.wormhole.model.ring.RingBlockage;
+import com.wormhole_xtreme.wormhole.model.ring.RingSurvey;
 import com.wormhole_xtreme.wormhole.model.ring.Ring;
 import com.wormhole_xtreme.wormhole.model.ring.RingAccess;
 import com.wormhole_xtreme.wormhole.model.ring.RingIndex;
@@ -136,6 +139,13 @@ public class RingCommand implements SubCommand
         if (touchesGate(player, ring))
         {
             player.sendMessage("That circle overlaps a stargate. Rings and gates cannot share blocks.");
+            return;
+        }
+        final RingBlockage roomFor = RingSurvey.survey(new BukkitGround(player.getWorld()), ring,
+            ConfigManager.getRingMaxCeilingDrop());
+        if (roomFor != null)
+        {
+            player.sendMessage(explain(roomFor));
             return;
         }
 
@@ -427,6 +437,52 @@ public class RingCommand implements SubCommand
                 + "clear — that is where people stand.";
         }
         return "No ring of slabs here. Lay a circle of slabs and stand inside it.";
+    }
+
+    /**
+     * Why a circle that is a valid ring still has nowhere to put anybody.
+     *
+     * <p>Asked when the ring is laid rather than only when somebody stands in it. The same
+     * survey runs at use time, but by then the builder has walked away, paired two ends and
+     * told people it works -- and the room is not something they can fix from the inside of a
+     * cycle that keeps firing. Every number here is the one the survey actually used.
+     *
+     * <p>Package-private so the wording can be tested without a world to build in.
+     *
+     * @param blockage
+     *            what the survey found
+     * @return what to tell the builder
+     */
+    static String explain(final RingBlockage blockage)
+    {
+        if (blockage == RingBlockage.CEILING_TOO_HIGH)
+        {
+            // Read here rather than at the top: every other branch is a fact about the rings
+            // themselves, and reading config for them would make them need a loaded server.
+            final int maxDrop = ConfigManager.getRingMaxCeilingDrop();
+            return "That ring is more than " + maxDrop + " blocks above its floor. A ceiling "
+                + "ring drops its rings all the way down and they stack up from there, so it "
+                + "needs a floor within " + maxDrop + " blocks — lower the ring, raise the "
+                + "floor, or set ring.max-ceiling-drop higher.";
+        }
+        if (blockage == RingBlockage.CEILING_TOO_LOW)
+        {
+            return "That ring has no room between it and the floor. The rings need at least "
+                + Ring.MIN_CEILING_DROP + " blocks below the ceiling to fall through.";
+        }
+        if (blockage == RingBlockage.NO_HEADROOM)
+        {
+            return "There is not enough clear air for the rings. They stand " + Ring.STACK_HEIGHT
+                + " blocks tall around whoever arrives, so they need " + Ring.STACK_HEIGHT
+                + " blocks above the pad — more than a person needs to stand in it.";
+        }
+        if (blockage == RingBlockage.NO_GROUND)
+        {
+            return "That ring has a hole in its floor. There has to be something under it to "
+                + "stand on.";
+        }
+        return "There is something built inside that ring. Clear the inside of the circle and "
+            + "try again — what is built around it does not matter.";
     }
 
     /**
