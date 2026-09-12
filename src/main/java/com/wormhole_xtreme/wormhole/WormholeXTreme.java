@@ -679,6 +679,9 @@ public class WormholeXTreme extends JavaPlugin
      * The charset the console actually writes in, which on Windows is the active code page
      * and not necessarily the JVM default.
      *
+     * <p>Package-private so a test can drive the property lookup; there is no console under
+     * Surefire, so the tail of this method is all a test would otherwise reach.
+     *
      * <p>The {@link Charset#defaultCharset()} at the end is not the mistake {@code
      * PlatformCharsetIsNeverUsedTest} guards against. That one is about writing a file in one
      * charset and reading it back in another. This is asking what the console will do with
@@ -687,7 +690,7 @@ public class WormholeXTreme extends JavaPlugin
      *
      * @return the console charset, or the platform default if there is no console
      */
-    private static Charset consoleCharset()
+    static Charset consoleCharset()
     {
         // Set by the JVM from the real stream encoding; the second name is the pre-19 spelling.
         for (final String property : new String[] { "stdout.encoding", "sun.stdout.encoding" })

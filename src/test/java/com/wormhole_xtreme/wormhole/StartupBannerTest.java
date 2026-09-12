@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -179,6 +180,112 @@ class StartupBannerTest
 
         assertTrue(lines[1].endsWith("Wormhole X-Treme v9.9.9-SNAPSHOT"), "got: " + lines[1]);
         assertTrue(lines[2].endsWith("Running on Purpur"), "got: " + lines[2]);
+    }
+
+    /** The two property names {@code consoleCharset} reads, newest spelling first. */
+    private static final String[] ENCODING_PROPERTIES = { "stdout.encoding", "sun.stdout.encoding" };
+
+    /** What those properties held before a test changed them. */
+    private final String[] savedEncodings = new String[ENCODING_PROPERTIES.length];
+
+    private void setEncodingProperty(final String name, final String value)
+    {
+        for (int i = 0; i < ENCODING_PROPERTIES.length; i++)
+        {
+            if (savedEncodings[i] == null)
+            {
+                savedEncodings[i] = System.getProperty(ENCODING_PROPERTIES[i], "");
+            }
+        }
+        if (value == null)
+        {
+            System.clearProperty(name);
+        }
+        else
+        {
+            System.setProperty(name, value);
+        }
+    }
+
+    /**
+     * Puts both properties back.
+     *
+     * <p>These are JVM-wide, and Surefire runs the whole suite in one JVM. A test that changed
+     * one and walked away would be deciding what every later test saw.
+     */
+    @AfterEach
+    void restoreEncodingProperties()
+    {
+        for (int i = 0; i < ENCODING_PROPERTIES.length; i++)
+        {
+            if (savedEncodings[i] == null)
+            {
+                continue;
+            }
+            if (savedEncodings[i].isEmpty())
+            {
+                System.clearProperty(ENCODING_PROPERTIES[i]);
+            }
+            else
+            {
+                System.setProperty(ENCODING_PROPERTIES[i], savedEncodings[i]);
+            }
+            savedEncodings[i] = null;
+        }
+    }
+
+    /**
+     * The console's own encoding is believed over the JVM default.
+     *
+     * <p>This is the whole point of asking. From Java 18 on {@link Charset#defaultCharset()} is
+     * UTF-8 whatever the console is doing, so a Windows console sitting on CP1252 would be told
+     * it could take the block glyphs and print question marks instead.
+     */
+    @Test
+    void theConsoleEncodingIsReadFromTheJvmsOwnProperty()
+    {
+        assumeTrue(Charset.isSupported("IBM437"), "no CP437 on this JDK");
+        setEncodingProperty("stdout.encoding", "IBM437");
+
+        assertEquals(Charset.forName("IBM437"), WormholeXTreme.consoleCharset(),
+            "the encoding the JVM reports for stdout should win over the platform default");
+    }
+
+    /**
+     * The pre-19 spelling of the property is still read.
+     *
+     * <p>{@code stdout.encoding} was only standardised in Java 19. This plugin targets 17,
+     * where the same value lives under {@code sun.stdout.encoding} -- so reading only the new
+     * name would mean never detecting the console on the version most servers run.
+     */
+    @Test
+    void thePre19SpellingOfTheEncodingPropertyIsStillRead()
+    {
+        assumeTrue(Charset.isSupported("IBM437"), "no CP437 on this JDK");
+        setEncodingProperty("stdout.encoding", null);
+        setEncodingProperty("sun.stdout.encoding", "IBM437");
+
+        assertEquals(Charset.forName("IBM437"), WormholeXTreme.consoleCharset(),
+            "a Java 17 JVM only sets the sun.* name, and that is the JVM this plugin targets");
+    }
+
+    /**
+     * An encoding name the JVM does not know is stepped over rather than thrown on.
+     *
+     * <p>{@code Charset.forName} throws {@link java.nio.charset.UnsupportedCharsetException} on
+     * an unknown name, and this runs during enable. A banner is not worth an exception on the
+     * way up, which is what the {@code isSupported} guard in front of it is for.
+     */
+    @Test
+    void anEncodingNameTheJvmDoesNotKnowIsSteppedOver()
+    {
+        setEncodingProperty("stdout.encoding", "not-a-real-charset");
+        setEncodingProperty("sun.stdout.encoding", null);
+
+        final Charset chosen = WormholeXTreme.consoleCharset();
+
+        assertEquals(Charset.defaultCharset(), chosen,
+            "an unreadable encoding name should fall through to the default, not throw");
     }
 
     /** An ASCII console gets the ASCII ring, which is the point of having one. */
