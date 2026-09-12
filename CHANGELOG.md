@@ -144,6 +144,29 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **Renaming a mirror used to quietly take it apart.** `mirror set <newname>`, looking at a
+  banner that was already a mirror, looked the name up by the *new* name, found nothing, and
+  built a mirror from scratch. Three things went missing on the way -- where it went, what it
+  looked like, and whether it hid itself until somebody came close -- and the old name stayed in
+  the registry beside the new one, both claiming the same banner.
+
+  The reply was the unhelpful part. It said "It goes nowhere yet", which reads as a next step
+  rather than as a warning that the mirror you had just finished pointing and stamping has been
+  undone.
+
+  Clearing up the leftover made it worse. Removing a mirror took its banner out of the block
+  index without checking whether that banner was still somebody else's, so
+  `mirror remove <oldname>` unhooked the *surviving* mirror: it kept its name, still listed, and
+  did nothing at all when clicked. That guard is fixed too, which also covers a hand-edited
+  `mirror.yml` holding two entries on one banner.
+
+  `set` now works out what you meant from what already exists. A name it knows moves that mirror
+  to this banner; a banner it knows renames the mirror on it; neither makes a new one. All of
+  them carry the whole mirror forward rather than rebuilding it, so moving a stamped mirror to a
+  new banner keeps its look as well -- which it also used to lose. The one case it will not
+  guess at is a name belonging to a mirror elsewhere on a banner that is already a different
+  mirror: either reading strands one of them, so it names both and changes nothing
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - **A mirror onto the Nether was still dressed as somebody's living room.** The rule that says
   some places are enclosed by their nature -- the Nether is rock with a roof on it, a cave is a
   cave, and a preset marks itself `Sheltered=true` -- had been applied to only one of the four

@@ -1390,7 +1390,7 @@ opens onto where it used to be — run `link` again to follow it.
 
 | Command | What it does |
 | --- | --- |
-| `mirror set <name>` | Makes the banner you are looking at a mirror by that name |
+| `mirror set <name>` | Makes the banner you are looking at a mirror by that name, or renames the one already there |
 | `mirror target <name>` | Points that mirror at where you are standing |
 | `mirror link <other> [name]` | Joins the banner you are looking at to that mirror, both ways |
 | `mirror stamp <name> [look]` | Makes the banner look like where it goes |
@@ -1404,6 +1404,19 @@ between worlds, which is not something to leave open to anyone who can run `/wor
 
 Either kind of banner works: wall-mounted or freestanding on a post. A mirror whose far side is
 in an unloaded world says so when you click it, the same way a beam destination does.
+
+**Renaming one** is `set` again, looking at the banner:
+
+```
+/wormhole mirror set old-spawn    # looking at a banner that is already a mirror
+```
+
+It keeps where the mirror goes, what it looks like, and its display and mode settings — only the
+name changes, and the old one is gone rather than left behind. `set` works out what you meant
+from what already exists: a name it knows moves that mirror to this banner, a banner it knows
+renames the mirror on it, and neither makes a new one. The single case it will not guess at is a
+name that belongs to a mirror elsewhere *and* a banner that is already a different mirror, since
+either reading would quietly strand one of them; it says so and changes nothing.
 
 Click a mirror you have named but not yet pointed and it tells you how to point it, with its own
 name already filled in — the two commands above, ready to type. Only if you could run them: a
