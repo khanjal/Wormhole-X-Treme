@@ -178,6 +178,20 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **`mirror stamp`'s usage line counts the looks once there are too many to list.** It named
+  every one, bar-separated, which was a reasonable thing to do at ten looks and stopped being
+  one at seventeen: 130 characters of names, plus another 39 of usage line around them, is four
+  wrapped lines of chat for the message you get when you mistype a command.
+
+  It now lists them while the names come to 80 characters or less and otherwise says how many
+  there are and to press tab. The count rather than a bare `<look>` on purpose -- "17 looks to
+  choose from" says there is a real list to go and find, where `<look>` alone reads as a
+  free-form argument you are expected to invent a value for. Tab completion was always the
+  thing that actually offered the names, and still is.
+
+  Nothing changes for an operator with a handful of looks in `shapes/mirror/`, which is the
+  case the listing was written for and where it is still the friendlier answer
+  ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - **Mirror messages are no longer entirely grey.** Every line a mirror sent arrived in one
   colour, so a sentence carrying a command to type, the name of a mirror and the name of a world
   gave you no way to tell which was which without reading around them. Commands are now white,
