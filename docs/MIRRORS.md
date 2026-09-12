@@ -317,6 +317,16 @@ So the aimed-at block is tried first, and `getLineOfSight` is the fallback: it s
 blocks a ray crosses rather than their shapes, which is what makes a thin one findable. Order
 matters — in a corridor of banners the one being pointed at wins over the nearest one crossed.
 
+Even that is not enough on its own. A standing banner occupies one block and is drawn about two
+blocks tall: the cloth hangs in the block *above*, where there is nothing to hit, so aiming at
+the obvious part of it sends the ray straight through and out the other side. Aiming at the base
+works and nothing else does. No amount of searching the blocks the ray crossed helps, because
+the banner is not one of them — so the block under each is asked as a last pass.
+
+That last pass is for standing banners only. A wall banner is drawn inside its own block, and a
+"look one block down" rule applied to both families would let somebody name a wall banner by
+aiming at the wall above it, binding a mirror they never pointed at.
+
 ## Arriving in the banner, and the bounce that cost
 
 Arrival is the destination banner's own block, for the reason `MirrorArrival` gives: a banner is

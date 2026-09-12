@@ -455,6 +455,62 @@ class MirrorCommandTest
         assertNotNull(MirrorManager.byName("Post"), "the banner on a post should have been named");
     }
 
+    /**
+     * Aiming at the cloth of a banner on a post names that banner.
+     *
+     * <p>The half of this the line-of-sight fallback did not fix, reported after it landed: "I
+     * have to aim at the base of it to work... otherwise it goes through the banner". A
+     * standing banner occupies one block and is drawn about two tall, so the cloth -- the part
+     * anybody looks at -- hangs in the block above, where there is nothing to hit. The ray
+     * crosses that empty block and carries on, and no pass over the blocks it crossed will ever
+     * find the banner, because the banner is not on the ray at all.
+     */
+    @Test
+    void aimingAtTheClothOfABannerOnAPostFindsIt()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        final Block cloth = banner(Material.AIR);
+        when(cloth.getRelative(BlockFace.DOWN)).thenReturn(post);
+
+        assertEquals(post, MirrorCommand.bannerInSight(null, java.util.List.of(cloth)),
+            "the block above a banner on a post is where its cloth is drawn");
+    }
+
+    /**
+     * A banner actually on the ray beats one standing under it.
+     *
+     * <p>Both passes can match at once -- a corridor of banners on posts is exactly that
+     * arrangement -- and the one the player's ray genuinely crossed is the one they were
+     * looking at. Doing the passes in the other order would quietly prefer a banner one block
+     * below the aim.
+     */
+    @Test
+    void aBannerOnTheRayBeatsOneStandingUnderIt()
+    {
+        final Block underfoot = banner(Material.WHITE_BANNER);
+        final Block crossed = banner(Material.MAGENTA_BANNER);
+        when(crossed.getRelative(BlockFace.DOWN)).thenReturn(underfoot);
+
+        assertEquals(crossed, MirrorCommand.bannerInSight(null, java.util.List.of(crossed)));
+    }
+
+    /**
+     * The cloth rule does not apply to wall banners.
+     *
+     * <p>A wall banner is drawn inside its own block, so there is no cloth above it to aim at.
+     * Letting the rule apply to both families would mean aiming at a wall could name the banner
+     * hanging below the spot -- binding a mirror the player never pointed at.
+     */
+    @Test
+    void aWallBannerIsNotFoundByAimingAboveIt()
+    {
+        final Block hanging = banner(Material.WHITE_WALL_BANNER);
+        final Block wallAbove = banner(Material.STONE);
+        when(wallAbove.getRelative(BlockFace.DOWN)).thenReturn(hanging);
+
+        assertNull(MirrorCommand.bannerInSight(null, java.util.List.of(wallAbove)));
+    }
+
     /** A verb that needs a name and was not given one says which form it wanted. */
     @Test
     void aVerbMissingItsNameGetsThatVerbsUsage()

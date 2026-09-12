@@ -9,6 +9,7 @@ import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -941,6 +942,17 @@ public class MirrorCommand implements SubCommand
      * still preferred when it is itself a banner: with two banners in a row, the one you are
      * pointing at is the one you mean.
      *
+     * <p>And then the block <em>under</em> the ray, for standing banners only. A standing
+     * banner occupies one block but is drawn about two tall -- the cloth, which is the part of
+     * it anybody actually looks at, hangs in the block above, where there is nothing to hit.
+     * Aim at the cloth and the ray goes straight through and out the other side; aim at the
+     * base and it works. That is how it was reported, in those words, after the line-of-sight
+     * fallback had already landed and fixed a different miss.
+     *
+     * <p>Standing banners only, because a wall banner is drawn inside its own block and a
+     * "look one block down" rule would let somebody name a wall banner by aiming at the wall
+     * above it.
+     *
      * @param exact
      *            the block the player is aimed at, or null if the ray hit nothing
      * @param lineOfSight
@@ -953,17 +965,39 @@ public class MirrorCommand implements SubCommand
         {
             return exact;
         }
-        if (lineOfSight != null)
+        if (lineOfSight == null)
         {
-            for (final Block block : lineOfSight)
+            return null;
+        }
+        for (final Block block : lineOfSight)
+        {
+            if (isBanner(block))
             {
-                if (isBanner(block))
-                {
-                    return block;
-                }
+                return block;
+            }
+        }
+        // Second pass, and only after every block on the ray has been asked: a banner the ray
+        // actually crossed beats one merely standing under it.
+        for (final Block block : lineOfSight)
+        {
+            final Block below = (block == null) ? null : block.getRelative(BlockFace.DOWN);
+            if (isStandingBanner(below))
+            {
+                return below;
             }
         }
         return null;
+    }
+
+    /**
+     * Whether a banner stands on the ground rather than hanging on a wall.
+     *
+     * <p>The two families are told apart by name, the way the rest of this feature does it:
+     * sixteen {@code *_WALL_BANNER} and sixteen {@code *_BANNER}, one per dye colour.
+     */
+    private static boolean isStandingBanner(final Block block)
+    {
+        return isBanner(block) && !block.getType().name().endsWith("WALL_BANNER");
     }
 
     /** Whether a block is a banner of either family, which is what a mirror has to be. */

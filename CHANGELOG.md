@@ -159,6 +159,15 @@ been running on defaults will start reading the file you have been editing.
   rather than their shapes, so the banner's own block is in the list either way. The aimed-at
   block still wins when it is itself a banner -- in a corridor of them, the one you are pointing
   at is the one you mean.
+
+  That fixed one miss and not the other, which only came out on the next banner: "I have to aim
+  at the base of it to work... otherwise it goes through the banner". A standing banner occupies
+  one block and is drawn about two tall, so its cloth -- the part anybody actually looks at --
+  hangs in the block above, where there is nothing to hit. No pass over the blocks the ray
+  crossed could ever find it, because the banner is not on the ray at all. So the block *under*
+  each one on the ray is asked too, and only for standing banners: a wall banner is drawn inside
+  its own block, and the same rule there would let somebody name one by aiming at the wall above
+  it.
 - **A linked pair of mirrors sent you straight back where you came from.** Click the return
   banner, arrive in the other world, and be returned to the banner you started at inside a
   second -- which reads as a mirror that opens onto itself. Reported as "clicking the return
