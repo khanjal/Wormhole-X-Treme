@@ -125,10 +125,19 @@ class MirrorStampCommandTest
             .sendMessage(contains("looks like " + MirrorText.NAME_COLOUR + "nether"));
     }
 
+    /**
+     * Naming a look nobody has says so, and counts the alternatives rather than listing them.
+     *
+     * <p>Same rule and same threshold as the usage line: with every shipped look loaded the
+     * names come to more than the budget, so the refusal says how many there are. It still
+     * names what was typed, which is the part that tells somebody they mistyped rather than
+     * that the command is broken.
+     */
     @Test
-    void listsTheLooksThatExistWhenGivenOneNobodyHas()
+    void countsTheLooksThatExistWhenGivenOneNobodyHas()
     {
         pointedMirror();
+        final int loaded = MirrorPresetRegistry.names().length;
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
@@ -138,7 +147,9 @@ class MirrorStampCommandTest
         verify(banner, never()).update(anyBoolean());
         verify(sender, atLeastOnce())
             .sendMessage(contains("no look called '" + MirrorText.NAME_COLOUR + "chartreuse"));
-        verify(sender, atLeastOnce()).sendMessage(contains("nether"));
+        verify(sender, atLeastOnce())
+            .sendMessage(contains("There are " + loaded + " to choose from"));
+        verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
     }
 
     @Test
@@ -290,28 +301,29 @@ class MirrorStampCommandTest
     }
 
     /**
-     * The threshold itself, from both sides.
+     * The threshold itself, from both sides. One rule, used by the usage line and the refusal.
      *
      * <p>Through the decision rather than the command, because the registry only ever loads
      * what ships -- one answer, and not the one that would catch the rule being inverted or
-     * the budget being set somewhere useless.
+     * the budget being set somewhere useless. The two messages are then pinned end to end on
+     * the long side, which is what would catch the branches being swapped.
      */
     @Test
     void listsAShortSetOfLooksAndCountsALongOne()
     {
-        assertTrue(MirrorCommand.looksFitTheUsageLine(
+        assertTrue(MirrorCommand.looksFitInAMessage(
             new String[] { "nether", "end", "ocean", "forest", "desert" }),
             "five short names are well inside the budget and should be listed");
-        assertFalse(MirrorCommand.looksFitTheUsageLine(MirrorPresetRegistry.names()),
+        assertFalse(MirrorCommand.looksFitInAMessage(MirrorPresetRegistry.names()),
             "the shipped looks are past the budget and should be counted");
-        assertFalse(MirrorCommand.looksFitTheUsageLine(new String[0]),
+        assertFalse(MirrorCommand.looksFitInAMessage(new String[0]),
             "with none loaded there is nothing to list");
 
         // Either side of the boundary by one character, so a budget moved anywhere useless
         // fails here rather than quietly changing what players see.
-        assertTrue(MirrorCommand.looksFitTheUsageLine(new String[] { "a".repeat(80) }),
+        assertTrue(MirrorCommand.looksFitInAMessage(new String[] { "a".repeat(80) }),
             "a list exactly at the budget still fits");
-        assertFalse(MirrorCommand.looksFitTheUsageLine(new String[] { "a".repeat(81) }),
+        assertFalse(MirrorCommand.looksFitInAMessage(new String[] { "a".repeat(81) }),
             "one character past it does not");
     }
 
