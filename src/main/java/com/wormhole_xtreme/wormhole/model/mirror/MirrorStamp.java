@@ -182,14 +182,19 @@ public final class MirrorStamp
     /**
      * What colour the cloth itself is.
      *
-     * <p>The preset's own colour, except indoors. Inside a building the biome describes the
+     * <p>The preset's own colour, except in a room. Inside a building the biome describes the
      * ground the roof happens to stand on, so the preset that biome picked says nothing useful
      * about the room -- the commonest block in it says far more, and a library comes back the
      * brown of its shelves rather than the green of the meadow outside.
+     *
+     * <p>Which is only true of somewhere that is a room, and {@link MirrorPreset#readsAsARoom}
+     * is what knows the difference. A mirror onto the Nether used to land here as well, since
+     * the Nether is enclosed by its nature -- and threw away the red the nether look exists to
+     * be, in favour of whatever netherrack happened to average to that sample.
      */
     private static DyeColor baseFor(final MirrorPreset preset, final MirrorView view)
     {
-        if ((view != null) && view.enclosed() && (view.dominant() != null))
+        if (preset.readsAsARoom(view) && (view.dominant() != null))
         {
             return view.dominant();
         }
@@ -200,7 +205,7 @@ public final class MirrorStamp
     private static List<Pattern> patternsFor(final MirrorPreset preset, final MirrorView view)
     {
         final List<Pattern> patterns = new ArrayList<>();
-        addViewSquares(patterns, view);
+        addViewSquares(patterns, view, preset.readsAsARoom(view));
         for (final MirrorPreset.Layer layer : preset.layers())
         {
             if (patterns.size() >= MAX_PATTERNS)
@@ -215,18 +220,31 @@ public final class MirrorStamp
     /**
      * One square per sampled colour.
      *
-     * <p>Indoors the commonest colour is already the base, so it is not also drawn as a square
-     * -- that would be a brown square on brown cloth. The rest still go on, which is how the
-     * shelves in a library end up with the stone of its walls beside them.
+     * <p>In a room the commonest colour is already the base, so it is not also drawn as a
+     * square -- that would be a brown square on brown cloth. The rest still go on, which is how
+     * the shelves in a library end up with the stone of its walls beside them.
+     *
+     * <p>That skip has to agree with {@code baseFor} about what a room is, which is why the
+     * answer is passed in rather than worked out again. Somewhere sheltered keeps its preset's
+     * base, so its commonest colour is not on the cloth and dropping the square would lose it
+     * for nothing.
+     *
+     * @param patterns
+     *            the list being built
+     * @param view
+     *            what was found over there, or null
+     * @param asRoom
+     *            whether the base colour has been replaced by the commonest block
      */
-    private static void addViewSquares(final List<Pattern> patterns, final MirrorView view)
+    private static void addViewSquares(final List<Pattern> patterns, final MirrorView view,
+        final boolean asRoom)
     {
         if (view == null)
         {
             return;
         }
         final List<DyeColor> colours = view.colours();
-        final int from = (view.enclosed() && !colours.isEmpty()) ? 1 : 0;
+        final int from = (asRoom && !colours.isEmpty()) ? 1 : 0;
         for (int i = from; i < colours.size(); i++)
         {
             final int slot = i - from;

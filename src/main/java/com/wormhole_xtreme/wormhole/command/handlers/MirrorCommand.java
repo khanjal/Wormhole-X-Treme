@@ -503,9 +503,14 @@ public class MirrorCommand implements SubCommand
                 + " read. Name a look instead, or try again once that world is up.");
             return;
         }
-        final MirrorPreset preset = view.enclosed()
-            ? MirrorPresetRegistry.indoors()
-            : MirrorPresetRegistry.forBiome(view.biome());
+        // Asked of the look rather than worked out here. This used to be its own copy of the
+        // decision -- enclosed means indoors -- which is right for a library and wrong for the
+        // Nether, and the rule that knows the difference lived only in MirrorLook. So stamping
+        // a mirror onto the Nether by hand dressed it as a room, while the very same mirror
+        // corrected itself to the Nether's look the first time somebody walked up to a dynamic
+        // one. Same banner, two appearances, depending on which code touched it last.
+        final MirrorLook look = MirrorLook.seen(view);
+        final MirrorPreset preset = look.preset();
         if (preset == null)
         {
             say(sender, "No mirror looks are loaded, so there is nothing to stamp with."
@@ -514,7 +519,7 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset, view))
         {
-            remember(mirror, MirrorLook.seen(view));
+            remember(mirror, look);
             say(sender, MirrorText.quoted(mirror.name()) + " now shows "
                 + describe(view, preset) + ".");
         }
@@ -546,10 +551,14 @@ public class MirrorCommand implements SubCommand
      * <p>"Somewhere indoors" stays in the body colour and the other two do not, because those
      * two are names -- a biome and a look -- and this one is a sentence saying there was no
      * name to give.
+     *
+     * <p>Asked of the preset rather than of {@code enclosed} alone, so the sentence agrees with
+     * the banner. Reading it off the view meant a mirror onto the Nether was stamped with the
+     * Nether's look and then described as "somewhere indoors" in the same breath.
      */
     private static String whereItIs(final MirrorView view, final MirrorPreset preset)
     {
-        if (view.enclosed())
+        if (preset.readsAsARoom(view))
         {
             return "somewhere indoors";
         }

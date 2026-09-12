@@ -57,6 +57,19 @@ reported from real play as "the banner doesn't look right", and quite right too.
 shipped `nether` and `cavern` both do. What is left for the indoor rule is a room somewhere it
 is *not* normal to be inside one, which is the library it was written for.
 
+That flag was added to the choice of frame and to nothing else, which fixed a third of the
+problem and left it looking fixed. Being enclosed drives three decisions — the frame, whether
+the commonest block replaces the cloth colour, and whether that block also gets a square — and
+a fourth in the sentence the command prints. A mirror onto the Nether went on losing its red to
+whatever netherrack averaged to, and `mirror stamp` kept a *second copy* of the frame rule
+without the flag, so stamping by hand dressed a Nether mirror as a room while a dynamic one
+corrected itself on the next approach. One banner, two appearances, depending on which code
+touched it last.
+
+All four now ask `MirrorPreset.readsAsARoom(view)`, which is the one place that knows the
+difference between somewhere enclosed and somewhere that is a room. If you add a preset for a
+place that is enclosed by its nature, `Sheltered=true` is the whole of what you have to say.
+
 The threshold is a judgement and nothing more. At 55% a cellar reads as indoors, which is
 right, and a forest does not, which is also right.
 

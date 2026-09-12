@@ -236,6 +236,48 @@ class MirrorStampTest
         return captor.getValue();
     }
 
+    /**
+     * A sheltered look draws every sampled colour, its commonest included.
+     *
+     * <p>The squares skip the commonest colour only because it has already become the cloth.
+     * Somewhere enclosed by its nature -- the Nether, a cave -- keeps its preset's own colour
+     * instead, so that colour is not on the cloth and dropping its square would lose it for
+     * nothing. The skip and the dye have to agree about what a room is, and this is the half
+     * that says so.
+     */
+    @Test
+    void aShelteredLookStillDrawsItsCommonestColourAsASquare()
+    {
+        assumeTrue(patternsAvailable(),
+            "this jar cannot build a pattern outside a running server");
+        final MirrorPreset nether = MirrorPreset.parse("nether",
+            List.of("Base=RED", "Sheltered=true", "Layer=BLACK BORDER"));
+
+        MirrorStamp.apply(block, nether,
+            new MirrorView("NETHER_WASTES", List.of(DyeColor.BROWN, DyeColor.GRAY), true));
+
+        verify(banner).setBaseColor(DyeColor.RED);
+        assertTrue(captured().stream().anyMatch(p -> p.getColor() == DyeColor.BROWN),
+            "brown is not the cloth here, so it still belongs on it");
+    }
+
+    /** In a real room the commonest colour is the cloth, so it is not a square on it too. */
+    @Test
+    void aRoomDoesNotDrawItsCommonestColourOnTopOfItself()
+    {
+        assumeTrue(patternsAvailable(),
+            "this jar cannot build a pattern outside a running server");
+        final MirrorPreset forest = MirrorPreset.parse("forest",
+            List.of("Base=GREEN", "Layer=BLACK BORDER"));
+
+        MirrorStamp.apply(block, forest,
+            new MirrorView("FOREST", List.of(DyeColor.BROWN, DyeColor.GRAY), true));
+
+        verify(banner).setBaseColor(DyeColor.BROWN);
+        assertFalse(captured().stream().anyMatch(p -> p.getColor() == DyeColor.BROWN),
+            "a brown square on brown cloth is not a square");
+    }
+
     /** A preset with a base colour and any number of "COLOUR PATTERN" layers. */
     private static MirrorPreset preset(final String base, final String... layers)
     {
