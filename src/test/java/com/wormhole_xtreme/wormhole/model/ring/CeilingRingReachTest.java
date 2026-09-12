@@ -49,7 +49,13 @@ class CeilingRingReachTest
 
     private static final int PLANE_Y = 64;
 
-    /** A traveller that only has to say who it is. */
+    /**
+     * A traveller that only has to say who it is.
+     *
+     * <p>The id is derived from the name rather than being the same field twice. A passenger
+     * whose name and uuid are literally one string cannot catch a swap of the two, and the
+     * cycle keys on the uuid while every assertion here reads the name.
+     */
     private static final class Traveller implements RingPassenger
     {
         private final String name;
@@ -74,7 +80,7 @@ class CeilingRingReachTest
         @Override
         public String getUniqueId()
         {
-            return name;
+            return "uuid-" + name;
         }
 
         @Override

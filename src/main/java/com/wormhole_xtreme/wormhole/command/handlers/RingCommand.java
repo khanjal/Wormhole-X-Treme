@@ -440,13 +440,6 @@ public class RingCommand implements SubCommand
     }
 
     /**
-     * Says why a ring may not go where it was asked for.
-     *
-     * @param refusal
-     *            what placement objected to
-     * @return something the player can act on
-     */
-    /**
      * Why a circle that is a valid ring still has nowhere to put anybody.
      *
      * <p>Asked when the ring is laid rather than only when somebody stands in it. The same
@@ -492,6 +485,13 @@ public class RingCommand implements SubCommand
             + "try again — what is built around it does not matter.";
     }
 
+    /**
+     * Says why a ring may not go where it was asked for.
+     *
+     * @param refusal
+     *            what placement objected to
+     * @return something the player can act on
+     */
     private static String explain(final RingManager.Refusal refusal)
     {
         if (refusal == RingManager.Refusal.TOO_CLOSE)
