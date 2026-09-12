@@ -144,6 +144,39 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **The startup banner tore itself apart on some consoles and not others.** The gate ring was
+  drawn with five glyphs out of the Block Elements range, and they did not all belong to the
+  same East-Asian-Width class. `▄`, `▀` and `▌` are Ambiguous; `▐` and `░` are Narrow.
+
+  A terminal set to render Ambiguous characters double-width -- a toggle in PuTTY, Windows
+  Terminal, konsole, iTerm2 and tmux, and the default under a CJK locale -- widened three of the
+  five and left the other two alone. The arcs went from six columns to ten while the middle row
+  went from seven to eight, so the ring sheared open and the version and host labels stopped
+  lining up with each other. Same jar, same server: whether you saw it depended on a setting in
+  your terminal, which is exactly why it looked intermittent.
+
+  The two Narrow glyphs are gone. `▐` is now `█` and `░` is now `▒`, both Ambiguous and both in
+  CP437 like the rest, so every cell in the drawing stretches together and a wide terminal
+  simply gets a fatter ring instead of a broken one.
+
+  The other half of it was never about width. None of those glyphs exist in CP1252 or Latin-1,
+  so a server whose console is piped through a hosting panel printed a row of `?` where the ring
+  should be -- the old class comment predicted this ("shows replacement marks rather than
+  failing") and left it there. The banner now asks the console's charset whether it can encode
+  the drawing, and where it cannot, draws this instead:
+
+  ```
+    ,-.
+   ( o )    Wormhole X-Treme v1.6.0
+    `-'     Running on Paper
+  ```
+
+  Both drawings pad out to the same column, so the two labels line up whichever one you get.
+
+  Nothing in `java.lang.Character` exposes East-Asian width, so the test that holds this carries
+  the Unicode 15.1 classification as data and fails on any glyph not on the list -- Narrow, or
+  merely never checked. A drawing is worth a guard when the thing that breaks it is a setting on
+  someone else's machine.
 - **A mirror onto the Nether was still dressed as somebody's living room.** The rule that says
   some places are enclosed by their nature -- the Nether is rock with a roof on it, a cave is a
   cave, and a preset marks itself `Sheltered=true` -- had been applied to only one of the four
