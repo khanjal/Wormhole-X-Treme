@@ -1472,22 +1472,24 @@ to date.
 
 ### Saying what it is
 
-A stamped banner still looks like scenery. Walk within `mirror-proximity-radius` blocks of a
-mirror that goes somewhere and it names itself above the hotbar, along with the world on the
-far side — the one thing you cannot see from standing in front of it:
+A stamped banner still looks like scenery. Look at a mirror that goes somewhere, from about six
+blocks, and it names itself above the hotbar along with the world on the far side — the one
+thing you cannot see from standing in front of it:
 
 ```
 :: museum -- click to travel to nether.
 ```
 
 Above the hotbar rather than in chat, like the transport rings: it replaces itself and then
-goes, instead of leaving a line behind for every banner you walked past. Only on arriving in
-range, so standing in front of one is silent, and only for mirrors that actually go somewhere —
-announcing a half-built one would be nagging about unfinished work in front of everybody who
-walked past.
+goes, instead of leaving a line behind for every banner you walked past. It stays there for as
+long as you keep looking, so it is on screen at the moment you decide to click.
 
-Set `mirror-approach-message: false` to turn it off. Doing so also puts back the older and
-cheaper sweep, which never looked at an ordinary mirror at all.
+Looking at one rather than merely standing near it, because a corridor puts you within range of
+several at once and they would take turns in the one action bar slot. Your crosshair picks
+exactly one. Only mirrors that actually go somewhere say anything — announcing a half-built one
+would be nagging about unfinished work at whoever glanced at it.
+
+Set `mirror-approach-message: false` to turn it off.
 
 ## Sounds
 

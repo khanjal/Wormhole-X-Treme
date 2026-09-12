@@ -44,19 +44,19 @@ been running on defaults will start reading the file you have been editing.
   once every `mirror-dynamic-resample-seconds`. Rebuild the destination and the mirror follows
   it. A mirror nobody visits is never re-read, which is what keeps sampling a distant chunk
   affordable ([#260](https://github.com/khanjal/Wormhole-X-Treme/issues/260)).
-- **A mirror says what it is when you walk up to it.** A stamped banner looks like scenery, and
-  a corridor of them looks like decoration -- nothing about one said it was a door until
-  somebody happened to right-click it, which players do to signs and not to wall hangings. Come
-  within `mirror-proximity-radius` blocks of a mirror that goes somewhere and it names itself
-  above the hotbar, along with the world on the far side, which is the one thing you cannot see
-  from in front of it.
+- **A mirror says what it is when you look at it.** A stamped banner looks like scenery, and a
+  corridor of them looks like decoration -- nothing about one said it was a door until somebody
+  happened to right-click it, which players do to signs and not to wall hangings. Look at a
+  mirror that goes somewhere, from about six blocks, and it names itself above the hotbar along
+  with the world on the far side, which is the one thing you cannot see from in front of it. It
+  stays while you keep looking, so it is on screen at the moment you decide to click.
 
   Above the hotbar rather than in chat, like the transport rings: it replaces itself and then
-  goes, instead of leaving a line behind for every banner you walked past. Only on arriving in
-  range -- standing in front of one is silent -- and only for mirrors that actually go
-  somewhere, since announcing a half-built one would be nagging about unfinished work in front
-  of everybody. `mirror-approach-message: false` turns it off, and doing so puts back the older
-  and cheaper sweep that never visited an ordinary mirror at all
+  goes, instead of leaving a line behind for every banner you walked past. Looking at one rather
+  than standing near it, because a corridor puts you in range of several at once and they would
+  take turns in the one action bar slot -- your crosshair picks exactly one. Only mirrors that
+  actually go somewhere say anything, since announcing a half-built one would be nagging about
+  unfinished work at whoever glanced at it. `mirror-approach-message: false` turns it off
   ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - **Clicking a mirror that goes nowhere now says how to point it.** "This mirror does not open
   onto anywhere yet" was true and useless, and it was said at the one moment somebody had

@@ -495,6 +495,14 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());
+        // A mirror names itself above the hotbar to whoever is looking at it. Its own task
+        // rather than a second job inside the sweep above: that one walks the mirrors, this
+        // one walks the players, and folding them together would mean doing the more expensive
+        // of the two loops for the sake of the cheaper. Shares the period because both are
+        // about what a player sees when they approach a banner.
+        WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorSignpost.createTicker(),
+            40L, ConfigManager.getMirrorProximityTicks());
         // Said after gates have loaded, so it can tell an empty server from a full one.
         com.wormhole_xtreme.wormhole.model.LegacyDatabaseImporter.announceIfWorthwhile();
         prettyLog(Level.INFO, true, "Enable Completed.");
