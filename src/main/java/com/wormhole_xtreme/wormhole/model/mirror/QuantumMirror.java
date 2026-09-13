@@ -75,6 +75,34 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
     }
 
     /**
+     * The same mirror under a different name.
+     *
+     * <p>Everything else comes with it, which is the whole point. Rebuilding a renamed mirror
+     * from its name and banner alone drops where it goes, what it looks like and whether it
+     * hides itself -- and does it silently, because the result is a perfectly valid mirror.
+     *
+     * @param newName
+     *            what it should be called now
+     * @return a new instance; this one is unchanged
+     */
+    public QuantumMirror withName(final String newName)
+    {
+        return new QuantumMirror(newName, banner, destination, display, mode, look);
+    }
+
+    /**
+     * The same mirror hung on a different banner.
+     *
+     * @param newBanner
+     *            the block a player should click now
+     * @return a new instance; this one is unchanged
+     */
+    public QuantumMirror withBanner(final MirrorBlock newBanner)
+    {
+        return new QuantumMirror(name, newBanner, destination, display, mode, look);
+    }
+
+    /**
      * The same mirror, shown a different way.
      *
      * @param newDisplay

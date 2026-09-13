@@ -33,7 +33,10 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -124,6 +127,107 @@ class MirrorCommandTest
         assertNotNull(mirror, "the mirror should exist after set");
         assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
         assertNull(mirror.destination(), "set names a banner; it does not point it anywhere");
+    }
+
+    /**
+     * Naming a banner that is already a mirror renames it, and brings everything with it.
+     *
+     * <p>The museum case: a room of mirrors named after the worlds they open onto, wanting
+     * names that say what is through them instead. Before this, {@code set} looked the name up
+     * by the *new* name, found nothing, and built a mirror from scratch -- so the rename
+     * silently dropped the destination, the look and the display mode, and left the old name in
+     * place beside it, both claiming the banner. The reply said "It goes nowhere yet", which
+     * reads as a next step rather than as a warning that the mirror has just been undone.
+     */
+    @Test
+    void setRenamesTheMirrorOnThatBannerAndBringsEverythingWithIt()
+    {
+        final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
+        final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
+        MirrorManager.add(new QuantumMirror("world_2011_05_09", hung, far,
+            MirrorDisplay.PROXIMITY, MirrorMode.DYNAMIC, MirrorLook.named("cavern")));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "set", "old-spawn"));
+
+        final QuantumMirror renamed = MirrorManager.byName("old-spawn");
+        assertNotNull(renamed, "the new name should be the mirror");
+        assertEquals(far, renamed.destination(), "a rename must not unpoint the mirror");
+        assertEquals(MirrorLook.named("cavern"), renamed.look(), "nor forget how it looks");
+        assertEquals(MirrorDisplay.PROXIMITY, renamed.display());
+        assertEquals(MirrorMode.DYNAMIC, renamed.mode());
+        assertNull(MirrorManager.byName("world_2011_05_09"),
+            "the old name should be gone, not left beside it claiming the same banner");
+        assertEquals(renamed, MirrorManager.at(hung),
+            "and the banner should answer to the renamed mirror");
+    }
+
+    /**
+     * Naming an existing mirror while looking at a different banner moves it there.
+     *
+     * <p>The behaviour that was always intended, but it rebuilt the mirror from its name and
+     * the block, so moving a stamped mirror to a new banner used to strip its look and settings
+     * on the way.
+     */
+    @Test
+    void setMovesAnExistingMirrorToTheBannerYouAreLookingAtWithItsLook()
+    {
+        final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 40, 64, 40), far,
+            MirrorDisplay.PROXIMITY, MirrorMode.STATIC, MirrorLook.named("end")));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "set", "museum"));
+
+        final QuantumMirror moved = MirrorManager.byName("museum");
+        assertEquals(new MirrorBlock("world", 1, 64, 1), moved.banner(), "moved to this banner");
+        assertEquals(far, moved.destination());
+        assertEquals(MirrorLook.named("end"), moved.look(), "a move should keep the look");
+        assertEquals(MirrorDisplay.PROXIMITY, moved.display());
+        assertNull(MirrorManager.at(new MirrorBlock("world", 40, 64, 40)),
+            "and should let go of the banner it came from");
+    }
+
+    /**
+     * A name that belongs to another mirror, on a banner that is already one, is refused.
+     *
+     * <p>The one case {@code set} cannot read: taking the name would move that mirror here and
+     * leave this one on no banner, and renaming this one would collide with a name in use.
+     * Either way a mirror the operator did not mention stops working, so neither happens.
+     */
+    @Test
+    void setRefusesWhenTheNameAndTheBannerBelongToDifferentMirrors()
+    {
+        final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
+        final MirrorBlock elsewhere = new MirrorBlock("world", 40, 64, 40);
+        MirrorManager.add(new QuantumMirror("library", hung, null));
+        MirrorManager.add(new QuantumMirror("museum", elsewhere, null));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "set", "museum"));
+
+        verify(player, atLeastOnce()).sendMessage(contains("already"));
+        assertEquals(hung, MirrorManager.byName("library").banner(), "library is where it was");
+        assertEquals(elsewhere, MirrorManager.byName("museum").banner(), "and so is museum");
+    }
+
+    /** Naming a banner what it is already called is not a mistake, but it is not work either. */
+    @Test
+    void setSaysThereIsNothingToDoWhenTheBannerAlreadyHasThatName()
+    {
+        final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
+        final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
+        MirrorManager.add(new QuantumMirror("museum", hung, far));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "set", "museum"));
+
+        verify(player, atLeastOnce()).sendMessage(contains("Nothing to do"));
+        assertEquals(far, MirrorManager.byName("museum").destination(), "and nothing was done");
     }
 
     /**
