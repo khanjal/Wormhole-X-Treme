@@ -149,11 +149,35 @@ public final class MirrorWindows
         private long chunk = Long.MIN_VALUE;
         private Location pendingEye;
         private boolean catchUpQueued;
+        private String lastRedraw = "never redrawn";
 
         View(final World world)
         {
             this.world = world;
         }
+    }
+
+    /**
+     * What a player's view is doing, for {@code mirror debug}.
+     *
+     * @param player
+     *            the player
+     * @return lines to say
+     */
+    public static List<String> describe(final Player player)
+    {
+        final List<String> lines = new ArrayList<>();
+        lines.add(WINDOWS.size() + " window(s) on the server, " + VIEWS.size() + " viewer(s)");
+        final View view = VIEWS.get(player.getUniqueId());
+        if (view == null)
+        {
+            lines.add("you are looking into no window");
+            return lines;
+        }
+        lines.add("you see " + view.mirrors + ": " + view.drawn.size() + " blocks drawn, "
+            + view.veiled.size() + " creature(s) hidden");
+        lines.add("last redraw: " + view.lastRedraw);
+        return lines;
     }
 
     /** Static state only. */
@@ -417,9 +441,14 @@ public final class MirrorWindows
             return;
         }
         final List<Entity> inside = new ArrayList<>();
-        final Map<Long, BlockData> wanted = compose(player, eye, seeing, now, inside);
+        final Budget budget = new Budget();
+        final Map<Long, BlockData> wanted = compose(player, eye, seeing, now, inside, budget);
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
+        view.lastRedraw = (MOST_CANDIDATES - budget.blocks) + " blocks walked, " + budget.near
+            + " drawn near, " + budget.shell + " on the shell (" + budget.sky + " as sky), "
+            + (MOST_RAY_STEPS - budget.raySteps) + " line steps, eye " + (int) eye.getX() + ","
+            + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
         view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
         view.chunk = chunk;
@@ -520,7 +549,7 @@ public final class MirrorWindows
      * of them are drawn.
      */
     private static Map<Long, BlockData> compose(final Player player, final Location eye,
-        final List<Window> seeing, final long now, final List<Entity> inside)
+        final List<Window> seeing, final long now, final List<Entity> inside, final Budget budget)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
@@ -539,7 +568,6 @@ public final class MirrorWindows
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
         }
         final int radius = ConfigManager.getMirrorViewDepth();
-        final Budget budget = new Budget();
         final List<Pass> passes = new ArrayList<>();
         for (final Window window : nearestFirst(seeing, eye))
         {
@@ -637,11 +665,14 @@ public final class MirrorWindows
         view.veiled.putAll(now);
     }
 
-    /** What one redraw may spend, across every window a viewer sees. */
+    /** What one redraw may spend, across every window a viewer sees, and what it drew. */
     private static final class Budget
     {
         private int blocks = MOST_CANDIDATES;
         private int raySteps = MOST_RAY_STEPS;
+        private int near;
+        private int shell;
+        private int sky;
     }
 
     /**
@@ -1025,7 +1056,13 @@ public final class MirrorWindows
             }
             if (distance >= radius)
             {
-                wanted.put(cell, shell(x, y, z, dx / distance, dy / distance, dz / distance));
+                final BlockData painted = shell(x, y, z, dx / distance, dy / distance, dz / distance);
+                wanted.put(cell, painted);
+                budget.shell++;
+                if (painted == sky)
+                {
+                    budget.sky++;
+                }
                 return true;
             }
             final Spot at = window.shape.farOf(x, y, z);
@@ -1039,6 +1076,7 @@ public final class MirrorWindows
             if (!farAir || !emptyHere(here, x, y, z, now))
             {
                 wanted.put(cell, data);
+                budget.near++;
             }
             return true;
         }

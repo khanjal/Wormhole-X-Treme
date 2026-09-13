@@ -157,6 +157,10 @@ public class MirrorCommand implements SubCommand
             case "mode" -> mode(sender, args);
             case "remove" -> remove(sender, args);
             case "list" -> list(sender);
+            // Unlisted: what a window is drawing from and what it drew, for chasing a view that
+            // shows the wrong thing. Not in the usage line, since it answers nothing a player
+            // would ask.
+            case "debug" -> debug(sender, args);
             default -> usage(sender);
         }
         return true;
@@ -1240,6 +1244,35 @@ public class MirrorCommand implements SubCommand
         }
         say(sender, "That has to be run in game -- it depends on where you are standing.");
         return null;
+    }
+
+    /** Says what a mirror's window draws from, and what it last drew for this sender. */
+    private static void debug(final CommandSender sender, final String[] args)
+    {
+        final QuantumMirror mirror = namedOrLookedAt(sender, (args.length > 2) ? args[2] : null,
+            () -> sayUsage(sender, "debug [<name>]"));
+        if (mirror == null)
+        {
+            return;
+        }
+        say(sender, MirrorText.quoted(mirror.name()) + " at " + mirror.banner().toKey()
+            + ((mirror.destination() == null) ? " goes nowhere"
+                : (" onto " + MirrorText.name(mirror.destination().worldName()) + " "
+                    + (int) Math.floor(mirror.destination().x()) + ","
+                    + (int) Math.floor(mirror.destination().y()) + ","
+                    + (int) Math.floor(mirror.destination().z()))));
+        for (final String line : MirrorCaptures.describe(mirror))
+        {
+            say(sender, "  " + line);
+        }
+        if (sender instanceof Player player)
+        {
+            for (final String line : com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows
+                .describe(player))
+            {
+                say(sender, "  " + line);
+            }
+        }
     }
 
     private static void say(final CommandSender sender, final String message)

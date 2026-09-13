@@ -74,6 +74,9 @@ public final class MirrorCaptures
     /** Captures being taken, by destination key. */
     private static final Map<String, Job> JOBS = new HashMap<>();
 
+    /** Keys already warned about, so an unloaded far world is said once and not every sweep. */
+    private static final Set<String> WARNED = new HashSet<>();
+
     /** Bumped whenever a capture arrives or changes, so every view knows to look again. */
     private static int generation;
 
@@ -195,8 +198,16 @@ public final class MirrorCaptures
         final World far = Bukkit.getWorld(mirror.destination().worldName());
         if (far == null)
         {
+            if (WARNED.add(key))
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING, "Cannot capture the far side"
+                    + " of mirror '" + mirror.name() + "': " + mirror.destination().worldName()
+                    + " is not loaded. It stays a banner until that world is loaded once.");
+            }
             return false;
         }
+        WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Capturing the far side of mirror '"
+            + mirror.name() + "' in " + far.getName() + " around " + key);
         final Job job = new Job(key, far, mirror.destination());
         JOBS.put(key, job);
         job.schedule();
@@ -297,7 +308,51 @@ public final class MirrorCaptures
         JOBS.clear();
         LOADED.clear();
         ABSENT.clear();
+        WARNED.clear();
         generation++;
+    }
+
+    /**
+     * What a mirror's capture is, for {@code mirror debug}.
+     *
+     * @param mirror
+     *            the mirror
+     * @return lines to say
+     */
+    public static List<String> describe(final QuantumMirror mirror)
+    {
+        final List<String> lines = new ArrayList<>();
+        if (mirror.destination() == null)
+        {
+            lines.add("no destination, so no capture");
+            return lines;
+        }
+        final String key = keyOf(mirror.destination());
+        final File file = fileOf(key);
+        lines.add("key " + key + ", file " + (file.isFile() ? (file.length() + " bytes") : "missing")
+            + ", far world " + ((Bukkit.getWorld(mirror.destination().worldName()) == null)
+                ? "not loaded" : "loaded")
+            + (JOBS.containsKey(key) ? ", being taken now" : ""));
+        final Held held = LOADED.get(key);
+        if (held == null)
+        {
+            lines.add(ABSENT.contains(key) ? "not in memory, and its file was found missing"
+                : "not in memory");
+            return lines;
+        }
+        final MirrorCapture capture = held.capture;
+        lines.add(capture.describe());
+        final int x = (int) Math.floor(mirror.destination().x());
+        final int y = (int) Math.floor(mirror.destination().y());
+        final int z = (int) Math.floor(mirror.destination().z());
+        lines.add("at the arrival point " + capture.nameAt(x, y, z) + ", below it "
+            + capture.nameAt(x, y - 1, z) + ", column top y " + capture.top(x, z));
+        final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(mirror.destination().yaw());
+        lines.add("8 ahead: " + capture.nameAt(x + (8 * ahead.x()), y, z + (8 * ahead.z()))
+            + ", top y " + capture.top(x + (8 * ahead.x()), z + (8 * ahead.z()))
+            + "; 32 ahead: " + capture.nameAt(x + (32 * ahead.x()), y, z + (32 * ahead.z()))
+            + ", top y " + capture.top(x + (32 * ahead.x()), z + (32 * ahead.z())));
+        return lines;
     }
 
     /** Reads chunks another way, for a test. */
@@ -470,7 +525,9 @@ public final class MirrorCaptures
             JOBS.remove(key);
             LOADED.put(key, new Held(capture, System.currentTimeMillis()));
             ABSENT.remove(key);
+            WARNED.remove(key);
             generation++;
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe());
             save(capture, fileOf(key));
         }
 

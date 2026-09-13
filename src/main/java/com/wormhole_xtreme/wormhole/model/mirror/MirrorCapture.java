@@ -481,6 +481,47 @@ public final class MirrorCapture
         return List.of(names);
     }
 
+    /**
+     * The name of what stands at a block, without making the block state.
+     *
+     * @param x
+     *            world x
+     * @param y
+     *            world y
+     * @param z
+     *            world z
+     * @return the state's name, or "outside" past the box
+     */
+    public String nameAt(final int x, final int y, final int z)
+    {
+        return contains(x, y, z) ? names[indices[offset(x - minX, y - minY, z - minZ, sizeY, sizeZ)]]
+            : "outside";
+    }
+
+    /** @return how many blocks of the box are not air */
+    public int filled()
+    {
+        int filled = 0;
+        for (final short index : indices)
+        {
+            if (index != 0)
+            {
+                filled++;
+            }
+        }
+        return filled;
+    }
+
+    /** @return the box, its age and what it holds, in one line */
+    public String describe()
+    {
+        return "capture of " + worldName + " x " + minX + ".." + (minX + sizeX - 1) + " y " + minY
+            + ".." + (minY + sizeY - 1) + " z " + minZ + ".." + (minZ + sizeZ - 1) + ", "
+            + filled() + " of " + indices.length + " blocks filled, " + names.length
+            + " kinds, taken " + ((System.currentTimeMillis() - takenAt) / 1000L) + "s ago"
+            + (hasSky ? ", sky" : ", no sky");
+    }
+
     /** The state for an index, made from its name the first time. */
     private BlockData state(final short index)
     {
