@@ -155,7 +155,7 @@ A mirror opens onto where it goes. There is nothing to set, and mirrors made bef
 same way.
 
 Anybody within `mirror-proximity-radius` blocks, on the banner's side, sees the banner vanish and a
-3×3 opening showing the destination: real blocks, so it has depth as you move. A banner hung on a
+banner-sized opening, one wide and two tall, showing the destination: real blocks, so it has depth as you move. A banner hung on a
 wall opens in the wall, running down from the banner. A freestanding banner opens in the air behind
 it, running up from where it stands, facing whichever of north, south, east or west is nearest.
 The middle of the opening's bottom row is where a traveller lands, facing the way the mirror was
@@ -168,7 +168,8 @@ a wall: a row of alcoves a block apart each shows its own far side, whichever wa
 It is a first cut of [#278](https://github.com/khanjal/Wormhole-X-Treme/issues/278):
 
 - **One-sided.** From behind, a mirror is its banner.
-- **Only the open part of the opening opens.** A pillar or shelf in front of part of it closes that part.
+- **Only the open part of the opening opens.** Something solid in front of part of it closes that part.
+- **Nothing shows past the opening's edges.** In a wall the wall hides them; in open air, blocks that would reach past the edge are left out.
 - **A mirror's banner at the far end is left out of the view**, so a linked pair looks straight through.
 - **Blocks only, no mobs**, and lit by this world rather than the far one.
 - **The look, `display` and `mode` show only where there is no view**: from behind, from out of range, or onto a world that is not loaded.

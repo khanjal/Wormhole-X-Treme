@@ -31,7 +31,7 @@ been running on defaults will start reading the file you have been editing.
 ### Added
 
 - **A mirror opens onto where it goes.** Walk up to one, on the banner's side, and the banner is
-  gone: a 3×3 opening is where it was, and through it is the destination -- real blocks, so it has
+  gone: an opening its own size, one wide and two tall, is where it was, and through it is the destination -- real blocks, so it has
   depth as you move. Click the opening to go through. A banner hung on a wall opens in the wall,
   running down from where it hangs; a freestanding one opens in the air behind it, running up.
 
@@ -53,6 +53,12 @@ been running on defaults will start reading the file you have been editing.
   block apart: every mirror's box overlapped its neighbours', they took turns overwriting each
   other, and each alcove flickered between its own far side and the next one's. A part of an
   opening with a pillar in front of it does not open at all, for the same reason.
+
+  A drawn block is a whole block, not a picture cut to the opening, so one only partly behind the
+  opening shows in full. A wall hides the rest; open air does not, and a mirror on a tower showed
+  its far side well past its edges. So a block is drawn only if all of it lies behind the opening
+  or behind something solid in the opening's layer. The opening itself was 3×3 at first, and is
+  now the banner's own size.
 
   The view follows the viewer's eye half a block at a time, sending only what changed, and is sent
   whole every few seconds because a fresh copy of a chunk erases it. A mirror's banner at the far

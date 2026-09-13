@@ -72,6 +72,8 @@ public final class MirrorWindows
         private final MirrorWindow shape;
         private final Block banner;
         private final List<Spot> open;
+        private final Set<Long> openKeys = new HashSet<>();
+        private Set<Long> solid = Set.of();
         private long[] cells;
         private BlockData[] far;
         private long takenAt;
@@ -83,6 +85,7 @@ public final class MirrorWindows
             this.shape = shape;
             this.banner = banner;
             this.open = open;
+            open.forEach(cell -> openKeys.add(key(cell.x(), cell.y(), cell.z())));
         }
     }
 
@@ -145,6 +148,7 @@ public final class MirrorWindows
         {
             window.cells = previous.cells;
             window.far = previous.far;
+            window.solid = previous.solid;
             window.takenAt = previous.takenAt;
         }
         OFFERED.put(mirror.name(), window);
@@ -381,6 +385,8 @@ public final class MirrorWindows
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
         final Map<Long, BlockData> wanted = new HashMap<>();
+        final Set<Long> allOpen = new HashSet<>();
+        seeing.forEach(window -> allOpen.addAll(window.openKeys));
         for (final Window window : seeing)
         {
             // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
@@ -397,7 +403,7 @@ public final class MirrorWindows
             for (int i = 0; i < window.cells.length; i++)
             {
                 final long cell = window.cells[i];
-                if (!wanted.containsKey(cell) && showsThrough(eye, window, cell, seeing))
+                if (!wanted.containsKey(cell) && showsThrough(eye, window, cell, seeing, allOpen))
                 {
                     wanted.put(cell, window.far[i]);
                 }
@@ -406,13 +412,20 @@ public final class MirrorWindows
         return wanted;
     }
 
-    /** Whether a block behind the wall is seen through this window rather than another. */
+    /**
+     * Whether a block behind the opening is seen through this window, and only through it.
+     *
+     * <p>Seen through the opening, all of it hidden by solid blocks or the opening itself --
+     * never across open air or another window's opening -- and through no opening in the same
+     * face whose middle the line of sight passes nearer.
+     */
     private static boolean showsThrough(final Location eye, final Window window, final long cell,
-        final List<Window> seeing)
+        final List<Window> seeing, final Set<Long> allOpen)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(),
             unpackX(cell), unpackY(cell), unpackZ(cell));
-        if ((rect == null) || !window.shape.overlaps(rect, window.open))
+        if ((rect == null) || !window.shape.overlaps(rect, window.open)
+            || !window.shape.covered(rect, (across, y) -> clear(window, across, y, allOpen)))
         {
             return false;
         }
@@ -426,6 +439,46 @@ public final class MirrorWindows
             }
         }
         return true;
+    }
+
+    /** Whether a block of a window's face keeps a drawn block behind it out of sight elsewhere. */
+    private static boolean clear(final Window window, final int across, final int y,
+        final Set<Long> allOpen)
+    {
+        final long face = faceKey(window.shape, across, y);
+        return window.openKeys.contains(face)
+            || (window.solid.contains(face) && !allOpen.contains(face));
+    }
+
+    /** The block of a window's face at a coordinate along it. */
+    private static long faceKey(final MirrorWindow shape, final int across, final int y)
+    {
+        return (shape.into().x() != 0) ? key(shape.base().x(), y, across)
+            : key(across, y, shape.base().z());
+    }
+
+    /**
+     * The blocks of a window's face that hide what is behind them, over the area a block drawn
+     * behind the opening can project onto.
+     */
+    private static Set<Long> solidFace(final MirrorWindow shape, final World here)
+    {
+        final int centre = (shape.into().x() != 0) ? shape.base().z() : shape.base().x();
+        final int reach = MirrorWindow.SIDE + MirrorWindow.WIDTH + 2;
+        final Set<Long> solid = new HashSet<>();
+        for (int across = centre - reach; across <= (centre + reach); across++)
+        {
+            for (int y = shape.base().y() - MirrorWindow.BELOW - 2;
+                y <= (shape.base().y() + MirrorWindow.HEIGHT + MirrorWindow.ABOVE + 2); y++)
+            {
+                final long face = faceKey(shape, across, y);
+                if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
+                {
+                    solid.add(face);
+                }
+            }
+        }
+        return solid;
     }
 
     /** Sends a viewer what changed since their last drawing, or all of it when it is due. */
@@ -529,6 +582,7 @@ public final class MirrorWindows
         });
         window.cells = cells.stream().mapToLong(Long::longValue).toArray();
         window.far = far.toArray(new BlockData[0]);
+        window.solid = solidFace(window.shape, here);
         window.takenAt = now;
     }
 

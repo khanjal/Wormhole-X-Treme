@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,11 +20,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -55,17 +54,24 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 /**
  * The sweep that draws what is on the other side of window mirrors.
  *
- * <p>What matters: a viewer is shown the far side only through an opening, the view comes back
- * from them when they leave, it is a drawing throughout -- the wall is never opened, so the
+ * <p>What matters: a viewer is shown the far side only through an opening and never past its
+ * edges, the view comes back from them when they leave, it is a drawing throughout -- the
  * opening is drawn as something still solid -- and windows sharing a wall never draw over each
- * other. That last one was a real bug: a row of alcoves a block apart took turns overwriting
- * each other's views every few seconds.
+ * other. The last two were real bugs: a row of alcoves a block apart took turns overwriting each
+ * other's views, and a mirror standing on a tower in open air showed its far side well past its
+ * edges.
+ *
+ * <p>The world here is a wall along z 11 -- the layer every opening in these tests sits in --
+ * with open air in front of it. {@link #wallBehind} takes the wall away.
  */
 class MirrorWindowsTest
 {
     /** Where saves go, so no test writes a mirror file into the repository. */
     @TempDir
     File dataFolder;
+
+    /** Whether the layer the openings sit in is solid wall, or open air. */
+    private boolean wallBehind = true;
 
     private World world;
     private World far;
@@ -92,12 +98,13 @@ class MirrorWindowsTest
             blockAt(invocation.getArgument(0), invocation.getArgument(1),
                 invocation.getArgument(2), true));
 
-        banner = bannerAt(10, BlockFace.NORTH);
+        banner = bannerAt(10);
+        hangOnAWall(banner);
 
         far = farWorld("far", farOneBlock);
         farTwo = farWorld("far2", farTwoBlock);
 
-        // Nothing set on it: any mirror on a wall is a window.
+        // Nothing set on it: every mirror is a window.
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
             new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f)));
     }
@@ -147,8 +154,9 @@ class MirrorWindowsTest
 
         withServer(MirrorProximity::tick);
 
-        assertEquals(MirrorWindow.WIDTH * MirrorWindow.HEIGHT,
-            drawnAs(changesTo(viewer, 1).get(0), barrier));
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(barrier, drawn.get(new Spot(10, 64, 11)), "behind the banner");
+        assertSame(barrier, drawn.get(new Spot(10, 63, 11)), "behind its cloth, a block down");
     }
 
     /**
@@ -172,23 +180,22 @@ class MirrorWindowsTest
     }
 
     /**
-     * A part of the opening with something solid in front of it does not open.
+     * Something solid in front of part of the opening closes that part.
      *
-     * <p>A row of alcoves puts a pillar in front of each opening's side columns. Treating those
-     * as open is what let one alcove's view reach into the next.
+     * <p>Nobody can see through it, and a neighbouring window may be using the space behind.
      */
     @Test
-    void aPillarInFrontOfPartOfTheOpeningClosesThatPart()
+    void somethingSolidInFrontOfPartOfTheOpeningClosesThatPart()
     {
-        pillarAt(9);
-        pillarAt(11);
+        doReturn(blockAt(10, 63, 10, false)).when(world).getBlockAt(10, 63, 10);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
-        assertEquals(MirrorWindow.HEIGHT, drawnAs(changesTo(viewer, 1).get(0), barrier),
-            "only the middle column, the one with open air in front of it");
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(barrier, drawn.get(new Spot(10, 64, 11)), "the row behind the banner opens");
+        assertFalse(drawn.containsKey(new Spot(10, 63, 11)), "the row behind the block does not");
     }
 
     /**
@@ -201,9 +208,6 @@ class MirrorWindowsTest
     void twoWindowsABlockApartNeverDrawTheSameBlock()
     {
         secondWindowAt(12);
-        pillarAt(9);
-        pillarAt(11);
-        pillarAt(13);
         final Player viewer = playerAt(11.5, 6.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -216,8 +220,42 @@ class MirrorWindowsTest
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
         final Map<Spot, BlockData> drawn = positions(batch);
         assertEquals(batch.size(), drawn.size(), "no block is in the view twice");
-        assertSame(farOneBlock, drawn.get(new Spot(10, 63, 12)), "behind the first alcove");
+        assertSame(farOneBlock, drawn.get(new Spot(10, 63, 12)), "behind the first opening");
         assertSame(farTwoBlock, drawn.get(new Spot(12, 63, 12)), "behind the second");
+    }
+
+    /**
+     * In open air a block reaching past the opening is left out, so nothing shows beside it.
+     *
+     * <p>A mirror on a tower with nothing around it showed its far side well past its edges: a
+     * drawn block is a whole block, and only a wall hides the part of one that is not behind the
+     * opening. The same block against a wall is drawn, in the test after this one.
+     */
+    @Test
+    void inOpenAirABlockReachingPastTheOpeningIsNotDrawn()
+    {
+        wallBehind = false;
+        standUp(banner);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, drawn.get(new Spot(10, 65, 20)), "far back, all of it behind");
+        assertFalse(drawn.containsKey(new Spot(11, 65, 12)), "close, and half of it beside");
+    }
+
+    @Test
+    void againstAWallTheSameBlockIsDrawnSinceTheWallHidesTheRest()
+    {
+        standUp(banner);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(11, 65, 12)));
     }
 
     @Test
@@ -261,7 +299,8 @@ class MirrorWindowsTest
      * Stepping sideways redraws at once, and sends only what changed.
      *
      * <p>Waiting for the next sweep left the view a second behind the viewer; resending all of it
-     * on every step would be the whole view several times a second.
+     * on every step would be the whole view several times a second. The opening did not change,
+     * so it is not in the update.
      */
     @Test
     void steppingSidewaysSendsOnlyWhatChanged()
@@ -275,9 +314,9 @@ class MirrorWindowsTest
             MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
         });
 
-        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
-        assertTrue(!sent.get(1).isEmpty() && (sent.get(1).size() < sent.get(0).size()),
-            "a partial update: " + sent.get(1).size() + " of " + sent.get(0).size());
+        final Collection<BlockState> update = changesTo(viewer, 2).get(1);
+        assertFalse(update.isEmpty(), "the view moved with the viewer");
+        assertEquals(0, drawnAs(update, barrier), "and the opening, which did not, was not resent");
     }
 
     @Test
@@ -289,7 +328,7 @@ class MirrorWindowsTest
         withServer(MirrorProximity::tick);
 
         assertSame(MirrorManager.byName("museum"),
-            MirrorWindows.clicked(viewer, blockAt(10, 63, 11, true)), "the middle of the opening");
+            MirrorWindows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
         assertNull(MirrorWindows.clicked(viewer, blockAt(10, 63, 12, true)),
             "a block behind the wall is not the opening");
     }
@@ -306,7 +345,7 @@ class MirrorWindowsTest
     }
 
     /**
-     * A freestanding mirror opens too, in the air behind it and upwards from where it stands.
+     * A freestanding mirror opens too, behind it and upwards from where it stands.
      *
      * <p>A banner hung on a wall hangs down, and a standing one stands up, so the opening follows
      * the cloth. Snapped to the nearest cardinal, since a standing banner may face sixteen ways.
@@ -314,26 +353,23 @@ class MirrorWindowsTest
     @Test
     void aFreestandingBannerOpensUpwardsFromWhereItStands()
     {
-        final Rotatable post = mock(Rotatable.class);
-        when(post.getRotation()).thenReturn(BlockFace.NORTH_NORTH_WEST);
-        when(banner.getBlockData()).thenReturn(post);
+        standUp(banner);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(barrier, drawn.get(new Spot(10, 66, 11)), "two above the banner's own row");
-        assertFalse(drawn.containsKey(new Spot(10, 62, 11)) && (drawn.get(new Spot(10, 62, 11)) == barrier),
+        assertSame(barrier, drawn.get(new Spot(10, 65, 11)), "a block above the banner's own row");
+        assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)),
             "not below it, where a wall banner's opening would be");
-        assertTrue(drawnAs(changesTo(viewer, 1).get(0), farOneBlock) > 0, "and the far side shows");
     }
 
     /**
-     * A mirror whose banner cannot be a window stays exactly as it was.
+     * A mirror onto a world that is not loaded stays a banner.
      *
-     * <p>A far side in a world that is not loaded has nothing to show, so the banner keeps its
-     * look rather than opening onto nothing.
+     * <p>The same banner, pointed somewhere loaded, does open -- which is what shows the refusal
+     * was about the world and not about something else in the setup.
      */
     @Test
     void aMirrorOntoAnUnloadedWorldDrawsNothing()
@@ -348,7 +384,6 @@ class MirrorWindowsTest
         {
             MirrorProximity.tick();
             verify(viewer, never()).sendBlockChanges(anyCollection());
-            // The same banner, pointed somewhere loaded, does open: the refusal was the world.
             MirrorManager.add(MirrorManager.byName("museum")
                 .withDestination(new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f)));
             MirrorProximity.tick();
@@ -372,14 +407,14 @@ class MirrorWindowsTest
 
         withServer(MirrorProximity::tick);
 
-        assertSame(air, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 63, 12)));
+        assertSame(air, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 64, 12)));
     }
 
     /**
      * A mirror written before windows existed opens as one, with nothing in its file changed.
      *
-     * <p>That is the whole upgrade path: a window is a fact about where the banner hangs, not a
-     * setting, so there is no migration to run and no file for a server to rewrite.
+     * <p>That is the whole upgrade path: a window is a fact about the banner, not a setting, so
+     * there is no migration to run and no file for a server to rewrite.
      */
     @Test
     void aMirrorFromAnOlderFileOpensAsAWindow()
@@ -462,49 +497,43 @@ class MirrorWindowsTest
             .filter(call -> "setBlockData".equals(call.getMethod().getName()));
     }
 
-    /** A wall banner at z 10 facing north into the room, on the wall block to its south. */
-    private Block bannerAt(final int x, final BlockFace facing)
+    /** A banner at z 10, in front of the layer the openings sit in. */
+    private Block bannerAt(final int x)
     {
         final Block made = blockAt(x, 64, 10, true);
         when(made.getType()).thenReturn(Material.WHITE_WALL_BANNER);
         when(made.getLocation()).thenReturn(new Location(world, x, 64.0, 10.0));
         when(made.getState()).thenAnswer(invocation -> stateAt(Banner.class, x, 64, 10));
-        hangOnAWall(made, facing);
         // doReturn, because when() would call the catch-all answer mid-stubbing.
         doReturn(made).when(world).getBlockAt(x, 64, 10);
         return made;
     }
 
-    private static void hangOnAWall(final Block block, final BlockFace facing)
+    /** Hangs a banner on the wall to its south, facing north into the room. */
+    private static void hangOnAWall(final Block block)
     {
         final Directional data = mock(Directional.class);
-        when(data.getFacing()).thenReturn(facing);
+        when(data.getFacing()).thenReturn(BlockFace.NORTH);
         when(block.getBlockData()).thenReturn(data);
     }
 
-    /** A second window, one pillar along, onto a different far side. */
+    /** Stands a banner up instead, facing a little west of north. */
+    private static void standUp(final Block block)
+    {
+        final Rotatable post = mock(Rotatable.class);
+        when(post.getRotation()).thenReturn(BlockFace.NORTH_NORTH_WEST);
+        when(block.getBlockData()).thenReturn(post);
+    }
+
+    /** A second wall banner, one block along, onto a different far side. */
     private void secondWindowAt(final int x)
     {
-        bannerAt(x, BlockFace.NORTH);
+        hangOnAWall(bannerAt(x));
         MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", x, 64, 10),
             new MirrorPoint("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f)));
     }
 
-    /** A solid column in front of the wall, over the opening's rows. */
-    private void pillarAt(final int x)
-    {
-        for (int y = 62; y <= 63; y++)
-        {
-            doReturn(blockAt(x, y, 10, false)).when(world).getBlockAt(x, y, 10);
-        }
-        // The banner row: a pillar beside the banner, not in its place.
-        if (x != 10)
-        {
-            doReturn(blockAt(x, 64, 10, false)).when(world).getBlockAt(x, 64, 10);
-        }
-    }
-
-    /** An ordinary block of the banner's world, with a fresh state per read as Bukkit gives. */
+    /** A block of the banner's world, with a fresh state per read as Bukkit gives. */
     private Block blockAt(final int x, final int y, final int z, final boolean passable)
     {
         final Block block = mock(Block.class);
@@ -513,6 +542,9 @@ class MirrorWindowsTest
         when(block.getZ()).thenReturn(z);
         when(block.getWorld()).thenReturn(world);
         when(block.isPassable()).thenReturn(passable);
+        final BlockData data = mock(BlockData.class);
+        when(data.isOccluding()).thenReturn(wallBehind && (z == 11));
+        when(block.getBlockData()).thenReturn(data);
         when(block.getState()).thenAnswer(invocation -> stateAt(BlockState.class, x, y, z));
         return block;
     }
@@ -571,10 +603,8 @@ class MirrorWindowsTest
             bukkit.when(() -> Bukkit.getWorld("far2")).thenReturn(farTwo);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
-            final Set<UUID> ids = new HashSet<>();
             for (final Player player : world.getPlayers())
             {
-                ids.add(player.getUniqueId());
                 bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
             }
             body.run();

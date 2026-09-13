@@ -8,9 +8,9 @@ import org.bukkit.block.BlockFace;
  * The shape of a window mirror: its opening, the box of blocks behind that opening that may be
  * drawn for whoever looks in, and which block at the far side each one shows.
  *
- * <p>The opening is a flat 3×3 in the layer just behind the banner. A banner hung on a wall
- * hangs down, so the opening is in the wall and runs down from the banner's row. A freestanding
- * banner stands up, so the opening is in the air behind it and runs up from where it stands.
+ * <p>The opening is the banner's own size, one wide and two tall, in the layer just behind it. A
+ * banner hung on a wall hangs down, so the opening is in the wall and runs down from the banner's
+ * row. A freestanding banner stands up, so the opening is in the air behind it and runs up.
  *
  * <p>Plain numbers only, so all of it is testable without a server. {@link MirrorWindows} is the
  * part that reads blocks and sends them.
@@ -30,11 +30,11 @@ import org.bukkit.block.BlockFace;
 public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, MirrorWindow.Spot far,
     MirrorWindow.Spot ahead)
 {
-    /** How wide the opening is, in blocks. Odd, so the banner's own column is its middle. */
-    static final int WIDTH = 3;
+    /** How wide the opening is, in blocks: the banner's own column. */
+    static final int WIDTH = 1;
 
-    /** How tall the opening is. */
-    static final int HEIGHT = 3;
+    /** How tall the opening is: the banner's cloth. */
+    static final int HEIGHT = 2;
 
     /** How far behind the opening the far side may be drawn. */
     static final int DEPTH = 16;
@@ -62,6 +62,22 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      */
     public record Spot(int x, int y, int z)
     {
+    }
+
+    /** Says what a block in the opening's face lets a viewer see past it. */
+    @FunctionalInterface
+    public interface Face
+    {
+        /**
+         * @param across
+         *            the block's coordinate along the face: x for a face looking north or south,
+         *            z for one looking east or west
+         * @param y
+         *            the block's y
+         * @return true if a drawn block showing there cannot be seen anywhere it should not be:
+         *         because it is this window's opening, or because it is solid
+         */
+        boolean clear(int across, int y);
     }
 
     /** Handed each block of the opening. */
@@ -363,6 +379,43 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             }
         }
         return false;
+    }
+
+    /**
+     * Whether everything of a projected block falls on blocks of the face that keep it in view.
+     *
+     * <p>A drawn block is a whole block, not a picture cut to the opening. In a wall that is
+     * harmless: the wall hides whatever of it lies outside. In open air nothing does, so a block
+     * only partly behind the opening would show in full beside it.
+     *
+     * @param rect
+     *            from {@link #projected}
+     * @param face
+     *            what each block of the face lets through
+     * @return true if every block of the face the projection touches is clear
+     */
+    boolean covered(final double[] rect, final Face face)
+    {
+        final int acrossFrom = (int) Math.floor(rect[0]);
+        final int acrossTo = (int) Math.ceil(rect[1]) - 1;
+        final int yFrom = (int) Math.floor(rect[2]);
+        final int yTo = (int) Math.ceil(rect[3]) - 1;
+        // A projection this wide is a block right against the face at a glancing angle.
+        if (((acrossTo - acrossFrom) > (2 * SIDE)) || ((yTo - yFrom) > (2 * SIDE)))
+        {
+            return false;
+        }
+        for (int across = acrossFrom; across <= acrossTo; across++)
+        {
+            for (int y = yFrom; y <= yTo; y++)
+            {
+                if (!face.clear(across, y))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
