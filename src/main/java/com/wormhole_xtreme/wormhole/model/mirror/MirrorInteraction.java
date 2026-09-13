@@ -69,12 +69,17 @@ public final class MirrorInteraction
             return false;
         }
         final Block block = event.getClickedBlock();
+        if (block == null)
+        {
+            return false;
+        }
         // Type first, deliberately. Anything else -- including building the key to ask the
         // registry -- costs more than this, and almost every click is on a block that is not
         // a banner at all.
-        if ((block == null) || !BANNERS.contains(block.getType()))
+        if (!BANNERS.contains(block.getType()))
         {
-            return false;
+            // A window's opening is drawn over a wall, so what was clicked is the wall.
+            return throughWindow(event.getPlayer(), block);
         }
         final QuantumMirror mirror = MirrorManager.at(MirrorBlock.of(block));
         if (mirror == null)
@@ -82,6 +87,18 @@ public final class MirrorInteraction
             return false;
         }
         travel(event.getPlayer(), mirror);
+        return true;
+    }
+
+    /** Travels through a window mirror's opening, if that is what the player clicked. */
+    private static boolean throughWindow(final Player player, final Block block)
+    {
+        final QuantumMirror mirror = MirrorWindows.clicked(player, block);
+        if (mirror == null)
+        {
+            return false;
+        }
+        travel(player, mirror);
         return true;
     }
 

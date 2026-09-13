@@ -149,6 +149,25 @@ visible.
 
 The two are independent; any combination works.
 
+## Mirrors on a wall are windows (prototype)
+
+A mirror whose banner hangs on a wall opens onto where it goes. There is nothing to set, and
+mirrors made before this open the same way.
+
+Anybody within `mirror-proximity-radius` blocks, on the banner's side of the wall, sees the banner
+vanish and a 3×3 opening below it showing the destination: real blocks, so it has depth as you move.
+The middle of the opening's bottom row is where a traveller lands, facing the way the mirror was
+pointed. Click the opening to go through.
+
+Nothing in the world changes. The wall is still there, and only the players looking in are sent
+the view. It is a first cut of [#278](https://github.com/khanjal/Wormhole-X-Treme/issues/278):
+
+- **Wall banners only.** A freestanding banner stays a banner, with its look, `display` and `mode`.
+- **On a wall, the look is what everyone not looking in sees.** `display` and `mode` do nothing there.
+- **A mirror's banner at the far end is left out of the view**, so a linked pair looks straight through.
+- **Blocks only, no mobs**, and lit by this world rather than the far one.
+- **Whatever really stands behind the wall is hidden** from the viewer while they look.
+
 ## Saying what it is
 
 Look at a mirror from about six blocks and it names itself, and the world it opens onto, above the

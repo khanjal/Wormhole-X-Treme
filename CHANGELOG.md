@@ -30,6 +30,26 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **A mirror hung on a wall opens onto where it goes.** Walk up to one, on the banner's side of
+  the wall, and the banner is gone: a 3×3 opening sits below where it hung, and through it is the
+  destination -- real blocks, so it has depth as you move. Click the opening to go through.
+
+  A banner was only ever an impression of the far side, and #278 is about replacing it with the
+  thing itself. This is the first cut of that: wall banners only, blocks only, no mobs, and lit
+  by this world rather than the far one.
+
+  Nothing is set, and the mirror file does not change. Being a window is a fact about where the
+  banner hangs rather than a setting, so every mirror already on a wall opens as one on the first
+  startup. A freestanding banner stays a banner, with its look, `display` and `mode`.
+
+  Nothing in the world changes either. Each viewer is sent the banner as air, the opening as
+  barrier -- invisible, and as solid as the wall it covers -- and the far side's blocks where the
+  wall and whatever is behind it really are. That is the rule rings learned: a drawing may make
+  collision stronger than the block under it, never weaker. The view is resent every few seconds,
+  because a fresh copy of a chunk erases it, and taken back when the viewer walks away.
+
+  A mirror's banner at the far end is left out of the view, so a linked pair looks straight
+  through instead of at the other banner hanging in the middle of it.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 
