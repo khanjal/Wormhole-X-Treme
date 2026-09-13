@@ -216,9 +216,9 @@ class GateGalleryTest
 
         // Checked second, so that adding a shape and forgetting the renderer reports the
         // renderer rather than this.
-        assertEquals(11, shipped.size(),
-            "eleven shape files ship -- seven rings and four sign-dial twins -- and both"
-                + " docs/GATES.md and docs/guide/GATES.md say so. A twelfth needs those"
+        assertEquals(9, shipped.size(),
+            "nine shape files ship -- six rings and three sign-dial twins -- and both"
+                + " docs/GATES.md and docs/guide/GATES.md say so. A tenth needs those"
                 + " sentences changed as well as the gallery regenerated. Found "
                 + shipped.keySet());
     }
@@ -226,9 +226,9 @@ class GateGalleryTest
     /**
      * Every sign-dial shape still has the plain twin the DHD sheet compares it against.
      *
-     * <p>The four are kept out of the gallery on the grounds that each is a ring already drawn
+     * <p>The three are kept out of the gallery on the grounds that each is a ring already drawn
      * plus a different DHD. That is only true while the twin exists. Rename or delete
-     * {@code Standard} and the four become shapes nothing in the documentation shows at all --
+     * {@code Standard} and they become shapes nothing in the documentation shows at all --
      * silently, because the gallery would still look complete.
      */
     @Test

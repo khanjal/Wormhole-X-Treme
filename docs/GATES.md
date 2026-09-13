@@ -50,8 +50,8 @@ rather than something built.
 
 ## Shapes
 
-Shapes live in `plugins/WormholeXTreme/shapes/gate/` as `.shape` files: eleven shipped, which
-are seven rings and four of those rings again carrying a dial sign. A shape is a stack of
+Shapes live in `plugins/WormholeXTreme/shapes/gate/` as `.shape` files: nine shipped, which
+are six rings and three of those rings again carrying a dial sign. A shape is a stack of
 numbered layers, each a grid of bracketed cells, plus a handful of `KEY=value` lines. The
 user-facing format is in the [gate guide](guide/GATES.md#shapes).
 
@@ -77,12 +77,12 @@ form. Both exist to land the component on a cell nothing is built in.
 
 ### The shapes that ship
 
-Seven shapes, each drawn from its own `.shape` file by `scripts/render_gate_sheets.py`, in the
+Six shapes, each drawn from its own `.shape` file by `scripts/render_gate_sheets.py`, in the
 default `Standard` palette, at ten units to the block. Each is shown twice: standing idle, and
 dialled. Click one for the full-size drawing.
 
-Eleven files ship. The four `SignDial` ones are not here, because each is its twin's ring with a
-different DHD corner — the geometry is identical — and drawing them would be the same gate four
+Nine files ship. The three `SignDial` ones are not here, because each is its twin's ring with a
+different DHD corner — the geometry is identical — and drawing them would be the same gate three
 more times. What they actually differ by is [below](#what-a-sign-dial-adds).
 
 A gate that stands up is flattened along its depth, layer 1 nearest — what you see walking up to
@@ -103,7 +103,6 @@ screenshot is the licensed way to show the real thing. See [CAPTURES.md](CAPTURE
 
 | Idle | Dialled | Shape | Grid | What it is | Markers |
 |---|---|---|---|---|---|
-| <a href="images/gates/even-idle.svg"><img src="images/gates/even-idle.svg" width="104" alt="Even, idle"></a> | <a href="images/gates/even-dialled.svg"><img src="images/gates/even-dialled.svg" width="104" alt="Even, dialled"></a> | `Even` | 8 x 8 | Eight wide, so the opening has no centre column. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
 | <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
 | <a href="images/gates/horizontal-idle.svg"><img src="images/gates/horizontal-idle.svg" width="104" alt="Horizontal, idle"></a> | <a href="images/gates/horizontal-dialled.svg"><img src="images/gates/horizontal-dialled.svg" width="104" alt="Horizontal, dialled"></a> | `Horizontal` | 7 x 7, in plan | Lies flat in the floor, and is dropped into rather than walked through. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `A` (layer 7), `N` (layer 7), `IA` (layer 7) |
 | <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 6 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 6), `IA` (layer 6) |
@@ -122,15 +121,15 @@ differs. Outlined cells are what the sign dial adds: `D`, the wall sign you righ
 a destination, and the two redstone cells that come with it — `RD` to dial and `RA` to report
 that the gate is open. Everything else in both files is the same ring.
 
-All four pairs differ this way. `Minimal` is the only one where it is more than a corner, and
+All three pairs differ this way. `Minimal` is the only one where it is more than a corner, and
 only because it is two blocks wide, so its DHD needs a column of its own.
 
-**This is why sign-dialling should not be a shape at all.** Eight files encode four rings, and
+**This is why sign-dialling should not be a shape at all.** Six files encode three rings, and
 the three largest shapes — `Large`, `Grand`, `Massive` — cannot be sign gates for no reason
 except that nobody wrote the second file.
 [#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46) is the plan to make the DHD a type
 a gate has rather than geometry welded into its ring, after which this drawing becomes the whole
-story and the four files can go.
+story and the three files can go.
 
 ## Palettes are separate from shapes
 
@@ -320,7 +319,7 @@ another active gate already points at it. `/wormhole gate force` bypasses those.
 ### Why no shipped shape carries an `[RS]`
 
 A shape can mark an `[RS]` block that advances the dial sign one destination per pulse. The
-support is real and custom shapes can use it, but none of the eleven shipped shapes has one, and
+support is real and custom shapes can use it, but none of the nine shipped shapes has one, and
 that is a decision.
 
 Redstone dialling exists so a sign can be left preset on a destination and fired by a pulse. An

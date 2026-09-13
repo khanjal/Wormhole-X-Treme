@@ -159,9 +159,9 @@ class RedstoneBlockPlacementTest
      * symptom is that the dust an admin tries to lay never stays put.
      *
      * <p>Deliberately not asserted for [RA]. That one is a lever the plugin places itself
-     * rather than something an admin builds up to, and StandardSignDial and EvenSignDial
-     * both hang it off the side of the DHD pillar's base with nothing beneath it, which is
-     * what keeps it out of [RD]'s reach.
+     * rather than something an admin builds up to, and StandardSignDial hangs it off the side
+     * of the DHD pillar's base with nothing beneath it, which is what keeps it out of [RD]'s
+     * reach.
      */
     @Test
     void everyRedstoneDialMarkerHasAFrameBlockUnderIt() throws Exception

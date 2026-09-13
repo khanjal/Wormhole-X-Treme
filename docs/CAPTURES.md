@@ -71,7 +71,7 @@ countdown: keep just enough to establish that the pad lit and a wait began.
 
 **The gate is shape-dependent.** Both animation steps are per-frame delays rather than totals,
 and the number of frames comes from the shape's woosh depth and light layers, so a `Grand` gate
-runs visibly longer than an `Even` one. Record generously, trim to the settle.
+runs visibly longer than a `Standard` one. Record generously, trim to the settle.
 
 ## Setting up so takes match
 

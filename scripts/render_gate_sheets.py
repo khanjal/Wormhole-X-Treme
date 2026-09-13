@@ -98,7 +98,6 @@ DASH = "\u2014"
 PURPOSE = {
     "Minimal": "one block wide " + DASH + " the smallest gate that works",
     "Standard": "the seven-wide ring, and what most servers build",
-    "Even": "eight wide, so the opening has no centre column",
     "Large": "ten wide, for a gate meant to be seen across a valley",
     "Grand": "twenty-two wide, and a build in its own right",
     "Massive": "twenty-three wide and fifteen deep " + DASH + " the largest that ships",

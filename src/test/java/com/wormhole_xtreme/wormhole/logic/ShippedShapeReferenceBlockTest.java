@@ -26,17 +26,17 @@ import org.junit.jupiter.api.Test;
  * The marker reference at the top of every shipped shape says the same thing in every file.
  *
  * <p>That block -- what {@code [S]}, {@code [P]}, {@code :A}, {@code :IA} and the rest mean --
- * is copied into all eleven shapes rather than living anywhere central, and it is what an
+ * is copied into all nine shapes rather than living anywhere central, and it is what an
  * admin authoring a custom shape actually reads, because it is right there in the file they
  * opened to copy from.
  *
- * <p>Eleven hand-maintained copies is eleven chances to drift, and two of them had. The
- * {@code [C]} chevron marker was documented in {@code Standard.shape} alone, so ten of the
- * eleven files somebody might copy from did not mention the marker exists. And
+ * <p>Nine hand-maintained copies is nine chances to drift, and two of them had, back when
+ * there were eleven. The {@code [C]} chevron marker was documented in {@code Standard.shape}
+ * alone, so ten of the files somebody might copy from did not mention the marker exists. And
  * {@code StandardSignDial.shape} told the reader to use {@code MinimalSignDialRedstone}, a
  * shape retired two releases earlier.
  *
- * <p>Fixing those two by hand would leave eleven copies free to drift again, which is the
+ * <p>Fixing those two by hand would leave every copy free to drift again, which is the
  * actual defect. These tests are the thing that stops it.
  */
 class ShippedShapeReferenceBlockTest
@@ -45,7 +45,7 @@ class ShippedShapeReferenceBlockTest
     private static final Path SHAPE_DIR = Paths.get("src/main/resources/shapes/gate");
 
     /** How many shapes ship. A glob that silently matched nothing would pass every test below. */
-    private static final int SHIPPED_COUNT = 11;
+    private static final int SHIPPED_COUNT = 9;
 
     /**
      * A marker definition line, e.g. "#    [S] = Stargate Material" or "#    :A = ...".
@@ -64,7 +64,7 @@ class ShippedShapeReferenceBlockTest
      * Markers every shipped shape must define, checked outright rather than only compared.
      *
      * <p>Comparing each file against {@code Standard.shape} catches drift between them, but
-     * would say nothing if a marker went missing from all eleven at once -- and it is a
+     * would say nothing if a marker went missing from all nine at once -- and it is a
      * reference block, so an edit that touches every copy is exactly the kind that happens.
      */
     private static final Set<String> REQUIRED_MARKERS = new TreeSet<>(java.util.Arrays.asList(
@@ -156,7 +156,7 @@ class ShippedShapeReferenceBlockTest
      *
      * <p>The comparison above is relative: it catches one file falling out of step with the
      * others, and says nothing at all if a marker disappears from every copy in the same edit.
-     * On a block that is maintained by copying between eleven files, that is not a remote
+     * On a block that is maintained by copying between nine files, that is not a remote
      * possibility. This one names them.
      */
     @Test

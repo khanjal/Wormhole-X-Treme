@@ -84,12 +84,11 @@ class ShapeMatchPreferenceTest
         return gate;
     }
 
-    /** The four shipped rings that have both a plain and a sign-dial spelling. */
+    /** The three shipped rings that have both a plain and a sign-dial spelling. */
     private static String[][] shippedPairs()
     {
         return new String[][] {
             { "Standard", "StandardSignDial" },
-            { "Even", "EvenSignDial" },
             { "Minimal", "MinimalSignDial" },
             { "Horizontal", "HorizontalSignDial" },
         };

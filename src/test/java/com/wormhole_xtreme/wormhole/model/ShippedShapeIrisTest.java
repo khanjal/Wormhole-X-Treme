@@ -23,10 +23,10 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
  * instead — but only for a shape that does <em>not</em> declare
  * {@code REDSTONE_ACTIVATED=TRUE}, because that flag turns the fallback off.
  *
- * <p>{@code StandardSignDial} and {@code EvenSignDial} sat in exactly that gap: no
- * {@code :IA}, and the flag set. They got no iris from the shape and none from the fallback,
- * so choosing a sign dial quietly cost you the iris the plain twin had. Nothing in the files,
- * the README or the code ever said a sign gate should not have one, and
+ * <p>{@code StandardSignDial} sat in exactly that gap, as did {@code EvenSignDial} while it
+ * still shipped: no {@code :IA}, and the flag set. They got no iris from the shape and none
+ * from the fallback, so choosing a sign dial quietly cost you the iris the plain twin had.
+ * Nothing in the files, the README or the code ever said a sign gate should not have one, and
  * {@code HorizontalSignDial} always did — which is what made it an oversight rather than a
  * rule. The block was even still there in all three; only the marker was missing.
  */

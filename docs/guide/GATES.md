@@ -56,11 +56,11 @@ plugins/WormholeXTreme/shapes/gate/      the shapes gates are built from
 plugins/WormholeXTreme/shapes/mirror/    the looks a mirror's banner can wear
 ```
 
-Eleven shape files ship, but they are seven gates. `Minimal`, `Standard`, `Even`, `Large`,
-`Grand`, `Massive` and `Horizontal` are the rings; the four `SignDial` files are four of those
+Nine shape files ship, but they are six gates. `Minimal`, `Standard`, `Large`, `Grand`,
+`Massive` and `Horizontal` are the rings; the three `SignDial` files are three of those
 rings again with a dial sign on the DHD instead of a plain button.
 
-All seven are drawn, idle and dialled, in
+All six are drawn, idle and dialled, in
 [the shape gallery](../GATES.md#the-shapes-that-ship) — worth a look before laying out a gate
 the size of `Grand` — and [what a sign dial adds](../GATES.md#what-a-sign-dial-adds) is drawn
 beside them.
@@ -222,7 +222,7 @@ A redstone gate is a **sign gate with a redstone input**. Redstone does not choo
 the dial sign does. Redstone just presses the button. A gate without a dial sign cannot be dialled
 by redstone at all.
 
-All four `SignDial` shapes mark two cells:
+All three `SignDial` shapes mark two cells:
 
 - **`[RD]`, the dial trigger** — run redstone to it. A pulse dials whatever the sign shows. The
   plugin places dust here for you.
@@ -251,7 +251,7 @@ the frame refuses a pickaxe.
 
 ### Where the markers are
 
-On `StandardSignDial` and `EvenSignDial`:
+On `StandardSignDial`:
 
 ```
    y=2   .  .  R          #  gate frame block   .  leave empty
@@ -275,7 +275,7 @@ ground:
 | Shape | Button | `[RD]` — run the dust here | `[RA]` |
 |---|---|---|---|
 | `HorizontalSignDial` | ground level | **ground level** | ground level |
-| `StandardSignDial`, `EvenSignDial` | ground level | **one block up** | below ground |
+| `StandardSignDial` | ground level | **one block up** | below ground |
 | `MinimalSignDial` | one block up | **two blocks up** | below ground |
 
 An underground `[RA]` can be left unused, or dug out and given a lever in the pocket. Wiring to
