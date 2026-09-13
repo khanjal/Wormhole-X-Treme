@@ -60,6 +60,10 @@ Eleven gate shapes ship, from `Minimal` to `Massive`. The four `SignDial` shapes
 `StandardSignDial`, `EvenSignDial`, `MinimalSignDial`, `HorizontalSignDial` — have a dial sign
 and take redstone; the rest are `/dial`-only.
 
+All eleven are drawn, idle and dialled, in
+[the shape gallery](../GATES.md#the-shapes-that-ship) — worth a look before laying out a gate
+the size of `Grand`.
+
 Shipped files are written out on first run and never overwrite yours. A deleted one comes back on
 the next startup, an edited one is left alone, and anything you add is loaded. Older
 `GateShapes/` folders are moved here on startup, and nothing is deleted.

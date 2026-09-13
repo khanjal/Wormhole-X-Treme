@@ -30,6 +30,126 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The beam sequence is drawn as a timing strip, and drawing it found a wrong number.**
+  `docs/BEAMS.md` now shows every tick of a beam: the four phases as bars, the five moments
+  marked where they actually fall, and the envelope's density ramping up and the fade's ramping
+  down as the height of each tick's block.
+
+  There is nothing else a drawing could honestly say about a beam. It is particles, not blocks,
+  so there is no geometry -- no footprint, no frame, nothing a flat colour keyed to a material
+  could stand for. What it *looks* like needs the capture `docs/CAPTURES.md` already holds a
+  slot for. What it *does* is arithmetic, and arithmetic draws well.
+
+  **The phases overlap, and nothing had noticed.** The descend column starts at the teleport
+  tick, and the teleport fires 12 ticks into an 18-tick rise -- so for six ticks the origin
+  column is still climbing while the destination column is already falling. They are at
+  opposite ends of the journey, so nobody ever sees both, which is presumably why it went
+  unremarked.
+
+  It means the cycle is **52 ticks, 2.6 seconds**, not the 58 that adding 12 + 18 + 20 + 8
+  gives. `docs/CAPTURES.md` said 58, and told anybody capturing a beam to cut the clip to 2.9
+  seconds -- about a third of a second of nothing on the end. Both numbers are corrected, in
+  the shot list and in the two `ffmpeg` lines, and the document now says plainly which
+  arithmetic it had wrong and why.
+
+  That is the strip earning itself before it was even committed. The table of four durations
+  was not wrong about any phase; it simply could not show that two of them run at once, and
+  the sum looked like the answer.
+
+  `BeamGalleryTest` runs the real `BeamFrame.at()` from tick zero to finished and compares the
+  whole sequence against the line the drawing carries -- every phase boundary, every mark,
+  both density ramps, and the overlap count. Two further tests pin the properties rather than
+  the numbers: that the descend does start before the rise ends, and that the difference
+  between the sum of the phases and the real length is exactly the overlap and nothing else.
+  A third checks `CAPTURES.md` still agrees about the length, because that is the one number in
+  these documents somebody acts on with a video editor open.
+
+  Checked by making the descend wait for the rise to finish: all three fail, and all three pass
+  again on restore.
+
+- **The ring patterns, the stack and both deploys are drawn in the documentation.**
+  `docs/RINGS.md` now shows the two footprints in plan, the finished stack in elevation with a
+  player beside it for scale, a filmstrip of each deploy style frame by frame, and the transport
+  flash running through the stack.
+
+  The deploy strips are the ones worth having. "They travel further apart than they land" is
+  three sentences of prose and one glance at a picture: concurrent rings leave three half-steps
+  apart and close up from the top down as each arrives, and the two strips end in the same
+  stack while taking 11 frames and 20 to get there.
+
+  Nothing animates, and `docs/CAPTURES.md` had already made the argument against it -- three
+  ticks a ring through a four-ring stack is a fast bright flicker, an image on a page autoplays
+  forever, and the reader has no way to pause it. A filmstrip reads better anyway, because the
+  frames can be compared side by side instead of remembered.
+
+  **The test here is a different kind from the gate and mirror galleries', and had to be.**
+  Those read a resource file, so a fingerprint of the file catches a drawing that has gone
+  stale. Rings have no resource file: there are exactly two patterns, they are hardcoded, and
+  `RingPattern` argues at some length that a file format for two constant tables would be a
+  format to parse, validate, document and get wrong for nothing. So the renderer transcribes
+  the profiles and `RingAnimator`'s constants rather than reading them, and that duplication
+  would rot in the least visible direction there is -- a strip showing rings three half-steps
+  apart after the plugin moved to four still looks like a perfectly good diagram.
+
+  `RingGalleryTest` therefore runs the real animator. Each drawing carries a line saying what
+  it drew; the test rebuilds that from `RingPattern` and `RingAnimator` themselves, frame by
+  frame, and compares. It earned itself on its first run, failing on the two patterns for a
+  reason neither drawing was wrong about: Java was sorting the offsets as the strings they
+  print as, so `-1,-3` came before `-2,-2`, and Python was sorting them as numbers. Identical
+  sets of cells, two orderings, and a test that would have passed for the wrong reason if
+  either side had been written a little more loosely.
+
+  Checked further by changing `TRAVEL_GAP` and by widening the even profile, and watching the
+  right drawings fail each time with the command that redraws them.
+
+  `docs/CAPTURES.md` gained a short section saying these diagrams do not fill any of its slots.
+  A schematic says what a thing is; a capture says what it looks like, and no amount of flat
+  colour shows an event horizon's gradient. The slates stay where they are.
+
+- **The eleven gate shapes are drawn in the documentation, idle and dialled.**
+  `docs/GATES.md` now shows every shape twice: the gate standing there, and the same gate with
+  the portal filled and the chevrons on. The pair is most of what the shape file says, and the
+  difference between them is the part prose is worst at.
+
+  It answers a question the page could not before: what does `Grand` actually look like next to
+  `Massive`? Both were a wall of text and a promise that one is larger.
+
+  A standing gate is flattened along its depth, layer 1 nearest. Taking a single layer was the
+  first attempt and it is wrong for exactly the three shapes somebody would most want to see:
+  `Grand`, `Large` and `Massive` have rings three layers thick, with the frame and chevrons in
+  layer 1 and the portal in layer 2 behind it, so either layer alone is half a gate. `Horizontal`
+  is flattened the other way, into a plan, because a gate lying in the floor seen head on is one
+  row of blocks.
+
+  Flattening hides what stands behind the frame, which on every shape includes the DHD, so the
+  table names every marker and the layer it is in. Hiding the activation switch is honest --
+  you cannot see it through obsidian either -- but a page you build from cannot stop there.
+
+  Palettes are shown as their own strip rather than crossed with the shapes. Geometry and
+  palette are independent in the plugin: any shape builds in any group, which is the whole point
+  of the split. Drawing eleven shapes in four palettes would be forty-four pictures asserting a
+  relationship that does not exist.
+
+  Flat colour keyed to each block, not Minecraft's textures. Those are Mojang's, and committing
+  them here would be redistributing their assets rather than illustrating ours; a screenshot is
+  the licensed way to show the real thing, which is what `docs/CAPTURES.md` is for. It also
+  turned out to matter that the drawings pick their own ground: obsidian is very nearly black,
+  and on the dark ground the mirror sheets use, a Standard gate is an invisible ring around a
+  visible portal -- a picture of the wrong thing entirely.
+
+  Everything between the gallery markers is written by `scripts/render_gate_sheets.py` from the
+  shape files and from `config.yml`, so neither the pictures nor the tables can drift.
+  `GateGalleryTest` holds it the way `MirrorGalleryTest` holds the mirror sheets: each drawing
+  records a fingerprint of the file it came from, and the test recomputes them. A stale gate
+  drawing is worse than a stale banner, because detection matches a shape exactly or not at all
+  -- somebody building from an out-of-date picture does not get a wrong gate, they get no gate,
+  and a page telling them it should have worked. Checked by moving a cell and by swapping a
+  palette's light block, and watching both fail with the name and the command that fixes it.
+
+  248 KB for all twenty-three files. Most of a shape is air, and drawing 529 cells of it one
+  rect at a time cost more than everything else in `Massive` put together; it is one rectangle
+  now.
+
 - **The eighty-eight looks are drawn in the documentation, with the recipe beside each.**
   `docs/MIRRORS.md` now shows every look: one drawing per preset, in tables grouped by area and
   type, with the biome it answers for -- or what it is for, when it answers for none -- and the

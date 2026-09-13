@@ -84,6 +84,52 @@ Written `[S:RA]` the cell *is* the frame block, so the redstone belongs one bloc
 Every shipped shape uses the bare form; the other is what older shapes used and still works.
 Both exist for the same reason — landing the component on a cell nothing is built in.
 
+### The shapes that ship
+
+Every shape below is drawn from its own `.shape` file by `scripts/render_gate_sheets.py`, in
+the default `Standard` palette, at ten units to the block. Each is shown twice: standing idle,
+and dialled. Click one for the full-size drawing.
+
+What changes between the pair is worth looking at, because it is most of what a gate does.
+Idle, the `[P]` cells are open air — [the portal is drawn, not
+built](#the-portal-is-drawn-not-built) — and the `:L` cells wear the palette's unlit
+`chevron` block. Dialled, the portal fills and the chevrons come on in the order their
+`:L#` numbers give.
+
+A gate that stands up is flattened along its depth, layer 1 nearest — which is what you see
+walking up to it, and what makes `Grand`, `Large` and `Massive` legible at all, since their
+rings are three layers thick with the frame in one and the portal behind it. `Horizontal` lies
+flat, so flattening it would leave a single row; it is drawn in plan instead, each row of the
+picture being one layer of the file, and that is the view somebody laying it out needs.
+
+The lettered cells are the markers that name one block rather than collecting many: `N` name
+sign, `A` activation switch, `D` dial sign, `IA` iris switch, `EP` and `EM` where a player and
+a minecart arrive, `RD` `RS` `RA` the redstone cells. Flattening hides some of them — every
+shape puts its DHD in its furthest layer, and on a thick gate the frame stands in front of it —
+so the **Markers** column names them all, with the layer each is in.
+
+These are flat colour keyed to each block, not Minecraft's textures — those are Mojang's,
+and a screenshot is the licensed way to show the real thing. See
+[CAPTURES.md](CAPTURES.md) for that.
+
+<!-- shapes:start -->
+
+| Idle | Dialled | Shape | Grid | What it is | Markers |
+|---|---|---|---|---|---|
+| <a href="images/gates/even-idle.svg"><img src="images/gates/even-idle.svg" width="104" alt="Even, idle"></a> | <a href="images/gates/even-dialled.svg"><img src="images/gates/even-dialled.svg" width="104" alt="Even, dialled"></a> | `Even` | 8 x 8 | Eight wide, so the opening has no centre column. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
+| <a href="images/gates/evensigndial-idle.svg"><img src="images/gates/evensigndial-idle.svg" width="104" alt="EvenSignDial, idle"></a> | <a href="images/gates/evensigndial-dialled.svg"><img src="images/gates/evensigndial-dialled.svg" width="104" alt="EvenSignDial, dialled"></a> | `EvenSignDial` | 8 x 8 | As `Even`, plus a dial sign and redstone. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `RD` (layer 4), `A` (layer 4), `D` (layer 4), `RA` (layer 4), `IA` (layer 4) |
+| <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
+| <a href="images/gates/horizontal-idle.svg"><img src="images/gates/horizontal-idle.svg" width="104" alt="Horizontal, idle"></a> | <a href="images/gates/horizontal-dialled.svg"><img src="images/gates/horizontal-dialled.svg" width="104" alt="Horizontal, dialled"></a> | `Horizontal` | 7 x 7, in plan | Lies flat in the floor, and is dropped into rather than walked through. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `A` (layer 7), `N` (layer 7), `IA` (layer 7) |
+| <a href="images/gates/horizontalsigndial-idle.svg"><img src="images/gates/horizontalsigndial-idle.svg" width="104" alt="HorizontalSignDial, idle"></a> | <a href="images/gates/horizontalsigndial-dialled.svg"><img src="images/gates/horizontalsigndial-dialled.svg" width="104" alt="HorizontalSignDial, dialled"></a> | `HorizontalSignDial` | 7 x 7, in plan | As `Horizontal`, plus a dial sign and redstone. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `N` (layer 6), `RD` (layer 7), `RA` (layer 7), `A` (layer 7), `D` (layer 7), `IA` (layer 7) |
+| <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 6 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 6), `IA` (layer 6) |
+| <a href="images/gates/massive-idle.svg"><img src="images/gates/massive-idle.svg" width="104" alt="Massive, idle"></a> | <a href="images/gates/massive-dialled.svg"><img src="images/gates/massive-dialled.svg" width="104" alt="Massive, dialled"></a> | `Massive` | 23 x 23 | Twenty-three wide and fifteen deep — the largest that ships. 15 layers, woosh in 13 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 4), `EM` (layer 5), `A` (layer 9), `IA` (layer 9) |
+| <a href="images/gates/minimal-idle.svg"><img src="images/gates/minimal-idle.svg" width="104" alt="Minimal, idle"></a> | <a href="images/gates/minimal-dialled.svg"><img src="images/gates/minimal-dialled.svg" width="104" alt="Minimal, dialled"></a> | `Minimal` | 2 x 4 | One block wide — the smallest gate that works. 2 layers, woosh in 3 steps, 1 chevron, so no sequence to light in. | `EP` (layer 1), `A` (layer 2), `IA` (layer 2), `EM` (layer 2) |
+| <a href="images/gates/minimalsigndial-idle.svg"><img src="images/gates/minimalsigndial-idle.svg" width="104" alt="MinimalSignDial, idle"></a> | <a href="images/gates/minimalsigndial-dialled.svg"><img src="images/gates/minimalsigndial-dialled.svg" width="104" alt="MinimalSignDial, dialled"></a> | `MinimalSignDial` | 3 x 4 | As `Minimal`, plus a dial sign and redstone. 2 layers, woosh in 3 steps, 1 chevron, so no sequence to light in. | `EP` (layer 1), `RD` (layer 2), `A` (layer 2), `D` (layer 2), `IA` (layer 2), `EM` (layer 2), `RA` (layer 2) |
+| <a href="images/gates/standard-idle.svg"><img src="images/gates/standard-idle.svg" width="104" alt="Standard, idle"></a> | <a href="images/gates/standard-dialled.svg"><img src="images/gates/standard-dialled.svg" width="104" alt="Standard, dialled"></a> | `Standard` | 7 x 7 | The seven-wide ring, and what most servers build. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
+| <a href="images/gates/standardsigndial-idle.svg"><img src="images/gates/standardsigndial-idle.svg" width="104" alt="StandardSignDial, idle"></a> | <a href="images/gates/standardsigndial-dialled.svg"><img src="images/gates/standardsigndial-dialled.svg" width="104" alt="StandardSignDial, dialled"></a> | `StandardSignDial` | 7 x 7 | As `Standard`, plus a dial sign and redstone. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `RD` (layer 4), `A` (layer 4), `D` (layer 4), `RA` (layer 4), `IA` (layer 4) |
+
+<!-- shapes:end -->
+
 ## Palettes are separate from shapes
 
 A shape describes geometry. A `MaterialGroup` describes what that geometry is made of — the
@@ -102,6 +148,23 @@ references, so readers never lock.
 Chevron cells are held apart from frame cells for the same reason: the palette is identified
 by the first frame block found, and a chevron in that list would have a gate fronted with
 lamps resolve to the lamp palette, or to none at all.
+
+The four that ship, block by block. `chevron` is the only optional key, and a palette without
+one has no unlit chevron at all — its `:L` cells are ordinary frame blocks, invisible until
+they light.
+
+<!-- palettes:start -->
+
+![The shipped palettes, block by block](images/gates/palettes.svg)
+
+| Palette | Structure | Portal | Iris | Light | Sign | Chevron |
+|---|---|---|---|---|---|---|
+| `Standard` | `OBSIDIAN` | `WATER` | `STONE` | `GLOWSTONE` | `OAK_WALL_SIGN` | `REDSTONE_LAMP` |
+| `Atlantis` | `LAPIS_BLOCK` | `WATER` | `YELLOW_STAINED_GLASS` | `SEA_LANTERN` | `WARPED_WALL_SIGN` | *(none)* |
+| `Universe` | `POLISHED_BLACKSTONE` | `WATER` | `WHITE_STAINED_GLASS` | `SEA_LANTERN` | `CRIMSON_WALL_SIGN` | *(none)* |
+| `MilkyWay` | `DEEPSLATE` | `WATER` | `IRON_BLOCK` | `SHROOMLIGHT` | `OAK_WALL_SIGN` | *(none)* |
+
+<!-- palettes:end -->
 
 ## Detection
 
