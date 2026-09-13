@@ -123,6 +123,24 @@ class MirrorTabCompletionTest
      * not. Falling through meant a typo still offered the mirror list, which reads as though
      * the typo were a real command.
      */
+    /**
+     * The word where the name is optional also offers what replaces it.
+     *
+     * <p>{@code display}, {@code mode} and {@code stamp} act on the banner being looked at when
+     * no name is given. Offering only mirror names there would hide that, which is most of what
+     * makes the shorter form findable at all.
+     */
+    @Test
+    void theOptionalNamePositionAlsoOffersWhatReplacesIt()
+    {
+        assertTrue(complete("mirror", "display", "").contains("proximity"),
+            "got " + complete("mirror", "display", ""));
+        assertTrue(complete("mirror", "display", "").contains("museum"),
+            "and the names are still there, since the name is optional rather than gone");
+        assertTrue(complete("mirror", "mode", "").contains("dynamic"));
+        assertTrue(complete("mirror", "stamp", "").contains("museum"));
+    }
+
     @Test
     void anUnknownVerbOffersNothing()
     {

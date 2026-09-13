@@ -422,7 +422,12 @@ public final class SubCommands
         final boolean stamp = "stamp".equals(verb);
         if ((args.length == 3) && (takesOneName || takesTwoNames || stamp))
         {
-            return prefixed(args[2], mirrorNames());
+            // And what the verb takes instead of a name, where it takes one. display, mode and
+            // stamp act on the banner being looked at when no name is given, so the third word
+            // can be the setting or the look -- a completion offering only names would hide
+            // that the name is optional at all.
+            return prefixed(args[2],
+                both(mirrorNames(), stamp ? presetNames() : settingsFor(verb)));
         }
         if ((args.length == 4) && takesTwoNames)
         {
@@ -432,14 +437,35 @@ public final class SubCommands
         // makes stamp read the far side rather than apply a look somebody picked.
         if ((args.length == 4) && stamp)
         {
-            return prefixed(args[3],
-                com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.names());
+            return prefixed(args[3], presetNames());
         }
         if (args.length == 4)
         {
             return prefixed(args[3], settingsFor(verb));
         }
         return none();
+    }
+
+    /**
+     * Two candidate lists as one, for a word that can be either.
+     *
+     * @param first
+     *            the names offered first, which is where a completion's reader starts
+     * @param second
+     *            what the verb takes in place of a name
+     * @return every candidate
+     */
+    private static String[] both(final String[] first, final String[] second)
+    {
+        final String[] all = java.util.Arrays.copyOf(first, first.length + second.length);
+        System.arraycopy(second, 0, all, first.length, second.length);
+        return all;
+    }
+
+    /** @return every look stamp will apply by name */
+    private static String[] presetNames()
+    {
+        return com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.names();
     }
 
     /**

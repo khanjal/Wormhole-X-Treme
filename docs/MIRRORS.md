@@ -500,7 +500,24 @@ compares names instead — a few hundred times per stamp, and no registry needed
 ## Which banner you are looking at
 
 `set` and `link` both have to turn "the banner in front of me" into a block, and one ray cast is
-not enough to do it.
+not enough to do it. `stamp`, `display`, `mode` and `remove` do too, when no name is given:
+the same search, and then the block index answers which mirror it is.
+
+Those four take a name **or** the banner you are facing. The reason is `link`'s derived name.
+Hanging a pair writes `nether-return` for the far side — a name nobody chose and nobody will
+remember — and the far side is exactly the half somebody stands in front of wanting to restamp
+it or take it down. `set`, `target` and `link` keep required names: `set` is naming a thing that
+has no name, `target` is run from the arrival spot, which is the one place the banner is not,
+and `link`'s argument is the far mirror rather than this one.
+
+Two words have to be told apart for that to work. `display proximity` is a setting with no name;
+`display museum proximity` is both. Only the real setting words — `always`, `proximity`,
+`static`, `dynamic` — are read that way, so `display museum` is still a name with the setting
+forgotten and still answers with the form, rather than complaining that `museum` is not a way to
+show a mirror. `stamp` has the harder version of the same question, because `stamp cavern` could
+be a mirror or a look: a mirror wins, since that is what the word meant before the name became
+optional, and a server whose mirror and look share a name should not find the command changing
+under it.
 
 `getTargetBlockExact` traces against block shapes. A freestanding banner is a thin post, so from
 close up the ray can pass it by. Against a wall that goes unnoticed — the wall behind is hit, the

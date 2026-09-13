@@ -97,7 +97,12 @@ public class GateCommand implements SubCommand
         {
             return new Build().onCommand(sender, null, verb, rest);
         }
-        if ("complete".equals(verb))
+        // create is what somebody tries first, because it is what the rest of the ecosystem
+        // uses for "register the thing I just built" -- /mv create, /npc create. complete is
+        // this plugin's own word from 2011 and stays the documented one, since it is the
+        // second half of build-then-complete rather than a creation on its own. Accepting both
+        // costs a clause and saves the wrong guess being answered with a list of verbs.
+        if ("complete".equals(verb) || "create".equals(verb))
         {
             return new Complete().onCommand(sender, null, verb, rest);
         }
