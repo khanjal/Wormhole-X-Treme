@@ -64,24 +64,6 @@ class MirrorWindowTest
         return candidates(window, x, y, z, radius, MirrorWindow.UNLIMITED);
     }
 
-    /** Limits with a ceiling on every column and a deepest layer. */
-    private static MirrorWindow.Limits limits(final int top, final int deepest)
-    {
-        return new MirrorWindow.Limits()
-        {
-            @Override
-            public int top(final int x, final int z)
-            {
-                return top;
-            }
-
-            @Override
-            public int deepest()
-            {
-                return deepest;
-            }
-        };
-    }
 
     /**
      * The opening is the banner's size, in the wall behind it, hanging down from its row.
@@ -277,21 +259,11 @@ class MirrorWindowTest
         assertEquals(seen.size(), new HashSet<>(seen).size(), "and nothing is walked twice");
     }
 
-    /** Nothing above a column's ceiling is walked, since there nothing could need drawing. */
-    @Test
-    void nothingAboveAColumnsCeilingIsWalked()
-    {
-        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20, limits(63, 99));
-
-        assertTrue(seen.stream().allMatch(spot -> spot.y() <= 63));
-        assertTrue(seen.contains(new Spot(0, 63, 10)), "up to the ceiling itself");
-    }
-
     /** Nothing deeper than the deepest layer allowed is walked. */
     @Test
     void nothingDeeperThanAllowedIsWalked()
     {
-        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20, limits(999, 5));
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20, () -> 5);
 
         assertTrue(seen.stream().allMatch(spot -> spot.z() <= 6));
         assertTrue(seen.contains(new Spot(0, 63, 6)), "down to that layer itself");

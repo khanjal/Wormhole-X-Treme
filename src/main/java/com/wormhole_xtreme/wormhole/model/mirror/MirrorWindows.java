@@ -108,9 +108,6 @@ public final class MirrorWindows
     /** Whether each block behind an opening is really empty, by world and block, briefly. */
     private static final Map<String, Map<Long, Boolean>> EMPTY = new HashMap<>();
 
-    /** The highest block that is not air in each column, by world and column, as briefly. */
-    private static final Map<String, Map<Long, Integer>> TOPS = new HashMap<>();
-
     /** When {@link #EMPTY} was last cleared. */
     private static long emptyReadAt;
 
@@ -169,7 +166,6 @@ public final class MirrorWindows
         VIEWS.clear();
         STATES.clear();
         EMPTY.clear();
-        TOPS.clear();
         MirrorChunkLoads.clear();
     }
 
@@ -662,22 +658,6 @@ public final class MirrorWindows
             key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
     }
 
-    /** The highest block that is not air in a real column, remembered for a few seconds. */
-    private static int topHere(final World here, final int x, final int z, final long now)
-    {
-        if ((now - emptyReadAt) >= RESAMPLE_MILLIS)
-        {
-            EMPTY.clear();
-            TOPS.clear();
-            emptyReadAt = now;
-        }
-        if (!here.isChunkLoaded(x >> 4, z >> 4))
-        {
-            return Integer.MAX_VALUE;
-        }
-        return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
-    }
 
     /** Whether a block of a window's face keeps a drawn block behind it out of sight elsewhere. */
     private static boolean clear(final Window window, final int across, final int y,
@@ -923,7 +903,9 @@ public final class MirrorWindows
      * <p>Within the radius of the eye, a block is drawn as the far-side block it maps to, if it
      * is seen through this window ({@link #seenThrough}), is not already hidden behind a solid
      * far-side block drawn nearer the eye, has a loaded far side, and would change what the
-     * client shows -- far-side air over a block that is really empty would not.
+     * client shows -- far-side air over a block that is really empty would not. That last
+     * saving is for the near volume only: a shell block is solid, and has to be painted over
+     * open air as much as over anything, or the real world's own horizon shows through it.
      *
      * <p>Just past the radius lies a shell, one block thick, that closes the view: every line of
      * sight from the eye through the opening crosses it. A block there is drawn as whatever the
@@ -1064,20 +1046,6 @@ public final class MirrorWindows
                 }
             }
             return sky;
-        }
-
-        /**
-         * Above the highest block of a real column there is only air, and anything drawn there
-         * as air would change nothing -- so the column need not be walked a block at a time.
-         *
-         * <p>The real column only. A shell block above the far column's surface can still show
-         * far ground, when its line of sight slopes down to it, so the far surface cannot cut
-         * the walk; it shortens the lines instead.
-         */
-        @Override
-        public int top(final int x, final int z)
-        {
-            return topHere(here, x, z, now);
         }
 
         @Override

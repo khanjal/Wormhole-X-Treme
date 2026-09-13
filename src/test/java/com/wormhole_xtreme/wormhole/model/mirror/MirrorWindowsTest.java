@@ -347,16 +347,18 @@ class MirrorWindowsTest
     }
 
     /**
-     * Above the highest real block in a column, nothing is walked or drawn.
+     * The shell is painted even where the real world is open air.
      *
-     * <p>Anything drawn there as air would change nothing, and walking the sky a block at a time
-     * was nearly all of a redraw from anywhere high. The far side's own surface is not used for
-     * this: a shell block above it can still show ground its line of sight slopes down to.
+     * <p>Far-side air over a really empty block is left out within the radius, since it would
+     * change nothing. Applied to the shell, that left the real world's horizon showing through a
+     * mirror on a beach: the sand near the arrival point was drawn, and above it the viewer's own
+     * glass house and sky. A shell block is solid, and needs painting over open air most of all.
      */
     @Test
-    void nothingAboveTheHighestRealBlockIsWalkedOrDrawn()
+    void theShellIsPaintedEvenWhereTheRealWorldIsOpenAir()
     {
         wallBehind = false;
+        localEmpty = true;
         far = farWorld("far", air);
         when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(0);
         final Player viewer = playerAt(10.5, 7.5);
@@ -364,10 +366,10 @@ class MirrorWindowsTest
 
         withServer(MirrorProximity::tick);
 
-        verify(far, never()).getBlockAt(anyInt(), anyInt(), anyInt());
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
-        assertEquals(2, drawnAs(batch, barrier), "the opening still opens");
-        assertEquals(0, drawnAs(batch, sky), "and no sky is painted over sky");
+        assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
+            "within the radius, air over air is not sent");
+        assertTrue(drawnAs(batch, sky) > 10, "but the shell past it is, as sky: " + drawnAs(batch, sky));
     }
 
     @Test

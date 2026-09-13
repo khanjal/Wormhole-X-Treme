@@ -49,20 +49,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     private static final double[] BANDS = { 0.5, 1.5, Double.POSITIVE_INFINITY };
 
     /** No limit on a walk beyond the cone's own shape. */
-    public static final Limits UNLIMITED = new Limits()
-    {
-        @Override
-        public int top(final int x, final int z)
-        {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public int deepest()
-        {
-            return Integer.MAX_VALUE;
-        }
-    };
+    public static final Limits UNLIMITED = () -> Integer.MAX_VALUE;
 
     private static final int HALF = WIDTH / 2;
 
@@ -112,17 +99,9 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /** What bounds a walk of the cone beyond its own shape. */
+    @FunctionalInterface
     public interface Limits
     {
-        /**
-         * @param x
-         *            a column's x
-         * @param z
-         *            a column's z
-         * @return the highest y in that column that could need drawing
-         */
-        int top(int x, int z);
-
         /** @return the deepest layer still worth walking, as it stands right now */
         int deepest();
     }
@@ -275,7 +254,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      * @param band
      *            which band, from 0 to {@link #bands()} less one
      * @param limits
-     *            how high each column and how deep the whole walk need go
+     *            how deep the walk need go
      * @param candidate
      *            handed each block, nearest layers first; returns false to stop
      * @return false if the candidate stopped the walk
@@ -407,8 +386,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             {
                 final int x = alongX ? along : across;
                 final int z = alongX ? across : along;
-                if (!column(x, z, Math.abs((across + 0.5) - eyeAcross), yFrom,
-                    Math.min(yTo, limits.top(x, z)), distance))
+                if (!column(x, z, Math.abs((across + 0.5) - eyeAcross), yFrom, yTo, distance))
                 {
                     return false;
                 }
