@@ -18,6 +18,7 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
@@ -529,6 +530,9 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
+        // Stamping is looking at the far side again, so the window's capture is taken again
+        // too. Nothing to say about it: the view changes when the new one is ready.
+        MirrorCaptures.retake(mirror);
         // Two readings of one word, never both at once: the look alone, or the look after the
         // name. Nested as one expression this was the least readable line in the command.
         final String afterTheName = (args.length > 3) ? args[3] : null;

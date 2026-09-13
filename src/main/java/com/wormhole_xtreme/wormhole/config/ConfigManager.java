@@ -204,12 +204,12 @@ public class ConfigManager
         MIRROR_VIEW_DEPTH,
 
         /**
-         * How far into the far side the shell looks, in blocks.
+         * How far around its arrival point a mirror's far side is captured, in blocks.
          *
-         * <p>Beyond it a line of sight that has met nothing is sky. The cost is per line, not per
-         * block seen, so this can be large.
+         * <p>A capture is what a window draws from, and its edge is the view's horizon: a line
+         * of sight that leaves the box has met nothing, and shows sky.
          */
-        MIRROR_VIEW_HORIZON,
+        MIRROR_CAPTURE_RADIUS,
 
         /**
          * Whether a mirror names itself above the hotbar to whoever is looking at it.
@@ -1444,14 +1444,14 @@ public class ConfigManager
     }
 
     /**
-     * How far into the far side a mirror's shell looks before calling a line of sight sky.
+     * How far around its arrival point a mirror's far side is captured.
      *
-     * @return the distance in blocks, between 16 and 512
+     * @return the radius in blocks, between 16 and 128
      */
-    public static int getMirrorViewHorizon()
+    public static int getMirrorCaptureRadius()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_HORIZON);
-        return (s == null) ? 128 : Math.max(16, Math.min(512, s.getIntValue()));
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_CAPTURE_RADIUS);
+        return (s == null) ? 64 : Math.max(16, Math.min(128, s.getIntValue()));
     }
 
     /**

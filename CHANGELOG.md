@@ -113,11 +113,30 @@ been running on defaults will start reading the file you have been editing.
   standing back.
 
   Three smaller things came with it. The cone is walked middle first and then outwards, so a
-  redraw that does run out of budget loses the edges of the view rather than its depth. Above
-  the highest real block in a column nothing is walked, since air drawn over air changes nothing;
-  and a line of sight above the far side's surface skips down to it rather than walking the air.
-  And the view is redrawn on a quarter block of movement rather than half: close up, half a block
-  nearer is twice as wide a view, and stepping in used to keep the narrower one.
+  redraw that does run out of budget loses the edges of the view rather than its depth. A line
+  of sight above the far side's surface skips down to it rather than walking the air. And the
+  view is redrawn on a quarter block of movement rather than half: close up, half a block nearer
+  is twice as wide a view, and stepping in used to keep the narrower one.
+
+  **The far side is a capture, not the live world.** Reading the far world live meant it had to
+  be loaded, and it was not: the first mirror tested in earnest showed its own world above the
+  far sand, and the far side's chunks, asked for in the background, never came. So a window now
+  draws from a photograph -- a box of blocks around the arrival point, `mirror-capture-radius`
+  across (64 by default), 16 below to 64 above, taken a couple of chunks a tick the first time
+  anybody looks and kept in `data/mirror-captures/`. Palette and index, gzipped, with anything
+  buried on all six sides pruned to air: a beach comes to a few hundred kilobytes at most.
+
+  Once taken it never needs the far world again, which is the museum case #22 was filed for: a
+  mirror onto an archived world that is not even loaded still shows it. What it costs is
+  currency. `mirror stamp` takes it again; `mode dynamic` retakes it every
+  `mirror-dynamic-resample-seconds` while somebody is looking; `mode static`, the default, never
+  does. The far side's own mirror banners are blanked in the capture, so a linked pair looks
+  straight through, and the far world's creatures are not in it at all.
+
+  Your own world's creatures were: an armour stand on the real side stood in the middle of the
+  far side, since a drawn block hides what is behind it but a creature is not a block. Anything
+  standing inside the view is now hidden from the viewer while they look, and shown again after.
+  Other players are left alone, since hiding one takes them off the tab list.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

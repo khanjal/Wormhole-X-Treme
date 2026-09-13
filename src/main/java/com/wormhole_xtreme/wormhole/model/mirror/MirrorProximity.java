@@ -133,6 +133,7 @@ public final class MirrorProximity
     {
         release(mirror);
         SAMPLED.remove(mirror.name());
+        MirrorCaptures.forget(mirror);
     }
 
     /**

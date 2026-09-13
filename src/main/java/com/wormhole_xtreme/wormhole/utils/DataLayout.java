@@ -112,6 +112,19 @@ public final class DataLayout
     }
 
     /**
+     * The folder of mirror captures: one photograph of a far side per destination.
+     *
+     * <p>Beside the mirror file rather than inside a world's folder, because a capture is of the
+     * far side and belongs to the mirror that looks at it, not to the world it is of.
+     *
+     * @return the folder, which may not exist yet
+     */
+    public static File mirrorCaptureDir()
+    {
+        return new File(data(), "mirror-captures");
+    }
+
+    /**
      * The folder this fork's data used to share with another fork's database.
      *
      * <p>Still read, for two reasons that have nothing to do with each other: the importer

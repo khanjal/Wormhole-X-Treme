@@ -170,10 +170,12 @@ It is a first cut of [#278](https://github.com/khanjal/Wormhole-X-Treme/issues/2
 - **One-sided.** From behind, a mirror is its banner.
 - **Only the open part of the opening opens.** Something solid in front of part of it closes that part.
 - **Nothing shows past the opening's edges.** In a wall the wall hides them; in open air, blocks that would reach past the edge are left out.
-- **Real blocks reach `mirror-view-depth` from your eye** (16 by default, up to 64). Past that, the rest of the view is painted onto a shell: each block shows whatever your line of sight meets at the far side within `mirror-view-horizon` (128 by default), or sky. Distant things lose their parallax, which is small anyway, and nothing is ever cut off.
-- **A far side nobody has loaded arrives a moment late.** Its chunks are fetched without stalling the server, and that part of the view fills in when they are ready.
+- **What you see is a capture**, a photograph of the far side taken once and kept in `data/mirror-captures/`. The first time anyone looks into a mirror, its capture is taken over a few seconds (the far world has to be loaded for that, and only then), and the mirror opens when it is ready. After that the far world need not be loaded at all: a mirror onto an archived world still shows it. `mirror stamp` takes the capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while somebody is looking; `mode static` (the default) never does, so a museum stays as captured.
+- **The capture reaches `mirror-capture-radius` around the arrival point** (64 by default), 16 below it to 64 above. Its edge is the horizon.
+- **Real blocks reach `mirror-view-depth` from your eye** (16 by default, up to 64). Past that, the rest of the view is painted onto a shell: each block shows whatever your line of sight meets in the capture, or sky. Distant things lose their parallax, which is small anyway, and nothing is ever cut off.
+- **Your own world's creatures inside the view are hidden** from you while you look. Other players are not.
 - **A mirror's banner at the far end is left out of the view**, so a linked pair looks straight through.
-- **Blocks only, no mobs**, and lit by this world rather than the far one.
+- **Blocks only, no mobs or players from the far side**, and lit by this world rather than the far one.
 - **The look, `display` and `mode` show only where there is no view**: from behind, from out of range, or onto a world that is not loaded.
 
 ## Saying what it is

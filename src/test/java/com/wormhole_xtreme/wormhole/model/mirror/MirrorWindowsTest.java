@@ -8,9 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -30,7 +29,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
-import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -41,6 +39,8 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,11 +63,12 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * edges, the view comes back from them when they leave, it is a drawing throughout -- the
  * opening is drawn as something still solid -- windows sharing a wall never draw over each
  * other, the view has no far edge where the real world shows, and all of it stays cheap enough
- * for a server with people walking past mirrors: redraws are rationed, only differences are
- * sent, and a far chunk is never loaded mid-tick.
+ * for a server with people walking past mirrors: redraws are rationed and only differences are
+ * sent.
  *
- * <p>The world here is a wall along z 11 -- the layer every opening in these tests sits in --
- * with open air in front of it. {@link #wallBehind} takes the wall away.
+ * <p>The far side is a capture installed directly: the arrival point (100, 70, -21) in a world
+ * of one block. The world here is a wall along z 11 -- the layer every opening in these tests
+ * sits in -- with open air in front of it. {@link #wallBehind} takes the wall away.
  */
 class MirrorWindowsTest
 {
@@ -82,14 +83,14 @@ class MirrorWindowsTest
     private boolean localEmpty;
 
     private World world;
-    private World far;
-    private World farTwo;
     private Block banner;
-    private final BlockData air = mock(BlockData.class);
-    private final BlockData barrier = mock(BlockData.class);
-    private final BlockData sky = mock(BlockData.class);
-    private final BlockData farOneBlock = mock(BlockData.class);
-    private final BlockData farTwoBlock = mock(BlockData.class);
+    private final BlockData air = named("minecraft:air");
+    private final BlockData barrier = named("minecraft:barrier");
+    private final BlockData sky = named("minecraft:light_blue_concrete");
+    private final BlockData farOneBlock = named("far:one");
+    private final BlockData farTwoBlock = named("far:two");
+    private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
+    private final MirrorPoint arrivalTwo = new MirrorPoint("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f);
 
     @BeforeEach
     void setUp() throws Exception
@@ -113,12 +114,11 @@ class MirrorWindowsTest
         banner = bannerAt(10);
         hangOnAWall(banner);
 
-        far = farWorld("far", farOneBlock);
-        farTwo = farWorld("far2", farTwoBlock);
+        MirrorCaptures.install(arrival, solidCapture(arrival, farOneBlock));
+        MirrorCaptures.install(arrivalTwo, solidCapture(arrivalTwo, farTwoBlock));
 
         // Nothing set on it: every mirror is a window.
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10), arrival));
     }
 
     @AfterEach
@@ -172,6 +172,26 @@ class MirrorWindowsTest
     }
 
     /**
+     * Only far-side blocks the eye could see through the opening are drawn.
+     *
+     * <p>The rest stay as the world has them, which is what leaves room for a neighbouring window
+     * and keeps whatever is really behind the wall where nobody could see it anyway.
+     */
+    @Test
+    void onlyBlocksSeenThroughTheOpeningAreDrawn()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
+        assertFalse(drawn.containsKey(new Spot(18, 64, 12)),
+            "off to the side, behind solid wall from where the viewer stands");
+    }
+
+    /**
      * Past the radius, the far side is painted onto a shell rather than cut off.
      *
      * <p>Every line of sight through the opening crosses the shell, so past it nothing of the
@@ -198,8 +218,8 @@ class MirrorWindowsTest
     @Test
     void aShellBlockShowsTheFirstThingItsLineOfSightMeets()
     {
-        final BlockData ground = mock(BlockData.class);
-        far = farWorldWithGroundBelow(60, ground);
+        final BlockData ground = named("far:ground");
+        MirrorCaptures.install(arrival, groundBelow(arrival, 60, ground));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -210,140 +230,17 @@ class MirrorWindowsTest
         assertSame(ground, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 58, 22)));
     }
 
-    /**
-     * A line of sight over far ground skips the air above it rather than walking it.
-     *
-     * <p>That air is most of a line's length from anywhere high, and the far side's own
-     * heightmap already says where the surface is.
-     */
-    @Test
-    void aLineOfSightOverFarGroundSkipsTheAirAboveIt()
-    {
-        far = farWorldWithGroundBelow(60, mock(BlockData.class));
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        // Reads within the radius are the near volume's, air included. A read of air past the
-        // radius can only be a line of sight walking it: where the viewer's eye maps to at the
-        // far side is the arrival block, seven up and the same distance back.
-        for (final Invocation read : mockingDetails(far).getInvocations())
-        {
-            if ("getBlockAt".equals(read.getMethod().getName()))
-            {
-                final int x = read.getArgument(0);
-                final int y = read.getArgument(1);
-                final int z = read.getArgument(2);
-                final double dx = (x + 0.5) - 100.5;
-                final double dy = (y + 0.5) - 72.62;
-                final double dz = (z + 0.5) - (-25.5);
-                final double fromEye = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-                assertTrue((y <= 60) || (fromEye < 17.5),
-                    "a line of sight read the air at y " + y + ", " + fromEye + " from the eye");
-            }
-        }
-    }
-
-    /** Where a line of sight meets nothing before the horizon, the shell shows sky. */
+    /** Where a line of sight leaves the capture without meeting anything, the shell shows sky. */
     @Test
     void whereALineOfSightMeetsNothingTheShellShowsSky()
     {
-        far = farWorld("far", air);
+        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
         assertSame(sky, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 61, 23)));
-    }
-
-    /**
-     * Only far-side blocks the eye could see through the opening are drawn.
-     *
-     * <p>The rest stay as the world has them, which is what leaves room for a neighbouring window
-     * and keeps whatever is really behind the wall where nobody could see it anyway.
-     */
-    @Test
-    void onlyBlocksSeenThroughTheOpeningAreDrawn()
-    {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
-        assertFalse(drawn.containsKey(new Spot(18, 64, 12)),
-            "off to the side, behind solid wall from where the viewer stands");
-    }
-
-    /**
-     * The view reaches as far back as the configured depth, which is well past where it used to
-     * stop.
-     *
-     * <p>The first builds drew sixteen blocks deep, and past that the world the viewer was really
-     * in showed through the mirror.
-     */
-    @Test
-    void theViewReachesFarBackBehindTheOpening()
-    {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 48);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        // Looking down through the opening from just above it, so that far back the line of
-        // sight is well below the opening's own rows.
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(10, 45, 50)), "thirty-nine layers back");
-        assertSame(farOneBlock, drawn.get(new Spot(10, 50, 40)), "twenty-nine layers back");
-    }
-
-    /**
-     * A solid far side hides what is behind it, so what is behind it is never drawn.
-     *
-     * <p>A deep view is mostly ground: a mirror onto a field looks down into the soil under it.
-     * Drawing the inside of the hill was most of the cost of a deep view and none of the picture.
-     * The same two blocks are drawn when the far side is not solid, in the test before this one.
-     */
-    @Test
-    void aSolidFarSideHidesWhatIsBehindIt()
-    {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 48);
-        when(farOneBlock.isOccluding()).thenReturn(true);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 12)), "the first layer, in front");
-        assertFalse(drawn.containsKey(new Spot(10, 50, 40)), "behind it, from where the eye is");
-        assertFalse(drawn.containsKey(new Spot(10, 45, 50)), "further behind still");
-    }
-
-    /**
-     * Far-side air over a block that is really empty is not sent: it would change nothing.
-     *
-     * <p>Sky is most of a deep view, and drawing air over air was most of what got sent. Over a
-     * real block it is sent, in the test after this one, because there it opens up the view.
-     */
-    @Test
-    void farSideAirOverAnEmptyBlockIsNotSent()
-    {
-        far = farWorld("far", air);
-        localEmpty = true;
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
-        assertEquals(2, drawnAs(batch, barrier), "the opening still opens");
-        assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
-            "and only the banner is drawn as air");
     }
 
     /**
@@ -359,8 +256,7 @@ class MirrorWindowsTest
     {
         wallBehind = false;
         localEmpty = true;
-        far = farWorld("far", air);
-        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(0);
+        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -372,17 +268,51 @@ class MirrorWindowsTest
         assertTrue(drawnAs(batch, sky) > 10, "but the shell past it is, as sky: " + drawnAs(batch, sky));
     }
 
+    /**
+     * A mirror whose far side has not been captured yet stays a banner, and asks for a capture.
+     *
+     * <p>The same mirror opens once the capture is there, which is what shows the refusal was
+     * about the capture and not about something else in the setup.
+     */
     @Test
-    void farSideAirOverARealBlockIsSent()
+    void aMirrorWithNoCaptureYetStaysABannerAndAsksForOne()
     {
-        far = farWorld("far", air);
+        MirrorCaptures.clear();
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            verify(viewer, never()).sendBlockChanges(anyCollection());
+            assertEquals(1, MirrorCaptures.taking(), "asked for");
+            MirrorCaptures.install(arrival, solidCapture(arrival, farOneBlock));
+            MirrorProximity.tick();
+        });
 
-        assertTrue(drawnAs(changesTo(viewer, 1).get(0), air) > 10,
-            "air opening up the view through whatever really stands behind the wall");
+        changesTo(viewer, 1);
+    }
+
+    /**
+     * A new capture arriving redraws every viewer of it, without anybody moving.
+     *
+     * <p>That is how a dynamic mirror's view changes, and how the first capture appears for a
+     * viewer already standing in front of the mirror.
+     */
+    @Test
+    void aNewCaptureRedrawsWhoeverIsLooking()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            MirrorCaptures.install(arrival, solidCapture(arrival, farTwoBlock));
+            MirrorProximity.tick();
+        });
+
+        assertTrue(drawnAs(changesTo(viewer, 2).get(1), farTwoBlock) > 0);
     }
 
     /**
@@ -462,6 +392,95 @@ class MirrorWindowsTest
         withServer(MirrorProximity::tick);
 
         assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(11, 65, 12)));
+    }
+
+    /**
+     * A solid far side hides what is behind it, so what is behind it is never drawn.
+     *
+     * <p>A deep view is mostly ground: a mirror onto a field looks down into the soil under it.
+     * Drawing the inside of the hill was most of the cost of a deep view and none of the picture.
+     */
+    @Test
+    void aSolidFarSideHidesWhatIsBehindIt()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 48);
+        when(farOneBlock.isOccluding()).thenReturn(true);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 12)), "the first layer, in front");
+        assertFalse(drawn.containsKey(new Spot(10, 50, 40)), "behind it, from where the eye is");
+    }
+
+    /**
+     * Far-side air over a block that is really empty is not sent: it would change nothing.
+     *
+     * <p>Over a real block it is sent, in the test after this one, because there it opens up the
+     * view.
+     */
+    @Test
+    void farSideAirOverAnEmptyBlockIsNotSent()
+    {
+        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
+        localEmpty = true;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
+        assertEquals(2, drawnAs(batch, barrier), "the opening still opens");
+        assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
+            "and only the banner is drawn as air");
+    }
+
+    @Test
+    void farSideAirOverARealBlockIsSent()
+    {
+        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertTrue(drawnAs(changesTo(viewer, 1).get(0), air) > 10,
+            "air opening up the view through whatever really stands behind the wall");
+    }
+
+    /**
+     * A creature of the viewer's own world standing inside the view is hidden from them, and
+     * shown again when they walk away.
+     *
+     * <p>A drawn block hides what is behind it, but a creature is not a block: an armour stand on
+     * the real side kept standing in the middle of the far side.
+     */
+    @Test
+    void aCreatureStandingInsideTheViewIsHiddenAndShownAgainAfterwards()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final Entity stand = mock(ArmorStand.class);
+        when(stand.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(stand.getLocation()).thenReturn(new Location(world, 10.5, 63.0, 14.5));
+        final Entity aside = mock(ArmorStand.class);
+        when(aside.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(aside.getLocation()).thenReturn(new Location(world, 18.5, 63.0, 12.5));
+        when(world.getNearbyEntities(any(Location.class), anyDouble(), anyDouble(), anyDouble()))
+            .thenReturn(List.of(stand, aside));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            verify(viewer).hideEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
+            verify(viewer, never()).hideEntity(any(), org.mockito.ArgumentMatchers.eq(aside));
+            stand(viewer, 10.5, -40.0);
+            MirrorProximity.tick();
+        });
+
+        verify(viewer).showEntity(any(), org.mockito.ArgumentMatchers.eq(stand));
     }
 
     @Test
@@ -572,54 +591,6 @@ class MirrorWindowsTest
             "the opening, which did not change, is in it");
     }
 
-    /**
-     * A far chunk that is not loaded is asked for, not read, and loads a couple at a time.
-     *
-     * <p>Reading a block in an unloaded chunk loads it on the spot, on the main thread -- the
-     * stall came the moment somebody walked up to a mirror onto somewhere nobody had been.
-     */
-    @Test
-    void anUnloadedFarChunkIsAskedForRatherThanReadWhereTheViewerStands()
-    {
-        when(far.isChunkLoaded(anyInt(), anyInt())).thenReturn(false);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            MirrorProximity.tick();
-            verify(far, never()).loadChunk(anyInt(), anyInt(), eq(true));
-            MirrorProximity.tick();
-        });
-
-        verify(far, never()).getBlockAt(anyInt(), anyInt(), anyInt());
-        verify(far, times(2)).loadChunk(anyInt(), anyInt(), eq(true));
-        assertSame(barrier, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 64, 11)),
-            "the opening still opens while the far side arrives");
-    }
-
-    /**
-     * A far chunk somebody is looking at is held loaded, and let go when the window is.
-     *
-     * <p>Unheld, the server unloads it within moments and the next redraw has to load it again.
-     */
-    @Test
-    void aFarChunkBeingLookedAtIsHeldAndLetGoWithTheWindow()
-    {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            MirrorProximity.tick();
-            verify(far, atLeastOnce()).addPluginChunkTicket(anyInt(), anyInt(), any());
-            verify(far, never()).removePluginChunkTicket(anyInt(), anyInt(), any());
-            MirrorProximity.release(MirrorManager.byName("museum"));
-        });
-
-        verify(far, atLeastOnce()).removePluginChunkTicket(anyInt(), anyInt(), any());
-    }
-
     @Test
     void clickingTheOpeningWhileLookingInIsTheMirror()
     {
@@ -664,51 +635,6 @@ class MirrorWindowsTest
         assertSame(barrier, drawn.get(new Spot(10, 65, 11)), "a block above the banner's own row");
         assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)),
             "not below it, where a wall banner's opening would be");
-    }
-
-    /**
-     * A mirror onto a world that is not loaded stays a banner.
-     *
-     * <p>The same banner, pointed somewhere loaded, does open -- which is what shows the refusal
-     * was about the world and not about something else in the setup.
-     */
-    @Test
-    void aMirrorOntoAnUnloadedWorldDrawsNothing()
-    {
-        MirrorManager.clear();
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("nowhere", 0.5, 64.0, 0.5, 0.0f, 0.0f)));
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(() ->
-        {
-            MirrorProximity.tick();
-            verify(viewer, never()).sendBlockChanges(anyCollection());
-            MirrorManager.add(MirrorManager.byName("museum")
-                .withDestination(new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f)));
-            MirrorProximity.tick();
-        });
-
-        changesTo(viewer, 1);
-    }
-
-    /**
-     * A mirror's banner at the far side shows as the opening it is there, not as cloth.
-     *
-     * <p>A linked pair arrives in the far banner's own block, so without this that banner hangs
-     * in the middle of the view.
-     */
-    @Test
-    void aMirrorBannerAtTheFarSideIsLeftOutOfTheView()
-    {
-        MirrorManager.add(new QuantumMirror("return", new MirrorBlock("far", 100, 71, -21), null));
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        assertSame(air, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 64, 12)));
     }
 
     /**
@@ -811,6 +737,24 @@ class MirrorWindowsTest
             .filter(call -> "setBlockData".equals(call.getMethod().getName()));
     }
 
+    /** A capture of one block everywhere, 40 around the arrival point and 16 below to 64 above. */
+    private MirrorCapture solidCapture(final MirrorPoint at, final BlockData everywhere)
+    {
+        return groundBelow(at, 1000, everywhere);
+    }
+
+    /** A capture of one block below a height and air above it. */
+    private MirrorCapture groundBelow(final MirrorPoint at, final int surface, final BlockData ground)
+    {
+        final int x = (int) Math.floor(at.x());
+        final int y = (int) Math.floor(at.y());
+        final int z = (int) Math.floor(at.z());
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder(at.worldName(), true,
+            x - 40, y - 16, z - 40, 81, 81, 81, air);
+        builder.fillBelow(surface, ground);
+        return builder.build();
+    }
+
     /** A banner at z 10, in front of the layer the openings sit in. */
     private Block bannerAt(final int x)
     {
@@ -843,8 +787,7 @@ class MirrorWindowsTest
     private void secondWindowAt(final int x)
     {
         hangOnAWall(bannerAt(x));
-        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", x, 64, 10),
-            new MirrorPoint("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f)));
+        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", x, 64, 10), arrivalTwo));
     }
 
     /** A block of the banner's world, with a fresh state per read as Bukkit gives. */
@@ -874,43 +817,19 @@ class MirrorWindowsTest
         return state;
     }
 
+    private static BlockData named(final String name)
+    {
+        final BlockData data = mock(BlockData.class);
+        when(data.getAsString()).thenReturn(name);
+        return data;
+    }
+
     private static World named(final World mocked, final String name)
     {
         when(mocked.getName()).thenReturn(name);
         when(mocked.getMinHeight()).thenReturn(-64);
         when(mocked.getMaxHeight()).thenReturn(320);
-        // Something in every column right up to the build limit, unless a test says otherwise:
-        // a mock's zero would read as sky above y 0 on both sides, and nothing would be walked.
-        when(mocked.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(319);
         return mocked;
-    }
-
-    /** A loaded far world made entirely of one block. */
-    private static World farWorld(final String name, final BlockData everywhere)
-    {
-        final World made = named(mock(World.class), name);
-        final Block block = mock(Block.class);
-        when(block.getBlockData()).thenReturn(everywhere);
-        when(made.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
-        when(made.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        when(made.getEnvironment()).thenReturn(World.Environment.NORMAL);
-        return made;
-    }
-
-    /** A loaded far world of open air with solid ground below a height. */
-    private World farWorldWithGroundBelow(final int surface, final BlockData ground)
-    {
-        final World made = farWorld("far", air);
-        when(made.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
-        {
-            final Block block = mock(Block.class);
-            final int y = invocation.getArgument(1);
-            when(block.getBlockData()).thenReturn((y < surface) ? ground : air);
-            return block;
-        });
-        when(made.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class)))
-            .thenReturn(surface - 1);
-        return made;
     }
 
     private Player playerAt(final double x, final double z)
@@ -929,14 +848,15 @@ class MirrorWindowsTest
         when(player.getEyeLocation()).thenReturn(new Location(world, x, 65.62, z));
     }
 
-    /** Runs something with a server that knows these worlds, these players and two blocks. */
+    /** Runs something with a server that knows this world, these players and the drawn blocks. */
     private void withServer(final Runnable body)
     {
+        final World far = named(mock(World.class), "far");
+        when(far.getEnvironment()).thenReturn(World.Environment.NORMAL);
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
-            bukkit.when(() -> Bukkit.getWorld("far2")).thenReturn(farTwo);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
             bukkit.when(() -> Bukkit.createBlockData(Material.LIGHT_BLUE_CONCRETE)).thenReturn(sky);
