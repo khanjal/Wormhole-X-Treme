@@ -358,7 +358,7 @@ def markers(layers):
     return found
 
 
-def note(name, settings, layers, grid):
+def note(name, settings, layers):
     """The sentence beside a drawing: what the shape is for, and what it does when it dials."""
     if name in PURPOSE:
         said = PURPOSE[name]
@@ -416,7 +416,7 @@ def main():
                     ' | `%s` | %d x %d%s | %s | %s |'
                     % (name.lower(), name.lower(), name, name.lower(), name.lower(), name,
                        name, len(grid[0]), len(grid), ", in plan" if plan else "",
-                       note(name, settings, layers, grid),
+                       note(name, settings, layers),
                        ", ".join("`%s` (layer %d)" % (mark, layer)
                                  for (mark, layer) in markers(layers))))
 
