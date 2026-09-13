@@ -147,4 +147,31 @@ class MirrorManagerTest
         assertFalse(unpointed.isSameWorld(),
             "with nowhere to go it cannot be going somewhere in this world");
     }
+
+    /**
+     * Removing one of two mirrors on one banner leaves the other one working.
+     *
+     * <p>Two names on one banner is not a state this class will produce -- {@code add} clears
+     * the old banner when it replaces a name, and the command layer refuses the case it cannot
+     * read. A hand-edited {@code mirror.yml} can still hold one, and this is the removal that
+     * used to make it worse: clearing the block index by the removed mirror's banner unhooked
+     * whichever mirror was actually using it. That survivor keeps its name and its entry, still
+     * lists, and does nothing at all when clicked -- which looks like the plugin having eaten
+     * the banner rather than like a file that needs a line taking out.
+     */
+    @Test
+    void removingOneOfTwoMirrorsOnOneBannerLeavesTheOtherClickable()
+    {
+        final MirrorBlock shared = new MirrorBlock("world", 10, 64, 0);
+        MirrorManager.add(new QuantumMirror("stale", shared, null));
+        final QuantumMirror live = new QuantumMirror("live", shared,
+            new MirrorPoint("world", 200, 64, 200, 0, 0));
+        MirrorManager.add(live);
+
+        assertNotNull(MirrorManager.remove("stale"), "the stale entry should come out");
+
+        assertNull(MirrorManager.byName("stale"), "and stay out");
+        assertEquals(live, MirrorManager.at(shared),
+            "while the banner still answers to the mirror that holds it");
+    }
 }

@@ -107,7 +107,11 @@ public final class MirrorManager
         final QuantumMirror removed = (name == null) ? null : BY_NAME.remove(key(name));
         if (removed != null)
         {
-            BY_BLOCK.remove(removed.banner());
+            // Only if that banner is still this mirror's. Two names on one banner is not a
+            // state this class will produce, but a hand-edited mirror.yml can hold one, and
+            // clearing the index unconditionally then unhooks the survivor: it keeps its name
+            // and its entry, shows up in "mirror list", and does nothing when clicked.
+            BY_BLOCK.remove(removed.banner(), removed);
         }
         return removed;
     }
