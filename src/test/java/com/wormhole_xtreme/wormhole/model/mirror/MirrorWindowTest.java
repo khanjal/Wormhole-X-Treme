@@ -45,17 +45,41 @@ class MirrorWindowTest
         return opening;
     }
 
-    /** Every candidate from an eye out to a depth, in the order they are handed out. */
+    /** Every candidate from an eye out to a depth, band by band, in the order handed out. */
+    private static List<Spot> candidates(final MirrorWindow window, final double x,
+        final double y, final double z, final int depth, final MirrorWindow.Limits limits)
+    {
+        final List<Spot> seen = new ArrayList<>();
+        for (int band = 0; band < MirrorWindow.bands(); band++)
+        {
+            window.forEachCandidate(x, y, z, depth, band, limits, (cx, cy, cz) -> seen.add(new Spot(cx, cy, cz)));
+        }
+        return seen;
+    }
+
     private static List<Spot> candidates(final MirrorWindow window, final double x,
         final double y, final double z, final int depth)
     {
-        final List<Spot> seen = new ArrayList<>();
-        window.forEachCandidate(x, y, z, depth, (cx, cy, cz) ->
+        return candidates(window, x, y, z, depth, MirrorWindow.UNLIMITED);
+    }
+
+    /** Limits with a ceiling on every column and a deepest layer. */
+    private static MirrorWindow.Limits limits(final int top, final int deepest)
+    {
+        return new MirrorWindow.Limits()
         {
-            seen.add(new Spot(cx, cy, cz));
-            return true;
-        });
-        return seen;
+            @Override
+            public int top(final int x, final int z)
+            {
+                return top;
+            }
+
+            @Override
+            public int deepest()
+            {
+                return deepest;
+            }
+        };
     }
 
     /**
@@ -186,13 +210,54 @@ class MirrorWindowTest
     void aCandidateWalkStopsWhenAsked()
     {
         final List<Spot> seen = new ArrayList<>();
-        northFacing(0.0f).forEachCandidate(0.5, 64.0, -3.0, 20, (x, y, z) ->
-        {
-            seen.add(new Spot(x, y, z));
-            return false;
-        });
+        final boolean finished = northFacing(0.0f).forEachCandidate(0.5, 64.0, -3.0, 20, 0,
+            MirrorWindow.UNLIMITED, (x, y, z) ->
+            {
+                seen.add(new Spot(x, y, z));
+                return false;
+            });
 
         assertEquals(1, seen.size());
+        assertFalse(finished, "and says it was stopped, so the next band is not walked either");
+    }
+
+    /**
+     * Right up against a mirror, the middle of the view is walked to full depth before its edges.
+     *
+     * <p>From there the cone is hundreds of thousands of blocks and a redraw runs out of budget.
+     * Walked a layer at a time, running out cut the view short in every direction, and the real
+     * world showed straight through the middle a few blocks back.
+     */
+    @Test
+    void rightUpAgainstAMirrorTheMiddleIsWalkedToFullDepthBeforeTheEdges()
+    {
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, 0.6, 48);
+
+        final int deepMiddle = seen.indexOf(new Spot(0, 64, 49));
+        final int nearEdge = seen.indexOf(new Spot(2, 64, 2));
+        assertTrue((deepMiddle >= 0) && (nearEdge >= 0), "both are in the view");
+        assertTrue(deepMiddle < nearEdge, "the deep middle first: " + deepMiddle + " vs " + nearEdge);
+        assertEquals(seen.size(), new HashSet<>(seen).size(), "and nothing is walked twice");
+    }
+
+    /** Nothing above a column's ceiling is walked, since there nothing could need drawing. */
+    @Test
+    void nothingAboveAColumnsCeilingIsWalked()
+    {
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20, limits(63, 99));
+
+        assertTrue(seen.stream().allMatch(spot -> spot.y() <= 63));
+        assertTrue(seen.contains(new Spot(0, 63, 10)), "up to the ceiling itself");
+    }
+
+    /** Nothing deeper than the deepest layer allowed is walked. */
+    @Test
+    void nothingDeeperThanAllowedIsWalked()
+    {
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20, limits(999, 5));
+
+        assertTrue(seen.stream().allMatch(spot -> spot.z() <= 6));
+        assertTrue(seen.contains(new Spot(0, 63, 6)), "down to that layer itself");
     }
 
     @Test

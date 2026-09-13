@@ -95,6 +95,22 @@ been running on defaults will start reading the file you have been editing.
   Measured again, onto a far side of ground and sky with open space behind the wall: 0.05 ms a
   redraw for one mirror and under 1 ms for eight, from 13. Behind a solid wall the sky has to be
   sent as air over stone, so that case costs more than these numbers.
+
+  **Right up against a mirror, though, the real world still showed through.** From a few tenths
+  of a block the view through a one-by-two opening is nearly half a sphere, and 48 deep that is
+  hundreds of thousands of blocks -- 34 ms a redraw with no budget, and with one the view stopped
+  16 to 33 blocks back in every direction. So:
+
+  - The blocks in front of the opening, the banner's own among them, are barrier too. Nobody's
+    eye comes nearer than about a block and a third, where the whole view fits. Not a block you
+    are standing in -- a linked pair puts you exactly there when you arrive -- and clicking the
+    barrier is clicking the mirror.
+  - The cone is walked middle first, to full depth, and then outwards, so a redraw that does run
+    out of budget loses the edges of the view rather than its depth.
+  - Above the highest block in both the real column and the far one, nothing needs drawing, and
+    those columns are no longer walked a block at a time to find that out.
+  - The view is redrawn on a quarter block of movement rather than half. Close up, half a block
+    nearer is twice as wide a view, and stepping in used to keep the narrower one.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

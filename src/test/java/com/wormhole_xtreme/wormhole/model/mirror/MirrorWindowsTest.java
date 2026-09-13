@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -169,6 +170,48 @@ class MirrorWindowsTest
     }
 
     /**
+     * The blocks in front of the opening are barrier too, so nobody can press right up to it.
+     *
+     * <p>From a few tenths of a block away the view through a mirror is nearly half a sphere, far
+     * more than any redraw's budget, and the real world showed through wherever it ran out. A
+     * block back, it fits.
+     */
+    @Test
+    void theBlocksInFrontOfTheOpeningKeepAViewerABlockAway()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(barrier, drawn.get(new Spot(10, 63, 10)), "in front of the lower row");
+        if (MirrorPackets.available())
+        {
+            assertSame(barrier, drawn.get(new Spot(10, 64, 10)), "and in the banner's own block");
+        }
+    }
+
+    /**
+     * Somebody standing in the banner's block is not walled in there.
+     *
+     * <p>A linked pair puts an arriving traveller exactly there. Drawing barrier where they stand
+     * would leave the client and the server arguing about where they are.
+     */
+    @Test
+    void aPlayerStandingInTheBannersBlockIsNotWalledIn()
+    {
+        final Player arrived = playerAt(10.5, 10.5);
+        when(world.getPlayers()).thenReturn(List.of(arrived));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(arrived, 1).get(0));
+        assertNotSame(barrier, drawn.get(new Spot(10, 64, 10)), "not where they are standing");
+        assertSame(barrier, drawn.get(new Spot(10, 63, 10)), "though the block below it still is");
+    }
+
+    /**
      * Only far-side blocks the eye could see through the opening are drawn.
      *
      * <p>The rest stay as the world has them, which is what leaves room for a neighbouring window
@@ -251,9 +294,30 @@ class MirrorWindowsTest
         withServer(MirrorProximity::tick);
 
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
-        assertEquals(2, drawnAs(batch, barrier), "the opening still opens");
-        assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
-            "and only the banner is drawn as air");
+        assertEquals(barriers(), drawnAs(batch, barrier), "the opening still opens");
+        assertEquals(0, drawnAs(batch, air), "and nothing at all is drawn as air");
+    }
+
+    /**
+     * Sky on both sides is not even looked at, let alone sent.
+     *
+     * <p>Above the highest block in the real column and in the far one, everything is air over
+     * air. Walking it a block at a time was nearly all of a redraw from right up against a mirror.
+     */
+    @Test
+    void skyOnBothSidesIsNotEvenLookedAt()
+    {
+        far = farWorld("far", air);
+        when(far.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(0);
+        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(0);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        verify(far, never()).getBlockAt(anyInt(), anyInt(), anyInt());
+        assertEquals(barriers(), drawnAs(changesTo(viewer, 1).get(0), barrier),
+            "the opening still opens");
     }
 
     @Test
@@ -452,8 +516,8 @@ class MirrorWindowsTest
             MirrorWindows.moved(viewer, new Location(world, 16.2, 64.0, 7.5));
         });
 
-        assertEquals(2, drawnAs(changesTo(viewer, 2).get(1), barrier),
-            "the opening, which did not change, is in it");
+        assertEquals(barriers(), drawnAs(changesTo(viewer, 2).get(1), barrier),
+            "the opening and what stands in front of it, which did not change, are in it");
     }
 
     /**
@@ -514,6 +578,8 @@ class MirrorWindowsTest
 
         assertSame(MirrorManager.byName("museum"),
             MirrorWindows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
+        assertSame(MirrorManager.byName("museum"),
+            MirrorWindows.clicked(viewer, blockAt(10, 63, 10, true)), "the barrier in front of it");
         assertNull(MirrorWindows.clicked(viewer, blockAt(10, 63, 12, true)),
             "a block behind the wall is not the opening");
     }
@@ -636,6 +702,15 @@ class MirrorWindowsTest
             assertEquals(spot[1], MirrorWindows.unpackY(key));
             assertEquals(spot[2], MirrorWindows.unpackZ(key));
         }
+    }
+
+    /**
+     * How many blocks one wall mirror draws as barrier: its two-block opening, and the two in
+     * front of it -- less the banner's, where its patterns could not be sent back.
+     */
+    private static long barriers()
+    {
+        return MirrorPackets.available() ? 4 : 3;
     }
 
     /** Waits out the least time between two redraws of one viewer. */
@@ -763,6 +838,9 @@ class MirrorWindowsTest
         when(mocked.getName()).thenReturn(name);
         when(mocked.getMinHeight()).thenReturn(-64);
         when(mocked.getMaxHeight()).thenReturn(320);
+        // Something in every column right up to the build limit, unless a test says otherwise:
+        // a mock's zero would read as sky above y 0 on both sides, and nothing would be walked.
+        when(mocked.getHighestBlockYAt(anyInt(), anyInt(), any(HeightMap.class))).thenReturn(319);
         return mocked;
     }
 

@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -74,8 +75,8 @@ public final class MirrorWindows
     /** How long a far chunk stays held after anybody last looked at it. */
     private static final long HOLD_MILLIS = 30_000L;
 
-    /** Most blocks one redraw considers across every window a viewer sees, nearest first. */
-    private static final int MOST_CANDIDATES = 30_000;
+    /** Most blocks one redraw considers across every window a viewer sees. */
+    private static final int MOST_CANDIDATES = 40_000;
 
     /** How far around an opening its solid surroundings are read. */
     private static final int SURROUND = 8;
@@ -97,6 +98,9 @@ public final class MirrorWindows
 
     /** Whether each block behind an opening is really empty, by world and block, briefly. */
     private static final Map<String, Map<Long, Boolean>> EMPTY = new HashMap<>();
+
+    /** The highest block that is not air in each column, by world and column, as briefly. */
+    private static final Map<String, Map<Long, Integer>> TOPS = new HashMap<>();
 
     /** When {@link #EMPTY} was last cleared. */
     private static long emptyReadAt;
@@ -156,6 +160,7 @@ public final class MirrorWindows
         VIEWS.clear();
         STATES.clear();
         EMPTY.clear();
+        TOPS.clear();
         MirrorChunkLoads.clear();
     }
 
@@ -355,7 +360,7 @@ public final class MirrorWindows
      * @param player
      *            who clicked
      * @param block
-     *            the real block behind what they clicked
+     *            the real block behind what they clicked: the opening, or a block in front of it
      * @return the mirror, or null
      */
     static QuantumMirror clicked(final Player player, final Block block)
@@ -370,7 +375,8 @@ public final class MirrorWindows
         for (final String name : view.mirrors)
         {
             final Window window = WINDOWS.get(name);
-            if ((window != null) && window.open.contains(at)
+            if ((window != null) && (window.open.contains(at) || window.open.contains(new Spot(
+                at.x() + window.shape.into().x(), at.y(), at.z() + window.shape.into().z())))
                 && window.banner.getWorld().equals(block.getWorld()))
             {
                 return window.mirror;
@@ -411,7 +417,7 @@ public final class MirrorWindows
             }
             return;
         }
-        final Map<Long, BlockData> wanted = compose(eye, seeing, now);
+        final Map<Long, BlockData> wanted = compose(player, eye, seeing, now);
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
@@ -521,36 +527,40 @@ public final class MirrorWindows
      * out to {@code mirror-view-depth} and within one budget for the whole redraw -- see
      * {@link Pass} for which of them are drawn.
      */
-    private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
-        final long now)
+    private static Map<Long, BlockData> compose(final Player player, final Location eye,
+        final List<Window> seeing, final long now)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
         final Map<Long, BlockData> wanted = new HashMap<>();
         final Set<Long> allOpen = new HashSet<>();
         seeing.forEach(window -> allOpen.addAll(window.openKeys));
+        final Set<Long> standingIn = occupiedBy(eye, player.getEyeHeight());
         for (final Window window : seeing)
         {
-            // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
-            // stays hanging in front of the view.
-            if (MirrorPackets.available())
-            {
-                final MirrorBlock banner = window.mirror.banner();
-                wanted.put(key(banner.x(), banner.y(), banner.z()), air);
-            }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
+            standOff(window, wanted, standingIn, air, barrier);
         }
         final int depth = ConfigManager.getMirrorViewDepth();
         final int[] left = { MOST_CANDIDATES };
+        final List<Pass> passes = new ArrayList<>();
         for (final Window window : nearestFirst(seeing, eye))
         {
             refreshSolid(window, now);
-            final Pass pass = new Pass(eye, window, seeing, allOpen, wanted, air, now);
-            window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(), depth, (x, y, z) ->
+            passes.add(new Pass(eye, window, seeing, allOpen, wanted, air, now));
+        }
+        // The middle of every view first, then outwards, so a spent budget costs the edges of
+        // the views rather than their depth.
+        for (int band = 0; band < MirrorWindow.bands(); band++)
+        {
+            for (final Pass pass : passes)
             {
-                pass.consider(x, y, z);
-                return (--left[0] > 0) && !pass.hidden.full();
-            });
+                if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(), depth,
+                    band, pass, (x, y, z) -> pass.consider(x, y, z) && (--left[0] > 0)))
+                {
+                    return wanted;
+                }
+            }
         }
         return wanted;
     }
@@ -586,6 +596,63 @@ public final class MirrorWindows
         return rect;
     }
 
+    /**
+     * Draws the blocks in front of a window's open opening as barrier, the banner's among them.
+     *
+     * <p>Standing in the banner's own block put an eye a few tenths of a block from the opening,
+     * where the view through it is nearly half a sphere and hundreds of thousands of blocks deep:
+     * no budget covers that, and the real world showed through past wherever it ran out. Kept a
+     * block back, the view is one a budget does cover. Barrier is at least as solid as what it
+     * covers, which is the only kind of drawing allowed.
+     *
+     * <p>Not a block the viewer is standing in, which is where a linked pair puts somebody who
+     * has just arrived: walling them in would leave the client arguing with the server about
+     * where they are. And the banner's block only where its patterns can be sent back afterwards;
+     * on plain 1.20 the banner stays hanging in front of the view.
+     */
+    private static void standOff(final Window window, final Map<Long, BlockData> wanted,
+        final Set<Long> standingIn, final BlockData air, final BlockData barrier)
+    {
+        final MirrorBlock banner = window.mirror.banner();
+        final long bannerKey = key(banner.x(), banner.y(), banner.z());
+        for (final Spot cell : window.open)
+        {
+            final long front = key(cell.x() - window.shape.into().x(), cell.y(),
+                cell.z() - window.shape.into().z());
+            final boolean isBanner = front == bannerKey;
+            if (isBanner && !MirrorPackets.available())
+            {
+                continue;
+            }
+            if (!standingIn.contains(front))
+            {
+                wanted.put(front, barrier);
+            }
+            else if (isBanner)
+            {
+                wanted.put(front, air);
+            }
+        }
+    }
+
+    /** The blocks a player's body is in, with their eye here. */
+    private static Set<Long> occupiedBy(final Location eye, final double eyeHeight)
+    {
+        final Set<Long> cells = new HashSet<>();
+        final double feet = eye.getY() - eyeHeight;
+        for (int x = (int) Math.floor(eye.getX() - 0.3); x <= (int) Math.floor(eye.getX() + 0.3); x++)
+        {
+            for (int z = (int) Math.floor(eye.getZ() - 0.3); z <= (int) Math.floor(eye.getZ() + 0.3); z++)
+            {
+                for (int y = (int) Math.floor(feet); y <= (int) Math.floor(feet + 1.8); y++)
+                {
+                    cells.add(key(x, y, z));
+                }
+            }
+        }
+        return cells;
+    }
+
     /** A viewer's windows, nearest first, so a spent budget cuts the furthest views short. */
     private static List<Window> nearestFirst(final List<Window> seeing, final Location eye)
     {
@@ -607,6 +674,23 @@ public final class MirrorWindows
         }
         return EMPTY.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
             key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
+    }
+
+    /** The highest block that is not air in a real column, remembered for a few seconds. */
+    private static int topHere(final World here, final int x, final int z, final long now)
+    {
+        if ((now - emptyReadAt) >= RESAMPLE_MILLIS)
+        {
+            EMPTY.clear();
+            TOPS.clear();
+            emptyReadAt = now;
+        }
+        if (!here.isChunkLoaded(x >> 4, z >> 4))
+        {
+            return Integer.MAX_VALUE;
+        }
+        return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
+            chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
     }
 
     /** Whether a block of a window's face keeps a drawn block behind it out of sight elsewhere. */
@@ -792,11 +876,17 @@ public final class MirrorWindows
         return System.currentTimeMillis();
     }
 
-    /** An eye position, to half a block, as a key that can be compared cheaply. */
+    /**
+     * An eye position, to a quarter of a block, as a key that can be compared cheaply.
+     *
+     * <p>Half a block was too coarse right up against a mirror, where half a block nearer is twice
+     * as wide a view: a player could step in and keep the narrower view drawn from further back,
+     * with the real world showing round its edges.
+     */
     private static long eyeKey(final Location eye)
     {
-        return key((int) Math.floor(eye.getX() * 2.0), (int) Math.floor(eye.getY() * 2.0),
-            (int) Math.floor(eye.getZ() * 2.0));
+        return key((int) Math.floor(eye.getX() * 4.0), (int) Math.floor(eye.getY() * 4.0),
+            (int) Math.floor(eye.getZ() * 4.0));
     }
 
     /** The chunk an eye is in, as a key. */
@@ -849,7 +939,7 @@ public final class MirrorWindows
      * and would change what the client shows -- far-side air over a block that is really empty
      * would not, and sky is most of a deep view.
      */
-    private static final class Pass
+    private static final class Pass implements MirrorWindow.Limits
     {
         private final Location eye;
         private final Window window;
@@ -858,6 +948,7 @@ public final class MirrorWindows
         private final Map<Long, BlockData> wanted;
         private final BlockData air;
         private final long now;
+        private final World here;
         private final int min;
         private final int max;
         private final Occlusion hidden;
@@ -873,48 +964,80 @@ public final class MirrorWindows
             this.wanted = wanted;
             this.air = air;
             this.now = now;
-            this.min = window.banner.getWorld().getMinHeight();
-            this.max = window.banner.getWorld().getMaxHeight();
+            this.here = window.banner.getWorld();
+            this.min = here.getMinHeight();
+            this.max = here.getMaxHeight();
             this.hidden = new Occlusion(window);
         }
 
-        void consider(final int x, final int y, final int z)
+        /** @return true, always: the walk is stopped by the budget, not by one block */
+        boolean consider(final int x, final int y, final int z)
         {
             final long cell = key(x, y, z);
             if ((y < min) || (y >= max) || wanted.containsKey(cell))
             {
-                return;
+                return true;
             }
             final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
-            if ((rect == null) || hidden.covers(rect))
+            final int layer = layerOf(x, z);
+            if ((rect == null) || hidden.covers(rect, layer))
             {
-                return;
+                return true;
             }
             final Spot at = window.shape.farOf(x, y, z);
             final BlockData data = window.farSide.at(at.x(), at.y(), at.z(), air, now);
             if (data == null)
             {
-                return;
+                return true;
             }
             if (data.isOccluding())
             {
-                hidden.add(rect);
+                hidden.add(rect, layer);
             }
-            if (!data.equals(air) || !emptyHere(window.banner.getWorld(), x, y, z, now))
+            if (!data.equals(air) || !emptyHere(here, x, y, z, now))
             {
                 wanted.put(cell, data);
             }
+            return true;
+        }
+
+        /**
+         * Above both the real column and the far one it shows, everything is air over air, so
+         * nothing there is drawn -- and the sky need not be walked a block at a time to learn it.
+         */
+        @Override
+        public int top(final int x, final int z)
+        {
+            final Spot column = window.shape.farOf(x, window.shape.base().y(), z);
+            return Math.max(topHere(here, x, z, now), window.farSide.top(column.x(), column.z(), now));
+        }
+
+        @Override
+        public int deepest()
+        {
+            return hidden.horizon();
+        }
+
+        private int layerOf(final int x, final int z)
+        {
+            return ((x - window.shape.base().x()) * window.shape.into().x())
+                + ((z - window.shape.base().z()) * window.shape.into().z());
         }
     }
 
     /**
-     * How much of one window's opening is already hidden, from one eye, by solid far-side blocks
-     * drawn nearer to it.
+     * How much of one window's opening is hidden, from one eye, by solid far-side blocks drawn in
+     * front of what is being considered.
      *
-     * <p>The cone is walked nearest layer first, so a block wholly behind what is already drawn
-     * cannot be seen and is skipped -- and once the whole opening is hidden, nothing further back
-     * is walked at all. A view into a hillside stops at the hillside instead of drawing the inside
-     * of the hill. Kept on a fine grid over the opening, eight parts to a block.
+     * <p>A block wholly behind solid blocks already drawn nearer the eye cannot be seen and is
+     * skipped -- and once every part of the opening is hidden, nothing deeper than the deepest of
+     * what hides it is walked at all. A view into a hillside stops at the hillside instead of
+     * drawing the inside of the hill.
+     *
+     * <p>Kept on a fine grid over the opening, eight parts to a block, each remembering the layer
+     * of the nearest solid block in front of it. The layer matters because the cone is walked in
+     * bands, middle first: a solid block far back in the middle band must not hide one nearer the
+     * eye in the next.
      */
     private static final class Occlusion
     {
@@ -924,8 +1047,9 @@ public final class MirrorWindows
         private final int bottom;
         private final int wide;
         private final int tall;
-        private final boolean[] hidden;
+        private final int[] nearest;
         private int count;
+        private int horizon = Integer.MAX_VALUE;
 
         Occlusion(final Window window)
         {
@@ -946,28 +1070,42 @@ public final class MirrorWindows
             bottom = yMin;
             wide = ((acrossMax + 1) - acrossMin) * FINE;
             tall = ((yMax + 1) - yMin) * FINE;
-            hidden = new boolean[wide * tall];
-            // The parts of the opening's outline that are closed hide what is behind them already.
+            nearest = new int[wide * tall];
+            java.util.Arrays.fill(nearest, Integer.MAX_VALUE);
+            // The parts of the opening's outline that are closed hide everything behind them.
             for (int i = 0; i < wide; i++)
             {
                 for (int j = 0; j < tall; j++)
                 {
                     if (!window.openKeys.contains(faceKey(window.shape, left + (i / FINE), bottom + (j / FINE))))
                     {
-                        hide(i, j);
+                        hide(i, j, 0);
                     }
                 }
             }
         }
 
-        /** @return true once nothing more of the opening can be seen */
-        boolean full()
+        /**
+         * @return the deepest layer anything could still be seen at: past the deepest solid
+         *         block hiding each part of the opening, once every part is hidden
+         */
+        int horizon()
         {
-            return count == hidden.length;
+            if ((count < nearest.length) || (horizon != Integer.MAX_VALUE))
+            {
+                return horizon;
+            }
+            int deepest = 0;
+            for (final int layer : nearest)
+            {
+                deepest = Math.max(deepest, layer);
+            }
+            horizon = deepest;
+            return horizon;
         }
 
-        /** Whether every part of the opening a projected block touches is already hidden. */
-        boolean covers(final double[] rect)
+        /** Whether every part of the opening a projected block touches is hidden in front of it. */
+        boolean covers(final double[] rect, final int layer)
         {
             if (count == 0)
             {
@@ -981,7 +1119,7 @@ public final class MirrorWindows
             {
                 for (int j = jFrom; j <= jTo; j++)
                 {
-                    if (!hidden[(i * tall) + j])
+                    if (nearest[(i * tall) + j] >= layer)
                     {
                         return false;
                     }
@@ -990,8 +1128,8 @@ public final class MirrorWindows
             return true;
         }
 
-        /** Marks the parts of the opening a solid projected block hides: those whose middles it covers. */
-        void add(final double[] rect)
+        /** Marks the parts of the opening a solid block hides: those whose middles it covers. */
+        void add(final double[] rect, final int layer)
         {
             final int iFrom = Math.max(0, (int) Math.ceil(((rect[0] - left) * FINE) - 0.5));
             final int iTo = Math.min(wide - 1, (int) Math.floor(((rect[1] - left) * FINE) - 0.5));
@@ -1001,17 +1139,22 @@ public final class MirrorWindows
             {
                 for (int j = jFrom; j <= jTo; j++)
                 {
-                    hide(i, j);
+                    hide(i, j, layer);
                 }
             }
         }
 
-        private void hide(final int i, final int j)
+        private void hide(final int i, final int j, final int layer)
         {
-            if (!hidden[(i * tall) + j])
+            final int at = (i * tall) + j;
+            if (nearest[at] == Integer.MAX_VALUE)
             {
-                hidden[(i * tall) + j] = true;
                 count++;
+            }
+            if (layer < nearest[at])
+            {
+                nearest[at] = layer;
+                horizon = Integer.MAX_VALUE;
             }
         }
     }
@@ -1030,6 +1173,7 @@ public final class MirrorWindows
         private final int min;
         private final int max;
         private final Map<Long, BlockData> blocks = new HashMap<>();
+        private final Map<Long, Integer> tops = new HashMap<>();
         private final Set<Long> held = new HashSet<>();
         private long readAt;
         private long usedAt;
@@ -1043,15 +1187,33 @@ public final class MirrorWindows
             this.max = far.getMaxHeight();
         }
 
+        /** The highest block that is not air in a far column, or no limit if it is not loaded. */
+        int top(final int x, final int z, final long now)
+        {
+            expire(now);
+            if (!far.isChunkLoaded(x >> 4, z >> 4))
+            {
+                return Integer.MAX_VALUE;
+            }
+            return tops.computeIfAbsent(chunkKey(x, z),
+                column -> far.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
+        }
+
+        private void expire(final long now)
+        {
+            if ((now - readAt) >= RESAMPLE_MILLIS)
+            {
+                blocks.clear();
+                tops.clear();
+                readAt = now;
+            }
+        }
+
         /** The far-side block here, or null if its chunk is not loaded yet. */
         BlockData at(final int x, final int y, final int z, final BlockData air, final long now)
         {
             usedAt = now;
-            if ((now - readAt) >= RESAMPLE_MILLIS)
-            {
-                blocks.clear();
-                readAt = now;
-            }
+            expire(now);
             if ((y < min) || (y >= max))
             {
                 return air;
@@ -1099,6 +1261,7 @@ public final class MirrorWindows
             }
             held.clear();
             blocks.clear();
+            tops.clear();
         }
     }
 }

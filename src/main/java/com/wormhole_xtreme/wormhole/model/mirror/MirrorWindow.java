@@ -42,6 +42,28 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /** An eye nearer the face than this is treated as this far, so the cone stays finite. */
     private static final double NEAREST_EYE = 0.25;
 
+    /**
+     * The bands the cone is walked in, as how steeply a block is off the line straight through
+     * the opening: along the face or up and down, per block of distance from the eye.
+     */
+    private static final double[] BANDS = { 0.5, 1.5, Double.POSITIVE_INFINITY };
+
+    /** No limit on a walk beyond the cone's own shape. */
+    public static final Limits UNLIMITED = new Limits()
+    {
+        @Override
+        public int top(final int x, final int z)
+        {
+            return Integer.MAX_VALUE;
+        }
+
+        @Override
+        public int deepest()
+        {
+            return Integer.MAX_VALUE;
+        }
+    };
+
     private static final int HALF = WIDTH / 2;
 
     /**
@@ -87,6 +109,22 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
          *            block z
          */
         void at(int x, int y, int z);
+    }
+
+    /** What bounds a walk of the cone beyond its own shape. */
+    public interface Limits
+    {
+        /**
+         * @param x
+         *            a column's x
+         * @param z
+         *            a column's z
+         * @return the highest y in that column that could need drawing
+         */
+        int top(int x, int z);
+
+        /** @return the deepest layer still worth walking, as it stands right now */
+        int deepest();
     }
 
     /** Handed each block a viewer might see through the opening. */
@@ -201,13 +239,23 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         }
     }
 
+    /** @return how many bands {@link #forEachCandidate} walks the cone in */
+    public static int bands()
+    {
+        return BANDS.length;
+    }
+
     /**
-     * Visits, a layer at a time from the opening outwards, every block an eye could see through
-     * the opening, out to a depth.
+     * Visits every block of one band of the cone an eye could see through the opening, a layer at
+     * a time from the opening outwards, out to a depth.
      *
      * <p>Only the cone from the eye through the opening, which is what makes a deep view
      * affordable: the blocks walked grow with what can be seen, not with a box drawn around the
      * opening. Generous at the edges -- the exact test is {@link #projected} and what follows it.
+     *
+     * <p>In bands, steepest last, so the middle of a view can be walked to its full depth before
+     * its edges are. From right up against a mirror the cone is hundreds of thousands of blocks,
+     * and a walk that runs out of budget should lose the edges of the view, not its depth.
      *
      * @param eyeX
      *            the eye, x
@@ -217,56 +265,117 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            the eye, z
      * @param depth
      *            how many layers behind the opening to walk
+     * @param band
+     *            which band, from 0 to {@link #bands()} less one
+     * @param limits
+     *            how high each column and how deep the whole walk need go
      * @param candidate
      *            handed each block, nearest layers first; returns false to stop
+     * @return false if the candidate stopped the walk
      */
-    public void forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
-        final int depth, final Candidate candidate)
+    public boolean forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
+        final int depth, final int band, final Limits limits, final Candidate candidate)
     {
-        final boolean alongX = into.x() != 0;
-        final int sign = alongX ? into.x() : into.z();
-        final double eyeAlong = alongX ? eyeX : eyeZ;
-        final double reach = Math.max(NEAREST_EYE, Math.abs(face() - eyeAlong));
-        final int baseAlong = alongX ? base.x() : base.z();
-        final int middle = alongX ? base.z() : base.x();
-        for (int layer = 1; layer <= depth; layer++)
+        final Walk walk = new Walk(this, new double[] { eyeX, eyeY, eyeZ }, band, limits, candidate);
+        for (int layer = 1; (layer <= depth) && (layer <= limits.deepest()); layer++)
         {
-            final int along = baseAlong + (sign * layer);
-            final double one = Math.abs(along - eyeAlong) / reach;
-            final double other = Math.abs((along + 1) - eyeAlong) / reach;
-            final double near = Math.min(one, other);
-            final double farther = Math.max(one, other);
-            final double[] span = {
-                lowest(alongX ? eyeZ : eyeX, middle - HALF, middle + (WIDTH - HALF), near, farther),
-                highest(alongX ? eyeZ : eyeX, middle - HALF, middle + (WIDTH - HALF), near, farther),
-                lowest(eyeY, base.y(), base.y() + HEIGHT, near, farther),
-                highest(eyeY, base.y(), base.y() + HEIGHT, near, farther) };
-            if (!layer(alongX, along, middle, span, candidate))
+            if (!walk.layer(layer))
             {
-                return;
+                return false;
             }
         }
+        return true;
     }
 
-    /** One layer of {@link #forEachCandidate}. @return false if the walk was stopped */
-    private boolean layer(final boolean alongX, final int along, final int middle,
-        final double[] span, final Candidate candidate)
+    /** One band of one walk of the cone. */
+    private static final class Walk
     {
-        final int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(span[0]));
-        final int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(span[1]) - 1);
-        final int yFrom = Math.max(base.y() - WIDEST, (int) Math.floor(span[2]));
-        final int yTo = Math.min(base.y() + WIDEST, (int) Math.ceil(span[3]) - 1);
-        for (int across = acrossFrom; across <= acrossTo; across++)
+        private final MirrorWindow window;
+        private final boolean alongX;
+        private final int sign;
+        private final double eyeAlong;
+        private final double eyeAcross;
+        private final double eyeY;
+        private final double reach;
+        private final int baseAlong;
+        private final int middle;
+        private final double inner;
+        private final double outer;
+        private final Limits limits;
+        private final Candidate candidate;
+
+        Walk(final MirrorWindow window, final double[] eye, final int band, final Limits limits,
+            final Candidate candidate)
         {
-            for (int y = yFrom; y <= yTo; y++)
+            this.window = window;
+            this.alongX = window.into.x() != 0;
+            this.sign = alongX ? window.into.x() : window.into.z();
+            this.eyeAlong = alongX ? eye[0] : eye[2];
+            this.eyeAcross = alongX ? eye[2] : eye[0];
+            this.eyeY = eye[1];
+            this.reach = Math.max(NEAREST_EYE, Math.abs(window.face() - eyeAlong));
+            this.baseAlong = alongX ? window.base.x() : window.base.z();
+            this.middle = alongX ? window.base.z() : window.base.x();
+            this.inner = (band == 0) ? -1.0 : BANDS[band - 1];
+            this.outer = BANDS[band];
+            this.limits = limits;
+            this.candidate = candidate;
+        }
+
+        /** @return false if the walk was stopped */
+        boolean layer(final int layer)
+        {
+            final int along = baseAlong + (sign * layer);
+            final double one = Math.abs(along - eyeAlong);
+            final double other = Math.abs((along + 1) - eyeAlong);
+            final double near = Math.min(one, other) / reach;
+            final double farther = Math.max(one, other) / reach;
+            final int bottom = window.base.y();
+            int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(
+                lowest(eyeAcross, middle - HALF, middle + (WIDTH - HALF), near, farther)));
+            int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(
+                highest(eyeAcross, middle - HALF, middle + (WIDTH - HALF), near, farther)) - 1);
+            int yFrom = Math.max(bottom - WIDEST,
+                (int) Math.floor(lowest(eyeY, bottom, bottom + HEIGHT, near, farther)));
+            int yTo = Math.min(bottom + WIDEST,
+                (int) Math.ceil(highest(eyeY, bottom, bottom + HEIGHT, near, farther)) - 1);
+            if (Double.isFinite(outer))
             {
-                if (!candidate.at(alongX ? along : across, y, alongX ? across : along))
+                // No block in this band is further off the line through the eye than this.
+                final double off = (outer * Math.max(one, other)) + 1.0;
+                acrossFrom = Math.max(acrossFrom, (int) Math.floor(eyeAcross - off));
+                acrossTo = Math.min(acrossTo, (int) Math.ceil(eyeAcross + off));
+                yFrom = Math.max(yFrom, (int) Math.floor(eyeY - off));
+                yTo = Math.min(yTo, (int) Math.ceil(eyeY + off));
+            }
+            final double distance = Math.abs((along + 0.5) - eyeAlong);
+            for (int across = acrossFrom; across <= acrossTo; across++)
+            {
+                final int x = alongX ? along : across;
+                final int z = alongX ? across : along;
+                if (!column(x, z, Math.abs((across + 0.5) - eyeAcross), yFrom,
+                    Math.min(yTo, limits.top(x, z)), distance))
                 {
                     return false;
                 }
             }
+            return true;
         }
-        return true;
+
+        /** One column of one layer, only the blocks in this band. @return false if stopped */
+        private boolean column(final int x, final int z, final double offAcross, final int yFrom,
+            final int yTo, final double distance)
+        {
+            for (int y = yFrom; y <= yTo; y++)
+            {
+                final double steep = Math.max(offAcross, Math.abs((y + 0.5) - eyeY)) / distance;
+                if ((steep > inner) && (steep <= outer) && !candidate.at(x, y, z))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     /**
