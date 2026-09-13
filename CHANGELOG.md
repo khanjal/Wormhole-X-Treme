@@ -199,6 +199,34 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A tidy-up that failed on shutdown took every save with it.** Reported from a live server:
+  `NoClassDefFoundError: .../MirrorPackets` thrown out of `onDisable`, from the call that gives
+  proximity mirrors their look back.
+
+  The cause is ordinary operator practice. Copy a new jar over a running server and then restart
+  it -- which is what most people do -- and the plugin classloader goes on reading the file it
+  opened at startup. Any class it had not needed yet is gone by the time the server stops.
+  `MirrorPackets` loads only when a proximity mirror actually hides or reveals, so whether it
+  was already in memory came down to whether anybody walked past one that session. Hence
+  "occasionally".
+
+  `NoClassDefFoundError` is an `Error`, the restore was wrapped in `catch (Exception)`, and so
+  the throw left `onDisable` at its first statement. Everything below was skipped: the
+  configuration, every gate, the rings, the beam destinations and the mirrors, none of them
+  written to disk. A cosmetic step nobody would miss was quietly costing the save that everybody
+  would.
+
+  Every catch in the shutdown path now reaches past `Exception` the way `disableEconomyQuietly`
+  already did, and a source-scanning test holds the rule -- bounded to the shutdown path, since
+  the startup methods below it catch `Exception` on purpose and a startup failure happens while
+  the jar is still whole. The test checks the region contains the steps it should before
+  concluding anything from it: two markers and a substring are a fragile way to point at code,
+  and a scan that silently shrank to nothing would pass forever.
+
+  Worth saying plainly: copying a jar over a running server is not a supported thing to do to
+  any plugin, and this fix does not make it one. It makes this plugin fail the way it should
+  when you do -- noisily, and after saving.
+
 - **A banner on a post could not be named, from right next to it.** `/wormhole mirror set` and
   `/wormhole mirror link` answered "Look at the banner you want to use, within six blocks" to
   somebody standing in front of one.
