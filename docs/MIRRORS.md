@@ -242,25 +242,164 @@ cut from the end rather than refused.
 
 ### The library at a glance
 
-Eighty-eight looks is more than anybody wants to open one file at a time, so here they are.
-Names under each one are what `mirror stamp <name> <look>` takes.
+Eighty-eight looks is more than anybody wants to open one file at a time. The name beside each
+one is what `mirror stamp <name> <look>` takes; the column beside that is the biome it answers
+for, or what the look is for when it answers for none.
 
-![Grass, water's edge and woodland](images/mirror-looks-green.svg)
+<!-- gallery:start -->
 
-![Dry country, cold country and water](images/mirror-looks-weather.svg)
+#### Grass and open country
 
-![Underground, the Nether and the End](images/mirror-looks-elsewhere.svg)
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/plains.svg" width="26" alt=""> | `plains` | `PLAINS` | `GREEN` base + `LIGHT_BLUE half_horizontal` + `YELLOW circle` + `GREEN border` |
+| <img src="images/mirrors/sunflower_plains.svg" width="26" alt=""> | `sunflower_plains` | `SUNFLOWER_PLAINS` | `GREEN` base + `LIGHT_BLUE half_horizontal` + `YELLOW flower` + `GREEN border` |
+| <img src="images/mirrors/meadow.svg" width="26" alt=""> | `meadow` | `MEADOW` | `LIME` base + `LIGHT_BLUE half_horizontal` + `PINK flower` + `LIME border` |
+| <img src="images/mirrors/mushroom_fields.svg" width="26" alt=""> | `mushroom_fields` | `MUSHROOM_FIELDS` | `PURPLE` base + `RED circle` + `WHITE stripe_center` + `PURPLE border` |
+| <img src="images/mirrors/swamp.svg" width="26" alt=""> | `swamp` | `SWAMP` | `GREEN` base + `BLACK gradient_up` + `LIME small_stripes` + `GREEN border` |
+| <img src="images/mirrors/mangrove_swamp.svg" width="26" alt=""> | `mangrove_swamp` | `MANGROVE_SWAMP` | `GREEN` base + `CYAN gradient_up` + `BROWN small_stripes` + `GREEN border` |
+| <img src="images/mirrors/river.svg" width="26" alt=""> | `river` | `RIVER` | `GREEN` base + `BLUE stripe_center` + `BLUE border` |
+| <img src="images/mirrors/frozen_river.svg" width="26" alt=""> | `frozen_river` | `FROZEN_RIVER` | `LIGHT_GRAY` base + `LIGHT_BLUE stripe_center` + `WHITE small_stripes` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/beach.svg" width="26" alt=""> | `beach` | `BEACH` | `YELLOW` base + `BLUE half_horizontal_bottom` + `WHITE triangles_bottom` + `YELLOW border` |
+| <img src="images/mirrors/snowy_beach.svg" width="26" alt=""> | `snowy_beach` | `SNOWY_BEACH` | `WHITE` base + `BLUE half_horizontal_bottom` + `LIGHT_BLUE triangles_bottom` + `WHITE border` |
+| <img src="images/mirrors/stony_shore.svg" width="26" alt=""> | `stony_shore` | `STONY_SHORE` | `LIGHT_GRAY` base + `BLUE half_horizontal_bottom` + `GRAY triangles_bottom` + `GRAY border` |
 
-![Looks that name no biome](images/mirror-looks-stamp.svg)
+#### Woodland
 
-These are drawn by `scripts/render_mirror_sheets.py` from the preset files themselves, so they
-cannot drift into describing a library that is not there — re-run it after changing a preset.
-`MirrorSheetContentsTest` fails until you do: each sheet carries a fingerprint of every preset it
-drew, and the test recomputes them.
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/forest.svg" width="26" alt=""> | `forest` | `FOREST` | `GREEN` base + `LIME triangles_top` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/birch_forest.svg" width="26" alt=""> | `birch_forest` | `BIRCH_FOREST` | `GREEN` base + `WHITE small_stripes` + `LIME triangles_top` + `GREEN border` |
+| <img src="images/mirrors/old_growth_birch_forest.svg" width="26" alt=""> | `old_growth_birch_forest` | `OLD_GROWTH_BIRCH_FOREST` | `GREEN` base + `WHITE small_stripes` + `LIME triangles_top` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/dark_forest.svg" width="26" alt=""> | `dark_forest` | `DARK_FOREST` | `BLACK` base + `GREEN triangles_top` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/flower_forest.svg" width="26" alt=""> | `flower_forest` | `FLOWER_FOREST` | `GREEN` base + `PINK flower` + `LIME triangles_top` + `GREEN border` |
+| <img src="images/mirrors/taiga.svg" width="26" alt=""> | `taiga` | `TAIGA` | `GREEN` base + `BLACK triangles_top` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/snowy_taiga.svg" width="26" alt=""> | `snowy_taiga` | `SNOWY_TAIGA` | `WHITE` base + `GREEN triangles_top` + `BROWN stripe_bottom` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/old_growth_pine_taiga.svg" width="26" alt=""> | `old_growth_pine_taiga` | `OLD_GROWTH_PINE_TAIGA` | `GREEN` base + `BROWN small_stripes` + `BLACK triangles_top` + `GREEN border` |
+| <img src="images/mirrors/old_growth_spruce_taiga.svg" width="26" alt=""> | `old_growth_spruce_taiga` | `OLD_GROWTH_SPRUCE_TAIGA` | `GREEN` base + `BLACK triangle_top` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/jungle.svg" width="26" alt=""> | `jungle` | `JUNGLE` | `GREEN` base + `LIME curly_border` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/bamboo_jungle.svg" width="26" alt=""> | `bamboo_jungle` | `BAMBOO_JUNGLE` | `GREEN` base + `LIME small_stripes` + `LIME curly_border` + `GREEN border` |
+| <img src="images/mirrors/sparse_jungle.svg" width="26" alt=""> | `sparse_jungle` | `SPARSE_JUNGLE` | `LIME` base + `GREEN triangle_top` + `BROWN stripe_bottom` + `GREEN border` |
+| <img src="images/mirrors/cherry_grove.svg" width="26" alt=""> | `cherry_grove` | `CHERRY_GROVE` | `PINK` base + `MAGENTA curly_border` + `BROWN stripe_center` + `PINK border` |
+| <img src="images/mirrors/pale_garden.svg" width="26" alt=""> | `pale_garden` | `PALE_GARDEN` | `LIGHT_GRAY` base + `GRAY gradient` + `WHITE stripe_center` + `GRAY border` |
+| <img src="images/mirrors/windswept_forest.svg" width="26" alt=""> | `windswept_forest` | `WINDSWEPT_FOREST` | `LIGHT_GRAY` base + `GREEN triangles_top` + `GRAY diagonal_up_right` + `GRAY border` |
 
-The shapes are approximations of the banner patterns rather than the game's own textures. They
-are close enough to tell two looks apart, which is what a contact sheet is for, and no substitute
-for stamping one and walking up to it.
+#### Dry country
+
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/desert.svg" width="26" alt=""> | `desert` | `DESERT` | `YELLOW` base + `ORANGE gradient` + `BROWN stripe_bottom` + `ORANGE border` |
+| <img src="images/mirrors/badlands.svg" width="26" alt=""> | `badlands` | `BADLANDS` | `ORANGE` base + `WHITE stripe_middle` + `RED stripe_bottom` + `ORANGE border` |
+| <img src="images/mirrors/eroded_badlands.svg" width="26" alt=""> | `eroded_badlands` | `ERODED_BADLANDS` | `ORANGE` base + `RED triangles_top` + `WHITE stripe_middle` + `ORANGE border` |
+| <img src="images/mirrors/wooded_badlands.svg" width="26" alt=""> | `wooded_badlands` | `WOODED_BADLANDS` | `ORANGE` base + `GREEN triangles_top` + `WHITE stripe_middle` + `ORANGE border` |
+| <img src="images/mirrors/savanna.svg" width="26" alt=""> | `savanna` | `SAVANNA` | `YELLOW` base + `BROWN stripe_middle` + `BROWN stripe_center` + `ORANGE border` |
+| <img src="images/mirrors/savanna_plateau.svg" width="26" alt=""> | `savanna_plateau` | `SAVANNA_PLATEAU` | `YELLOW` base + `BROWN stripe_middle` + `BROWN stripe_center` + `BROWN stripe_bottom` + `ORANGE border` |
+| <img src="images/mirrors/windswept_savanna.svg" width="26" alt=""> | `windswept_savanna` | `WINDSWEPT_SAVANNA` | `YELLOW` base + `BROWN diagonal_up_right` + `BROWN stripe_center` + `ORANGE border` |
+
+#### Cold and high
+
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/snowy_plains.svg" width="26" alt=""> | `snowy_plains` | `SNOWY_PLAINS` | `WHITE` base + `LIGHT_BLUE gradient` + `WHITE triangles_bottom` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/ice_spikes.svg" width="26" alt=""> | `ice_spikes` | `ICE_SPIKES` | `WHITE` base + `LIGHT_BLUE rhombus` + `LIGHT_BLUE triangles_bottom` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/snowy_slopes.svg" width="26" alt=""> | `snowy_slopes` | `SNOWY_SLOPES` | `WHITE` base + `LIGHT_GRAY diagonal_up_right` + `LIGHT_BLUE gradient` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/frozen_peaks.svg" width="26" alt=""> | `frozen_peaks` | `FROZEN_PEAKS` | `LIGHT_BLUE` base + `WHITE triangle_top` + `WHITE triangles_bottom` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/jagged_peaks.svg" width="26" alt=""> | `jagged_peaks` | `JAGGED_PEAKS` | `LIGHT_GRAY` base + `WHITE triangles_top` + `GRAY triangles_bottom` + `WHITE border` |
+| <img src="images/mirrors/stony_peaks.svg" width="26" alt=""> | `stony_peaks` | `STONY_PEAKS` | `GRAY` base + `LIGHT_GRAY triangle_top` + `GRAY triangles_bottom` + `LIGHT_GRAY border` |
+| <img src="images/mirrors/grove.svg" width="26" alt=""> | `grove` | `GROVE` | `WHITE` base + `GREEN triangles_top` + `BROWN stripe_bottom` + `WHITE border` |
+| <img src="images/mirrors/windswept_hills.svg" width="26" alt=""> | `windswept_hills` | `WINDSWEPT_HILLS` | `LIGHT_GRAY` base + `GRAY triangle_top` + `GREEN stripe_bottom` + `GRAY border` |
+| <img src="images/mirrors/windswept_gravelly_hills.svg" width="26" alt=""> | `windswept_gravelly_hills` | `WINDSWEPT_GRAVELLY_HILLS` | `LIGHT_GRAY` base + `GRAY small_stripes` + `GRAY triangle_top` + `GRAY border` |
+
+#### Water
+
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/ocean.svg" width="26" alt=""> | `ocean` | `OCEAN` | `BLUE` base + `CYAN gradient_up` + `WHITE triangles_top` + `BLUE border` |
+| <img src="images/mirrors/deep_ocean.svg" width="26" alt=""> | `deep_ocean` | `DEEP_OCEAN` | `BLUE` base + `BLACK gradient_up` + `WHITE triangles_top` + `BLUE border` |
+| <img src="images/mirrors/cold_ocean.svg" width="26" alt=""> | `cold_ocean` | `COLD_OCEAN` | `BLUE` base + `LIGHT_BLUE gradient_up` + `WHITE triangles_top` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/deep_cold_ocean.svg" width="26" alt=""> | `deep_cold_ocean` | `DEEP_COLD_OCEAN` | `BLUE` base + `BLACK gradient_up` + `LIGHT_BLUE triangles_top` + `LIGHT_BLUE border` |
+| <img src="images/mirrors/lukewarm_ocean.svg" width="26" alt=""> | `lukewarm_ocean` | `LUKEWARM_OCEAN` | `CYAN` base + `BLUE gradient_up` + `WHITE triangles_top` + `CYAN border` |
+| <img src="images/mirrors/deep_lukewarm_ocean.svg" width="26" alt=""> | `deep_lukewarm_ocean` | `DEEP_LUKEWARM_OCEAN` | `CYAN` base + `BLACK gradient_up` + `WHITE triangles_top` + `CYAN border` |
+| <img src="images/mirrors/warm_ocean.svg" width="26" alt=""> | `warm_ocean` | `WARM_OCEAN` | `CYAN` base + `PINK circle` + `WHITE triangles_top` + `CYAN border` |
+| <img src="images/mirrors/frozen_ocean.svg" width="26" alt=""> | `frozen_ocean` | `FROZEN_OCEAN` | `LIGHT_BLUE` base + `WHITE rhombus` + `WHITE triangles_top` + `BLUE border` |
+| <img src="images/mirrors/deep_frozen_ocean.svg" width="26" alt=""> | `deep_frozen_ocean` | `DEEP_FROZEN_OCEAN` | `BLUE` base + `WHITE rhombus` + `WHITE triangles_top` + `LIGHT_BLUE border` |
+
+#### Underground
+
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/dripstone_caves.svg" width="26" alt=""> | `dripstone_caves` | `DRIPSTONE_CAVES` | `GRAY` base + `BROWN triangles_top` + `BROWN triangles_bottom` + `GRAY border` |
+| <img src="images/mirrors/lush_caves.svg" width="26" alt=""> | `lush_caves` | `LUSH_CAVES` | `GREEN` base + `LIME curly_border` + `GRAY triangles_top` + `GREEN border` |
+| <img src="images/mirrors/deep_dark.svg" width="26" alt=""> | `deep_dark` | `DEEP_DARK` | `BLACK` base + `CYAN circle` + `BLACK rhombus` + `CYAN small_stripes` + `BLACK border` |
+
+#### The Nether
+
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/nether.svg" width="26" alt=""> | `nether` | `NETHER_WASTES` | `RED` base + `BLACK triangles_bottom` + `ORANGE gradient_up` + `BLACK border` |
+| <img src="images/mirrors/crimson_forest.svg" width="26" alt=""> | `crimson_forest` | `CRIMSON_FOREST` | `RED` base + `PURPLE triangles_top` + `BLACK stripe_bottom` + `RED border` |
+| <img src="images/mirrors/warped_forest.svg" width="26" alt=""> | `warped_forest` | `WARPED_FOREST` | `CYAN` base + `BLUE triangles_top` + `BLACK stripe_bottom` + `CYAN border` |
+| <img src="images/mirrors/soul_sand_valley.svg" width="26" alt=""> | `soul_sand_valley` | `SOUL_SAND_VALLEY` | `BROWN` base + `CYAN skull` + `BLACK gradient_up` + `BROWN border` |
+| <img src="images/mirrors/basalt_deltas.svg" width="26" alt=""> | `basalt_deltas` | `BASALT_DELTAS` | `GRAY` base + `BLACK small_stripes` + `ORANGE gradient_up` + `BLACK border` |
+
+#### The End, and nowhere at all
+
+| | Look | Answers for | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/end.svg" width="26" alt=""> | `end` | `THE_END` | `BLACK` base + `PURPLE curly_border` + `YELLOW globe` + `PURPLE border` |
+| <img src="images/mirrors/end_highlands.svg" width="26" alt=""> | `end_highlands` | `END_HIGHLANDS` | `BLACK` base + `PURPLE triangles_top` + `YELLOW circle` + `PURPLE border` |
+| <img src="images/mirrors/end_midlands.svg" width="26" alt=""> | `end_midlands` | `END_MIDLANDS` | `BLACK` base + `PURPLE half_horizontal_bottom` + `YELLOW circle` + `PURPLE border` |
+| <img src="images/mirrors/small_end_islands.svg" width="26" alt=""> | `small_end_islands` | `SMALL_END_ISLANDS` | `BLACK` base + `PURPLE square_top_left` + `PURPLE square_bottom_right` + `PURPLE border` |
+| <img src="images/mirrors/end_barrens.svg" width="26" alt=""> | `end_barrens` | `END_BARRENS` | `BLACK` base + `PURPLE stripe_middle` + `PURPLE border` |
+| <img src="images/mirrors/the_void.svg" width="26" alt=""> | `the_void` | `THE_VOID` | `BLACK` base + `GRAY border` |
+
+#### Looks the plugin asks for by name
+
+| | Look | For | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/overworld.svg" width="26" alt=""> | `overworld` | fallback, for a biome nothing names | `GREEN` base + `LIGHT_BLUE half_horizontal` + `GREEN triangles_bottom` + `GREEN border` |
+| <img src="images/mirrors/indoors.svg" width="26" alt=""> | `indoors` | a far side that turned out to be a room | `BROWN` base + `BLACK stripe_top` + `BLACK border` |
+| <img src="images/mirrors/cavern.svg" width="26" alt=""> | `cavern` | generic underground | `GRAY` base + `BLACK triangles_top` + `BLACK triangles_bottom` + `GRAY border` |
+
+#### Looks you stamp yourself
+
+| | Look | For | Layers, in order |
+|---|---|---|---|
+| <img src="images/mirrors/plain.svg" width="26" alt=""> | `plain` | a colour and a border, and nothing said | `WHITE` base + `LIGHT_GRAY border` |
+| <img src="images/mirrors/portal.svg" width="26" alt=""> | `portal` | a lit ring on a dark field | `BLACK` base + `PURPLE circle` + `MAGENTA gradient_up` + `PURPLE curly_border` + `BLACK border` |
+| <img src="images/mirrors/hub.svg" width="26" alt=""> | `hub` | the middle of a network | `BLACK` base + `WHITE straight_cross` + `WHITE border` |
+| <img src="images/mirrors/spawn.svg" width="26" alt=""> | `spawn` | where people arrive on the server | `LIME` base + `WHITE circle` + `GREEN border` |
+| <img src="images/mirrors/exit.svg" width="26" alt=""> | `exit` | the way out | `GREEN` base + `WHITE stripe_center` + `WHITE triangle_bottom` + `GREEN border` |
+| <img src="images/mirrors/arrival.svg" width="26" alt=""> | `arrival` | the other end of exit | `BLUE` base + `WHITE stripe_center` + `WHITE triangle_top` + `BLUE border` |
+| <img src="images/mirrors/compass.svg" width="26" alt=""> | `compass` | a direction rather than a destination | `WHITE` base + `RED triangle_top` + `BLACK triangle_bottom` + `BLACK border` |
+| <img src="images/mirrors/port.svg" width="26" alt=""> | `port` | the mirror at the dock | `BLUE` base + `BROWN stripe_center` + `WHITE stripe_middle` + `BLUE border` |
+| <img src="images/mirrors/market.svg" width="26" alt=""> | `market` | a striped awning; reads as a shop from a distance | `YELLOW` base + `RED small_stripes` + `BLACK border` |
+| <img src="images/mirrors/library.svg" width="26" alt=""> | `library` | spines on a shelf | `BROWN` base + `YELLOW small_stripes` + `BROWN border` |
+| <img src="images/mirrors/forge.svg" width="26" alt=""> | `forge` | stonework with a fire under it | `BLACK` base + `GRAY bricks` + `ORANGE gradient_up` + `BLACK border` |
+| <img src="images/mirrors/vault.svg" width="26" alt=""> | `vault` | a door with a wheel in the middle | `GRAY` base + `LIGHT_GRAY small_stripes` + `BLACK circle` + `BLACK border` |
+| <img src="images/mirrors/shrine.svg" width="26" alt=""> | `shrine` | worked stone with something lit in it | `LIGHT_GRAY` base + `BLACK bricks` + `PURPLE circle` + `BLACK border` |
+| <img src="images/mirrors/staff.svg" width="26" alt=""> | `staff` | runs the place, rather than used by everybody | `PURPLE` base + `YELLOW rhombus` + `YELLOW border` |
+| <img src="images/mirrors/private.svg" width="26" alt=""> | `private` | not for general use | `GRAY` base + `RED stripe_downright` + `GRAY border` |
+| <img src="images/mirrors/locked.svg" width="26" alt=""> | `locked` | shut, by something other than this plugin | `BLACK` base + `LIGHT_GRAY rhombus` + `RED circle` + `BLACK border` |
+| <img src="images/mirrors/warning.svg" width="26" alt=""> | `warning` | leads somewhere worth thinking about first | `YELLOW` base + `BLACK cross` + `BLACK border` |
+| <img src="images/mirrors/danger.svg" width="26" alt=""> | `danger` | the charge everybody already reads correctly | `BLACK` base + `RED creeper` + `RED border` |
+| <img src="images/mirrors/tomb.svg" width="26" alt=""> | `tomb` | a memorial, an old world, somewhere somebody died | `GRAY` base + `BLACK skull` + `BLACK border` |
+| <img src="images/mirrors/arcane.svg" width="26" alt=""> | `arcane` |  | `PURPLE` base + `BLACK rhombus` + `MAGENTA flower` + `MAGENTA border` |
+
+<!-- gallery:end -->
+
+These are drawn by `scripts/render_mirror_sheets.py` from the preset files themselves, and so is
+the table around them — re-run it after changing a preset. `MirrorGalleryTest` fails until
+you do: every image carries a fingerprint of the preset it was drawn from, and the test
+recomputes them.
+
+**When comparing one of these against a banner in game, compare the layer list, not the
+drawing.** The shapes here are approximations of the banner patterns rather than the game's own
+textures -- the curly border is drawn as scallops, the charges are rough -- so a picture that
+does not quite match is as likely to be this page's drawing as the plugin's stamp. The recipe
+beside it is exact: it is the base colour and the layers, in the order they are applied, read
+out of the same file the plugin reads. A banner that disagrees with *that* is a real
+disagreement worth reporting.
 
 ### What ships
 

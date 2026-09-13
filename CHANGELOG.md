@@ -30,26 +30,28 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
-- **The eighty-eight looks are drawn in the documentation, not just named.** Four contact sheets
-  in `docs/MIRRORS.md`, grouped the way the library is, with the stamp name under each banner.
+- **The eighty-eight looks are drawn in the documentation, with the recipe beside each.**
+  `docs/MIRRORS.md` now shows every look: one drawing per preset, in tables grouped by area and
+  type, with the biome it answers for -- or what it is for, when it answers for none -- and the
+  layers the plugin actually applies, in order.
 
-  Sixty-four kilobytes for all of them, which matters in a repository whose entire history packs
-  to about five megabytes. One SVG per look would have been a hundred and seventy files nobody
-  scans; a sheet is the thing somebody actually wanted, which is to see them together.
+  The layer column is the point rather than a detail. The gallery is meant to be held up against
+  a banner stamped in game, and the drawings are approximations of the patterns: the curly border
+  is scallops, the charges are rough. A picture that does not quite match is as likely to be the
+  page's drawing as the plugin's stamp, so the page says so and puts the exact recipe beside it.
+  A banner that disagrees with *that* is a real disagreement.
 
-  They are generated from the preset files by `scripts/render_mirror_sheets.py` rather than drawn
-  by hand, so they cannot describe a library that is not there. `MirrorSheetContentsTest` holds
-  it: each sheet records a fingerprint of every preset it drew, and the test recomputes them, so
-  changing a base colour fails the build with the name of the look and the command that fixes
-  it. Documentation that quietly stops matching the plugin is worse than none, because it is
-  believed -- and a picture is the kind that rots most quietly, since nothing about editing a
-  `.mirror` file makes an image change.
+  Everything between the gallery markers is written by `scripts/render_mirror_sheets.py` from the
+  preset files -- the images and the tables both -- so neither can drift into describing a
+  library that is not there. `MirrorGalleryTest` holds it: each drawing records a fingerprint of
+  the preset it came from and the test recomputes them, so changing a base colour fails the build
+  with the name of the look and the command that fixes it. Checked by editing a preset and
+  watching it fail.
 
-  The shapes are approximations of the banner patterns rather than the game's textures: enough to
-  tell two looks apart, and no substitute for stamping one and walking up to it. The sheets carry
-  an opaque dark ground like every other SVG in `docs/images`, because GitHub renders a document
-  on a light or a dark page depending on the reader and an image with no ground of its own is
-  unreadable on one of them.
+  Seventy kilobytes for all eighty-eight, in a repository whose entire history packs to about
+  five megabytes. Each drawing carries its own dark ground, like every other SVG in
+  `docs/images`: GitHub renders a document on a light or a dark page depending on the reader, and
+  a white banner on a white page is not a picture of anything.
 
 - **A look for every biome in the game, and twenty-three more for what a mirror is *for*.**
   Seventeen presets became eighty-eight.

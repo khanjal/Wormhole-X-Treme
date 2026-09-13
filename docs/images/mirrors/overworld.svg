@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="26" height="46" role="img" aria-label="the overworld mirror look">
+<!-- fp overworld a6a6311bce -->
+<rect x="0" y="0" width="26" height="46" fill="#0d1420" rx="2"/>
+<g transform="translate(3,3)"><rect x="0" y="0" width="20" height="40" fill="#5E7C16"/><rect x="0" y="0" width="20" height="20" fill="#3AB3DA"/><path d="M0 40 L5 40 L2.5 34 Z M5 40 L10 40 L7.5 34 Z M10 40 L15 40 L12.5 34 Z M15 40 L20 40 L17.5 34 Z" fill="#5E7C16"/><path d="M0 0h20v40H0z M1.6 1.6v36.8h16.8V1.6z" fill="#5E7C16" fill-rule="evenodd"/><rect x="0" y="0" width="20" height="40" fill="none" stroke="#ffffff40" stroke-width="0.6"/></g>
+</svg>

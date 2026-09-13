@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
-"""Draws the shipped mirror presets as contact sheets for docs/MIRRORS.md.
+"""Draws each shipped mirror preset, and writes the gallery in docs/MIRRORS.md.
 
 Run from the repository root, with no arguments:
 
     python scripts/render_mirror_sheets.py
 
-It reads every file in src/main/resources/shapes/mirror and writes four SVGs into
-docs/images. Re-run it whenever a preset changes -- MirrorSheetContentsTest fails until
-you do, because each sheet carries a fingerprint of the preset it drew.
+It reads every file in src/main/resources/shapes/mirror, writes one SVG per look into
+docs/images/mirrors, and rewrites the tables in docs/MIRRORS.md between the gallery
+markers. Re-run it whenever a preset changes -- MirrorGalleryTest fails until you do,
+because each image carries a fingerprint of the preset it was drawn from.
 
 The shapes are approximations of the banner patterns, not the game's textures: enough to
-tell two looks apart at a glance, which is the whole job of a contact sheet. Anything that
-depends on the real artwork should be judged in game.
+tell two looks apart at a glance, which is the whole job of a gallery. Anything that depends
+on the real artwork should be judged in game.
 """
 import hashlib
 import io
+import math
 import os
-import re
 
 PRESETS = "src/main/resources/shapes/mirror"
-OUT = "docs/images"
+OUT = "docs/images/mirrors"
+DOCUMENT = "docs/MIRRORS.md"
+START = "<!-- gallery:start -->"
+END = "<!-- gallery:end -->"
 
 DYE = {
     "WHITE": "#F9FFFE", "ORANGE": "#F9801D", "MAGENTA": "#C74EBD", "LIGHT_BLUE": "#3AB3DA",
@@ -28,38 +32,62 @@ DYE = {
     "BROWN": "#835432", "GREEN": "#5E7C16", "RED": "#B02E26", "BLACK": "#1D1D21",
 }
 
-# Sheets, in the order they appear in the document.
-SHEETS = [
-    ("mirror-looks-green", "Grass, water's edge and woodland", [
-        "plains", "sunflower_plains", "meadow", "swamp", "mangrove_swamp", "river",
-        "frozen_river", "beach", "snowy_beach", "stony_shore", "mushroom_fields", "forest",
-        "birch_forest", "old_growth_birch_forest", "dark_forest", "flower_forest", "taiga",
-        "snowy_taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga", "jungle",
+# Every look, grouped the way somebody looking for one would think about it.
+GROUPS = [
+    ("Grass and open country", [
+        "plains", "sunflower_plains", "meadow", "mushroom_fields", "swamp", "mangrove_swamp",
+        "river", "frozen_river", "beach", "snowy_beach", "stony_shore"]),
+    ("Woodland", [
+        "forest", "birch_forest", "old_growth_birch_forest", "dark_forest", "flower_forest",
+        "taiga", "snowy_taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga", "jungle",
         "bamboo_jungle", "sparse_jungle", "cherry_grove", "pale_garden", "windswept_forest"]),
-    ("mirror-looks-weather", "Dry country, cold country and water", [
+    ("Dry country", [
         "desert", "badlands", "eroded_badlands", "wooded_badlands", "savanna",
-        "savanna_plateau", "windswept_savanna", "snowy_plains", "ice_spikes", "snowy_slopes",
-        "frozen_peaks", "jagged_peaks", "stony_peaks", "grove", "windswept_hills",
-        "windswept_gravelly_hills", "ocean", "deep_ocean", "cold_ocean", "deep_cold_ocean",
-        "lukewarm_ocean", "deep_lukewarm_ocean", "warm_ocean", "frozen_ocean",
-        "deep_frozen_ocean"]),
-    ("mirror-looks-elsewhere", "Underground, the Nether, the End", [
-        "dripstone_caves", "lush_caves", "deep_dark", "nether", "crimson_forest",
-        "warped_forest", "soul_sand_valley", "basalt_deltas", "end", "end_highlands",
-        "end_midlands", "small_end_islands", "end_barrens", "the_void"]),
-    ("mirror-looks-stamp", "Looks that name no biome", [
-        "overworld", "indoors", "cavern", "plain", "hub", "warning", "private", "arcane",
-        "portal", "spawn", "exit", "arrival", "locked", "staff", "market", "shrine", "danger",
-        "tomb", "vault", "forge", "library", "port", "compass"]),
+        "savanna_plateau", "windswept_savanna"]),
+    ("Cold and high", [
+        "snowy_plains", "ice_spikes", "snowy_slopes", "frozen_peaks", "jagged_peaks",
+        "stony_peaks", "grove", "windswept_hills", "windswept_gravelly_hills"]),
+    ("Water", [
+        "ocean", "deep_ocean", "cold_ocean", "deep_cold_ocean", "lukewarm_ocean",
+        "deep_lukewarm_ocean", "warm_ocean", "frozen_ocean", "deep_frozen_ocean"]),
+    ("Underground", ["dripstone_caves", "lush_caves", "deep_dark"]),
+    ("The Nether", [
+        "nether", "crimson_forest", "warped_forest", "soul_sand_valley", "basalt_deltas"]),
+    ("The End, and nowhere at all", [
+        "end", "end_highlands", "end_midlands", "small_end_islands", "end_barrens",
+        "the_void"]),
+    ("Looks the plugin asks for by name", ["overworld", "indoors", "cavern"]),
+    ("Looks you stamp yourself", [
+        "plain", "portal", "hub", "spawn", "exit", "arrival", "compass", "port", "market",
+        "library", "forge", "vault", "shrine", "staff", "private", "locked", "warning",
+        "danger", "tomb", "arcane"]),
 ]
 
-CELL_W, CELL_H, COLS = 92, 126, 8
-BANNER_W, BANNER_H = 44, 88
-TITLE_H = 40
-
-
-def esc(text):
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+# What each stamp-only look is for, since it has no biome to name.
+PURPOSE = {
+    "overworld": "fallback, for a biome nothing names",
+    "indoors": "a far side that turned out to be a room",
+    "cavern": "generic underground",
+    "plain": "a colour and a border, and nothing said",
+    "portal": "a lit ring on a dark field",
+    "hub": "the middle of a network",
+    "spawn": "where people arrive on the server",
+    "exit": "the way out",
+    "arrival": "the other end of exit",
+    "compass": "a direction rather than a destination",
+    "port": "the mirror at the dock",
+    "market": "a striped awning; reads as a shop from a distance",
+    "library": "spines on a shelf",
+    "forge": "stonework with a fire under it",
+    "vault": "a door with a wheel in the middle",
+    "shrine": "worked stone with something lit in it",
+    "staff": "runs the place, rather than used by everybody",
+    "private": "not for general use",
+    "locked": "shut, by something other than this plugin",
+    "warning": "leads somewhere worth thinking about first",
+    "danger": "the charge everybody already reads correctly",
+    "tomb": "a memorial, an old world, somewhere somebody died",
+}
 
 
 def shape(pattern, colour, uid):
@@ -92,7 +120,9 @@ def shape(pattern, colour, uid):
         return "".join(parts) + "</g>"
     rects = {
         "HALF_HORIZONTAL": (0, 0, 20, 20), "HALF_HORIZONTAL_BOTTOM": (0, 20, 20, 20),
+        "HALF_HORIZONTAL_MIRROR": (0, 20, 20, 20),
         "HALF_VERTICAL": (0, 0, 10, 40), "HALF_VERTICAL_RIGHT": (10, 0, 10, 40),
+        "HALF_VERTICAL_MIRROR": (10, 0, 10, 40),
         "SQUARE_TOP_LEFT": (0, 0, 10, 20), "SQUARE_TOP_RIGHT": (10, 0, 10, 20),
         "SQUARE_BOTTOM_LEFT": (0, 20, 10, 20), "SQUARE_BOTTOM_RIGHT": (10, 20, 10, 20),
         "STRIPE_TOP": (0, 0, 20, 5), "STRIPE_BOTTOM": (0, 35, 20, 5),
@@ -152,7 +182,6 @@ def shape(pattern, colour, uid):
         return ('<path d="M4.5 11h11v12h-2.5v3h-6v-3H4.5z M6.5 14h2.5v3H6.5z M11 14h2.5v3H11z'
                 ' M9 18.5h2v2H9z" fill="%s" fill-rule="evenodd"/>' % c)
     if pattern == "FLOWER":
-        import math
         parts = ['<g fill="%s">' % c]
         for i in range(8):
             a = (math.pi * 2 / 8) * i
@@ -170,7 +199,7 @@ def shape(pattern, colour, uid):
                 '<path d="M6.6 14.5h6.8v10H6.6z M8.2 17.5h1.6v4H8.2z M10.6 17.5h1.6v4h-1.6z"'
                 ' fill="%s" fill-rule="evenodd"/>' % (c, c))
     if pattern == "MOJANG":
-        return ('<ellipse cx="10" cy="20" rx="6" ry="7.5" fill="%s"/>' % c)
+        return '<ellipse cx="10" cy="20" rx="6" ry="7.5" fill="%s"/>' % c
     return ""
 
 
@@ -178,28 +207,35 @@ def read_preset(path):
     text = io.open(path, encoding="utf-8").read().replace(chr(13), "")
     body = [l.strip() for l in text.split(chr(10))
             if l.startswith(("Base=", "Layer=", "Biome=", "Sheltered="))]
-    base = "WHITE"
-    layers = []
+    base, layers, biome = "WHITE", [], None
     for line in body:
         if line.startswith("Base="):
             base = line[5:]
         elif line.startswith("Layer="):
             bits = line[6:].split()
             layers.append((bits[0], bits[1]))
+        elif line.startswith("Biome="):
+            biome = line[6:]
     fingerprint = hashlib.sha1(chr(10).join(body).encode("utf-8")).hexdigest()[:10]
-    return base, layers, fingerprint
+    return base, layers, biome, fingerprint
 
 
-def banner(base, layers, x, y, uid):
-    """One banner, scaled into place on the sheet."""
-    scale = BANNER_W / 20.0
+def draw(name, base, layers, fingerprint):
+    """One banner on its own dark ground, sized for a table cell."""
     inner = ['<rect x="0" y="0" width="20" height="40" fill="%s"/>' % DYE.get(base, "#ccc")]
     for i, (colour, pattern) in enumerate(layers):
-        inner.append(shape(pattern, DYE.get(colour, "#888"), "%s_%s" % (uid, i)))
+        inner.append(shape(pattern, DYE.get(colour, "#888"), "%s%s" % (name[:3], i)))
     inner.append('<rect x="0" y="0" width="20" height="40" fill="none"'
                  ' stroke="#ffffff40" stroke-width="0.6"/>')
-    return ('<g transform="translate(%s,%s) scale(%s)">%s</g>'
-            % (x, y, round(scale, 4), "".join(inner)))
+    return ("\n".join([
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="26" height="46"'
+        ' role="img" aria-label="the %s mirror look">' % name,
+        "<!-- fp %s %s -->" % (name, fingerprint),
+        # Its own ground, because GitHub renders a document light or dark depending on the
+        # reader and a white banner on a white page is not a picture of anything.
+        '<rect x="0" y="0" width="26" height="46" fill="#0d1420" rx="2"/>',
+        '<g transform="translate(3,3)">%s</g>' % "".join(inner),
+        "</svg>"]) + "\n")
 
 
 def main():
@@ -207,45 +243,51 @@ def main():
         raise SystemExit("run me from the repository root")
     if not os.path.isdir(OUT):
         os.makedirs(OUT)
+    for stale in os.listdir(OUT):
+        if stale.endswith(".svg"):
+            os.remove(os.path.join(OUT, stale))
 
-    drawn = 0
-    for (file_name, title, names) in SHEETS:
-        rows = (len(names) + COLS - 1) // COLS
-        width = COLS * CELL_W
-        height = TITLE_H + rows * CELL_H
-        out = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s" width="%s"'
-               ' role="img" aria-label="%s">' % (width, height, width, esc(title))]
-        out.append('<style>text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}'
-                   '.n{font-size:9px;fill:#93a4bb}.t{font-size:13px;fill:#dbe3ee;'
-                   'font-family:ui-sans-serif,system-ui,sans-serif}</style>')
-        # Opaque and dark, the way every other SVG in docs/images is: GitHub renders a
-        # document on a light or a dark page depending on the reader, and an image with no
-        # ground of its own comes out unreadable on one of them.
-        out.append('<rect x="0" y="0" width="%s" height="%s" fill="#0d1420"/>' % (width, height))
-        out.append('<text class="t" x="4" y="22">%s</text>' % esc(title))
-        for index, name in enumerate(names):
-            path = os.path.join(PRESETS, name + ".mirror")
-            base, layers, fingerprint = read_preset(path)
-            col, row = index % COLS, index // COLS
-            x = col * CELL_W + (CELL_W - BANNER_W) / 2
-            y = TITLE_H + row * CELL_H
-            out.append("<!-- fp %s %s -->" % (name, fingerprint))
-            out.append(banner(base, layers, x, y, "%s%s" % (file_name[-3:], index)))
-            out.append('<text class="n" x="%s" y="%s" text-anchor="middle">%s</text>'
-                       % (col * CELL_W + CELL_W / 2, y + BANNER_H + 14, esc(name)))
-            drawn += 1
-        out.append("</svg>")
-        target = os.path.join(OUT, file_name + ".svg")
-        io.open(target, "w", encoding="utf-8", newline=chr(10)).write(chr(10).join(out) + chr(10))
-        print("wrote", target, "(%s looks)" % len(names))
+    listed = [name for (_, names) in GROUPS for name in names]
+    shipped = sorted(f[:-7] for f in os.listdir(PRESETS) if f.endswith(".mirror"))
+    if sorted(listed) != shipped:
+        raise SystemExit("groups and presets disagree: missing %s, extra %s"
+                         % (sorted(set(shipped) - set(listed)),
+                            sorted(set(listed) - set(shipped))))
 
-    shipped = [f[:-7] for f in os.listdir(PRESETS) if f.endswith(".mirror")]
-    listed = [n for (_, _, names) in SHEETS for n in names]
-    if sorted(shipped) != sorted(listed):
-        missing = sorted(set(shipped) - set(listed))
-        extra = sorted(set(listed) - set(shipped))
-        raise SystemExit("sheets and presets disagree: missing %s, extra %s" % (missing, extra))
-    print("drew", drawn, "looks across", len(SHEETS), "sheets")
+    tables = []
+    for (heading, names) in GROUPS:
+        places = any(read_preset(os.path.join(PRESETS, n + ".mirror"))[2] for n in names)
+        tables.append("#### " + heading)
+        tables.append("")
+        tables.append("| | Look | %s | Layers, in order |"
+                      % ("Answers for" if places else "For"))
+        tables.append("|---|---|---|---|")
+        for name in names:
+            base, layers, biome, fingerprint = read_preset(os.path.join(PRESETS,
+                                                                       name + ".mirror"))
+            io.open(os.path.join(OUT, name + ".svg"), "w", encoding="utf-8",
+                    newline=chr(10)).write(draw(name, base, layers, fingerprint))
+            right = ("`" + biome + "`") if biome else PURPOSE.get(name, "")
+            # The recipe, not just the picture. Somebody checking a stamped banner against
+            # this page needs the thing the plugin actually applied -- the drawing is an
+            # approximation and would put the blame in the wrong place on a mismatch.
+            recipe = " ".join(["`%s` base" % base]
+                              + ["+ `%s %s`" % (colour, pattern.lower())
+                                 for (colour, pattern) in layers])
+            tables.append('| <img src="images/mirrors/%s.svg" width="26" alt=""> | `%s` | %s'
+                          ' | %s |' % (name, name, right, recipe))
+        tables.append("")
+
+    document = io.open(DOCUMENT, encoding="utf-8", newline="").read()
+    crlf = chr(13) + chr(10) in document
+    flat = document.replace(chr(13) + chr(10), chr(10))
+    head = flat.index(START) + len(START)
+    tail = flat.index(END)
+    flat = flat[:head] + "\n\n" + "\n".join(tables).rstrip() + "\n\n" + flat[tail:]
+    io.open(DOCUMENT, "w", encoding="utf-8", newline="").write(
+        flat.replace(chr(10), chr(13) + chr(10)) if crlf else flat)
+
+    print("drew", len(listed), "looks into", OUT, "and rewrote the gallery in", DOCUMENT)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="26" height="46" role="img" aria-label="the compass mirror look">
+<!-- fp compass 71cef53f35 -->
+<rect x="0" y="0" width="26" height="46" fill="#0d1420" rx="2"/>
+<g transform="translate(3,3)"><rect x="0" y="0" width="20" height="40" fill="#F9FFFE"/><path d="M0 0 L20 0 L10 13 Z" fill="#B02E26"/><path d="M0 40 L20 40 L10 27 Z" fill="#1D1D21"/><path d="M0 0h20v40H0z M1.6 1.6v36.8h16.8V1.6z" fill="#1D1D21" fill-rule="evenodd"/><rect x="0" y="0" width="20" height="40" fill="none" stroke="#ffffff40" stroke-width="0.6"/></g>
+</svg>

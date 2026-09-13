@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="26" height="46" role="img" aria-label="the frozen_ocean mirror look">
+<!-- fp frozen_ocean 5ce9c685f7 -->
+<rect x="0" y="0" width="26" height="46" fill="#0d1420" rx="2"/>
+<g transform="translate(3,3)"><rect x="0" y="0" width="20" height="40" fill="#3AB3DA"/><path d="M10 11 L17 20 L10 29 L3 20 Z" fill="#F9FFFE"/><path d="M0 0 L5 0 L2.5 6 Z M5 0 L10 0 L7.5 6 Z M10 0 L15 0 L12.5 6 Z M15 0 L20 0 L17.5 6 Z" fill="#F9FFFE"/><path d="M0 0h20v40H0z M1.6 1.6v36.8h16.8V1.6z" fill="#3C44AA" fill-rule="evenodd"/><rect x="0" y="0" width="20" height="40" fill="none" stroke="#ffffff40" stroke-width="0.6"/></g>
+</svg>
