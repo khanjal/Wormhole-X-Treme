@@ -228,8 +228,12 @@ def draw(name, base, layers, fingerprint):
     inner.append('<rect x="0" y="0" width="20" height="40" fill="none"'
                  ' stroke="#ffffff40" stroke-width="0.6"/>')
     return ("\n".join([
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="26" height="46"'
-        ' role="img" aria-label="the %s mirror look">' % name,
+        # Drawn at six times the size it is shown at. GitHub's sanitiser allows neither
+        # a stylesheet nor a script in a document, so there is no hover to enlarge one with --
+        # but the table can scale a big drawing down, and a link to the file opens it at its
+        # own size. Vector, so the large view costs nothing but the two numbers below.
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="156"'
+        ' height="276" role="img" aria-label="the %s mirror look">' % name,
         "<!-- fp %s %s -->" % (name, fingerprint),
         # Its own ground, because GitHub renders a document light or dark depending on the
         # reader and a white banner on a white page is not a picture of anything.
@@ -274,8 +278,11 @@ def main():
             recipe = " ".join(["`%s` base" % base]
                               + ["+ `%s %s`" % (colour, pattern.lower())
                                  for (colour, pattern) in layers])
-            tables.append('| <img src="images/mirrors/%s.svg" width="26" alt=""> | `%s` | %s'
-                          ' | %s |' % (name, name, right, recipe))
+            plain = recipe.replace("`", "")
+            tables.append('| <a href="images/mirrors/%s.svg" title="%s">'
+                          '<img src="images/mirrors/%s.svg" width="26" alt="the %s look"></a>'
+                          ' | `%s` | %s | %s |'
+                          % (name, plain, name, name, name, right, recipe))
         tables.append("")
 
     document = io.open(DOCUMENT, encoding="utf-8", newline="").read()

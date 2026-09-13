@@ -48,6 +48,11 @@ been running on defaults will start reading the file you have been editing.
   with the name of the look and the command that fixes it. Checked by editing a preset and
   watching it fail.
 
+  Each drawing is six times the size it is shown at, and linked to itself, so clicking one opens
+  something a pattern can actually be read off -- GitHub's sanitiser allows neither a stylesheet
+  nor a script in a document, so there is no hover-to-enlarge to be had, and a link to a vector
+  costs nothing but two numbers in the file. Hovering gives the recipe as a tooltip.
+
   Seventy kilobytes for all eighty-eight, in a repository whose entire history packs to about
   five megabytes. Each drawing carries its own dark ground, like every other SVG in
   `docs/images`: GitHub renders a document on a light or a dark page depending on the reader, and

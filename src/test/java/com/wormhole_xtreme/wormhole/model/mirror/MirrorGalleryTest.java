@@ -198,7 +198,11 @@ class MirrorGalleryTest
         final List<String> missing = new ArrayList<>();
         for (final String look : shipped().keySet())
         {
-            if (!gallery.contains("images/mirrors/" + look + ".svg")
+            // The anchor, not just the image: a drawing shown at 26 pixels is unreadable,
+            // and the link to the full-size file is the only way the page offers to see one
+            // properly -- GitHub's sanitiser allows no stylesheet or script to do it with.
+            if (!gallery.contains("<a href=\"images/mirrors/" + look + ".svg\" title=")
+                || !gallery.contains("images/mirrors/" + look + ".svg\" width=\"26\"")
                 || !gallery.contains("`" + look + "`"))
             {
                 missing.add(look);
