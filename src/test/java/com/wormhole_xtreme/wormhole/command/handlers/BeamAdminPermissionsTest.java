@@ -180,6 +180,19 @@ class BeamAdminPermissionsTest
         verify(console).sendMessage(contains("player-only"));
     }
 
+    /** {@code create} records the destination as well, the alias gate and mirror also take. */
+    @Test
+    void creatingADestinationRecordsItTheSameWaySettingOneDoes()
+    {
+        holding(admin, BeamPermissions.ADMIN);
+
+        assertTrue(run(admin, "create", "hub"));
+
+        assertNotNull(BeamManager.getPublicDestination("hub"),
+            "create is the alias both halves of beam take, so this half must take it too");
+        yaml.verify(BeamYamlManager::saveAll);
+    }
+
     /** With the node, setting a destination records where the admin is standing. */
     @Test
     void settingADestinationRecordsWhereTheAdminStands()

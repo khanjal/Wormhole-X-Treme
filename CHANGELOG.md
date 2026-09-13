@@ -30,6 +30,27 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **`create` is accepted wherever something gets registered.** Four features, four different
+  words for the same step, none of them wrong and no two of them the same:
+
+  ```
+  /wormhole gate complete <name>     the gate you laid out
+  /wormhole ring create              the circle of slabs you are standing in
+  /wormhole beam place set <name>    where you are standing
+  /wormhole mirror set <name>        the banner you are looking at
+  ```
+
+  Not one of those places a block. In all four the player builds and the plugin recognises and
+  names what is already there, so the three verbs were never carrying a distinction --
+  `build`/`complete` are the 2011 original's, `create` arrived with rings, and `set` arrived with
+  beams and then mirrors. `create` is what the rest of the ecosystem uses for this shape
+  (`/mv create`, `/npc create`), and now every one of them takes it.
+
+  The documented verbs do not change, and the aliases are not listed in help or offered by tab
+  completion -- the same way the flat gate commands were kept working after they moved under
+  `/wormhole gate`. Two of them have their own reason to stay the documented word: `complete` is
+  the second half of build-then-complete rather than a creation on its own, and `mirror set` also
+  moves and renames a mirror, which "create" would read wrong for.
 - **Four mirror verbs no longer need the mirror's name.** `stamp`, `display`, `mode` and `remove`
   take the mirror on the banner you are looking at when you leave the name out:
 

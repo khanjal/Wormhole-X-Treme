@@ -56,7 +56,7 @@ anywhere yet.
 
 | Command | What it does |
 | --- | --- |
-| `mirror set <name>` | Makes the banner you are looking at a mirror, or renames the one already there |
+| `mirror set <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror create` also works) |
 | `mirror target <name>` | Points it at where you are standing |
 | `mirror link <other> [name]` | Joins the banner you are looking at to that mirror, both ways |
 | `mirror stamp [name] [look]` | Makes the banner look like where it goes |

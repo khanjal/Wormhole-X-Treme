@@ -93,6 +93,17 @@ class BeamPlacesTest
         return new BeamCommand().execute(who, args);
     }
 
+    /** {@code create} records the place as well, the alias gate and mirror also take. */
+    @Test
+    void creatingAPlaceRecordsItTheSameWaySettingOneDoes()
+    {
+        assertTrue(place(player, "create", "home"));
+
+        assertNotNull(BeamManager.getPlace(UUID.fromString(MINE), "home"),
+            "the alias has to save the place, not point at the subcommands that exist");
+        yaml.verify(BeamYamlManager::saveAll);
+    }
+
     /** Setting a place records where the player is standing, under their own name for it. */
     @Test
     void settingAPlaceRecordsWhereThePlayerStands()

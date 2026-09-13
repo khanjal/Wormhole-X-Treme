@@ -145,7 +145,10 @@ public class MirrorCommand implements SubCommand
         final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "";
         switch (verb)
         {
-            case "set" -> set(sender, args);
+            // create for the same reason gate accepts it. set stays documented here because it
+            // is the wider verb: on a banner that is already a mirror it renames, and "create
+            // old-spawn" would read as making a second one.
+            case "set", "create" -> set(sender, args);
             case TARGET -> target(sender, args);
             case LINK -> link(sender, args);
             case "stamp" -> stamp(sender, args);

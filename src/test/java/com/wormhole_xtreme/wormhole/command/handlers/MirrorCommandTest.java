@@ -114,6 +114,27 @@ class MirrorCommandTest
         return new MirrorCommand().execute(sender, args);
     }
 
+    /**
+     * {@code create} names the banner too, because it is the word people try first.
+     *
+     * <p>{@code set} stays the documented verb here -- it also renames and moves, which
+     * "create" would read wrong for -- but a server owner coming from any other plugin reaches
+     * for {@code create}, and finding the usage line instead teaches them nothing about which
+     * word this one wanted.
+     */
+    @Test
+    void createNamesTheBannerTheSameWaySetDoes()
+    {
+        final Block inFront = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(inFront);
+
+        assertTrue(run(player, "mirror", "create", "museum"));
+
+        final QuantumMirror mirror = MirrorManager.byName("museum");
+        assertNotNull(mirror, "the alias has to bind the banner, not print the form");
+        assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
+    }
+
     /** Naming the banner you are looking at is the first half of binding one. */
     @Test
     void setNamesTheBannerThePlayerIsLookingAt()

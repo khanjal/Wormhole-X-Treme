@@ -1,10 +1,12 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -135,6 +137,25 @@ class GateCommandTest
         assertFalse(run("gate", "regen"));
 
         verify(sender).sendMessage(contains("No gate name specified"));
+    }
+
+    /**
+     * {@code create} is routed as {@code complete} rather than answered with the verb list.
+     *
+     * <p>The word the rest of the ecosystem uses for this -- {@code /mv create},
+     * {@code /npc create} -- where this plugin's own is {@code complete}, the second half of
+     * build-then-complete and nobody's first guess. The router is the only place the two words
+     * meet: get this wrong and the guess is met with "No such gate command", which reads as the
+     * gate never having been built.
+     */
+    @Test
+    void createIsRoutedToTheCompleteHandler()
+    {
+        final boolean aliased = run("gate", "create", "Home");
+
+        assertEquals(run("gate", "complete", "Home"), aliased,
+            "create is complete under another name, so the router must answer identically");
+        verify(sender, never()).sendMessage(contains("No such gate command"));
     }
 
     /**

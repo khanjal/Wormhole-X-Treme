@@ -314,7 +314,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | Command | What it does |
 |---|---|
 | `gate build <shape>` | Start building |
-| `gate complete <name> [idc=] [net=]` | Name and register what you built |
+| `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
 | `gate list [network]` | Gates you can see |
 | `gate remove <gate> [-all]` | Take it down |
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
