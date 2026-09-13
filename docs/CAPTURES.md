@@ -49,13 +49,21 @@ be too heavy and too slow to read.
 | Iris turning somebody back | ~2s | -- | `gate-iris.png` |
 | Ring countdown and deploy | 4.5s | `RING_COUNTDOWN_TICKS` 60, deploy at `RING_DEPLOY_TICKS` 2 a frame | `ring-deploy.png` |
 | Flash, hold and retract | 3.5s | flash `RING_FLASH_TICKS` 3 x 4 rings, `RING_HOLD_TICKS` 20, `RING_LIGHTS_LINGER_TICKS` 20 | `ring-flash.png` |
-| A whole beam cycle | 2.9s | envelop 12 + rise 18 + descend 20 + fade 8 = 58 ticks | `beam-cycle.png` |
+| A whole beam cycle | 2.6s | 52 ticks — the phases overlap, see below | `beam-cycle.png` |
 
 Twenty ticks is one second.
 
-**The beam is the easy one.** Its entire cycle -- envelop, rise, descend, fade -- runs 58 ticks,
-so the whole thing fits one short loop with nothing cut. Record it in third person (F5) or the
-traveller, who is the subject, is not in frame.
+**The beam is the easy one.** Its entire cycle -- envelop, rise, descend, fade -- runs 52
+ticks, so the whole thing fits one short loop with nothing cut. Record it in third person (F5)
+or the traveller, who is the subject, is not in frame.
+
+**Fifty-two, not the fifty-eight this table used to say.** Adding the four durations together
+gives 58, and that is the one piece of arithmetic this document had wrong: the phases do not
+simply follow one another. The descend column starts at the *teleport* tick, which is 12 ticks
+into an 18-tick rise, so six ticks run at both ends at once and the sequence finishes six ticks
+earlier than the sum. The strip in [BEAMS.md](BEAMS.md#the-phases-overlap) shows it, and
+`BeamGalleryTest` holds the number against `BeamFrame` itself. A clip cut to 2.9s would have
+carried about a third of a second of nothing on the end.
 
 **The ring cycle is the awkward one.** End to end it is around nine and a half seconds, most of
 which is a 60-tick countdown where very little moves. Cut it in two and trim most of the
@@ -98,13 +106,13 @@ winget install Gyan.FFmpeg
 APNG, trimming to the exact cycle with `-ss` (start) and `-t` (duration):
 
 ```
-ffmpeg -ss 00:00:04 -t 2.9 -i beam.mp4 -vf "fps=20,scale=640:-1:flags=lanczos" -plays 0 -f apng docs/images/beam-cycle.png
+ffmpeg -ss 00:00:04 -t 2.6 -i beam.mp4 -vf "fps=20,scale=640:-1:flags=lanczos" -plays 0 -f apng docs/images/beam-cycle.png
 ```
 
 GIF, which needs a two-pass palette or it looks like 1998:
 
 ```
-ffmpeg -ss 00:00:04 -t 2.9 -i beam.mp4 -vf "fps=20,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=3" -loop 0 docs/images/beam-cycle.gif
+ffmpeg -ss 00:00:04 -t 2.6 -i beam.mp4 -vf "fps=20,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=3" -loop 0 docs/images/beam-cycle.gif
 ```
 
 Drop `fps` to 15 or `scale` to 480 if a clip comes out over budget. Losing frames is much less
@@ -152,8 +160,9 @@ directory.
 
 ## The diagrams are not these captures
 
-`docs/images/gates/` and `docs/images/rings/` hold generated drawings — gate shapes, ring
-footprints, deploy filmstrips — and none of them fills a slot above. They are schematics of
+`docs/images/gates/`, `docs/images/rings/` and `docs/images/beams/` hold generated drawings
+— gate shapes, ring footprints, deploy filmstrips, the beam's timing — and none of them
+fills a slot above. They are schematics of
 the geometry, drawn from the plugin's own shape files and constants, and they say what a thing
 *is*. A capture says what it *looks like*, which is a different question and the one a video
 answers: flat colour keyed to a block cannot show the event horizon's gradient, the particle

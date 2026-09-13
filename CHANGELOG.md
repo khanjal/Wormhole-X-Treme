@@ -30,6 +30,43 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The beam sequence is drawn as a timing strip, and drawing it found a wrong number.**
+  `docs/BEAMS.md` now shows every tick of a beam: the four phases as bars, the five moments
+  marked where they actually fall, and the envelope's density ramping up and the fade's ramping
+  down as the height of each tick's block.
+
+  There is nothing else a drawing could honestly say about a beam. It is particles, not blocks,
+  so there is no geometry -- no footprint, no frame, nothing a flat colour keyed to a material
+  could stand for. What it *looks* like needs the capture `docs/CAPTURES.md` already holds a
+  slot for. What it *does* is arithmetic, and arithmetic draws well.
+
+  **The phases overlap, and nothing had noticed.** The descend column starts at the teleport
+  tick, and the teleport fires 12 ticks into an 18-tick rise -- so for six ticks the origin
+  column is still climbing while the destination column is already falling. They are at
+  opposite ends of the journey, so nobody ever sees both, which is presumably why it went
+  unremarked.
+
+  It means the cycle is **52 ticks, 2.6 seconds**, not the 58 that adding 12 + 18 + 20 + 8
+  gives. `docs/CAPTURES.md` said 58, and told anybody capturing a beam to cut the clip to 2.9
+  seconds -- about a third of a second of nothing on the end. Both numbers are corrected, in
+  the shot list and in the two `ffmpeg` lines, and the document now says plainly which
+  arithmetic it had wrong and why.
+
+  That is the strip earning itself before it was even committed. The table of four durations
+  was not wrong about any phase; it simply could not show that two of them run at once, and
+  the sum looked like the answer.
+
+  `BeamGalleryTest` runs the real `BeamFrame.at()` from tick zero to finished and compares the
+  whole sequence against the line the drawing carries -- every phase boundary, every mark,
+  both density ramps, and the overlap count. Two further tests pin the properties rather than
+  the numbers: that the descend does start before the rise ends, and that the difference
+  between the sum of the phases and the real length is exactly the overlap and nothing else.
+  A third checks `CAPTURES.md` still agrees about the length, because that is the one number in
+  these documents somebody acts on with a video editor open.
+
+  Checked by making the descend wait for the rise to finish: all three fail, and all three pass
+  again on restore.
+
 - **The ring patterns, the stack and both deploys are drawn in the documentation.**
   `docs/RINGS.md` now shows the two footprints in plan, the finished stack in elevation with a
   player beside it for scale, a filmstrip of each deploy style frame by frame, and the transport

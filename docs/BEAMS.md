@@ -143,6 +143,22 @@ One asymmetry does not come from mirroring the two ends: the destination track c
 principle be staged entirely independently of the player, but the origin track cannot. The
 teleport has to wait on it, at least partly, rather than firing the moment they vanish.
 
+### The phases overlap
+
+<!-- timing:start -->
+
+![The beam sequence, tick by tick](images/beams/timing.svg)
+
+The four phases do not simply follow one another, which is the one thing the table above cannot
+show. The descend column starts at the teleport tick, and the teleport fires 12 ticks into an
+18-tick rise, so for 6 ticks the origin column is still climbing while the destination column is
+already falling. The two are at opposite ends of the journey, so nobody sees both.
+
+That is why the whole cycle is **52 ticks, 2.6 seconds** rather than the 58 that adding the four
+durations together gives. 52 ticks is the number to cut a capture to.
+
+<!-- timing:end -->
+
 ## Why the traveller stays physically present
 
 The "disappear into a beam, then reappear out of one" read relies on a real API property:
