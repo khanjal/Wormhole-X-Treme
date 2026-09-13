@@ -247,15 +247,21 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
 
     /**
      * Visits every block of one band of the cone an eye could see through the opening, a layer at
-     * a time from the opening outwards, out to a depth.
+     * a time from the opening outwards, out to a distance from the eye.
      *
      * <p>Only the cone from the eye through the opening, which is what makes a deep view
      * affordable: the blocks walked grow with what can be seen, not with a box drawn around the
      * opening. Generous at the edges -- the exact test is {@link #projected} and what follows it.
      *
+     * <p>Bounded by distance from the eye rather than depth behind the opening, because that is
+     * what bounds the work however close the eye comes: right up against a mirror the cone is
+     * nearly half a sphere, and half a sphere of a fixed radius is a fixed number of blocks. The
+     * bound includes one block past the radius, which is where a shell of blocks lies that
+     * {@link MirrorWindows} paints the rest of the view onto.
+     *
      * <p>In bands, steepest last, so the middle of a view can be walked to its full depth before
-     * its edges are. From right up against a mirror the cone is hundreds of thousands of blocks,
-     * and a walk that runs out of budget should lose the edges of the view, not its depth.
+     * its edges are, and a walk that runs out of budget loses the edges of the view, not its
+     * depth.
      *
      * @param eyeX
      *            the eye, x
@@ -263,8 +269,9 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            the eye, y
      * @param eyeZ
      *            the eye, z
-     * @param depth
-     *            how many layers behind the opening to walk
+     * @param radius
+     *            how far from the eye to walk; blocks whose middle is more than a block past it
+     *            are never handed out
      * @param band
      *            which band, from 0 to {@link #bands()} less one
      * @param limits
@@ -274,10 +281,11 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      * @return false if the candidate stopped the walk
      */
     public boolean forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
-        final int depth, final int band, final Limits limits, final Candidate candidate)
+        final double radius, final int band, final Limits limits, final Candidate candidate)
     {
-        final Walk walk = new Walk(this, new double[] { eyeX, eyeY, eyeZ }, band, limits, candidate);
-        for (int layer = 1; (layer <= depth) && (layer <= limits.deepest()); layer++)
+        final Walk walk = new Walk(this, new double[] { eyeX, eyeY, eyeZ }, radius, band, limits,
+            candidate);
+        for (int layer = 1; (layer <= limits.deepest()) && walk.within(layer); layer++)
         {
             if (!walk.layer(layer))
             {
@@ -285,6 +293,30 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             }
         }
         return true;
+    }
+
+    /**
+     * The direction at the far side that a direction through this opening becomes.
+     *
+     * <p>For looking past a block at the far side the way a viewer here looks past the block
+     * that shows it: the same turn the block mapping makes, applied to a direction.
+     *
+     * @param dx
+     *            the direction here, x
+     * @param dy
+     *            the direction here, y
+     * @param dz
+     *            the direction here, z
+     * @return the direction at the far side, as {@code {x, y, z}}
+     */
+    public double[] farDirection(final double dx, final double dy, final double dz)
+    {
+        final Spot right = rightOf(into);
+        final Spot farRight = rightOf(ahead);
+        final double along = (dx * into.x()) + (dz * into.z());
+        final double across = (dx * right.x()) + (dz * right.z());
+        return new double[] { (along * ahead.x()) + (across * farRight.x()), dy,
+            (along * ahead.z()) + (across * farRight.z()) };
     }
 
     /** One band of one walk of the cone. */
@@ -297,6 +329,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         private final double eyeAcross;
         private final double eyeY;
         private final double reach;
+        private final double radius;
         private final int baseAlong;
         private final int middle;
         private final double inner;
@@ -304,8 +337,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         private final Limits limits;
         private final Candidate candidate;
 
-        Walk(final MirrorWindow window, final double[] eye, final int band, final Limits limits,
-            final Candidate candidate)
+        Walk(final MirrorWindow window, final double[] eye, final double radius, final int band,
+            final Limits limits, final Candidate candidate)
         {
             this.window = window;
             this.alongX = window.into.x() != 0;
@@ -314,12 +347,26 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             this.eyeAcross = alongX ? eye[2] : eye[0];
             this.eyeY = eye[1];
             this.reach = Math.max(NEAREST_EYE, Math.abs(window.face() - eyeAlong));
+            this.radius = radius + 1.0;
             this.baseAlong = alongX ? window.base.x() : window.base.z();
             this.middle = alongX ? window.base.z() : window.base.x();
             this.inner = (band == 0) ? -1.0 : BANDS[band - 1];
             this.outer = BANDS[band];
             this.limits = limits;
             this.candidate = candidate;
+        }
+
+        /** How far the nearest face of a layer is from the eye, along the axis. */
+        private double nearFace(final int layer)
+        {
+            final int along = baseAlong + (sign * layer);
+            return Math.max(0.0, Math.min(Math.abs(along - eyeAlong), Math.abs((along + 1) - eyeAlong)));
+        }
+
+        /** @return true if any of a layer is within the radius */
+        boolean within(final int layer)
+        {
+            return nearFace(layer) <= radius;
         }
 
         /** @return false if the walk was stopped */
@@ -339,6 +386,13 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
                 (int) Math.floor(lowest(eyeY, bottom, bottom + HEIGHT, near, farther)));
             int yTo = Math.min(bottom + WIDEST,
                 (int) Math.ceil(highest(eyeY, bottom, bottom + HEIGHT, near, farther)) - 1);
+            // Nothing in this layer further from the eye than the radius: the sphere's width here.
+            final double face = nearFace(layer);
+            final double wide = Math.sqrt(Math.max(0.0, (radius * radius) - (face * face))) + 1.0;
+            acrossFrom = Math.max(acrossFrom, (int) Math.floor(eyeAcross - wide));
+            acrossTo = Math.min(acrossTo, (int) Math.ceil(eyeAcross + wide));
+            yFrom = Math.max(yFrom, (int) Math.floor(eyeY - wide));
+            yTo = Math.min(yTo, (int) Math.ceil(eyeY + wide));
             if (Double.isFinite(outer))
             {
                 // No block in this band is further off the line through the eye than this.

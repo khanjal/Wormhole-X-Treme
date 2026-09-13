@@ -195,12 +195,21 @@ public class ConfigManager
         MIRROR_DYNAMIC_RESAMPLE_SECONDS,
 
         /**
-         * How far behind a mirror's opening the far side is drawn, in blocks.
+         * How far from a viewer's eye a mirror's far side is drawn as real blocks, in blocks.
          *
-         * <p>Past it the world the viewer is really in shows through. Only the cone through the
-         * opening is drawn, so this costs in proportion to what can be seen, not its cube.
+         * <p>A radius from the eye rather than a depth behind the opening, because that is what
+         * bounds the work however close somebody stands. Past it the rest of the view is painted
+         * onto a shell, so nothing is lost but the parallax of distant things.
          */
         MIRROR_VIEW_DEPTH,
+
+        /**
+         * How far into the far side the shell looks, in blocks.
+         *
+         * <p>Beyond it a line of sight that has met nothing is sky. The cost is per line, not per
+         * block seen, so this can be large.
+         */
+        MIRROR_VIEW_HORIZON,
 
         /**
          * Whether a mirror names itself above the hotbar to whoever is looking at it.
@@ -1424,14 +1433,25 @@ public class ConfigManager
     }
 
     /**
-     * How far behind a mirror's opening the far side is drawn.
+     * How far from a viewer's eye a mirror's far side is drawn as real blocks.
      *
-     * @return the depth in blocks, between 4 and 128
+     * @return the radius in blocks, between 4 and 64
      */
     public static int getMirrorViewDepth()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
-        return (s == null) ? 48 : Math.max(4, Math.min(128, s.getIntValue()));
+        return (s == null) ? 16 : Math.max(4, Math.min(64, s.getIntValue()));
+    }
+
+    /**
+     * How far into the far side a mirror's shell looks before calling a line of sight sky.
+     *
+     * @return the distance in blocks, between 16 and 512
+     */
+    public static int getMirrorViewHorizon()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_HORIZON);
+        return (s == null) ? 128 : Math.max(16, Math.min(512, s.getIntValue()));
     }
 
     /**

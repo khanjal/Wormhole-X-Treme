@@ -42,11 +42,17 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * blocks around it, and each from the opening their line of sight passes through. That is what
  * lets windows share a wall, and what keeps a freestanding one inside its edges.
  *
+ * <p>Real blocks reach {@code mirror-view-depth} from the eye. Past that a shell closes the view,
+ * each of its blocks painted with what the line of sight through it meets at the far side, out
+ * to {@code mirror-view-horizon}, or with sky. See {@link Pass}.
+ *
  * <h2>What it costs, and what keeps that down</h2>
  *
  * <ul>
- * <li>Only the cone from the eye through the opening is walked, so the work grows with what can
- * be seen rather than with a box around the opening. That is what makes a deep view affordable.</li>
+ * <li>Only the cone from the eye through the opening is walked, and only out to a radius from
+ * the eye, so the work grows with what can be seen and is bounded however close the eye comes:
+ * right against a mirror the cone is half a sphere, and half a sphere of a fixed radius is a
+ * fixed number of blocks. The shell is that sphere's surface.</li>
  * <li>A viewer is redrawn at most a few times a second as they move, and not at all on a sweep
  * where nothing changed. Only the difference is sent, except after crossing into a new chunk --
  * which is when the client is handed fresh chunks that erase what was drawn -- and as a long
@@ -77,6 +83,9 @@ public final class MirrorWindows
 
     /** Most blocks one redraw considers across every window a viewer sees. */
     private static final int MOST_CANDIDATES = 40_000;
+
+    /** Most steps one redraw's lines of sight into the far side may take between them. */
+    private static final int MOST_RAY_STEPS = 150_000;
 
     /** How far around an opening its solid surroundings are read. */
     private static final int SURROUND = 8;
@@ -360,7 +369,7 @@ public final class MirrorWindows
      * @param player
      *            who clicked
      * @param block
-     *            the real block behind what they clicked: the opening, or a block in front of it
+     *            the real block behind what they clicked
      * @return the mirror, or null
      */
     static QuantumMirror clicked(final Player player, final Block block)
@@ -375,8 +384,7 @@ public final class MirrorWindows
         for (final String name : view.mirrors)
         {
             final Window window = WINDOWS.get(name);
-            if ((window != null) && (window.open.contains(at) || window.open.contains(new Spot(
-                at.x() + window.shape.into().x(), at.y(), at.z() + window.shape.into().z())))
+            if ((window != null) && window.open.contains(at)
                 && window.banner.getWorld().equals(block.getWorld()))
             {
                 return window.mirror;
@@ -417,7 +425,7 @@ public final class MirrorWindows
             }
             return;
         }
-        final Map<Long, BlockData> wanted = compose(player, eye, seeing, now);
+        final Map<Long, BlockData> wanted = compose(eye, seeing, now);
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
@@ -527,27 +535,32 @@ public final class MirrorWindows
      * out to {@code mirror-view-depth} and within one budget for the whole redraw -- see
      * {@link Pass} for which of them are drawn.
      */
-    private static Map<Long, BlockData> compose(final Player player, final Location eye,
-        final List<Window> seeing, final long now)
+    private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
+        final long now)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
         final Map<Long, BlockData> wanted = new HashMap<>();
         final Set<Long> allOpen = new HashSet<>();
         seeing.forEach(window -> allOpen.addAll(window.openKeys));
-        final Set<Long> standingIn = occupiedBy(eye, player.getEyeHeight());
         for (final Window window : seeing)
         {
+            // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
+            // stays hanging in front of the view.
+            if (MirrorPackets.available())
+            {
+                final MirrorBlock banner = window.mirror.banner();
+                wanted.put(key(banner.x(), banner.y(), banner.z()), air);
+            }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
-            standOff(window, wanted, standingIn, air, barrier);
         }
-        final int depth = ConfigManager.getMirrorViewDepth();
-        final int[] left = { MOST_CANDIDATES };
+        final int radius = ConfigManager.getMirrorViewDepth();
+        final Budget budget = new Budget();
         final List<Pass> passes = new ArrayList<>();
         for (final Window window : nearestFirst(seeing, eye))
         {
             refreshSolid(window, now);
-            passes.add(new Pass(eye, window, seeing, allOpen, wanted, air, now));
+            passes.add(new Pass(eye, window, seeing, allOpen, wanted, air, radius, budget, now));
         }
         // The middle of every view first, then outwards, so a spent budget costs the edges of
         // the views rather than their depth.
@@ -555,14 +568,44 @@ public final class MirrorWindows
         {
             for (final Pass pass : passes)
             {
-                if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(), depth,
-                    band, pass, (x, y, z) -> pass.consider(x, y, z) && (--left[0] > 0)))
+                if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(), radius,
+                    band, pass, (x, y, z) -> pass.consider(x, y, z) && (--budget.blocks > 0)))
                 {
                     return wanted;
                 }
             }
         }
         return wanted;
+    }
+
+    /** What one redraw may spend, across every window a viewer sees. */
+    private static final class Budget
+    {
+        private int blocks = MOST_CANDIDATES;
+        private int raySteps = MOST_RAY_STEPS;
+    }
+
+    /**
+     * What the shell shows where a line of sight into the far side finds nothing at all.
+     *
+     * <p>A sky-blue block reads as sky in a world that has one. The End has none, and the Nether's
+     * ceiling is bedrock, so a line that finds nothing there is looking into the dark.
+     */
+    private static BlockData sky(final World far)
+    {
+        return Bukkit.createBlockData((far.getEnvironment() == World.Environment.NORMAL)
+            ? Material.LIGHT_BLUE_CONCRETE : Material.BLACK_CONCRETE);
+    }
+
+    /** Whether a far-side block is nothing to see: air, or one of its kinds. */
+    private static boolean isAir(final BlockData data, final BlockData air)
+    {
+        if (data.equals(air))
+        {
+            return true;
+        }
+        final Material material = data.getMaterial();
+        return (material != null) && material.isAir();
     }
 
     /**
@@ -594,63 +637,6 @@ public final class MirrorWindows
             }
         }
         return rect;
-    }
-
-    /**
-     * Draws the blocks in front of a window's open opening as barrier, the banner's among them.
-     *
-     * <p>Standing in the banner's own block put an eye a few tenths of a block from the opening,
-     * where the view through it is nearly half a sphere and hundreds of thousands of blocks deep:
-     * no budget covers that, and the real world showed through past wherever it ran out. Kept a
-     * block back, the view is one a budget does cover. Barrier is at least as solid as what it
-     * covers, which is the only kind of drawing allowed.
-     *
-     * <p>Not a block the viewer is standing in, which is where a linked pair puts somebody who
-     * has just arrived: walling them in would leave the client arguing with the server about
-     * where they are. And the banner's block only where its patterns can be sent back afterwards;
-     * on plain 1.20 the banner stays hanging in front of the view.
-     */
-    private static void standOff(final Window window, final Map<Long, BlockData> wanted,
-        final Set<Long> standingIn, final BlockData air, final BlockData barrier)
-    {
-        final MirrorBlock banner = window.mirror.banner();
-        final long bannerKey = key(banner.x(), banner.y(), banner.z());
-        for (final Spot cell : window.open)
-        {
-            final long front = key(cell.x() - window.shape.into().x(), cell.y(),
-                cell.z() - window.shape.into().z());
-            final boolean isBanner = front == bannerKey;
-            if (isBanner && !MirrorPackets.available())
-            {
-                continue;
-            }
-            if (!standingIn.contains(front))
-            {
-                wanted.put(front, barrier);
-            }
-            else if (isBanner)
-            {
-                wanted.put(front, air);
-            }
-        }
-    }
-
-    /** The blocks a player's body is in, with their eye here. */
-    private static Set<Long> occupiedBy(final Location eye, final double eyeHeight)
-    {
-        final Set<Long> cells = new HashSet<>();
-        final double feet = eye.getY() - eyeHeight;
-        for (int x = (int) Math.floor(eye.getX() - 0.3); x <= (int) Math.floor(eye.getX() + 0.3); x++)
-        {
-            for (int z = (int) Math.floor(eye.getZ() - 0.3); z <= (int) Math.floor(eye.getZ() + 0.3); z++)
-            {
-                for (int y = (int) Math.floor(feet); y <= (int) Math.floor(feet + 1.8); y++)
-                {
-                    cells.add(key(x, y, z));
-                }
-            }
-        }
-        return cells;
     }
 
     /** A viewer's windows, nearest first, so a spent budget cuts the furthest views short. */
@@ -934,10 +920,17 @@ public final class MirrorWindows
     /**
      * One window's part of one redraw: which blocks in its cone are drawn, and as what.
      *
-     * <p>A block is drawn if it is seen through this window ({@link #seenThrough}), is not
-     * already hidden behind a solid far-side block drawn nearer the eye, has a loaded far side,
-     * and would change what the client shows -- far-side air over a block that is really empty
-     * would not, and sky is most of a deep view.
+     * <p>Within the radius of the eye, a block is drawn as the far-side block it maps to, if it
+     * is seen through this window ({@link #seenThrough}), is not already hidden behind a solid
+     * far-side block drawn nearer the eye, has a loaded far side, and would change what the
+     * client shows -- far-side air over a block that is really empty would not.
+     *
+     * <p>Just past the radius lies a shell, one block thick, that closes the view: every line of
+     * sight from the eye through the opening crosses it. A block there is drawn as whatever the
+     * same line of sight, carried on into the far side, first meets -- or as sky if it meets
+     * nothing before the horizon. Things past the radius lose their parallax that way, which at
+     * that distance is little, and in return the view has no edge where the real world shows and
+     * costs the same however close the eye comes.
      */
     private static final class Pass implements MirrorWindow.Limits
     {
@@ -947,6 +940,10 @@ public final class MirrorWindows
         private final Set<Long> allOpen;
         private final Map<Long, BlockData> wanted;
         private final BlockData air;
+        private final BlockData sky;
+        private final double radius;
+        private final int horizon;
+        private final Budget budget;
         private final long now;
         private final World here;
         private final int min;
@@ -955,7 +952,7 @@ public final class MirrorWindows
 
         Pass(final Location eye, final Window window, final List<Window> seeing,
             final Set<Long> allOpen, final Map<Long, BlockData> wanted, final BlockData air,
-            final long now)
+            final int radius, final Budget budget, final long now)
         {
             this.eye = eye;
             this.window = window;
@@ -963,6 +960,10 @@ public final class MirrorWindows
             this.allOpen = allOpen;
             this.wanted = wanted;
             this.air = air;
+            this.sky = sky(window.farSide.far);
+            this.radius = radius;
+            this.horizon = ConfigManager.getMirrorViewHorizon();
+            this.budget = budget;
             this.now = now;
             this.here = window.banner.getWorld();
             this.min = here.getMinHeight();
@@ -978,10 +979,23 @@ public final class MirrorWindows
             {
                 return true;
             }
+            final double dx = (x + 0.5) - eye.getX();
+            final double dy = (y + 0.5) - eye.getY();
+            final double dz = (z + 0.5) - eye.getZ();
+            final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+            if (distance >= (radius + 1.0))
+            {
+                return true;
+            }
             final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
             final int layer = layerOf(x, z);
             if ((rect == null) || hidden.covers(rect, layer))
             {
+                return true;
+            }
+            if (distance >= radius)
+            {
+                wanted.put(cell, shell(x, y, z, dx / distance, dy / distance, dz / distance));
                 return true;
             }
             final Spot at = window.shape.farOf(x, y, z);
@@ -1002,14 +1016,68 @@ public final class MirrorWindows
         }
 
         /**
-         * Above both the real column and the far one it shows, everything is air over air, so
-         * nothing there is drawn -- and the sky need not be walked a block at a time to learn it.
+         * What a block of the shell shows: the first thing the line of sight through it meets
+         * at the far side, or sky.
+         *
+         * <p>The line is followed a block at a time. Where it climbs above the highest block in
+         * its far column it can only meet sky, and says so without walking there. A far chunk
+         * that is not loaded yet reads as sky too; it has been asked for, and the view is drawn
+         * again when it arrives.
+         */
+        private BlockData shell(final int x, final int y, final int z, final double dx,
+            final double dy, final double dz)
+        {
+            final double[] dir = window.shape.farDirection(dx, dy, dz);
+            final Spot start = window.shape.farOf(x, y, z);
+            long last = Long.MIN_VALUE;
+            for (double t = 0.0; (t <= horizon) && (budget.raySteps > 0); t += 1.0)
+            {
+                final int farX = (int) Math.floor(start.x() + 0.5 + (dir[0] * t));
+                final int farY = (int) Math.floor(start.y() + 0.5 + (dir[1] * t));
+                final int farZ = (int) Math.floor(start.z() + 0.5 + (dir[2] * t));
+                final long step = key(farX, farY, farZ);
+                if (step == last)
+                {
+                    continue;
+                }
+                last = step;
+                budget.raySteps--;
+                final int top = window.farSide.top(farX, farZ, now);
+                if (farY > top)
+                {
+                    if (dir[1] >= 0.0)
+                    {
+                        return sky;
+                    }
+                    // Only air between here and that column's surface: skip down to it.
+                    t += Math.max(0.0, ((farY - top - 1) / -dir[1]) - 1.0);
+                    continue;
+                }
+                final BlockData data = window.farSide.at(farX, farY, farZ, air, now);
+                if (data == null)
+                {
+                    return sky;
+                }
+                if (!isAir(data, air))
+                {
+                    return data;
+                }
+            }
+            return sky;
+        }
+
+        /**
+         * Above the highest block of a real column there is only air, and anything drawn there
+         * as air would change nothing -- so the column need not be walked a block at a time.
+         *
+         * <p>The real column only. A shell block above the far column's surface can still show
+         * far ground, when its line of sight slopes down to it, so the far surface cannot cut
+         * the walk; it shortens the lines instead.
          */
         @Override
         public int top(final int x, final int z)
         {
-            final Spot column = window.shape.farOf(x, window.shape.base().y(), z);
-            return Math.max(topHere(here, x, z, now), window.farSide.top(column.x(), column.z(), now));
+            return topHere(here, x, z, now);
         }
 
         @Override

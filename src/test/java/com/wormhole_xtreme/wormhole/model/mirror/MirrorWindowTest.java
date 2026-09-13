@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -45,22 +46,22 @@ class MirrorWindowTest
         return opening;
     }
 
-    /** Every candidate from an eye out to a depth, band by band, in the order handed out. */
+    /** Every candidate from an eye out to a radius, band by band, in the order handed out. */
     private static List<Spot> candidates(final MirrorWindow window, final double x,
-        final double y, final double z, final int depth, final MirrorWindow.Limits limits)
+        final double y, final double z, final double radius, final MirrorWindow.Limits limits)
     {
         final List<Spot> seen = new ArrayList<>();
         for (int band = 0; band < MirrorWindow.bands(); band++)
         {
-            window.forEachCandidate(x, y, z, depth, band, limits, (cx, cy, cz) -> seen.add(new Spot(cx, cy, cz)));
+            window.forEachCandidate(x, y, z, radius, band, limits, (cx, cy, cz) -> seen.add(new Spot(cx, cy, cz)));
         }
         return seen;
     }
 
     private static List<Spot> candidates(final MirrorWindow window, final double x,
-        final double y, final double z, final int depth)
+        final double y, final double z, final double radius)
     {
-        return candidates(window, x, y, z, depth, MirrorWindow.UNLIMITED);
+        return candidates(window, x, y, z, radius, MirrorWindow.UNLIMITED);
     }
 
     /** Limits with a ceiling on every column and a deepest layer. */
@@ -171,39 +172,75 @@ class MirrorWindowTest
     }
 
     /**
-     * Candidates are behind the opening, nearest layer first, out to exactly the depth asked.
+     * Candidates are behind the opening, nearest layer first, out to a block past the radius.
      *
      * <p>Nothing on the viewer's side, where a drawn block would stand where they are standing,
-     * and nothing past the depth, which is the setting an operator turns up to see further.
+     * and nothing more than a block past the radius from the eye -- the block past it is the
+     * shell the rest of the view is painted on.
      */
     @Test
-    void candidatesAreBehindTheOpeningNearestFirstAndOutToTheDepth()
+    void candidatesAreBehindTheOpeningNearestFirstAndOutToTheRadius()
     {
         final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20);
 
         assertEquals(2, seen.get(0).z(), "the first layer behind the opening comes first");
-        assertTrue(seen.stream().allMatch(spot -> (spot.z() >= 2) && (spot.z() <= 21)),
-            "all of them behind the opening, and none past the depth");
+        assertTrue(seen.stream().allMatch(spot -> (spot.z() >= 2) && (spot.z() <= 18)),
+            "all of them behind the opening, and none more than a block past the radius");
         assertTrue(seen.contains(new Spot(0, 63, 2)), "straight behind");
-        assertTrue(seen.contains(new Spot(0, 63, 21)), "as deep as asked");
+        assertTrue(seen.contains(new Spot(0, 63, 17)), "as far as the radius and its shell reach");
     }
 
     /**
-     * Only the cone through the opening is walked, and it widens with depth.
+     * Only the cone through the opening is walked, and it widens with distance.
      *
      * <p>A fixed box around the opening cut a deep view short at its sides; walking a box big
      * enough not to would be most of the cost for blocks nobody can see.
      */
     @Test
-    void candidatesAreTheConeThroughTheOpeningWideningWithDepth()
+    void candidatesAreTheConeThroughTheOpeningWideningWithDistance()
     {
         final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20);
 
         assertFalse(seen.contains(new Spot(3, 63, 2)), "no line through the opening reaches this");
-        assertTrue(seen.contains(new Spot(3, 63, 21)), "but one does, further back");
         final long nearLayer = seen.stream().filter(spot -> spot.z() == 2).count();
-        final long farLayer = seen.stream().filter(spot -> spot.z() == 21).count();
-        assertTrue(farLayer > (5 * nearLayer), nearLayer + " near, " + farLayer + " far");
+        final long farLayer = seen.stream().filter(spot -> spot.z() == 12).count();
+        assertTrue(farLayer > (3 * nearLayer), nearLayer + " near, " + farLayer + " far");
+    }
+
+    /**
+     * The walk is bounded by distance from the eye, not depth, so it is bounded right up close.
+     *
+     * <p>From a few tenths of a block the cone is nearly half a sphere. Bounded by depth it was
+     * hundreds of thousands of blocks; half a sphere of radius 16 is about nine thousand.
+     */
+    @Test
+    void rightUpAgainstAMirrorTheWalkIsStillOnlyHalfASphere()
+    {
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, 0.6, 16);
+
+        assertTrue(seen.size() < 12_000, seen.size() + " blocks walked");
+        // The walk's own bound is a box around the sphere; the exact test is per block, after.
+        assertTrue(seen.stream().allMatch(spot -> (spot.z() <= 17) && (distance(spot, 0.5, 64.0, 0.6) < 31.0)),
+            "none more than a block past the radius along the axis, and none outside its box");
+    }
+
+    /** A direction through the opening turns the way the block mapping turns. */
+    @Test
+    void aDirectionThroughTheOpeningTurnsWithTheFarSide()
+    {
+        final MirrorWindow window = northFacing(-90.0f);
+
+        assertArrayEquals(new double[] { 1.0, 0.0, 0.0 }, window.farDirection(0.0, 0.0, 1.0), 1.0e-9);
+        assertArrayEquals(new double[] { 0.0, 0.0, 1.0 }, window.farDirection(-1.0, 0.0, 0.0), 1.0e-9);
+        assertArrayEquals(new double[] { 0.0, -0.5, 0.0 }, window.farDirection(0.0, -0.5, 0.0), 1.0e-9);
+    }
+
+    private static double distance(final Spot spot, final double x, final double y, final double z)
+    {
+        final double dx = (spot.x() + 0.5) - x;
+        final double dy = (spot.y() + 0.5) - y;
+        final double dz = (spot.z() + 0.5) - z;
+        return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
     }
 
     @Test

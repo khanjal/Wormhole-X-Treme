@@ -99,18 +99,25 @@ been running on defaults will start reading the file you have been editing.
   **Right up against a mirror, though, the real world still showed through.** From a few tenths
   of a block the view through a one-by-two opening is nearly half a sphere, and 48 deep that is
   hundreds of thousands of blocks -- 34 ms a redraw with no budget, and with one the view stopped
-  16 to 33 blocks back in every direction. So:
+  16 to 33 blocks back in every direction. An invisible block in front of the opening, to keep
+  viewers a block back, was tried and taken out again: it made walking up to a mirror awkward,
+  and it only moved the cut, it did not remove it.
 
-  - The blocks in front of the opening, the banner's own among them, are barrier too. Nobody's
-    eye comes nearer than about a block and a third, where the whole view fits. Not a block you
-    are standing in -- a linked pair puts you exactly there when you arrive -- and clicking the
-    barrier is clicking the mirror.
-  - The cone is walked middle first, to full depth, and then outwards, so a redraw that does run
-    out of budget loses the edges of the view rather than its depth.
-  - Above the highest block in both the real column and the far one, nothing needs drawing, and
-    those columns are no longer walked a block at a time to find that out.
-  - The view is redrawn on a quarter block of movement rather than half. Close up, half a block
-    nearer is twice as wide a view, and stepping in used to keep the narrower one.
+  What removed it is a different shape of view. Real blocks are drawn within `mirror-view-depth`
+  of the viewer's *eye* -- a radius, not a depth, because half a sphere of a fixed radius is the
+  same number of blocks however close you stand. Just past that radius lies a shell, one block
+  thick, that every line of sight through the opening crosses, and each block of it is painted
+  with whatever that line meets when carried on into the far side, out to `mirror-view-horizon`
+  -- or with sky. Distant things lose their parallax, which at that distance is small; in return
+  the view has no far edge, and a viewer pressed against the banner costs no more than one
+  standing back.
+
+  Three smaller things came with it. The cone is walked middle first and then outwards, so a
+  redraw that does run out of budget loses the edges of the view rather than its depth. Above
+  the highest real block in a column nothing is walked, since air drawn over air changes nothing;
+  and a line of sight above the far side's surface skips down to it rather than walking the air.
+  And the view is redrawn on a quarter block of movement rather than half: close up, half a block
+  nearer is twice as wide a view, and stepping in used to keep the narrower one.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 
