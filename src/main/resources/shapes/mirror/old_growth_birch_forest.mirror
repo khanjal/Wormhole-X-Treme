@@ -1,0 +1,9 @@
+# The birch wood with age on it: the same trunks, and a floor underneath.
+# The format is documented in docs/MIRRORS.md.
+Name=old_growth_birch_forest
+Base=GREEN
+Biome=OLD_GROWTH_BIRCH_FOREST
+Layer=WHITE SMALL_STRIPES
+Layer=LIME TRIANGLES_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=GREEN BORDER

@@ -1,0 +1,8 @@
+# Ground that is going uphill, said with the diagonal rather than with peaks.
+# The format is documented in docs/MIRRORS.md.
+Name=snowy_slopes
+Base=WHITE
+Biome=SNOWY_SLOPES
+Layer=LIGHT_GRAY DIAGONAL_UP_RIGHT
+Layer=LIGHT_BLUE GRADIENT
+Layer=LIGHT_BLUE BORDER

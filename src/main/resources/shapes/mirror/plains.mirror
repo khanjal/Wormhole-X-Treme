@@ -1,0 +1,8 @@
+# Open grass under a wide sky, with the sun sitting on the horizon.
+# The format is documented in docs/MIRRORS.md.
+Name=plains
+Base=GREEN
+Biome=PLAINS
+Layer=LIGHT_BLUE HALF_HORIZONTAL
+Layer=YELLOW CIRCLE
+Layer=GREEN BORDER

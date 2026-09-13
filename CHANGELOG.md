@@ -30,6 +30,61 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **A look for every biome in the game, and twenty-three more for what a mirror is *for*.**
+  Seventeen presets became eighty-eight.
+
+  Sixty-five of them are places, one per biome. The nine oceans used to share one banner and the
+  ten woods another, so a mirror onto a jagged peak and a mirror onto a frozen peak were the same
+  picture -- the banner told you which family you were looking at rather than where you were
+  going. `taiga` and `snowy_taiga` are now the same spruce over a different field, `warm_ocean`
+  is the only one with coral in it, and `the_void` is a black banner with a grey frame, because
+  a void world is a real place to keep an archive in.
+
+  One grammar holds them together rather than sixty-five ideas: a base colour for the ground, a
+  layer or two of what the place is made of, and a border in the family's colour. Two biomes in
+  the same family usually differ by one layer.
+
+  The other twenty-three name no biome and are reached only by `mirror stamp <name> <look>`.
+  `portal`, `spawn`, `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`,
+  `vault`, `forge`, `library`, `port` and `compass` join the five that were already there. They
+  are for what an operator wants said about a mirror when it is not where it goes -- and none of
+  them carry any behaviour, the way `private` never did. `locked` says a thing is shut; something
+  else still has to do the shutting.
+
+  `MirrorBiomeCoverageTest` holds the rule in both directions. No biome without a look is the
+  obvious half; no biome claimed by two is the half that matters, because `forBiome` returns the
+  first preset that answers and the order is load order -- so a biome named twice does not
+  conflict, it silently picks whichever file loaded first, and nothing says a word.
+
+  The biome list in that test is written out rather than read from `Biome`. CI builds against
+  1.20.4 and 1.21.10, and `Biome` is an enum on the one and registry-backed on the other, so
+  `Biome.values()` compiles here and fails there -- the same trap `PatternType` laid for the
+  stamp. It also fails in the direction that helps: when Mojang adds a biome, somebody has to
+  come and add it to the list, which is the moment to write its preset.
+- **Seven banner patterns came back, including the only round one.** The shipped library could
+  use 34 of the game's 43 patterns. It can now use 41.
+
+  The seven were never missing. Mojang *renamed* them at 1.21 -- `CIRCLE_MIDDLE` to `CIRCLE`,
+  `STRIPE_SMALL` to `SMALL_STRIPES`, and the four `_MIRROR` ones -- so every supported server has
+  all seven and they disagree only about what to call them. A preset file can spell a thing one
+  way, so naming either spelling lost that layer on half the supported range, with a FINE line
+  nobody reads to explain it.
+
+  `PatternAliases` maps the fourteen spellings to each other and the stamp asks for the other one
+  when the first misses. Only after: a server that has the name a preset used never pays for it.
+
+  The pairs came from vanilla's own identifiers rather than from how alike the names look, and
+  one of them needed it. 1.20's `DIAGONAL_LEFT_MIRROR` carries the id `lud`, which 1.21 spells
+  `DIAGONAL_UP_LEFT` -- while `DIAGONAL_LEFT` is a different pattern (`ld`) sitting one letter
+  away. Pairing by name would have drawn the wrong half of the banner on one version and the
+  right half on the other, and there is a test asserting the two stay distinct.
+
+  What it buys: `CIRCLE` and `RHOMBUS` are the only round and diamond shapes in the game, and
+  without them every look was bands and triangles. `portal` -- a lit ring on a dark field -- is
+  the first look here that reads as a thing seen through rather than as scenery. `windswept_savanna`
+  leans the way the wind does, which needed the mirrored diagonal. `FLOW` and `GUSTER` are still
+  out of reach and no table can help: 1.20 does not have that artwork under any name.
+
 - **Seven more looks a mirror's banner can wear, and no biome left without one.** Ten shipped;
   there are seventeen.
 

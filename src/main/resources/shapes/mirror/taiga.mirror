@@ -1,0 +1,8 @@
+# Spruce: the same shape as the forest, in a darker needle.
+# The format is documented in docs/MIRRORS.md.
+Name=taiga
+Base=GREEN
+Biome=TAIGA
+Layer=BLACK TRIANGLES_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=GREEN BORDER

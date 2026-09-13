@@ -1,0 +1,8 @@
+# Flat snow under a cold sky. Deliberately the quietest of the white looks.
+# The format is documented in docs/MIRRORS.md.
+Name=snowy_plains
+Base=WHITE
+Biome=SNOWY_PLAINS
+Layer=LIGHT_BLUE GRADIENT
+Layer=WHITE TRIANGLES_BOTTOM
+Layer=LIGHT_BLUE BORDER

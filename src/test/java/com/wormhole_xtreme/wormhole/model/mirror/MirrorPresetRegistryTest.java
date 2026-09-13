@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,6 +49,15 @@ class MirrorPresetRegistryTest
         "SQUARE_TOP_RIGHT", "STRAIGHT_CROSS", "STRIPE_BOTTOM", "STRIPE_CENTER",
         "STRIPE_DOWNLEFT", "STRIPE_DOWNRIGHT", "STRIPE_LEFT", "STRIPE_MIDDLE", "STRIPE_RIGHT",
         "STRIPE_TOP", "TRIANGLES_BOTTOM", "TRIANGLES_TOP", "TRIANGLE_BOTTOM", "TRIANGLE_TOP");
+
+    /**
+     * The two patterns that arrived with the trial chambers and have no older spelling.
+     *
+     * <p>Kept separate from the renamed seven on purpose. An alias table can recover a pattern
+     * Mojang renamed; nothing recovers one 1.20 never had, so these stay out of the shipped
+     * library until this plugin stops supporting 1.20.
+     */
+    private static final Set<String> NEW_AT_1_21 = Set.of("FLOW", "GUSTER");
 
     @TempDir
     File folder;
@@ -131,8 +141,9 @@ class MirrorPresetRegistryTest
         MirrorPresetRegistry.load(folder);
 
         assertEquals("nether", MirrorPresetRegistry.forBiome("NETHER_WASTES").name());
-        assertEquals("ocean", MirrorPresetRegistry.forBiome("deep_cold_ocean").name());
-        assertEquals("forest", MirrorPresetRegistry.forBiome("BAMBOO_JUNGLE").name());
+        assertEquals("deep_cold_ocean", MirrorPresetRegistry.forBiome("deep_cold_ocean").name(),
+            "every ocean names itself now; nine of them used to share one look");
+        assertEquals("bamboo_jungle", MirrorPresetRegistry.forBiome("BAMBOO_JUNGLE").name());
         assertEquals("sparse_jungle", MirrorPresetRegistry.forBiome("SPARSE_JUNGLE").name(),
             "thin jungle is its own look, not the woodland one");
         assertEquals("pale_garden", MirrorPresetRegistry.forBiome("PALE_GARDEN").name());
@@ -149,6 +160,12 @@ class MirrorPresetRegistryTest
      * skipped. Nothing logs loudly enough for an operator to connect it to the banner being
      * wrong, so the place to catch it is here -- which is also what makes a look copied out of
      * a banner gallery dangerous to ship.
+     *
+     * <p>The seven renamed ones are allowed again now that {@link PatternAliases} exists: both
+     * spellings resolve on both sides of 1.21, so a preset may name either. {@code FLOW} and
+     * {@code GUSTER} are not, and no alias can help them -- they are artwork 1.20 does not have.
+     * That distinction is the whole point of this test, so it is asserted rather than assumed:
+     * a preset naming one of the two new patterns must still fail here.
      */
     @Test
     void namesOnlyPatternsThatExistOnEverySupportedVersion()
@@ -160,9 +177,14 @@ class MirrorPresetRegistryTest
         {
             for (final MirrorPreset.Layer layer : preset.layers())
             {
-                assertTrue(STABLE_PATTERNS.contains(layer.pattern()),
+                assertTrue(
+                    STABLE_PATTERNS.contains(layer.pattern())
+                        || PatternAliases.isRenamed(layer.pattern()),
                     preset.name() + " names " + layer.pattern() + ", which is not a pattern"
                         + " every supported version has");
+                assertFalse(NEW_AT_1_21.contains(layer.pattern()),
+                    preset.name() + " names " + layer.pattern() + ", which 1.20 does not have"
+                        + " under any spelling");
                 layersChecked++;
             }
         }
@@ -194,7 +216,7 @@ class MirrorPresetRegistryTest
             assertEquals(Set.of(), preset.biomes(), look + " should name no biome");
         }
 
-        assertEquals("overworld", MirrorPresetRegistry.forBiome("PLAINS").name(),
+        assertEquals("plains", MirrorPresetRegistry.forBiome("PLAINS").name(),
             "a place still gets its own look, not whichever preset sorts first");
     }
 
@@ -321,7 +343,7 @@ class MirrorPresetRegistryTest
         final MirrorView inACave = new MirrorView("DRIPSTONE_CAVES",
             List.of(DyeColor.GRAY), true);
 
-        assertEquals("cavern", MirrorLook.seen(inACave).preset().name());
+        assertEquals("dripstone_caves", MirrorLook.seen(inACave).preset().name());
     }
 
     /**
@@ -347,7 +369,7 @@ class MirrorPresetRegistryTest
 
         assertEquals("nether", MirrorLook.seen(
             new MirrorView("NETHER_WASTES", List.of(DyeColor.RED), false)).preset().name());
-        assertEquals("overworld", MirrorLook.seen(
+        assertEquals("plains", MirrorLook.seen(
             new MirrorView("PLAINS", List.of(DyeColor.GREEN), false)).preset().name());
     }
 }

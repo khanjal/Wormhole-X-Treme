@@ -1,0 +1,8 @@
+# Warmer water is greener water.
+# The format is documented in docs/MIRRORS.md.
+Name=lukewarm_ocean
+Base=CYAN
+Biome=LUKEWARM_OCEAN
+Layer=BLUE GRADIENT_UP
+Layer=WHITE TRIANGLES_TOP
+Layer=CYAN BORDER

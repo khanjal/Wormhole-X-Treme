@@ -1,7 +1,5 @@
-# A mirror onto somewhere with a roof on it. Named by no biome on purpose: this one is
-# chosen when the far side turns out to be enclosed, whatever biome it stands in, and the
-# base colour is replaced by the commonest block in the room. The format is documented in
-# docs/MIRRORS.md.
+# For a far side that turned out to be a room. Asked for by name by the sampler.
+# The format is documented in docs/MIRRORS.md.
 Name=indoors
 Base=BROWN
 Layer=BLACK STRIPE_TOP

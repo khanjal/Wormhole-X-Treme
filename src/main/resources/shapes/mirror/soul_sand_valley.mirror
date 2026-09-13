@@ -1,0 +1,9 @@
+# The one place where the skull charge is a description rather than a warning.
+# The format is documented in docs/MIRRORS.md.
+Name=soul_sand_valley
+Sheltered=true
+Base=BROWN
+Biome=SOUL_SAND_VALLEY
+Layer=CYAN SKULL
+Layer=BLACK GRADIENT_UP
+Layer=BROWN BORDER

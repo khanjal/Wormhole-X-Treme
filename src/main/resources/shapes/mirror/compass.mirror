@@ -1,0 +1,7 @@
+# A needle. For the mirror that is a direction rather than a destination.
+# The format is documented in docs/MIRRORS.md.
+Name=compass
+Base=WHITE
+Layer=RED TRIANGLE_TOP
+Layer=BLACK TRIANGLE_BOTTOM
+Layer=BLACK BORDER

@@ -1,0 +1,8 @@
+# Stone above, grass below.
+# The format is documented in docs/MIRRORS.md.
+Name=windswept_hills
+Base=LIGHT_GRAY
+Biome=WINDSWEPT_HILLS
+Layer=GRAY TRIANGLE_TOP
+Layer=GREEN STRIPE_BOTTOM
+Layer=GRAY BORDER

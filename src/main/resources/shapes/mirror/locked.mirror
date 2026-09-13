@@ -1,0 +1,7 @@
+# Shut, and not by this plugin. Pair it with whatever actually does the locking.
+# The format is documented in docs/MIRRORS.md.
+Name=locked
+Base=BLACK
+Layer=LIGHT_GRAY RHOMBUS
+Layer=RED CIRCLE
+Layer=BLACK BORDER

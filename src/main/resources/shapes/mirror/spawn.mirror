@@ -1,0 +1,6 @@
+# Where people arrive on the server, as opposed to where this mirror arrives.
+# The format is documented in docs/MIRRORS.md.
+Name=spawn
+Base=LIME
+Layer=WHITE CIRCLE
+Layer=GREEN BORDER

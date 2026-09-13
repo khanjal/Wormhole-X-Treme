@@ -1,0 +1,8 @@
+# A berg standing in the water.
+# The format is documented in docs/MIRRORS.md.
+Name=frozen_ocean
+Base=LIGHT_BLUE
+Biome=FROZEN_OCEAN
+Layer=WHITE RHOMBUS
+Layer=WHITE TRIANGLES_TOP
+Layer=BLUE BORDER

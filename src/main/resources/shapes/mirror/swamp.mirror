@@ -1,0 +1,8 @@
+# Reeds standing in dark water, the murk rising from the bottom.
+# The format is documented in docs/MIRRORS.md.
+Name=swamp
+Base=GREEN
+Biome=SWAMP
+Layer=BLACK GRADIENT_UP
+Layer=LIME SMALL_STRIPES
+Layer=GREEN BORDER

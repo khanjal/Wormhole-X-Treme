@@ -1,0 +1,8 @@
+# Sand over sea, with the surf breaking along the bottom edge.
+# The format is documented in docs/MIRRORS.md.
+Name=beach
+Base=YELLOW
+Biome=BEACH
+Layer=BLUE HALF_HORIZONTAL_BOTTOM
+Layer=WHITE TRIANGLES_BOTTOM
+Layer=YELLOW BORDER

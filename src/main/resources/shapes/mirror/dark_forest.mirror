@@ -1,0 +1,8 @@
+# Roofed forest, where the base colour is the dark and the leaves are the accent.
+# The format is documented in docs/MIRRORS.md.
+Name=dark_forest
+Base=BLACK
+Biome=DARK_FOREST
+Layer=GREEN TRIANGLES_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=GREEN BORDER

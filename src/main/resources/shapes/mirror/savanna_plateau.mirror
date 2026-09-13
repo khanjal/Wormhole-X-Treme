@@ -1,0 +1,9 @@
+# The acacia again, standing on a table of rock.
+# The format is documented in docs/MIRRORS.md.
+Name=savanna_plateau
+Base=YELLOW
+Biome=SAVANNA_PLATEAU
+Layer=BROWN STRIPE_MIDDLE
+Layer=BROWN STRIPE_CENTER
+Layer=BROWN STRIPE_BOTTOM
+Layer=ORANGE BORDER

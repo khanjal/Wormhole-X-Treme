@@ -1,0 +1,7 @@
+# For a memorial, an old world, or a place somebody died. Says it plainly.
+# The format is documented in docs/MIRRORS.md.
+Name=tomb
+Sheltered=true
+Base=GRAY
+Layer=BLACK SKULL
+Layer=BLACK BORDER

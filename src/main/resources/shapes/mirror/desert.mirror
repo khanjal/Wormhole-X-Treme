@@ -1,7 +1,8 @@
-# A mirror onto dry country. The format is documented in docs/MIRRORS.md.
+# Heat down from the top, sand across the bottom.
+# The format is documented in docs/MIRRORS.md.
 Name=desert
 Base=YELLOW
-Biome=DESERT,BADLANDS,ERODED_BADLANDS,WOODED_BADLANDS,SAVANNA,SAVANNA_PLATEAU,WINDSWEPT_SAVANNA
+Biome=DESERT
 Layer=ORANGE GRADIENT
 Layer=BROWN STRIPE_BOTTOM
 Layer=ORANGE BORDER

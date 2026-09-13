@@ -1,0 +1,8 @@
+# A single spike of ice standing in the middle of the field.
+# The format is documented in docs/MIRRORS.md.
+Name=ice_spikes
+Base=WHITE
+Biome=ICE_SPIKES
+Layer=LIGHT_BLUE RHOMBUS
+Layer=LIGHT_BLUE TRIANGLES_BOTTOM
+Layer=LIGHT_BLUE BORDER

@@ -1,0 +1,8 @@
+# The same shore, with the sand gone white and the surf gone cold.
+# The format is documented in docs/MIRRORS.md.
+Name=snowy_beach
+Base=WHITE
+Biome=SNOWY_BEACH
+Layer=BLUE HALF_HORIZONTAL_BOTTOM
+Layer=LIGHT_BLUE TRIANGLES_BOTTOM
+Layer=WHITE BORDER

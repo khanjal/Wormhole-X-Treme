@@ -1,0 +1,6 @@
+# A striped awning. Reads as a shop from further away than any lettering would.
+# The format is documented in docs/MIRRORS.md.
+Name=market
+Base=YELLOW
+Layer=RED SMALL_STRIPES
+Layer=BLACK BORDER

@@ -1,0 +1,9 @@
+# Fungus the shape of a forest, in a colour no forest has.
+# The format is documented in docs/MIRRORS.md.
+Name=crimson_forest
+Sheltered=true
+Base=RED
+Biome=CRIMSON_FOREST
+Layer=PURPLE TRIANGLES_TOP
+Layer=BLACK STRIPE_BOTTOM
+Layer=RED BORDER

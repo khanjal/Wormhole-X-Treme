@@ -1,0 +1,8 @@
+# A door with a wheel in the middle of it.
+# The format is documented in docs/MIRRORS.md.
+Name=vault
+Sheltered=true
+Base=GRAY
+Layer=LIGHT_GRAY SMALL_STRIPES
+Layer=BLACK CIRCLE
+Layer=BLACK BORDER

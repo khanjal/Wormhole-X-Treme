@@ -1,0 +1,8 @@
+# Badlands with something growing on it, which is the whole difference.
+# The format is documented in docs/MIRRORS.md.
+Name=wooded_badlands
+Base=ORANGE
+Biome=WOODED_BADLANDS
+Layer=GREEN TRIANGLES_TOP
+Layer=WHITE STRIPE_MIDDLE
+Layer=ORANGE BORDER

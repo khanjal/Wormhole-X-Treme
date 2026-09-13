@@ -1,0 +1,8 @@
+# The ground between, which is mostly ground.
+# The format is documented in docs/MIRRORS.md.
+Name=end_midlands
+Base=BLACK
+Biome=END_MIDLANDS
+Layer=PURPLE HALF_HORIZONTAL_BOTTOM
+Layer=YELLOW CIRCLE
+Layer=PURPLE BORDER

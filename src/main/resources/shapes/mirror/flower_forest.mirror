@@ -1,0 +1,8 @@
+# A wood that is mostly floor, so the flower goes under the canopy rather than over it.
+# The format is documented in docs/MIRRORS.md.
+Name=flower_forest
+Base=GREEN
+Biome=FLOWER_FOREST
+Layer=PINK FLOWER
+Layer=LIME TRIANGLES_TOP
+Layer=GREEN BORDER

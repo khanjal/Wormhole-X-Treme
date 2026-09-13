@@ -1,0 +1,8 @@
+# Two islands with nothing between them, which is the biome exactly.
+# The format is documented in docs/MIRRORS.md.
+Name=small_end_islands
+Base=BLACK
+Biome=SMALL_END_ISLANDS
+Layer=PURPLE SQUARE_TOP_LEFT
+Layer=PURPLE SQUARE_BOTTOM_RIGHT
+Layer=PURPLE BORDER

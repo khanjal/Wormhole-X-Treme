@@ -1,0 +1,7 @@
+# Nothing at all, framed. A void world is a real place to keep an archive in.
+# The format is documented in docs/MIRRORS.md.
+Name=the_void
+Sheltered=true
+Base=BLACK
+Biome=THE_VOID
+Layer=GRAY BORDER

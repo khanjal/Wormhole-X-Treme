@@ -1,5 +1,5 @@
-# A mirror onto the pale garden, a biome that exists only from 1.21.4 on -- on an older server
-# nothing ever matches it. The format is documented in docs/MIRRORS.md.
+# A pale trunk in grey fog. Exists only from 1.21.4 on; older servers never pick it.
+# The format is documented in docs/MIRRORS.md.
 Name=pale_garden
 Base=LIGHT_GRAY
 Biome=PALE_GARDEN

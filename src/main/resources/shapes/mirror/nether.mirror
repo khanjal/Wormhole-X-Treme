@@ -1,8 +1,9 @@
-# A mirror onto the Nether. The format is documented in docs/MIRRORS.md.
+# The wastes, and the look the whole Nether used to share.
+# The format is documented in docs/MIRRORS.md.
 Name=nether
 Sheltered=true
 Base=RED
-Biome=NETHER_WASTES,CRIMSON_FOREST,WARPED_FOREST,SOUL_SAND_VALLEY,BASALT_DELTAS
+Biome=NETHER_WASTES
 Layer=BLACK TRIANGLES_BOTTOM
 Layer=ORANGE GRADIENT_UP
 Layer=BLACK BORDER

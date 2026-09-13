@@ -242,44 +242,74 @@ cut from the end rather than refused.
 
 ### What ships
 
-Seventeen files, in two groups, and the difference between them is the `Biome` line.
+Eighty-eight files, in two groups, and the difference between them is the `Biome` line.
 
-**Twelve places.** `nether`, `end`, `ocean`, `forest`, `sparse_jungle`, `desert`, `frozen`,
-`cavern`, `mountain`, `pale_garden`, `overworld` and `indoors`. Between them they name every
-biome in the game bar none, so a mirror pointed anywhere gets a look chosen for where it goes
-rather than the generic one. `overworld` is still the fallback, and still earns it: a data
-pack's own biome names nothing, and neither does one added in a version newer than these files.
+**Sixty-five places, one per biome.** Every biome in the game has a look of its own, down to the
+nine oceans and the ten woods that used to share one between them. That is the point of the
+change: a mirror onto a jagged peak and a mirror onto a frozen peak are different places, and a
+banner that said "mountain" for both told you which family you were looking at rather than where
+you were going.
 
-`pale_garden` names a biome that exists only from 1.21.4 on. On an older server nothing ever
-matches it, which is the same non-event as any preset naming a biome the server has not heard
-of — the file loads, it just never wins.
+The grammar is the same throughout, so sixty-five looks read as one library rather than as
+sixty-five ideas. A base colour for the ground, one or two layers of what the place is made of,
+and a border in the family's colour — green for growing things, blue for water, grey for stone,
+black for the Nether and the End. What separates two biomes in the same family is usually one
+layer: `taiga` and `snowy_taiga` are the same spruce over a different field.
 
-**Five looks.** `plain`, `hub`, `warning`, `private` and `arcane` name no biome at all, so
-nothing picks them automatically and `mirror stamp <name> <look>` is the only way to get one.
-They are for what an operator wants said about a mirror when it is not where it goes: the middle
-of a network, one that only runs one way, one that is not for general use. `plain` is the quiet
-one — a colour and a border and no charge — for when the automatic look is wrong and the build
-would rather the banner said nothing.
+`MirrorBiomeCoverageTest` holds the rule in both directions: no biome without a look, and no
+biome claimed by two. The second matters more than it sounds, because `forBiome` returns the
+first preset that answers and the order is load order — a biome named twice does not conflict,
+it silently picks whichever file loaded first.
 
-None of the five carry any behaviour. `private` is a bar painted across a banner and not a
+Some name biomes a given server has never heard of. `pale_garden` exists only from 1.21.4 on,
+and a 1.20 server simply never matches it — the file loads, it just never wins.
+
+**Twenty-three looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
+`exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`, `vault`, `forge`,
+`library`, `port` and `compass` name no biome at all, so nothing picks them automatically and
+`mirror stamp <name> <look>` is the only way to get one. They are for what an operator wants
+said about a mirror when it is not where it goes: the middle of a network, the way out, one that
+is not for general use, one that leads somewhere worth thinking about first.
+
+`overworld`, `indoors` and `cavern` are the three the plugin asks for by name rather than the
+operator — the fallback for a biome nothing names, the answer for a far side that turned out to
+be a room, and a generic underground.
+
+None of them carry any behaviour. `private` is a bar painted across a banner and not a
 permission; whether anybody may use that mirror is a question for the permission nodes, and a
-mirror wearing `warning` is exactly as dangerous as it was before it was stamped.
+mirror wearing `warning` is exactly as dangerous as it was before it was stamped. `locked` says
+a thing is shut; something else has to do the shutting.
 
 ### Which patterns are safe
 
-Only the **34 pattern names present on every supported version** are used in the shipped files.
-`PatternType` gained two names at 1.20.6 and lost seven along the way, so a preset copied from
-a 1.21 server can name something a 1.20 server has never heard of. That layer is skipped with
-a log line and the rest of the banner is stamped — the same way an unrecognised sound name is
-skipped rather than silencing the plugin.
+**41 of the 43 pattern names** are available to a shipped preset, and the two that are not are
+`FLOW` and `GUSTER` — artwork that arrived with the trial chambers and that 1.20 does not have
+under any spelling.
 
-Lenient is right for an operator's own file and wrong for one of ours, because the failure is
-so quiet: the banner stamps correctly on the version it was written on and comes out missing a
-layer on the other half of the range, and nothing says so loudly enough to connect the two. So
-the shipped files are held to the intersection by a test rather than by care — which is also
-the reason a design lifted straight out of a banner gallery is not safe to ship. Those galleries
-publish in Mojang's own pattern ids, on whatever version the site is running, and the seven
-renamed names are exactly the ones a transcription gets wrong.
+It used to be 34. The other seven were not missing from any version: Mojang *renamed* them at
+1.21, so `CIRCLE_MIDDLE` became `CIRCLE`, `STRIPE_SMALL` became `SMALL_STRIPES`, and the four
+`_MIRROR` ones took new names. Every supported server has all seven — they just disagree about
+what to call them, and a preset file can only spell a thing one way.
+
+`PatternAliases` maps the fourteen spellings to each other, and the stamp asks for the other one
+when the first misses. A preset may use whichever name its author knows, and keeps working when
+the server is upgraded underneath it. The pairs were taken from vanilla's own identifiers rather
+than from how alike the names look, which matters for exactly one of them: 1.20's
+`DIAGONAL_LEFT_MIRROR` carries the id `lud`, which 1.21 spells `DIAGONAL_UP_LEFT` — while
+`DIAGONAL_LEFT` (`ld`) is a different pattern sitting one letter away, waiting to be paired by
+mistake.
+
+What made this worth fixing rather than living with: `CIRCLE` and `RHOMBUS` are the only round
+and diamond shapes in the game, and without them every look in the library was bands and
+triangles. The `portal` look — a lit ring on a dark field — is the first one here that reads as
+a thing seen through rather than as scenery, and it could not have been drawn before.
+
+A layer naming something this server does not have is still skipped with a log line rather than
+failing the banner, the same way an unrecognised sound name is skipped rather than silencing the
+plugin. That leniency is right for an operator's own file and wrong for one of ours, because the
+failure is so quiet — so the shipped files are held to the 41 by a test rather than by care.
+That is also the reason a design lifted straight out of a banner gallery is still not safe to
+ship: those galleries publish in Mojang's pattern ids on whatever version the site runs.
 
 ## Two version traps, both real
 

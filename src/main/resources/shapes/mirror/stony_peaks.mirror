@@ -1,0 +1,8 @@
+# A summit with no snow on it at all.
+# The format is documented in docs/MIRRORS.md.
+Name=stony_peaks
+Base=GRAY
+Biome=STONY_PEAKS
+Layer=LIGHT_GRAY TRIANGLE_TOP
+Layer=GRAY TRIANGLES_BOTTOM
+Layer=LIGHT_GRAY BORDER

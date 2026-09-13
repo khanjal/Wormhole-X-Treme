@@ -1,0 +1,8 @@
+# Worked stone with something lit in the middle of it.
+# The format is documented in docs/MIRRORS.md.
+Name=shrine
+Sheltered=true
+Base=LIGHT_GRAY
+Layer=BLACK BRICKS
+Layer=PURPLE CIRCLE
+Layer=BLACK BORDER

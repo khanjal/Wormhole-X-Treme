@@ -1,0 +1,8 @@
+# One giant spruce instead of a row of small ones.
+# The format is documented in docs/MIRRORS.md.
+Name=old_growth_spruce_taiga
+Base=GREEN
+Biome=OLD_GROWTH_SPRUCE_TAIGA
+Layer=BLACK TRIANGLE_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=GREEN BORDER

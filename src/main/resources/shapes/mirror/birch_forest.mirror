@@ -1,0 +1,8 @@
+# White trunks are the whole identity of a birch wood, so they go on first.
+# The format is documented in docs/MIRRORS.md.
+Name=birch_forest
+Base=GREEN
+Biome=BIRCH_FOREST
+Layer=WHITE SMALL_STRIPES
+Layer=LIME TRIANGLES_TOP
+Layer=GREEN BORDER

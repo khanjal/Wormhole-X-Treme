@@ -1,6 +1,5 @@
-# A banner that says nothing: a colour and a border, no charge. Stamped by hand -- no biome
-# names it -- for when the automatic look is wrong, or the build wants the mirror quiet. The
-# format is documented in docs/MIRRORS.md.
+# A colour and a border and no charge, for when the sampled look is wrong and the build would rather the banner said nothing.
+# The format is documented in docs/MIRRORS.md.
 Name=plain
 Base=WHITE
 Layer=LIGHT_GRAY BORDER

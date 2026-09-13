@@ -1,0 +1,8 @@
+# A lit ring on a dark field: the first look here that reads as a thing seen through rather than as scenery.
+# The format is documented in docs/MIRRORS.md.
+Name=portal
+Base=BLACK
+Layer=PURPLE CIRCLE
+Layer=MAGENTA GRADIENT_UP
+Layer=PURPLE CURLY_BORDER
+Layer=BLACK BORDER

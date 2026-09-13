@@ -1,0 +1,8 @@
+# Spruce against snow, which inverts the forest look rather than tinting it.
+# The format is documented in docs/MIRRORS.md.
+Name=snowy_taiga
+Base=WHITE
+Biome=SNOWY_TAIGA
+Layer=GREEN TRIANGLES_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=LIGHT_BLUE BORDER

@@ -1,0 +1,8 @@
+# Many peaks rather than one, which is the difference between the two summit biomes.
+# The format is documented in docs/MIRRORS.md.
+Name=jagged_peaks
+Base=LIGHT_GRAY
+Biome=JAGGED_PEAKS
+Layer=WHITE TRIANGLES_TOP
+Layer=GRAY TRIANGLES_BOTTOM
+Layer=WHITE BORDER

@@ -1,0 +1,8 @@
+# Chorus country: high ground with something lit over it.
+# The format is documented in docs/MIRRORS.md.
+Name=end_highlands
+Base=BLACK
+Biome=END_HIGHLANDS
+Layer=PURPLE TRIANGLES_TOP
+Layer=YELLOW CIRCLE
+Layer=PURPLE BORDER

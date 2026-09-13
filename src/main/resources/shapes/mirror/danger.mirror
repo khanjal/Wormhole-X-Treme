@@ -1,0 +1,6 @@
+# The charge everybody already reads correctly, which is the whole reason to use it.
+# The format is documented in docs/MIRRORS.md.
+Name=danger
+Base=BLACK
+Layer=RED CREEPER
+Layer=RED BORDER
