@@ -30,6 +30,30 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The gate gallery shows seven gates, not eleven files, and draws what a sign dial adds.**
+  The four `SignDial` shapes are out of the gallery. Each is its twin's ring with a different
+  DHD corner -- the geometry is byte-identical -- so a row for each was the same gate drawn
+  four more times.
+
+  What they actually differ by is now drawn once, from `Standard` and `StandardSignDial`
+  themselves: the DHD layer of both, cropped to the corner that differs, with the added cells
+  outlined. It is three blocks. `D` is the wall sign you right-click, `RD` dials and `RA`
+  reports that the gate is open; everything else in both files is the same ring.
+
+  That drawing is the argument for [#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46)
+  in one picture. Eight files encode four rings, and `Large`, `Grand` and `Massive` cannot be
+  sign gates for no reason except that nobody wrote the second file. The guide now says plainly
+  that the `SignDial` shapes work but are expected to go, and that gates already standing are
+  unaffected either way.
+
+  `GateGalleryTest` gained two tests for the new arrangement. One recomputes what the sheet
+  claims a sign dial adds, from the pair of files, so the page cannot go on making that argument
+  after the files stop supporting it -- checked by taking the `D` marker out of
+  `StandardSignDial` and watching it fail. The other guards the reason the four are left out at
+  all: every `SignDial` shape must still have the plain twin the gallery shows in its place.
+  Delete or rename `Standard` and the four become shapes nothing in the documentation draws,
+  silently, because the gallery would still look complete.
+
 - **The beam sequence is drawn as a timing strip, and drawing it found a wrong number.**
   `docs/BEAMS.md` now shows every tick of a beam: the four phases as bars, the five moments
   marked where they actually fall, and the envelope's density ramping up and the fade's ramping

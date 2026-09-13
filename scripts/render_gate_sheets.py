@@ -14,6 +14,12 @@ a fingerprint of the file it was drawn from.
 Two drawings per shape: the gate standing idle, and the same gate dialled. What changes
 between them is the whole point of the pair -- the portal fills, and the chevrons light.
 
+The four `SignDial` shapes are deliberately not in the gallery. Each is byte-identical to its
+twin except in the DHD corner, so drawing them would be the same ring four more times; and
+sign-dialling is on its way to being a property of the DHD rather than of the geometry (#46),
+which is the shape the gallery should already be in. What they do differ by is drawn once, by
+`dhd()` below, from the two files themselves.
+
 The drawings are flat colour keyed to each material, not the game's textures. Minecraft's
 textures are Mojang's, and shipping them here would be redistributing their assets rather
 than illustrating ours; a screenshot is the licensed way to show the real thing, which is
@@ -26,6 +32,10 @@ import os
 import re
 
 SHAPES = "src/main/resources/shapes/gate"
+
+# A shape whose name ends in this is a ring the gallery already shows, plus a sign dial. It is
+# left out of the gallery and represented by the DHD drawing instead.
+SIGN_DIAL = "SignDial"
 CONFIG = "src/main/resources/config.yml"
 OUT = "docs/images/gates"
 DOCUMENT = "docs/GATES.md"
@@ -71,6 +81,12 @@ SWITCHES = {"REDSTONE_LAMP": "#f0b86e", "COPPER_BULB": "#f6c17a"}
 # not. Obsidian is very nearly black: on a dark ground a Standard gate is an invisible ring
 # around a visible portal, which is a picture of the wrong thing.
 AIR = "#2b3442"
+
+# The ground every drawing sits on, and the two weights of writing on it. Named here because
+# three drawings now share them.
+GROUND = "#0d1420"
+TEXT = "#e6edf3"
+LABEL = "#8ea0b8"
 
 # An em dash, written as an escape so this file stays ASCII the way its sibling does. The
 # document it writes into uses them throughout, and a gallery of "--" in a page of dashes reads
@@ -248,6 +264,12 @@ def lamp(group, dialled):
     return BLOCK.get(group.get("light", "GLOWSTONE"), "#f9d68f")
 
 
+def text(x, y, size, colour, body, anchor="middle", family="sans-serif"):
+    """A label. The two drawings that carry any set it the same way."""
+    return ('<text x="%.1f" y="%.1f" font-family="%s" font-size="%.1f" fill="%s"'
+            ' text-anchor="%s">%s</text>' % (x, y, family, size, colour, anchor, body))
+
+
 def ink(colour):
     """Whether a letter on this block should be written in white or in black."""
     r, g, b = (int(colour[i:i + 2], 16) for i in (1, 3, 5))
@@ -291,7 +313,8 @@ def draw(name, grid, group, dialled, fingerprint, plan):
         "<!-- fp %s %s %s -->" % (name, state, fingerprint),
         # Its own ground. GitHub renders a document light or dark depending on the reader, and
         # an obsidian frame on a dark page is not a picture of anything.
-        '<rect x="0" y="0" width="%d" height="%d" fill="#0d1420" rx="2"/>' % (width, height),
+        '<rect x="0" y="0" width="%d" height="%d" fill="%s" rx="2"/>'
+        % (width, height, GROUND),
         "".join(cells),
         "</svg>"]) + "\n")
 
@@ -308,15 +331,16 @@ def palettes(groups, fingerprint):
     width = label + (len(keys) * column) + (pad * 2)
     height = ((len(groups) + 1) * size) + (pad * 2)
 
-    parts = ['<rect x="0" y="0" width="%d" height="%d" fill="#0d1420" rx="3"/>' % (width, height)]
+    parts = ['<rect x="0" y="0" width="%d" height="%d" fill="%s" rx="3"/>'
+             % (width, height, GROUND)]
     for k, key in enumerate(keys):
         parts.append('<text x="%.1f" y="%d" font-family="sans-serif" font-size="7"'
-                     ' fill="#8ea0b8" text-anchor="middle">%s</text>'
-                     % (pad + label + (k * column) + (column / 2.0), pad + 12, key))
+                     ' fill="%s" text-anchor="middle">%s</text>'
+                     % (pad + label + (k * column) + (column / 2.0), pad + 12, LABEL, key))
     for g, (name, group) in enumerate(groups):
         y = pad + size + (g * size)
         parts.append('<text x="%d" y="%.1f" font-family="sans-serif" font-size="9"'
-                     ' fill="#e6edf3">%s</text>' % (pad, y + (size * 0.68), name))
+                     ' fill="%s">%s</text>' % (pad, y + (size * 0.68), TEXT, name))
         for k, key in enumerate(keys):
             x = pad + label + (k * column) + ((column - size) / 2.0)
             material = group.get(key)
@@ -339,6 +363,100 @@ def palettes(groups, fingerprint):
         "<!-- fp palettes %s -->" % fingerprint,
         "".join(parts),
         "</svg>"]) + "\n")
+
+
+def dhd_layer(layers):
+    """The layer a shape puts its DHD in: the one carrying the activation switch.
+
+    Found rather than assumed. Every shape puts it in its furthest layer, but "furthest" is 2
+    on `Minimal` and 11 on `Grand`, and the switch is what actually marks it.
+    """
+    for layer in sorted(layers):
+        for row in layers[layer]:
+            for cell in row:
+                if "A" in [m.upper() for m in cell]:
+                    return layers[layer]
+    raise SystemExit("a shape with no activation switch cannot be built")
+
+
+def dhd(plain, sign, group):
+    """What a sign dial adds, drawn from the two shape files side by side.
+
+    The whole difference between a shape and its `SignDial` twin is in this corner: a dial sign
+    to right-click, and the two redstone cells that come with it. Drawing it once, from the
+    pair, says that better than four more pictures of the same ring -- and it is the honest
+    shape of the thing, since a sign dial is about the DHD and not about the gate.
+
+    `Standard` stands for all four pairs. They differ from their twins in the same way, except
+    `Minimal`, which is narrow enough that its DHD needs a column of its own.
+    """
+    panels = [("Plain", dhd_layer(plain)), ("Sign dial", dhd_layer(sign))]
+
+    # Crop to what either panel actually has in it. The DHD is a handful of blocks in the
+    # corner of a grid that is mostly the gate, and drawing the whole layer would be drawing
+    # mostly nothing.
+    rows, cols = set(), set()
+    for (_, grid) in panels:
+        for (i, row) in enumerate(grid):
+            for (j, cell) in enumerate(row):
+                if solid(cell):
+                    rows.add(i)
+                    cols.add(j)
+    top, bottom = min(rows), max(rows)
+    left, right = min(cols), max(cols)
+    height, width = (bottom - top) + 1, (right - left) + 1
+
+    size, pad, gap = 22, 12, 26
+    panel = width * size
+    total = (pad * 2) + (len(panels) * panel) + gap
+    tall = (pad * 2) + 18 + (height * size)
+
+    parts = ['<rect x="0" y="0" width="%d" height="%d" fill="%s" rx="3"/>'
+             % (total, tall, GROUND)]
+    for (index, (name, grid)) in enumerate(panels):
+        ox = pad + (index * (panel + gap))
+        parts.append(text(ox, pad + 10, 9, TEXT, name, anchor="start"))
+        parts.append('<rect x="%d" y="%d" width="%d" height="%d" fill="%s"/>'
+                     % (ox, pad + 18, panel, height * size, AIR))
+        for i in range(top, bottom + 1):
+            for j in range(left, right + 1):
+                cell = grid[i][j]
+                colour, mark = fill(cell, group, False)
+                x = ox + ((j - left) * size)
+                y = pad + 18 + ((i - top) * size)
+                if colour != AIR:
+                    parts.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f"'
+                                 ' fill="%s" stroke="#0b0f1655" stroke-width="0.5"/>'
+                                 % (x + 0.25, y + 0.25, size - 0.5, size - 0.5, colour))
+                # What the other panel has here, so the reader can see what was added rather
+                # than have to hold two pictures in their head and compare.
+                other = panels[1 - index][1][i][j]
+                if solid(cell) != solid(other):
+                    parts.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f"'
+                                 ' fill="none" stroke="#f9d68f" stroke-width="1.4"/>'
+                                 % (x + 1, y + 1, size - 2, size - 2))
+                if mark:
+                    parts.append(text(x + (size / 2.0), y + (size * 0.66),
+                                      size * (0.44 if len(mark) > 1 else 0.6), ink(colour),
+                                      mark, anchor="middle", family="monospace"))
+    return "\n".join([
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d"'
+        ' role="img" aria-label="a plain DHD and a sign dial, side by side">'
+        % (total, tall, total * 2, tall * 2),
+        "<!-- dhd %s -->" % added(panels),
+        "".join(parts),
+        "</svg>"]) + "\n"
+
+
+def added(panels):
+    """The markers a sign dial adds, in order, for the line the test reads."""
+    plain = {m for row in panels[0][1] for cell in row for m in [x.upper() for x in cell]}
+    sign = [m for row in panels[1][1] for cell in row for m in [x.upper() for x in cell]]
+    out = []
+    for mod in sign:
+        if (mod in MARKS) and (mod not in plain) and (mod not in out):
+            out.append(mod)
+    return ",".join(out)
 
 
 def markers(layers):
@@ -397,12 +515,18 @@ def main():
     default = groups[0][1]
 
     rows = []
+    shipped = {}
     files = sorted(f for f in os.listdir(SHAPES) if f.endswith(".shape"))
     for shapefile in files:
         name, layers, settings, fingerprint = read_shape(os.path.join(SHAPES, shapefile))
         if name != shapefile[:-len(".shape")]:
             raise SystemExit("%s calls itself %s; the gallery is keyed on the file name"
                              % (shapefile, name))
+        shipped[name] = layers
+        if name.endswith(SIGN_DIAL):
+            # Drawn once, in the DHD sheet below, rather than as four more pictures of a ring
+            # already in the gallery.
+            continue
         grid, plan = elevation(layers)
         for dialled in (False, True):
             state = "dialled" if dialled else "idle"
@@ -419,6 +543,14 @@ def main():
                        note(name, settings, layers),
                        ", ".join("`%s` (layer %d)" % (mark, layer)
                                  for (mark, layer) in markers(layers))))
+
+    for pair in sorted(n for n in shipped if n.endswith(SIGN_DIAL)):
+        ring = pair[:-len(SIGN_DIAL)]
+        if ring not in shipped:
+            raise SystemExit("%s has no plain twin, so the DHD sheet cannot show what it adds"
+                             % pair)
+    io.open(os.path.join(OUT, "dhd.svg"), "w", encoding="utf-8", newline=chr(10)).write(
+        dhd(shipped["Standard"], shipped["StandardSignDial"], default))
 
     shapes = ["| Idle | Dialled | Shape | Grid | What it is | Markers |",
               "|---|---|---|---|---|---|"] + rows
@@ -452,7 +584,8 @@ def main():
     io.open(DOCUMENT, "w", encoding="utf-8", newline="").write(
         flat.replace(chr(10), chr(13) + chr(10)) if crlf else flat)
 
-    print("drew", len(files), "shapes into", OUT, "and rewrote the gallery in", DOCUMENT)
+    print("drew", len(rows), "shapes and the DHD sheet into", OUT,
+          "and rewrote the gallery in", DOCUMENT)
 
 
 if __name__ == "__main__":

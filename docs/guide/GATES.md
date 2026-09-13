@@ -56,13 +56,20 @@ plugins/WormholeXTreme/shapes/gate/      the shapes gates are built from
 plugins/WormholeXTreme/shapes/mirror/    the looks a mirror's banner can wear
 ```
 
-Eleven gate shapes ship, from `Minimal` to `Massive`. The four `SignDial` shapes —
-`StandardSignDial`, `EvenSignDial`, `MinimalSignDial`, `HorizontalSignDial` — have a dial sign
-and take redstone; the rest are `/dial`-only.
+Eleven shape files ship, but they are seven gates. `Minimal`, `Standard`, `Even`, `Large`,
+`Grand`, `Massive` and `Horizontal` are the rings; the four `SignDial` files are four of those
+rings again with a dial sign on the DHD instead of a plain button.
 
-All eleven are drawn, idle and dialled, in
+All seven are drawn, idle and dialled, in
 [the shape gallery](../GATES.md#the-shapes-that-ship) — worth a look before laying out a gate
-the size of `Grand`.
+the size of `Grand` — and [what a sign dial adds](../GATES.md#what-a-sign-dial-adds) is drawn
+beside them.
+
+**Build `SignDial` shapes if you want a sign, but expect them to go.** Sign-dialling is being
+made a property of the DHD rather than of the ring
+([#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46)), which is what will let `Large`,
+`Grand` and `Massive` have a sign too. Gates already standing are unaffected: they store their
+own blocks rather than re-reading the shape.
 
 Shipped files are written out on first run and never overwrite yours. A deleted one comes back on
 the next startup, an edited one is left alone, and anything you add is loaded. Older

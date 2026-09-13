@@ -57,8 +57,8 @@ object rather than something built.
 
 ## Shapes
 
-Shapes live in `plugins/WormholeXTreme/shapes/gate/` as `.shape` files, eleven of them
-shipped. A shape is a stack of numbered layers, each a grid of bracketed cells, and a
+Shapes live in `plugins/WormholeXTreme/shapes/gate/` as `.shape` files: eleven shipped, which
+are seven rings and four of those rings again carrying a dial sign. A shape is a stack of numbered layers, each a grid of bracketed cells, and a
 handful of `KEY=value` lines. The user-facing format is documented in the
 [gate guide](guide/GATES.md#shapes); the design notes are these.
 
@@ -86,9 +86,13 @@ Both exist for the same reason — landing the component on a cell nothing is bu
 
 ### The shapes that ship
 
-Every shape below is drawn from its own `.shape` file by `scripts/render_gate_sheets.py`, in
-the default `Standard` palette, at ten units to the block. Each is shown twice: standing idle,
-and dialled. Click one for the full-size drawing.
+Seven shapes, each drawn from its own `.shape` file by `scripts/render_gate_sheets.py`, in the
+default `Standard` palette, at ten units to the block. Each is shown twice: standing idle, and
+dialled. Click one for the full-size drawing.
+
+Eleven files ship. The four `SignDial` ones are not here, because each is its twin's ring with
+a different DHD corner — the geometry is identical — and drawing them would be the same
+gate four more times. What they actually differ by is [below](#what-a-sign-dial-adds).
 
 What changes between the pair is worth looking at, because it is most of what a gate does.
 Idle, the `[P]` cells are open air — [the portal is drawn, not
@@ -117,18 +121,32 @@ and a screenshot is the licensed way to show the real thing. See
 | Idle | Dialled | Shape | Grid | What it is | Markers |
 |---|---|---|---|---|---|
 | <a href="images/gates/even-idle.svg"><img src="images/gates/even-idle.svg" width="104" alt="Even, idle"></a> | <a href="images/gates/even-dialled.svg"><img src="images/gates/even-dialled.svg" width="104" alt="Even, dialled"></a> | `Even` | 8 x 8 | Eight wide, so the opening has no centre column. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
-| <a href="images/gates/evensigndial-idle.svg"><img src="images/gates/evensigndial-idle.svg" width="104" alt="EvenSignDial, idle"></a> | <a href="images/gates/evensigndial-dialled.svg"><img src="images/gates/evensigndial-dialled.svg" width="104" alt="EvenSignDial, dialled"></a> | `EvenSignDial` | 8 x 8 | As `Even`, plus a dial sign and redstone. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `RD` (layer 4), `A` (layer 4), `D` (layer 4), `RA` (layer 4), `IA` (layer 4) |
 | <a href="images/gates/grand-idle.svg"><img src="images/gates/grand-idle.svg" width="104" alt="Grand, idle"></a> | <a href="images/gates/grand-dialled.svg"><img src="images/gates/grand-dialled.svg" width="104" alt="Grand, dialled"></a> | `Grand` | 22 x 22 | Twenty-two wide, and a build in its own right. 11 layers, woosh in 9 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 11), `IA` (layer 11) |
 | <a href="images/gates/horizontal-idle.svg"><img src="images/gates/horizontal-idle.svg" width="104" alt="Horizontal, idle"></a> | <a href="images/gates/horizontal-dialled.svg"><img src="images/gates/horizontal-dialled.svg" width="104" alt="Horizontal, dialled"></a> | `Horizontal` | 7 x 7, in plan | Lies flat in the floor, and is dropped into rather than walked through. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `A` (layer 7), `N` (layer 7), `IA` (layer 7) |
-| <a href="images/gates/horizontalsigndial-idle.svg"><img src="images/gates/horizontalsigndial-idle.svg" width="104" alt="HorizontalSignDial, idle"></a> | <a href="images/gates/horizontalsigndial-dialled.svg"><img src="images/gates/horizontalsigndial-dialled.svg" width="104" alt="HorizontalSignDial, dialled"></a> | `HorizontalSignDial` | 7 x 7, in plan | As `Horizontal`, plus a dial sign and redstone. 7 layers, woosh in 3 steps, 8 chevrons light 3 ticks apart. | `EP` (layer 4), `N` (layer 6), `RD` (layer 7), `RA` (layer 7), `A` (layer 7), `D` (layer 7), `IA` (layer 7) |
 | <a href="images/gates/large-idle.svg"><img src="images/gates/large-idle.svg" width="104" alt="Large, idle"></a> | <a href="images/gates/large-dialled.svg"><img src="images/gates/large-dialled.svg" width="104" alt="Large, dialled"></a> | `Large` | 10 x 10 | Ten wide, for a gate meant to be seen across a valley. 6 layers, woosh in 4 steps, 7 chevrons light 2 ticks apart. | `EP` (layer 2), `N` (layer 3), `EM` (layer 4), `A` (layer 6), `IA` (layer 6) |
 | <a href="images/gates/massive-idle.svg"><img src="images/gates/massive-idle.svg" width="104" alt="Massive, idle"></a> | <a href="images/gates/massive-dialled.svg"><img src="images/gates/massive-dialled.svg" width="104" alt="Massive, dialled"></a> | `Massive` | 23 x 23 | Twenty-three wide and fifteen deep — the largest that ships. 15 layers, woosh in 13 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 4), `EM` (layer 5), `A` (layer 9), `IA` (layer 9) |
 | <a href="images/gates/minimal-idle.svg"><img src="images/gates/minimal-idle.svg" width="104" alt="Minimal, idle"></a> | <a href="images/gates/minimal-dialled.svg"><img src="images/gates/minimal-dialled.svg" width="104" alt="Minimal, dialled"></a> | `Minimal` | 2 x 4 | One block wide — the smallest gate that works. 2 layers, woosh in 3 steps, 1 chevron, so no sequence to light in. | `EP` (layer 1), `A` (layer 2), `IA` (layer 2), `EM` (layer 2) |
-| <a href="images/gates/minimalsigndial-idle.svg"><img src="images/gates/minimalsigndial-idle.svg" width="104" alt="MinimalSignDial, idle"></a> | <a href="images/gates/minimalsigndial-dialled.svg"><img src="images/gates/minimalsigndial-dialled.svg" width="104" alt="MinimalSignDial, dialled"></a> | `MinimalSignDial` | 3 x 4 | As `Minimal`, plus a dial sign and redstone. 2 layers, woosh in 3 steps, 1 chevron, so no sequence to light in. | `EP` (layer 1), `RD` (layer 2), `A` (layer 2), `D` (layer 2), `IA` (layer 2), `EM` (layer 2), `RA` (layer 2) |
 | <a href="images/gates/standard-idle.svg"><img src="images/gates/standard-idle.svg" width="104" alt="Standard, idle"></a> | <a href="images/gates/standard-dialled.svg"><img src="images/gates/standard-dialled.svg" width="104" alt="Standard, dialled"></a> | `Standard` | 7 x 7 | The seven-wide ring, and what most servers build. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `A` (layer 4), `IA` (layer 4) |
-| <a href="images/gates/standardsigndial-idle.svg"><img src="images/gates/standardsigndial-idle.svg" width="104" alt="StandardSignDial, idle"></a> | <a href="images/gates/standardsigndial-dialled.svg"><img src="images/gates/standardsigndial-dialled.svg" width="104" alt="StandardSignDial, dialled"></a> | `StandardSignDial` | 7 x 7 | As `Standard`, plus a dial sign and redstone. 4 layers, woosh in 3 steps, 7 chevrons light 2 ticks apart. | `N` (layer 1), `EP` (layer 1), `EM` (layer 2), `RD` (layer 4), `A` (layer 4), `D` (layer 4), `RA` (layer 4), `IA` (layer 4) |
 
 <!-- shapes:end -->
+
+### What a sign dial adds
+
+![A plain DHD and a sign dial, side by side](images/gates/dhd.svg)
+
+`Standard` against `StandardSignDial`, in the layer the DHD sits in, cropped to the corner that
+differs. Outlined cells are what the sign dial adds: `D`, the wall sign you right-click to pick
+a destination, and the two redstone cells that come with it — `RD` to dial and `RA` to
+report that the gate is open. Everything else in both files is the same ring.
+
+All four pairs differ this way. `Minimal` is the only one where it is more than a corner, and
+only because it is two blocks wide, so its DHD needs a column of its own.
+
+**This is why sign-dialling should not be a shape at all.** Eight files encode four rings, and
+the three largest shapes — `Large`, `Grand`, `Massive` — cannot be sign gates for no reason
+except that nobody wrote the second file. [#46](https://github.com/khanjal/Wormhole-X-Treme/issues/46)
+is the plan to make the DHD a type a gate has rather than geometry welded into its ring, after
+which this drawing becomes the whole story and the four files can go.
 
 ## Palettes are separate from shapes
 

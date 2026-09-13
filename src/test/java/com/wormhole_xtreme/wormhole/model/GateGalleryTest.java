@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -59,6 +60,19 @@ class GateGalleryTest
     /** How to put it right, said in the failure rather than left to be worked out. */
     private static final String REGENERATE =
         " -- re-run: python scripts/render_gate_sheets.py";
+
+    /**
+     * A shape whose name ends in this is a ring already in the gallery plus a sign dial.
+     *
+     * <p>Left out of the gallery deliberately: the geometry is identical to its twin's, so a
+     * row for it would be the same gate drawn again, and sign-dialling is on its way to being a
+     * property of the DHD rather than of the shape (#46). What the four do add is drawn once,
+     * from {@code Standard} and {@code StandardSignDial} themselves.
+     */
+    private static final String SIGN_DIAL = "SignDial";
+
+    /** {@code <!-- dhd MARKS -->}, as the DHD sheet carries it. */
+    private static final Pattern ADDED = Pattern.compile("<!-- dhd ([A-Z,]*) -->");
 
     /** {@code <!-- fp Name state fingerprint -->}, as the renderer writes it. */
     private static final Pattern FINGERPRINT =
@@ -162,7 +176,8 @@ class GateGalleryTest
             for (final Path image : images.toList())
             {
                 final String file = image.getFileName().toString();
-                if (!file.endsWith(".svg") || file.equals("palettes.svg"))
+                if (!file.endsWith(".svg") || file.equals("palettes.svg")
+                    || file.equals("dhd.svg"))
                 {
                     continue;
                 }
@@ -193,7 +208,7 @@ class GateGalleryTest
         final Map<String, String> shipped = shipped();
 
         final List<String> expected = new ArrayList<>();
-        shipped.keySet().forEach(name ->
+        shipped.keySet().stream().filter(name -> !name.endsWith(SIGN_DIAL)).forEach(name ->
         {
             expected.add(name + "/idle");
             expected.add(name + "/dialled");
@@ -201,13 +216,14 @@ class GateGalleryTest
         expected.sort(null);
 
         assertEquals(expected, new ArrayList<>(drawn().keySet()),
-            "the gallery and the shipped shapes name different gates" + REGENERATE);
+            "the gallery and the shipped ring shapes name different gates" + REGENERATE);
 
         // Checked second, so that adding a shape and forgetting the renderer reports the
         // renderer rather than this.
         assertEquals(11, shipped.size(),
-            "docs/GATES.md and docs/guide/GATES.md both say eleven shapes ship; a twelfth needs"
-                + " those sentences changed as well as the gallery regenerated. Found "
+            "eleven shape files ship -- seven rings and four sign-dial twins -- and both"
+                + " docs/GATES.md and docs/guide/GATES.md say so. A twelfth needs those"
+                + " sentences changed as well as the gallery regenerated. Found "
                 + shipped.keySet());
     }
 
@@ -219,6 +235,58 @@ class GateGalleryTest
      * looking exactly as authoritative as it did the day it was correct, and somebody building
      * from it gets a structure detection will not recognise at all.
      */
+    /**
+     * Every sign-dial shape still has the plain twin the DHD sheet compares it against.
+     *
+     * <p>The four are kept out of the gallery on the grounds that each is a ring already drawn
+     * plus a different DHD. That is only true while the twin exists. Rename or delete
+     * {@code Standard} and the four become shapes nothing in the documentation shows at all --
+     * silently, because the gallery would still look complete.
+     */
+    @Test
+    void everySignDialShapeStillHasThePlainTwinItIsLeftOutFor() throws IOException
+    {
+        final Map<String, String> shipped = shipped();
+        final List<String> orphaned = new ArrayList<>();
+        for (final String name : shipped.keySet())
+        {
+            if (name.endsWith(SIGN_DIAL)
+                && !shipped.containsKey(name.substring(0, name.length() - SIGN_DIAL.length())))
+            {
+                orphaned.add(name);
+            }
+        }
+
+        assertEquals(List.of(), orphaned,
+            "these sign-dial shapes have no plain twin in the gallery, so nothing in the"
+                + " documentation shows their geometry at all");
+    }
+
+    /**
+     * The DHD sheet shows what a sign dial actually adds.
+     *
+     * <p>The drawing's claim is the whole argument for leaving four shapes out of the gallery:
+     * that a sign dial is a DHD corner and not a gate. It is computed from the two shape files,
+     * so this recomputes it the same way -- the markers present in {@code StandardSignDial} and
+     * absent from {@code Standard}. If someone moved a marker between the pair and the sheet
+     * were not redrawn, the page would be making an argument the files no longer support.
+     */
+    @Test
+    void theDhdSheetNamesWhatASignDialAdds() throws IOException
+    {
+        final String svg = Files.readString(IMAGES.resolve("dhd.svg"), StandardCharsets.UTF_8);
+        final Matcher m = ADDED.matcher(svg);
+        assertTrue(m.find(), "dhd.svg carries no line saying what it drew" + REGENERATE);
+
+        assertEquals("D,RA,RD", String.join(",", new TreeSet<>(List.of(m.group(1).split(",")))),
+            "a sign dial adds the dial sign and its two redstone cells, and the sheet should"
+                + " name exactly those" + REGENERATE);
+
+        final String document = Files.readString(DOCUMENT, StandardCharsets.UTF_8);
+        assertTrue(document.contains("images/gates/dhd.svg"),
+            "the DHD sheet exists but nothing on the page shows it" + REGENERATE);
+    }
+
     @Test
     void noDrawingShowsAShapeAsItUsedToBe() throws IOException
     {
@@ -227,6 +295,10 @@ class GateGalleryTest
 
         shipped().forEach((name, fingerprint) ->
         {
+            if (name.endsWith(SIGN_DIAL))
+            {
+                return;
+            }
             for (final String state : List.of("idle", "dialled"))
             {
                 final String onPage = drawn.get(name + "/" + state);
@@ -291,6 +363,10 @@ class GateGalleryTest
         final List<String> missing = new ArrayList<>();
         for (final String shape : shipped().keySet())
         {
+            if (shape.endsWith(SIGN_DIAL))
+            {
+                continue;
+            }
             final String file = shape.toLowerCase(Locale.ROOT);
             // The anchors, not just the images: a 23-wide gate shown at 104 pixels is four
             // pixels to the block, and the link to the full-size file is the only way the page
