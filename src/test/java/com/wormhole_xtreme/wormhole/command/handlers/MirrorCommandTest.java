@@ -443,7 +443,8 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("nether-return",
             new MirrorBlock("world", 1, 64, 1), null));
-        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+        final Block inFront = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
         assertTrue(run(player, "mirror", "remove"));
 
@@ -462,7 +463,8 @@ class MirrorCommandTest
     @Test
     void aVerbWithNoNameOnABannerThatIsNotAMirrorSaysHowToNameIt()
     {
-        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+        final Block inFront = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
         assertTrue(run(player, "mirror", "remove"));
 
@@ -476,7 +478,8 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("nether-return",
             new MirrorBlock("world", 1, 64, 1), null));
-        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+        final Block inFront = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
         assertTrue(run(player, "mirror", "display", "proximity"));
 
@@ -490,7 +493,8 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("nether-return",
             new MirrorBlock("world", 1, 64, 1), null));
-        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+        final Block inFront = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
         assertTrue(run(player, "mirror", "mode", "dynamic"));
 
