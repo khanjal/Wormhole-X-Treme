@@ -92,6 +92,30 @@ class RingGalleryTest
             .collect(Collectors.joining(";"));
     }
 
+    /**
+     * Where each ring settles, in the order the animator counts them.
+     *
+     * <p>Two tests below need this and had the same loop in each of them, character for
+     * character. It is also the order the flash runs in, which is not a coincidence: the lit
+     * ring is its own index, so "where ring n stops" and "which ring lights nth" are the same
+     * list read for two different reasons.
+     */
+    private static List<Integer> restingHalfSteps(final Ring ring)
+    {
+        final List<Integer> steps = new ArrayList<>();
+        for (int index = 0; index < RingAnimator.RING_COUNT; index++)
+        {
+            steps.add(RingAnimator.restingHalfStep(ring, index));
+        }
+        return steps;
+    }
+
+    /** Half-steps as the renderer writes them into a drawing: comma-separated, in order. */
+    private static String joined(final List<Integer> steps)
+    {
+        return steps.stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
     /** The half-steps a deploy frame puts rings at, low to high. */
     private static List<Integer> halfSteps(final Ring ring, final RingStyle style,
         final int frame)
@@ -142,11 +166,6 @@ class RingGalleryTest
     void theStackDrawingUsesTheAnimatorsNumbers() throws IOException
     {
         final Ring ring = floorRing();
-        final List<String> resting = new ArrayList<>();
-        for (int index = 0; index < RingAnimator.RING_COUNT; index++)
-        {
-            resting.add(String.valueOf(RingAnimator.restingHalfStep(ring, index)));
-        }
 
         assertEquals(
             "stack SPACING=" + RingAnimator.SPACING
@@ -155,7 +174,7 @@ class RingGalleryTest
                 + " BASE_HALF_STEP=" + RingAnimator.BASE_HALF_STEP
                 + " TOP_HALF_STEP=" + RingAnimator.TOP_HALF_STEP
                 + " STACK_HEIGHT=" + RingAnimator.STACK_HEIGHT
-                + " resting=" + String.join(",", resting),
+                + " resting=" + joined(restingHalfSteps(ring)),
             claim("stack.svg"),
             "the stack drawing no longer matches the stack the animator builds" + REGENERATE);
     }
@@ -201,24 +220,15 @@ class RingGalleryTest
     void theFlashDrawingRunsTowardsThePad() throws IOException
     {
         final Ring ring = floorRing();
-        final List<String> order = new ArrayList<>();
-        for (int index = 0; index < RingAnimator.RING_COUNT; index++)
-        {
-            order.add(String.valueOf(RingAnimator.restingHalfStep(ring, index)));
-        }
+        final List<Integer> order = restingHalfSteps(ring);
 
-        assertEquals("flash order=" + String.join(",", order), claim("flash.svg"),
+        assertEquals("flash order=" + joined(order), claim("flash.svg"),
             "the flash filmstrip lights the rings in a different order from the cycle"
                 + REGENERATE);
 
-        final List<Integer> heights = new ArrayList<>();
-        for (final String step : order)
+        for (int index = 1; index < order.size(); index++)
         {
-            heights.add(Integer.valueOf(step));
-        }
-        for (int index = 1; index < heights.size(); index++)
-        {
-            assertTrue(heights.get(index) < heights.get(index - 1),
+            assertTrue(order.get(index) < order.get(index - 1),
                 "on a floor ring the sweep should descend towards the pad; ring " + index
                     + " is not below ring " + (index - 1));
         }
