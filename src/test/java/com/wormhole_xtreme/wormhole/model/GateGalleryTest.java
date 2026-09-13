@@ -224,14 +224,6 @@ class GateGalleryTest
     }
 
     /**
-     * No drawing shows a shape as it used to be.
-     *
-     * <p>The failure this exists for is not a missing picture -- it is a picture still there and
-     * no longer true. Moving one cell of a grid leaves the old gate in the documentation,
-     * looking exactly as authoritative as it did the day it was correct, and somebody building
-     * from it gets a structure detection will not recognise at all.
-     */
-    /**
      * Every sign-dial shape still has the plain twin the DHD sheet compares it against.
      *
      * <p>The four are kept out of the gallery on the grounds that each is a ring already drawn
@@ -283,6 +275,14 @@ class GateGalleryTest
             "the DHD sheet exists but nothing on the page shows it" + REGENERATE);
     }
 
+    /**
+     * No drawing shows a shape as it used to be.
+     *
+     * <p>The failure this exists for is not a missing picture -- it is a picture still there and
+     * no longer true. Moving one cell of a grid leaves the old gate in the documentation,
+     * looking exactly as authoritative as it did the day it was correct, and somebody building
+     * from it gets a structure detection will not recognise at all.
+     */
     @Test
     void noDrawingShowsAShapeAsItUsedToBe() throws IOException
     {

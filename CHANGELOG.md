@@ -153,8 +153,8 @@ been running on defaults will start reading the file you have been editing.
   A schematic says what a thing is; a capture says what it looks like, and no amount of flat
   colour shows an event horizon's gradient. The slates stay where they are.
 
-- **The eleven gate shapes are drawn in the documentation, idle and dialled.**
-  `docs/GATES.md` now shows every shape twice: the gate standing there, and the same gate with
+- **The gate shapes are drawn in the documentation, idle and dialled.**
+  `docs/GATES.md` now shows each gate twice: the gate standing there, and the same gate with
   the portal filled and the chevrons on. The pair is most of what the shape file says, and the
   difference between them is the part prose is worst at.
 
@@ -174,7 +174,7 @@ been running on defaults will start reading the file you have been editing.
 
   Palettes are shown as their own strip rather than crossed with the shapes. Geometry and
   palette are independent in the plugin: any shape builds in any group, which is the whole point
-  of the split. Drawing eleven shapes in four palettes would be forty-four pictures asserting a
+  of the split. Drawing every shape in four palettes would be four times the gallery asserting a
   relationship that does not exist.
 
   Flat colour keyed to each block, not Minecraft's textures. Those are Mojang's, and committing
@@ -193,7 +193,7 @@ been running on defaults will start reading the file you have been editing.
   and a page telling them it should have worked. Checked by moving a cell and by swapping a
   palette's light block, and watching both fail with the name and the command that fixes it.
 
-  248 KB for all twenty-three files. Most of a shape is air, and drawing 529 cells of it one
+  208 KB for the whole folder. Most of a shape is air, and drawing 529 cells of it one
   rect at a time cost more than everything else in `Massive` put together; it is one rectangle
   now.
 
