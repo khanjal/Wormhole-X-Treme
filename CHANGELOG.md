@@ -60,9 +60,41 @@ been running on defaults will start reading the file you have been editing.
   or behind something solid in the opening's layer. The opening itself was 3×3 at first, and is
   now the banner's own size.
 
-  The view follows the viewer's eye half a block at a time, sending only what changed, and is sent
-  whole every few seconds because a fresh copy of a chunk erases it. A mirror's banner at the far
-  end is left out, so a linked pair looks straight through.
+  A mirror's banner at the far end is left out, so a linked pair looks straight through.
+
+  **What it costs, and the three things that keep it down.** Measured on the first builds, a
+  viewer walking past eight mirrors cost about 5% of the main thread each, most of it spent
+  testing blocks nobody could see. So:
+
+  - Only the cone from the eye through the opening is walked, nearest layer first. The work grows
+    with what can be seen rather than with a box around the opening -- which is also what let the
+    view go from 16 blocks deep to `mirror-view-depth`, 48 by default, without the sides of a deep
+    view being cut short.
+  - A viewer is redrawn at most four times a second as they move, not at all on a sweep where
+    nothing changed, and sent only the difference. The whole view goes again on crossing into a
+    new chunk -- which is when a client is handed chunks that erase it -- and every 30 seconds.
+  - The far side is read on demand, and never from a chunk that is not loaded. Reading one loads
+    it on the spot, on the main thread, the moment somebody walks up. Instead the chunk is fetched
+    in the background on Paper, or a couple per sweep on Spigot, and that part of the view fills
+    in when it arrives. Chunks being looked at are held with a plugin ticket, so they are not
+    loaded again every few seconds, and let go when nobody has looked for thirty.
+
+  Those three were not enough on their own. At 48 deep the cone through a mirror you are standing
+  at is tens of thousands of blocks, and a redraw among eight mirrors measured 13 ms -- worse than
+  sixteen deep had been. Most of those blocks are ground or sky, so two more:
+
+  - Behind a solid far-side block, nothing is drawn. The cone is walked nearest layer first, and
+    what is wholly hidden behind something already drawn is skipped; once the whole opening is
+    covered the walk stops. A view into a hillside ends at the hillside.
+  - Far-side air over a block that is really empty is not sent. It would change nothing on the
+    client, and the sky is most of what a deep view had been sending.
+
+  One budget covers a whole redraw, nearest mirror first, so standing among eight of them costs
+  one view's worth rather than eight.
+
+  Measured again, onto a far side of ground and sky with open space behind the wall: 0.05 ms a
+  redraw for one mirror and under 1 ms for eight, from 13. Behind a solid wall the sky has to be
+  sent as air over stone, so that case costs more than these numbers.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

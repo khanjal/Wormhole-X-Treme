@@ -23,6 +23,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 
@@ -34,27 +35,50 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * what lets mirrors made before windows existed open as one without being touched.
  *
  * <p>Nothing in the world changes, the way a gate's event horizon changes nothing. A viewer is
- * sent the banner as air, the open part of the opening as barrier -- invisible, and as solid as
- * the wall it covers -- and far-side blocks behind the wall: only the ones they could see through
- * an opening from where their eye is.
+ * sent the banner as air, the open part of the opening as barrier -- invisible, and at least as
+ * solid as what it covers -- and far-side blocks behind it: only the ones they could see through
+ * an opening from where their eye is, all of whose outline is hidden by the opening or by solid
+ * blocks around it, and each from the opening their line of sight passes through. That is what
+ * lets windows share a wall, and what keeps a freestanding one inside its edges.
  *
- * <p>That last part is what lets windows share a wall. A block behind it belongs to whichever
- * opening the viewer's line of sight passes through, so two windows a block apart never draw
- * over each other. The first cut gave each window a fixed box instead, and neighbours in a row
- * of alcoves took turns overwriting each other every few seconds.
+ * <h2>What it costs, and what keeps that down</h2>
  *
- * <p>Each viewer has one drawing, and only what changes is sent: as they move, as a far side is
- * re-read, and in full every few seconds because a fresh copy of a chunk erases it.
+ * <ul>
+ * <li>Only the cone from the eye through the opening is walked, so the work grows with what can
+ * be seen rather than with a box around the opening. That is what makes a deep view affordable.</li>
+ * <li>A viewer is redrawn at most a few times a second as they move, and not at all on a sweep
+ * where nothing changed. Only the difference is sent, except after crossing into a new chunk --
+ * which is when the client is handed fresh chunks that erase what was drawn -- and as a long
+ * safety net.</li>
+ * <li>The far side is read on demand into a short-lived cache, and never from a chunk that is not
+ * loaded: {@link MirrorChunkLoads} fetches those without stalling the server, and loaded ones are
+ * held while anybody is looking, so they are not loaded again every few seconds.</li>
+ * </ul>
  *
  * <p>A prototype for #278: blocks only, no entities, and lit and tinted by this world.
  */
 public final class MirrorWindows
 {
-    /** How often a viewer is sent their whole view again, since a fresh chunk erases it. */
-    private static final long RESEND_MILLIS = 3000L;
+    /** How often a viewer is sent their whole view again when nothing else has prompted it. */
+    private static final long RESEND_MILLIS = 30_000L;
 
-    /** How old a window's reading of its far side may get before it is read again. */
+    /** How old a reading of a far side, or of what surrounds an opening, may get. */
     private static final long RESAMPLE_MILLIS = 5000L;
+
+    /** Least time between two redraws of one viewer as they move. */
+    static final long REDRAW_MILLIS = 250L;
+
+    /** The same, in ticks, for the redraw that catches a viewer up after they stop. */
+    private static final long REDRAW_TICKS = 5L;
+
+    /** How long a far chunk stays held after anybody last looked at it. */
+    private static final long HOLD_MILLIS = 30_000L;
+
+    /** Most blocks one redraw considers across every window a viewer sees, nearest first. */
+    private static final int MOST_CANDIDATES = 30_000;
+
+    /** How far around an opening its solid surroundings are read. */
+    private static final int SURROUND = 8;
 
     /** Every window the last sweep found, by mirror name. */
     private static final Map<String, Window> WINDOWS = new HashMap<>();
@@ -65,6 +89,18 @@ public final class MirrorWindows
     /** What each viewer's client has been told, by player. */
     private static final Map<UUID, View> VIEWS = new ConcurrentHashMap<>();
 
+    /** Block states reused between redraws, by world and block, rather than read again. */
+    private static final Map<String, Map<Long, BlockState>> STATES = new HashMap<>();
+
+    /** When {@link #STATES} was last trimmed to the blocks still being drawn. */
+    private static long trimmedAt;
+
+    /** Whether each block behind an opening is really empty, by world and block, briefly. */
+    private static final Map<String, Map<Long, Boolean>> EMPTY = new HashMap<>();
+
+    /** When {@link #EMPTY} was last cleared. */
+    private static long emptyReadAt;
+
     /** One window: where it is, which of its opening can be seen through, and its far side. */
     private static final class Window
     {
@@ -73,10 +109,9 @@ public final class MirrorWindows
         private final Block banner;
         private final List<Spot> open;
         private final Set<Long> openKeys = new HashSet<>();
+        private FarSide farSide;
         private Set<Long> solid = Set.of();
-        private long[] cells;
-        private BlockData[] far;
-        private long takenAt;
+        private long solidAt;
 
         Window(final QuantumMirror mirror, final MirrorWindow shape, final Block banner,
             final List<Spot> open)
@@ -96,7 +131,11 @@ public final class MirrorWindows
         private Map<Long, BlockData> drawn = new HashMap<>();
         private Set<String> mirrors = Set.of();
         private long fullAt;
+        private long composedAt;
         private long eye = Long.MIN_VALUE;
+        private long chunk = Long.MIN_VALUE;
+        private Location pendingEye;
+        private boolean catchUpQueued;
 
         View(final World world)
         {
@@ -115,6 +154,9 @@ public final class MirrorWindows
         WINDOWS.clear();
         OFFERED.clear();
         VIEWS.clear();
+        STATES.clear();
+        EMPTY.clear();
+        MirrorChunkLoads.clear();
     }
 
     /**
@@ -130,8 +172,8 @@ public final class MirrorWindows
     {
         final BlockData data = banner.getBlockData();
         final boolean standing = data instanceof Rotatable;
-        if ((!standing && !(data instanceof Directional))
-            || (Bukkit.getWorld(mirror.destination().worldName()) == null))
+        final World far = Bukkit.getWorld(mirror.destination().worldName());
+        if ((!standing && !(data instanceof Directional)) || (far == null))
         {
             return false;
         }
@@ -146,10 +188,13 @@ public final class MirrorWindows
         if ((previous != null) && previous.shape.equals(shape)
             && previous.mirror.destination().equals(mirror.destination()))
         {
-            window.cells = previous.cells;
-            window.far = previous.far;
+            window.farSide = previous.farSide;
             window.solid = previous.solid;
-            window.takenAt = previous.takenAt;
+            window.solidAt = previous.solidAt;
+        }
+        else
+        {
+            window.farSide = new FarSide(far);
         }
         OFFERED.put(mirror.name(), window);
         return true;
@@ -162,19 +207,35 @@ public final class MirrorWindows
         {
             return;
         }
+        final long now = now();
+        for (final Map.Entry<String, Window> entry : WINDOWS.entrySet())
+        {
+            final Window next = OFFERED.get(entry.getKey());
+            if ((next == null) || (next.farSide != entry.getValue().farSide))
+            {
+                entry.getValue().farSide.release();
+            }
+        }
         WINDOWS.clear();
         WINDOWS.putAll(OFFERED);
         OFFERED.clear();
-        final long now = System.currentTimeMillis();
-        final Set<UUID> seen = new HashSet<>();
+        MirrorChunkLoads.drain();
         final Set<World> worlds = new LinkedHashSet<>();
-        WINDOWS.values().forEach(window -> worlds.add(window.banner.getWorld()));
+        for (final Window window : WINDOWS.values())
+        {
+            worlds.add(window.banner.getWorld());
+            if ((now - window.farSide.usedAt) > HOLD_MILLIS)
+            {
+                window.farSide.release();
+            }
+        }
+        final Set<UUID> seen = new HashSet<>();
         for (final World world : worlds)
         {
             for (final Player player : world.getPlayers())
             {
                 seen.add(player.getUniqueId());
-                update(player, player.getEyeLocation(), now);
+                update(player, player.getEyeLocation(), now, true);
             }
         }
         // Viewers in no world with a window left in it: gone, or left behind by a window.
@@ -189,17 +250,19 @@ public final class MirrorWindows
                 }
                 else
                 {
-                    update(player, player.getEyeLocation(), now);
+                    update(player, player.getEyeLocation(), now, true);
                 }
             }
         }
+        trimStates(now);
     }
 
     /**
      * Keeps a player's view in step as they move, rather than waiting for the next sweep.
      *
-     * <p>On every move of every player, so a server with no windows answers from two empty maps,
-     * and a viewer is redrawn only when their eye has moved half a block.
+     * <p>On every move of every player, so a server with no windows answers from two empty maps.
+     * A viewer is redrawn when their eye has moved half a block, and at most every
+     * {@link #REDRAW_MILLIS}; a move inside that is caught up a moment later.
      *
      * @param player
      *            who moved
@@ -214,16 +277,23 @@ public final class MirrorWindows
         }
         final UUID id = player.getUniqueId();
         final View view = (id == null) ? null : VIEWS.get(id);
-        final Location eye = to.clone().add(0.0, player.getEyeHeight(), 0.0);
         if ((view == null) && !nearAWindow(player, to))
         {
             return;
         }
+        final Location eye = to.clone().add(0.0, player.getEyeHeight(), 0.0);
         if ((view != null) && (view.eye == eyeKey(eye)))
         {
             return;
         }
-        update(player, eye, System.currentTimeMillis());
+        final long now = now();
+        if ((view != null) && ((now - view.composedAt) < REDRAW_MILLIS))
+        {
+            view.pendingEye = eye;
+            catchUpLater(player, view);
+            return;
+        }
+        update(player, eye, now, false);
     }
 
     /**
@@ -235,11 +305,13 @@ public final class MirrorWindows
     public static void release(final QuantumMirror mirror)
     {
         OFFERED.remove(mirror.name());
-        if (WINDOWS.remove(mirror.name()) == null)
+        final Window gone = WINDOWS.remove(mirror.name());
+        if (gone == null)
         {
             return;
         }
-        final long now = System.currentTimeMillis();
+        gone.farSide.release();
+        final long now = now();
         for (final Map.Entry<UUID, View> entry : new ArrayList<>(VIEWS.entrySet()))
         {
             if (entry.getValue().mirrors.contains(mirror.name()))
@@ -251,22 +323,24 @@ public final class MirrorWindows
                 }
                 else
                 {
-                    update(player, player.getEyeLocation(), now);
+                    update(player, player.getEyeLocation(), now, false);
                 }
             }
         }
     }
 
-    /** Takes every view back, as the plugin stops. */
+    /** Takes every view back and lets every held chunk go, as the plugin stops. */
     public static void restoreAll()
     {
-        final long now = System.currentTimeMillis();
+        final long now = now();
+        WINDOWS.values().forEach(window -> window.farSide.release());
+        OFFERED.values().forEach(window -> window.farSide.release());
         for (final Map.Entry<UUID, View> entry : VIEWS.entrySet())
         {
             final Player player = Bukkit.getPlayer(entry.getKey());
             if ((player != null) && player.getWorld().equals(entry.getValue().world))
             {
-                send(player, entry.getValue(), new HashMap<>(), now);
+                send(player, entry.getValue(), new HashMap<>(), now, false);
             }
         }
         clear();
@@ -305,8 +379,9 @@ public final class MirrorWindows
         return null;
     }
 
-    /** Redraws one player's view from where their eye is, sending only what changed. */
-    private static void update(final Player player, final Location eye, final long now)
+    /** Redraws one player's view from where their eye is, sending only what needs sending. */
+    private static void update(final Player player, final Location eye, final long now,
+        final boolean fromSweep)
     {
         final UUID id = player.getUniqueId();
         View view = VIEWS.get(id);
@@ -321,21 +396,86 @@ public final class MirrorWindows
         {
             return;
         }
-        seeing.forEach(window -> sample(window, now));
-        final Map<Long, BlockData> wanted = compose(eye, seeing);
         if (view == null)
         {
             view = new View(player.getWorld());
             VIEWS.put(id, view);
         }
-        send(player, view, wanted, now);
-        final Set<String> names = new HashSet<>();
-        seeing.forEach(window -> names.add(window.mirror.name()));
-        view.mirrors = names;
+        final long chunk = chunkOf(eye);
+        final boolean crossed = view.chunk != chunk;
+        if (fromSweep && !crossed && unchanged(view, seeing, eyeKey(eye), now))
+        {
+            if ((now - view.fullAt) >= RESEND_MILLIS)
+            {
+                send(player, view, view.drawn, now, true);
+            }
+            return;
+        }
+        final Map<Long, BlockData> wanted = compose(eye, seeing, now);
+        send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
+        view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
+        view.chunk = chunk;
+        // From when the redraw finished, not when it began, so a slow one still leaves a gap.
+        view.composedAt = now();
         if (wanted.isEmpty())
         {
             VIEWS.remove(id);
+        }
+    }
+
+    /** Whether nothing a view depends on has changed since it was last drawn. */
+    private static boolean unchanged(final View view, final List<Window> seeing, final long eye,
+        final long now)
+    {
+        if ((view.eye != eye) || ((now - view.composedAt) >= RESAMPLE_MILLIS)
+            || !view.mirrors.equals(names(seeing)))
+        {
+            return false;
+        }
+        for (final Window window : seeing)
+        {
+            if (window.farSide.changedAt > view.composedAt)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Queues one redraw for a viewer who moved too soon after the last, if none is queued. */
+    private static void catchUpLater(final Player player, final View view)
+    {
+        if (view.catchUpQueued)
+        {
+            return;
+        }
+        try
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                () -> catchUp(player), REDRAW_TICKS);
+            view.catchUpQueued = true;
+        }
+        catch (final RuntimeException noScheduler)
+        {
+            // No scheduler yet, during startup or in tests. The next move or sweep catches up.
+        }
+    }
+
+    /** Draws a viewer from where they last moved to, if that was never drawn. */
+    private static void catchUp(final Player player)
+    {
+        final View view = VIEWS.get(player.getUniqueId());
+        if (view == null)
+        {
+            return;
+        }
+        view.catchUpQueued = false;
+        final Location eye = view.pendingEye;
+        view.pendingEye = null;
+        if ((eye != null) && player.isOnline())
+        {
+            update(player, eye, now(), false);
         }
     }
 
@@ -377,10 +517,12 @@ public final class MirrorWindows
      * Every block one viewer should be shown, and what as.
      *
      * <p>Openings first, so a block that is part of one opening is never drawn as another's far
-     * side. Then each far-side block, if the eye can see it through that window's opening and
-     * through no opening in the same wall whose middle its line of sight passes nearer.
+     * side. Then, nearest window first, the blocks in the cone from the eye through each opening,
+     * out to {@code mirror-view-depth} and within one budget for the whole redraw -- see
+     * {@link Pass} for which of them are drawn.
      */
-    private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing)
+    private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
+        final long now)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
@@ -398,36 +540,39 @@ public final class MirrorWindows
             }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
         }
-        for (final Window window : seeing)
+        final int depth = ConfigManager.getMirrorViewDepth();
+        final int[] left = { MOST_CANDIDATES };
+        for (final Window window : nearestFirst(seeing, eye))
         {
-            for (int i = 0; i < window.cells.length; i++)
+            refreshSolid(window, now);
+            final Pass pass = new Pass(eye, window, seeing, allOpen, wanted, air, now);
+            window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(), depth, (x, y, z) ->
             {
-                final long cell = window.cells[i];
-                if (!wanted.containsKey(cell) && showsThrough(eye, window, cell, seeing, allOpen))
-                {
-                    wanted.put(cell, window.far[i]);
-                }
-            }
+                pass.consider(x, y, z);
+                return (--left[0] > 0) && !pass.hidden.full();
+            });
         }
         return wanted;
     }
 
     /**
-     * Whether a block behind the opening is seen through this window, and only through it.
+     * Where a block behind the opening appears on it, if it is seen through this window and only
+     * through it.
      *
      * <p>Seen through the opening, all of it hidden by solid blocks or the opening itself --
      * never across open air or another window's opening -- and through no opening in the same
      * face whose middle the line of sight passes nearer.
+     *
+     * @return the block's outline on the opening's face, or null if it is not seen through it
      */
-    private static boolean showsThrough(final Location eye, final Window window, final long cell,
-        final List<Window> seeing, final Set<Long> allOpen)
+    private static double[] seenThrough(final Location eye, final Window window, final int x,
+        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen)
     {
-        final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(),
-            unpackX(cell), unpackY(cell), unpackZ(cell));
+        final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
         if ((rect == null) || !window.shape.overlaps(rect, window.open)
-            || !window.shape.covered(rect, (across, y) -> clear(window, across, y, allOpen)))
+            || !window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen)))
         {
-            return false;
+            return null;
         }
         final double mine = window.shape.offCentre(rect);
         for (final Window other : seeing)
@@ -435,10 +580,33 @@ public final class MirrorWindows
             if ((other != window) && other.shape.sharesFace(window.shape)
                 && other.shape.overlaps(rect, other.open) && (other.shape.offCentre(rect) < mine))
             {
-                return false;
+                return null;
             }
         }
-        return true;
+        return rect;
+    }
+
+    /** A viewer's windows, nearest first, so a spent budget cuts the furthest views short. */
+    private static List<Window> nearestFirst(final List<Window> seeing, final Location eye)
+    {
+        final List<Window> sorted = new ArrayList<>(seeing);
+        sorted.sort(Comparator
+            .comparingDouble((Window window) -> window.banner.getLocation().distanceSquared(eye))
+            .thenComparing(window -> window.mirror.name()));
+        return sorted;
+    }
+
+    /** Whether the real block here is empty, remembered for a few seconds. */
+    private static boolean emptyHere(final World here, final int x, final int y, final int z,
+        final long now)
+    {
+        if ((now - emptyReadAt) >= RESAMPLE_MILLIS)
+        {
+            EMPTY.clear();
+            emptyReadAt = now;
+        }
+        return EMPTY.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
+            key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
     }
 
     /** Whether a block of a window's face keeps a drawn block behind it out of sight elsewhere. */
@@ -457,19 +625,22 @@ public final class MirrorWindows
             : key(across, y, shape.base().z());
     }
 
-    /**
-     * The blocks of a window's face that hide what is behind them, over the area a block drawn
-     * behind the opening can project onto.
-     */
-    private static Set<Long> solidFace(final MirrorWindow shape, final World here)
+    /** Reads again which blocks around a window's opening are solid, if that reading is old. */
+    private static void refreshSolid(final Window window, final long now)
     {
+        if ((now - window.solidAt) < RESAMPLE_MILLIS)
+        {
+            return;
+        }
+        final MirrorWindow shape = window.shape;
+        final World here = window.banner.getWorld();
         final int centre = (shape.into().x() != 0) ? shape.base().z() : shape.base().x();
-        final int reach = MirrorWindow.SIDE + MirrorWindow.WIDTH + 2;
+        final int reach = SURROUND + MirrorWindow.WIDTH;
         final Set<Long> solid = new HashSet<>();
         for (int across = centre - reach; across <= (centre + reach); across++)
         {
-            for (int y = shape.base().y() - MirrorWindow.BELOW - 2;
-                y <= (shape.base().y() + MirrorWindow.HEIGHT + MirrorWindow.ABOVE + 2); y++)
+            for (int y = shape.base().y() - SURROUND;
+                y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
             {
                 final long face = faceKey(shape, across, y);
                 if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
@@ -478,20 +649,24 @@ public final class MirrorWindows
                 }
             }
         }
-        return solid;
+        window.solid = solid;
+        window.solidAt = now;
     }
 
-    /** Sends a viewer what changed since their last drawing, or all of it when it is due. */
+    /** Sends a viewer what changed since their last drawing, or all of it when asked to. */
     private static void send(final Player player, final View view,
-        final Map<Long, BlockData> wanted, final long now)
+        final Map<Long, BlockData> wanted, final long now, final boolean full)
     {
-        final boolean full = (now - view.fullAt) >= RESEND_MILLIS;
         final List<BlockState> changes = new ArrayList<>();
         for (final Map.Entry<Long, BlockData> entry : wanted.entrySet())
         {
             if (full || !entry.getValue().equals(view.drawn.get(entry.getKey())))
             {
-                drawn(changes, view.world, entry.getKey(), entry.getValue());
+                final BlockState state = drawn(view.world, entry.getKey(), entry.getValue());
+                if (state != null)
+                {
+                    changes.add(state);
+                }
             }
         }
         final List<TileState> restored = new ArrayList<>();
@@ -515,17 +690,25 @@ public final class MirrorWindows
         }
     }
 
-    /** Adds one block, drawn as something else, if this world can draw it. */
-    private static void drawn(final List<BlockState> changes, final World here, final long cell,
-        final BlockData data)
+    /** One block, drawn as something else, or null if this world cannot draw it. */
+    private static BlockState drawn(final World here, final long cell, final BlockData data)
     {
         final int x = unpackX(cell);
         final int z = unpackZ(cell);
         if (!here.isChunkLoaded(x >> 4, z >> 4))
         {
-            return;
+            return null;
         }
-        final BlockState state = here.getBlockAt(x, unpackY(cell), z).getState();
+        // Reused rather than read again: a redraw as somebody walks would otherwise snapshot
+        // every changed block from the world, only to overwrite what it read.
+        final Map<Long, BlockState> states = STATES.computeIfAbsent(here.getName(),
+            name -> new HashMap<>());
+        BlockState state = states.get(cell);
+        if (state == null)
+        {
+            state = here.getBlockAt(x, unpackY(cell), z).getState();
+            states.put(cell, state);
+        }
         try
         {
             state.setBlockData(data);
@@ -534,9 +717,9 @@ public final class MirrorWindows
         {
             // A block entity's state will not always take another block's data. That one block
             // shows as it really is.
-            return;
+            return null;
         }
-        changes.add(state);
+        return state;
     }
 
     /** Adds one block as the world really has it. */
@@ -558,32 +741,27 @@ public final class MirrorWindows
         }
     }
 
-    /** Reads a window's far side, if it has not been read recently. */
-    private static void sample(final Window window, final long now)
+    /** Lets go of reused block states that no view is drawing any more. */
+    private static void trimStates(final long now)
     {
-        if ((window.far != null) && ((now - window.takenAt) < RESAMPLE_MILLIS))
+        if ((now - trimmedAt) < RESAMPLE_MILLIS)
         {
             return;
         }
-        final World here = window.banner.getWorld();
-        final int min = here.getMinHeight();
-        final int max = here.getMaxHeight();
-        final FarSide farSide = new FarSide(Bukkit.getWorld(window.mirror.destination().worldName()),
-            Bukkit.createBlockData(Material.AIR));
-        final List<Long> cells = new ArrayList<>();
-        final List<BlockData> far = new ArrayList<>();
-        window.shape.forEachShown((x, y, z, farX, farY, farZ) ->
+        trimmedAt = now;
+        final Map<String, Set<Long>> drawing = new HashMap<>();
+        VIEWS.values().forEach(view -> drawing
+            .computeIfAbsent(view.world.getName(), name -> new HashSet<>()).addAll(view.drawn.keySet()));
+        STATES.entrySet().removeIf(entry ->
         {
-            if ((y >= min) && (y < max))
+            final Set<Long> still = drawing.get(entry.getKey());
+            if (still == null)
             {
-                cells.add(key(x, y, z));
-                far.add(farSide.at(farX, farY, farZ));
+                return true;
             }
+            entry.getValue().keySet().retainAll(still);
+            return false;
         });
-        window.cells = cells.stream().mapToLong(Long::longValue).toArray();
-        window.far = far.toArray(new BlockData[0]);
-        window.solid = solidFace(window.shape, here);
-        window.takenAt = now;
     }
 
     /** The blocks of a window's opening with nothing solid in front of them. */
@@ -592,8 +770,8 @@ public final class MirrorWindows
         final List<Spot> open = new ArrayList<>();
         shape.forEachOpening((x, y, z) ->
         {
-            // A pillar or a shelf in front of part of the opening closes that part: nobody sees
-            // through it, and a neighbouring window may be using the space behind.
+            // Something in front of part of the opening closes that part: nobody sees through
+            // it, and a neighbouring window may be using the space behind.
             if (here.getBlockAt(x - shape.into().x(), y, z - shape.into().z()).isPassable())
             {
                 open.add(new Spot(x, y, z));
@@ -602,11 +780,34 @@ public final class MirrorWindows
         return open;
     }
 
+    private static Set<String> names(final List<Window> windows)
+    {
+        final Set<String> names = new HashSet<>();
+        windows.forEach(window -> names.add(window.mirror.name()));
+        return names;
+    }
+
+    private static long now()
+    {
+        return System.currentTimeMillis();
+    }
+
     /** An eye position, to half a block, as a key that can be compared cheaply. */
     private static long eyeKey(final Location eye)
     {
         return key((int) Math.floor(eye.getX() * 2.0), (int) Math.floor(eye.getY() * 2.0),
             (int) Math.floor(eye.getZ() * 2.0));
+    }
+
+    /** The chunk an eye is in, as a key. */
+    private static long chunkOf(final Location eye)
+    {
+        return chunkKey(((int) Math.floor(eye.getX())) >> 4, ((int) Math.floor(eye.getZ())) >> 4);
+    }
+
+    private static long chunkKey(final int x, final int z)
+    {
+        return (((long) x) << 32) | (z & 0xFFFFFFFFL);
     }
 
     /**
@@ -640,34 +841,264 @@ public final class MirrorWindows
         return (int) ((key << 26) >> 38);
     }
 
-    /** Reads the far side, showing its mirrors' banners as the openings they are. */
+    /**
+     * One window's part of one redraw: which blocks in its cone are drawn, and as what.
+     *
+     * <p>A block is drawn if it is seen through this window ({@link #seenThrough}), is not
+     * already hidden behind a solid far-side block drawn nearer the eye, has a loaded far side,
+     * and would change what the client shows -- far-side air over a block that is really empty
+     * would not, and sky is most of a deep view.
+     */
+    private static final class Pass
+    {
+        private final Location eye;
+        private final Window window;
+        private final List<Window> seeing;
+        private final Set<Long> allOpen;
+        private final Map<Long, BlockData> wanted;
+        private final BlockData air;
+        private final long now;
+        private final int min;
+        private final int max;
+        private final Occlusion hidden;
+
+        Pass(final Location eye, final Window window, final List<Window> seeing,
+            final Set<Long> allOpen, final Map<Long, BlockData> wanted, final BlockData air,
+            final long now)
+        {
+            this.eye = eye;
+            this.window = window;
+            this.seeing = seeing;
+            this.allOpen = allOpen;
+            this.wanted = wanted;
+            this.air = air;
+            this.now = now;
+            this.min = window.banner.getWorld().getMinHeight();
+            this.max = window.banner.getWorld().getMaxHeight();
+            this.hidden = new Occlusion(window);
+        }
+
+        void consider(final int x, final int y, final int z)
+        {
+            final long cell = key(x, y, z);
+            if ((y < min) || (y >= max) || wanted.containsKey(cell))
+            {
+                return;
+            }
+            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
+            if ((rect == null) || hidden.covers(rect))
+            {
+                return;
+            }
+            final Spot at = window.shape.farOf(x, y, z);
+            final BlockData data = window.farSide.at(at.x(), at.y(), at.z(), air, now);
+            if (data == null)
+            {
+                return;
+            }
+            if (data.isOccluding())
+            {
+                hidden.add(rect);
+            }
+            if (!data.equals(air) || !emptyHere(window.banner.getWorld(), x, y, z, now))
+            {
+                wanted.put(cell, data);
+            }
+        }
+    }
+
+    /**
+     * How much of one window's opening is already hidden, from one eye, by solid far-side blocks
+     * drawn nearer to it.
+     *
+     * <p>The cone is walked nearest layer first, so a block wholly behind what is already drawn
+     * cannot be seen and is skipped -- and once the whole opening is hidden, nothing further back
+     * is walked at all. A view into a hillside stops at the hillside instead of drawing the inside
+     * of the hill. Kept on a fine grid over the opening, eight parts to a block.
+     */
+    private static final class Occlusion
+    {
+        private static final int FINE = 8;
+
+        private final int left;
+        private final int bottom;
+        private final int wide;
+        private final int tall;
+        private final boolean[] hidden;
+        private int count;
+
+        Occlusion(final Window window)
+        {
+            final boolean alongX = window.shape.into().x() != 0;
+            int acrossMin = Integer.MAX_VALUE;
+            int acrossMax = Integer.MIN_VALUE;
+            int yMin = Integer.MAX_VALUE;
+            int yMax = Integer.MIN_VALUE;
+            for (final Spot cell : window.open)
+            {
+                final int across = alongX ? cell.z() : cell.x();
+                acrossMin = Math.min(acrossMin, across);
+                acrossMax = Math.max(acrossMax, across);
+                yMin = Math.min(yMin, cell.y());
+                yMax = Math.max(yMax, cell.y());
+            }
+            left = acrossMin;
+            bottom = yMin;
+            wide = ((acrossMax + 1) - acrossMin) * FINE;
+            tall = ((yMax + 1) - yMin) * FINE;
+            hidden = new boolean[wide * tall];
+            // The parts of the opening's outline that are closed hide what is behind them already.
+            for (int i = 0; i < wide; i++)
+            {
+                for (int j = 0; j < tall; j++)
+                {
+                    if (!window.openKeys.contains(faceKey(window.shape, left + (i / FINE), bottom + (j / FINE))))
+                    {
+                        hide(i, j);
+                    }
+                }
+            }
+        }
+
+        /** @return true once nothing more of the opening can be seen */
+        boolean full()
+        {
+            return count == hidden.length;
+        }
+
+        /** Whether every part of the opening a projected block touches is already hidden. */
+        boolean covers(final double[] rect)
+        {
+            if (count == 0)
+            {
+                return false;
+            }
+            final int iFrom = Math.max(0, (int) Math.floor((rect[0] - left) * FINE));
+            final int iTo = Math.min(wide - 1, (int) Math.ceil((rect[1] - left) * FINE) - 1);
+            final int jFrom = Math.max(0, (int) Math.floor((rect[2] - bottom) * FINE));
+            final int jTo = Math.min(tall - 1, (int) Math.ceil((rect[3] - bottom) * FINE) - 1);
+            for (int i = iFrom; i <= iTo; i++)
+            {
+                for (int j = jFrom; j <= jTo; j++)
+                {
+                    if (!hidden[(i * tall) + j])
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /** Marks the parts of the opening a solid projected block hides: those whose middles it covers. */
+        void add(final double[] rect)
+        {
+            final int iFrom = Math.max(0, (int) Math.ceil(((rect[0] - left) * FINE) - 0.5));
+            final int iTo = Math.min(wide - 1, (int) Math.floor(((rect[1] - left) * FINE) - 0.5));
+            final int jFrom = Math.max(0, (int) Math.ceil(((rect[2] - bottom) * FINE) - 0.5));
+            final int jTo = Math.min(tall - 1, (int) Math.floor(((rect[3] - bottom) * FINE) - 0.5));
+            for (int i = iFrom; i <= iTo; i++)
+            {
+                for (int j = jFrom; j <= jTo; j++)
+                {
+                    hide(i, j);
+                }
+            }
+        }
+
+        private void hide(final int i, final int j)
+        {
+            if (!hidden[(i * tall) + j])
+            {
+                hidden[(i * tall) + j] = true;
+                count++;
+            }
+        }
+    }
+
+    /**
+     * One window's far side: read on demand, cached briefly, and never from an unloaded chunk.
+     *
+     * <p>Chunks it reads are held loaded with a plugin ticket, so the server does not unload a
+     * chunk somebody is looking at and have it loaded again on the next redraw. They are let go
+     * when nobody has looked for a while, when the window goes, and when the plugin stops.
+     */
     private static final class FarSide
     {
         private final World far;
         private final String name;
         private final int min;
         private final int max;
-        private final BlockData air;
+        private final Map<Long, BlockData> blocks = new HashMap<>();
+        private final Set<Long> held = new HashSet<>();
+        private long readAt;
+        private long usedAt;
+        private volatile long changedAt;
 
-        FarSide(final World far, final BlockData air)
+        FarSide(final World far)
         {
             this.far = far;
             this.name = far.getName();
             this.min = far.getMinHeight();
             this.max = far.getMaxHeight();
-            this.air = air;
         }
 
-        BlockData at(final int x, final int y, final int z)
+        /** The far-side block here, or null if its chunk is not loaded yet. */
+        BlockData at(final int x, final int y, final int z, final BlockData air, final long now)
         {
-            // A linked pair arrives in the far banner's own block, so it would otherwise hang in
-            // the middle of the view.
-            if ((y < min) || (y >= max) || (MirrorManager.at(new MirrorBlock(name, x, y, z)) != null))
+            usedAt = now;
+            if ((now - readAt) >= RESAMPLE_MILLIS)
+            {
+                blocks.clear();
+                readAt = now;
+            }
+            if ((y < min) || (y >= max))
             {
                 return air;
             }
-            // Loads the chunk if it has to, which only happens while somebody is looking in.
-            return far.getBlockAt(x, y, z).getBlockData();
+            final long cell = key(x, y, z);
+            final BlockData known = blocks.get(cell);
+            if (known != null)
+            {
+                return known;
+            }
+            final int chunkX = x >> 4;
+            final int chunkZ = z >> 4;
+            if (!far.isChunkLoaded(chunkX, chunkZ))
+            {
+                MirrorChunkLoads.request(far, chunkX, chunkZ, () ->
+                {
+                    hold(chunkX, chunkZ);
+                    changedAt = now();
+                });
+                return null;
+            }
+            hold(chunkX, chunkZ);
+            // A linked pair arrives in the far banner's own block, so it would otherwise hang in
+            // the middle of the view.
+            final BlockData read = (MirrorManager.at(new MirrorBlock(name, x, y, z)) != null) ? air
+                : far.getBlockAt(x, y, z).getBlockData();
+            blocks.put(cell, read);
+            return read;
+        }
+
+        private void hold(final int chunkX, final int chunkZ)
+        {
+            if (held.add(chunkKey(chunkX, chunkZ)))
+            {
+                far.addPluginChunkTicket(chunkX, chunkZ, WormholeXTreme.getThisPlugin());
+            }
+        }
+
+        void release()
+        {
+            for (final long chunk : held)
+            {
+                far.removePluginChunkTicket((int) (chunk >> 32), (int) chunk,
+                    WormholeXTreme.getThisPlugin());
+            }
+            held.clear();
+            blocks.clear();
         }
     }
 }

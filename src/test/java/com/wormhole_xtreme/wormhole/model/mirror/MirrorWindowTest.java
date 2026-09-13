@@ -5,10 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.block.BlockFace;
@@ -21,7 +20,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  *
  * <p>Everything a viewer sees depends on this arithmetic, and the mistakes it invites are ones
  * that still look like a view: a far side shown mirror-image, shown a layer too deep, drawn on
- * the viewer's own side where it would bury them, or showing past the edges of the opening.
+ * the viewer's own side where it would bury them, showing past the edges of the opening, or cut
+ * short at the sides of a deep view.
  */
 class MirrorWindowTest
 {
@@ -38,20 +38,24 @@ class MirrorWindowTest
             far(farYaw));
     }
 
-    /** Every block that may be drawn behind a window, mapped to the far-side block it shows. */
-    private static Map<Spot, Spot> shown(final MirrorWindow window)
-    {
-        final Map<Spot, Spot> shown = new HashMap<>();
-        window.forEachShown((x, y, z, farX, farY, farZ) ->
-            shown.put(new Spot(x, y, z), new Spot(farX, farY, farZ)));
-        return shown;
-    }
-
     private static Set<Spot> opening(final MirrorWindow window)
     {
         final Set<Spot> opening = new HashSet<>();
         window.forEachOpening((x, y, z) -> opening.add(new Spot(x, y, z)));
         return opening;
+    }
+
+    /** Every candidate from an eye out to a depth, in the order they are handed out. */
+    private static List<Spot> candidates(final MirrorWindow window, final double x,
+        final double y, final double z, final int depth)
+    {
+        final List<Spot> seen = new ArrayList<>();
+        window.forEachCandidate(x, y, z, depth, (cx, cy, cz) ->
+        {
+            seen.add(new Spot(cx, cy, cz));
+            return true;
+        });
+        return seen;
     }
 
     /**
@@ -113,7 +117,7 @@ class MirrorWindowTest
     {
         for (final float yaw : new float[] { 0.0f, 90.0f, 180.0f, -90.0f })
         {
-            assertEquals(new Spot(100, 70, -21), shown(northFacing(yaw)).get(new Spot(0, 63, 2)),
+            assertEquals(new Spot(100, 70, -21), northFacing(yaw).farOf(0, 63, 2),
                 "for a far side facing yaw " + yaw);
         }
     }
@@ -127,39 +131,68 @@ class MirrorWindowTest
     @Test
     void rightThroughTheOpeningIsRightAtTheFarSide()
     {
-        assertEquals(new Spot(100, 70, -20), shown(northFacing(-90.0f)).get(new Spot(-1, 63, 2)));
+        assertEquals(new Spot(100, 70, -20), northFacing(-90.0f).farOf(-1, 63, 2));
     }
 
     @Test
     void deeperBehindTheOpeningIsFurtherAheadAtTheFarSide()
     {
-        assertEquals(new Spot(104, 70, -21), shown(northFacing(-90.0f)).get(new Spot(0, 63, 6)));
+        assertEquals(new Spot(104, 70, -21), northFacing(-90.0f).farOf(0, 63, 6));
     }
 
     @Test
     void higherBehindTheOpeningIsHigherAtTheFarSide()
     {
-        assertEquals(new Spot(100, 73, -21), shown(northFacing(-90.0f)).get(new Spot(0, 66, 2)));
+        assertEquals(new Spot(100, 73, -21), northFacing(-90.0f).farOf(0, 66, 2));
     }
 
     /**
-     * Nothing is drawn on the viewer's side of the opening, or in the opening's own layer.
+     * Candidates are behind the opening, nearest layer first, out to exactly the depth asked.
      *
-     * <p>A drawn block on the viewer's side would stand where they are standing. The opening's
-     * own layer is the opening, which is drawn as something else.
+     * <p>Nothing on the viewer's side, where a drawn block would stand where they are standing,
+     * and nothing past the depth, which is the setting an operator turns up to see further.
      */
     @Test
-    void everythingShownIsBehindTheOpening()
+    void candidatesAreBehindTheOpeningNearestFirstAndOutToTheDepth()
     {
-        final Map<Spot, Spot> shown = shown(northFacing(0.0f));
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20);
 
-        assertEquals((MirrorWindow.WIDTH + (2 * MirrorWindow.SIDE))
-            * (MirrorWindow.BELOW + MirrorWindow.HEIGHT + MirrorWindow.ABOVE) * MirrorWindow.DEPTH,
-            shown.size(), "the whole box is visited");
-        for (final Spot spot : shown.keySet())
+        assertEquals(2, seen.get(0).z(), "the first layer behind the opening comes first");
+        assertTrue(seen.stream().allMatch(spot -> (spot.z() >= 2) && (spot.z() <= 21)),
+            "all of them behind the opening, and none past the depth");
+        assertTrue(seen.contains(new Spot(0, 63, 2)), "straight behind");
+        assertTrue(seen.contains(new Spot(0, 63, 21)), "as deep as asked");
+    }
+
+    /**
+     * Only the cone through the opening is walked, and it widens with depth.
+     *
+     * <p>A fixed box around the opening cut a deep view short at its sides; walking a box big
+     * enough not to would be most of the cost for blocks nobody can see.
+     */
+    @Test
+    void candidatesAreTheConeThroughTheOpeningWideningWithDepth()
+    {
+        final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20);
+
+        assertFalse(seen.contains(new Spot(3, 63, 2)), "no line through the opening reaches this");
+        assertTrue(seen.contains(new Spot(3, 63, 21)), "but one does, further back");
+        final long nearLayer = seen.stream().filter(spot -> spot.z() == 2).count();
+        final long farLayer = seen.stream().filter(spot -> spot.z() == 21).count();
+        assertTrue(farLayer > (5 * nearLayer), nearLayer + " near, " + farLayer + " far");
+    }
+
+    @Test
+    void aCandidateWalkStopsWhenAsked()
+    {
+        final List<Spot> seen = new ArrayList<>();
+        northFacing(0.0f).forEachCandidate(0.5, 64.0, -3.0, 20, (x, y, z) ->
         {
-            assertTrue(spot.z() >= 2, "drawn in front of the opening at " + spot);
-        }
+            seen.add(new Spot(x, y, z));
+            return false;
+        });
+
+        assertEquals(1, seen.size());
     }
 
     @Test

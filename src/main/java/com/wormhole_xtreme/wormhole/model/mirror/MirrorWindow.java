@@ -5,8 +5,8 @@ import java.util.List;
 import org.bukkit.block.BlockFace;
 
 /**
- * The shape of a window mirror: its opening, the box of blocks behind that opening that may be
- * drawn for whoever looks in, and which block at the far side each one shows.
+ * The shape of a window mirror: its opening, which blocks behind it a viewer could see through
+ * it, and which block at the far side each of those shows.
  *
  * <p>The opening is the banner's own size, one wide and two tall, in the layer just behind it. A
  * banner hung on a wall hangs down, so the opening is in the wall and runs down from the banner's
@@ -36,17 +36,11 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /** How tall the opening is: the banner's cloth. */
     static final int HEIGHT = 2;
 
-    /** How far behind the opening the far side may be drawn. */
-    static final int DEPTH = 16;
+    /** The furthest a candidate may be from the opening along its face, however close the eye. */
+    static final int WIDEST = 64;
 
-    /** Drawn past each side of the opening, so looking in at an angle is not cut short. */
-    static final int SIDE = 8;
-
-    /** Drawn above the opening's top row. */
-    static final int ABOVE = 6;
-
-    /** Drawn below the opening's bottom row, which is where the far side's ground is. */
-    static final int BELOW = 3;
+    /** An eye nearer the face than this is treated as this far, so the cone stays finite. */
+    private static final double NEAREST_EYE = 0.25;
 
     private static final int HALF = WIDTH / 2;
 
@@ -95,25 +89,20 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         void at(int x, int y, int z);
     }
 
-    /** Handed each block that may be drawn behind the opening, and the far-side block it shows. */
+    /** Handed each block a viewer might see through the opening. */
     @FunctionalInterface
-    public interface Shown
+    public interface Candidate
     {
         /**
          * @param x
-         *            block x here
+         *            block x
          * @param y
-         *            block y here
+         *            block y
          * @param z
-         *            block z here
-         * @param farX
-         *            block x at the far side
-         * @param farY
-         *            block y at the far side
-         * @param farZ
-         *            block z at the far side
+         *            block z
+         * @return false to stop the walk here
          */
-        void at(int x, int y, int z, int farX, int farY, int farZ);
+        boolean at(int x, int y, int z);
     }
 
     /**
@@ -213,35 +202,99 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /**
-     * Visits every block that may be drawn behind the opening, with the far-side block it shows.
+     * Visits, a layer at a time from the opening outwards, every block an eye could see through
+     * the opening, out to a depth.
      *
-     * <p>The first layer behind the opening shows the arrival block's own layer, and the
-     * opening's bottom row lines up with the arrival block's height -- so what shows through the
-     * middle of the bottom row is exactly where a traveller lands.
+     * <p>Only the cone from the eye through the opening, which is what makes a deep view
+     * affordable: the blocks walked grow with what can be seen, not with a box drawn around the
+     * opening. Generous at the edges -- the exact test is {@link #projected} and what follows it.
      *
-     * @param shown
-     *            handed each one
+     * @param eyeX
+     *            the eye, x
+     * @param eyeY
+     *            the eye, y
+     * @param eyeZ
+     *            the eye, z
+     * @param depth
+     *            how many layers behind the opening to walk
+     * @param candidate
+     *            handed each block, nearest layers first; returns false to stop
      */
-    public void forEachShown(final Shown shown)
+    public void forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
+        final int depth, final Candidate candidate)
     {
-        final Spot right = rightOf(into);
-        final Spot farRight = rightOf(ahead);
-        for (int depth = 1; depth <= DEPTH; depth++)
+        final boolean alongX = into.x() != 0;
+        final int sign = alongX ? into.x() : into.z();
+        final double eyeAlong = alongX ? eyeX : eyeZ;
+        final double reach = Math.max(NEAREST_EYE, Math.abs(face() - eyeAlong));
+        final int baseAlong = alongX ? base.x() : base.z();
+        final int middle = alongX ? base.z() : base.x();
+        for (int layer = 1; layer <= depth; layer++)
         {
-            for (int across = -HALF - SIDE; across < (WIDTH - HALF + SIDE); across++)
+            final int along = baseAlong + (sign * layer);
+            final double one = Math.abs(along - eyeAlong) / reach;
+            final double other = Math.abs((along + 1) - eyeAlong) / reach;
+            final double near = Math.min(one, other);
+            final double farther = Math.max(one, other);
+            final double[] span = {
+                lowest(alongX ? eyeZ : eyeX, middle - HALF, middle + (WIDTH - HALF), near, farther),
+                highest(alongX ? eyeZ : eyeX, middle - HALF, middle + (WIDTH - HALF), near, farther),
+                lowest(eyeY, base.y(), base.y() + HEIGHT, near, farther),
+                highest(eyeY, base.y(), base.y() + HEIGHT, near, farther) };
+            if (!layer(alongX, along, middle, span, candidate))
             {
-                for (int up = -BELOW; up < (HEIGHT + ABOVE); up++)
+                return;
+            }
+        }
+    }
+
+    /** One layer of {@link #forEachCandidate}. @return false if the walk was stopped */
+    private boolean layer(final boolean alongX, final int along, final int middle,
+        final double[] span, final Candidate candidate)
+    {
+        final int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(span[0]));
+        final int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(span[1]) - 1);
+        final int yFrom = Math.max(base.y() - WIDEST, (int) Math.floor(span[2]));
+        final int yTo = Math.min(base.y() + WIDEST, (int) Math.ceil(span[3]) - 1);
+        for (int across = acrossFrom; across <= acrossTo; across++)
+        {
+            for (int y = yFrom; y <= yTo; y++)
+            {
+                if (!candidate.at(alongX ? along : across, y, alongX ? across : along))
                 {
-                    shown.at(
-                        base.x() + (depth * into.x()) + (across * right.x()),
-                        base.y() + up,
-                        base.z() + (depth * into.z()) + (across * right.z()),
-                        far.x() + ((depth - 1) * ahead.x()) + (across * farRight.x()),
-                        far.y() + up,
-                        far.z() + ((depth - 1) * ahead.z()) + (across * farRight.z()));
+                    return false;
                 }
             }
         }
+        return true;
+    }
+
+    /**
+     * The far-side block a block behind the opening shows.
+     *
+     * <p>The first layer behind the opening shows the arrival block's own layer, and the
+     * opening's bottom row lines up with the arrival block's height -- so what shows through the
+     * bottom of the opening is exactly where a traveller lands.
+     *
+     * @param x
+     *            the block behind the opening, x
+     * @param y
+     *            the block behind the opening, y
+     * @param z
+     *            the block behind the opening, z
+     * @return the block at the far side
+     */
+    public Spot farOf(final int x, final int y, final int z)
+    {
+        final Spot right = rightOf(into);
+        final Spot farRight = rightOf(ahead);
+        final int dx = x - base.x();
+        final int dz = z - base.z();
+        final int depth = (dx * into.x()) + (dz * into.z());
+        final int across = (dx * right.x()) + (dz * right.z());
+        return new Spot(far.x() + ((depth - 1) * ahead.x()) + (across * farRight.x()),
+            far.y() + (y - base.y()),
+            far.z() + ((depth - 1) * ahead.z()) + (across * farRight.z()));
     }
 
     /**
@@ -401,7 +454,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         final int yFrom = (int) Math.floor(rect[2]);
         final int yTo = (int) Math.ceil(rect[3]) - 1;
         // A projection this wide is a block right against the face at a glancing angle.
-        if (((acrossTo - acrossFrom) > (2 * SIDE)) || ((yTo - yFrom) > (2 * SIDE)))
+        if (((acrossTo - acrossFrom) > WIDEST) || ((yTo - yFrom) > WIDEST))
         {
             return false;
         }
@@ -429,6 +482,28 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     {
         final double centre = ((into.x() != 0) ? base.z() : base.x()) + 0.5;
         return Math.abs(((rect[0] + rect[1]) / 2.0) - centre);
+    }
+
+    /** The lowest point either edge of a span reaches, scaled out from an eye by either factor. */
+    private static double lowest(final double eye, final double from, final double to,
+        final double near, final double farther)
+    {
+        return Math.min(Math.min(spread(eye, from, near), spread(eye, from, farther)),
+            Math.min(spread(eye, to, near), spread(eye, to, farther)));
+    }
+
+    /** The highest point either edge of a span reaches, scaled out from an eye by either factor. */
+    private static double highest(final double eye, final double from, final double to,
+        final double near, final double farther)
+    {
+        return Math.max(Math.max(spread(eye, from, near), spread(eye, from, farther)),
+            Math.max(spread(eye, to, near), spread(eye, to, farther)));
+    }
+
+    /** Where a line from an eye through an edge of the face is, that many times as far away. */
+    private static double spread(final double eye, final double edge, final double scale)
+    {
+        return eye + ((edge - eye) * scale);
     }
 
     /** @return the step to the right of somebody facing along this one */

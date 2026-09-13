@@ -195,6 +195,14 @@ public class ConfigManager
         MIRROR_DYNAMIC_RESAMPLE_SECONDS,
 
         /**
+         * How far behind a mirror's opening the far side is drawn, in blocks.
+         *
+         * <p>Past it the world the viewer is really in shows through. Only the cone through the
+         * opening is drawn, so this costs in proportion to what can be seen, not its cube.
+         */
+        MIRROR_VIEW_DEPTH,
+
+        /**
          * Whether a mirror names itself above the hotbar to whoever is looking at it.
          *
          * <p>A stamped banner looks like scenery, and a corridor of them looks like
@@ -1413,6 +1421,17 @@ public class ConfigManager
         final Setting s =
             ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS);
         return (s == null) ? 60 : Math.max(0, s.getIntValue());
+    }
+
+    /**
+     * How far behind a mirror's opening the far side is drawn.
+     *
+     * @return the depth in blocks, between 4 and 128
+     */
+    public static int getMirrorViewDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
+        return (s == null) ? 48 : Math.max(4, Math.min(128, s.getIntValue()));
     }
 
     /**

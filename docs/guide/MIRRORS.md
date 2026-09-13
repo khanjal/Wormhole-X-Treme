@@ -170,6 +170,8 @@ It is a first cut of [#278](https://github.com/khanjal/Wormhole-X-Treme/issues/2
 - **One-sided.** From behind, a mirror is its banner.
 - **Only the open part of the opening opens.** Something solid in front of part of it closes that part.
 - **Nothing shows past the opening's edges.** In a wall the wall hides them; in open air, blocks that would reach past the edge are left out.
+- **It sees `mirror-view-depth` blocks back** (48 by default, up to 128). Past that, the world you are really in shows through. Only what can be seen through the opening is drawn, so turning it up costs less than it sounds.
+- **A far side nobody has loaded arrives a moment late.** Its chunks are fetched without stalling the server, and that part of the view fills in when they are ready.
 - **A mirror's banner at the far end is left out of the view**, so a linked pair looks straight through.
 - **Blocks only, no mobs**, and lit by this world rather than the far one.
 - **The look, `display` and `mode` show only where there is no view**: from behind, from out of range, or onto a world that is not loaded.
