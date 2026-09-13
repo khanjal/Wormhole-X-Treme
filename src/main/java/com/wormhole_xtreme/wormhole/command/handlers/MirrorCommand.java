@@ -157,7 +157,31 @@ public class MirrorCommand implements SubCommand
             + MirrorText.name(LINK) + ".");
     }
 
-    /** Names the banner the player is looking at. */
+    /**
+     * Names the banner the player is looking at.
+     *
+     * <p>One banner is one mirror -- the block index has room for nothing else -- so what this
+     * command means is settled by which of two things already exists, the name or the binding:
+     *
+     * <pre>
+     * neither                  a new mirror, going nowhere yet
+     * the name                 that mirror moves to this banner
+     * the binding              this mirror is called that now -- a rename
+     * both, the same mirror    nothing to do; say so
+     * both, different mirrors  refused; one of them would be abandoned silently
+     * </pre>
+     *
+     * <p>The first four all carry the whole mirror forward rather than rebuilding it from a
+     * name and a block. Rebuilding was the old behaviour and it lost three things quietly: the
+     * destination, the look, and whether the mirror hides itself until somebody comes close. A
+     * renamed mirror came out valid and blank, and the reply said "It goes nowhere yet", which
+     * reads as a next step rather than as a warning that the last one has been undone.
+     *
+     * <p>Renaming leaves nothing behind under the old name. It used to: the new name was added
+     * beside the old one, both claiming the banner, and clearing up the orphan afterwards
+     * unhooked the survivor as well, because removing a mirror takes its banner out of the
+     * block index without checking whether that banner is still somebody else's.
+     */
     private static void set(final CommandSender sender, final String[] args)
     {
         final Player player = asPlayer(sender);
@@ -171,13 +195,53 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final QuantumMirror existing = MirrorManager.byName(name);
-        final MirrorPoint keep = (existing == null) ? null : existing.destination();
-        MirrorManager.add(new QuantumMirror(name, MirrorBlock.of(block), keep));
-        MirrorYamlManager.saveAll();
+        final MirrorBlock here = MirrorBlock.of(block);
+        final QuantumMirror byThatName = MirrorManager.byName(name);
+        final QuantumMirror onThisBanner = MirrorManager.at(here);
+        if ((byThatName != null) && (onThisBanner != null)
+            && !byThatName.name().equalsIgnoreCase(onThisBanner.name()))
+        {
+            say(sender, "This banner is already " + MirrorText.quoted(onThisBanner.name())
+                + ", and " + MirrorText.quoted(name) + " is a mirror somewhere else.");
+            say(sender, "Renaming this one would leave that one on no banner. Remove one of"
+                + " them first.");
+            return;
+        }
+        if ((byThatName != null) && (onThisBanner != null))
+        {
+            say(sender, MIRROR_IS + MirrorText.quoted(onThisBanner.name()) + " is already this"
+                + " banner. Nothing to do.");
+            return;
+        }
         sayWhereToClick(sender, block);
+        setFrom(sender, (byThatName != null) ? byThatName : onThisBanner, name, here);
+    }
 
-        if (keep == null)
+    /**
+     * Registers the mirror {@code set} has decided on, and says what happened.
+     *
+     * @param existing
+     *            the mirror being moved or renamed, or null to make a new one
+     * @param name
+     *            what it should be called
+     * @param here
+     *            the banner it should hang on
+     */
+    private static void setFrom(final CommandSender sender, final QuantumMirror existing,
+        final String name, final MirrorBlock here)
+    {
+        final String previous = (existing == null) ? null : existing.name();
+        final QuantumMirror mirror = (existing == null)
+            ? new QuantumMirror(name, here, null)
+            : existing.withName(name).withBanner(here);
+        if ((previous != null) && !previous.equalsIgnoreCase(name))
+        {
+            MirrorManager.remove(previous);
+        }
+        MirrorManager.add(mirror);
+        MirrorYamlManager.saveAll();
+
+        if (mirror.destination() == null)
         {
             say(sender, MIRROR_IS + MirrorText.quoted(name)
                 + " is this banner. It goes nowhere yet.");
@@ -185,12 +249,12 @@ public class MirrorCommand implements SubCommand
             say(sender, MirrorText.command("/wormhole mirror link", name)
                 + " -- or stand where arrivals should");
             say(sender, "land and run " + MirrorText.command("/wormhole mirror target", name));
+            return;
         }
-        else
-        {
-            say(sender, MIRROR_IS + MirrorText.quoted(name)
-                + " is this banner now, still pointing at " + describe(keep) + ".");
-        }
+        final String opening = ((previous != null) && !previous.equalsIgnoreCase(name))
+            ? MIRROR_IS + MirrorText.quoted(previous) + " is " + MirrorText.quoted(name) + " now"
+            : MIRROR_IS + MirrorText.quoted(name) + " is this banner now";
+        say(sender, opening + ", still pointing at " + describe(mirror.destination()) + ".");
     }
 
     /** Points a named mirror at where the player is standing. */
