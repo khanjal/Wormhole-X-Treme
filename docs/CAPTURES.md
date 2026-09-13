@@ -149,3 +149,21 @@ The slates are a few kilobytes each, so leaving some in place indefinitely costs
 labelled "Gate Placeholder") were the older, vaguer version of this same idea. The guide's slots
 replaced the only reference to them, so they were deleted rather than left orphaned in the
 directory.
+
+## The diagrams are not these captures
+
+`docs/images/gates/` and `docs/images/rings/` hold generated drawings — gate shapes, ring
+footprints, deploy filmstrips — and none of them fills a slot above. They are schematics of
+the geometry, drawn from the plugin's own shape files and constants, and they say what a thing
+*is*. A capture says what it *looks like*, which is a different question and the one a video
+answers: flat colour keyed to a block cannot show the event horizon's gradient, the particle
+column, or the way the kawoosh reads at speed.
+
+The two are also licensed differently, which is worth keeping straight. The diagrams are ours,
+drawn from our files. A capture is a screenshot or a recording of Minecraft, which is Mojang's
+to permit and which their terms do permit — while the game's *textures* are not ours to
+redistribute, which is precisely why the diagrams are flat colour rather than the real
+artwork.
+
+So the slates stay where they are. A slot with a slate in it is still waiting for a capture,
+whatever diagrams have appeared elsewhere in the same document.

@@ -30,6 +30,45 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The ring patterns, the stack and both deploys are drawn in the documentation.**
+  `docs/RINGS.md` now shows the two footprints in plan, the finished stack in elevation with a
+  player beside it for scale, a filmstrip of each deploy style frame by frame, and the transport
+  flash running through the stack.
+
+  The deploy strips are the ones worth having. "They travel further apart than they land" is
+  three sentences of prose and one glance at a picture: concurrent rings leave three half-steps
+  apart and close up from the top down as each arrives, and the two strips end in the same
+  stack while taking 11 frames and 20 to get there.
+
+  Nothing animates, and `docs/CAPTURES.md` had already made the argument against it -- three
+  ticks a ring through a four-ring stack is a fast bright flicker, an image on a page autoplays
+  forever, and the reader has no way to pause it. A filmstrip reads better anyway, because the
+  frames can be compared side by side instead of remembered.
+
+  **The test here is a different kind from the gate and mirror galleries', and had to be.**
+  Those read a resource file, so a fingerprint of the file catches a drawing that has gone
+  stale. Rings have no resource file: there are exactly two patterns, they are hardcoded, and
+  `RingPattern` argues at some length that a file format for two constant tables would be a
+  format to parse, validate, document and get wrong for nothing. So the renderer transcribes
+  the profiles and `RingAnimator`'s constants rather than reading them, and that duplication
+  would rot in the least visible direction there is -- a strip showing rings three half-steps
+  apart after the plugin moved to four still looks like a perfectly good diagram.
+
+  `RingGalleryTest` therefore runs the real animator. Each drawing carries a line saying what
+  it drew; the test rebuilds that from `RingPattern` and `RingAnimator` themselves, frame by
+  frame, and compares. It earned itself on its first run, failing on the two patterns for a
+  reason neither drawing was wrong about: Java was sorting the offsets as the strings they
+  print as, so `-1,-3` came before `-2,-2`, and Python was sorting them as numbers. Identical
+  sets of cells, two orderings, and a test that would have passed for the wrong reason if
+  either side had been written a little more loosely.
+
+  Checked further by changing `TRAVEL_GAP` and by widening the even profile, and watching the
+  right drawings fail each time with the command that redraws them.
+
+  `docs/CAPTURES.md` gained a short section saying these diagrams do not fill any of its slots.
+  A schematic says what a thing is; a capture says what it looks like, and no amount of flat
+  colour shows an event horizon's gradient. The slates stay where they are.
+
 - **The eleven gate shapes are drawn in the documentation, idle and dialled.**
   `docs/GATES.md` now shows every shape twice: the gate standing there, and the same gate with
   the portal filled and the chevrons on. The pair is most of what the shape file says, and the

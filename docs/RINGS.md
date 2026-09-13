@@ -28,6 +28,19 @@ The odd pattern **is the Standard gate's ring** — the same profile, `3,5,7,7,7
 flat instead of standing up. The even one is a size down, for rooms that cannot spare seven
 blocks in both directions.
 
+<!-- patterns:start -->
+
+| Odd | Even |
+|---|---|
+| <a href="images/rings/pattern-odd.svg"><img src="images/rings/pattern-odd.svg" width="196" alt="the odd ring pattern in plan"></a> | <a href="images/rings/pattern-even.svg"><img src="images/rings/pattern-even.svg" width="168" alt="the even ring pattern in plan"></a> |
+| 7 across — 16 perimeter, 21 interior, a true centre | 6 across — 12 perimeter, 12 interior, a 2x2 centre |
+
+Grey is the perimeter, which is what the player lays in slabs and what animates. Blue is the
+interior: the trigger volume, and the region that travels. The outlined cell is the anchor every
+offset is measured from.
+
+<!-- patterns:end -->
+
 What makes them read as circles rather than squares with clipped corners is that each corner
 turns through **two diagonal steps** rather than one, and that needs a diameter of at least
 six. At five, two steps collapse the shape into a diamond with no standing room, and the only
@@ -694,6 +707,22 @@ a block someone changed underneath it.
 
 Ceiling rings run the same sequence with the travel direction inverted.
 
+### What that looks like
+
+<!-- stack:start -->
+
+![The finished stack](images/rings/stack.svg)
+
+![The concurrent deploy, frame by frame](images/rings/deploy-concurrent.svg)
+
+![The sequential deploy, frame by frame](images/rings/deploy-sequential.svg)
+
+Each column is one frame and each slot one half-step. The two strips end in the same stack and
+differ only in when a ring leaves the plane, which is what makes this one number rather than two
+animations.
+
+<!-- stack:end -->
+
 ## The transport flash
 
 ![Flash, hold and retract](images/capture-ring-flash.svg)
@@ -725,6 +754,15 @@ both. A cycle carrying nobody shows no transport light at all.
 
 The lit ring is drawn **over** the stack rather than instead of it, so the rings that are not
 lit stay exactly where they are and nothing appears to move while the light passes.
+
+<!-- flash:start -->
+
+![The transport flash, frame by frame](images/rings/flash.svg)
+
+A filmstrip rather than a loop, deliberately: three ticks a ring through four rings is a fast
+bright flicker, and an animation on a page autoplays forever with no way to pause it.
+
+<!-- flash:end -->
 
 ## A ring that is no longer fit to arrive in
 
