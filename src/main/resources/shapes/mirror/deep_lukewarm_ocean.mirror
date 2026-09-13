@@ -1,0 +1,8 @@
+# The warm sea with depth under it.
+# The format is documented in docs/MIRRORS.md.
+Name=deep_lukewarm_ocean
+Base=CYAN
+Biome=DEEP_LUKEWARM_OCEAN
+Layer=BLACK GRADIENT_UP
+Layer=WHITE TRIANGLES_TOP
+Layer=CYAN BORDER

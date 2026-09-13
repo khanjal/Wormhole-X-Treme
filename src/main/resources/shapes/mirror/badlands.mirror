@@ -1,0 +1,8 @@
+# Terracotta reads as bands of colour, so the banner is bands of colour.
+# The format is documented in docs/MIRRORS.md.
+Name=badlands
+Base=ORANGE
+Biome=BADLANDS
+Layer=WHITE STRIPE_MIDDLE
+Layer=RED STRIPE_BOTTOM
+Layer=ORANGE BORDER

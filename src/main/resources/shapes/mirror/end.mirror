@@ -1,7 +1,8 @@
-# A mirror onto the End. The format is documented in docs/MIRRORS.md.
+# The central island, and the look the whole End used to share.
+# The format is documented in docs/MIRRORS.md.
 Name=end
 Base=BLACK
-Biome=THE_END,END_HIGHLANDS,END_MIDLANDS,SMALL_END_ISLANDS,END_BARRENS
+Biome=THE_END
 Layer=PURPLE CURLY_BORDER
 Layer=YELLOW GLOBE
 Layer=PURPLE BORDER

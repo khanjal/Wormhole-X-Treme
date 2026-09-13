@@ -1,6 +1,5 @@
-# A mirror somebody should think twice about -- one that only goes one way, or opens onto
-# something that will kill them. Stamped by hand; no biome names it. The format is documented
-# in docs/MIRRORS.md.
+# Hazard colours, for a mirror that leads somewhere you should think about first.
+# The format is documented in docs/MIRRORS.md.
 Name=warning
 Base=YELLOW
 Layer=BLACK CROSS

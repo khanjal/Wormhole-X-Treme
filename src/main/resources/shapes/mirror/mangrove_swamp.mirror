@@ -1,0 +1,8 @@
+# The same water, and the roots that make it a different place.
+# The format is documented in docs/MIRRORS.md.
+Name=mangrove_swamp
+Base=GREEN
+Biome=MANGROVE_SWAMP
+Layer=CYAN GRADIENT_UP
+Layer=BROWN SMALL_STRIPES
+Layer=GREEN BORDER

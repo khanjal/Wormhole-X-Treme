@@ -1,0 +1,8 @@
+# The same sea with the dark coming up from underneath it.
+# The format is documented in docs/MIRRORS.md.
+Name=deep_ocean
+Base=BLUE
+Biome=DEEP_OCEAN
+Layer=BLACK GRADIENT_UP
+Layer=WHITE TRIANGLES_TOP
+Layer=BLUE BORDER

@@ -1,0 +1,8 @@
+# A coast with no beach to it -- rock straight down into the water.
+# The format is documented in docs/MIRRORS.md.
+Name=stony_shore
+Base=LIGHT_GRAY
+Biome=STONY_SHORE
+Layer=BLUE HALF_HORIZONTAL_BOTTOM
+Layer=GRAY TRIANGLES_BOTTOM
+Layer=GRAY BORDER

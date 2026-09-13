@@ -1,0 +1,8 @@
+# Bamboo is vertical and nothing else in the jungle is.
+# The format is documented in docs/MIRRORS.md.
+Name=bamboo_jungle
+Base=GREEN
+Biome=BAMBOO_JUNGLE
+Layer=LIME SMALL_STRIPES
+Layer=LIME CURLY_BORDER
+Layer=GREEN BORDER

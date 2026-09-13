@@ -1,8 +1,8 @@
-# A mirror onto the deep places. The format is documented in docs/MIRRORS.md.
+# Generic underground, for a place that is a cave without being one of the three cave biomes.
+# The format is documented in docs/MIRRORS.md.
 Name=cavern
 Sheltered=true
 Base=GRAY
-Biome=DRIPSTONE_CAVES,LUSH_CAVES,DEEP_DARK
 Layer=BLACK TRIANGLES_TOP
 Layer=BLACK TRIANGLES_BOTTOM
 Layer=GRAY BORDER

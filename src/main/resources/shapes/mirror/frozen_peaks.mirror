@@ -1,0 +1,8 @@
+# One peak, in ice rather than stone.
+# The format is documented in docs/MIRRORS.md.
+Name=frozen_peaks
+Base=LIGHT_BLUE
+Biome=FROZEN_PEAKS
+Layer=WHITE TRIANGLE_TOP
+Layer=WHITE TRIANGLES_BOTTOM
+Layer=LIGHT_BLUE BORDER

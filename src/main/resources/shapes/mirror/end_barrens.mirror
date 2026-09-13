@@ -1,0 +1,7 @@
+# One thin band of rock in a lot of nothing.
+# The format is documented in docs/MIRRORS.md.
+Name=end_barrens
+Base=BLACK
+Biome=END_BARRENS
+Layer=PURPLE STRIPE_MIDDLE
+Layer=PURPLE BORDER

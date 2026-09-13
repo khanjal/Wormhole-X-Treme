@@ -1,0 +1,7 @@
+# The other end of exit, pointing in. A pair reads as a pair from across a room.
+# The format is documented in docs/MIRRORS.md.
+Name=arrival
+Base=BLUE
+Layer=WHITE STRIPE_CENTER
+Layer=WHITE TRIANGLE_TOP
+Layer=BLUE BORDER

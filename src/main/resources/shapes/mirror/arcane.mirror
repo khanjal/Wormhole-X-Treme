@@ -1,6 +1,7 @@
-# A mirror that should look as though it cost something to open. Stamped by hand; no biome
-# names it. The format is documented in docs/MIRRORS.md.
+# Something that cost you to open. The lozenge under the charge is what keeps the flower from dissolving into the purple at range.
+# The format is documented in docs/MIRRORS.md.
 Name=arcane
 Base=PURPLE
+Layer=BLACK RHOMBUS
 Layer=MAGENTA FLOWER
 Layer=MAGENTA BORDER

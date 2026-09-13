@@ -48,10 +48,32 @@ public final class MirrorPresetRegistry
      * for {@code mirror stamp <name> <look>}, where what the operator wants said about a mirror
      * is not where it goes.
      */
-    private static final String[] DEFAULTS = { "nether.mirror", "end.mirror", "ocean.mirror",
-        "forest.mirror", "desert.mirror", "frozen.mirror", "cavern.mirror", "mountain.mirror",
-        "overworld.mirror", "indoors.mirror", "pale_garden.mirror", "sparse_jungle.mirror",
-        "plain.mirror", "hub.mirror", "warning.mirror", "private.mirror", "arcane.mirror" };
+    private static final String[] DEFAULTS = {
+        "plains.mirror", "sunflower_plains.mirror", "meadow.mirror", "swamp.mirror",
+        "mangrove_swamp.mirror", "river.mirror", "frozen_river.mirror", "beach.mirror",
+        "snowy_beach.mirror", "stony_shore.mirror", "mushroom_fields.mirror", "forest.mirror",
+        "birch_forest.mirror", "old_growth_birch_forest.mirror", "dark_forest.mirror",
+        "flower_forest.mirror", "taiga.mirror", "snowy_taiga.mirror",
+        "old_growth_pine_taiga.mirror", "old_growth_spruce_taiga.mirror", "jungle.mirror",
+        "bamboo_jungle.mirror", "sparse_jungle.mirror", "cherry_grove.mirror",
+        "pale_garden.mirror", "windswept_forest.mirror", "desert.mirror", "badlands.mirror",
+        "eroded_badlands.mirror", "wooded_badlands.mirror", "savanna.mirror",
+        "savanna_plateau.mirror", "windswept_savanna.mirror", "snowy_plains.mirror",
+        "ice_spikes.mirror", "snowy_slopes.mirror", "frozen_peaks.mirror",
+        "jagged_peaks.mirror", "stony_peaks.mirror", "grove.mirror", "windswept_hills.mirror",
+        "windswept_gravelly_hills.mirror", "ocean.mirror", "deep_ocean.mirror",
+        "cold_ocean.mirror", "deep_cold_ocean.mirror", "lukewarm_ocean.mirror",
+        "deep_lukewarm_ocean.mirror", "warm_ocean.mirror", "frozen_ocean.mirror",
+        "deep_frozen_ocean.mirror", "dripstone_caves.mirror", "lush_caves.mirror",
+        "deep_dark.mirror", "nether.mirror", "crimson_forest.mirror", "warped_forest.mirror",
+        "soul_sand_valley.mirror", "basalt_deltas.mirror", "end.mirror",
+        "end_highlands.mirror", "end_midlands.mirror", "small_end_islands.mirror",
+        "end_barrens.mirror", "the_void.mirror", "overworld.mirror", "indoors.mirror",
+        "cavern.mirror", "plain.mirror", "hub.mirror", "warning.mirror", "private.mirror",
+        "arcane.mirror", "portal.mirror", "spawn.mirror", "exit.mirror", "arrival.mirror",
+        "locked.mirror", "staff.mirror", "market.mirror", "shrine.mirror", "danger.mirror",
+        "tomb.mirror", "vault.mirror", "forge.mirror", "library.mirror", "port.mirror",
+        "compass.mirror" };
 
     /** The one used when nothing else matches, and when the far side is enclosed. */
     private static final String FALLBACK = "overworld";

@@ -1,0 +1,7 @@
+# The way out, pointing down and out of the frame.
+# The format is documented in docs/MIRRORS.md.
+Name=exit
+Base=GREEN
+Layer=WHITE STRIPE_CENTER
+Layer=WHITE TRIANGLE_BOTTOM
+Layer=GREEN BORDER

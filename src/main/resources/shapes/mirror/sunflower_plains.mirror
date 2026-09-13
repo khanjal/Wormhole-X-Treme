@@ -1,0 +1,8 @@
+# Plains, and the one flower tall enough to stand against the sky.
+# The format is documented in docs/MIRRORS.md.
+Name=sunflower_plains
+Base=GREEN
+Biome=SUNFLOWER_PLAINS
+Layer=LIGHT_BLUE HALF_HORIZONTAL
+Layer=YELLOW FLOWER
+Layer=GREEN BORDER

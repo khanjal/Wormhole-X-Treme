@@ -1,0 +1,7 @@
+# Spines on a shelf. The fine stripes are doing all the work.
+# The format is documented in docs/MIRRORS.md.
+Name=library
+Sheltered=true
+Base=BROWN
+Layer=YELLOW SMALL_STRIPES
+Layer=BROWN BORDER

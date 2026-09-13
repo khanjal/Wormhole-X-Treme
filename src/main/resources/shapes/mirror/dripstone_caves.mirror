@@ -1,0 +1,9 @@
+# Teeth from the ceiling and teeth from the floor.
+# The format is documented in docs/MIRRORS.md.
+Name=dripstone_caves
+Sheltered=true
+Base=GRAY
+Biome=DRIPSTONE_CAVES
+Layer=BROWN TRIANGLES_TOP
+Layer=BROWN TRIANGLES_BOTTOM
+Layer=GRAY BORDER

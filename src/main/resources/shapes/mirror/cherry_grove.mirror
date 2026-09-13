@@ -1,0 +1,8 @@
+# Blossom around a trunk. The only biome whose colour is the point of it.
+# The format is documented in docs/MIRRORS.md.
+Name=cherry_grove
+Base=PINK
+Biome=CHERRY_GROVE
+Layer=MAGENTA CURLY_BORDER
+Layer=BROWN STRIPE_CENTER
+Layer=PINK BORDER

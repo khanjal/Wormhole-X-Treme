@@ -1,0 +1,9 @@
+# Growth hanging off a stone roof.
+# The format is documented in docs/MIRRORS.md.
+Name=lush_caves
+Sheltered=true
+Base=GREEN
+Biome=LUSH_CAVES
+Layer=LIME CURLY_BORDER
+Layer=GRAY TRIANGLES_TOP
+Layer=GREEN BORDER

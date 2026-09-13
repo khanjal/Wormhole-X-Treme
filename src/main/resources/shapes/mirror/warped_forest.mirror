@@ -1,0 +1,9 @@
+# The same shapes as crimson, and the opposite half of the wheel.
+# The format is documented in docs/MIRRORS.md.
+Name=warped_forest
+Sheltered=true
+Base=CYAN
+Biome=WARPED_FOREST
+Layer=BLUE TRIANGLES_TOP
+Layer=BLACK STRIPE_BOTTOM
+Layer=CYAN BORDER

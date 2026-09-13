@@ -1,7 +1,5 @@
-# The middle of a network, marked as a crossroads. Stamped by hand -- no biome names it --
-# and deliberately the starkest look here, because the one banner worth picking out of a
-# corridor is the one everything else goes through. The format is documented in
-# docs/MIRRORS.md.
+# The middle of a network: everything crosses here.
+# The format is documented in docs/MIRRORS.md.
 Name=hub
 Base=BLACK
 Layer=WHITE STRAIGHT_CROSS

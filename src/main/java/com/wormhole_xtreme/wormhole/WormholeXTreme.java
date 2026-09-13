@@ -228,11 +228,18 @@ public class WormholeXTreme extends JavaPlugin
             // proximity mirror is holding a blanked banner that only this plugin was going to
             // take back. Left alone it looks exactly like the plugin having eaten their
             // banners, which is the one impression a shutdown must not leave.
+            // Past Exception on purpose, the way disableEconomyQuietly reaches past it. An
+            // operator who copies a new jar over a running server leaves this classloader
+            // reading a file that is no longer there, so any class it had not loaded yet --
+            // MirrorPackets, if no proximity mirror happened to hide that session -- arrives
+            // as NoClassDefFoundError. That is an Error, it escaped the old catch, and it took
+            // every save below with it: gates, rings, beams and mirrors, none of them written.
+            // Cosmetic work must never cost the save.
             try
             {
                 com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.restoreAll();
             }
-            catch (final Exception e)
+            catch (final Exception | LinkageError e)
             {
                 prettyLog(Level.WARNING, "Failed to restore mirror appearances", e);
             }
@@ -268,7 +275,7 @@ public class WormholeXTreme extends JavaPlugin
                 disableEconomyQuietly();
                 prettyLog(Level.INFO, true, "Successfully shutdown.");
             }
-            catch (final Exception e)
+            catch (final Exception | LinkageError e)
             {
                     prettyLog(Level.SEVERE, "Caught exception while shutting down", e);
             }
@@ -293,7 +300,7 @@ public class WormholeXTreme extends JavaPlugin
                 com.wormhole_xtreme.wormhole.model.ring.RingYamlManager.saveWorld(world);
             }
         }
-        catch (final Exception e)
+        catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Failed to save transport rings", e);
         }
@@ -308,7 +315,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             com.wormhole_xtreme.wormhole.model.beam.BeamYamlManager.saveAll();
         }
-        catch (final Exception e)
+        catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Failed to save beam destinations", e);
         }
@@ -327,7 +334,7 @@ public class WormholeXTreme extends JavaPlugin
         {
             com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.saveAll();
         }
-        catch (final Exception e)
+        catch (final Exception | LinkageError e)
         {
             prettyLog(Level.WARNING, "Failed to save quantum mirrors", e);
         }

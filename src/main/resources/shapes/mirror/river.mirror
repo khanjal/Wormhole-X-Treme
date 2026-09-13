@@ -1,0 +1,7 @@
+# One band of water down the middle of the green. Nothing else needed.
+# The format is documented in docs/MIRRORS.md.
+Name=river
+Base=GREEN
+Biome=RIVER
+Layer=BLUE STRIPE_CENTER
+Layer=BLUE BORDER

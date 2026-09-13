@@ -1,0 +1,8 @@
+# The same berg over deeper water.
+# The format is documented in docs/MIRRORS.md.
+Name=deep_frozen_ocean
+Base=BLUE
+Biome=DEEP_FROZEN_OCEAN
+Layer=WHITE RHOMBUS
+Layer=WHITE TRIANGLES_TOP
+Layer=LIGHT_BLUE BORDER

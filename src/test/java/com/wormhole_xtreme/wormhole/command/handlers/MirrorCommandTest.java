@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -371,6 +372,182 @@ class MirrorCommandTest
 
         verify(player, atLeastOnce())
             .sendMessage(contains("Usage: " + MirrorText.COMMAND_COLOUR + "/wormhole mirror"));
+    }
+
+    /**
+     * A banner on a post, with nothing behind it, is still the banner you are looking at.
+     *
+     * <p>The bug this guards. {@code getTargetBlockExact} ray-traces against block shapes, and
+     * a freestanding banner is a thin post: standing beside one and looking at it, the ray can
+     * pass the shape entirely. Against a wall the miss is hidden, because the wall behind is
+     * hit and the player is told "that is a stone". On a post in the open the ray hits nothing
+     * at all, and a player standing right next to their banner was told to go and look at one
+     * within six blocks.
+     */
+    @Test
+    void aFreestandingBannerWithNothingBehindItIsStillFound()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+
+        assertEquals(post, MirrorCommand.bannerInSight(null, java.util.List.of(post)),
+            "a banner the ray missed but the line of sight crossed is the one meant");
+    }
+
+    /**
+     * Aiming at a banner picks that one, not whichever the ray reached first.
+     *
+     * <p>With two banners in a row -- a corridor of them is the case this feature was built
+     * for -- the one being pointed at is the one meant. Taking the first in the line of sight
+     * regardless would quietly bind the near one every time.
+     */
+    @Test
+    void theBannerYouAreAimedAtWinsOverTheOneInFront()
+    {
+        final Block aimed = banner(Material.WHITE_WALL_BANNER);
+        final Block nearer = banner(Material.MAGENTA_BANNER);
+
+        assertEquals(aimed, MirrorCommand.bannerInSight(aimed, java.util.List.of(nearer, aimed)));
+    }
+
+    /** A banner the ray passed through on its way to the wall behind it still counts. */
+    @Test
+    void aBannerInFrontOfTheBlockThatWasHitIsFound()
+    {
+        final Block wall = banner(Material.STONE);
+        final Block hanging = banner(Material.WHITE_WALL_BANNER);
+
+        assertEquals(hanging, MirrorCommand.bannerInSight(wall, java.util.List.of(hanging, wall)));
+    }
+
+    /**
+     * Looking at no banner at all is still no banner.
+     *
+     * <p>The other direction, and the one that keeps the fix from becoming "any banner
+     * anywhere": nothing in the line of sight means the refusal still happens. A mock with no
+     * line of sight answers null for it, which is also what a player in an unloaded chunk
+     * gives, so both are accepted as "nothing there".
+     */
+    @Test
+    void lookingAtNoBannerFindsNone()
+    {
+        final Block stone = banner(Material.STONE);
+
+        assertNull(MirrorCommand.bannerInSight(stone, java.util.List.of(stone)));
+        assertNull(MirrorCommand.bannerInSight(null, java.util.List.of()));
+        assertNull(MirrorCommand.bannerInSight(null, null));
+    }
+
+    /**
+     * The whole command binds a freestanding banner the ray trace missed.
+     *
+     * <p>The unit test above pins the decision; this pins that {@code set} actually asks the
+     * question that way. Without the line-of-sight route this refuses instead of naming
+     * anything, which is exactly what was reported.
+     */
+    @Test
+    void setBindsAFreestandingBannerTheRayTraceMissed()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(null);
+        when(player.getLineOfSight(null, 6)).thenReturn(java.util.List.of(post));
+
+        assertTrue(run(player, "mirror", "set", "Post"));
+
+        assertNotNull(MirrorManager.byName("Post"), "the banner on a post should have been named");
+    }
+
+    /**
+     * Aiming at the cloth of a banner on a post names that banner.
+     *
+     * <p>The half of this the line-of-sight fallback did not fix, reported after it landed: "I
+     * have to aim at the base of it to work... otherwise it goes through the banner". A
+     * standing banner occupies one block and is drawn about two tall, so the cloth -- the part
+     * anybody looks at -- hangs in the block above, where there is nothing to hit. The ray
+     * crosses that empty block and carries on, and no pass over the blocks it crossed will ever
+     * find the banner, because the banner is not on the ray at all.
+     */
+    @Test
+    void aimingAtTheClothOfABannerOnAPostFindsIt()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        final Block cloth = banner(Material.AIR);
+        when(cloth.getRelative(BlockFace.DOWN)).thenReturn(post);
+
+        assertEquals(post, MirrorCommand.bannerInSight(null, java.util.List.of(cloth)),
+            "the block above a banner on a post is where its cloth is drawn");
+    }
+
+    /**
+     * A banner actually on the ray beats one standing under it.
+     *
+     * <p>Both passes can match at once -- a corridor of banners on posts is exactly that
+     * arrangement -- and the one the player's ray genuinely crossed is the one they were
+     * looking at. Doing the passes in the other order would quietly prefer a banner one block
+     * below the aim.
+     */
+    @Test
+    void aBannerOnTheRayBeatsOneStandingUnderIt()
+    {
+        final Block underfoot = banner(Material.WHITE_BANNER);
+        final Block crossed = banner(Material.MAGENTA_BANNER);
+        when(crossed.getRelative(BlockFace.DOWN)).thenReturn(underfoot);
+
+        assertEquals(crossed, MirrorCommand.bannerInSight(null, java.util.List.of(crossed)));
+    }
+
+    /**
+     * The cloth rule does not apply to wall banners.
+     *
+     * <p>A wall banner is drawn inside its own block, so there is no cloth above it to aim at.
+     * Letting the rule apply to both families would mean aiming at a wall could name the banner
+     * hanging below the spot -- binding a mirror the player never pointed at.
+     */
+    @Test
+    void aWallBannerIsNotFoundByAimingAboveIt()
+    {
+        final Block hanging = banner(Material.WHITE_WALL_BANNER);
+        final Block wallAbove = banner(Material.STONE);
+        when(wallAbove.getRelative(BlockFace.DOWN)).thenReturn(hanging);
+
+        assertNull(MirrorCommand.bannerInSight(null, java.util.List.of(wallAbove)));
+    }
+
+    /**
+     * Naming a banner on a post says where it has to be clicked.
+     *
+     * <p>The one thing the plugin can say about a limitation it cannot fix. Only the base of a
+     * standing banner can be clicked; a right-click at the cloth passes through it, and no
+     * event reaches the plugin at all -- so there is no moment later at which it could explain
+     * itself. This is that moment, with the player standing in front of the banner they just
+     * named.
+     */
+    @Test
+    void namingABannerOnAPostSaysToClickItsBase()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(post);
+
+        assertTrue(run(player, "mirror", "set", "Post"));
+
+        verify(player, atLeastOnce()).sendMessage(contains("click near its base"));
+    }
+
+    /**
+     * A wall banner is not given advice it does not need.
+     *
+     * <p>It is drawn inside its own block and can be clicked anywhere on it. A line about
+     * bases on every mirror would be noise on the commonest one, and would teach people a
+     * restriction that is not true of what they just built.
+     */
+    @Test
+    void namingAWallBannerSaysNothingAboutBases()
+    {
+        final Block hanging = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(hanging);
+
+        assertTrue(run(player, "mirror", "set", "Hanging"));
+
+        verify(player, never()).sendMessage(contains("click near its base"));
     }
 
     /** A verb that needs a name and was not given one says which form it wanted. */

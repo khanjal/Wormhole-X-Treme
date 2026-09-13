@@ -1,0 +1,8 @@
+# The savanna tipped over. Needs the mirrored diagonal, which is why it could not exist before.
+# The format is documented in docs/MIRRORS.md.
+Name=windswept_savanna
+Base=YELLOW
+Biome=WINDSWEPT_SAVANNA
+Layer=BROWN DIAGONAL_UP_RIGHT
+Layer=BROWN STRIPE_CENTER
+Layer=ORANGE BORDER

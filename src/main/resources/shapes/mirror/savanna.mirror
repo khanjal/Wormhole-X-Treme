@@ -1,0 +1,8 @@
+# A flat-topped acacia is a bar on a post, and nothing else in the game looks like it.
+# The format is documented in docs/MIRRORS.md.
+Name=savanna
+Base=YELLOW
+Biome=SAVANNA
+Layer=BROWN STRIPE_MIDDLE
+Layer=BROWN STRIPE_CENTER
+Layer=ORANGE BORDER

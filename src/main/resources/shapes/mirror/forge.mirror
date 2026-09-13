@@ -1,0 +1,8 @@
+# Stonework with a fire under it.
+# The format is documented in docs/MIRRORS.md.
+Name=forge
+Sheltered=true
+Base=BLACK
+Layer=GRAY BRICKS
+Layer=ORANGE GRADIENT_UP
+Layer=BLACK BORDER

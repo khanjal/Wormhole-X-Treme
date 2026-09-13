@@ -1,0 +1,8 @@
+# The same bands, with the hoodoos standing off the top of them.
+# The format is documented in docs/MIRRORS.md.
+Name=eroded_badlands
+Base=ORANGE
+Biome=ERODED_BADLANDS
+Layer=RED TRIANGLES_TOP
+Layer=WHITE STRIPE_MIDDLE
+Layer=ORANGE BORDER

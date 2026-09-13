@@ -9,6 +9,7 @@ import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -96,6 +97,15 @@ public class MirrorCommand implements SubCommand
      */
     private static final int LOOK_LIST_BUDGET = 80;
 
+    /**
+     * How far away a banner can be and still count as the one being looked at.
+     *
+     * <p>Comfortably past a survival player's reach, so the limit is never what stops somebody
+     * naming the banner in front of them. The refusal says "six blocks" in words; both change
+     * together or neither does.
+     */
+    private static final int REACH = 6;
+
     /** The two verbs that point a mirror, named in the verb list, the switch and the prose. */
     private static final String TARGET = "target";
 
@@ -165,6 +175,7 @@ public class MirrorCommand implements SubCommand
         final MirrorPoint keep = (existing == null) ? null : existing.destination();
         MirrorManager.add(new QuantumMirror(name, MirrorBlock.of(block), keep));
         MirrorYamlManager.saveAll();
+        sayWhereToClick(sender, block);
 
         if (keep == null)
         {
@@ -318,6 +329,7 @@ public class MirrorCommand implements SubCommand
         MirrorManager.add(bound);
         MirrorYamlManager.saveAll();
         say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner.");
+        sayWhereToClick(sender, block);
         return bound;
     }
 
@@ -686,7 +698,7 @@ public class MirrorCommand implements SubCommand
             return null;
         }
         final Block block = world.getBlockAt(at.x(), at.y(), at.z());
-        if (!block.getType().name().endsWith("BANNER"))
+        if (!isBanner(block))
         {
             say(sender, MirrorText.quoted(mirror.name()) + " is not a banner any more. Put one"
                 + " back, or re-run " + MirrorText.command("/wormhole mirror set")
@@ -893,21 +905,134 @@ public class MirrorCommand implements SubCommand
      */
     private static Block lookedAtBanner(final Player player)
     {
-        final Block block = player.getTargetBlockExact(6);
-        if (block == null)
+        final Block exact = player.getTargetBlockExact(REACH);
+        final Block banner = bannerInSight(exact, player.getLineOfSight(null, REACH));
+        if (banner != null)
+        {
+            return banner;
+        }
+        if (exact == null)
         {
             say(player, "Look at the banner you want to use, within six blocks.");
             return null;
         }
-        if (!block.getType().name().endsWith("BANNER"))
+        say(player, "That is a "
+            + MirrorText.name(exact.getType().name().toLowerCase(Locale.ROOT))
+            + ", not a banner. A mirror has to be a banner -- wall-mounted or"
+            + " freestanding, either is fine.");
+        return null;
+    }
+
+    /**
+     * The banner being looked at: the block aimed at, or the first one the line of sight
+     * crosses.
+     *
+     * <p>Package-private and taking blocks rather than the player, so both routes can be
+     * tested without a live world -- which is the only way to get at a decision made of two
+     * Bukkit ray casts.
+     *
+     * <p>{@code getTargetBlockExact} alone is not enough, and a freestanding banner is where
+     * that shows. It ray-traces against block shapes, and a banner is a thin post: standing
+     * next to one and looking at it, the ray can pass by the shape entirely. On a wall banner
+     * the miss is invisible, because the wall behind it is hit instead and the command says
+     * "that is a stone". On a banner on a post in the open there is nothing behind it at all,
+     * so the ray hits nothing, and what the player gets is "look at a banner within six
+     * blocks" while they are standing right next to one. Reported exactly that way.
+     *
+     * <p>{@code getLineOfSight} steps through the blocks the ray passes through rather than
+     * their shapes, so the banner's block is in that list either way. The aimed-at block is
+     * still preferred when it is itself a banner: with two banners in a row, the one you are
+     * pointing at is the one you mean.
+     *
+     * <p>And then the block <em>under</em> the ray, for standing banners only. A standing
+     * banner occupies one block but is drawn about two tall -- the cloth, which is the part of
+     * it anybody actually looks at, hangs in the block above, where there is nothing to hit.
+     * Aim at the cloth and the ray goes straight through and out the other side; aim at the
+     * base and it works. That is how it was reported, in those words, after the line-of-sight
+     * fallback had already landed and fixed a different miss.
+     *
+     * <p>Standing banners only, because a wall banner is drawn inside its own block and a
+     * "look one block down" rule would let somebody name a wall banner by aiming at the wall
+     * above it.
+     *
+     * @param exact
+     *            the block the player is aimed at, or null if the ray hit nothing
+     * @param lineOfSight
+     *            the blocks the line of sight crosses, nearest first
+     * @return the banner to use, or null if there is none
+     */
+    static Block bannerInSight(final Block exact, final List<Block> lineOfSight)
+    {
+        if (isBanner(exact))
         {
-            say(player, "That is a "
-                + MirrorText.name(block.getType().name().toLowerCase(Locale.ROOT))
-                + ", not a banner. A mirror has to be a banner -- wall-mounted or"
-                + " freestanding, either is fine.");
+            return exact;
+        }
+        if (lineOfSight == null)
+        {
             return null;
         }
-        return block;
+        for (final Block block : lineOfSight)
+        {
+            if (isBanner(block))
+            {
+                return block;
+            }
+        }
+        // Second pass, and only after every block on the ray has been asked: a banner the ray
+        // actually crossed beats one merely standing under it.
+        for (final Block block : lineOfSight)
+        {
+            final Block below = (block == null) ? null : block.getRelative(BlockFace.DOWN);
+            if (isStandingBanner(below))
+            {
+                return below;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Says where a banner on a post has to be clicked, at the moment one becomes a mirror.
+     *
+     * <p>A standing banner is drawn about two blocks tall and only its base can be clicked --
+     * the cloth above has nothing to hit, so a right-click aimed at it passes straight through
+     * to whatever is behind. The plugin never sees that click at all: there is no event to
+     * answer and nothing to say at the time, which makes it exactly the sort of silence that
+     * gets read as a broken mirror.
+     *
+     * <p>So it is said here instead, once, to somebody standing in front of the banner they
+     * just named. Only for the standing family; a wall banner is drawn inside its own block and
+     * can be clicked anywhere on it.
+     *
+     * <p>Not a refusal. A banner on a post in the middle of a room is most of what a museum
+     * corridor is made of, and the mechanic is worth keeping for it -- what was missing was
+     * anybody being told how it behaves.
+     */
+    private static void sayWhereToClick(final CommandSender sender, final Block block)
+    {
+        if (!isStandingBanner(block))
+        {
+            return;
+        }
+        say(sender, "That one stands on a post, so click near its base to travel -- the cloth"
+            + " above it cannot be clicked. A banner on a wall works anywhere on it.");
+    }
+
+    /**
+     * Whether a banner stands on the ground rather than hanging on a wall.
+     *
+     * <p>The two families are told apart by name, the way the rest of this feature does it:
+     * sixteen {@code *_WALL_BANNER} and sixteen {@code *_BANNER}, one per dye colour.
+     */
+    private static boolean isStandingBanner(final Block block)
+    {
+        return isBanner(block) && !block.getType().name().endsWith("WALL_BANNER");
+    }
+
+    /** Whether a block is a banner of either family, which is what a mirror has to be. */
+    private static boolean isBanner(final Block block)
+    {
+        return (block != null) && block.getType().name().endsWith("BANNER");
     }
 
     private static QuantumMirror known(final CommandSender sender, final String name)

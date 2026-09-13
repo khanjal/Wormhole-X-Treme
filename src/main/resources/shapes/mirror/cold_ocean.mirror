@@ -1,0 +1,8 @@
+# Colder water is paler water.
+# The format is documented in docs/MIRRORS.md.
+Name=cold_ocean
+Base=BLUE
+Biome=COLD_OCEAN
+Layer=LIGHT_BLUE GRADIENT_UP
+Layer=WHITE TRIANGLES_TOP
+Layer=LIGHT_BLUE BORDER

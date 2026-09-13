@@ -1,0 +1,8 @@
+# The snowy wood below the slopes: forest shapes on a white field.
+# The format is documented in docs/MIRRORS.md.
+Name=grove
+Base=WHITE
+Biome=GROVE
+Layer=GREEN TRIANGLES_TOP
+Layer=BROWN STRIPE_BOTTOM
+Layer=WHITE BORDER

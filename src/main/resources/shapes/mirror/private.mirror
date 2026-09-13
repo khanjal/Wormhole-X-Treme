@@ -1,6 +1,5 @@
-# A mirror that is not for general use, barred across. Stamped by hand; no biome names it.
-# The bar is decoration and nothing else -- whether anyone may use the mirror is a question
-# for permissions. The format is documented in docs/MIRRORS.md.
+# A bar painted across a banner. Carries no permission -- it says something, it does not enforce it.
+# The format is documented in docs/MIRRORS.md.
 Name=private
 Base=GRAY
 Layer=RED STRIPE_DOWNRIGHT

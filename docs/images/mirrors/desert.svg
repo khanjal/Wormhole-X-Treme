@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 46" width="156" height="276" role="img" aria-label="the desert mirror look">
+<!-- fp desert ab36f1f7e1 -->
+<rect x="0" y="0" width="26" height="46" fill="#0d1420" rx="2"/>
+<g transform="translate(3,3)"><rect x="0" y="0" width="20" height="40" fill="#FED83D"/><defs><linearGradient id="gdes0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9801D" stop-opacity="1"/><stop offset="1" stop-color="#F9801D" stop-opacity="0"/></linearGradient></defs><rect x="0" y="0" width="20" height="40" fill="url(#gdes0)"/><rect x="0" y="35" width="20" height="5" fill="#835432"/><path d="M0 0h20v40H0z M1.6 1.6v36.8h16.8V1.6z" fill="#F9801D" fill-rule="evenodd"/><rect x="0" y="0" width="20" height="40" fill="none" stroke="#ffffff40" stroke-width="0.6"/></g>
+</svg>

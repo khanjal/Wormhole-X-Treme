@@ -1,0 +1,8 @@
+# Pine: bare trunks for most of their height, and needles only at the top.
+# The format is documented in docs/MIRRORS.md.
+Name=old_growth_pine_taiga
+Base=GREEN
+Biome=OLD_GROWTH_PINE_TAIGA
+Layer=BROWN SMALL_STRIPES
+Layer=BLACK TRIANGLES_TOP
+Layer=GREEN BORDER

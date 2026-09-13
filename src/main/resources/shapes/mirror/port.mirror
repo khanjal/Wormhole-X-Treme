@@ -1,0 +1,7 @@
+# A mast and a waterline, for the mirror at the dock.
+# The format is documented in docs/MIRRORS.md.
+Name=port
+Base=BLUE
+Layer=BROWN STRIPE_CENTER
+Layer=WHITE STRIPE_MIDDLE
+Layer=BLUE BORDER

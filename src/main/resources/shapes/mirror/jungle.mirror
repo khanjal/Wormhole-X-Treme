@@ -1,0 +1,8 @@
+# A curly border reads as leaf edge rather than as a frame, which is what a canopy is.
+# The format is documented in docs/MIRRORS.md.
+Name=jungle
+Base=GREEN
+Biome=JUNGLE
+Layer=LIME CURLY_BORDER
+Layer=BROWN STRIPE_BOTTOM
+Layer=GREEN BORDER

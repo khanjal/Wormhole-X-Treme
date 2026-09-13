@@ -1,0 +1,8 @@
+# A cap and a stalk on mycelium. The strangest island in the game, drawn plainly.
+# The format is documented in docs/MIRRORS.md.
+Name=mushroom_fields
+Base=PURPLE
+Biome=MUSHROOM_FIELDS
+Layer=RED CIRCLE
+Layer=WHITE STRIPE_CENTER
+Layer=PURPLE BORDER

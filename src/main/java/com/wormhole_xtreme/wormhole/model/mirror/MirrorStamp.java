@@ -307,17 +307,32 @@ public final class MirrorStamp
         {
             return RESOLVED.get(name);
         }
-        PatternType type = null;
-        try
+        PatternType type = lookUp(name);
+        if (type == null)
         {
-            type = (PatternType) VALUE_OF.invoke(null, name);
-        }
-        catch (final ReflectiveOperationException | RuntimeException | LinkageError notThere)
-        {
-            type = null;
+            // The seven Mojang renamed. Asked for only after the given spelling has missed, so
+            // a server that has the name a preset used keeps using it and never pays for this.
+            type = lookUp(PatternAliases.other(name));
         }
         RESOLVED.put(name, type);
         return type;
+    }
+
+    /** One reflective {@code valueOf}, answering null for every way it can fail. */
+    private static PatternType lookUp(final String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        try
+        {
+            return (PatternType) VALUE_OF.invoke(null, name);
+        }
+        catch (final ReflectiveOperationException | RuntimeException | LinkageError notThere)
+        {
+            return null;
+        }
     }
 
     /** Looks up {@code PatternType.valueOf} once, whatever kind of type it is declared on. */

@@ -30,6 +30,89 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The eighty-eight looks are drawn in the documentation, with the recipe beside each.**
+  `docs/MIRRORS.md` now shows every look: one drawing per preset, in tables grouped by area and
+  type, with the biome it answers for -- or what it is for, when it answers for none -- and the
+  layers the plugin actually applies, in order.
+
+  The layer column is the point rather than a detail. The gallery is meant to be held up against
+  a banner stamped in game, and the drawings are approximations of the patterns: the curly border
+  is scallops, the charges are rough. A picture that does not quite match is as likely to be the
+  page's drawing as the plugin's stamp, so the page says so and puts the exact recipe beside it.
+  A banner that disagrees with *that* is a real disagreement.
+
+  Everything between the gallery markers is written by `scripts/render_mirror_sheets.py` from the
+  preset files -- the images and the tables both -- so neither can drift into describing a
+  library that is not there. `MirrorGalleryTest` holds it: each drawing records a fingerprint of
+  the preset it came from and the test recomputes them, so changing a base colour fails the build
+  with the name of the look and the command that fixes it. Checked by editing a preset and
+  watching it fail.
+
+  Each drawing is six times the size it is shown at, and linked to itself, so clicking one opens
+  something a pattern can actually be read off -- GitHub's sanitiser allows neither a stylesheet
+  nor a script in a document, so there is no hover-to-enlarge to be had, and a link to a vector
+  costs nothing but two numbers in the file. Hovering gives the recipe as a tooltip.
+
+  Seventy kilobytes for all eighty-eight, in a repository whose entire history packs to about
+  five megabytes. Each drawing carries its own dark ground, like every other SVG in
+  `docs/images`: GitHub renders a document on a light or a dark page depending on the reader, and
+  a white banner on a white page is not a picture of anything.
+
+- **A look for every biome in the game, and twenty-three more for what a mirror is *for*.**
+  Seventeen presets became eighty-eight.
+
+  Sixty-five of them are places, one per biome. The nine oceans used to share one banner and the
+  ten woods another, so a mirror onto a jagged peak and a mirror onto a frozen peak were the same
+  picture -- the banner told you which family you were looking at rather than where you were
+  going. `taiga` and `snowy_taiga` are now the same spruce over a different field, `warm_ocean`
+  is the only one with coral in it, and `the_void` is a black banner with a grey frame, because
+  a void world is a real place to keep an archive in.
+
+  One grammar holds them together rather than sixty-five ideas: a base colour for the ground, a
+  layer or two of what the place is made of, and a border in the family's colour. Two biomes in
+  the same family usually differ by one layer.
+
+  The other twenty-three name no biome and are reached only by `mirror stamp <name> <look>`.
+  `portal`, `spawn`, `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`,
+  `vault`, `forge`, `library`, `port` and `compass` join the five that were already there. They
+  are for what an operator wants said about a mirror when it is not where it goes -- and none of
+  them carry any behaviour, the way `private` never did. `locked` says a thing is shut; something
+  else still has to do the shutting.
+
+  `MirrorBiomeCoverageTest` holds the rule in both directions. No biome without a look is the
+  obvious half; no biome claimed by two is the half that matters, because `forBiome` returns the
+  first preset that answers and the order is load order -- so a biome named twice does not
+  conflict, it silently picks whichever file loaded first, and nothing says a word.
+
+  The biome list in that test is written out rather than read from `Biome`. CI builds against
+  1.20.4 and 1.21.10, and `Biome` is an enum on the one and registry-backed on the other, so
+  `Biome.values()` compiles here and fails there -- the same trap `PatternType` laid for the
+  stamp. It also fails in the direction that helps: when Mojang adds a biome, somebody has to
+  come and add it to the list, which is the moment to write its preset.
+- **Seven banner patterns came back, including the only round one.** The shipped library could
+  use 34 of the game's 43 patterns. It can now use 41.
+
+  The seven were never missing. Mojang *renamed* them at 1.21 -- `CIRCLE_MIDDLE` to `CIRCLE`,
+  `STRIPE_SMALL` to `SMALL_STRIPES`, and the four `_MIRROR` ones -- so every supported server has
+  all seven and they disagree only about what to call them. A preset file can spell a thing one
+  way, so naming either spelling lost that layer on half the supported range, with a FINE line
+  nobody reads to explain it.
+
+  `PatternAliases` maps the fourteen spellings to each other and the stamp asks for the other one
+  when the first misses. Only after: a server that has the name a preset used never pays for it.
+
+  The pairs came from vanilla's own identifiers rather than from how alike the names look, and
+  one of them needed it. 1.20's `DIAGONAL_LEFT_MIRROR` carries the id `lud`, which 1.21 spells
+  `DIAGONAL_UP_LEFT` -- while `DIAGONAL_LEFT` is a different pattern (`ld`) sitting one letter
+  away. Pairing by name would have drawn the wrong half of the banner on one version and the
+  right half on the other, and there is a test asserting the two stay distinct.
+
+  What it buys: `CIRCLE` and `RHOMBUS` are the only round and diamond shapes in the game, and
+  without them every look was bands and triangles. `portal` -- a lit ring on a dark field -- is
+  the first look here that reads as a thing seen through rather than as scenery. `windswept_savanna`
+  leans the way the wind does, which needed the mirrored diagonal. `FLOW` and `GUSTER` are still
+  out of reach and no table can help: 1.20 does not have that artwork under any name.
+
 - **Seven more looks a mirror's banner can wear, and no biome left without one.** Ten shipped;
   there are seventeen.
 
@@ -144,6 +227,113 @@ been running on defaults will start reading the file you have been editing.
 
 ### Fixed
 
+- **A tidy-up that failed on shutdown took every save with it.** Reported from a live server:
+  `NoClassDefFoundError: .../MirrorPackets` thrown out of `onDisable`, from the call that gives
+  proximity mirrors their look back.
+
+  The cause is ordinary operator practice. Copy a new jar over a running server and then restart
+  it -- which is what most people do -- and the plugin classloader goes on reading the file it
+  opened at startup. Any class it had not needed yet is gone by the time the server stops.
+  `MirrorPackets` loads only when a proximity mirror actually hides or reveals, so whether it
+  was already in memory came down to whether anybody walked past one that session. Hence
+  "occasionally".
+
+  `NoClassDefFoundError` is an `Error`, the restore was wrapped in `catch (Exception)`, and so
+  the throw left `onDisable` at its first statement. Everything below was skipped: the
+  configuration, every gate, the rings, the beam destinations and the mirrors, none of them
+  written to disk. A cosmetic step nobody would miss was quietly costing the save that everybody
+  would.
+
+  Every catch in the shutdown path now reaches past `Exception` the way `disableEconomyQuietly`
+  already did, and a source-scanning test holds the rule -- bounded to the shutdown path, since
+  the startup methods below it catch `Exception` on purpose and a startup failure happens while
+  the jar is still whole. The test checks the region contains the steps it should before
+  concluding anything from it: two markers and a substring are a fragile way to point at code,
+  and a scan that silently shrank to nothing would pass forever.
+
+  Worth saying plainly: copying a jar over a running server is not a supported thing to do to
+  any plugin, and this fix does not make it one. It makes this plugin fail the way it should
+  when you do -- noisily, and after saving.
+
+- **A banner on a post could not be named, from right next to it.** `/wormhole mirror set` and
+  `/wormhole mirror link` answered "Look at the banner you want to use, within six blocks" to
+  somebody standing in front of one.
+
+  Both find the banner with `getTargetBlockExact`, which ray-traces against block shapes, and a
+  freestanding banner is a thin post -- close up, the ray can pass the shape entirely. On a wall
+  banner the miss is invisible: the wall behind it gets hit instead, so the command says "that
+  is a stone" and the player aims again. On a post in the open there is nothing behind it, the
+  ray hits nothing at all, and the answer is a refusal that describes exactly what the player is
+  already doing.
+
+  It now falls back to `getLineOfSight`, which steps through the blocks a ray passes through
+  rather than their shapes, so the banner's own block is in the list either way. The aimed-at
+  block still wins when it is itself a banner -- in a corridor of them, the one you are pointing
+  at is the one you mean.
+
+  That fixed one miss and not the other, which only came out on the next banner: "I have to aim
+  at the base of it to work... otherwise it goes through the banner". A standing banner occupies
+  one block and is drawn about two tall, so its cloth -- the part anybody actually looks at --
+  hangs in the block above, where there is nothing to hit. No pass over the blocks the ray
+  crossed could ever find it, because the banner is not on the ray at all. So the block *under*
+  each one on the ray is asked too, and only for standing banners: a wall banner is drawn inside
+  its own block, and the same rule there would let somebody name one by aiming at the wall above
+  it.
+- **Naming a banner on a post now says where it has to be clicked.** The same two-blocks-tall
+  drawing that hid a standing banner from `set` also means only its base can be right-clicked to
+  travel: a click at the cloth passes through and reaches this plugin as no event at all, so
+  there is no later moment at which it could explain itself.
+
+  `set` and `link` say it when one becomes a mirror, to somebody standing in front of the banner
+  they just named, and say nothing for a wall banner -- which is drawn inside its own block and
+  works anywhere on it.
+
+  Not a refusal: a banner on a post in the middle of a room is most of what a museum corridor is
+  made of. Making the cloth genuinely clickable needs a hitbox up there -- an `interaction`
+  entity per standing mirror -- which is a feature with an entity lifecycle attached, and is not
+  this.
+- **A linked pair of mirrors sent you straight back where you came from.** Click the return
+  banner, arrive in the other world, and be returned to the banner you started at inside a
+  second -- which reads as a mirror that opens onto itself. Reported as "clicking the return
+  mirror just takes me back to it instead of the one in world", on a pair `/wormhole mirror
+  list` showed bound correctly to each other.
+
+  The teleport was never the problem. A mirror arrives a player at the destination banner's
+  own block -- deliberately, because that is the one spot a builder guaranteed is clear -- so
+  they land inside or directly under the far banner with it filling the screen. A right-click
+  still being delivered when they get there, from a held button or the client resolving the
+  interaction again at the new position, lands on that banner and fires it. Two bound mirrors
+  make that a round trip.
+
+  The log that found it, from a diagnostic build, is the whole story in four lines: the trip
+  out accepted at `-107,109,-22` in `world`, and in the same second a fresh click on
+  `world:-108:110:-23` -- the far banner -- travelling back.
+
+  A mirror now ignores the player it has just carried, for two seconds. Not only the banner
+  they arrived at: the same click can be re-resolved against whatever banner is now in front
+  of them, which on a corridor of them need not be the one they came out of. It is armed only
+  once a teleport has actually been accepted, so a trip another plugin refused does not also
+  cost the player a wait. The first ignored click says why, and repeats say nothing -- one held
+  button would otherwise write a column of the same line, which is the chat-spam failure this
+  project already fixed for a player holding forward against a locked gate.
+
+  I spent a while certain this was Multiverse cancelling the teleport, and it was not; the
+  fix below is what proved it wasn't, by making a refusal say so and then not saying so.
+- **A mirror another plugin refused looked exactly like a mirror pointing at itself.** Cancel a
+  `PlayerTeleportEvent` and the player stays precisely where they were -- and where they were is
+  the banner they just clicked. `MirrorInteraction` threw away the boolean `Player.teleport`
+  returns, so a refused trip said nothing at all. Reported as a linked pair where clicking the
+  return banner "just takes me back to it instead of the one in world", with both ends listed
+  correctly by `/wormhole mirror list`.
+
+  The usual canceller is a world-access plugin. Multiverse intercepts other plugins' teleports
+  by default and applies `enforce-access` to them, so a player without `multiverse.access.<world>`
+  is turned back by a rule this plugin never sees; a land-claim plugin does the same thing for
+  its own reasons.
+
+  A refusal now names the world and says who tends to be behind it. That is as far as this
+  plugin can go -- it cannot overrule another plugin's cancel, and should not try -- but "you
+  are not allowed into `world`" is an answer somebody can act on, where silence is not.
 - **A ceiling ring in a room deeper than four blocks fired over and over and took nobody.**
   The volume that arms a ring and the volume that decides who rides it were worked out two
   different ways. `RingIndex` armed a ceiling ring over `max-ceiling-drop + 2` layers -- twelve

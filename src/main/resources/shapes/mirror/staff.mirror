@@ -1,0 +1,6 @@
+# For the mirrors that run the place rather than the ones people use.
+# The format is documented in docs/MIRRORS.md.
+Name=staff
+Base=PURPLE
+Layer=YELLOW RHOMBUS
+Layer=YELLOW BORDER

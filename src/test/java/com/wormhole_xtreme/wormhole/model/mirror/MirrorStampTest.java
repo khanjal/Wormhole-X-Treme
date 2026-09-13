@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -225,6 +226,36 @@ class MirrorStampTest
         assertNull(MirrorStamp.patternType(""));
         assertEquals(MirrorStamp.patternType("BORDER"), MirrorStamp.patternType("BORDER"),
             "a second lookup should come back from the cache with the same answer");
+    }
+
+    /**
+     * Either spelling of a renamed pattern resolves, and to the same pattern.
+     *
+     * <p>The payoff for {@link PatternAliases}, tested where it actually matters: this runs on
+     * the 1.20 API, where {@code CIRCLE} does not exist at all. Before the alias table it
+     * resolved to null, the layer was dropped, and the banner came out missing its motif with
+     * only a FINE line to say why.
+     *
+     * <p>The last assertion is the one guarding against a plausible wrong fix. {@code
+     * DIAGONAL_LEFT} exists on both versions and is a different pattern from {@code
+     * DIAGONAL_UP_LEFT}; an alias table built by matching names that look similar would collapse
+     * the two and draw the wrong half of the banner.
+     */
+    @Test
+    void resolvesBothSpellingsOfAPatternMojangRenamed()
+    {
+        assumeTrue(patternsAvailable(),
+            "this jar cannot build a pattern outside a running server");
+
+        assertNotNull(MirrorStamp.patternType("CIRCLE"),
+            "the 1.21 spelling should resolve through the alias on an older jar");
+        assertNotNull(MirrorStamp.patternType("CIRCLE_MIDDLE"),
+            "the 1.20 spelling should resolve directly here");
+        assertEquals(MirrorStamp.patternType("CIRCLE"), MirrorStamp.patternType("CIRCLE_MIDDLE"),
+            "both spellings name one pattern, so both must land on the same one");
+        assertNotEquals(MirrorStamp.patternType("DIAGONAL_UP_LEFT"),
+            MirrorStamp.patternType("DIAGONAL_LEFT"),
+            "the up-diagonal is a different pattern from the plain one, not an alias of it");
     }
 
     /** The patterns the banner was given. */

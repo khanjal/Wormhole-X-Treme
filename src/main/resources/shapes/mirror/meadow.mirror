@@ -1,0 +1,8 @@
+# High pasture: brighter grass than the plains, and always in flower.
+# The format is documented in docs/MIRRORS.md.
+Name=meadow
+Base=LIME
+Biome=MEADOW
+Layer=LIGHT_BLUE HALF_HORIZONTAL
+Layer=PINK FLOWER
+Layer=LIME BORDER

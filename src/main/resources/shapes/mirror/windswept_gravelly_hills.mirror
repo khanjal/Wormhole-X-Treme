@@ -1,0 +1,8 @@
+# The same hills, broken into gravel. The fine stripes are the gravel.
+# The format is documented in docs/MIRRORS.md.
+Name=windswept_gravelly_hills
+Base=LIGHT_GRAY
+Biome=WINDSWEPT_GRAVELLY_HILLS
+Layer=GRAY SMALL_STRIPES
+Layer=GRAY TRIANGLE_TOP
+Layer=GRAY BORDER

@@ -1,0 +1,8 @@
+# The river again, gone still and pale, with the cracks across it.
+# The format is documented in docs/MIRRORS.md.
+Name=frozen_river
+Base=LIGHT_GRAY
+Biome=FROZEN_RIVER
+Layer=LIGHT_BLUE STRIPE_CENTER
+Layer=WHITE SMALL_STRIPES
+Layer=LIGHT_BLUE BORDER

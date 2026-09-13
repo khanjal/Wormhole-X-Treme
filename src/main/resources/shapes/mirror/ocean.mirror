@@ -1,7 +1,8 @@
-# A mirror onto open water. The format is documented in docs/MIRRORS.md.
+# Waves along the top, light falling off towards the bottom.
+# The format is documented in docs/MIRRORS.md.
 Name=ocean
 Base=BLUE
-Biome=OCEAN,DEEP_OCEAN,COLD_OCEAN,DEEP_COLD_OCEAN,LUKEWARM_OCEAN,DEEP_LUKEWARM_OCEAN,WARM_OCEAN,FROZEN_OCEAN,DEEP_FROZEN_OCEAN
+Biome=OCEAN
 Layer=CYAN GRADIENT_UP
 Layer=WHITE TRIANGLES_TOP
 Layer=BLUE BORDER

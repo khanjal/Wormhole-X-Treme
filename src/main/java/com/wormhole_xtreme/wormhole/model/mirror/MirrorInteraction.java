@@ -98,6 +98,18 @@ public final class MirrorInteraction
      */
     private static void travel(final Player player, final QuantumMirror mirror)
     {
+        // Before the permission check, because this is not about who they are: a player who
+        // may use mirrors is exactly the one who has just been carried by one, and is standing
+        // in the far banner with the click still arriving.
+        if (MirrorSettle.settling(player))
+        {
+            if (MirrorSettle.shouldExplain(player))
+            {
+                say(player, "Mirrors settle for a moment after one puts you down. Step away"
+                    + " from the banner and click again.");
+            }
+            return;
+        }
         if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
         {
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
@@ -119,7 +131,31 @@ public final class MirrorInteraction
             return;
         }
         final Location safe = WorldUtils.findSafePlayerLocation(destination);
-        player.teleport((safe == null) ? destination : safe);
+        if (!player.teleport((safe == null) ? destination : safe))
+        {
+            sayRefused(player, mirror);
+            return;
+        }
+        // Only on a trip that actually happened. The far banner is now in front of them, and
+        // the click that sent them there may still have another event in it.
+        MirrorSettle.arrived(player);
+    }
+
+    /**
+     * Says that something else on the server stopped the trip.
+     *
+     * <p>A cancelled {@code PlayerTeleportEvent} puts the player back exactly where they were,
+     * which on a mirror is the banner they just clicked -- so a refusal nobody reports reads as
+     * the mirror opening onto itself. The commonest canceller is a world-access plugin
+     * (Multiverse's {@code enforce-access} wants {@code multiverse.access.<world>}); land
+     * claims are the other.
+     */
+    private static void sayRefused(final Player player, final QuantumMirror mirror)
+    {
+        say(player, "Something else on this server would not let you into "
+            + MirrorText.name(mirror.destination().worldName()) + ".");
+        say(player, "A world-access or land-claim plugin is the usual reason -- check that you"
+            + " are allowed into that world.");
     }
 
     /**

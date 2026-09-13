@@ -1,0 +1,9 @@
+# Columns of basalt with the fire glow coming up between them.
+# The format is documented in docs/MIRRORS.md.
+Name=basalt_deltas
+Sheltered=true
+Base=GRAY
+Biome=BASALT_DELTAS
+Layer=BLACK SMALL_STRIPES
+Layer=ORANGE GRADIENT_UP
+Layer=BLACK BORDER

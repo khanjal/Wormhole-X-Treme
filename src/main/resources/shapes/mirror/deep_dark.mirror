@@ -1,0 +1,10 @@
+# Sculk: a ring that looks back at you. Needs the circle, so it could not exist before.
+# The format is documented in docs/MIRRORS.md.
+Name=deep_dark
+Sheltered=true
+Base=BLACK
+Biome=DEEP_DARK
+Layer=CYAN CIRCLE
+Layer=BLACK RHOMBUS
+Layer=CYAN SMALL_STRIPES
+Layer=BLACK BORDER

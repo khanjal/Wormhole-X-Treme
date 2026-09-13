@@ -1,0 +1,8 @@
+# Trees on broken rock, with the slope cutting across them.
+# The format is documented in docs/MIRRORS.md.
+Name=windswept_forest
+Base=LIGHT_GRAY
+Biome=WINDSWEPT_FOREST
+Layer=GREEN TRIANGLES_TOP
+Layer=GRAY DIAGONAL_UP_RIGHT
+Layer=GRAY BORDER
