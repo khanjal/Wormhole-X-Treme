@@ -17,11 +17,11 @@ destination in an unloaded world says so rather than loading it.
 /wormhole beam to <name>                  travel; your own places first, then public
 /wormhole beam list                       list public destinations
 /wormhole beam place list                 list your own places
-/wormhole beam place set <name>           save where you are standing
+/wormhole beam place set <name>           save where you are standing ("create" also works)
 /wormhole beam place remove <name>        remove one of your places
 
   staff:
-/wormhole beam admin set <name>           register a public destination where you stand
+/wormhole beam admin set <name>           register a public destination ("create" also works)
 /wormhole beam admin remove <name>        remove a public destination
 /wormhole beam admin cost <name> <amount> what it costs to use
 /wormhole beam admin cost <name> default  go back to the configured default

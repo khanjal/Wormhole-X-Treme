@@ -208,7 +208,10 @@ public class BeamCommand implements SubCommand
             return;
         }
         final String name = args[3];
-        if ("set".equals(action))
+        // create as well, the same alias gate and mirror take. Both halves of beam name a place
+        // you are standing in, so a server owner who learned one should not find the other
+        // refusing the word.
+        if ("set".equals(action) || "create".equals(action))
         {
             BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
             BeamYamlManager.saveAll();
@@ -556,7 +559,7 @@ public class BeamCommand implements SubCommand
             listPlaces(player);
             return;
         }
-        if ("set".equals(sub))
+        if ("set".equals(sub) || "create".equals(sub))
         {
             setPlace(player, args);
             return;
