@@ -30,6 +30,29 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The four design documents open with a summary, and are a fifth shorter.** `GATES.md`,
+  `RINGS.md`, `BEAMS.md` and `MIRRORS.md` had grown to 2,872 lines between them, which is more
+  than anybody reads to answer one question. They are now 2,313, and every one starts with an
+  **In short** paragraph saying what the subsystem is and which two or three decisions the rest
+  of the document is downstream of.
+
+  The cut is repetition and structure rather than reasoning. Sections that were one topic split
+  across three headings are now one: beaming's hiding, invisibility and blindness are all
+  "Making somebody disappear"; its three ways of stranding a traveller are one section rather
+  than three scattered ones; mirrors' four cross-version API traps are together instead of in
+  two places; gates' timers and the redstone rule that extends them argued the same point twice
+  and now argue it once. Rings lost the most, being the longest and the most repetitive: 1,075
+  lines to 790.
+
+  **What was deliberately not cut** is the part that makes these design documents rather than
+  reference: the bug behind a decision, and the thing that was tried first. Those are the
+  sentences somebody needs when they are about to change the code and do not know why it looks
+  like that. Config blocks, command listings, file layouts and the anatomy tables also stayed
+  whole -- they are short per line and looked up rather than read.
+
+  Anchors were the one real hazard, since the guides and `CAPTURES.md` link into these documents
+  by section. Every markdown link in `docs/` and the README is checked and all resolve.
+
 - **The gate gallery shows seven gates, not eleven files, and draws what a sign dial adds.**
   The four `SignDial` shapes are out of the gallery. Each is its twin's ring with a different
   DHD corner -- the geometry is byte-identical -- so a row for each was the same gate drawn
