@@ -152,6 +152,63 @@ class MirrorStampCommandTest
         verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
     }
 
+    /**
+     * One word that is a look, and the banner in front of you is what it goes on.
+     *
+     * <p>Stamping is the verb most often run twice -- pick a look, look at it, pick another --
+     * and it was the verb that made you type the mirror's name every time, including the
+     * derived name of a pair's far half.
+     */
+    @Test
+    void stampsTheBannerBeingLookedAtWhenTheOnlyWordIsALook()
+    {
+        pointedMirror();
+        when(bannerWorld.getName()).thenReturn("world");
+        final Block inFront = mock(Block.class);
+        when(inFront.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(inFront.getWorld()).thenReturn(bannerWorld);
+        when(inFront.getX()).thenReturn(1);
+        when(inFront.getY()).thenReturn(64);
+        when(inFront.getZ()).thenReturn(1);
+        when(sender.getTargetBlockExact(6)).thenReturn(inFront);
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+
+            assertTrue(run("mirror", "stamp", "nether"));
+        }
+        // The nether preset's red, and no complaint about a mirror called nether.
+        verify(banner).setBaseColor(DyeColor.RED);
+        verify(sender, never()).sendMessage(contains("no mirror called"));
+    }
+
+    /**
+     * A mirror named after a look is still the mirror.
+     *
+     * <p>Both readings of a single word exist, so one has to win, and it is the one the word
+     * already had: a name. Sixty-five of the shipped looks are biomes, so a server naming its
+     * mirrors after where they go -- {@code nether}, {@code badlands} -- is the likely one to
+     * collide, and it should not find {@code stamp nether} quietly meaning something else than
+     * it did last week.
+     */
+    @Test
+    void aMirrorNamedAfterALookIsStillTheMirror()
+    {
+        MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world", 1, 64, 1),
+            new MirrorPoint("far", 100, 64, 200, 0f, 0f)));
+        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(farWorld);
+
+            assertTrue(run("mirror", "stamp", "nether"));
+        }
+        // Sand, sampled from the far side, rather than the nether preset's red. The mirror was
+        // read as the name it is, and the look it shares that name with was not applied.
+        verify(banner).setBaseColor(DyeColor.YELLOW);
+        verify(banner, never()).setBaseColor(DyeColor.RED);
+    }
+
     @Test
     void readsTheFarSideAndSaysWhatItFoundWhenNoLookIsNamed()
     {
@@ -295,7 +352,7 @@ class MirrorStampCommandTest
 
         assertTrue(run("mirror", "stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("stamp <name> [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(contains("stamp [<name>] [<look>]"));
         verify(sender, atLeastOnce()).sendMessage(contains(loaded + " looks to choose from"));
         verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
     }
@@ -392,7 +449,7 @@ class MirrorStampCommandTest
 
         assertTrue(run("mirror", "stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("stamp <name> [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(contains("stamp [<name>] [<look>]"));
     }
 
     @Test

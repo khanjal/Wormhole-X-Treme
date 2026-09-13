@@ -137,8 +137,8 @@ class MirrorSettingsCommandTest
         assertTrue(run("mirror", "display", "museum"));
         assertTrue(run("mirror", "mode", "museum"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("display <name> <always|proximity>"));
-        verify(sender, atLeastOnce()).sendMessage(contains("mode <name> <static|dynamic>"));
+        verify(sender, atLeastOnce()).sendMessage(contains("display [<name>] <always|proximity>"));
+        verify(sender, atLeastOnce()).sendMessage(contains("mode [<name>] <static|dynamic>"));
     }
 
     @Test

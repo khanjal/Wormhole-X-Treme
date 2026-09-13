@@ -30,6 +30,32 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **Four mirror verbs no longer need the mirror's name.** `stamp`, `display`, `mode` and `remove`
+  take the mirror on the banner you are looking at when you leave the name out:
+
+  ```
+  /wormhole mirror stamp              # read the far side and paint this banner from it
+  /wormhole mirror display proximity  # this one goes dark until somebody comes close
+  /wormhole mirror remove             # give this banner back
+  ```
+
+  `link` is why. Hanging a pair derives the far side's name -- `nether` and then
+  `nether-return` -- and that derived half is exactly the one somebody stands in front of
+  wanting to restamp it or take it down, with a name nobody chose and nobody remembers. The
+  resolution is the ray search `set` and `link` already do, and then the block index, which is
+  the same lookup every right-click of a banner makes.
+
+  `set`, `target` and `link` keep their required names, and not for consistency's sake: `set` is
+  naming something that has no name yet, `target` is run from the arrival spot -- the one place
+  the banner is not -- and `link`'s argument is the far mirror rather than this one.
+
+  Two words had to be told apart for this. Only the real setting words are read as settings, so
+  `display museum` is still a name with the setting forgotten and still answers with the form,
+  rather than complaining that `museum` is not a way to show a mirror. `stamp` has the harder
+  case, because `stamp cavern` could name a mirror or a look: the mirror wins, since that is what
+  the word already meant, and sixty-five of the looks are biome names -- a server that names its
+  mirrors after where they go should not find `stamp nether` quietly meaning something else than
+  it did last week ([#22](https://github.com/khanjal/Wormhole-X-Treme/issues/22)).
 - **The eighty-eight looks are drawn in the documentation, with the recipe beside each.**
   `docs/MIRRORS.md` now shows every look: one drawing per preset, in tables grouped by area and
   type, with the biome it answers for -- or what it is for, when it answers for none -- and the

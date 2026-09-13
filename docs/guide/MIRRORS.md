@@ -18,6 +18,7 @@ practical in a way a corridor of gates is not.
 
 - [Setting one up](#setting-one-up)
 - [Commands](#commands)
+  - [Naming one, or just looking at it](#naming-one-or-just-looking-at-it)
   - [Renaming one](#renaming-one)
 - [Making it look like where it goes](#making-it-look-like-where-it-goes)
 - [Going dark, and keeping up](#going-dark-and-keeping-up)
@@ -58,13 +59,33 @@ anywhere yet.
 | `mirror set <name>` | Makes the banner you are looking at a mirror, or renames the one already there |
 | `mirror target <name>` | Points it at where you are standing |
 | `mirror link <other> [name]` | Joins the banner you are looking at to that mirror, both ways |
-| `mirror stamp <name> [look]` | Makes the banner look like where it goes |
-| `mirror display <name> <always\|proximity>` | Show its look always, or only up close |
-| `mirror mode <name> <static\|dynamic>` | Keep the look, or re-read the far side |
-| `mirror remove <name>` | Makes it an ordinary banner again |
+| `mirror stamp [name] [look]` | Makes the banner look like where it goes |
+| `mirror display [name] <always\|proximity>` | Show its look always, or only up close |
+| `mirror mode [name] <static\|dynamic>` | Keep the look, or re-read the far side |
+| `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror and where it opens onto |
 
 All of them need `wormhole.config`: a mirror moves players between worlds.
+
+### Naming one, or just looking at it
+
+The four verbs with `[name]` in brackets take the mirror on the banner you are looking at when
+you leave the name out:
+
+```
+/wormhole mirror stamp cavern       # looking at the banner: give it the cavern look
+/wormhole mirror stamp              # ... or read the far side and paint it from that
+/wormhole mirror display proximity  # only show its look up close
+/wormhole mirror remove             # give the banner back
+```
+
+Which is mostly for the far half of a pair. `link` names it for you — `nether-return` — and that
+is the name you are least likely to remember while standing in front of it.
+
+A mirror's name still wins where a word could be either. `stamp cavern` is the mirror called
+`cavern` if there is one, and the *look* called `cavern` only if there is not. Setting words are
+never names: `display proximity` is always the banner you are facing, and `display museum` is a
+name with the setting forgotten, so it says so.
 
 ### Renaming one
 

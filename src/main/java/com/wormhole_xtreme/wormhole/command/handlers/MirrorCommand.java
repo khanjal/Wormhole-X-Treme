@@ -43,10 +43,21 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * mirror set &lt;name&gt;           look at a banner; it becomes a mirror by that name
  * mirror target &lt;name&gt;        stand where arrivals should land; point that mirror here
  * mirror link &lt;other&gt;         join the banner you are looking at to that mirror
- * mirror stamp &lt;name&gt; [look]  make the banner look like where it goes
- * mirror remove &lt;name&gt;        forget it; the banner becomes an ordinary banner again
+ * mirror stamp [name] [look]  make the banner look like where it goes
+ * mirror display [name] &lt;how&gt; show its look always, or only up close
+ * mirror mode [name] &lt;how&gt;    keep the look, or re-read the far side
+ * mirror remove [name]        forget it; the banner becomes an ordinary banner again
  * mirror list                 what exists and where each one goes
  * </pre>
+ *
+ * <p>The four verbs in brackets take the mirror on the banner you are looking at when you do
+ * not name one. A name nobody chose is the reason: {@code link} derives {@code &lt;other&gt;-return}
+ * for the second banner of a pair, so the commonest thing to want to restamp or take down is
+ * the thing least likely to be remembered by name -- while standing right in front of it.
+ *
+ * <p>{@code set}, {@code target} and {@code link} keep their required names. {@code set} is
+ * naming something that has no name yet; {@code target} is run from the arrival spot, which is
+ * the one place the banner is not; and {@code link}'s argument is the far mirror, not this one.
  *
  * <p>{@code link} is sugar over {@code target}, applied twice: it works out where each banner
  * stands and stores two ordinary points, so nothing downstream knows a second mirror was
@@ -83,7 +94,7 @@ public class MirrorCommand implements SubCommand
     /**
      * How long the bar-separated look list may get before a message counts it instead.
      *
-     * <p>Measured on the list alone; the usage line around it is a further 39 characters and
+     * <p>Measured on the list alone; the usage line around it is a further 41 characters and
      * the refusal's opening about 40. Default chat fits roughly 53, so 80 here means about two
      * chat lines at worst, which is what the ten shipped looks came to before there were
      * seventeen. The list is worth its space while somebody can take it in -- four wrapped
@@ -494,12 +505,18 @@ public class MirrorCommand implements SubCommand
      */
     private static void stamp(final CommandSender sender, final String[] args)
     {
-        if (args.length < 3)
-        {
-            stampUsage(sender);
-            return;
-        }
-        final QuantumMirror mirror = known(sender, args[2]);
+        // What one argument means: the mirror called that, if there is one, and otherwise the
+        // look called that, applied to the banner in front of you. A mirror wins because that
+        // is what the word meant before the name became optional -- a server where a mirror
+        // and a look share a name should not find the command changing under it.
+        //
+        // Only when it is the last word. "stamp cavern museum" is a name and a look, as it
+        // always was, and says there is no mirror called cavern rather than quietly stamping
+        // something else and dropping the second word.
+        final boolean look = (args.length == 3) && (MirrorManager.byName(args[2]) == null)
+            && (MirrorPresetRegistry.byName(args[2]) != null);
+        final QuantumMirror mirror = namedOrLookedAt(sender,
+            ((args.length > 2) && !look) ? args[2] : null, () -> stampUsage(sender));
         if (mirror == null)
         {
             return;
@@ -509,9 +526,10 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        if (args.length > 3)
+        final String chosen = look ? args[2] : ((args.length > 3) ? args[3] : null);
+        if (chosen != null)
         {
-            stampWith(sender, mirror, banner, args[3]);
+            stampWith(sender, mirror, banner, chosen);
             return;
         }
         stampFromDestination(sender, mirror, banner);
@@ -683,10 +701,10 @@ public class MirrorCommand implements SubCommand
         if (looksFitInAMessage(names))
         {
             say(sender, USAGE + MirrorText.command(
-                "/wormhole mirror stamp <name> [" + String.join("|", names) + "]"));
+                "/wormhole mirror stamp [<name>] [" + String.join("|", names) + "]"));
             return;
         }
-        say(sender, USAGE + MirrorText.command("/wormhole mirror stamp <name> [<look>]"));
+        say(sender, USAGE + MirrorText.command("/wormhole mirror stamp [<name>] [<look>]"));
         if (names.length > 0)
         {
             say(sender, names.length + " looks to choose from -- press tab for the list, or"
@@ -782,22 +800,28 @@ public class MirrorCommand implements SubCommand
      */
     private static void display(final CommandSender sender, final String[] args)
     {
-        if (args.length < 4)
+        // The setting word decides which word is which. "display proximity" is the banner in
+        // front of you; "display museum proximity" names one. Only the two setting words read
+        // that way, so "display museum" -- a name with the setting forgotten -- still gets the
+        // form rather than a complaint that "museum" is not a way to show a mirror.
+        final boolean unnamed = (args.length == 3) && (MirrorDisplay.of(args[2]) != null);
+        if ((args.length < 4) && !unnamed)
         {
-            say(sender, USAGE
-                + MirrorText.command("/wormhole mirror display <name> <always|proximity>"));
+            sayDisplayUsage(sender);
             return;
         }
-        final QuantumMirror mirror = known(sender, args[2]);
+        final String word = unnamed ? args[2] : args[3];
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayDisplayUsage(sender));
         if (mirror == null)
         {
             return;
         }
-        final MirrorDisplay wanted = MirrorDisplay.of(args[3]);
+        final MirrorDisplay wanted = MirrorDisplay.of(word);
         if (wanted == null)
         {
             say(sender, "A mirror is shown " + MirrorText.quoted("always") + " or by "
-                + MirrorText.quoted("proximity") + ", not " + MirrorText.quoted(args[3]) + ".");
+                + MirrorText.quoted("proximity") + ", not " + MirrorText.quoted(word) + ".");
             return;
         }
         // Only when proximity is being turned off, and before it is: the sweep will stop
@@ -839,22 +863,25 @@ public class MirrorCommand implements SubCommand
     /** Says whether a mirror keeps the look it was given or re-reads the far side. */
     private static void mode(final CommandSender sender, final String[] args)
     {
-        if (args.length < 4)
+        // By the same rule display uses: a setting word alone means the banner being looked at.
+        final boolean unnamed = (args.length == 3) && (MirrorMode.of(args[2]) != null);
+        if ((args.length < 4) && !unnamed)
         {
-            say(sender, USAGE
-                + MirrorText.command("/wormhole mirror mode <name> <static|dynamic>"));
+            sayModeUsage(sender);
             return;
         }
-        final QuantumMirror mirror = known(sender, args[2]);
+        final String word = unnamed ? args[2] : args[3];
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayModeUsage(sender));
         if (mirror == null)
         {
             return;
         }
-        final MirrorMode wanted = MirrorMode.of(args[3]);
+        final MirrorMode wanted = MirrorMode.of(word);
         if (wanted == null)
         {
             say(sender, "A mirror is " + MirrorText.quoted("static") + " or "
-                + MirrorText.quoted("dynamic") + ", not " + MirrorText.quoted(args[3]) + ".");
+                + MirrorText.quoted("dynamic") + ", not " + MirrorText.quoted(word) + ".");
             return;
         }
         MirrorManager.add(mirror.withMode(wanted));
@@ -874,16 +901,15 @@ public class MirrorCommand implements SubCommand
 
     private static void remove(final CommandSender sender, final String[] args)
     {
-        if (!named(sender, args, "remove <name>"))
+        final QuantumMirror mirror = namedOrLookedAt(sender,
+            (args.length > 2) ? args[2] : null, () -> sayUsage(sender, "remove [<name>]"));
+        if (mirror == null)
         {
             return;
         }
-        final QuantumMirror removed = MirrorManager.remove(args[2]);
-        if (removed == null)
-        {
-            say(sender, "There is no mirror called " + MirrorText.quoted(args[2]) + ".");
-            return;
-        }
+        // No miss to report: namedOrLookedAt has already answered for a name nobody has, and
+        // a mirror it found by banner is one the registry just handed over.
+        MirrorManager.remove(mirror.name());
         // The same reason display() releases before it changes the setting: anybody who was
         // being shown the blank is still holding it, and nothing will visit this mirror again
         // to take it back. Without this the line below would be untrue for exactly the players
@@ -892,9 +918,9 @@ public class MirrorCommand implements SubCommand
         // forget rather than release, because this one really is gone: its re-sample clock has
         // nothing left to throttle, and left behind it would be inherited by whatever is named
         // after it next.
-        MirrorProximity.forget(removed);
+        MirrorProximity.forget(mirror);
         MirrorYamlManager.saveAll();
-        say(sender, MirrorText.quoted(removed.name()) + " is an ordinary banner again.");
+        say(sender, MirrorText.quoted(mirror.name()) + " is an ordinary banner again.");
     }
 
     /**
@@ -1113,10 +1139,87 @@ public class MirrorCommand implements SubCommand
     {
         if (args.length < 3)
         {
-            say(sender, USAGE + MirrorText.command("/wormhole mirror " + form));
+            sayUsage(sender, form);
             return false;
         }
         return true;
+    }
+
+    /**
+     * Says the form of a verb.
+     *
+     * @param form
+     *            the verb and its arguments, without the command in front of it
+     */
+    private static void sayUsage(final CommandSender sender, final String form)
+    {
+        say(sender, USAGE + MirrorText.command("/wormhole mirror " + form));
+    }
+
+    /** @see #display */
+    private static void sayDisplayUsage(final CommandSender sender)
+    {
+        sayUsage(sender, "display [<name>] <always|proximity>");
+    }
+
+    /** @see #mode */
+    private static void sayModeUsage(final CommandSender sender)
+    {
+        sayUsage(sender, "mode [<name>] <static|dynamic>");
+    }
+
+    /**
+     * The mirror a verb is about: the one named, or the one on the banner being looked at.
+     *
+     * <p>Looking at it is how somebody addresses a mirror they never named. {@code link}
+     * derives the second banner's name -- {@code nether-return} for the far side of
+     * {@code nether} -- so the half of a pair most likely to want restamping or taking down is
+     * the half whose name nobody chose, and the one place that name is certainly not needed is
+     * standing in front of the banner.
+     *
+     * <p>A sender that is not a player gets the form rather than "that has to be run in game".
+     * There is no banner in front of a console, so what it is missing is the name, and the form
+     * is what says so. A player who is not looking at one gets both: why the banner could not
+     * be found, and the name they could have given instead.
+     *
+     * <p>Only for the verbs that address an existing mirror. {@code set} is naming something
+     * that has no name yet, {@code target} is run from the arrival spot -- the one place the
+     * banner is not -- and {@code link}'s argument is the far mirror rather than this one.
+     *
+     * @param sender
+     *            who ran it, and who gets told what went wrong
+     * @param name
+     *            the name given, or null to use the banner being looked at
+     * @param usage
+     *            says the form, for a sender with nowhere to look
+     * @return the mirror, or null with the reason already sent
+     */
+    private static QuantumMirror namedOrLookedAt(final CommandSender sender, final String name,
+        final Runnable usage)
+    {
+        if (name != null)
+        {
+            return known(sender, name);
+        }
+        if (!(sender instanceof Player player))
+        {
+            usage.run();
+            return null;
+        }
+        final Block block = lookedAtBanner(player);
+        if (block == null)
+        {
+            usage.run();
+            return null;
+        }
+        final QuantumMirror mirror = MirrorManager.at(MirrorBlock.of(block));
+        if (mirror == null)
+        {
+            say(sender, "That banner is not a mirror. Name it with "
+                + MirrorText.command("/wormhole mirror set <name>") + " first, or");
+            say(sender, "name the mirror you meant.");
+        }
+        return mirror;
     }
 
     private static Player asPlayer(final CommandSender sender)

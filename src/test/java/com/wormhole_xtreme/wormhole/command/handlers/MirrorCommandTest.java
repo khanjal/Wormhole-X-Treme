@@ -430,6 +430,111 @@ class MirrorCommandTest
         verify(player, atLeastOnce()).sendMessage(contains("no mirror called"));
     }
 
+    /**
+     * Taking down the banner in front of you does not need its name.
+     *
+     * <p>The mirror this matters for is the one nobody named. {@code link} derives
+     * {@code nether-return} for the second banner of a pair, so the half hardest to address by
+     * name is the half somebody is standing in front of -- and before this, {@code remove} with
+     * no name answered with the form instead of doing the obvious thing.
+     */
+    @Test
+    void removeTakesTheBannerBeingLookedAtWhenNoNameIsGiven()
+    {
+        MirrorManager.add(new QuantumMirror("nether-return",
+            new MirrorBlock("world", 1, 64, 1), null));
+        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+
+        assertTrue(run(player, "mirror", "remove"));
+
+        assertNull(MirrorManager.byName("nether-return"),
+            "the banner being looked at is the mirror the verb was about");
+        verify(player, atLeastOnce()).sendMessage(contains("ordinary banner again"));
+    }
+
+    /**
+     * An ordinary banner is told how to become a mirror, not that one is missing.
+     *
+     * <p>"There is no mirror called ''" is what a name-shaped answer would say here, and it
+     * names nothing the player did. The banner is real and in front of them; what it is not is
+     * a mirror yet.
+     */
+    @Test
+    void aVerbWithNoNameOnABannerThatIsNotAMirrorSaysHowToNameIt()
+    {
+        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+
+        assertTrue(run(player, "mirror", "remove"));
+
+        verify(player, atLeastOnce()).sendMessage(contains("not a mirror"));
+        verify(player, atLeastOnce()).sendMessage(contains("mirror set"));
+    }
+
+    /** A setting on its own means the banner in front of you. */
+    @Test
+    void displayTakesTheBannerBeingLookedAtWhenOnlyGivenItsSetting()
+    {
+        MirrorManager.add(new QuantumMirror("nether-return",
+            new MirrorBlock("world", 1, 64, 1), null));
+        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+
+        assertTrue(run(player, "mirror", "display", "proximity"));
+
+        assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("nether-return").display(),
+            "the setting landed on the mirror nobody named");
+    }
+
+    /** And {@code mode}, which reads its words by the same rule. */
+    @Test
+    void modeTakesTheBannerBeingLookedAtWhenOnlyGivenItsSetting()
+    {
+        MirrorManager.add(new QuantumMirror("nether-return",
+            new MirrorBlock("world", 1, 64, 1), null));
+        when(player.getTargetBlockExact(6)).thenReturn(banner(Material.WHITE_WALL_BANNER));
+
+        assertTrue(run(player, "mirror", "mode", "dynamic"));
+
+        assertEquals(MirrorMode.DYNAMIC, MirrorManager.byName("nether-return").mode());
+    }
+
+    /**
+     * A name with its setting forgotten still gets the form.
+     *
+     * <p>The price of reading one word as a setting. {@code display museum} could be the mirror
+     * called museum with the setting left off, or a setting called museum -- and only the two
+     * real setting words are read as settings, so this stays the form it always was rather than
+     * becoming a complaint that museum is not a way to show a mirror.
+     */
+    @Test
+    void aNameWithItsSettingForgottenStillGetsTheForm()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+
+        assertTrue(run(player, "mirror", "display", "museum"));
+
+        verify(player, atLeastOnce())
+            .sendMessage(contains("display [<name>] <always|proximity>"));
+        verify(player, never()).sendMessage(contains("A mirror is shown"));
+    }
+
+    /**
+     * A console gets the form rather than being told to look at something.
+     *
+     * <p>There is nothing in front of a console, so what it is missing is the name. "That has to
+     * be run in game" is true of the banner and useless as advice: naming the mirror is exactly
+     * how a console does this.
+     */
+    @Test
+    void aConsoleWithNoNameGetsTheForm()
+    {
+        final CommandSender console = mock(CommandSender.class);
+
+        assertTrue(run(console, "mirror", "remove"));
+
+        verify(console, atLeastOnce()).sendMessage(contains("remove [<name>]"));
+        verify(console, never()).sendMessage(contains("run in game"));
+    }
+
     /** An empty list says how to make one rather than printing nothing. */
     @Test
     void listOnAServerWithNoMirrorsExplainsHowToMakeOne()
