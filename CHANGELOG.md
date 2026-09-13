@@ -451,7 +451,7 @@ been running on defaults will start reading the file you have been editing.
   as current instructions ("never actually gated before this release", "fix applied in this
   branch"), the same redstone rule stated three times, and reasoning the design docs already make.
   The version-range reasoning went to `docs/DEVELOPMENT.md`, since only somebody building the
-  plugin needs it. `docs/USER_GUIDE.md` became the guide's index. The README's mirror section
+  plugin needs it. `docs/USER_GUIDE.md` became the guide's index, `docs/guide/README.md`. The README's mirror section
   still said seventeen looks ship; the guide says eighty-eight.
 - **`mirror stamp` counts the looks once there are too many to list.** Two messages named every
   loaded look: the usage line, and the refusal you get for naming one that does not exist. That

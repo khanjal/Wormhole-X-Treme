@@ -1,8 +1,8 @@
 # Stargates — Design
 
 How a gate is detected, stored, dialled, drawn and travelled through, and why each of those
-works the way it does. The [server owner's guide](guide/GATES.md) says what everything does;
-this says why. Rings are the other half of the plugin and have their own
+works the way it does. The [gate guide](guide/GATES.md) says what gates do; this says
+why. Rings are the other half of the plugin and have their own
 documents, [RINGS.md](RINGS.md) and [BEAMS.md](BEAMS.md). Plugin authors want
 [API.md](API.md).
 

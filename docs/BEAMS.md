@@ -1,7 +1,7 @@
 # Beaming — Design
 
 How a beam destination is stored, resolved and travelled to, and why the sequence is built the
-way it is. The [server owner's guide](guide/BEAMS.md) says what it does; this says why. The
+way it is. The [beaming guide](guide/BEAMS.md) says what it does; this says why. The
 other two ways to travel have their own documents, [GATES.md](GATES.md) and
 [RINGS.md](RINGS.md).
 
