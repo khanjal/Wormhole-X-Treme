@@ -194,7 +194,7 @@ public final class MirrorProximity
     {
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            if (!tickWindow(mirror))
+            if (!offerWindow(mirror))
             {
                 // Two separate reasons to visit a mirror, and they are not the same reason.
                 // Hiding needs per-player block updates, so it needs a server that has them.
@@ -210,27 +210,23 @@ public final class MirrorProximity
                 }
             }
         }
+        // Windows share walls, so they are drawn together once every one has been found. A
+        // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.
+        MirrorWindows.finish();
     }
 
     /**
-     * Hands a mirror to {@link MirrorWindows} if its banner hangs on a wall.
+     * Offers a mirror to {@link MirrorWindows}, which takes it if its banner hangs on a wall.
      *
      * @param mirror
      *            the mirror
      * @return true if it is a window, and there is nothing else for this sweep to do with it
      */
-    private static boolean tickWindow(final QuantumMirror mirror)
+    private static boolean offerWindow(final QuantumMirror mirror)
     {
         // A mirror going nowhere has no view, and its banner need not be read to learn that.
         final Block block = (mirror.destination() == null) ? null : bannerOf(mirror);
-        if ((block == null) || !MirrorWindows.isWall(block))
-        {
-            // Broken, taken down, re-hung on a post or re-pointed nowhere: any view comes back.
-            MirrorWindows.release(mirror);
-            return false;
-        }
-        MirrorWindows.tickOne(mirror, block);
-        return true;
+        return (block != null) && MirrorWindows.offer(mirror, block);
     }
 
     /**

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +34,8 @@ class MirrorWindowTest
     /** A banner at the origin, facing north, so its wall is the block to the south. */
     private static MirrorWindow northFacing(final float farYaw)
     {
-        return MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH, far(farYaw));
+        return MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH, false,
+            far(farYaw));
     }
 
     /** Every block drawn behind a window, mapped to the far-side block it shows. */
@@ -66,12 +68,83 @@ class MirrorWindowTest
     void aBannerFacingEastOpensAlongZInTheWallToItsWest()
     {
         final Set<Spot> opening = new HashSet<>();
-        MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.EAST, far(0.0f))
+        MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.EAST, false, far(0.0f))
             .forEachOpening((x, y, z) -> opening.add(new Spot(x, y, z)));
 
         assertTrue(opening.contains(new Spot(-1, 63, -1)));
         assertTrue(opening.contains(new Spot(-1, 63, 1)));
         assertEquals(9, opening.size());
+    }
+
+    /**
+     * A freestanding banner stands up, so its opening runs up from where it stands.
+     *
+     * <p>A wall banner's opening hangs down from the banner's row. Using that for a standing one
+     * would put the opening in the floor.
+     */
+    @Test
+    void aStandingBannerOpensUpwardsFromItsOwnRow()
+    {
+        final Set<Spot> opening = new HashSet<>();
+        MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH, true, far(0.0f))
+            .forEachOpening((x, y, z) -> opening.add(new Spot(x, y, z)));
+
+        assertTrue(opening.contains(new Spot(0, 64, 1)), "its own row");
+        assertTrue(opening.contains(new Spot(0, 66, 1)), "two above");
+        assertFalse(opening.contains(new Spot(0, 62, 1)), "not below");
+    }
+
+    @Test
+    void aStandingBannerSnapsToTheNearestCardinal()
+    {
+        final MirrorBlock banner = new MirrorBlock("world", 0, 64, 0);
+
+        assertEquals(new Spot(0, 0, 1),
+            MirrorWindow.of(banner, BlockFace.NORTH_NORTH_EAST, true, far(0.0f)).into(), "north");
+        assertEquals(new Spot(-1, 0, 0),
+            MirrorWindow.of(banner, BlockFace.EAST_NORTH_EAST, true, far(0.0f)).into(), "east");
+        assertEquals(new Spot(0, 0, 1),
+            MirrorWindow.of(banner, BlockFace.NORTH_EAST, true, far(0.0f)).into(),
+            "exactly between, north or south wins so the answer never changes");
+    }
+
+    /**
+     * A block straight behind the opening is seen through it, and one behind the viewer is not.
+     *
+     * <p>This is what decides which blocks are drawn at all, and which of two neighbouring windows
+     * a block belongs to.
+     */
+    @Test
+    void aBlockStraightBehindTheOpeningIsSeenThroughIt()
+    {
+        final MirrorWindow window = northFacing(0.0f);
+        final List<Spot> middle = List.of(new Spot(0, 63, 1));
+
+        final double[] behind = window.projected(0.5, 63.5, -3.0, 0, 63, 4);
+        assertTrue((behind != null) && window.overlaps(behind, middle));
+
+        final double[] offToTheSide = window.projected(0.5, 63.5, -3.0, 12, 63, 2);
+        assertTrue((offToTheSide != null) && !window.overlaps(offToTheSide, middle),
+            "behind the wall, but not through the opening from there");
+
+        assertNull(window.projected(0.5, 63.5, 6.0, 0, 63, 3),
+            "from behind the wall nothing is behind the opening");
+    }
+
+    @Test
+    void windowsInTheSameWallShareAFaceAndOthersDoNot()
+    {
+        final MirrorWindow one = northFacing(0.0f);
+        final MirrorWindow along = MirrorWindow.of(new MirrorBlock("world", 2, 64, 0),
+            BlockFace.NORTH, false, far(0.0f));
+        final MirrorWindow deeper = MirrorWindow.of(new MirrorBlock("world", 0, 64, 3),
+            BlockFace.NORTH, false, far(0.0f));
+        final MirrorWindow facingEast = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0),
+            BlockFace.EAST, false, far(0.0f));
+
+        assertTrue(one.sharesFace(along));
+        assertFalse(one.sharesFace(deeper));
+        assertFalse(one.sharesFace(facingEast));
     }
 
     /**
@@ -162,9 +235,11 @@ class MirrorWindowTest
     {
         final MirrorBlock banner = new MirrorBlock("world", 0, 64, 0);
 
-        assertNull(MirrorWindow.of(banner, BlockFace.NORTH_EAST, far(0.0f)));
-        assertNull(MirrorWindow.of(banner, null, far(0.0f)));
-        assertNull(MirrorWindow.of(banner, BlockFace.NORTH, null));
+        assertNull(MirrorWindow.of(banner, BlockFace.NORTH_EAST, false, far(0.0f)),
+            "a wall banner only ever faces a cardinal, so anything else is not one");
+        assertNull(MirrorWindow.of(banner, null, false, far(0.0f)));
+        assertNull(MirrorWindow.of(banner, BlockFace.UP, true, far(0.0f)));
+        assertNull(MirrorWindow.of(banner, BlockFace.NORTH, false, null));
     }
 
     @Test
