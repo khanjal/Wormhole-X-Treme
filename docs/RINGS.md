@@ -1,7 +1,7 @@
 # Transport Rings — Design
 
 The decisions behind transport rings, and the place they are argued about. The
-[README](../README.md) says what they do; this says why. Gates have their own document,
+[rings guide](guide/RINGS.md) says what they do; this says why. Gates have their own document,
 [GATES.md](GATES.md), and beaming has [BEAMS.md](BEAMS.md).
 
 Rings are a second way to travel, and deliberately *not* a variant of a gate. A gate is a
