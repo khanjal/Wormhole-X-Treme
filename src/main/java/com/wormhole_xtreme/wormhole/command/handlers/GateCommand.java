@@ -70,7 +70,7 @@ public class GateCommand implements SubCommand
         {
             return new GateEditCommand().execute(sender, args);
         }
-        if (REGENERATE.equals(verb) || "regen".equals(verb))
+        if (CommandHandlerUtils.verbIs(verb, REGENERATE, "regen"))
         {
             final String[] forHandler = new String[rest.length + 1];
             forHandler[0] = REGENERATE;
@@ -100,9 +100,8 @@ public class GateCommand implements SubCommand
         // create is what somebody tries first, because it is what the rest of the ecosystem
         // uses for "register the thing I just built" -- /mv create, /npc create. complete is
         // this plugin's own word from 2011 and stays the documented one, since it is the
-        // second half of build-then-complete rather than a creation on its own. Accepting both
-        // costs a clause and saves the wrong guess being answered with a list of verbs.
-        if ("complete".equals(verb) || "create".equals(verb))
+        // second half of build-then-complete rather than a creation on its own.
+        if (CommandHandlerUtils.verbIs(verb, "complete", "create"))
         {
             return new Complete().onCommand(sender, null, verb, rest);
         }
@@ -110,7 +109,7 @@ public class GateCommand implements SubCommand
         {
             return new WXList().onCommand(sender, null, verb, rest);
         }
-        if ("remove".equals(verb) || "delete".equals(verb))
+        if (CommandHandlerUtils.verbIs(verb, "remove", "delete"))
         {
             return new WXRemove().onCommand(sender, null, verb, rest);
         }
