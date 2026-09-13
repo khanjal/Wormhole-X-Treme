@@ -35,14 +35,8 @@ import org.junit.jupiter.api.Test;
  */
 class BeamGalleryTest
 {
-    /** The drawing. */
-    private static final Path IMAGE = Paths.get("docs/images/beams/timing.svg");
-
     /** The document it is in. */
     private static final Path DOCUMENT = Paths.get("docs/BEAMS.md");
-
-    /** Where the wrong number used to live, and where the right one now has to stay. */
-    private static final Path CAPTURES = Paths.get("docs/CAPTURES.md");
 
     /** How to put it right, said in the failure rather than left to be worked out. */
     private static final String REGENERATE =
@@ -85,9 +79,10 @@ class BeamGalleryTest
     /** What the drawing says about itself. */
     private static String claim() throws IOException
     {
-        final String svg = Files.readString(IMAGE, StandardCharsets.UTF_8);
+        final Path image = Paths.get("docs/images/beams/timing.svg");
+        final String svg = Files.readString(image, StandardCharsets.UTF_8);
         final Matcher m = CLAIM.matcher(svg);
-        assertTrue(m.find(), IMAGE.getFileName() + " carries no line saying what it drew"
+        assertTrue(m.find(), image.getFileName() + " carries no line saying what it drew"
             + REGENERATE);
         return m.group(1);
     }
@@ -223,13 +218,15 @@ class BeamGalleryTest
             "the strip exists but nothing on the page shows it" + REGENERATE);
 
         final int ticks = sequence().size();
-        final String captures = Files.readString(CAPTURES, StandardCharsets.UTF_8);
+        // Where the wrong number used to live, and where the right one now has to stay.
+        final Path captureNotes = Paths.get("docs/CAPTURES.md");
+        final String captures = Files.readString(captureNotes, StandardCharsets.UTF_8);
         assertTrue(captures.contains(ticks + " ticks"),
-            CAPTURES.getFileName() + " should say the cycle is " + ticks + " ticks");
+            captureNotes.getFileName() + " should say the cycle is " + ticks + " ticks");
         // Twenty ticks is one second, which that document says itself.
         final String seconds = String.format("%.1fs", ticks / 20.0);
         assertTrue(captures.contains(seconds),
-            CAPTURES.getFileName() + " should cut the beam capture to " + seconds
+            captureNotes.getFileName() + " should cut the beam capture to " + seconds
                 + ", which is what " + ticks + " ticks is");
     }
 }

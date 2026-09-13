@@ -48,18 +48,18 @@ class GateGalleryTest
     /** Two drawings per shape, and the palette strip. */
     private static final Path IMAGES = Paths.get("docs/images/gates");
 
-    /** Where the shapes live. */
-    private static final Path SHAPES = Paths.get("src/main/resources/shapes/gate");
-
-    /** Where the palettes live. */
-    private static final Path CONFIG = Paths.get("src/main/resources/config.yml");
-
     /** The document the gallery is in. */
     private static final Path DOCUMENT = Paths.get("docs/GATES.md");
 
     /** How to put it right, said in the failure rather than left to be worked out. */
     private static final String REGENERATE =
         " -- re-run: python scripts/render_gate_sheets.py";
+
+    /** The line naming a shape. The fingerprint keeps it, with the spacing normalised. */
+    private static final String NAME_KEY = "Name=";
+
+    /** The line opening a layer. The fingerprint keeps its number and drops its spacing. */
+    private static final String LAYER_KEY = "Layer#";
 
     /**
      * A shape whose name ends in this is a ring already in the gallery plus a sign dial.
@@ -81,19 +81,6 @@ class GateGalleryTest
     /** {@code <!-- fp palettes fingerprint -->}, which the strip carries instead. */
     private static final Pattern PALETTE_FINGERPRINT =
         Pattern.compile("<!-- fp palettes ([0-9a-f]{10}) -->");
-
-    /**
-     * The {@code KEY=} lines that change what a gate looks like or how it animates.
-     *
-     * <p>Deliberately not every setting. A shape file carries lines the drawing cannot show,
-     * and folding those in would mean a regeneration that changes no pixel being demanded for
-     * an edit that changed no picture -- which is the fastest way to teach everybody to run the
-     * renderer without looking at what it produced.
-     */
-    private static final Set<String> KEYS = Set.of(
-        "WOOSH_TICKS", "LIGHT_TICKS", "REDSTONE_ACTIVATED", "MATERIAL_GROUPS",
-        "STARGATE_MATERIAL", "PORTAL_MATERIAL", "IRIS_MATERIAL", "ACTIVE_MATERIAL",
-        "CHEVRON_MATERIAL", "SIGN_MATERIAL");
 
     /** The first ten hex digits of the SHA-1 of these lines, as the renderer takes it. */
     private static String digest(final List<String> body)
@@ -118,18 +105,27 @@ class GateGalleryTest
     /** The same digest the renderer takes of a shape: its name, its grid, and its settings. */
     private static String fingerprint(final Path shape) throws IOException
     {
+        // The KEY= lines that change what a gate looks like or how it animates. Deliberately
+        // not every setting: a shape file carries lines the drawing cannot show, and folding
+        // those in would demand a regeneration that changes no pixel for an edit that changed
+        // no picture -- the fastest way to teach everybody to run the renderer without looking
+        // at what it produced.
+        final Set<String> keys = Set.of(
+            "WOOSH_TICKS", "LIGHT_TICKS", "REDSTONE_ACTIVATED", "MATERIAL_GROUPS",
+            "STARGATE_MATERIAL", "PORTAL_MATERIAL", "IRIS_MATERIAL", "ACTIVE_MATERIAL",
+            "CHEVRON_MATERIAL", "SIGN_MATERIAL");
         final List<String> body = new ArrayList<>();
         for (final String line : Files.readString(shape, StandardCharsets.UTF_8).split("\r?\n"))
         {
             final String trimmed = line.trim();
-            if (trimmed.startsWith("Name="))
+            if (trimmed.startsWith(NAME_KEY))
             {
-                body.add("Name=" + trimmed.substring("Name=".length()).trim());
+                body.add(NAME_KEY + trimmed.substring(NAME_KEY.length()).trim());
             }
-            else if (trimmed.startsWith("Layer#"))
+            else if (trimmed.startsWith(LAYER_KEY))
             {
-                body.add("Layer#" + Integer.parseInt(
-                    trimmed.substring("Layer#".length()).split("=")[0]) + "=");
+                body.add(LAYER_KEY + Integer.parseInt(
+                    trimmed.substring(LAYER_KEY.length()).split("=")[0]) + "=");
             }
             else if (trimmed.startsWith("["))
             {
@@ -138,7 +134,7 @@ class GateGalleryTest
             else if (trimmed.contains("=") && !trimmed.startsWith("#"))
             {
                 final String key = trimmed.split("=")[0].trim();
-                if (KEYS.contains(key))
+                if (keys.contains(key))
                 {
                     final String value = trimmed.split("=", 2)[1].trim();
                     body.add(key + "=" + value.replaceAll(";$", "").trim());
@@ -152,7 +148,7 @@ class GateGalleryTest
     private static Map<String, String> shipped() throws IOException
     {
         final Map<String, String> shapes = new TreeMap<>();
-        try (Stream<Path> files = Files.list(SHAPES))
+        try (Stream<Path> files = Files.list(Paths.get("src/main/resources/shapes/gate")))
         {
             for (final Path shape : files.toList())
             {
@@ -325,7 +321,8 @@ class GateGalleryTest
     void thePaletteStripStillShowsTheShippedGroups() throws IOException
     {
         final List<String> body = new ArrayList<>();
-        for (final String line : Files.readString(CONFIG, StandardCharsets.UTF_8).split("\r?\n"))
+        final Path config = Paths.get("src/main/resources/config.yml");
+        for (final String line : Files.readString(config, StandardCharsets.UTF_8).split("\r?\n"))
         {
             if (line.startsWith("gate-material-groups:")
                 || (line.startsWith("  ") && !line.isBlank() && !line.trim().startsWith("#")))

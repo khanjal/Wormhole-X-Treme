@@ -41,9 +41,6 @@ import org.junit.jupiter.api.Test;
  */
 class RingGalleryTest
 {
-    /** The drawings. */
-    private static final Path IMAGES = Paths.get("docs/images/rings");
-
     /** The document they are in. */
     private static final Path DOCUMENT = Paths.get("docs/RINGS.md");
 
@@ -69,7 +66,8 @@ class RingGalleryTest
     /** What one drawing says about itself. */
     private static String claim(final String file) throws IOException
     {
-        final String svg = Files.readString(IMAGES.resolve(file), StandardCharsets.UTF_8);
+        final String svg = Files.readString(Paths.get("docs/images/rings").resolve(file),
+            StandardCharsets.UTF_8);
         final Matcher m = CLAIM.matcher(svg);
         assertTrue(m.find(), file + " carries no line saying what it drew" + REGENERATE);
         return m.group(1);
