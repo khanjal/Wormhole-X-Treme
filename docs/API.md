@@ -1,7 +1,7 @@
 # Wormhole X-Treme — developer guide
 
 For plugins that want to hook into gates and rings: watch a trip, stop one, or read where
-somebody is going. Everything a server owner needs is in the [README](../README.md); this is
+somebody is going. Everything a server owner needs is in the [guide](guide/README.md); this is
 the other audience.
 
 Requires **Java 17** and Minecraft **1.20 through 1.21.10**. The plugin is compiled against

@@ -1,8 +1,8 @@
 # Stargates — Design
 
 How a gate is detected, stored, dialled, drawn and travelled through, and why each of those
-works the way it does. The [README](../README.md) is the server owner's guide and says what
-everything does; this says why. Rings are the other half of the plugin and have their own
+works the way it does. The [server owner's guide](guide/GATES.md) says what everything does;
+this says why. Rings are the other half of the plugin and have their own
 documents, [RINGS.md](RINGS.md) and [BEAMS.md](BEAMS.md). Plugin authors want
 [API.md](API.md).
 
@@ -60,7 +60,7 @@ object rather than something built.
 Shapes live in `plugins/WormholeXTreme/shapes/gate/` as `.shape` files, eleven of them
 shipped. A shape is a stack of numbered layers, each a grid of bracketed cells, and a
 handful of `KEY=value` lines. The user-facing format is documented in the
-[README](../README.md#shapes); the design notes are these.
+[gate guide](guide/GATES.md#shapes); the design notes are these.
 
 **Layers, rather than one grid.** A gate is a 3D object even when it looks flat: the DHD
 stands off the frame, redstone sits behind it, and the woosh pushes out in front. One layer
@@ -516,7 +516,7 @@ gates of its own, in order:
 the network the gate is on. Holding `wormhole.use.dialer` is not admission to a private
 network. Public admits everyone.
 
-The full node list is in the [README](../README.md#permissions).
+The full node list is in the [server guide](guide/SERVER.md#permissions).
 
 ## Commands
 

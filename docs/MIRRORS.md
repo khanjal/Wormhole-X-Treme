@@ -1,7 +1,7 @@
 # Quantum Mirrors — Design
 
 The decisions behind quantum mirrors, and the place they are argued about. The
-[README](../README.md) says what they do; this says why. Gates have their own document,
+[server owner's guide](guide/MIRRORS.md) says what they do; this says why. Gates have their own document,
 [GATES.md](GATES.md), rings have [RINGS.md](RINGS.md), and beaming has [BEAMS.md](BEAMS.md).
 
 A mirror is a banner you click to be somewhere else. That is the whole mechanism. It has no

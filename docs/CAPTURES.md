@@ -140,7 +140,7 @@ The slates are a few kilobytes each, so leaving some in place indefinitely costs
 
 | Document | Slots |
 |---|---|
-| [USER_GUIDE.md](USER_GUIDE.md) | A built gate, dial and kawoosh, ring countdown and deploy |
+| [guide/README.md](guide/README.md) | A built gate, dial and kawoosh, ring countdown and deploy |
 | [GATES.md](GATES.md) | Dial and kawoosh (Animation), iris (The iris) |
 | [RINGS.md](RINGS.md) | Countdown and deploy, flash and retract (Animation, The transport flash) |
 | [BEAMS.md](BEAMS.md) | A whole beam cycle (The sequence) |

@@ -438,6 +438,21 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **The README is a front page again.** It had grown to 1,703 lines, one section per feature as
+  each one landed, until nobody was going to read it to find out what the plugin does. It linked
+  `docs/MIRRORS.md` only from the contents list at the top, where it was easy to miss.
+
+  It is 116 lines now: a table of the four ways to travel, what the plugin does, a quick start for
+  each, compatibility, and where to read more. The how-to moved into a server owner's guide in
+  `docs/guide/` -- one page for running a server, one each for gates, rings, beaming and mirrors --
+  with a link at the top of every page to the design notes that explain the same subsystem.
+
+  About a third was cut on the way over rather than moved. What went was upgrade history written
+  as current instructions ("never actually gated before this release", "fix applied in this
+  branch"), the same redstone rule stated three times, and reasoning the design docs already make.
+  The version-range reasoning went to `docs/DEVELOPMENT.md`, since only somebody building the
+  plugin needs it. `docs/USER_GUIDE.md` became the guide's index. The README's mirror section
+  still said seventeen looks ship; the guide says eighty-eight.
 - **`mirror stamp` counts the looks once there are too many to list.** Two messages named every
   loaded look: the usage line, and the refusal you get for naming one that does not exist. That
   was a reasonable thing to do at ten looks and stopped being one at seventeen -- 130 characters
