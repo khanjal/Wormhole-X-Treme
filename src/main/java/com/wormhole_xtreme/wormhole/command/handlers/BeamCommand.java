@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.beam.BeamAnimation;
@@ -211,7 +212,7 @@ public class BeamCommand implements SubCommand
         // create as well, the same alias gate and mirror take. Both halves of beam name a place
         // you are standing in, so a server owner who learned one should not find the other
         // refusing the word.
-        if ("set".equals(action) || "create".equals(action))
+        if (CommandHandlerUtils.verbIs(action, "set", "create"))
         {
             BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
             BeamYamlManager.saveAll();
@@ -559,7 +560,7 @@ public class BeamCommand implements SubCommand
             listPlaces(player);
             return;
         }
-        if ("set".equals(sub) || "create".equals(sub))
+        if (CommandHandlerUtils.verbIs(sub, "set", "create"))
         {
             setPlace(player, args);
             return;

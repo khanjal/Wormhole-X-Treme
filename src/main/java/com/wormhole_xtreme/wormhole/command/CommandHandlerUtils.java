@@ -22,6 +22,33 @@ public final class CommandHandlerUtils
     }
 
     /**
+     * Whether a verb is the documented one or an accepted alias for it.
+     *
+     * <p>Every alias was an {@code ||} on the branch that dispatched it, and each one cost a
+     * point of cognitive complexity in a method already at the limit. Adding {@code create}
+     * beside {@code complete} took {@code GateCommand.execute} and {@code BeamCommand.admin}
+     * from fifteen to sixteen, which is the line Sonar's S3776 draws -- the aliases were worth
+     * having and the clauses were what had to go.
+     *
+     * <p>A call costs nothing where the {@code ||} cost one, and it says what the pair is
+     * rather than leaving a reader to notice that two string comparisons in a row are the same
+     * verb twice. The older pairs -- {@code remove}/{@code delete},
+     * {@code regenerate}/{@code regen} -- read through it as well.
+     *
+     * @param typed
+     *            the verb as the sender typed it, already lower-cased
+     * @param canonical
+     *            the documented verb
+     * @param alias
+     *            the other word that means it
+     * @return true if the verb is either of them
+     */
+    public static boolean verbIs(final String typed, final String canonical, final String alias)
+    {
+        return canonical.equals(typed) || alias.equals(typed);
+    }
+
+    /**
      * Turns away a player who may not administer gates, and says so.
      *
      * <p>Sixteen handlers asked this question, and they asked it in four different ways: a
