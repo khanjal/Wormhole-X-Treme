@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>It is the same trap {@link com.wormhole_xtreme.wormhole.model.mirror.MirrorGalleryTest}
  * exists for, and worse here. Nothing about editing a {@code .shape} file makes a picture
- * change, and nobody reviewing a one-cell grid edit thinks to regenerate twenty-three SVGs. A
+ * change, and nobody reviewing a one-cell grid edit thinks to regenerate a folder of SVGs. A
  * gallery that has quietly stopped matching is worse than none because it is believed -- and
  * somebody who builds from a stale drawing does not get a broken gate, they get no gate at all,
  * because detection matches the shape exactly or not at all. They then have a pile of obsidian

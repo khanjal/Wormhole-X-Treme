@@ -707,6 +707,18 @@ been running on defaults will start reading the file you have been editing.
   cell beside it, which is where `Standard` keeps its own. A gate already built records its name
   block on the gate rather than reading it back from the shape, so nothing standing is affected.
 
+  `ChevronSymmetryTest` is what stops it coming back. Nothing in the shape format asks for any
+  of this -- a `:L#n` marker is legal on any frame cell, so a ring with its chevrons scattered
+  parses and dials exactly like one placed with care, and the only thing that ever noticed was
+  somebody standing in front of the gate. The test recomputes the arrangement from the shipped
+  files: every upright ring mirrors left to right outright, and mirrors top to bottom apart from
+  the chevron at the top, which the foot of a ring has nothing to answer with. `Massive` carries
+  a bottom chevron and so mirrors outright; both arrangements pass and nothing else does. Run
+  against the old `Grand` it fails naming all eight cells of the top chevron and all four
+  diagonals, which is exactly the defect. `Minimal` and `Horizontal` are left out and the test
+  says why: two blocks wide with one chevron has no axes to be symmetric about, and a gate lying
+  flat in the floor has depth where an upright one has height.
+
   **One narrow compatibility note.** A chevron cell may be built from the palette's `chevron`
   material as well as the frame material, and only the `Standard` palette names one
   (`REDSTONE_LAMP`). A `Grand` gate built in obsidian with lamps in the *old* lower chevron
