@@ -30,6 +30,50 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The eleven gate shapes are drawn in the documentation, idle and dialled.**
+  `docs/GATES.md` now shows every shape twice: the gate standing there, and the same gate with
+  the portal filled and the chevrons on. The pair is most of what the shape file says, and the
+  difference between them is the part prose is worst at.
+
+  It answers a question the page could not before: what does `Grand` actually look like next to
+  `Massive`? Both were a wall of text and a promise that one is larger.
+
+  A standing gate is flattened along its depth, layer 1 nearest. Taking a single layer was the
+  first attempt and it is wrong for exactly the three shapes somebody would most want to see:
+  `Grand`, `Large` and `Massive` have rings three layers thick, with the frame and chevrons in
+  layer 1 and the portal in layer 2 behind it, so either layer alone is half a gate. `Horizontal`
+  is flattened the other way, into a plan, because a gate lying in the floor seen head on is one
+  row of blocks.
+
+  Flattening hides what stands behind the frame, which on every shape includes the DHD, so the
+  table names every marker and the layer it is in. Hiding the activation switch is honest --
+  you cannot see it through obsidian either -- but a page you build from cannot stop there.
+
+  Palettes are shown as their own strip rather than crossed with the shapes. Geometry and
+  palette are independent in the plugin: any shape builds in any group, which is the whole point
+  of the split. Drawing eleven shapes in four palettes would be forty-four pictures asserting a
+  relationship that does not exist.
+
+  Flat colour keyed to each block, not Minecraft's textures. Those are Mojang's, and committing
+  them here would be redistributing their assets rather than illustrating ours; a screenshot is
+  the licensed way to show the real thing, which is what `docs/CAPTURES.md` is for. It also
+  turned out to matter that the drawings pick their own ground: obsidian is very nearly black,
+  and on the dark ground the mirror sheets use, a Standard gate is an invisible ring around a
+  visible portal -- a picture of the wrong thing entirely.
+
+  Everything between the gallery markers is written by `scripts/render_gate_sheets.py` from the
+  shape files and from `config.yml`, so neither the pictures nor the tables can drift.
+  `GateGalleryTest` holds it the way `MirrorGalleryTest` holds the mirror sheets: each drawing
+  records a fingerprint of the file it came from, and the test recomputes them. A stale gate
+  drawing is worse than a stale banner, because detection matches a shape exactly or not at all
+  -- somebody building from an out-of-date picture does not get a wrong gate, they get no gate,
+  and a page telling them it should have worked. Checked by moving a cell and by swapping a
+  palette's light block, and watching both fail with the name and the command that fixes it.
+
+  248 KB for all twenty-three files. Most of a shape is air, and drawing 529 cells of it one
+  rect at a time cost more than everything else in `Massive` put together; it is one rectangle
+  now.
+
 - **The eighty-eight looks are drawn in the documentation, with the recipe beside each.**
   `docs/MIRRORS.md` now shows every look: one drawing per preset, in tables grouped by area and
   type, with the biome it answers for -- or what it is for, when it answers for none -- and the
