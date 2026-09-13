@@ -240,6 +240,28 @@ Three layers is the working budget. A banner shows six patterns before clients s
 the extras, and three of those six are reserved for the sampled squares. A preset with more is
 cut from the end rather than refused.
 
+### The library at a glance
+
+Eighty-eight looks is more than anybody wants to open one file at a time, so here they are.
+Names under each one are what `mirror stamp <name> <look>` takes.
+
+![Grass, water's edge and woodland](images/mirror-looks-green.svg)
+
+![Dry country, cold country and water](images/mirror-looks-weather.svg)
+
+![Underground, the Nether and the End](images/mirror-looks-elsewhere.svg)
+
+![Looks that name no biome](images/mirror-looks-stamp.svg)
+
+These are drawn by `scripts/render_mirror_sheets.py` from the preset files themselves, so they
+cannot drift into describing a library that is not there — re-run it after changing a preset.
+`MirrorSheetContentsTest` fails until you do: each sheet carries a fingerprint of every preset it
+drew, and the test recomputes them.
+
+The shapes are approximations of the banner patterns rather than the game's own textures. They
+are close enough to tell two looks apart, which is what a contact sheet is for, and no substitute
+for stamping one and walking up to it.
+
 ### What ships
 
 Eighty-eight files, in two groups, and the difference between them is the `Biome` line.

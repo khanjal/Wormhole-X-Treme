@@ -30,6 +30,27 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **The eighty-eight looks are drawn in the documentation, not just named.** Four contact sheets
+  in `docs/MIRRORS.md`, grouped the way the library is, with the stamp name under each banner.
+
+  Sixty-four kilobytes for all of them, which matters in a repository whose entire history packs
+  to about five megabytes. One SVG per look would have been a hundred and seventy files nobody
+  scans; a sheet is the thing somebody actually wanted, which is to see them together.
+
+  They are generated from the preset files by `scripts/render_mirror_sheets.py` rather than drawn
+  by hand, so they cannot describe a library that is not there. `MirrorSheetContentsTest` holds
+  it: each sheet records a fingerprint of every preset it drew, and the test recomputes them, so
+  changing a base colour fails the build with the name of the look and the command that fixes
+  it. Documentation that quietly stops matching the plugin is worse than none, because it is
+  believed -- and a picture is the kind that rots most quietly, since nothing about editing a
+  `.mirror` file makes an image change.
+
+  The shapes are approximations of the banner patterns rather than the game's textures: enough to
+  tell two looks apart, and no substitute for stamping one and walking up to it. The sheets carry
+  an opaque dark ground like every other SVG in `docs/images`, because GitHub renders a document
+  on a light or a dark page depending on the reader and an image with no ground of its own is
+  unreadable on one of them.
+
 - **A look for every biome in the game, and twenty-three more for what a mirror is *for*.**
   Seventeen presets became eighty-eight.
 
