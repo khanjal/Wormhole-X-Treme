@@ -256,9 +256,13 @@ class MirrorWindowsTest
             PluginTestSupport.scheduler(null);
         }
 
-        final Map<Spot, BlockData> again = positions(changesTo(viewer, 2).get(1));
-        assertTrue(again.containsKey(new Spot(10, 64, 10)), "the banner, drawn away again");
-        assertTrue(again.containsKey(new Spot(10, 64, 11)), "and the wall it hangs on, drawn as the opening again");
+        // Everything the view held, not a list of blocks: on plain 1.20 the banner is never drawn
+        // away, so naming it failed there while every later version passed.
+        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
+        final Map<Spot, BlockData> first = positions(sent.get(0));
+        final Map<Spot, BlockData> again = positions(sent.get(1));
+        assertTrue(again.keySet().containsAll(first.keySet()), "the whole view, sent again: " + again.keySet());
+        assertTrue(again.containsKey(new Spot(10, 64, 11)), "the wall the banner hangs on, drawn as the opening again");
     }
 
     @Test
