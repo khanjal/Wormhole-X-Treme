@@ -104,6 +104,41 @@ class MirrorCaptureTest
         assertSame(stone, capture.at(0, 2, 2), "on the edge, with the unknown beyond it");
     }
 
+    /**
+     * The layer just under an open face is kept; only what is buried two deep goes.
+     *
+     * <p>A capture is looked at from angles nobody chose, and a surface block that is wrong for
+     * any reason -- broken since, a plant, a fence read as solid -- should have ground under
+     * it, not a hole into the real world. So "one block below the surface, just in case".
+     */
+    @Test
+    void pruningKeepsTheLayerUnderTheSurface()
+    {
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, 0, 0, 0, 7, 7, 7, air);
+        for (int x = 0; x < 7; x++)
+        {
+            for (int y = 0; y < 7; y++)
+            {
+                for (int z = 0; z < 7; z++)
+                {
+                    builder.put(x, y, z, stone);
+                }
+            }
+        }
+        builder.put(3, 3, 0, air);
+        builder.prune();
+
+        final MirrorCapture capture = builder.build();
+
+        assertSame(stone, capture.at(3, 3, 1), "the surface, with a face on the air");
+        assertSame(stone, capture.at(3, 3, 2), "the layer under it, kept in case");
+        assertTrue(capture.isAir(3, 3, 3), "two deep is buried");
+        assertTrue(capture.isAir(3, 3, 4), "and so is deeper");
+        assertSame(stone, capture.at(3, 3, 6), "the edge itself is kept, since what lies beyond is unknown");
+        assertTrue(capture.isAir(3, 3, 5), "but the edge does not count as open, so the block inside it is buried");
+        assertTrue(capture.isAir(1, 1, 1), "however many edges it touches");
+    }
+
     @Test
     void survivesTheDiskWithItsShapeNamesAndBlocks(@TempDir final File dir) throws IOException
     {

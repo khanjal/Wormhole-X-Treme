@@ -110,6 +110,23 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         {
             return 1;
         }
+
+        /**
+         * The highest block in a column that could need drawing, other than the shell.
+         *
+         * <p>Above it there is only air over air, which changes nothing on the client and need
+         * not be walked. The shell is walked regardless, since it is painted there too.
+         *
+         * @param x
+         *            the column's x
+         * @param z
+         *            the column's z
+         * @return that y, or {@link Integer#MAX_VALUE} for no limit
+         */
+        default int top(final int x, final int z)
+        {
+            return Integer.MAX_VALUE;
+        }
     }
 
     /** Handed each block a viewer might see through the opening. */
@@ -332,6 +349,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             this.eyeAcross = alongX ? eye[2] : eye[0];
             this.eyeY = eye[1];
             this.reach = Math.max(NEAREST_EYE, Math.abs(window.face() - eyeAlong));
+            // One past the given radius: the shell lies in that last block.
             this.radius = radius + 1.0;
             this.baseAlong = alongX ? window.base.x() : window.base.z();
             this.middle = alongX ? window.base.z() : window.base.x();
@@ -392,7 +410,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             {
                 final int x = alongX ? along : across;
                 final int z = alongX ? across : along;
-                if (!column(x, z, Math.abs((across + 0.5) - eyeAcross), yFrom, yTo, distance))
+                final double offAcross = (across + 0.5) - eyeAcross;
+                if (!column(x, z, offAcross, yFrom, yTo, distance))
                 {
                     return false;
                 }
@@ -400,13 +419,33 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             return true;
         }
 
-        /** One column of one layer, only the blocks in this band. @return false if stopped */
+        /**
+         * One column of one layer, only the blocks in this band.
+         *
+         * <p>Above the column's top only the shell is offered: sky over sky changes nothing on
+         * the client, and outdoors it is most of the cone.
+         *
+         * @return false if stopped
+         */
         private boolean column(final int x, final int z, final double offAcross, final int yFrom,
             final int yTo, final double distance)
         {
+            final int top = limits.top(x, z);
+            final double flat = (distance * distance) + (offAcross * offAcross);
+            final double shellFrom = (radius - 1.0) * (radius - 1.0);
+            final double shellTo = radius * radius;
             for (int y = yFrom; y <= yTo; y++)
             {
-                final double steep = Math.max(offAcross, Math.abs((y + 0.5) - eyeY)) / distance;
+                final double offY = (y + 0.5) - eyeY;
+                if (y > top)
+                {
+                    final double squared = flat + (offY * offY);
+                    if ((squared < shellFrom) || (squared >= shellTo))
+                    {
+                        continue;
+                    }
+                }
+                final double steep = Math.max(Math.abs(offAcross), Math.abs(offY)) / distance;
                 if ((steep > inner) && (steep <= outer) && !candidate.at(x, y, z))
                 {
                     return false;

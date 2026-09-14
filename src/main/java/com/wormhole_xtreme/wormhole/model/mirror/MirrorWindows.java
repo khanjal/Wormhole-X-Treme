@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -108,6 +109,9 @@ public final class MirrorWindows
     /** Whether each block behind an opening is really empty, by world and block, briefly. */
     private static final Map<String, Map<Long, Boolean>> EMPTY = new HashMap<>();
 
+    /** The highest block that is not air in each real column, by world and column, as briefly. */
+    private static final Map<String, Map<Long, Integer>> TOPS = new HashMap<>();
+
     /** When {@link #EMPTY} was last cleared. */
     private static long emptyReadAt;
 
@@ -196,6 +200,9 @@ public final class MirrorWindows
          */
         private int radius = Integer.MAX_VALUE;
 
+        /** Whether the last redraw had room to reach further, so the next sweep redraws. */
+        private boolean growing;
+
         View(final World world)
         {
             this.world = world;
@@ -242,6 +249,7 @@ public final class MirrorWindows
         VIEWS.clear();
         STATES.clear();
         EMPTY.clear();
+        TOPS.clear();
         SOLID.clear();
         MirrorCaptures.clear();
     }
@@ -495,24 +503,23 @@ public final class MirrorWindows
         List<Entity> inside = new ArrayList<>();
         Budget budget = new Budget();
         Map<Long, BlockData> wanted = compose(eye, seeing, now, inside, budget, view.radius);
-        // Too much to draw from here: draw less far, until it fits. Three tries halve the
-        // radius to an eighth, which from right against a mirror is still a room.
+        // Too much to draw from here: draw as far as the walk got in full, which it can
+        // afford by construction, until it fits. Three tries, in case the eye moved closer.
         for (int shrink = 0; (budget.blocks <= 0) && (view.radius > 4) && (shrink < 3); shrink++)
         {
-            view.radius = Math.max(4, view.radius / 2);
+            view.radius = Math.max(4, Math.min(view.radius - 1, budget.reached));
             inside = new ArrayList<>();
             budget = new Budget();
             wanted = compose(eye, seeing, now, inside, budget, view.radius);
         }
-        if ((budget.blocks > (MOST_CANDIDATES / 2)) && (view.radius < configured))
-        {
-            // Room to spare: reach further next time.
-            view.radius = Math.min(configured, view.radius + 2);
-        }
+        final int drawnAt = view.radius;
+        view.radius = grown(view.radius, configured, budget.blocks);
+        view.growing = (view.radius < configured) && (budget.blocks > (MOST_CANDIDATES / 2));
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
         view.lastRedraw = (MOST_CANDIDATES - budget.blocks) + " blocks walked"
-            + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + view.radius + ", "
+            + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + drawnAt
+            + ((view.radius != drawnAt) ? (", next " + view.radius) : "") + ", "
             + budget.near
             + " drawn near, " + budget.shell + " on the shell (" + budget.sky + " as sky), "
             + (MOST_RAY_STEPS - budget.raySteps) + " line steps, eye " + (int) eye.getX() + ","
@@ -534,7 +541,36 @@ public final class MirrorWindows
         final long now)
     {
         return (view.eye == eye) && ((now - view.composedAt) < RESAMPLE_MILLIS)
-            && (view.generation == MirrorCaptures.generation()) && view.mirrors.equals(names(seeing));
+            && (view.generation == MirrorCaptures.generation()) && view.mirrors.equals(names(seeing))
+            && !(view.growing && ((now - view.composedAt) >= REDRAW_MILLIS));
+    }
+
+    /**
+     * How far a view reaches next time, given what the last redraw had left.
+     *
+     * <p>The cost of a view grows with the cube of its radius, so the radius grows by the cube
+     * root of the room to spare, at most half again, and never past the configured depth. Two
+     * blocks at a time took a dozen redraws to recover from one close approach, and a viewer
+     * who then stood still never recovered at all.
+     *
+     * @param radius
+     *            the radius just drawn
+     * @param configured
+     *            the most allowed
+     * @param left
+     *            how much of the block budget the redraw left
+     * @return the radius for the next redraw
+     */
+    static int grown(final int radius, final int configured, final int left)
+    {
+        if ((left <= (MOST_CANDIDATES / 2)) || (radius >= configured))
+        {
+            return Math.min(radius, configured);
+        }
+        final double used = Math.max(1.0, MOST_CANDIDATES - left);
+        final double scaled = radius * Math.cbrt((MOST_CANDIDATES / 2.0) / used);
+        final int next = (int) Math.min(scaled, (radius * 3) / 2.0);
+        return Math.min(configured, Math.max(radius + 2, next));
     }
 
     /** Queues one redraw for a viewer who moved too soon after the last, if none is queued. */
@@ -722,12 +758,13 @@ public final class MirrorWindows
                 {
                     pass.stage(from, to);
                     if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(),
-                        radius, band, pass, (x, y, z) -> pass.consider(x, y, z) && (--budget.blocks > 0)))
+                        radius, band, pass, (x, y, z) -> !pass.consider(x, y, z) || (--budget.blocks > 0)))
                     {
                         break stages;
                     }
                 }
             }
+            budget.reached = to;
         }
         if (!seeing.isEmpty())
         {
@@ -807,10 +844,19 @@ public final class MirrorWindows
         view.veiled.putAll(now);
     }
 
-    /** The first layer of the stage after one starting here: 1, 5, 9, 17, 33, 65 ... */
+    /**
+     * The first layer of the stage after one starting here: 1, 5, 9, 17, 25, 33, 41 ...
+     *
+     * <p>Doubling to 17, then eight at a time: a spent budget falls back to the last stage
+     * walked in full, and a stage of sixteen layers threw away half a view that fit.
+     */
     private static int nextStage(final int from)
     {
-        return (from < 5) ? 5 : (((from - 1) * 2) + 1);
+        if (from < 5)
+        {
+            return 5;
+        }
+        return (from < 17) ? (((from - 1) * 2) + 1) : (from + 8);
     }
 
     /** What one redraw may spend, across every window a viewer sees, and what it drew. */
@@ -821,17 +867,65 @@ public final class MirrorWindows
         private int near;
         private int shell;
         private int sky;
+        /** The deepest layer every view was walked to in full before the budget ran out. */
+        private int reached;
     }
 
     /**
      * What the shell shows where a line of sight into the far side finds nothing at all.
      *
-     * <p>A sky-blue block reads as sky in a world that has one. The End has none, and the Nether's
-     * ceiling is bedrock, so a line that finds nothing there is looking into the dark.
+     * <p>The End has no sky, and the Nether's ceiling is bedrock, so a line that finds nothing
+     * there is looking into the dark. Elsewhere it is sky, lit or unlit; see
+     * {@link #skyMaterial(boolean, boolean)} for why that depends on the far world's clock.
      */
-    private static BlockData sky(final boolean hasSky)
+    private static BlockData sky(final MirrorCapture capture)
     {
-        return Bukkit.createBlockData(hasSky ? Material.LIGHT_BLUE_CONCRETE : Material.BLACK_CONCRETE);
+        return Bukkit.createBlockData(skyMaterial(capture.hasSky(), daylightIn(capture.worldName())));
+    }
+
+    /**
+     * The block that stands for sky.
+     *
+     * <p>Every drawn block is lit by the client with the light of the real world where it is
+     * drawn, and behind a wall that is usually none: a sky-blue block in the dark is navy, and
+     * a wall of navy at the end of a corridor looked like water to the first person who saw it.
+     * By the far world's day the sky is a block that makes its own light, so it is bright
+     * wherever the real side is dark. By its night, the unlit blue is the night sky.
+     *
+     * @param hasSky
+     *            whether the far world has a sky at all
+     * @param daylight
+     *            whether it is day there
+     * @return the material to paint
+     */
+    static Material skyMaterial(final boolean hasSky, final boolean daylight)
+    {
+        if (!hasSky)
+        {
+            return Material.BLACK_CONCRETE;
+        }
+        return daylight ? Material.SEA_LANTERN : Material.LIGHT_BLUE_CONCRETE;
+    }
+
+    /** Whether it is day in a world, by name; day if the world is not loaded to ask. */
+    private static boolean daylightIn(final String worldName)
+    {
+        final World world = (worldName == null) ? null : Bukkit.getWorld(worldName);
+        return (world == null) || daylight(world.getTime());
+    }
+
+    /**
+     * Whether a world's clock says day: from a little before sunrise to a little after sunset,
+     * when the sky is still light.
+     *
+     * @param time
+     *            the world's time of day, in ticks from 0 at dawn
+     * @return true by day
+     */
+    static boolean daylight(final long time)
+    {
+        final long ofDay = ((time % 24000L) + 24000L) % 24000L;
+        return (ofDay < 13000L) || (ofDay >= 23000L);
     }
 
     /**
@@ -879,6 +973,23 @@ public final class MirrorWindows
             .comparingDouble((Window window) -> window.banner.getLocation().distanceSquared(eye))
             .thenComparing(window -> window.mirror.name()));
         return sorted;
+    }
+
+    /** The highest block that is not air in a real column, remembered for a few seconds. */
+    private static int topHere(final World here, final int x, final int z, final long now)
+    {
+        if ((now - emptyReadAt) >= RESAMPLE_MILLIS)
+        {
+            EMPTY.clear();
+            TOPS.clear();
+            emptyReadAt = now;
+        }
+        if (!here.isChunkLoaded(x >> 4, z >> 4))
+        {
+            return Integer.MAX_VALUE;
+        }
+        return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
+            chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
     }
 
     /** Whether the real block here is empty, remembered for a few seconds. */
@@ -1238,7 +1349,7 @@ public final class MirrorWindows
             this.allOpen = allOpen;
             this.wanted = wanted;
             this.air = air;
-            this.sky = sky(window.capture.hasSky());
+            this.sky = sky(window.capture);
             this.radius = radius;
             this.budget = budget;
             this.now = now;
@@ -1249,14 +1360,14 @@ public final class MirrorWindows
             this.shielded = shielded(window, eye, now);
         }
 
-        /** @return true, always: the walk is stopped by the budget, not by one block */
+        /** @return true if this block cost real work, which the budget counts; false if it was cheap */
         boolean consider(final int x, final int y, final int z)
         {
             final long cell = key(x, y, z);
             if ((y < min) || (y >= max) || wanted.containsKey(cell))
             {
                 probe(x, y, z, "already");
-                return true;
+                return false;
             }
             final double dx = (x + 0.5) - eye.getX();
             final double dy = (y + 0.5) - eye.getY();
@@ -1265,7 +1376,7 @@ public final class MirrorWindows
             if (distance >= (radius + 1.0))
             {
                 probe(x, y, z, "beyond");
-                return true;
+                return false;
             }
             final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
             final int layer = layerOf(x, z);
@@ -1395,6 +1506,20 @@ public final class MirrorWindows
         public int deepest()
         {
             return Math.min(to, hidden.horizon());
+        }
+
+        /**
+         * Above both the highest real block and the highest far one that column maps to,
+         * everything is air over air.
+         */
+        @Override
+        public int top(final int x, final int z)
+        {
+            final Spot column = window.shape.farOf(x, window.shape.base().y(), z);
+            final int farTop = window.capture.top(column.x(), column.z());
+            // The far column's top, brought back to this world's heights.
+            final int farTopHere = farTop + (window.shape.base().y() - window.shape.far().y());
+            return Math.max(topHere(here, x, z, now), farTopHere);
         }
 
         private int layerOf(final int x, final int z)

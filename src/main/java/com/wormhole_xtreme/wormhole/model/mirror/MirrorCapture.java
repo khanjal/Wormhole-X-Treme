@@ -219,11 +219,14 @@ public final class MirrorCapture
         }
 
         /**
-         * Blanks every block that is buried on all six sides.
+         * Blanks every block buried two deep: one with no face open, and no neighbour with one.
          *
          * <p>Nothing surrounded by solid blocks can be seen through a window, and a hillside is
          * nearly all inside. Blanked to air, those blocks cost nothing on disk and the view is
-         * the same. A block on the box's edge is kept: what lies beyond the edge is unknown.
+         * the same. The layer just under the surface is kept all the same, in case: a capture
+         * is looked at from angles nobody chose, and a surface block that is wrong for any
+         * reason should have ground under it, not a hole. A block on the box's edge is kept,
+         * since what lies beyond the edge is unknown, and it is not counted as open either.
          */
         public void prune()
         {
@@ -231,6 +234,22 @@ public final class MirrorCapture
             for (int i = 0; i < states.size(); i++)
             {
                 solid[i] = (i != 0) && states.get(i).isOccluding();
+            }
+            final boolean[] open = new boolean[indices.length];
+            for (int dx = 1; dx < (sizeX - 1); dx++)
+            {
+                for (int dz = 1; dz < (sizeZ - 1); dz++)
+                {
+                    for (int dy = 1; dy < (sizeY - 1); dy++)
+                    {
+                        final int at = offset(dx, dy, dz, sizeY, sizeZ);
+                        open[at] = !solid[indices[at]] || !solid[indices[at - 1]] || !solid[indices[at + 1]]
+                            || !solid[indices[offset(dx - 1, dy, dz, sizeY, sizeZ)]]
+                            || !solid[indices[offset(dx + 1, dy, dz, sizeY, sizeZ)]]
+                            || !solid[indices[offset(dx, dy, dz - 1, sizeY, sizeZ)]]
+                            || !solid[indices[offset(dx, dy, dz + 1, sizeY, sizeZ)]];
+                    }
+                }
             }
             final short[] kept = indices.clone();
             for (int dx = 1; dx < (sizeX - 1); dx++)
@@ -240,11 +259,11 @@ public final class MirrorCapture
                     for (int dy = 1; dy < (sizeY - 1); dy++)
                     {
                         final int at = offset(dx, dy, dz, sizeY, sizeZ);
-                        if (solid[indices[at]] && solid[indices[at - 1]] && solid[indices[at + 1]]
-                            && solid[indices[offset(dx - 1, dy, dz, sizeY, sizeZ)]]
-                            && solid[indices[offset(dx + 1, dy, dz, sizeY, sizeZ)]]
-                            && solid[indices[offset(dx, dy, dz - 1, sizeY, sizeZ)]]
-                            && solid[indices[offset(dx, dy, dz + 1, sizeY, sizeZ)]])
+                        if (!open[at] && !open[at - 1] && !open[at + 1]
+                            && !open[offset(dx - 1, dy, dz, sizeY, sizeZ)]
+                            && !open[offset(dx + 1, dy, dz, sizeY, sizeZ)]
+                            && !open[offset(dx, dy, dz - 1, sizeY, sizeZ)]
+                            && !open[offset(dx, dy, dz + 1, sizeY, sizeZ)])
                         {
                             kept[at] = 0;
                         }

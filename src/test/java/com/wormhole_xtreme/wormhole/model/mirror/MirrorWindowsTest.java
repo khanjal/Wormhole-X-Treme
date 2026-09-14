@@ -110,6 +110,10 @@ class MirrorWindowsTest
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
             blockAt(invocation.getArgument(0), invocation.getArgument(1),
                 invocation.getArgument(2), true));
+        // Sky over sky above a column's top is skipped, and a bare mock's top is y 0: the
+        // real side here reaches the top of the world, so nothing a test builds is skipped.
+        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(org.bukkit.HeightMap.class)))
+            .thenReturn(Integer.MAX_VALUE);
 
         banner = bannerAt(10);
         hangOnAWall(banner);
@@ -965,6 +969,7 @@ class MirrorWindowsTest
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
             bukkit.when(() -> Bukkit.createBlockData(Material.LIGHT_BLUE_CONCRETE)).thenReturn(sky);
+            bukkit.when(() -> Bukkit.createBlockData(Material.SEA_LANTERN)).thenReturn(sky);
             bukkit.when(() -> Bukkit.createBlockData(Material.BLACK_CONCRETE)).thenReturn(sky);
             for (final Player player : world.getPlayers())
             {
@@ -972,5 +977,58 @@ class MirrorWindowsTest
             }
             body.run();
         }
+    }
+
+    /**
+     * A view's reach grows with the cube root of the room it had, at most half again per
+     * redraw, and never past the configured depth.
+     *
+     * <p>Two blocks a redraw took a dozen redraws to recover from one close approach. The cost
+     * of a view goes with the cube of its radius, so a redraw that used a tenth of its budget can
+     * afford a radius 1.7 times as large, capped at 1.5 so one guess too far costs one redraw.
+     */
+    @Test
+    void reachGrowsByTheCubeRootOfTheRoomToSpareAndAtMostHalfAgain()
+    {
+        final int most = 40_000;
+        assertEquals(19, MirrorWindows.grown(19, 32, most / 2), "half spent is no room to grow");
+        assertEquals(19, MirrorWindows.grown(19, 32, 0), "a spent budget never grows");
+        assertEquals(21, MirrorWindows.grown(19, 32, (most / 2) + 1), "just under half spent grows two, the least step");
+        assertEquals(28, MirrorWindows.grown(19, 32, most - 4_000), "a tenth spent grows half again, not the cube root's 1.7");
+        assertEquals(32, MirrorWindows.grown(30, 32, most - 4_000), "and never past the configured depth");
+        assertEquals(32, MirrorWindows.grown(40, 32, most), "a radius above the configured depth comes down to it");
+    }
+
+    /**
+     * Daylight is from a little before dawn to a little after dusk, whatever day it is.
+     */
+    @Test
+    void daylightFollowsTheFarWorldsClockThroughAnyNumberOfDays()
+    {
+        assertTrue(MirrorWindows.daylight(0L), "dawn");
+        assertTrue(MirrorWindows.daylight(6000L), "noon");
+        assertTrue(MirrorWindows.daylight(12999L), "dusk, sky still light");
+        assertFalse(MirrorWindows.daylight(13000L), "night falls");
+        assertFalse(MirrorWindows.daylight(18000L), "midnight");
+        assertTrue(MirrorWindows.daylight(23000L), "sky lightens before dawn");
+        assertTrue(MirrorWindows.daylight(24000L + 6000L), "noon of the second day");
+        assertFalse(MirrorWindows.daylight((24000L * 300L) + 18000L), "midnight of the three hundredth");
+    }
+
+    /**
+     * Sky is a block that makes its own light by day, an unlit blue by night, and black where
+     * there is no sky at all.
+     *
+     * <p>Every drawn block is lit by the real world where it is drawn, and behind a wall that is
+     * dark: a sky-blue block there was navy, and a wall of navy at the end of a corridor looked
+     * like water.
+     */
+    @Test
+    void skyMakesItsOwnLightByDayAndIsUnlitBlueByNight()
+    {
+        assertSame(Material.SEA_LANTERN, MirrorWindows.skyMaterial(true, true), "day: lit whatever the real side is");
+        assertSame(Material.LIGHT_BLUE_CONCRETE, MirrorWindows.skyMaterial(true, false), "night: the night sky");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, true), "the Nether has no sky by day");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, false), "or by night");
     }
 }

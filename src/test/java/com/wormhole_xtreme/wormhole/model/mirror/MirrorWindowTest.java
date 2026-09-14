@@ -225,6 +225,51 @@ class MirrorWindowTest
         return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
     }
 
+    /**
+     * Above a column's top, only the shell is offered.
+     *
+     * <p>Sky over sky changes nothing on the client and outdoors is most of the cone, so a walk
+     * that offered it spent half its budget on nothing. The shell is still painted there -- a
+     * sky with a hole in it would show the real world -- so what is offered above the top must
+     * be exactly the blocks a block past the radius, and there must be some.
+     */
+    @Test
+    void aboveAColumnsTopOnlyTheShellIsOffered()
+    {
+        final double ex = 0.5;
+        final double ey = 64.0;
+        final double ez = -3.0;
+        final int radius = 8;
+        final int top = 63;
+        final MirrorWindow.Limits skyAbove = new MirrorWindow.Limits()
+        {
+            @Override
+            public int deepest()
+            {
+                return Integer.MAX_VALUE;
+            }
+
+            @Override
+            public int top(final int x, final int z)
+            {
+                return top;
+            }
+        };
+        final List<Spot> seen = candidates(northFacing(0.0f), ex, ey, ez, radius, skyAbove);
+        final List<Spot> sky = seen.stream().filter(spot -> spot.y() > top).toList();
+        final List<Spot> all = candidates(northFacing(0.0f), ex, ey, ez, radius);
+
+        assertFalse(sky.isEmpty(), "the shell above the top is still offered");
+        for (final Spot spot : sky)
+        {
+            final double distance = distance(spot, ex, ey, ez);
+            assertTrue((distance >= radius) && (distance < (radius + 1.0)),
+                spot + " is above the top but not on the shell, " + distance + " from the eye");
+        }
+        assertTrue(all.size() > seen.size(), "and the sky between was skipped");
+        assertTrue(all.containsAll(seen), "without offering anything the full walk did not");
+    }
+
     @Test
     void aCandidateWalkStopsWhenAsked()
     {

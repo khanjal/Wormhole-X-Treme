@@ -106,6 +106,8 @@ class MirrorReplayTest
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getMaxHeight()).thenReturn(320);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        when(world.getHighestBlockYAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.any(org.bukkit.HeightMap.class)))
+            .thenAnswer(invocation -> here.top(invocation.getArgument(0), invocation.getArgument(1)));
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
             blockOf(world, here, invocation.getArgument(0), invocation.getArgument(1),
                 invocation.getArgument(2), bx, by, bz, facing));
@@ -173,7 +175,9 @@ class MirrorReplayTest
             out.append("   real: ");
             for (int depth = 1; depth <= radius + 2; depth++)
             {
-                out.append(here.isAir(bx + (intoX * depth), y, bz + (intoZ * depth)) ? '.' : '#');
+                final String realName = here.nameAt(bx + (intoX * depth), y, bz + (intoZ * depth));
+                out.append(here.isAir(bx + (intoX * depth), y, bz + (intoZ * depth)) ? '.'
+                    : realName.startsWith("minecraft:water") ? 'w' : '#');
             }
             out.append("   far: ");
             final MirrorWindow shape = MirrorWindow.of(new MirrorBlock(here.worldName(), bx, by, bz),
@@ -181,7 +185,8 @@ class MirrorReplayTest
             for (int depth = 1; depth <= radius + 2; depth++)
             {
                 final MirrorWindow.Spot at = shape.farOf(bx + (intoX * depth), y, bz + (intoZ * depth));
-                out.append(far.isAir(at.x(), at.y(), at.z()) ? '.' : '#');
+                out.append(far.isAir(at.x(), at.y(), at.z()) ? '.'
+                    : far.nameAt(at.x(), at.y(), at.z()).startsWith("minecraft:water") ? 'w' : '#');
             }
             out.append('\n');
         }
@@ -227,6 +232,7 @@ class MirrorReplayTest
         final java.util.Map<String, MirrorWindow.Spot> holeAt = new HashMap<>();
         int rays = 0;
         int holed = 0;
+        final java.util.Map<String, Integer> shows = new java.util.TreeMap<>();
         final int faceAlong = (intoZProbe != 0) ? (bz + intoZProbe) : (bx + intoXProbe);
         final double facePlane = faceAlong + ((intoXProbe + intoZProbe) > 0 ? 0.0 : 1.0);
         for (double across = 0.02; across < 1.0; across += 0.04)
@@ -244,19 +250,38 @@ class MirrorReplayTest
                 long last = Long.MIN_VALUE;
                 String outcome = "escaped";
                 MirrorWindow.Spot where = null;
-                for (double t = len; t < (len * ((radius + 2.0) / len)) + 40.0; t += 0.2)
+                final StringBuilder trail = new StringBuilder();
+                // A voxel walk from the point on the face plane: every block the ray passes
+                // through, however briefly. A fixed step skipped the corner of a block a ray
+                // clipped for an eighth of a block, and called what lay behind it a hole.
+                final double[] o = { px, py, pz };
+                final double[] d = { dx / len, dy / len, dz / len };
+                final int[] c = { (int) Math.floor(px), (int) Math.floor(py), (int) Math.floor(pz) };
+                final int[] step = new int[3];
+                final double[] tMax = new double[3];
+                final double[] tDelta = new double[3];
+                for (int axis = 0; axis < 3; axis++)
                 {
-                    final int cx = (int) Math.floor(ex + (dx / len) * t);
-                    final int cy = (int) Math.floor(ey + (dy / len) * t);
-                    final int cz = (int) Math.floor(ez + (dz / len) * t);
-                    final long key = MirrorWindows.key(cx, cy, cz);
-                    if (key == last)
-                    {
-                        continue;
-                    }
-                    last = key;
+                    step[axis] = (d[axis] > 0) ? 1 : (d[axis] < 0) ? -1 : 0;
+                    tDelta[axis] = (step[axis] == 0) ? Double.POSITIVE_INFINITY : Math.abs(1.0 / d[axis]);
+                    final double edge = (step[axis] > 0) ? (c[axis] + 1) : c[axis];
+                    tMax[axis] = (step[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
+                }
+                final double furthest = radius + 2.0 + 40.0;
+                for (double t = 0.0; t < furthest;)
+                {
+                    final int cx = c[0];
+                    final int cy = c[1];
+                    final int cz = c[2];
+                    final int next = (tMax[0] < tMax[1]) ? ((tMax[0] < tMax[2]) ? 0 : 2) : ((tMax[1] < tMax[2]) ? 1 : 2);
+                    t = tMax[next];
+                    c[next] += step[next];
+                    tMax[next] += tDelta[next];
                     final MirrorWindow.Spot spot = new MirrorWindow.Spot(cx, cy, cz);
                     final String as = drawn.get(spot);
+                    trail.append(' ').append(cx).append(',').append(cy).append(',').append(cz).append('=')
+                        .append((as == null) ? (here.isAir(cx, cy, cz) ? "real-air" : "REAL-" + here.nameAt(cx, cy, cz)) : as)
+                        .append('/').append(verdicts.getOrDefault(spot, "-").replaceAll(", rect.*", ""));
                     if (as != null)
                     {
                         if (as.endsWith(":air") || as.endsWith(":barrier"))
@@ -264,6 +289,7 @@ class MirrorReplayTest
                             continue;
                         }
                         outcome = "ok";
+                        shows.merge("drawn " + as + ((as.contains("concrete") || as.contains("sea_lantern")) ? " (sky)" : ""), 1, Integer::sum);
                         break;
                     }
                     if (here.isAir(cx, cy, cz))
@@ -276,10 +302,16 @@ class MirrorReplayTest
                         // The wall's own sill and jambs, seen at a grazing angle: real, and
                         // rightly so.
                         outcome = "ok";
+                        shows.merge("real jamb " + here.nameAt(cx, cy, cz), 1, Integer::sum);
                         break;
                     }
                     outcome = "hole";
                     where = spot;
+                    if (holed < 3)
+                    {
+                        out.append("hole ray through plane x ").append(px).append(" y ").append(py).append(" z ")
+                            .append(pz).append(":").append(trail).append('\n');
+                    }
                     break;
                 }
                 if (!"ok".equals(outcome))
@@ -294,10 +326,107 @@ class MirrorReplayTest
             }
         }
         out.append(rays).append(" rays through the opening, ").append(holed).append(" holes\n");
+        // For each hole judged hidden: every drawn solid in a nearer layer whose projection
+        // overlaps the hole's, which is what the occlusion grid believed covered it.
+        final java.util.regex.Pattern rectOf = java.util.regex.Pattern.compile(
+            "(?:layer (-?\\d+), )?rect \\[(-?[\\d.]+), (-?[\\d.]+), (-?[\\d.]+), (-?[\\d.]+)\\]");
+        for (final java.util.Map.Entry<String, MirrorWindow.Spot> hole : holeAt.entrySet())
+        {
+            final java.util.regex.Matcher mine = rectOf.matcher(hole.getKey());
+            if ((hole.getValue() == null) || !mine.find())
+            {
+                continue;
+            }
+            final double[] r = { Double.parseDouble(mine.group(2)), Double.parseDouble(mine.group(3)),
+                Double.parseDouble(mine.group(4)), Double.parseDouble(mine.group(5)) };
+            final int layerOfHole = ((hole.getValue().x() - bx) * intoXProbe)
+                + ((hole.getValue().z() - bz) * intoZProbe) - 1;
+            out.append("coverers of ").append(hole.getValue()).append(" (layer ").append(layerOfHole)
+                .append(", rect ").append(java.util.Arrays.toString(r)).append("):\n");
+            for (final java.util.Map.Entry<MirrorWindow.Spot, String> v : verdicts.entrySet())
+            {
+                if (!v.getValue().startsWith("drawn"))
+                {
+                    continue;
+                }
+                final java.util.regex.Matcher m = rectOf.matcher(v.getValue());
+                if (!m.find() || (m.group(1) == null) || (Integer.parseInt(m.group(1)) >= layerOfHole))
+                {
+                    continue;
+                }
+                final double[] o = { Double.parseDouble(m.group(2)), Double.parseDouble(m.group(3)),
+                    Double.parseDouble(m.group(4)), Double.parseDouble(m.group(5)) };
+                if ((o[1] > r[0]) && (o[0] < r[1]) && (o[3] > r[2]) && (o[2] < r[3]))
+                {
+                    out.append("  ").append(v.getKey()).append(' ').append(v.getValue()).append('\n');
+                }
+            }
+        }
+        out.append("what the rays end on:\n");
+        shows.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(20)
+            .forEach(e -> out.append("  ").append(e.getValue()).append(" x ").append(e.getKey()).append('\n'));
         holes.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(25)
             .forEach(e -> out.append("  ").append(e.getValue()).append(" x ").append(e.getKey()).append('\n'));
+        out.append("window base ").append(shape.base()).append(", far ").append(shape.far())
+            .append(", into ").append(shape.into()).append(", ahead ").append(shape.ahead()).append('\n');
+        for (int depth = 1; depth <= 3; depth++)
+        {
+            for (int y = by - 1; y <= by; y++)
+            {
+                final MirrorWindow.Spot at = shape.farOf(bx + (intoXProbe * depth), y, bz + (intoZProbe * depth));
+                out.append("  depth ").append(depth).append(" y ").append(y).append(" -> far ").append(at)
+                    .append(' ').append(far.nameAt(at.x(), at.y(), at.z())).append('\n');
+            }
+        }
+        // Top-down maps of the far side around the arrival point, one per height, so the
+        // layout of what a window shows can be checked against the layout of what it should.
+        final int ax = (int) Math.floor(destination.x());
+        final int ay = (int) Math.floor(destination.y());
+        final int az = (int) Math.floor(destination.z());
+        out.append("far side top-down, x ").append(ax - 12).append("..").append(ax + 12)
+            .append(" left to right, z ").append(az - 12).append(" (top) to ").append(az + 12)
+            .append(": w water, p planks, b bookshelf, g glass, G glowstone, # other, . air, @ arrival\n");
+        for (int y = ay - 2; y <= ay + 1; y++)
+        {
+            out.append("far y ").append(y).append('\n');
+            for (int z = az - 12; z <= az + 12; z++)
+            {
+                out.append(String.format("%5d ", z));
+                for (int x = ax - 12; x <= ax + 12; x++)
+                {
+                    out.append(((x == ax) && (z == az)) ? '@' : glyphOf(far.nameAt(x, y, z)));
+                }
+                out.append('\n');
+            }
+        }
+        out.append("this side top-down, x ").append(bx - 12).append("..").append(bx + 12)
+            .append(", z ").append(bz - 12).append(" (top) to ").append(bz + 12).append(", B banner\n");
+        for (int y = by - 2; y <= by + 1; y++)
+        {
+            out.append("here y ").append(y).append('\n');
+            for (int z = bz - 12; z <= bz + 12; z++)
+            {
+                out.append(String.format("%5d ", z));
+                for (int x = bx - 12; x <= bx + 12; x++)
+                {
+                    out.append(((x == bx) && (z == bz)) ? 'B' : glyphOf(here.nameAt(x, y, z)));
+                }
+                out.append('\n');
+            }
+        }
         System.out.println(out);
         java.nio.file.Files.writeString(new File(dir, "replay-out.txt").toPath(), out.toString());
+    }
+
+    private static char glyphOf(final String name)
+    {
+        if ((name == null) || name.endsWith(":air") || name.endsWith(":cave_air"))
+        {
+            return '.';
+        }
+        final String bare = name.contains("[") ? name.substring(0, name.indexOf('[')) : name;
+        return bare.endsWith("water") ? 'w' : name.contains("fence") ? 'f' : name.contains("planks") ? 'p' : name.contains("bookshelf") ? 'b'
+            : name.contains("glass") ? 'g' : name.contains("glowstone") ? 'G' : '#';
     }
 
     private static char glyph(final String as)
@@ -310,7 +439,7 @@ class MirrorReplayTest
         {
             return 'a';
         }
-        if (as.contains("concrete"))
+        if (as.contains("concrete") || as.contains("sea_lantern"))
         {
             return 's';
         }

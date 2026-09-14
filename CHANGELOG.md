@@ -122,9 +122,9 @@ been running on defaults will start reading the file you have been editing.
   be loaded, and it was not: the first mirror tested in earnest showed its own world above the
   far sand, and the far side's chunks, asked for in the background, never came. So a window now
   draws from a photograph -- a box of blocks around the arrival point, `mirror-capture-radius`
-  across (64 by default), 16 below to 64 above, taken a couple of chunks a tick the first time
+  across (96 by default), 64 below to 64 above, taken a couple of chunks a tick the first time
   anybody looks and kept in `data/mirror-captures/`. Palette and index, gzipped, with anything
-  buried on all six sides pruned to air: a beach comes to a few hundred kilobytes at most.
+  buried two deep pruned to air: a beach comes to a few hundred kilobytes at most.
 
   Once taken it never needs the far world again, which is the museum case #22 was filed for: a
   mirror onto an archived world that is not even loaded still shows it. What it costs is
@@ -171,18 +171,48 @@ been running on defaults will start reading the file you have been editing.
 
   Two things came out of the same replay. The cone is walked in stages of depth, all bands
   within each, rather than band by band to full depth: a wide radius spent the whole budget on
-  the far middle before the near sides were walked at all. And `mirror-view-depth` reads at most
-  32, since a prototype build wrote 48 into configs as its default and at 48 the cone from a
-  block away is more than a redraw's budget.
+  the far middle before the near sides were walked at all. And `mirror-view-depth` was capped at
+  32 for a while, since a prototype build wrote 48 into configs as its default and at 48 the cone
+  from a block away is more than a redraw's budget.
 
   A spent budget used to leave everything past it undrawn, with no shell to close it: holes with
   the real world in them, by construction. So the radius adapts per viewer, the way the other
   windows plugin fits its view depth to its cell cap. A redraw that spends its budget is done
-  again at half the radius until it fits, and the radius grows back while there is room. A
-  shorter reach is a complete view, closed by its shell, that is merely shallower while the eye
-  is right against the mirror. The replay also casts a fan of rays through the opening and
-  follows each the way the client shows it; from the recorded eye at radius 16 it finds no ray
-  that meets a real block nobody drew.
+  again at the last stage of depth it walked in full, which it can afford by construction, and
+  the radius grows back while there is room -- by the cube root of the room, since the cost of
+  a view goes with the cube of its radius, and while the viewer stands still as much as while
+  they move, since two blocks a redraw only while moving left someone who had stepped up close
+  and stopped at nineteen for good. A shorter reach is a complete view, closed by its shell,
+  that is merely shallower while the eye is right against the mirror. The replay also casts a
+  fan of rays through the opening and follows each the way the client shows it, block by block
+  (a fixed step skipped the corner of a bookshelf a ray clipped for an eighth of a block, and
+  called the floor behind it a hole); from the recorded eye it finds no ray that meets a real
+  block nobody drew, at any depth, from against the mirror to seven blocks back.
+
+  With that, the cap is 64 and the default 32. "Sixteen isn't enough; the other plugin goes
+  further" -- and it does not need to be sixteen. What made 32 affordable from right against a
+  mirror is that sky over sky is no longer walked: above both the real column's top and the far
+  one's there is nothing to draw, and outdoors that was most of the cone. The shell is still
+  offered there, since a sky with a hole in it shows the real world. From the recorded eye a
+  third of a block from the mirror, 32 costs 27,000 blocks of a 40,000 budget; from a block and
+  a half back, 48 costs 4,000.
+
+  The far side of that same mirror ended in "water on the floor instead of wooden planks", and
+  the glass wall beyond it cut off. It was neither: the corridor ends at a glass wall with open
+  air beyond, the library being a tower, and past the glass the shell paints sky. Sky is
+  light-blue concrete, and every drawn block is lit by the real world where it is drawn --
+  behind that wall, a lake at night. Unlit light blue is navy, and a wall of navy at the end of a
+  corridor is water to anyone who looks at it. By the far world's day the sky is now a sea
+  lantern, which makes its own light, so it is bright wherever the real side is dark; by its
+  night the unlit blue is the night sky. The rest of the far side stays lit by this world, which
+  is the prototype's known limit: behind a dark wall, only what makes its own light is bright.
+
+  Captures reach further, in case: `mirror-capture-radius` is 96 by default and 160 at most,
+  and the box goes 64 below the arrival point, not 48, which only just held the beach. And
+  pruning keeps the layer under every open face, blanking only what is buried two deep, so a
+  surface block that is wrong for any reason has ground under it rather than a hole. Wider is
+  more memory while a far side is being looked at -- 96 is about eight megabytes -- and the
+  file stays small, since only the open faces and the layer under them are in it.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

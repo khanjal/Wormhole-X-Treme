@@ -45,9 +45,9 @@ public final class MirrorCaptures
      *
      * <p>Sixteen was not enough: a mirror in a library forty-seven blocks above its beach looked
      * down through the library's openings at nothing, and the beach it should have seen was
-     * below the box.
+     * below the box. Forty-eight only just held it, so as much below as above.
      */
-    private static final int BELOW = 48;
+    private static final int BELOW = 64;
 
     /** How far above it. */
     private static final int ABOVE = 64;
