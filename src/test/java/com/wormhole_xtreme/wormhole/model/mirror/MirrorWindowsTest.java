@@ -184,8 +184,9 @@ class MirrorWindowsTest
 
         // Asked of the windows, not of the blocks drawn: two windows on one opening take turns per
         // block, and a single sweep can happen to draw all of one.
-        assertTrue(said.get(0).startsWith("1 window(s)"), "one banner is one window, not one per name: " + said);
-        assertTrue(said.stream().anyMatch(line -> line.startsWith("you see [archive]:")),
+        assertTrue(said.stream().map(MirrorWindowsTest::plain).anyMatch("server: 1 window(s), 1 viewer(s)"::equals),
+            "one banner is one window, not one per name: " + said);
+        assertTrue(said.stream().map(MirrorWindowsTest::plain).anyMatch("looking into: archive"::equals),
             "the window is archive's, the mirror a click would take: " + said);
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), farTwoBlock) > 0, "and archive's far side is what shows");
     }
@@ -468,9 +469,10 @@ class MirrorWindowsTest
             MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
         });
 
-        final String redraw = MirrorWindows.describe(viewer).stream().filter(line -> line.startsWith("last redraw"))
-            .findFirst().orElse("");
-        final int reach = Integer.parseInt(redraw.replaceAll(".* at radius (\\d+).*", "$1"));
+        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        final String redraw = String.join("; ", said);
+        final int reach = Integer.parseInt(said.stream().filter(line -> line.startsWith("radius: ")).findFirst()
+            .orElseThrow(() -> new AssertionError("no radius said: " + redraw)).replaceAll("radius: (\\d+).*", "$1"));
         assertTrue(reach < 11, "the move's own reach fell short of the deep block: " + redraw);
         final List<Collection<BlockState>> sent = changesTo(viewer, 2);
         final Map<Spot, BlockData> update = positions(sent.get(1));
@@ -1273,6 +1275,12 @@ class MirrorWindowsTest
             assertEquals(spot[1], MirrorWindows.unpackY(key));
             assertEquals(spot[2], MirrorWindows.unpackZ(key));
         }
+    }
+
+    /** A {@code mirror debug} line without its colours or indent, as {@code label: value}. */
+    private static String plain(final String line)
+    {
+        return line.replaceAll("§.", "").trim();
     }
 
     /** Waits out the least time between two redraws of one viewer. */

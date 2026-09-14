@@ -45,9 +45,76 @@ public final class MirrorText
     /** A line meant to be typed as it stands. */
     public static final String COMMAND_COLOUR = "§f";
 
+    /**
+     * A value in {@code mirror debug}, beside its grey label.
+     *
+     * <p>The command's white: debug lines hold values to read rather than commands to type, and a
+     * label and its value in the same grey was the paragraph this class exists to break up.
+     */
+    public static final String VALUE_COLOUR = "§f";
+
+    /** Something in {@code mirror debug} that stops a view working: a missing file, a gap, a spent budget. */
+    public static final String BAD_COLOUR = "§c";
+
+    /** Something in {@code mirror debug} working as it should. */
+    public static final String GOOD_COLOUR = "§a";
+
+    /** A group of {@code mirror debug} lines. */
+    public static final String HEADING_COLOUR = "§3";
+
     /** Static text only. */
     private MirrorText()
     {
+    }
+
+    /**
+     * One {@code mirror debug} line: a label, and its value.
+     *
+     * @param label
+     *            what the value is
+     * @param value
+     *            the value, which may carry {@link #bad} or {@link #good} fragments
+     * @return {@code label: value}, ending back in the body colour
+     */
+    public static String field(final String label, final String value)
+    {
+        return "  " + BODY_COLOUR + label + ": " + VALUE_COLOUR + value + BODY_COLOUR;
+    }
+
+    /**
+     * A heading over a group of {@code mirror debug} lines.
+     *
+     * @param heading
+     *            what the group is about
+     * @return the heading, ending back in the body colour
+     */
+    public static String heading(final String heading)
+    {
+        return HEADING_COLOUR + heading + BODY_COLOUR;
+    }
+
+    /**
+     * A fragment of a debug value that stops a view working.
+     *
+     * @param text
+     *            the fragment
+     * @return it in red, ending back in the value colour
+     */
+    public static String bad(final String text)
+    {
+        return BAD_COLOUR + text + VALUE_COLOUR;
+    }
+
+    /**
+     * A fragment of a debug value working as it should.
+     *
+     * @param text
+     *            the fragment
+     * @return it in green, ending back in the value colour
+     */
+    public static String good(final String text)
+    {
+        return GOOD_COLOUR + text + VALUE_COLOUR;
     }
 
     /**

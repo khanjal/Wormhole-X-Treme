@@ -408,10 +408,16 @@ public final class SubCommands
     {
         if (args.length == 2)
         {
-            return prefixed(args[1],
-                com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs());
+            // debug is left out of the usage line, and offered here only to whoever may run it.
+            final String[] verbs = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs();
+            return prefixed(args[1], CommandHandlerUtils.hasConfigPermission(sender)
+                ? both(verbs, new String[] { DEBUG }) : verbs);
         }
         final String verb = (args.length > 1) ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
+        if (DEBUG.equals(verb))
+        {
+            return completeMirrorDebug(sender, args);
+        }
         // Named rather than excluded. Falling through for anything that is not set or list
         // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
         // which reads as though the typo were a real command.
@@ -438,6 +444,36 @@ public final class SubCommands
             return prefixed(args[3], settingsFor(verb));
         }
         return none();
+    }
+
+    /** The mirror verb for what a window draws from; not in the usage line. */
+    private static final String DEBUG = "debug";
+
+    /** What {@code mirror debug} takes on its own, or after a name: save and full take one. */
+    private static final String[] DEBUG_SWITCHES = { "save", "full", "off", "on" };
+
+    /**
+     * Completions for {@code /wormhole mirror debug [name] [save|full]} and {@code debug off|on}.
+     *
+     * @param sender
+     *            whoever is typing; offered nothing without {@code wormhole.config}
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeMirrorDebug(final CommandSender sender, final String[] args)
+    {
+        if (!CommandHandlerUtils.hasConfigPermission(sender))
+        {
+            return none();
+        }
+        if (args.length == 3)
+        {
+            return prefixed(args[2], both(mirrorNames(), DEBUG_SWITCHES));
+        }
+        final boolean afterName = (args.length == 4)
+            && java.util.Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
+        return afterName ? prefixed(args[3], "save", "full") : none();
     }
 
     /**

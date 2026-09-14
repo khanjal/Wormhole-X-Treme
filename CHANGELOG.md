@@ -113,6 +113,22 @@ been running on defaults will start reading the file you have been editing.
   costs up to two and a half times as much for each viewer; the server's share per second, every
   viewer together, is unchanged, so the most it spends is too.
 
+- **`mirror debug` tab-completes, and says one thing a line.** "Add it to the auto complete, for
+  users who have permissions to use it, and the name auto complete... Should we do dedicated
+  lines like property: value?" `debug` stays out of the usage line, since it answers nothing a
+  player would ask, so completion is where an admin finds it. It is offered only to whoever holds
+  `wormhole.config`, followed by the mirror names, `on` and `off`, and `save` or `full` after a
+  name.
+
+  It used to say a sentence a line, all grey -- `key ..., file missing, far world loaded` -- with
+  the word that mattered in the middle of one. Now each fact is a `label: value` line, a grey
+  label and a white value, under headings for the mirror, its capture and your view. Whatever
+  trims or stops a view is red: a missing capture file, a gap in the wall and how far out the wall
+  was read, another mirror too near, a spent budget. A mirror drawn whole says so in green.
+
+  The last redraw is kept as numbers and written out only when somebody asks. It was a sentence
+  built on every redraw, up to ten a second per viewer, for a command run once in a while.
+
 - **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
   behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
   A banner on a post in the open showed the far world past its edges however the view was

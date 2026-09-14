@@ -395,38 +395,40 @@ public final class MirrorCaptures
     public static List<String> describe(final QuantumMirror mirror)
     {
         final List<String> lines = new ArrayList<>();
+        lines.add(MirrorText.heading("capture"));
         if (mirror.destination() == null)
         {
-            lines.add("no destination, so no capture");
+            lines.add(MirrorText.field("room", MirrorText.bad("none, so no capture")));
             return lines;
         }
         final String key = keyOf(mirror.destination());
         final File file = fileOf(key);
-        lines.add("key " + key + ", file " + (file.isFile() ? (file.length() + " bytes") : "missing")
-            + ", far world " + ((Bukkit.getWorld(mirror.destination().worldName()) == null)
-                ? "not loaded" : "loaded")
-            + (JOBS.containsKey(key) ? ", being taken now" : ""));
+        lines.add(MirrorText.field("key", key));
+        lines.add(MirrorText.field("file", (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("missing"))
+            + (JOBS.containsKey(key) ? ", being taken now" : "")));
+        lines.add(MirrorText.field("room's world",
+            (Bukkit.getWorld(mirror.destination().worldName()) == null) ? "not loaded" : "loaded"));
         final Held held = LOADED.get(key);
         if (held == null)
         {
-            lines.add(ABSENT.contains(key) ? "not in memory, and its file was found missing"
-                : "not in memory");
+            lines.add(MirrorText.field("in memory",
+                ABSENT.contains(key) ? MirrorText.bad("no, and its file was found missing") : "no"));
             return lines;
         }
         final MirrorCapture capture = held.capture;
-        lines.add(capture.describe());
+        lines.addAll(capture.describeLines());
         final int x = (int) Math.floor(mirror.destination().x());
         final int y = (int) Math.floor(mirror.destination().y());
         final int z = (int) Math.floor(mirror.destination().z());
-        lines.add("at the arrival point " + capture.nameAt(x, y, z) + ", below it "
-            + capture.nameAt(x, y - 1, z) + ", column top y " + capture.top(x, z));
+        lines.add(MirrorText.field("at arrival", capture.nameAt(x, y, z) + ", below it "
+            + capture.nameAt(x, y - 1, z) + ", column top y " + capture.top(x, z)));
         final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(mirror.destination().yaw());
-        lines.add("arrival yaw " + mirror.destination().yaw() + ", so ahead is " + ahead.x() + ","
-            + ahead.z());
-        lines.add("8 ahead: " + capture.nameAt(x + (8 * ahead.x()), y, z + (8 * ahead.z()))
-            + ", top y " + capture.top(x + (8 * ahead.x()), z + (8 * ahead.z()))
-            + "; 32 ahead: " + capture.nameAt(x + (32 * ahead.x()), y, z + (32 * ahead.z()))
-            + ", top y " + capture.top(x + (32 * ahead.x()), z + (32 * ahead.z())));
+        lines.add(MirrorText.field("ahead", ahead.x() + "," + ahead.z() + " (yaw " + mirror.destination().yaw() + ")"));
+        for (final int far : new int[] { 8, 32 })
+        {
+            lines.add(MirrorText.field(far + " ahead", capture.nameAt(x + (far * ahead.x()), y, z + (far * ahead.z()))
+                + ", top y " + capture.top(x + (far * ahead.x()), z + (far * ahead.z()))));
+        }
         return lines;
     }
 

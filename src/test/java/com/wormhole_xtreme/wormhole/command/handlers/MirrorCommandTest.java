@@ -125,6 +125,35 @@ class MirrorCommandTest
     }
 
     /**
+     * debug says one thing a line, as a grey label and a white value, with what stops a view in red.
+     *
+     * <p>"Should we do dedicated lines like property: value or something like that to be more
+     * structured?" It said a sentence a line in grey -- {@code key ..., file missing, far world
+     * loaded} -- with the word that mattered somewhere in the middle of one.
+     */
+    @Test
+    void debugSaysOneThingALineWithWhatStopsAViewInRed()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
+            new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        when(player.getEyeLocation()).thenReturn(standing);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            run(player, "mirror", "debug", "museum");
+        }
+
+        final String value = MirrorText.VALUE_COLOUR;
+        verify(player).sendMessage(contains(MirrorText.heading("capture")));
+        verify(player).sendMessage(contains(MirrorText.BODY_COLOUR + "banner: " + value));
+        verify(player).sendMessage(contains(MirrorText.BODY_COLOUR + "room: " + value + MirrorText.NAME_COLOUR + "far"));
+        verify(player).sendMessage(contains("file: " + value + MirrorText.BAD_COLOUR + "missing"));
+        verify(player).sendMessage(contains("looking into: " + value + "no window"));
+        verify(player).sendMessage(contains("your eye: " + value + "10.00,64.00,10.00"));
+    }
+
+    /**
      * {@code create} names the banner too, because it is the word people try first.
      *
      * <p>{@code set} stays the documented verb here -- it also renames and moves, which

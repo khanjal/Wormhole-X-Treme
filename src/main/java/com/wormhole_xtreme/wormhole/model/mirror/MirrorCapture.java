@@ -1187,6 +1187,22 @@ public final class MirrorCapture
             + (complete ? ", complete" : "");
     }
 
+    /**
+     * What a capture holds, one {@code mirror debug} line each.
+     *
+     * @return the lines
+     */
+    public java.util.List<String> describeLines()
+    {
+        return java.util.List.of(
+            MirrorText.field("box", worldName + " x " + minX + ".." + (minX + sizeX - 1) + " y " + minY + ".."
+                + (minY + sizeY - 1) + " z " + minZ + ".." + (minZ + sizeZ - 1)),
+            MirrorText.field("kept", filled() + " blocks and " + seenAir() + " air of " + size() + ", "
+                + names.length + " kinds"),
+            MirrorText.field("taken", ((System.currentTimeMillis() - takenAt) / 1000L) + "s ago, "
+                + (hasSky ? "sky" : "no sky") + (complete ? ", complete" : "")));
+    }
+
     /** The state for an index, made from its name the first time. */
     private BlockData state(final short index)
     {

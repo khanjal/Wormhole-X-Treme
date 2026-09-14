@@ -338,7 +338,7 @@ public final class MirrorWindows
         private long chunk = Long.MIN_VALUE;
         private Location pendingEye;
         private boolean catchUpQueued;
-        private String lastRedraw = "never redrawn";
+        private Redraw lastRedraw;
         private String stamp = "";
 
         /**
@@ -369,39 +369,76 @@ public final class MirrorWindows
     public static List<String> describe(final Player player)
     {
         final List<String> lines = new ArrayList<>();
-        lines.add(WINDOWS.size() + " window(s) on the server, " + VIEWS.size() + " viewer(s), depth "
-            + ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)");
+        lines.add(MirrorText.heading("your view"));
+        lines.add(MirrorText.field("server", WINDOWS.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
+        lines.add(MirrorText.field("depth", ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)"));
         final View view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
         {
-            lines.add("views are off for you (mirror debug on turns them back on)");
+            lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
         }
         final String fullName = FULL.get(player.getUniqueId());
         if (fullName != null)
         {
-            lines.add(fullName + " is drawn whole and unlimited for you (mirror debug on stops that)");
+            lines.add(MirrorText.field("drawn full", fullName + ", mirror debug on stops that"));
         }
         if (view == null)
         {
-            lines.add("you are looking into no window");
+            lines.add(MirrorText.field("looking into", "no window"));
             return lines;
         }
-        lines.add("you see " + view.mirrors + ": " + view.drawn.size() + " blocks drawn, "
-            + view.veiled.size() + " creature(s) hidden, reaching " + view.radius
-            + ((view.undrawable > 0) ? (", " + view.undrawable
-                + " block(s) the world would not let be drawn over") : ""));
+        lines.add(MirrorText.field("looking into", String.join(", ", view.mirrors)));
+        lines.add(MirrorText.field("drawn", view.drawn.size() + " blocks, reaching " + view.radius));
+        lines.add(MirrorText.field("creatures hidden", String.valueOf(view.veiled.size())));
+        if (view.undrawable > 0)
+        {
+            lines.add(MirrorText.field("not drawn over",
+                MirrorText.bad(view.undrawable + " block(s) the world would not let be drawn over")));
+        }
         for (final String name : view.mirrors)
         {
             final Window window = WINDOWS.get(name);
             if (window != null)
             {
-                lines.add(name + ": " + (name.equals(fullName) ? ("whole and unlimited for you, "
+                lines.add(MirrorText.field(name, name.equals(fullName) ? ("whole and unlimited for you, "
                     + ((window.full == null) ? 0 : window.full.blocks().size()) + " blocks")
                     : howDrawn(window, view.fixedNames.contains(name))));
             }
         }
-        lines.add("last redraw: " + view.lastRedraw);
+        if (view.lastRedraw == null)
+        {
+            lines.add(MirrorText.field("last redraw", "never"));
+        }
+        else
+        {
+            lines.addAll(view.lastRedraw.lines());
+        }
         return lines;
+    }
+
+    /**
+     * What one redraw walked and drew.
+     *
+     * <p>Numbers, written out only when {@code mirror debug} asks: a sentence built on every redraw
+     * was up to ten a second per viewer, for a command run once in a while.
+     */
+    private record Redraw(int walked, int most, int radius, int next, int near, int fixed, int fixedDepth,
+        Spot eye, long tookMillis)
+    {
+        List<String> lines()
+        {
+            final List<String> lines = new ArrayList<>();
+            lines.add(MirrorText.field("last redraw", walked + " of " + most + " blocks walked"
+                + ((walked >= most) ? (", " + MirrorText.bad("budget spent")) : "") + ", took " + tookMillis + " ms"));
+            lines.add(MirrorText.field("radius", radius + ((next != radius) ? (", next " + next) : "")));
+            lines.add(MirrorText.field("line of sight", near + " blocks drawn"));
+            if (fixed > 0)
+            {
+                lines.add(MirrorText.field("drawn whole", fixed + " blocks to depth " + fixedDepth));
+            }
+            lines.add(MirrorText.field("drawn from", eye.x() + "," + eye.y() + "," + eye.z()));
+            return lines;
+        }
     }
 
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
@@ -416,14 +453,14 @@ public final class MirrorWindows
         {
             final String what = window.banner.getWorld().getBlockAt(gap.x(), gap.y(), gap.z())
                 .getBlockData().getAsString();
-            return "trimmed to each eye: the wall beside the opening is open at " + gap.x() + ","
-                + gap.y() + "," + gap.z() + " (" + what + ")";
+            return "trimmed to each eye: " + MirrorText.bad("wall within " + wallReach() + " open at " + gap.x()
+                + "," + gap.y() + "," + gap.z()) + " (" + what + ")";
         }
         if (!fixedForViewer)
         {
-            return "in a wall, but trimmed to each eye: another mirror is within twice the depth";
+            return "in a wall, trimmed to each eye: " + MirrorText.bad("another mirror within twice the depth");
         }
-        return "in a wall, drawn whole to depth " + window.fixedDepth + ", "
+        return MirrorText.good("drawn whole") + " to depth " + window.fixedDepth + ", "
             + ((window.fixed == null) ? 0 : window.fixed.size()) + " blocks";
     }
 
@@ -847,13 +884,8 @@ public final class MirrorWindows
         view.growing = eyeMatters && (view.radius < configured) && (budget.blocks > (most / 2));
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
-        view.lastRedraw = (most - budget.blocks) + " of " + most + " blocks walked"
-            + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + drawnAt
-            + ((view.radius != drawnAt) ? (", next " + view.radius) : "") + ", "
-            + budget.near + " drawn by line of sight"
-            + ((budget.fixed > 0) ? (", " + budget.fixed + " fixed to depth " + budget.fixedDepth) : "")
-            + ", eye " + (int) eye.getX() + ","
-            + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
+        view.lastRedraw = new Redraw(most - budget.blocks, most, drawnAt, view.radius, budget.near, budget.fixed,
+            budget.fixedDepth, new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), now() - now);
         view.stamp = stamp;
         view.mirrors = names(seeing);
         view.fixedNames = names(new ArrayList<>(fixed.keySet()));

@@ -3,13 +3,18 @@ package com.wormhole_xtreme.wormhole.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -38,6 +43,45 @@ class MirrorTabCompletionTest
     void tearDown()
     {
         MirrorManager.clear();
+        ConfigTestSupport.clear();
+    }
+
+    /**
+     * debug is offered to whoever may run it, and to nobody else.
+     *
+     * <p>"Add it to the auto complete, for users who have permissions to use it." It stays out of
+     * the usage line, since it answers nothing a player would ask, so completion is where an admin
+     * finds it -- and a player who could not run it is not shown it, or the names after it.
+     */
+    @Test
+    void debugIsOfferedOnlyToWhoeverMayRunIt()
+    {
+        // No permissions plugin: wormhole.config is op's alone.
+        ConfigTestSupport.set(ConfigKeys.PERMISSIONS_SUPPORT_DISABLE, true);
+        final Player admin = mock(Player.class);
+        when(admin.isOp()).thenReturn(true);
+        final Player visitor = mock(Player.class);
+        final SubCommands.Entry mirror = SubCommands.find("mirror");
+
+        assertTrue(mirror.completeArgs(admin, new String[] { "mirror", "" }).contains("debug"), "an op is offered it");
+        assertFalse(mirror.completeArgs(visitor, new String[] { "mirror", "" }).contains("debug"),
+            "a player without wormhole.config is not");
+        assertTrue(mirror.completeArgs(visitor, new String[] { "mirror", "" }).contains("create"),
+            "though the verbs in the usage line are offered as before");
+        assertTrue(mirror.completeArgs(visitor, new String[] { "mirror", "debug", "" }).isEmpty(),
+            "nor the names after it");
+    }
+
+    /** debug takes a mirror's name or a switch, then save or full after a name, and nothing after a switch. */
+    @Test
+    void debugCompletesNamesAndItsSwitches()
+    {
+        final List<String> third = complete("mirror", "debug", "");
+
+        assertTrue(third.containsAll(List.of("museum", "lobby", "save", "full", "off", "on")), "got " + third);
+        assertEquals(List.of("save", "full"), complete("mirror", "debug", "museum", ""));
+        assertEquals(List.of("full"), complete("mirror", "debug", "museum", "f"));
+        assertTrue(complete("mirror", "debug", "off", "").isEmpty(), "off takes nothing after it");
     }
 
     private static List<String> complete(final String... args)

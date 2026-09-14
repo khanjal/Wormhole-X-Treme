@@ -1203,26 +1203,21 @@ public class MirrorCommand implements SubCommand
         {
             saveDebug(sender, mirror);
         }
-        say(sender, MirrorText.quoted(mirror.name()) + " at " + mirror.banner().toKey()
-            + ((mirror.destination() == null) ? " goes nowhere"
-                : (" onto " + MirrorText.name(mirror.destination().worldName()) + " "
-                    + (int) Math.floor(mirror.destination().x()) + ","
-                    + (int) Math.floor(mirror.destination().y()) + ","
-                    + (int) Math.floor(mirror.destination().z()))));
-        for (final String line : MirrorCaptures.describe(mirror))
-        {
-            say(sender, "  " + line);
-        }
+        say(sender, MirrorText.heading("mirror ") + MirrorText.quoted(mirror.name()));
+        say(sender, MirrorText.field("banner", mirror.banner().toKey()
+            + ((mirror.width() >= 2) ? ", two wide" : "")));
+        say(sender, MirrorText.field("room", (mirror.destination() == null) ? MirrorText.bad("none")
+            : (MirrorText.NAME_COLOUR + mirror.destination().worldName() + MirrorText.VALUE_COLOUR + " "
+                + (int) Math.floor(mirror.destination().x()) + ","
+                + (int) Math.floor(mirror.destination().y()) + ","
+                + (int) Math.floor(mirror.destination().z()))));
+        MirrorCaptures.describe(mirror).forEach(line -> say(sender, line));
         if (sender instanceof Player player)
         {
-            for (final String line : com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows
-                .describe(player))
-            {
-                say(sender, "  " + line);
-            }
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.describe(player).forEach(line -> say(sender, line));
             final org.bukkit.Location eye = player.getEyeLocation();
-            say(sender, "  your eye is at " + eye.getX() + "," + eye.getY() + "," + eye.getZ()
-                + " facing yaw " + eye.getYaw() + " pitch " + eye.getPitch());
+            say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
+                eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
         }
     }
 
@@ -1241,17 +1236,18 @@ public class MirrorCommand implements SubCommand
                 + "-here.view");
         try
         {
-            say(sender, "  " + MirrorCaptures.captureAround(world, mirror.banner().x(),
-                mirror.banner().y(), mirror.banner().z(), 48, file));
+            say(sender, MirrorText.field("saved", MirrorCaptures.captureAround(world, mirror.banner().x(),
+                mirror.banner().y(), mirror.banner().z(), 48, file)));
         }
         catch (final java.io.IOException failed)
         {
-            say(sender, "Could not write " + file.getName() + ": " + failed.getMessage());
+            say(sender, MirrorText.field("saved", MirrorText.bad("could not write " + file.getName() + ": "
+                + failed.getMessage())));
         }
         final Block banner = world.getBlockAt(mirror.banner().x(), mirror.banner().y(),
             mirror.banner().z());
-        say(sender, "  banner is " + banner.getType() + " facing "
-            + MirrorArrival.facingOf(banner.getBlockData()));
+        say(sender, MirrorText.field("banner block", banner.getType() + " facing "
+            + MirrorArrival.facingOf(banner.getBlockData())));
     }
 
     private static void say(final CommandSender sender, final String message)
