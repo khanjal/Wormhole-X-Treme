@@ -284,14 +284,17 @@ class MirrorWindowsTest
     }
 
     /**
-     * A mirror on a wall with a gap beside its opening is trimmed, like a freestanding one.
+     * A mirror on a wall with a gap in the wall within the proximity radius is trimmed, like a
+     * freestanding one.
      *
-     * <p>Through the gap, the far side drawn whole would show beside the mirror.
+     * <p>Through the gap, the far side drawn whole would show beside the mirror. One ring of
+     * solid wall round the opening was the first rule, and a mirror in a stone arch two blocks
+     * wide on a beach passed it and drew the library across the sand.
      */
     @Test
-    void aWallMirrorWithAGapBesideItsOpeningIsTrimmedLikeAFreestandingOne()
+    void aWallMirrorWithAGapWithinTheProximityRadiusIsTrimmedLikeAFreestandingOne()
     {
-        gap = new Spot(11, 64, 11);
+        gap = new Spot(16, 64, 11);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -300,6 +303,29 @@ class MirrorWindowsTest
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
         assertFalse(drawn.containsKey(new Spot(18, 64, 12)), "off to the side, not drawn");
+    }
+
+    /**
+     * A wall mirror with another mirror within twice the depth is trimmed, whether or not the
+     * viewer can see the other one.
+     *
+     * <p>Alcoves a block apart along the library wall: drawn whole, each would fill the same
+     * space behind the wall with its own far side, and looking into one would show the other's.
+     * The viewer here stands too far from the second to see it, and the first is still trimmed.
+     */
+    @Test
+    void aWallMirrorWithAnotherMirrorNearbyIsTrimmedEvenWhenTheOtherIsOutOfSight()
+    {
+        secondWindowAt(20);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
+        assertFalse(drawn.containsKey(new Spot(18, 64, 12)), "off to the side, not drawn");
+        assertFalse(drawn.containsKey(new Spot(20, 64, 13)), "and nothing of the second, out of sight");
     }
 
     /**

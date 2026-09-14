@@ -231,14 +231,20 @@ been running on defaults will start reading the file you have been editing.
   step -- the cone through a one-by-two opening swings as the eye moves -- and reached less far
   from close up, where the cone is widest and the budget ran out, so blocks came and went as a
   viewer walked. The depth is measured from the middle of the opening now, not the eye. And a
-  mirror set in solid wall -- a wall banner with every block of the face round its opening
-  solid, corners too -- draws everything behind the wall out to that depth at once, the same for
-  every viewer and every eye, and keeps it a minute before reading the real world behind it
+  mirror set in solid wall draws everything behind the wall out to that depth at once, the same
+  for every viewer and every eye, and keeps it a minute before reading the real world behind it
   again. The wall hides whatever lies beside the opening, so there is nothing to trim. The trade
   is that from anywhere else a viewer can see that space -- a doorway round the side -- they see
-  the far side in it while they look in. A freestanding mirror, a wall mirror with a gap beside
-  its opening, and two walled mirrors in view at once are still trimmed to each eye: alcoves
-  along a corridor would otherwise fill the same space behind the wall with two far sides.
+  the far side in it while they look in.
+
+  "In a wall" was first one ring of solid blocks round the opening, and a mirror in a stone arch
+  two blocks wide on the beach passed, and drew the library across the sand: from beside the
+  arch there is no wall between you and the space behind it. So the wall must be solid as far
+  as `mirror-proximity-radius` on every side of the opening, which is as far to one side as
+  anyone looking in can stand. And a mirror with another within twice the depth is trimmed
+  whether or not the viewer can see the other one -- "in the library room we have mirrors with
+  one block in between" -- since drawn whole, alcoves along a wall would each fill the same space
+  behind it with a different far side. Freestanding mirrors are trimmed as before.
 
   Drawn whole, a view would also have carved the inside of every far hill out of the real ground
   behind the wall. Captures wrote what is buried two deep as air, which no line of sight through

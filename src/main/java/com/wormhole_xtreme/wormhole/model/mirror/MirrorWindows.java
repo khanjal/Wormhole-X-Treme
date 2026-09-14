@@ -302,7 +302,7 @@ public final class MirrorWindows
         }
         if (!fixedForViewer)
         {
-            return "in a wall, but trimmed to each eye while another mirror is in view";
+            return "in a wall, but trimmed to each eye: another mirror is within twice the depth";
         }
         return "in a wall, drawn whole to depth " + window.fixedDepth + ", "
             + ((window.fixed == null) ? 0 : window.fixed.size()) + " blocks";
@@ -919,11 +919,13 @@ public final class MirrorWindows
             {
                 continue;
             }
+            // Seen or not: alcoves a block apart along a wall would otherwise each fill the same
+            // space behind it with a different far side, for whoever looks into either.
             boolean alone = true;
-            for (final Window other : seeing)
+            for (final Window other : WINDOWS.values())
             {
-                if ((other != window) && (other.banner.getLocation()
-                    .distanceSquared(window.banner.getLocation()) < (apart * apart)))
+                if ((other != window) && other.banner.getWorld().equals(window.banner.getWorld())
+                    && (other.banner.getLocation().distanceSquared(window.banner.getLocation()) < (apart * apart)))
                 {
                     alone = false;
                     break;
@@ -979,10 +981,10 @@ public final class MirrorWindows
     }
 
     /**
-     * Whether every block of a window's face touching its opening, corners too, is solid.
+     * Whether a window's face is solid as far as the proximity radius on every side of its opening.
      *
-     * <p>Then the wall hides whatever of the far side lies beside the opening, from anywhere in
-     * front of it, and the far side can be drawn whole. A gap beside the opening would show it.
+     * <p>Then the wall hides whatever of the far side lies beside the opening, from anywhere a
+     * viewer can be, and the far side can be drawn whole. A gap anywhere in that span shows it.
      */
     private static boolean walled(final Window window)
     {
@@ -992,26 +994,22 @@ public final class MirrorWindows
     /** The first block of the face touching a window's opening that is not solid, or null if none. */
     private static Spot gapBeside(final Window window)
     {
+        // As far as the proximity radius: a viewer that far to one side looks at the space
+        // behind the wall across the face that far out, and a block of open air there shows it.
+        // One ring of wall was not enough -- a pillar two blocks wide in open air passed.
         final MirrorWindow shape = window.shape;
-        final boolean alongX = shape.into().x() != 0;
         final Set<Long> opening = new HashSet<>();
-        final List<int[]> cells = new ArrayList<>();
-        shape.forEachOpening((x, y, z) ->
+        shape.forEachOpening((x, y, z) -> opening.add(key(x, y, z)));
+        final int centre = (shape.into().x() != 0) ? shape.base().z() : shape.base().x();
+        final int reach = SURROUND + MirrorWindow.WIDTH;
+        for (int across = centre - reach; across <= (centre + reach); across++)
         {
-            opening.add(key(x, y, z));
-            cells.add(new int[] { alongX ? z : x, y });
-        });
-        for (final int[] cell : cells)
-        {
-            for (int across = -1; across <= 1; across++)
+            for (int y = shape.base().y() - SURROUND; y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
             {
-                for (int up = -1; up <= 1; up++)
+                final long face = faceKey(shape, across, y);
+                if (!opening.contains(face) && !window.solid.contains(face))
                 {
-                    final long face = faceKey(shape, cell[0] + across, cell[1] + up);
-                    if (!opening.contains(face) && !window.solid.contains(face))
-                    {
-                        return new Spot(unpackX(face), unpackY(face), unpackZ(face));
-                    }
+                    return new Spot(unpackX(face), unpackY(face), unpackZ(face));
                 }
             }
         }
