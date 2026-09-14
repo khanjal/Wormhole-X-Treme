@@ -76,8 +76,12 @@ public final class MirrorPlacement
             directional.getFacing(), width);
         if (gap != null)
         {
-            return "A mirror needs solid wall " + BORDER + " blocks out on every side, and the block at "
-                + gap.x() + " " + gap.y() + " " + gap.z() + " is not.";
+            // A pair says how big its wall is: a wall built for one banner is a column short of two.
+            final String needs = (width >= 2)
+                ? "Two banners make a mirror two wide, which needs solid wall " + (width + (2 * BORDER))
+                    + " across and " + (MirrorWindow.HEIGHT + (2 * BORDER)) + " tall; the block at "
+                : "A mirror needs solid wall " + BORDER + " blocks out on every side, and the block at ";
+            return needs + gap.x() + " " + gap.y() + " " + gap.z() + " is not.";
         }
         return null;
     }

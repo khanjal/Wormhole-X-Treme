@@ -150,6 +150,27 @@ class MirrorPlacementTest
         assertTrue(refused.contains("12 61 11"), "and the refusal should name the block to fill: " + refused);
     }
 
+    /**
+     * A pair short of wall says how big its wall has to be, not only which block to fill.
+     *
+     * <p>"It says it needs 2 blocks around it. Is the 2nd banner messing with it?" -- "it was one
+     * column short." A wall built for one banner is five across; two need six, and the gap was the
+     * column past the second banner.
+     */
+    @Test
+    void aPairShortOfWallSaysHowBigItsWallHasToBe()
+    {
+        open.add(new MirrorWindow.Spot(7, 64, 11));
+
+        final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "hall", 2);
+
+        assertNotNull(refused, "the column past the second banner is part of a pair's wall");
+        assertTrue(refused.contains("6 across and 6 tall"), "and the refusal should say how big: " + refused);
+        assertTrue(refused.contains("7 64 11"), "and which block: " + refused);
+        assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "hall"),
+            "a single banner's wall never reaches that column");
+    }
+
     /** A banner on a post is refused whatever is round it. */
     @Test
     void aFreestandingBannerIsRefused()

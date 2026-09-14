@@ -52,6 +52,21 @@ A mirror needs solid wall two blocks out on every side of its opening — a gap 
 block to fill — and a banner on a post cannot be one. While it is a mirror, neither the banner nor
 that wall can be broken; `mirror remove` takes it down.
 
+### Two banners wide
+
+Hang two wall banners side by side, facing the same way, and `create` on either one: the pair is
+one mirror, two wide and two tall. Either banner answers a click, neither can be broken, and a
+traveller lands between them.
+
+Its wall is a column wider: solid for **six across and six tall** — the two blocks behind the
+banners and two more either side, and from two above the banners to two below the opening, which
+with banners at head height is a block below the floor. A wall built for one banner is a column
+short, and `create` says so.
+
+A mirror you already made one wide stays one wide: `mirror remove` it, hang the second banner, and
+`create` again. A room captured before wide mirrors existed is a little narrow for one; `mirror
+stamp <name> mirror` retakes it.
+
 ## Commands
 
 | Command | What it does |

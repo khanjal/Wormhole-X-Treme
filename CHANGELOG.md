@@ -75,6 +75,11 @@ been running on defaults will start reading the file you have been editing.
   as if through a hole three wide now, so a mirror of either width looking into any room, turned
   or reflected, finds the column its extra width shows.
 
+  "It says it needs 2 blocks around it -- is the 2nd banner messing with it?" It was not: the wall
+  was a column short, since one built for a single banner is five across and a pair needs six. A
+  pair's refusal says so now -- "two banners make a mirror two wide, which needs solid wall 6
+  across and 6 tall" -- before naming the block to fill.
+
   A mirror gives way to its room from twice as far: `mirror-proximity-radius` is 16 by default,
   which is also how near somebody has to stay for a mirror they turned on to stay on. An existing
   `config.yml` keeps the 8 it has. And what a click says about the mirror itself -- where it opens

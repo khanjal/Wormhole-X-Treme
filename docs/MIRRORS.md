@@ -52,6 +52,15 @@ out on every side of its opening, and `create` refuses anything else by the bloc
 **One to a world**, by default (`mirror-per-world-limit`): a mirror is the door into its world, and
 the list a right-click walks stays short while each world has one.
 
+**One banner wide, or two.** Two wall banners side by side, facing the same way, are one mirror —
+for a doorway an even number of blocks across. The pair is held by its left banner looking at the
+wall, and the second is found from the way the mirror faces, so the width is all that is saved. Its
+room is a hair inside the left banner's column, between the two, since that column is the one its
+view is measured from. A room is captured through a hole three wide: a mirror two wide sees one
+column more than a room's own opening, on whichever side its view turns that column to — a turned
+view and a reflection turn it opposite ways — so one capture serves either width, looking in either
+way.
+
 ## The banner's look
 
 Up close a mirror shows a room, drawn in real blocks behind its wall, and nothing on the banner
