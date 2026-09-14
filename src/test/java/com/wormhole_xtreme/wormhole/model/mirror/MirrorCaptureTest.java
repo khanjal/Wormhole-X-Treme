@@ -74,10 +74,11 @@ class MirrorCaptureTest
     }
 
     /**
-     * A block buried on all six sides is pruned to air; one with any face open is kept.
+     * A block buried on all six sides is marked buried, not air; one with any face open is kept.
      *
      * <p>Nothing surrounded by solid blocks can be seen through a window. A block on the box's
-     * edge is kept because what lies beyond the edge is unknown.
+     * edge is kept because what lies beyond the edge is unknown. Written as air, a buried block
+     * made a window in a wall carve the inside of the far hill out of the real ground.
      */
     @Test
     void pruningBlanksOnlyWhatIsBuriedOnAllSides()
@@ -98,7 +99,9 @@ class MirrorCaptureTest
 
         final MirrorCapture capture = builder.build();
 
-        assertTrue(capture.isAir(2, 2, 2), "buried in stone on every side");
+        assertTrue(capture.isBuried(2, 2, 2), "buried in stone on every side");
+        assertFalse(capture.isAir(2, 2, 2), "and not air, which would be drawn as a hole");
+        assertFalse(capture.isBuried(1, 1, 1));
         assertSame(glass, capture.at(1, 1, 1), "glass hides nothing, so it stays");
         assertSame(stone, capture.at(2, 1, 1), "and so does the stone beside it");
         assertSame(stone, capture.at(0, 2, 2), "on the edge, with the unknown beyond it");
@@ -132,11 +135,71 @@ class MirrorCaptureTest
 
         assertSame(stone, capture.at(3, 3, 1), "the surface, with a face on the air");
         assertSame(stone, capture.at(3, 3, 2), "the layer under it, kept in case");
-        assertTrue(capture.isAir(3, 3, 3), "two deep is buried");
-        assertTrue(capture.isAir(3, 3, 4), "and so is deeper");
+        assertTrue(capture.isBuried(3, 3, 3), "two deep is buried");
+        assertTrue(capture.isBuried(3, 3, 4), "and so is deeper");
         assertSame(stone, capture.at(3, 3, 6), "the edge itself is kept, since what lies beyond is unknown");
-        assertTrue(capture.isAir(3, 3, 5), "but the edge does not count as open, so the block inside it is buried");
-        assertTrue(capture.isAir(1, 1, 1), "however many edges it touches");
+        assertTrue(capture.isBuried(3, 3, 5), "but the edge does not count as open, so the block inside it is buried");
+        assertTrue(capture.isBuried(1, 1, 1), "however many edges it touches");
+    }
+
+    /** A buried block is still buried after the disk, and a fresh capture is not from before. */
+    @Test
+    void aBuriedBlockSurvivesTheDiskAsBuried(@TempDir final File dir) throws IOException
+    {
+        final MirrorCapture.Builder builder = box();
+        for (int x = 0; x < 4; x++)
+        {
+            for (int y = 0; y < 4; y++)
+            {
+                for (int z = 0; z < 4; z++)
+                {
+                    builder.put(x, y, z, stone);
+                }
+            }
+        }
+        builder.prune();
+        final File file = new File(dir, "buried.view");
+
+        builder.build().save(file);
+        final MirrorCapture after = MirrorCapture.load(file);
+
+        assertTrue(after.isBuried(2, 2, 2));
+        assertFalse(after.isBuried(0, 0, 0), "the edge");
+        assertFalse(after.prunedToAir());
+    }
+
+    /**
+     * A capture written before buried blocks were marked still loads, and says so.
+     *
+     * <p>Its buried blocks read as air, which a window in a wall would carve out of the real
+     * ground, so it is taken again on the next look rather than refused and left a banner.
+     */
+    @Test
+    void aCaptureFromBeforeBuriedBlocksWereMarkedLoadsAndSaysSo(@TempDir final File dir) throws IOException
+    {
+        final File file = new File(dir, "old.view");
+        box().build().save(file);
+        rewriteVersion(file, 1);
+
+        final MirrorCapture old = MirrorCapture.load(file);
+
+        assertTrue(old.prunedToAir());
+        assertFalse(old.isBuried(2, 2, 2), "nothing in it is marked buried");
+    }
+
+    /** Rewrites a capture file's version number, as an older build would have written it. */
+    static void rewriteVersion(final File file, final int version) throws IOException
+    {
+        final byte[] raw;
+        try (java.util.zip.GZIPInputStream in = new java.util.zip.GZIPInputStream(Files.newInputStream(file.toPath())))
+        {
+            raw = in.readAllBytes();
+        }
+        java.nio.ByteBuffer.wrap(raw).putInt(4, version);
+        try (java.util.zip.GZIPOutputStream out = new java.util.zip.GZIPOutputStream(Files.newOutputStream(file.toPath())))
+        {
+            out.write(raw);
+        }
     }
 
     @Test

@@ -189,17 +189,19 @@ public final class MirrorCaptures
      * <p>The box grew twice while this was being tested, and a file from before either kept
      * its old horizon until somebody thought to run {@code mirror stamp}. Depth is judged only
      * while the far world is loaded, since its floor is part of the answer and a capture that
-     * cannot be retaken anyway should not be asked for every sweep.
+     * cannot be retaken anyway should not be asked for every sweep. A capture that wrote buried
+     * blocks as air is outgrown too: a window in a wall would carve the far hill's inside out of
+     * the real ground.
      *
      * @param mirror
      *            the mirror
      * @param capture
      *            its capture
-     * @return true if a capture taken now would reach further
+     * @return true if a capture taken now would reach further, or know more
      */
     static boolean outgrown(final QuantumMirror mirror, final MirrorCapture capture)
     {
-        if (capture.across() < ((2 * ConfigManager.getMirrorCaptureRadius()) + 1))
+        if (capture.prunedToAir() || (capture.across() < ((2 * ConfigManager.getMirrorCaptureRadius()) + 1)))
         {
             return true;
         }

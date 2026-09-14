@@ -53,6 +53,8 @@ class MirrorReplayTest
 
     private final Map<String, BlockData> byName = new HashMap<>();
 
+    private java.util.Set<String> alsoOccluding = java.util.Set.of();
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -101,6 +103,9 @@ class MirrorReplayTest
         final int radius = Integer.parseInt(p.getProperty("radius", "16"));
         // Plane spacing of the rays cast through the opening; finer finds smaller holes.
         final double rayStep = Double.parseDouble(p.getProperty("ray.step", "0.04"));
+        // Names to treat as occluding although the API's material list says not, for measuring a
+        // view as a server whose block states say they occlude would draw it.
+        alsoOccluding = java.util.Set.of(p.getProperty("occluding.also", "").split(","));
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, radius);
 
         final World world = mock(World.class);
@@ -280,9 +285,11 @@ class MirrorReplayTest
                     c[next] += step[next];
                     tMax[next] += tDelta[next];
                     final MirrorWindow.Spot spot = new MirrorWindow.Spot(cx, cy, cz);
-                    final double ox = (cx + 0.5) - ex;
-                    final double oy = (cy + 0.5) - ey;
-                    final double oz = (cz + 0.5) - ez;
+                    // The depth is from the middle of the opening: a wall banner's opening runs
+                    // down from its row, so its middle is the banner's own height.
+                    final double ox = (cx + 0.5) - (bx + intoXProbe + 0.5);
+                    final double oy = (cy + 0.5) - by;
+                    final double oz = (cz + 0.5) - (bz + intoZProbe + 0.5);
                     if (Math.sqrt((ox * ox) + (oy * oy) + (oz * oz)) >= radius)
                     {
                         outcome = "ok";
@@ -466,7 +473,7 @@ class MirrorReplayTest
             final String bare = n.contains("[") ? n.substring(0, n.indexOf('[')) : n;
             final Material material = Material.matchMaterial(bare);
             when(d.getMaterial()).thenReturn(material);
-            when(d.isOccluding()).thenReturn((material != null) && material.isOccluding());
+            when(d.isOccluding()).thenReturn(((material != null) && material.isOccluding()) || alsoOccluding.contains(bare));
             return d;
         });
     }

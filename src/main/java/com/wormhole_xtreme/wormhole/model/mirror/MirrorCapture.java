@@ -13,6 +13,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 /**
@@ -38,10 +39,20 @@ public final class MirrorCapture
     /** The file header, so a file that is not one is refused rather than misread. */
     private static final int MAGIC = 0x4D495257;
 
-    private static final int VERSION = 1;
+    /** 2 marks buried blocks as {@link #BURIED}; 1 wrote them as air. */
+    private static final int VERSION = 2;
 
     /** Most distinct block states a capture may hold; a short index per block. */
     private static final int MOST_STATES = 65_535;
+
+    /**
+     * The palette name a block buried two deep is recorded as.
+     *
+     * <p>Not air: a window drawing the far side whole, rather than only what a line of sight
+     * meets, would carve the inside of every hill out of the real ground beneath it. Buried means
+     * "leave whatever is really there".
+     */
+    static final String BURIED = "wormhole:buried";
 
     private final String worldName;
     private final boolean hasSky;
@@ -56,11 +67,16 @@ public final class MirrorCapture
     private final BlockData[] states;
     private final short[] indices;
     private final short[] tops;
+    private final int buried;
+    private final boolean prunedToAir;
 
     private MirrorCapture(final String worldName, final boolean hasSky, final int minX,
         final int minY, final int minZ, final int sizeX, final int sizeY, final int sizeZ,
-        final long takenAt, final String[] names, final BlockData[] states, final short[] indices)
+        final long takenAt, final String[] names, final BlockData[] states, final short[] indices,
+        final boolean prunedToAir)
     {
+        this.prunedToAir = prunedToAir;
+        this.buried = List.of(names).indexOf(BURIED);
         this.worldName = worldName;
         this.hasSky = hasSky;
         this.minX = minX;
@@ -219,21 +235,23 @@ public final class MirrorCapture
         }
 
         /**
-         * Blanks every block buried two deep: one with no face open, and no neighbour with one.
+         * Marks every block buried two deep -- one with no face open, and no neighbour with one --
+         * as {@link #BURIED}.
          *
          * <p>Nothing surrounded by solid blocks can be seen through a window, and a hillside is
-         * nearly all inside. Blanked to air, those blocks cost nothing on disk and the view is
-         * the same. The layer just under the surface is kept all the same, in case: a capture
-         * is looked at from angles nobody chose, and a surface block that is wrong for any
-         * reason should have ground under it, not a hole. A block on the box's edge is kept,
-         * since what lies beyond the edge is unknown, and it is not counted as open either.
+         * nearly all inside. Marked as one palette entry, those blocks cost nearly nothing on
+         * disk. The layer just under the surface is kept all the same, in case: a capture is
+         * looked at from angles nobody chose, and a surface block that is wrong for any reason
+         * should have ground under it, not a hole. A block on the box's edge is kept, since what
+         * lies beyond the edge is unknown, and it is not counted as open either.
          */
         public void prune()
         {
+            final short buriedIndex = buriedIndex();
             final boolean[] solid = new boolean[states.size()];
             for (int i = 0; i < states.size(); i++)
             {
-                solid[i] = (i != 0) && states.get(i).isOccluding();
+                solid[i] = (i != 0) && (BURIED.equals(names.get(i)) || states.get(i).isOccluding());
             }
             final boolean[] open = new boolean[indices.length];
             for (int dx = 1; dx < (sizeX - 1); dx++)
@@ -265,7 +283,7 @@ public final class MirrorCapture
                             && !open[offset(dx, dy, dz - 1, sizeY, sizeZ)]
                             && !open[offset(dx, dy, dz + 1, sizeY, sizeZ)])
                         {
-                            kept[at] = 0;
+                            kept[at] = buriedIndex;
                         }
                     }
                 }
@@ -273,12 +291,31 @@ public final class MirrorCapture
             System.arraycopy(kept, 0, indices, 0, indices.length);
         }
 
+        /** The palette index of {@link #BURIED}, added the first time; air if the palette is full. */
+        private short buriedIndex()
+        {
+            final Short known = byName.get(BURIED);
+            if (known != null)
+            {
+                return known;
+            }
+            if (names.size() >= MOST_STATES)
+            {
+                return 0;
+            }
+            final short next = (short) names.size();
+            names.add(BURIED);
+            states.add(null);
+            byName.put(BURIED, next);
+            return next;
+        }
+
         /** @return the finished capture, taken now */
         public MirrorCapture build()
         {
             return new MirrorCapture(worldName, hasSky, minX, minY, minZ, sizeX, sizeY, sizeZ,
                 System.currentTimeMillis(), names.toArray(new String[0]),
-                states.toArray(new BlockData[0]), indices);
+                states.toArray(new BlockData[0]), indices, false);
         }
     }
 
@@ -364,6 +401,29 @@ public final class MirrorCapture
     {
         return !contains(x, y, z)
             || (indices[offset(x - minX, y - minY, z - minZ, sizeY, sizeZ)] == 0);
+    }
+
+    /**
+     * Whether a block is buried two deep in solid ground, and so recorded only as that.
+     *
+     * @param x
+     *            world x
+     * @param y
+     *            world y
+     * @param z
+     *            world z
+     * @return true if pruned as buried; never for a capture from before buried blocks were marked
+     */
+    public boolean isBuried(final int x, final int y, final int z)
+    {
+        return (buried >= 0) && contains(x, y, z)
+            && (indices[offset(x - minX, y - minY, z - minZ, sizeY, sizeZ)] == buried);
+    }
+
+    /** @return true for a capture written before buried blocks were marked, which wrote them as air */
+    public boolean prunedToAir()
+    {
+        return prunedToAir;
     }
 
     /**
@@ -466,9 +526,9 @@ public final class MirrorCapture
                 throw new IOException(file + " is not a mirror capture");
             }
             final int version = in.readInt();
-            if (version != VERSION)
+            if ((version < 1) || (version > VERSION))
             {
-                throw new IOException(file + " is capture version " + version + ", not " + VERSION);
+                throw new IOException(file + " is capture version " + version + ", not 1 to " + VERSION);
             }
             final String worldName = readString(in);
             final boolean hasSky = in.readBoolean();
@@ -496,7 +556,7 @@ public final class MirrorCapture
                 indices[i] = in.readShort();
             }
             return new MirrorCapture(worldName, hasSky, minX, minY, minZ, sizeX, sizeY, sizeZ,
-                takenAt, names, new BlockData[count], indices);
+                takenAt, names, new BlockData[count], indices, version == 1);
         }
     }
 
@@ -553,7 +613,9 @@ public final class MirrorCapture
         BlockData state = states[index];
         if (state == null)
         {
-            state = Bukkit.createBlockData(names[index]);
+            // Buried is not a block the server knows; anything asking what it is gets stone.
+            state = (index == buried) ? Bukkit.createBlockData(Material.STONE)
+                : Bukkit.createBlockData(names[index]);
             states[index] = state;
         }
         return state;

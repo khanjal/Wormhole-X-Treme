@@ -161,18 +161,20 @@ it, running up from where it stands, facing whichever of north, south, east or w
 The middle of the opening's bottom row is where a traveller lands, facing the way the mirror was
 pointed. Click the opening to go through.
 
-Nothing in the world changes. Only the players looking in are sent the view, and only the blocks
-they could actually see through an opening from where they stand. That is what lets mirrors share
-a wall: a row of alcoves a block apart each shows its own far side, whichever way you look in.
+Nothing in the world changes. Only the players looking in are sent the view. A mirror set in a
+solid wall shows everything behind the wall out to its depth, the same from wherever you stand in
+front of it. One with open air beside it, or two in view at once, shows only the blocks you could
+actually see through the opening from where you stand. That is what lets mirrors share a wall: a
+row of alcoves a block apart each shows its own far side, whichever way you look in.
 
 It is a first cut of [#278](https://github.com/khanjal/Wormhole-X-Treme/issues/278):
 
 - **One-sided.** From behind, a mirror is its banner.
 - **Only the open part of the opening opens.** Something solid in front of part of it closes that part.
-- **Nothing shows past the opening's edges.** In a wall the wall hides them; in open air, blocks that would reach past the edge are left out.
+- **Nothing shows past the opening's edges.** In a solid wall the wall hides them, so the far side behind it is drawn whole and does not change as you move. Anywhere else -- open air, a gap beside the opening, another mirror in view -- blocks that would reach past the edge are left out. The catch with a wall: from anywhere else you can see the space behind it, such as a doorway round the side, you see the far side there while you look in.
 - **What you see is a capture**, a photograph of the far side taken once and kept in `data/mirror/captures/`. The first time anyone looks into a mirror, its capture is taken over a few seconds (the far world has to be loaded for that, and only then), and the mirror opens when it is ready. After that the far world need not be loaded at all: a mirror onto an archived world still shows it. `mirror stamp` takes the capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while somebody is looking; `mode static` (the default) never does, so a museum stays as captured.
-- **The capture reaches `mirror-capture-radius` around the arrival point** (96 by default), 64 below it to 64 above. Its edge is the horizon. It keeps every block with a face open and the layer under it; what is buried deeper is left out. A capture smaller than the configured box is taken again on the next look.
-- **The view reaches up to `mirror-view-depth` from your eye** (64 by default, up to 128) and nothing is drawn past it, so further off you see what is really behind the mirror. How far your own view reaches is what one redraw can afford, up to that: shorter right against the mirror, where the view is widest, and shorter while you walk, growing to the full depth over a second or so when you stand still.
+- **The capture reaches `mirror-capture-radius` around the arrival point** (96 by default), 64 below it to 64 above. Its edge is the horizon. It keeps every block with a face open and the layer under it; what is buried deeper is marked buried, and the real world is left there. A capture smaller than the configured box, or from before buried blocks were marked, is taken again on the next look.
+- **The view reaches up to `mirror-view-depth` from the middle of the opening** (32 by default, up to 128; the cost grows with the cube of it) and nothing is drawn past it, so further off you see what is really behind the mirror. A mirror in a solid wall always reaches the whole depth. A trimmed one reaches what one redraw can afford, up to that: shorter right against the mirror, where the view is widest, and shorter while you walk, growing to the full depth over a second or so when you stand still.
 - **Your own world's creatures inside the view are hidden** from you while you look. Other players are not.
 - **A mirror's banner at the far end is left out of the view**, so a linked pair looks straight through.
 - **Blocks only, no mobs or players from the far side**, and lit by this world rather than the far one: behind a wall that is dark, and only what makes its own light -- glowstone, lanterns -- is bright.

@@ -48,8 +48,10 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * lets windows share a wall, and what keeps a freestanding one inside its edges. Their own
  * world's creatures standing inside the view are hidden from them for as long as they look.
  *
- * <p>Far-side blocks reach {@code mirror-view-depth} from the eye, and nothing is drawn past that.
- * See {@link Pass}.
+ * <p>Far-side blocks reach {@code mirror-view-depth} from the middle of the opening, and nothing is
+ * drawn past that. A mirror set in solid wall draws all of that at once and leaves it while the
+ * viewer moves, since the wall hides its edges ({@link #fixedView}); a freestanding one, or two in
+ * view together, is trimmed to what each eye can see through it ({@link Pass}).
  *
  * <h2>What it costs, and what keeps that down</h2>
  *
@@ -95,6 +97,31 @@ public final class MirrorWindows
 
     /** How far around an opening its solid surroundings are read. */
     private static final int SURROUND = 8;
+
+    /** How long a walled window's fixed view is kept before the real world behind it is read again. */
+    private static final long FIXED_MILLIS = 60_000L;
+
+    /** Most blocks one fixed view may hold; past it the depth is cut until it fits. */
+    private static final int MOST_FIXED = 250_000;
+
+    /** The server's share of work per second, by default: blocks walked, fixed and sent, all viewers together. */
+    private static final int WORK_PER_SECOND = 400_000;
+
+    /**
+     * The server's share of work per second, across every viewer.
+     *
+     * <p>A redraw's own budget bounds one viewer, not a server: a hundred people walking past
+     * mirrors at once was a hundred budgets a quarter second. Once the second's share is spent,
+     * a viewer who has not crossed into a new chunk keeps what they already see until the next.
+     * Settable for a test.
+     */
+    static int workPerSecond = WORK_PER_SECOND;
+
+    private static long workSecond;
+    private static int workSpent;
+
+    /** What the time is; settable so a test can let a minute pass. */
+    static java.util.function.LongSupplier clock = System::currentTimeMillis;
 
     /** Every window the last sweep found, by mirror name. */
     private static final Map<String, Window> WINDOWS = new HashMap<>();
@@ -165,6 +192,14 @@ public final class MirrorWindows
         private final MirrorCapture capture;
         private Set<Long> solid = Set.of();
         private long solidAt;
+        private boolean standing;
+        /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
+        private Map<Long, BlockData> fixed;
+        private MirrorCapture fixedFrom;
+        private long fixedAt;
+        private int fixedFor;
+        private int fixedDepth;
+        private long fixedUsedAt;
 
         Window(final QuantumMirror mirror, final MirrorWindow shape, final Block banner,
             final List<Spot> open, final MirrorCapture capture)
@@ -184,6 +219,7 @@ public final class MirrorWindows
         private final World world;
         private Map<Long, BlockData> drawn = new HashMap<>();
         private Set<String> mirrors = Set.of();
+        private Set<String> fixedNames = Set.of();
         private final Map<UUID, Entity> veiled = new HashMap<>();
         private long fullAt;
         private long composedAt;
@@ -194,6 +230,7 @@ public final class MirrorWindows
         private Location pendingEye;
         private boolean catchUpQueued;
         private String lastRedraw = "never redrawn";
+        private String stamp = "";
 
         /**
          * How far this viewer's view reaches, at most the configured radius.
@@ -223,8 +260,8 @@ public final class MirrorWindows
     public static List<String> describe(final Player player)
     {
         final List<String> lines = new ArrayList<>();
-        lines.add(WINDOWS.size() + " window(s) on the server, " + VIEWS.size() + " viewer(s), radius "
-            + ConfigManager.getMirrorViewDepth() + " (mirror-view-depth), capture radius "
+        lines.add(WINDOWS.size() + " window(s) on the server, " + VIEWS.size() + " viewer(s), depth "
+            + ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth), capture radius "
             + ConfigManager.getMirrorCaptureRadius());
         final View view = VIEWS.get(player.getUniqueId());
         if (view == null)
@@ -236,8 +273,39 @@ public final class MirrorWindows
             + view.veiled.size() + " creature(s) hidden, reaching " + view.radius
             + ((view.undrawable > 0) ? (", " + view.undrawable
                 + " block(s) the world would not let be drawn over") : ""));
+        for (final String name : view.mirrors)
+        {
+            final Window window = WINDOWS.get(name);
+            if (window != null)
+            {
+                lines.add(name + ": " + howDrawn(window, view.fixedNames.contains(name)));
+            }
+        }
         lines.add("last redraw: " + view.lastRedraw);
         return lines;
+    }
+
+    /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
+    private static String howDrawn(final Window window, final boolean fixedForViewer)
+    {
+        if (window.standing)
+        {
+            return "freestanding, trimmed to each eye";
+        }
+        final Spot gap = gapBeside(window);
+        if (gap != null)
+        {
+            final String what = window.banner.getWorld().getBlockAt(gap.x(), gap.y(), gap.z())
+                .getBlockData().getAsString();
+            return "trimmed to each eye: the wall beside the opening is open at " + gap.x() + ","
+                + gap.y() + "," + gap.z() + " (" + what + ")";
+        }
+        if (!fixedForViewer)
+        {
+            return "in a wall, but trimmed to each eye while another mirror is in view";
+        }
+        return "in a wall, drawn whole to depth " + window.fixedDepth + ", "
+            + ((window.fixed == null) ? 0 : window.fixed.size()) + " blocks";
     }
 
     /** Static state only. */
@@ -256,6 +324,10 @@ public final class MirrorWindows
         TOPS.clear();
         SOLID.clear();
         MirrorCaptures.clear();
+        clock = System::currentTimeMillis;
+        workPerSecond = WORK_PER_SECOND;
+        workSecond = 0L;
+        workSpent = 0;
     }
 
     /**
@@ -297,11 +369,23 @@ public final class MirrorWindows
         }
         final Window window = new Window(mirror, shape, banner, openCells(shape, banner.getWorld()),
             capture);
+        window.standing = standing;
         final Window previous = WINDOWS.get(mirror.name());
         if ((previous != null) && previous.shape.equals(shape))
         {
             window.solid = previous.solid;
             window.solidAt = previous.solidAt;
+            // Every mirror in a loaded chunk is a window each sweep, looked at or not: a fixed view
+            // nobody has used for a while is let go rather than carried for the life of the chunk.
+            if ((previous.fixed != null) && ((now() - previous.fixedUsedAt) < FIXED_MILLIS))
+            {
+                window.fixed = previous.fixed;
+                window.fixedFrom = previous.fixedFrom;
+                window.fixedAt = previous.fixedAt;
+                window.fixedFor = previous.fixedFor;
+                window.fixedDepth = previous.fixedDepth;
+                window.fixedUsedAt = previous.fixedUsedAt;
+            }
         }
         OFFERED.put(mirror.name(), window);
         return true;
@@ -494,11 +578,35 @@ public final class MirrorWindows
         }
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
-        if (fromSweep && !crossed && unchanged(view, seeing, eyeKey(eye), now))
+        seeing.forEach(window -> refreshSolid(window, now));
+        // A viewer who starts inside the second's share finishes; later ones wait. Crossing into a
+        // new chunk is never kept waiting, since the chunk arriving erases what was drawn.
+        final boolean mayWork = (crossed && (view.chunk != Long.MIN_VALUE)) || !overBudget(now);
+        final Set<Window> fixed = fixedOf(seeing, now, mayWork);
+        // Made only of fixed windows, the view is the same from wherever the eye is.
+        final boolean eyeMatters = fixed.size() < seeing.size();
+        final String stamp = stampOf(seeing, fixed);
+        if (!crossed && (fromSweep || !eyeMatters)
+            && unchanged(view, seeing, eyeMatters ? eyeKey(eye) : view.eye, stamp, now))
         {
-            if ((now - view.fullAt) >= RESEND_MILLIS)
+            if (!eyeMatters)
+            {
+                view.eye = eyeKey(eye);
+            }
+            if (fromSweep && ((now - view.fullAt) >= RESEND_MILLIS))
             {
                 send(player, view, view.drawn, now, true);
+            }
+            return;
+        }
+        if (!mayWork)
+        {
+            // The server's share for this second is spent: this viewer keeps what they see a
+            // moment longer, and a move is caught up once there is room.
+            if (!fromSweep)
+            {
+                view.pendingEye = eye;
+                catchUpLater(player, view);
             }
             return;
         }
@@ -509,7 +617,7 @@ public final class MirrorWindows
         final int most = fromSweep ? MOST_STILL : MOST_CANDIDATES;
         List<Entity> inside = new ArrayList<>();
         Budget budget = new Budget(most);
-        Map<Long, BlockData> wanted = compose(eye, seeing, now, inside, budget, view.radius);
+        Map<Long, BlockData> wanted = compose(eye, seeing, fixed, now, inside, budget, view.radius);
         // Too much to draw from here: draw as far as the walk got in full, which it can
         // afford by construction, until it fits. Three tries, in case the eye moved closer.
         for (int shrink = 0; (budget.blocks <= 0) && (view.radius > 4) && (shrink < 3); shrink++)
@@ -517,19 +625,24 @@ public final class MirrorWindows
             view.radius = Math.max(4, Math.min(view.radius - 1, budget.reached));
             inside = new ArrayList<>();
             budget = new Budget(most);
-            wanted = compose(eye, seeing, now, inside, budget, view.radius);
+            wanted = compose(eye, seeing, fixed, now, inside, budget, view.radius);
         }
+        workSpent += most - budget.blocks;
         final int drawnAt = view.radius;
         view.radius = grown(view.radius, configured, budget.blocks, most);
-        view.growing = (view.radius < configured) && (budget.blocks > (most / 2));
+        view.growing = eyeMatters && (view.radius < configured) && (budget.blocks > (most / 2));
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
         view.lastRedraw = (most - budget.blocks) + " of " + most + " blocks walked"
             + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + drawnAt
             + ((view.radius != drawnAt) ? (", next " + view.radius) : "") + ", "
-            + budget.near + " drawn, eye " + (int) eye.getX() + ","
+            + budget.near + " drawn by line of sight"
+            + ((budget.fixed > 0) ? (", " + budget.fixed + " fixed to depth " + budget.fixedDepth) : "")
+            + ", eye " + (int) eye.getX() + ","
             + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
+        view.stamp = stamp;
         view.mirrors = names(seeing);
+        view.fixedNames = names(new ArrayList<>(fixed));
         view.eye = eyeKey(eye);
         view.chunk = chunk;
         view.generation = MirrorCaptures.generation();
@@ -543,9 +656,9 @@ public final class MirrorWindows
 
     /** Whether nothing a view depends on has changed since it was last drawn. */
     private static boolean unchanged(final View view, final List<Window> seeing, final long eye,
-        final long now)
+        final String stamp, final long now)
     {
-        return (view.eye == eye) && ((now - view.composedAt) < RESAMPLE_MILLIS)
+        return (view.eye == eye) && view.stamp.equals(stamp) && ((now - view.composedAt) < RESAMPLE_MILLIS)
             && (view.generation == MirrorCaptures.generation()) && view.mirrors.equals(names(seeing))
             && !(view.growing && ((now - view.composedAt) >= REDRAW_MILLIS));
     }
@@ -722,12 +835,13 @@ public final class MirrorWindows
      * standing inside the view, to be hidden from them.
      *
      * <p>Openings first, so a block that is part of one opening is never drawn as another's far
-     * side. Then, nearest window first, the blocks in the cone from the eye through each opening,
-     * out to the radius and within one budget for the whole redraw -- see {@link Pass} for which
-     * of them are drawn.
+     * side. Then, nearest window first: a fixed window's whole view, and for the rest the blocks
+     * in the cone from the eye through each opening, out to the radius and within one budget for
+     * the whole redraw -- see {@link Pass} for which of them are drawn.
      */
     private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
-        final long now, final List<Entity> inside, final Budget budget, final int radius)
+        final Set<Window> fixed, final long now, final List<Entity> inside, final Budget budget,
+        final int radius)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
@@ -748,15 +862,23 @@ public final class MirrorWindows
         final List<Pass> passes = new ArrayList<>();
         for (final Window window : nearestFirst(seeing, eye))
         {
-            refreshSolid(window, now);
-            passes.add(new Pass(eye, window, seeing, allOpen, wanted, air, radius, budget, now));
+            if (fixed.contains(window))
+            {
+                window.fixed.forEach(wanted::putIfAbsent);
+                budget.fixed += window.fixed.size();
+                budget.fixedDepth = Math.max(budget.fixedDepth, window.fixedDepth);
+            }
+            else
+            {
+                passes.add(new Pass(eye, window, seeing, allOpen, wanted, air, radius, budget, now));
+            }
         }
         // In stages of depth, and within each stage the middle of every view before its edges,
         // so a spent budget costs what is far and oblique, never what is near. Band by band to
         // full depth, a wide radius spent the whole budget on the far middle before the near
         // sides were walked at all, and an alcove lost its own walls to a corridor beyond them.
         stages:
-        for (int from = 1; from <= (radius + 1); from = nextStage(from))
+        for (int from = 1; !passes.isEmpty() && (from <= (radius + 1)); from = nextStage(from))
         {
             final int to = Math.min(radius + 1, nextStage(from) - 1);
             for (int band = 0; band < MirrorWindow.bands(); band++)
@@ -765,7 +887,7 @@ public final class MirrorWindows
                 {
                     pass.stage(from, to);
                     if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(),
-                        radius, band, pass, (x, y, z) -> !pass.consider(x, y, z) || (--budget.blocks > 0)))
+                        pass.reach, band, pass, (x, y, z) -> !pass.consider(x, y, z) || (--budget.blocks > 0)))
                     {
                         break stages;
                     }
@@ -775,9 +897,272 @@ public final class MirrorWindows
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(seeing.get(0).banner.getWorld(), eye, radius, seeing, allOpen, inside);
+            creaturesInside(seeing.get(0).banner.getWorld(), eye, radius, seeing, fixed, allOpen, inside);
         }
         return wanted;
+    }
+
+    /**
+     * The walled windows among those seen that are drawn whole, their views brought up to date.
+     *
+     * <p>Walled, and with no other window in view near enough for the two views to overlap. Two
+     * walled windows seen together -- alcoves along a corridor -- are trimmed to each eye instead,
+     * or looking into one would show the other's far side wherever the two volumes met.
+     */
+    private static Set<Window> fixedOf(final List<Window> seeing, final long now, final boolean mayWork)
+    {
+        final Set<Window> fixed = new HashSet<>();
+        final double apart = 2.0 * ConfigManager.getMirrorViewDepth();
+        for (final Window window : seeing)
+        {
+            if (window.standing || !walled(window))
+            {
+                continue;
+            }
+            boolean alone = true;
+            for (final Window other : seeing)
+            {
+                if ((other != window) && (other.banner.getLocation()
+                    .distanceSquared(window.banner.getLocation()) < (apart * apart)))
+                {
+                    alone = false;
+                    break;
+                }
+            }
+            if (alone)
+            {
+                if (!fixedIsFresh(window, now))
+                {
+                    if (!mayWork)
+                    {
+                        // Drawn whole once the server has a moment; this viewer waits meanwhile.
+                        continue;
+                    }
+                    fixedView(window, now);
+                }
+                window.fixedUsedAt = now;
+                fixed.add(window);
+            }
+        }
+        return fixed;
+    }
+
+    /** Whether a window's fixed view is there, from its current capture and depth, and not old. */
+    private static boolean fixedIsFresh(final Window window, final long now)
+    {
+        return (window.fixed != null) && (window.fixedFrom == window.capture)
+            && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS);
+    }
+
+    /** Whether this second's share of work is spent, starting a new second's if one has begun. */
+    private static boolean overBudget(final long now)
+    {
+        if ((now - workSecond) >= 1000L)
+        {
+            workSecond = now;
+            workSpent = 0;
+        }
+        return workSpent >= workPerSecond;
+    }
+
+    /**
+     * Whether a mirror's fixed view is held, for a test.
+     *
+     * @param name
+     *            the mirror
+     * @return true if its window holds one
+     */
+    static boolean holdsFixedView(final String name)
+    {
+        final Window window = WINDOWS.get(name);
+        return (window != null) && (window.fixed != null);
+    }
+
+    /**
+     * Whether every block of a window's face touching its opening, corners too, is solid.
+     *
+     * <p>Then the wall hides whatever of the far side lies beside the opening, from anywhere in
+     * front of it, and the far side can be drawn whole. A gap beside the opening would show it.
+     */
+    private static boolean walled(final Window window)
+    {
+        return gapBeside(window) == null;
+    }
+
+    /** The first block of the face touching a window's opening that is not solid, or null if none. */
+    private static Spot gapBeside(final Window window)
+    {
+        final MirrorWindow shape = window.shape;
+        final boolean alongX = shape.into().x() != 0;
+        final Set<Long> opening = new HashSet<>();
+        final List<int[]> cells = new ArrayList<>();
+        shape.forEachOpening((x, y, z) ->
+        {
+            opening.add(key(x, y, z));
+            cells.add(new int[] { alongX ? z : x, y });
+        });
+        for (final int[] cell : cells)
+        {
+            for (int across = -1; across <= 1; across++)
+            {
+                for (int up = -1; up <= 1; up++)
+                {
+                    final long face = faceKey(shape, cell[0] + across, cell[1] + up);
+                    if (!opening.contains(face) && !window.solid.contains(face))
+                    {
+                        return new Spot(unpackX(face), unpackY(face), unpackZ(face));
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** What decides a view's fixed windows' content, so a change in any of them redraws it. */
+    private static String stampOf(final List<Window> seeing, final Set<Window> fixed)
+    {
+        final StringBuilder stamp = new StringBuilder();
+        for (final Window window : seeing)
+        {
+            stamp.append(window.mirror.name()).append('=')
+                .append(fixed.contains(window) ? System.identityHashCode(window.fixed) : 0).append(';');
+        }
+        return stamp.toString();
+    }
+
+    /**
+     * Brings a walled window's fixed view up to date: everything behind its wall out to the depth
+     * from the middle of its opening, the same whichever eye looks.
+     *
+     * <p>Trimmed to each eye, a view changed with every step, and a mirror seen from close up
+     * reached less far than from a step back: blocks appeared and vanished as a viewer walked.
+     * In a wall there is nothing to trim -- the wall hides whatever lies beside the opening -- so
+     * the whole far side is drawn once, and kept for a minute before the real world is read again.
+     * The cost is that a viewer sees the far side in place of the real world behind that wall
+     * from anywhere else they can see it, a doorway round the side, while they are looking in.
+     * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits.
+     */
+    private static void fixedView(final Window window, final long now)
+    {
+        final int configured = ConfigManager.getMirrorViewDepth();
+        if (fixedIsFresh(window, now))
+        {
+            return;
+        }
+        int depth = configured;
+        Map<Long, BlockData> view = fixedTo(window, depth, now);
+        // Half a sphere of the depth is what was looked at, found in the capture or not.
+        workSpent += (int) Math.min(Integer.MAX_VALUE / 2, 2.1 * depth * depth * depth);
+        while ((view == null) && (depth > 4))
+        {
+            depth = Math.max(4, (depth * 3) / 4);
+            view = fixedTo(window, depth, now);
+            workSpent += (int) (2.1 * depth * depth * depth);
+        }
+        window.fixed = (view == null) ? new HashMap<>() : view;
+        window.fixedFrom = window.capture;
+        window.fixedAt = now;
+        window.fixedFor = configured;
+        window.fixedDepth = depth;
+    }
+
+    /**
+     * A walled window's view to a depth, or null if it would hold more than {@link #MOST_FIXED}.
+     *
+     * <p>Every block behind the wall within the depth of the opening's middle: the far side's block
+     * where it is not air, air where the far side is air and the real block is not empty, and
+     * nothing where the far side is buried or outside the capture -- there the real world stays.
+     */
+    private static Map<Long, BlockData> fixedTo(final Window window, final int depth, final long now)
+    {
+        final MirrorWindow shape = window.shape;
+        final MirrorCapture capture = window.capture;
+        final World here = window.banner.getWorld();
+        final boolean alongX = shape.into().x() != 0;
+        final int sign = alongX ? shape.into().x() : shape.into().z();
+        final int baseAlong = alongX ? shape.base().x() : shape.base().z();
+        final double[] centre = centreOf(shape);
+        final double centreAcross = alongX ? centre[2] : centre[0];
+        final int min = here.getMinHeight();
+        final int max = here.getMaxHeight();
+        final BlockData air = Bukkit.createBlockData(Material.AIR);
+        final double reach = (double) depth * depth;
+        final Map<Long, BlockData> view = new HashMap<>();
+        for (int layer = 1; layer < depth; layer++)
+        {
+            final int along = baseAlong + (sign * layer);
+            final double wide = Math.sqrt(reach - ((double) layer * layer));
+            for (int across = (int) Math.floor(centreAcross - wide); across <= (int) Math.ceil(centreAcross + wide); across++)
+            {
+                final double offAcross = (across + 0.5) - centreAcross;
+                final int yTo = Math.min(max - 1, (int) Math.ceil(centre[1] + wide));
+                for (int y = Math.max(min, (int) Math.floor(centre[1] - wide)); y <= yTo; y++)
+                {
+                    final double offY = (y + 0.5) - centre[1];
+                    if ((((double) layer * layer) + (offAcross * offAcross) + (offY * offY)) >= reach)
+                    {
+                        continue;
+                    }
+                    final int x = alongX ? along : across;
+                    final int z = alongX ? across : along;
+                    final Spot at = shape.farOf(x, y, z);
+                    if (!capture.contains(at.x(), at.y(), at.z()) || capture.isBuried(at.x(), at.y(), at.z()))
+                    {
+                        continue;
+                    }
+                    if (!capture.isAir(at.x(), at.y(), at.z()))
+                    {
+                        view.put(key(x, y, z), capture.at(at.x(), at.y(), at.z()));
+                    }
+                    else if (!reallyEmpty(here, x, y, z, now))
+                    {
+                        view.put(key(x, y, z), air);
+                    }
+                    if (view.size() > MOST_FIXED)
+                    {
+                        return null;
+                    }
+                }
+            }
+        }
+        return view;
+    }
+
+    /** Whether a real block is empty, read afresh: above its column's highest block it is. */
+    private static boolean reallyEmpty(final World here, final int x, final int y, final int z, final long now)
+    {
+        return (y > topHere(here, x, z, now))
+            || (here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
+    }
+
+    /**
+     * The middle of a window's opening, which its depth is measured from.
+     *
+     * @return {@code {x, y, z}}
+     */
+    private static double[] centreOf(final MirrorWindow shape)
+    {
+        final boolean alongX = shape.into().x() != 0;
+        final double across = (alongX ? shape.base().z() : shape.base().x()) + 0.5;
+        final double y = shape.base().y() + (MirrorWindow.HEIGHT / 2.0);
+        final double along = (alongX ? shape.base().x() : shape.base().z()) + 0.5;
+        return alongX ? new double[] { along, y, across } : new double[] { across, y, along };
+    }
+
+    /** Whether a block is inside a walled window's fixed view: behind its wall, within its depth. */
+    private static boolean insideFixed(final Window window, final int x, final int y, final int z)
+    {
+        final MirrorWindow shape = window.shape;
+        final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
+        if (layer < 1)
+        {
+            return false;
+        }
+        final double[] centre = centreOf(shape);
+        final double dx = (x + 0.5) - centre[0];
+        final double dy = (y + 0.5) - centre[1];
+        final double dz = (z + 0.5) - centre[2];
+        return ((dx * dx) + (dy * dy) + (dz * dz)) < ((double) window.fixedDepth * window.fixedDepth);
     }
 
     /**
@@ -789,9 +1174,12 @@ public final class MirrorWindows
      * it is not. Other players are left alone: hiding one would take them off the tab list too.
      */
     private static void creaturesInside(final World here, final Location eye, final int radius,
-        final List<Window> seeing, final Set<Long> allOpen, final List<Entity> inside)
+        final List<Window> seeing, final Set<Window> fixed, final Set<Long> allOpen,
+        final List<Entity> inside)
     {
-        final double reach = radius + 1.0;
+        // Depth is from the opening, and the eye may be the proximity radius from that.
+        final double reach = Math.max(radius, ConfigManager.getMirrorViewDepth())
+            + ConfigManager.getMirrorProximityRadius() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {
             if (entity instanceof Player)
@@ -804,6 +1192,15 @@ public final class MirrorWindows
             final int z = at.getBlockZ();
             for (final Window window : seeing)
             {
+                if (fixed.contains(window))
+                {
+                    if (insideFixed(window, x, y, z))
+                    {
+                        inside.add(entity);
+                        break;
+                    }
+                    continue;
+                }
                 final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
                 if ((rect != null) && coveredBy(window, rect, allOpen, Set.of()))
                 {
@@ -871,6 +1268,8 @@ public final class MirrorWindows
     {
         private int blocks;
         private int near;
+        private int fixed;
+        private int fixedDepth;
         /** The deepest layer every view was walked to in full before the budget ran out. */
         private int reached;
 
@@ -1087,6 +1486,7 @@ public final class MirrorWindows
         if (!changes.isEmpty())
         {
             player.sendBlockChanges(changes);
+            workSpent += changes.size();
         }
         // A block change carries no banner patterns or sign text, so those follow on their own.
         restored.forEach(tile -> MirrorPackets.send(player, tile.getLocation(), tile));
@@ -1196,7 +1596,7 @@ public final class MirrorWindows
 
     private static long now()
     {
-        return System.currentTimeMillis();
+        return clock.getAsLong();
     }
 
     /**
@@ -1257,7 +1657,7 @@ public final class MirrorWindows
     /**
      * One window's part of one redraw: which blocks in its cone are drawn, and as what.
      *
-     * <p>Within the radius of the eye, a block is drawn as the capture's block it maps to, if it
+     * <p>Within the radius of the opening's middle, a block is drawn as the capture's block it maps to, if it
      * is seen through this window ({@link #seenThrough}), is not already hidden behind a solid
      * block drawn nearer the eye, and would change what the client shows -- far-side air over a
      * block that is really empty would not.
@@ -1282,6 +1682,9 @@ public final class MirrorWindows
         private final int max;
         private final Occlusion hidden;
         private final Set<Long> shielded;
+        private final double[] centre;
+        /** How far from the eye the walk must reach to cover the radius around the opening. */
+        private final double reach;
         private int from = 1;
         private int to = Integer.MAX_VALUE;
 
@@ -1303,6 +1706,11 @@ public final class MirrorWindows
             this.max = here.getMaxHeight();
             this.hidden = new Occlusion(window);
             this.shielded = shielded(window, eye, now);
+            this.centre = centreOf(window.shape);
+            final double ex = eye.getX() - centre[0];
+            final double ey = eye.getY() - centre[1];
+            final double ez = eye.getZ() - centre[2];
+            this.reach = radius + Math.sqrt((ex * ex) + (ey * ey) + (ez * ez));
         }
 
         /** @return true if this block cost real work, which the budget counts; false if it was cheap */
@@ -1314,9 +1722,9 @@ public final class MirrorWindows
                 probe(x, y, z, "already");
                 return false;
             }
-            final double dx = (x + 0.5) - eye.getX();
-            final double dy = (y + 0.5) - eye.getY();
-            final double dz = (z + 0.5) - eye.getZ();
+            final double dx = (x + 0.5) - centre[0];
+            final double dy = (y + 0.5) - centre[1];
+            final double dz = (z + 0.5) - centre[2];
             final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
             if (distance >= radius)
             {
@@ -1337,6 +1745,13 @@ public final class MirrorWindows
             }
             final Spot at = window.shape.farOf(x, y, z);
             final MirrorCapture capture = window.capture;
+            if (capture.isBuried(at.x(), at.y(), at.z()))
+            {
+                // Solid ground at the far side, left as the real world has it.
+                hidden.add(rect, layer);
+                probe(x, y, z, "buried");
+                return true;
+            }
             final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
             if (!coveredBy(window, rect, allOpen, shielded))
             {

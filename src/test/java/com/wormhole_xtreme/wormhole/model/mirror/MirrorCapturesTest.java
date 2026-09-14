@@ -192,6 +192,25 @@ class MirrorCapturesTest
     }
 
     /**
+     * A capture from before buried blocks were marked is outgrown, whatever its size.
+     *
+     * <p>It wrote them as air, and a window in a wall draws the far side whole: the inside of the
+     * far hill would be carved out of the real ground behind the wall.
+     */
+    @Test
+    void aCaptureThatWroteBuriedBlocksAsAirIsOutgrown() throws java.io.IOException
+    {
+        final int arrivalY = (int) Math.floor(mirror.destination().y());
+        final File file = new File(dataFolder, "old.view");
+        new MirrorCapture.Builder("far", true, 0, arrivalY - 64, 0, 33, 129, 33, air).build().save(file);
+        MirrorCaptureTest.rewriteVersion(file, 1);
+        final MirrorCapture old = MirrorCapture.load(file);
+
+        withServer(() -> assertTrue(MirrorCaptures.outgrown(mirror, old),
+            "as wide and deep as one taken now, but from before"));
+    }
+
+    /**
      * A captures folder left beside the mirror file by an earlier build is moved under mirror/.
      *
      * <p>Captures moved from data/mirror-captures/ to data/mirror/captures/ so that whatever

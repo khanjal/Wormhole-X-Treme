@@ -1442,7 +1442,7 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
         // A ceiling, not a promise: a view reaches as far as its redraw budget lets it, and
         // from right against a mirror that is less than this.
-        return (s == null) ? 64 : Math.max(4, Math.min(128, s.getIntValue()));
+        return (s == null) ? 32 : Math.max(4, Math.min(128, s.getIntValue()));
     }
 
     /**

@@ -212,7 +212,9 @@ been running on defaults will start reading the file you have been editing.
   shell of light-blue concrete, "can we just make nothing render past that point? for now." So
   nothing is drawn past the depth: no painting, no fog, no sky. A line of sight that gets that
   far meets whatever the real world has there, which is the trade, and the far heightmap and
-  the lines of sight through the capture are gone with the shell.
+  the lines of sight through the capture are gone with the shell. The rest of the far side stays
+  lit by this world, which is the prototype's known limit: behind a dark wall, only what makes
+  its own light is bright.
 
   "Can we tighten up the edges for those smaller mirrors in the open? Sometimes the other world
   renders in the current world." Two rules made at the hut on the beach let it. A block was
@@ -222,8 +224,41 @@ been running on defaults will start reading the file you have been editing.
   air, however little of it was behind the opening, which cut a notch of the far side into the
   open air beside the mirror. Both were the wrong way round for a small freestanding mirror. A
   block is drawn now only if all but a twentieth of its outline is behind the opening or on face
-  that hides it, and a straddler is left as it really is, solid or air. The rest of the far side stays lit by this world, which is the
-  prototype's known limit: behind a dark wall, only what makes its own light is bright.
+  that hides it, and a straddler is left as it really is, solid or air.
+
+  "If we set the max distance in that world no matter how close to the mirror we can show a more
+  static world without the loading glitches." Trimmed to each eye, a view changed with every
+  step -- the cone through a one-by-two opening swings as the eye moves -- and reached less far
+  from close up, where the cone is widest and the budget ran out, so blocks came and went as a
+  viewer walked. The depth is measured from the middle of the opening now, not the eye. And a
+  mirror set in solid wall -- a wall banner with every block of the face round its opening
+  solid, corners too -- draws everything behind the wall out to that depth at once, the same for
+  every viewer and every eye, and keeps it a minute before reading the real world behind it
+  again. The wall hides whatever lies beside the opening, so there is nothing to trim. The trade
+  is that from anywhere else a viewer can see that space -- a doorway round the side -- they see
+  the far side in it while they look in. A freestanding mirror, a wall mirror with a gap beside
+  its opening, and two walled mirrors in view at once are still trimmed to each eye: alcoves
+  along a corridor would otherwise fill the same space behind the wall with two far sides.
+
+  Drawn whole, a view would also have carved the inside of every far hill out of the real ground
+  behind the wall. Captures wrote what is buried two deep as air, which no line of sight through
+  an opening ever reached but a whole view does. Buried blocks are recorded as buried now, and
+  the real world is left there. A capture written before that still loads, and is taken again
+  on the next look.
+
+  "What if there are hundreds of mirrors and players using them on a very large server?" Three
+  things were unbounded. A fixed view, once drawn, stayed with its window as long as its chunk
+  was loaded, looked at or not, since every mirror in a loaded chunk is a window each sweep; it
+  is let go a minute after the last look now. Nothing bounded the server as a whole: each redraw
+  had a budget, but a hundred people walking past mirrors were a hundred budgets every quarter
+  second. There is a share of work per second for all viewers together now -- blocks walked,
+  fixed and sent -- and once it is spent a viewer keeps what they already see until the next
+  second, unless they have crossed into a new chunk, whose arrival erases what was drawn. And the
+  depth: a view's cost goes with its cube, and the library mirror's fixed view is 197,500 blocks
+  at 64 and 31,552 at 32, a sixth. So the default is 32; up to 128 is still allowed. Still
+  unbounded, and next: a capture in memory is about ten megabytes at the default capture radius,
+  one per far side looked at in the last five minutes, and each viewer holds their own copy of
+  what they were sent.
 
   "The flooring still gets messed up; fences and signs need to allow blocks behind them to
   render." Fences and signs never hid anything -- only occluding blocks mark the grid -- but
