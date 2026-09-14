@@ -300,10 +300,12 @@ public final class MirrorCapture
          * is under a block; each followed a block at a time until it meets something that
          * hides what is behind it, or leaves the box, or passes the depth. Every block a
          * ray passes through or ends on is seen, air included: air that a viewer can see is what
-         * the view carves through the real world. A block beside seen air is seen too, which
-         * catches what a ray a degree wide slipped past. Everything else is left to the real
-         * world, whatever it was: a window can never show it, and a view drawn whole would have
-         * sent it, and the inside of every far hill, for nothing.
+         * the view carves through the real world. A block beside anything seen that can be seen
+         * through is kept too, which catches what a ray a degree wide slipped past and what
+         * stands behind a fence or under a glass pane, and so is one layer behind every kept
+         * block, in case. Everything else is left to the real world, whatever it was: a window
+         * can never show it, and a view drawn whole would have sent it, and the inside of every
+         * far hill, for nothing.
          *
          * @param arrivalX
          *            the block a traveller arrives in, which the opening's bottom row shows
@@ -356,7 +358,10 @@ public final class MirrorCapture
                 }
             }
             final short buriedIndex = buriedIndex();
-            final boolean[] kept = seen.clone();
+            // A block beside anything seen that can be seen through -- air, glass, a fence, water
+            // -- has a face a viewer can see; the stone behind a fence and under a glass pane
+            // were dropped when only air counted.
+            final boolean[] faced = seen.clone();
             for (int dx = 0; dx < sizeX; dx++)
             {
                 for (int dz = 0; dz < sizeZ; dz++)
@@ -364,15 +369,27 @@ public final class MirrorCapture
                     for (int dy = 0; dy < sizeY; dy++)
                     {
                         final int at = offset(dx, dy, dz, sizeY, sizeZ);
-                        if (seen[at] && (indices[at] == 0))
+                        if (seen[at] && !solid[indices[at]])
                         {
-                            // A block beside seen air is a face a viewer can see.
-                            keepBeside(kept, dx - 1, dy, dz);
-                            keepBeside(kept, dx + 1, dy, dz);
-                            keepBeside(kept, dx, dy - 1, dz);
-                            keepBeside(kept, dx, dy + 1, dz);
-                            keepBeside(kept, dx, dy, dz - 1);
-                            keepBeside(kept, dx, dy, dz + 1);
+                            keepBeside(faced, dx, dy, dz);
+                        }
+                    }
+                }
+            }
+            // And one layer behind every block kept, in case: a capture is looked at from angles
+            // nobody chose, and a surface block that is wrong for any reason should have ground
+            // behind it, not a hole. "We could probably store ground behind stuff."
+            final boolean[] kept = faced.clone();
+            for (int dx = 0; dx < sizeX; dx++)
+            {
+                for (int dz = 0; dz < sizeZ; dz++)
+                {
+                    for (int dy = 0; dy < sizeY; dy++)
+                    {
+                        final int at = offset(dx, dy, dz, sizeY, sizeZ);
+                        if (faced[at] && (indices[at] != 0))
+                        {
+                            keepBeside(kept, dx, dy, dz);
                         }
                     }
                 }
@@ -386,7 +403,18 @@ public final class MirrorCapture
             }
         }
 
+        /** Keeps the six blocks round one, where they are not air. */
         private void keepBeside(final boolean[] kept, final int dx, final int dy, final int dz)
+        {
+            keepOne(kept, dx - 1, dy, dz);
+            keepOne(kept, dx + 1, dy, dz);
+            keepOne(kept, dx, dy - 1, dz);
+            keepOne(kept, dx, dy + 1, dz);
+            keepOne(kept, dx, dy, dz - 1);
+            keepOne(kept, dx, dy, dz + 1);
+        }
+
+        private void keepOne(final boolean[] kept, final int dx, final int dy, final int dz)
         {
             if ((dx >= 0) && (dx < sizeX) && (dy >= 0) && (dy < sizeY) && (dz >= 0) && (dz < sizeZ))
             {

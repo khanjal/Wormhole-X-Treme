@@ -168,6 +168,9 @@ class MirrorCaptureTest
         builder.put(4, 2, 6, glass);
         builder.put(1, 3, 3, stone);
         builder.put(0, 6, 1, stone);
+        // A pane of glass in the way, with stone behind it: what a viewer sees through the pane.
+        builder.put(6, 2, 2, glass);
+        builder.put(6, 2, 3, stone);
         builder.keepOnlySeen(4, 2, 0, 0, 1, 8);
 
         final MirrorCapture capture = builder.build();
@@ -176,10 +179,13 @@ class MirrorCaptureTest
         assertSame(stone, capture.at(1, 3, 3), "to one side, within a block sideways per block in");
         assertTrue(capture.isBuried(0, 6, 1), "beside the opening at a slant no line through the hole makes");
         assertSame(stone, capture.at(4, 0, 2), "the floor in front of the wall");
+        assertSame(glass, capture.at(6, 2, 2), "the pane");
+        assertSame(stone, capture.at(6, 2, 3), "and the stone seen through it");
+        assertSame(stone, capture.at(4, 0, 4), "the wall's foot, one block behind the last floor block seen");
         assertTrue(capture.isAir(4, 2, 2), "air in front of the wall is seen, and stays air");
         assertTrue(capture.isBuried(4, 2, 6), "the glass behind the wall is left to the real world");
         assertTrue(capture.isBuried(4, 2, 5), "and so is the air behind it");
-        assertTrue(capture.isBuried(4, 0, 7), "and the floor there");
+        assertTrue(capture.isBuried(4, 0, 5), "and the floor two blocks behind the last seen");
     }
 
     /** A buried block is still buried after the disk, and a fresh capture is not from before. */

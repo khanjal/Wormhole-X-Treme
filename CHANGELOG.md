@@ -279,6 +279,12 @@ been running on defaults will start reading the file you have been editing.
   wherever they stand, out of range and behind it, "so I can look around better at what's
   stored".
 
+  "Look at how the blocks behind the fence aren't being stored, or the stone bricks where the
+  glass would show. We could probably store ground behind stuff in case objects need it." A
+  block was kept beside seen air only; the stone behind a fence and under a glass pane are
+  beside seen fence and seen glass. Anything beside a seen block that can be seen through is
+  kept now, and one layer behind every kept block besides, in case.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the
