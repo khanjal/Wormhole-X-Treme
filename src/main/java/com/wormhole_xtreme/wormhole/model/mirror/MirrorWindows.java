@@ -885,7 +885,7 @@ public final class MirrorWindows
         {
             return Math.min(radius, configured);
         }
-        final double used = Math.max(1.0, most - left);
+        final double used = Math.max(1.0, (double) most - left);
         final double scaled = radius * Math.cbrt((most / 2.0) / used);
         final int next = (int) Math.min(scaled, (radius * 3) / 2.0);
         return Math.min(configured, Math.max(radius + 2, next));
@@ -958,7 +958,7 @@ public final class MirrorWindows
                 continue;
             }
             if (!window.open.isEmpty() && window.banner.getWorld().equals(player.getWorld())
-                && (at.distanceSquared(window.banner.getLocation()) <= (radius * radius))
+                && (fromBanner(window.banner, at.getX(), at.getY(), at.getZ()) <= (radius * radius))
                 && window.shape.inFront(eye.getX(), eye.getZ())
                 && canSee(player.getWorld(), eye, window, now))
             {
@@ -1033,7 +1033,7 @@ public final class MirrorWindows
         for (final Window window : WINDOWS.values())
         {
             if (window.banner.getWorld().equals(player.getWorld())
-                && (to.distanceSquared(window.banner.getLocation()) <= (radius * radius)))
+                && (fromBanner(window.banner, to.getX(), to.getY(), to.getZ()) <= (radius * radius)))
             {
                 return true;
             }
@@ -1151,7 +1151,8 @@ public final class MirrorWindows
             for (final Window other : WINDOWS.values())
             {
                 if ((other != window) && other.banner.getWorld().equals(window.banner.getWorld())
-                    && (other.banner.getLocation().distanceSquared(window.banner.getLocation()) < (apart * apart)))
+                    && (fromBanner(other.banner, window.banner.getX(), window.banner.getY(), window.banner.getZ())
+                        < (apart * apart)))
                 {
                     alone = false;
                     break;
@@ -1301,7 +1302,7 @@ public final class MirrorWindows
         int depth = configured;
         Map<Long, BlockData> view = fixedTo(window, depth, now, MOST_FIXED);
         // Half a sphere of the depth is what was looked at, found in the capture or not.
-        workSpent += (int) Math.min(Integer.MAX_VALUE / 2, 2.1 * depth * depth * depth);
+        workSpent += (int) Math.min(Integer.MAX_VALUE / 2.0, 2.1 * depth * depth * depth);
         while ((view == null) && (depth > 4))
         {
             depth = Math.max(4, (depth * 3) / 4);
@@ -1660,9 +1661,18 @@ public final class MirrorWindows
     {
         final List<Window> sorted = new ArrayList<>(seeing);
         sorted.sort(Comparator
-            .comparingDouble((Window window) -> window.banner.getLocation().distanceSquared(eye))
+            .comparingDouble((Window window) -> fromBanner(window.banner, eye.getX(), eye.getY(), eye.getZ()))
             .thenComparing(window -> window.mirror.name()));
         return sorted;
+    }
+
+    /** How far a point is from a banner block's corner, squared, without making a Location per ask. */
+    private static double fromBanner(final Block banner, final double x, final double y, final double z)
+    {
+        final double dx = x - banner.getX();
+        final double dy = y - banner.getY();
+        final double dz = z - banner.getZ();
+        return (dx * dx) + (dy * dy) + (dz * dz);
     }
 
     /** The highest block that is not air in a real column, remembered for a few seconds. */

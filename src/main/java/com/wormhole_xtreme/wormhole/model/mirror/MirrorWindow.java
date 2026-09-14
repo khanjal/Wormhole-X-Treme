@@ -411,14 +411,14 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             final double near = Math.min(one, other) / reach;
             final double farther = Math.max(one, other) / reach;
             final int bottom = window.base.y();
-            int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(
-                lowest(eyeAcross, (middle - HALF) - margin, middle + (WIDTH - HALF) + margin, near, farther)));
-            int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(
-                highest(eyeAcross, (middle - HALF) - margin, middle + (WIDTH - HALF) + margin, near, farther)) - 1);
-            int yFrom = Math.max(bottom - WIDEST,
-                (int) Math.floor(lowest(eyeY, bottom - margin, bottom + HEIGHT + margin, near, farther)));
-            int yTo = Math.min(bottom + WIDEST,
-                (int) Math.ceil(highest(eyeY, bottom - margin, bottom + HEIGHT + margin, near, farther)) - 1);
+            final double left = (double) middle - HALF - margin;
+            final double right = (double) middle + (WIDTH - HALF) + margin;
+            final double down = (double) bottom - margin;
+            final double up = (double) bottom + HEIGHT + margin;
+            int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(lowest(eyeAcross, left, right, near, farther)));
+            int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(highest(eyeAcross, left, right, near, farther)) - 1);
+            int yFrom = Math.max(bottom - WIDEST, (int) Math.floor(lowest(eyeY, down, up, near, farther)));
+            int yTo = Math.min(bottom + WIDEST, (int) Math.ceil(highest(eyeY, down, up, near, farther)) - 1);
             // Nothing in this layer further from the eye than the radius: the sphere's width here.
             final double face = nearFace(layer);
             final double wide = Math.sqrt(Math.max(0.0, (radius * radius) - (face * face))) + 1.0;
@@ -648,9 +648,9 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             { Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE };
         for (int corner = 0; corner < 8; corner++)
         {
-            final double cornerX = x + (corner & 1);
-            final double cornerY = y + ((corner >> 1) & 1);
-            final double cornerZ = z + ((corner >> 2) & 1);
+            final double cornerX = (double) x + (corner & 1);
+            final double cornerY = (double) y + ((corner >> 1) & 1);
+            final double cornerZ = (double) z + ((corner >> 2) & 1);
             final double depth = (alongX ? cornerX : cornerZ) - eyeDepth;
             final double scale = (Math.abs(depth) < 1.0e-9) ? -1.0 : (reach / depth);
             // Not further from the eye than the face, on the same side: not behind the opening.
@@ -744,8 +744,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             {
                 if (face.clear(across, y))
                 {
-                    clear += (Math.min(rect[1], across + 1) - Math.max(rect[0], across))
-                        * (Math.min(rect[3], y + 1) - Math.max(rect[2], y));
+                    clear += (Math.min(rect[1], across + 1.0) - Math.max(rect[0], across))
+                        * (Math.min(rect[3], y + 1.0) - Math.max(rect[2], y));
                 }
             }
         }
@@ -785,9 +785,9 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             { Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE };
         for (int corner = 0; corner < 8; corner++)
         {
-            final double cornerX = x + (corner & 1);
-            final double cornerY = y + ((corner >> 1) & 1);
-            final double cornerZ = z + ((corner >> 2) & 1);
+            final double cornerX = (double) x + (corner & 1);
+            final double cornerY = (double) y + ((corner >> 1) & 1);
+            final double cornerZ = (double) z + ((corner >> 2) & 1);
             final double depth = (alongX ? cornerX : cornerZ) - eyeDepth;
             // The same way from the eye as the face, nearer than it, and not on top of the eye.
             if ((depth * reach <= 0.0) || (Math.abs(depth) > Math.abs(reach))

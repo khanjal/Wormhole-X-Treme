@@ -381,9 +381,9 @@ class MirrorReplayTest
             }
         }
         out.append("what the rays end on:\n");
-        shows.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(20)
+        shows.entrySet().stream().sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())).limit(20)
             .forEach(e -> out.append("  ").append(e.getValue()).append(" x ").append(e.getKey()).append('\n'));
-        holes.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(25)
+        holes.entrySet().stream().sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())).limit(25)
             .forEach(e -> out.append("  ").append(e.getValue()).append(" x ").append(e.getKey()).append('\n'));
         out.append("window base ").append(shape.base()).append(", far ").append(shape.far())
             .append(", into ").append(shape.into()).append(", ahead ").append(shape.ahead()).append('\n');

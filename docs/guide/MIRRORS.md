@@ -159,6 +159,8 @@ Anybody within `mirror-proximity-radius` blocks, on the banner's side, sees the 
 banner-sized opening, one wide and two tall, showing the destination: real blocks, so it has depth as you move. A banner hung on a
 wall opens in the wall, running down from the banner. A freestanding banner opens in the air behind
 it, running up from where it stands, facing whichever of north, south, east or west is nearest.
+On plain 1.20 the banner stays where it is, in front of the view: taking it away needs a call that
+arrived in 1.20.1, without which its patterns could not be put back.
 The middle of the opening's bottom row is where a traveller lands, facing the way the mirror was
 pointed. Click the opening to go through.
 

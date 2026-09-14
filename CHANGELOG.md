@@ -45,7 +45,9 @@ been running on defaults will start reading the file you have been editing.
   Nothing in the world changes either. Each viewer is sent the banner as air, the opening as
   barrier -- invisible, and at least as solid as whatever it covers -- and far-side blocks behind
   it. That is the rule rings learned: a drawing may make collision stronger than the block under
-  it, never weaker.
+  it, never weaker. On plain 1.20 the banner is left standing in front of the view: sending it
+  back afterwards takes `Player.sendBlockUpdate`, which arrived in 1.20.1, and without it the
+  banner would come back without its patterns.
 
   Only the far-side blocks the viewer could actually see through an opening are drawn, and each
   belongs to the opening their line of sight passes through. The first build gave every mirror a

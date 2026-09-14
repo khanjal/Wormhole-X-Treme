@@ -75,9 +75,9 @@ public final class MirrorCaptures
         final int arrivalY = (int) Math.floor(destination.y());
         final int arrivalZ = (int) Math.floor(destination.z());
         final int reach = depth + MARGIN;
-        final int minX = arrivalX - ((ahead.x() > 0) ? 1 : (ahead.x() < 0) ? reach : reach);
-        final int maxX = arrivalX + ((ahead.x() > 0) ? reach : (ahead.x() < 0) ? 1 : reach);
-        final int minZ = arrivalZ - ((ahead.z() > 0) ? 1 : (ahead.z() < 0) ? reach : reach);
+        final int minX = arrivalX - ((ahead.x() > 0) ? 1 : reach);
+        final int maxX = arrivalX + ((ahead.x() < 0) ? 1 : reach);
+        final int minZ = arrivalZ - ((ahead.z() > 0) ? 1 : reach);
         final int maxZ = arrivalZ + ((ahead.z() > 0) ? reach : (ahead.z() < 0) ? 1 : reach);
         final int minY = (worldMin == null) ? (arrivalY - reach) : Math.max(worldMin, arrivalY - reach);
         final int maxY = (worldMax == null) ? (arrivalY + reach) : Math.min(worldMax - 1, arrivalY + reach);
