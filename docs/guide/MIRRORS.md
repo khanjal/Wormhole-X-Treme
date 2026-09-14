@@ -128,7 +128,8 @@ solid wall — solid for `mirror-proximity-distance` blocks on every side of the
 mirror within twice the depth — shows everything behind the wall out to its depth, the same from
 wherever you stand in front of it. `create` says so when a new mirror is closer than that to
 another. Any other mirror shows only the blocks you could actually see
-through the opening from where you stand, so nothing shows past its edges.
+through the opening from where you stand, so nothing shows past its edges — and the outer half of
+its wall's edge is kept clear, so a wider wall shows a little more beside the opening as you move.
 
 - **What you see is a capture:** a photograph of a mirror's room, kept in
   `data/mirror/captures/` under its place's name, which `mirror list` shows; a capture no mirror

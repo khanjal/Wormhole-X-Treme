@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -87,6 +88,9 @@ class MirrorWindowsTest
 
     /** A block of the wall that is not there, or null for a whole wall. */
     private Spot gap;
+
+    /** How far out from the opening the wall reaches, as a panel in the open, or null for a whole wall. */
+    private Integer panel;
 
     private World world;
     private Block banner;
@@ -1028,6 +1032,68 @@ class MirrorWindowsTest
     }
 
     /**
+     * The outer half of the wall's outermost ring is a margin nothing is drawn onto, so what shows
+     * beside the opening scales with the wall.
+     *
+     * <p>"For a border of 1 we need to trim better; there's a lot of leaking around the border.
+     * Should it change based on border?" A block drawn onto the wall beside the opening is hidden
+     * only from the eye it was drawn for; a step shifts where it lands, and with one block of wall
+     * the shift carried it past the wall's edge before the next redraw. A whole ring was too much:
+     * on a three-wide panel a block straight through the opening spills a third of a block onto
+     * the top ring and was dropped too. Half a block absorbs a step. The block at 11 65 12 lands
+     * mostly on the outer half of the ring at x 11 -- the edge of a three-wide panel -- and is left
+     * out; inside a five-wide one it is drawn; and the block straight through is drawn on both.
+     */
+    @Test
+    void theOuterHalfOfTheWallsEdgeIsAMarginNothingIsDrawnOnto()
+    {
+        panel = 1;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> narrow = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, narrow.get(new Spot(10, 64, 13)),
+            "straight through the opening, spilling a third of a block onto the ring's inner half");
+        assertFalse(narrow.containsKey(new Spot(11, 65, 12)), "landing on the panel's edge: a step would carry it off");
+    }
+
+    /**
+     * A shadow thrown by a block almost level with the eye is clamped to the face that is read.
+     *
+     * <p>From the server log: fifteen seconds in {@code shielded}, adding the cells of one shadow
+     * hundreds of blocks across, one by one, while a redraw caught a viewer up. A block whose near
+     * corner is a twentieth of a block from the eye's depth projects three hundred times its size.
+     * Nothing outside the read face is ever asked about, so the clamp loses nothing.
+     */
+    @Test
+    void aShadowThrownFromAlmostLevelWithTheEyeIsClampedToTheFaceRead()
+    {
+        final int[] span = { 0, 18 };
+
+        assertArrayEquals(new int[] { 0, 18, 56, 82 },
+            MirrorWindows.withinFace(new double[] { -300.0, 300.0, -200.0, 250.0 }, span, 56, 82),
+            "a shadow six hundred blocks across marks the read face and no more");
+        assertArrayEquals(new int[] { 10, 10, 64, 64 },
+            MirrorWindows.withinFace(new double[] { 9.9, 11.05, 63.9, 65.1 }, span, 56, 82),
+            "an ordinary shadow marks only the blocks wholly inside it, as before");
+    }
+
+    /** The same block on a five-wide panel lands a block inside its edge, and is drawn. */
+    @Test
+    void insideAWiderPanelsEdgeTheSameBlockIsDrawn()
+    {
+        panel = 2;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(11, 65, 12)));
+    }
+
+    /**
      * The inside of the far ground is left as the real world has it, not drawn and not carved.
      *
      * <p>A deep view is mostly ground: a mirror onto a field looks down into the soil under it.
@@ -1470,7 +1536,8 @@ class MirrorWindowsTest
         when(block.isPassable()).thenReturn(passable);
         when(block.isEmpty()).thenReturn(localEmpty);
         final BlockData data = mock(BlockData.class);
-        when(data.isOccluding()).thenReturn(wallBehind && (z == 11) && !new Spot(x, y, z).equals(gap));
+        when(data.isOccluding()).thenReturn(wallBehind && (z == 11) && !new Spot(x, y, z).equals(gap)
+            && ((panel == null) || ((Math.abs(x - 10) <= panel) && (y >= (63 - panel)) && (y <= (64 + panel)))));
         when(block.getBlockData()).thenReturn(data);
         when(block.getState()).thenAnswer(invocation -> stateAt(BlockState.class, x, y, z));
         return block;

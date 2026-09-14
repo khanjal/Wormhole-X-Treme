@@ -818,6 +818,23 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **The outer half of the wall's edge is a margin nothing is drawn onto, so what a mirror shows
+  beside its opening scales with its wall.** "For a border of 1 we need to trim better; there's a
+  lot of leaking around the border. Should it change based on border, up to a max?" A block drawn
+  onto the wall beside the opening -- and blocks are, so that the edges of the view are already
+  there as you slide into it -- is hidden only from the eye it was drawn for. A step shifts where
+  it lands, and the wall has to absorb that shift until the next redraw. Two blocks of wall
+  absorbed a step; one did not, and the block behind the ring showed every time you moved.
+
+  So the outer half of the wall's outermost ring, on each side it is open, hides nothing: a block
+  is drawn only where its outline lands on the opening or on wall inside that. I tried the whole
+  ring first, and the test caught it: on a three-wide panel a block straight through the opening
+  spills a third of a block onto the top ring, and was dropped too -- holes instead of leaks.
+  Half a block absorbs a step. With one block of wall a block may spill half a block onto it; with
+  two the inner ring is all wall, as before; a wider wall shows more beside the opening, and at
+  the proximity distance it is drawn whole. A ring hidden by something real in front still hides
+  all of itself, so a hut's front wall behaves as before.
+
 - **A mirror needs a block of wall round its opening, not two; short of two, `create` says so.**
   "Let's go down to 1 and then leave that the lower limit. We can do a warning if it's less than
   2." Two was chosen while a drawn block at the edge was held until half of it was past the
@@ -845,6 +862,15 @@ been running on defaults will start reading the file you have been editing.
   `config.yml` is ignored and left where it is.
 
 ### Fixed
+
+- **A redraw could hang the server for fifteen seconds, standing on a block boundary.** From the
+  log: `MirrorWindows.shielded` adding to a set, under a redraw catching a viewer up. That pass
+  throws every real solid block within eight of the opening onto the face from the eye, to find
+  what a corridor's walls or a hut's sides hide. A block whose near corner is a twentieth of a
+  block from the eye's depth -- the ground at your feet -- projects three hundred times its size,
+  and every cell of a shadow hundreds of blocks across was added, for each such block. Nothing
+  outside the face read for a window is ever asked about, so a shadow is clamped to that face
+  first.
 
 - **A tidy-up that failed on shutdown took every save with it.** Reported from a live server:
   `NoClassDefFoundError: .../MirrorPackets` thrown out of `onDisable`, from the call that gives

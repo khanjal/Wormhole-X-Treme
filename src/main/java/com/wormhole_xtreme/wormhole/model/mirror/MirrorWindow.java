@@ -110,6 +110,22 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         boolean clear(int across, int y);
     }
 
+    /** Says how much of a block in the opening's face keeps a drawn block behind it out of sight. */
+    @FunctionalInterface
+    public interface Cover
+    {
+        /**
+         * @param across
+         *            the block's coordinate along the face, as for {@link Face}
+         * @param y
+         *            the block's y
+         * @return the part of the block, as {@code {acrossMin, acrossMax, yMin, yMax}} in face
+         *         coordinates, on which a drawn block cannot be seen anywhere it should not be;
+         *         or null for none of it
+         */
+        double[] clear(int across, int y);
+    }
+
     /** Handed each block of the opening. */
     @FunctionalInterface
     public interface Opening
@@ -807,6 +823,24 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      */
     boolean covered(final double[] rect, final Face face, final double mostBeside)
     {
+        return covered(rect,
+            (Cover) (across, y) -> face.clear(across, y) ? new double[] { across, across + 1.0, y, y + 1.0 } : null,
+            mostBeside);
+    }
+
+    /**
+     * The same, where a block of the face may keep only part of what lands on it out of sight.
+     *
+     * @param rect
+     *            from {@link #projected}
+     * @param cover
+     *            the part of each block of the face that hides what lands on it
+     * @param mostBeside
+     *            the most of the outline's area that may land where nothing hides it
+     * @return true if the rest lands on covered parts of the face
+     */
+    boolean covered(final double[] rect, final Cover cover, final double mostBeside)
+    {
         final int acrossFrom = (int) Math.floor(rect[0]);
         final int acrossTo = (int) Math.ceil(rect[1]) - 1;
         final int yFrom = (int) Math.floor(rect[2]);
@@ -822,10 +856,11 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         {
             for (int y = yFrom; y <= yTo; y++)
             {
-                if (face.clear(across, y))
+                final double[] part = cover.clear(across, y);
+                if (part != null)
                 {
-                    clear += (Math.min(rect[1], across + 1.0) - Math.max(rect[0], across))
-                        * (Math.min(rect[3], y + 1.0) - Math.max(rect[2], y));
+                    clear += Math.max(0.0, Math.min(rect[1], part[1]) - Math.max(rect[0], part[0]))
+                        * Math.max(0.0, Math.min(rect[3], part[3]) - Math.max(rect[2], part[2]));
                 }
             }
         }
