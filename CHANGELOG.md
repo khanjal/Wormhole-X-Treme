@@ -46,6 +46,11 @@ been running on defaults will start reading the file you have been editing.
   near a mirror any more it goes back to its own room. Only the main hand's half of a click
   counts, or one press would skip a mirror.
 
+  "I don't see a reflection at all" -- on a mirror facing north. Its capture kept 8 blocks and no
+  air: the rays that decide what can be seen started on the back edge of the block in front of
+  the mirror, and facing north or west that edge rounds into the block behind, the mirror's own
+  wall, so every ray stopped where it began. They start just inside that block now.
+
   `mirror link` and `mirror target` are gone, and with them the `-return` names. `create` is the
   verb now, and `set` still works. A mirror saved before this keeps opening where it was pointed
   until it is created again.

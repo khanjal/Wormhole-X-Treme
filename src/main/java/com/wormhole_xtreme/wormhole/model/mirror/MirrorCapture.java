@@ -483,8 +483,11 @@ public final class MirrorCapture
             // bounded by the hole's own shape: nothing steeper than a block sideways or two up
             // per block in. The back of the hole is the back of the block behind the arrival
             // block, which is where the rays start; the front is a block further back.
-            final double exitX = (arrivalX + 0.5) - (0.5 * aheadX);
-            final double exitZ = (arrivalZ + 0.5) - (0.5 * aheadZ);
+            // A hair inside the arrival block, whichever way it faces. On the boundary itself a ray
+            // facing north or west starts in the block behind, which for a mirror is its wall: every
+            // ray stopped where it began, and the capture kept nothing.
+            final double exitX = (arrivalX + 0.5) - ((0.5 - 1.0e-6) * aheadX);
+            final double exitZ = (arrivalZ + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
             final double reach = depth + 2.0;

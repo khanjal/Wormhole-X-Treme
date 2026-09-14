@@ -189,6 +189,50 @@ class MirrorCaptureTest
         assertTrue(capture.isBuried(4, 0, 5), "and the floor two blocks behind the last seen");
     }
 
+    /**
+     * A mirror facing north or west sees its room too, with its own wall behind it.
+     *
+     * <p>"I don't see a reflection at all": a mirror facing north captured 8 blocks and no air.
+     * The rays started on the boundary between the arrival block and the one behind it, and a
+     * ray facing north or west rounded into the block behind -- the mirror's own wall -- and
+     * stopped where it began. The test above faces south, where it rounds the other way.
+     */
+    @Test
+    void aMirrorFacingNorthOrWestSeesItsRoomPastItsOwnWall()
+    {
+        // Facing north: the arrival at z 7, its wall behind at z 8, a far wall across at z 3.
+        final MirrorCapture.Builder north = new MirrorCapture.Builder("far", true, 0, 0, 0, 9, 9, 9, air);
+        for (int x = 0; x < 9; x++)
+        {
+            for (int y = 0; y < 9; y++)
+            {
+                north.put(x, y, 8, stone);
+                north.put(x, y, 3, stone);
+            }
+        }
+        north.keepOnlySeen(4, 2, 7, 0, -1, 8);
+        final MirrorCapture northward = north.build();
+
+        assertTrue(northward.isAir(4, 2, 5), "the room in front of a north-facing mirror is seen");
+        assertSame(stone, northward.at(4, 2, 3), "and so is the wall across it");
+
+        // Facing west: the arrival at x 7, its wall behind at x 8, a far wall across at x 3.
+        final MirrorCapture.Builder west = new MirrorCapture.Builder("far", true, 0, 0, 0, 9, 9, 9, air);
+        for (int z = 0; z < 9; z++)
+        {
+            for (int y = 0; y < 9; y++)
+            {
+                west.put(8, y, z, stone);
+                west.put(3, y, z, stone);
+            }
+        }
+        west.keepOnlySeen(7, 2, 4, -1, 0, 8);
+        final MirrorCapture westward = west.build();
+
+        assertTrue(westward.isAir(5, 2, 4), "the room in front of a west-facing mirror is seen");
+        assertSame(stone, westward.at(3, 2, 4), "and so is the wall across it");
+    }
+
     /** A buried block is still buried after the disk. */
     @Test
     void aBuriedBlockSurvivesTheDiskAsBuried(@TempDir final File dir) throws IOException
