@@ -220,6 +220,82 @@ class MirrorReplayTest
                 out.append(String.format("  y %d  %s | far %s | here %s%n", y, v, f, h));
             }
         }
+        // Ground truth: rays from the eye through the opening, followed the way the client
+        // shows them. A ray that meets a real block nobody drew, before a drawn solid or the
+        // shell, is a hole with the real world in it.
+        final java.util.Map<String, Integer> holes = new java.util.TreeMap<>();
+        final java.util.Map<String, MirrorWindow.Spot> holeAt = new HashMap<>();
+        int rays = 0;
+        int holed = 0;
+        final int faceAlong = (intoZProbe != 0) ? (bz + intoZProbe) : (bx + intoXProbe);
+        final double facePlane = faceAlong + ((intoXProbe + intoZProbe) > 0 ? 0.0 : 1.0);
+        for (double across = 0.02; across < 1.0; across += 0.04)
+        {
+            for (double up = 0.02; up < 2.0; up += 0.04)
+            {
+                final double px = (intoZProbe != 0) ? (bx + across) : facePlane;
+                final double pz = (intoZProbe != 0) ? facePlane : (bz + across);
+                final double py = (by - 1) + up;
+                final double dx = px - ex;
+                final double dy = py - ey;
+                final double dz = pz - ez;
+                final double len = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+                rays++;
+                long last = Long.MIN_VALUE;
+                String outcome = "escaped";
+                MirrorWindow.Spot where = null;
+                for (double t = len; t < (len * ((radius + 2.0) / len)) + 40.0; t += 0.2)
+                {
+                    final int cx = (int) Math.floor(ex + (dx / len) * t);
+                    final int cy = (int) Math.floor(ey + (dy / len) * t);
+                    final int cz = (int) Math.floor(ez + (dz / len) * t);
+                    final long key = MirrorWindows.key(cx, cy, cz);
+                    if (key == last)
+                    {
+                        continue;
+                    }
+                    last = key;
+                    final MirrorWindow.Spot spot = new MirrorWindow.Spot(cx, cy, cz);
+                    final String as = drawn.get(spot);
+                    if (as != null)
+                    {
+                        if (as.endsWith(":air") || as.endsWith(":barrier"))
+                        {
+                            continue;
+                        }
+                        outcome = "ok";
+                        break;
+                    }
+                    if (here.isAir(cx, cy, cz))
+                    {
+                        continue;
+                    }
+                    final int layerOf = ((cx - bx) * intoXProbe) + ((cz - bz) * intoZProbe) - 1;
+                    if (layerOf <= 0)
+                    {
+                        // The wall's own sill and jambs, seen at a grazing angle: real, and
+                        // rightly so.
+                        outcome = "ok";
+                        break;
+                    }
+                    outcome = "hole";
+                    where = spot;
+                    break;
+                }
+                if (!"ok".equals(outcome))
+                {
+                    holed++;
+                    final String why = (where == null) ? "escaped past the shell"
+                        : ("real " + here.nameAt(where.x(), where.y(), where.z()) + " at " + where
+                            + ", verdict: " + verdicts.getOrDefault(where, "never walked"));
+                    holes.merge(why, 1, Integer::sum);
+                    holeAt.putIfAbsent(why, where);
+                }
+            }
+        }
+        out.append(rays).append(" rays through the opening, ").append(holed).append(" holes\n");
+        holes.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(25)
+            .forEach(e -> out.append("  ").append(e.getValue()).append(" x ").append(e.getKey()).append('\n'));
         System.out.println(out);
         java.nio.file.Files.writeString(new File(dir, "replay-out.txt").toPath(), out.toString());
     }

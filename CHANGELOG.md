@@ -174,6 +174,15 @@ been running on defaults will start reading the file you have been editing.
   the far middle before the near sides were walked at all. And `mirror-view-depth` reads at most
   32, since a prototype build wrote 48 into configs as its default and at 48 the cone from a
   block away is more than a redraw's budget.
+
+  A spent budget used to leave everything past it undrawn, with no shell to close it: holes with
+  the real world in them, by construction. So the radius adapts per viewer, the way the other
+  windows plugin fits its view depth to its cell cap. A redraw that spends its budget is done
+  again at half the radius until it fits, and the radius grows back while there is room. A
+  shorter reach is a complete view, closed by its shell, that is merely shallower while the eye
+  is right against the mirror. The replay also casts a fan of rays through the opening and
+  follows each the way the client shows it; from the recorded eye at radius 16 it finds no ray
+  that meets a real block nobody drew.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

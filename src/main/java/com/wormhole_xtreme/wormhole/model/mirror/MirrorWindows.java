@@ -179,11 +179,22 @@ public final class MirrorWindows
         private long fullAt;
         private long composedAt;
         private int generation;
+        private int undrawable;
         private long eye = Long.MIN_VALUE;
         private long chunk = Long.MIN_VALUE;
         private Location pendingEye;
         private boolean catchUpQueued;
         private String lastRedraw = "never redrawn";
+
+        /**
+         * How far this viewer's view reaches, at most the configured radius.
+         *
+         * <p>Shrunk when a redraw spends its budget, and grown back when there is room. A
+         * spent budget used to leave everything past it undrawn with no shell to close it --
+         * holes with the real world in them, by construction. A shorter radius is a complete
+         * view, closed by its shell, that is simply shallower while the eye is close.
+         */
+        private int radius = Integer.MAX_VALUE;
 
         View(final World world)
         {
@@ -211,7 +222,9 @@ public final class MirrorWindows
             return lines;
         }
         lines.add("you see " + view.mirrors + ": " + view.drawn.size() + " blocks drawn, "
-            + view.veiled.size() + " creature(s) hidden");
+            + view.veiled.size() + " creature(s) hidden, reaching " + view.radius
+            + ((view.undrawable > 0) ? (", " + view.undrawable
+                + " block(s) the world would not let be drawn over") : ""));
         lines.add("last redraw: " + view.lastRedraw);
         return lines;
     }
@@ -477,13 +490,30 @@ public final class MirrorWindows
             }
             return;
         }
-        final List<Entity> inside = new ArrayList<>();
-        final Budget budget = new Budget();
-        final Map<Long, BlockData> wanted = compose(player, eye, seeing, now, inside, budget);
+        final int configured = ConfigManager.getMirrorViewDepth();
+        view.radius = Math.min(configured, view.radius);
+        List<Entity> inside = new ArrayList<>();
+        Budget budget = new Budget();
+        Map<Long, BlockData> wanted = compose(eye, seeing, now, inside, budget, view.radius);
+        // Too much to draw from here: draw less far, until it fits. Three tries halve the
+        // radius to an eighth, which from right against a mirror is still a room.
+        for (int shrink = 0; (budget.blocks <= 0) && (view.radius > 4) && (shrink < 3); shrink++)
+        {
+            view.radius = Math.max(4, view.radius / 2);
+            inside = new ArrayList<>();
+            budget = new Budget();
+            wanted = compose(eye, seeing, now, inside, budget, view.radius);
+        }
+        if ((budget.blocks > (MOST_CANDIDATES / 2)) && (view.radius < configured))
+        {
+            // Room to spare: reach further next time.
+            view.radius = Math.min(configured, view.radius + 2);
+        }
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
         view.lastRedraw = (MOST_CANDIDATES - budget.blocks) + " blocks walked"
-            + ((budget.blocks <= 0) ? " (budget spent)" : "") + ", " + budget.near
+            + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + view.radius + ", "
+            + budget.near
             + " drawn near, " + budget.shell + " on the shell (" + budget.sky + " as sky), "
             + (MOST_RAY_STEPS - budget.raySteps) + " line steps, eye " + (int) eye.getX() + ","
             + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
@@ -653,8 +683,8 @@ public final class MirrorWindows
      * out to the radius and within one budget for the whole redraw -- see {@link Pass} for which
      * of them are drawn.
      */
-    private static Map<Long, BlockData> compose(final Player player, final Location eye,
-        final List<Window> seeing, final long now, final List<Entity> inside, final Budget budget)
+    private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
+        final long now, final List<Entity> inside, final Budget budget, final int radius)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
@@ -672,7 +702,6 @@ public final class MirrorWindows
             }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
         }
-        final int radius = ConfigManager.getMirrorViewDepth();
         final List<Pass> passes = new ArrayList<>();
         for (final Window window : nearestFirst(seeing, eye))
         {
@@ -702,7 +731,7 @@ public final class MirrorWindows
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(player, eye, radius, seeing, allOpen, inside);
+            creaturesInside(seeing.get(0).banner.getWorld(), eye, radius, seeing, allOpen, inside);
         }
         return wanted;
     }
@@ -715,13 +744,13 @@ public final class MirrorWindows
      * whose position is seen through an opening is hidden from the viewer, and shown again when
      * it is not. Other players are left alone: hiding one would take them off the tab list too.
      */
-    private static void creaturesInside(final Player player, final Location eye, final int radius,
+    private static void creaturesInside(final World here, final Location eye, final int radius,
         final List<Window> seeing, final Set<Long> allOpen, final List<Entity> inside)
     {
         final double reach = radius + 1.0;
-        for (final Entity entity : player.getWorld().getNearbyEntities(eye, reach, reach, reach))
+        for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {
-            if ((entity == player) || (entity instanceof Player))
+            if (entity instanceof Player)
             {
                 continue;
             }
@@ -968,6 +997,7 @@ public final class MirrorWindows
         final Map<Long, BlockData> wanted, final long now, final boolean full)
     {
         final List<BlockState> changes = new ArrayList<>();
+        view.undrawable = 0;
         for (final Map.Entry<Long, BlockData> entry : wanted.entrySet())
         {
             if (full || !entry.getValue().equals(view.drawn.get(entry.getKey())))
@@ -976,6 +1006,10 @@ public final class MirrorWindows
                 if (state != null)
                 {
                     changes.add(state);
+                }
+                else
+                {
+                    view.undrawable++;
                 }
             }
         }
