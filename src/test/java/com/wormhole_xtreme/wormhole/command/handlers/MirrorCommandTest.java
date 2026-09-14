@@ -592,6 +592,23 @@ class MirrorCommandTest
     }
 
     /**
+     * list names each mirror's capture key, which is its capture file's name.
+     *
+     * <p>"Add the capture key to mirror list too." Captures are named by place, not by mirror, so
+     * a folder of them is unreadable without something saying which room is whose.
+     */
+    @Test
+    void listNamesEachMirrorsCaptureKey()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0),
+            new MirrorPoint("World", 0.5, 63.0, -0.5, 180.0f, 0.0f)));
+
+        run(player, "mirror", "list");
+
+        verify(player, atLeastOnce()).sendMessage(contains("capture world_0_63_-1"));
+    }
+
+    /**
      * set and target need a player, because both depend on where somebody is.
      *
      * <p>Run from the console they would have no banner to look at and nowhere to stand, so

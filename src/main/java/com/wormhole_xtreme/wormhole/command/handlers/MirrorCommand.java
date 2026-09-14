@@ -840,9 +840,10 @@ public class MirrorCommand implements SubCommand
         final List<String> lines = new ArrayList<>();
         for (final QuantumMirror mirror : MirrorManager.all())
         {
+            final String key = MirrorCaptures.keyFor(mirror);
             lines.add(MirrorText.BODY_COLOUR + "  " + MirrorText.name(mirror.name()) + " -- "
                 + MirrorText.name(mirror.banner().worldName()) + " -> " + showing(mirror)
-                + settingsOf(mirror));
+                + settingsOf(mirror) + ((key == null) ? "" : (", capture " + key)));
         }
         if (lines.isEmpty())
         {

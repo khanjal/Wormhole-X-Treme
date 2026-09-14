@@ -129,6 +129,19 @@ been running on defaults will start reading the file you have been editing.
   The last redraw is kept as numbers and written out only when somebody asks. It was a sentence
   built on every redraw, up to ten a second per viewer, for a command run once in a while.
 
+- **A capture no mirror uses is deleted at startup, and `mirror list` names each mirror's.** "Do
+  we clean up any abandoned views (on startup or something)?" Only one at a time: removing or
+  moving a mirror deletes its capture unless another mirror still uses that room. A `mirror.yml`
+  emptied by hand, or a delete that failed, left captures behind for good.
+
+  Once mirrors have loaded, any `.view` file whose place is no mirror's room is deleted, and the
+  count logged. Only then, since before mirrors load every capture looks abandoned. `debug save`
+  files are kept.
+
+  Captures stay named by place rather than by mirror: renaming a mirror changes nothing, and
+  moving one needs a new room captured anyway. That leaves the folder hard to read, so `mirror
+  list` ends each mirror's line with its capture key, which is the file's name.
+
 - **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
   behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
   A banner on a post in the open showed the far world past its edges however the view was

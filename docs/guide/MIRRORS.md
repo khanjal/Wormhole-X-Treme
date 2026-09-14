@@ -129,7 +129,8 @@ wherever you stand in front of it. Any other mirror shows only the blocks you co
 through the opening from where you stand, so nothing shows past its edges.
 
 - **What you see is a capture:** a photograph of a mirror's room, kept in
-  `data/mirror/captures/`. A new mirror's is taken within a second of `create`, over a few seconds;
+  `data/mirror/captures/` under its place's name, which `mirror list` shows; a capture no mirror
+  uses is deleted at the next startup. A new mirror's is taken within a second of `create`, over a few seconds;
   another mirror's room is taken the first time somebody chooses it, if nobody has yet. After that
   its world need not be loaded at all, so a mirror in an archived world still shows. `mirror stamp`
   takes a capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while

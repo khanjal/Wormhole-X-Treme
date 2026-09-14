@@ -158,6 +158,62 @@ public final class MirrorCaptures
     }
 
     /**
+     * The key a mirror's room is captured under, which is its capture file's name.
+     *
+     * @param mirror
+     *            the mirror
+     * @return the key, or null if the mirror has no room
+     */
+    public static String keyFor(final QuantumMirror mirror)
+    {
+        return (mirror.destination() == null) ? null : keyOf(mirror.destination());
+    }
+
+    /**
+     * Deletes every capture file whose place no mirror's room is.
+     *
+     * <p>A capture goes with its mirror unless another mirror still uses the room, but a mirror file
+     * edited or emptied by hand, or a delete that failed, left one behind for good. Run only once
+     * mirrors have loaded: before, every capture is abandoned. A {@code debug save} file is kept,
+     * since somebody asked for it.
+     *
+     * @return how many were deleted
+     */
+    public static int sweepAbandoned()
+    {
+        final File[] files = DataLayout.mirrorCaptureDir()
+            .listFiles((dir, name) -> name.endsWith(VIEW) && !name.startsWith("debug-"));
+        if (files == null)
+        {
+            return 0;
+        }
+        final Set<String> used = new HashSet<>();
+        MirrorManager.all().stream().map(MirrorCaptures::keyFor).forEach(used::add);
+        int deleted = 0;
+        for (final File file : files)
+        {
+            final String key = file.getName().substring(0, file.getName().length() - VIEW.length());
+            if (used.contains(key))
+            {
+                continue;
+            }
+            if (file.delete())
+            {
+                deleted++;
+            }
+            else
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Could not delete abandoned mirror capture " + file.getName());
+            }
+        }
+        return deleted;
+    }
+
+    /** A capture file's extension. */
+    private static final String VIEW = ".view";
+
+    /**
      * The capture for a mirror's far side, if there is one.
      *
      * <p>Loaded from disk the first time. A missing or unreadable file is remembered as missing,
@@ -533,7 +589,7 @@ public final class MirrorCaptures
 
     private static File fileOf(final String key)
     {
-        return new File(DataLayout.mirrorCaptureDir(), key + ".view");
+        return new File(DataLayout.mirrorCaptureDir(), key + VIEW);
     }
 
     /**
