@@ -89,7 +89,7 @@ public final class MirrorCapture
         this.names = names;
         this.states = states;
         this.indices = indices;
-        this.tops = tops(indices, sizeX, sizeY, sizeZ);
+        this.tops = tops(indices, sizeX, sizeY, sizeZ, buried);
     }
 
     /**
@@ -289,6 +289,150 @@ public final class MirrorCapture
                 }
             }
             System.arraycopy(kept, 0, indices, 0, indices.length);
+        }
+
+        /**
+         * Keeps only what can be seen from the opening, and marks the rest {@link #BURIED}.
+         *
+         * <p>Rays from points across the front of the opening, in every direction that leaves
+         * through its back -- the opening is a hole a block deep, so nothing steeper gets
+         * through, however close the eye -- a degree apart, which at the far end of the depth
+         * is under a block; each followed a block at a time until it meets something that
+         * hides what is behind it, or leaves the box, or passes the depth. Every block a
+         * ray passes through or ends on is seen, air included: air that a viewer can see is what
+         * the view carves through the real world. A block beside seen air is seen too, which
+         * catches what a ray a degree wide slipped past. Everything else is left to the real
+         * world, whatever it was: a window can never show it, and a view drawn whole would have
+         * sent it, and the inside of every far hill, for nothing.
+         *
+         * @param arrivalX
+         *            the block a traveller arrives in, which the opening's bottom row shows
+         * @param arrivalY
+         *            its y
+         * @param arrivalZ
+         *            its z
+         * @param aheadX
+         *            one step the way a traveller faces on arrival, x
+         * @param aheadZ
+         *            the same, z
+         * @param depth
+         *            how far from the opening a view reaches
+         */
+        public void keepOnlySeen(final int arrivalX, final int arrivalY, final int arrivalZ,
+            final int aheadX, final int aheadZ, final int depth)
+        {
+            final boolean[] solid = new boolean[states.size()];
+            for (int i = 0; i < states.size(); i++)
+            {
+                solid[i] = (i != 0) && (BURIED.equals(names.get(i)) || states.get(i).isOccluding());
+            }
+            final boolean[] seen = new boolean[indices.length];
+            // The opening is a hole a block wide, two tall and a block deep, through the wall.
+            // A line of sight goes in at its front and out at its back, so what can be seen is
+            // bounded by the hole's own shape: nothing steeper than a block sideways or two up
+            // per block in. The back of the hole is the back of the block behind the arrival
+            // block, which is where the rays start; the front is a block further back.
+            final double exitX = (arrivalX + 0.5) - (0.5 * aheadX);
+            final double exitZ = (arrivalZ + 0.5) - (0.5 * aheadZ);
+            final int rightX = -aheadZ;
+            final int rightZ = aheadX;
+            final double reach = depth + 2.0;
+            final double step = Math.tan(Math.toRadians(1.0));
+            for (double across = -0.4; across <= 0.41; across += 0.2)
+            {
+                for (double up = 0.1; up < 2.0; up += 0.2)
+                {
+                    // From this point at the front of the hole, every direction out of its back.
+                    for (double sideways = (-0.5 - across) + (step / 2); sideways < (0.5 - across); sideways += step)
+                    {
+                        for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
+                        {
+                            final double length = Math.sqrt(1.0 + (sideways * sideways) + (upward * upward));
+                            ray(seen, solid, exitX + ((across + sideways) * rightX), arrivalY + up + upward,
+                                exitZ + ((across + sideways) * rightZ), (aheadX + (sideways * rightX)) / length,
+                                upward / length, (aheadZ + (sideways * rightZ)) / length, reach);
+                        }
+                    }
+                }
+            }
+            final short buriedIndex = buriedIndex();
+            final boolean[] kept = seen.clone();
+            for (int dx = 0; dx < sizeX; dx++)
+            {
+                for (int dz = 0; dz < sizeZ; dz++)
+                {
+                    for (int dy = 0; dy < sizeY; dy++)
+                    {
+                        final int at = offset(dx, dy, dz, sizeY, sizeZ);
+                        if (seen[at] && (indices[at] == 0))
+                        {
+                            // A block beside seen air is a face a viewer can see.
+                            keepBeside(kept, dx - 1, dy, dz);
+                            keepBeside(kept, dx + 1, dy, dz);
+                            keepBeside(kept, dx, dy - 1, dz);
+                            keepBeside(kept, dx, dy + 1, dz);
+                            keepBeside(kept, dx, dy, dz - 1);
+                            keepBeside(kept, dx, dy, dz + 1);
+                        }
+                    }
+                }
+            }
+            for (int at = 0; at < indices.length; at++)
+            {
+                if (!kept[at])
+                {
+                    indices[at] = buriedIndex;
+                }
+            }
+        }
+
+        private void keepBeside(final boolean[] kept, final int dx, final int dy, final int dz)
+        {
+            if ((dx >= 0) && (dx < sizeX) && (dy >= 0) && (dy < sizeY) && (dz >= 0) && (dz < sizeZ))
+            {
+                final int at = offset(dx, dy, dz, sizeY, sizeZ);
+                if (indices[at] != 0)
+                {
+                    kept[at] = true;
+                }
+            }
+        }
+
+        /** Follows one ray through the box, marking what it passes, until something solid or the edge. */
+        private void ray(final boolean[] seen, final boolean[] solid, final double ox, final double oy,
+            final double oz, final double dx, final double dy, final double dz, final double reach)
+        {
+            final double[] o = { ox - minX, oy - minY, oz - minZ };
+            final double[] d = { dx, dy, dz };
+            final int[] c = { (int) Math.floor(o[0]), (int) Math.floor(o[1]), (int) Math.floor(o[2]) };
+            final int[] size = { sizeX, sizeY, sizeZ };
+            final int[] stepOf = new int[3];
+            final double[] tMax = new double[3];
+            final double[] tDelta = new double[3];
+            for (int axis = 0; axis < 3; axis++)
+            {
+                stepOf[axis] = (d[axis] > 0) ? 1 : (d[axis] < 0) ? -1 : 0;
+                tDelta[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : Math.abs(1.0 / d[axis]);
+                final double edge = (stepOf[axis] > 0) ? (c[axis] + 1) : c[axis];
+                tMax[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
+            }
+            for (double t = 0.0; t < reach;)
+            {
+                if ((c[0] < 0) || (c[0] >= size[0]) || (c[1] < 0) || (c[1] >= size[1]) || (c[2] < 0) || (c[2] >= size[2]))
+                {
+                    return;
+                }
+                final int at = offset(c[0], c[1], c[2], sizeY, sizeZ);
+                seen[at] = true;
+                if (solid[indices[at]])
+                {
+                    return;
+                }
+                final int next = (tMax[0] < tMax[1]) ? ((tMax[0] < tMax[2]) ? 0 : 2) : ((tMax[1] < tMax[2]) ? 1 : 2);
+                t = tMax[next];
+                c[next] += stepOf[next];
+                tMax[next] += tDelta[next];
+            }
         }
 
         /** The palette index of {@link #BURIED}, added the first time; air if the palette is full. */
@@ -634,8 +778,9 @@ public final class MirrorCapture
     }
 
     /** The highest non-air block in each column, as offsets from the box's floor; -1 if none. */
+    /** The highest block in each column that is neither air nor buried: buried is nothing to draw. */
     private static short[] tops(final short[] indices, final int sizeX, final int sizeY,
-        final int sizeZ)
+        final int sizeZ, final int buried)
     {
         final short[] tops = new short[sizeX * sizeZ];
         for (int dx = 0; dx < sizeX; dx++)
@@ -646,7 +791,7 @@ public final class MirrorCapture
                 final int column = offset(dx, 0, dz, sizeY, sizeZ);
                 for (int dy = sizeY - 1; dy >= 0; dy--)
                 {
-                    if (indices[column + dy] != 0)
+                    if ((indices[column + dy] != 0) && (indices[column + dy] != buried))
                     {
                         top = dy;
                         break;

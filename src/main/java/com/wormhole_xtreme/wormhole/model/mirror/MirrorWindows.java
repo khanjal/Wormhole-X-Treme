@@ -838,8 +838,17 @@ public final class MirrorWindows
         {
             return seeing;
         }
+        final String fullName = FULL.get(player.getUniqueId());
         for (final Window window : WINDOWS.values())
         {
+            // A mirror drawn whole for an admin stays drawn wherever they stand, looking or not,
+            // so they can walk round what the capture holds.
+            if (!window.open.isEmpty() && window.mirror.name().equals(fullName)
+                && window.banner.getWorld().equals(player.getWorld()))
+            {
+                seeing.add(window);
+                continue;
+            }
             if (!window.open.isEmpty() && window.banner.getWorld().equals(player.getWorld())
                 && (at.distanceSquared(window.banner.getLocation()) <= (radius * radius))
                 && window.shape.inFront(eye.getX(), eye.getZ())

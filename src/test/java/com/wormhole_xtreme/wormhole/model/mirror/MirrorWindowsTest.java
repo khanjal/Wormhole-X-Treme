@@ -277,6 +277,27 @@ class MirrorWindowsTest
     }
 
     /**
+     * A mirror drawn full for a viewer stays drawn wherever they stand, out of range and behind it.
+     *
+     * <p>"Keep it on even if I'm not looking at a mirror, so I can look around better at what it's
+     * stored." Forty blocks off, on the far side of the wall, the view is still theirs.
+     */
+    @Test
+    void aMirrorDrawnFullStaysDrawnWhereverTheViewerStands()
+    {
+        final Player viewer = playerAt(10.5, 40.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorWindows.full(viewer, "museum");
+            MirrorProximity.tick();
+        });
+
+        assertTrue(drawnAs(changesTo(viewer, 1).get(0), farOneBlock) > 0, "the far side, from behind and far off");
+    }
+
+    /**
      * A fixed view nobody has looked through for a minute is let go.
      *
      * <p>Every mirror in a loaded chunk is a window each sweep, looked at or not, and a fixed

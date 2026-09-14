@@ -256,6 +256,29 @@ been running on defaults will start reading the file you have been editing.
   thirty-fifth of the old one at the default depth: faster to take, a fraction of the memory,
   and room to raise the depth. `mirror-capture-radius` is a ceiling on it, and only that.
 
+  "We need to come up with a smarter one where it looks at the mirror world through a view of
+  the player and smartly captures all blocks in that player's view while they're against the
+  mirror, looking up, down, left and right, just the visible blocks, so we limit the size and
+  the amount of data sent to the client." So inside that box a capture now keeps only what
+  somebody at the opening could see. Rays from fifty points across the opening's face, a degree
+  apart in every direction a viewer in front of it could look -- three quarters of a million of
+  them, off the main thread, once per capture -- each followed a block at a time until it meets
+  something that hides what is behind it, or leaves the box, or passes the depth. Every block a
+  ray passes through or ends on is seen, air included, since air a viewer can see is what the
+  view carves through the real world; a block beside seen air is seen too, which catches what
+  a ray a degree wide slipped past. Everything else is marked buried and left to the real
+  world. A mirror in a wall then sends the surfaces in view and nothing more: not the inside of
+  the far hill, not the rooms behind the far wall, not the beach under the sand.
+
+  "The mirror is in the lower left; it should just see a cone -- we have so much extra, the
+  sides, the ground way down at the bottom." The first cut of those rays went in every forward
+  direction, half a sphere, and a viewer against the mirror sees nothing like that: the opening
+  is a hole a block deep in the wall, and nothing steeper than a block sideways or two up per
+  block in gets through it, however close the eye. The rays go from the front of the hole out
+  through its back now, and only those. And a mirror drawn full for an admin stays drawn
+  wherever they stand, out of range and behind it, "so I can look around better at what's
+  stored".
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

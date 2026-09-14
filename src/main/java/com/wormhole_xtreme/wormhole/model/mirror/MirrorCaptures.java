@@ -527,6 +527,7 @@ public final class MirrorCaptures
     {
         private final String key;
         private final World far;
+        private final MirrorPoint destination;
         private final MirrorCapture.Builder builder;
         private final int minX;
         private final int minY;
@@ -543,6 +544,7 @@ public final class MirrorCaptures
         {
             this.key = key;
             this.far = far;
+            this.destination = destination;
             final int[] box = needed(destination, captureDepth(), far.getMinHeight(), far.getMaxHeight());
             minX = box[0];
             minY = box[1];
@@ -658,15 +660,42 @@ public final class MirrorCaptures
                     builder.clear(banner.x(), banner.y(), banner.z());
                 }
             }
-            builder.prune();
-            final MirrorCapture capture = builder.build();
-            JOBS.remove(key);
-            LOADED.put(key, new Held(capture, System.currentTimeMillis()));
-            ABSENT.remove(key);
-            WARNED.remove(key);
-            generation++;
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe());
-            save(capture, fileOf(key));
+            final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
+            final int arrivalX = (int) Math.floor(destination.x());
+            final int arrivalY = (int) Math.floor(destination.y());
+            final int arrivalZ = (int) Math.floor(destination.z());
+            final int depth = captureDepth();
+            // Three quarters of a million rays: off the main thread, since the box is copied and
+            // nothing here reads the world again.
+            final Runnable sift = () ->
+            {
+                builder.keepOnlySeen(arrivalX, arrivalY, arrivalZ, ahead.x(), ahead.z(), depth);
+                builder.prune();
+            };
+            final Runnable install = () ->
+            {
+                final MirrorCapture capture = builder.build();
+                JOBS.remove(key);
+                LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+                ABSENT.remove(key);
+                WARNED.remove(key);
+                generation++;
+                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe());
+                save(capture, fileOf(key));
+            };
+            try
+            {
+                WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(), () ->
+                {
+                    sift.run();
+                    WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), install);
+                });
+            }
+            catch (final RuntimeException noScheduler)
+            {
+                sift.run();
+                install.run();
+            }
         }
 
         void cancel()

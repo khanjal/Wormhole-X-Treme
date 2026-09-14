@@ -142,6 +142,46 @@ class MirrorCaptureTest
         assertTrue(capture.isBuried(1, 1, 1), "however many edges it touches");
     }
 
+    /**
+     * Only what a viewer at the opening could see is kept; the rest is left to the real world.
+     *
+     * <p>"Smartly capture all blocks in that player's view while they're against the mirror,
+     * looking up, down, left and right, and just the visible blocks." Behind a wall across the
+     * far side nothing is seen, air included, and nothing is sent; the wall itself is, and so is
+     * a block off to one side within the slant the hole allows -- a block sideways per block in,
+     * two up. Beside the opening at a steeper slant is not, however close the eye: "we have so
+     * much extra, the sides".
+     */
+    @Test
+    void keepingOnlyWhatIsSeenLeavesWhatAWallHidesToTheRealWorld()
+    {
+        // A 9-block box, arrival at (4, 2, 0) facing +z; a stone wall right across at z 4.
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, 0, 0, 0, 9, 9, 9, air);
+        for (int x = 0; x < 9; x++)
+        {
+            for (int y = 0; y < 9; y++)
+            {
+                builder.put(x, y, 4, stone);
+                builder.put(x, 0, y, stone);
+            }
+        }
+        builder.put(4, 2, 6, glass);
+        builder.put(1, 3, 3, stone);
+        builder.put(0, 6, 1, stone);
+        builder.keepOnlySeen(4, 2, 0, 0, 1, 8);
+
+        final MirrorCapture capture = builder.build();
+
+        assertSame(stone, capture.at(4, 2, 4), "the wall, straight ahead");
+        assertSame(stone, capture.at(1, 3, 3), "to one side, within a block sideways per block in");
+        assertTrue(capture.isBuried(0, 6, 1), "beside the opening at a slant no line through the hole makes");
+        assertSame(stone, capture.at(4, 0, 2), "the floor in front of the wall");
+        assertTrue(capture.isAir(4, 2, 2), "air in front of the wall is seen, and stays air");
+        assertTrue(capture.isBuried(4, 2, 6), "the glass behind the wall is left to the real world");
+        assertTrue(capture.isBuried(4, 2, 5), "and so is the air behind it");
+        assertTrue(capture.isBuried(4, 0, 7), "and the floor there");
+    }
+
     /** A buried block is still buried after the disk, and a fresh capture is not from before. */
     @Test
     void aBuriedBlockSurvivesTheDiskAsBuried(@TempDir final File dir) throws IOException

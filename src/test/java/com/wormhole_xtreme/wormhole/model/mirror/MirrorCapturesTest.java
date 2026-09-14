@@ -66,6 +66,7 @@ class MirrorCapturesTest
         when(air.getMaterial()).thenReturn(Material.AIR);
         when(sand.getAsString()).thenReturn("minecraft:sand");
         when(sand.getMaterial()).thenReturn(Material.SAND);
+        when(sand.isOccluding()).thenReturn(true);
         far = mock(World.class);
         when(far.getName()).thenReturn("far");
         when(far.getMinHeight()).thenReturn(-64);
@@ -108,8 +109,11 @@ class MirrorCapturesTest
         assertSame(sand, capture.at(100, 69, -21), "the beach at the arrival point");
         assertTrue(capture.isAir(100, 70, -21), "and air above it");
         // Yaw 0 faces south, so the box runs ahead to z -3: 16 deep and a margin of 2.
-        assertSame(sand, capture.at(116, 60, -3), "out at the box's far corner ahead");
-        assertEquals(69, capture.top(82, -22), "and its near corner, one layer behind the arrival");
+        assertSame(sand, capture.at(100, 69, -6), "the beach's surface fifteen blocks straight ahead");
+        assertTrue(capture.isBuried(100, 60, -6), "nine blocks under it, which nobody at the opening could see");
+        assertTrue(capture.isBuried(116, 69, -3), "the box's far corner, past the depth");
+        assertEquals(51, capture.top(82, -22),
+            "nothing seen in the column at its near corner, one layer behind the arrival: one below the box");
         assertTrue(capture.isAir(100, 69, -23), "two layers behind the arrival is outside the box");
         assertTrue(capture.isAir(100, 69, -2), "and so is past the depth and margin");
     }
