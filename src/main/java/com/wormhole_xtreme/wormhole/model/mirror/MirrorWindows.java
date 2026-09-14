@@ -111,6 +111,12 @@ public final class MirrorWindows
     /** When {@link #EMPTY} was last cleared. */
     private static long emptyReadAt;
 
+    /** Whether each real block between viewers and openings is solid, by world and block. */
+    private static final Map<String, Map<Long, Boolean>> SOLID = new HashMap<>();
+
+    /** When {@link #SOLID} was last cleared. */
+    private static long solidReadAt;
+
     /** One window: where it is, which of its opening can be seen through, and its far side. */
     private static final class Window
     {
@@ -193,6 +199,7 @@ public final class MirrorWindows
         VIEWS.clear();
         STATES.clear();
         EMPTY.clear();
+        SOLID.clear();
         MirrorCaptures.clear();
     }
 
@@ -505,23 +512,90 @@ public final class MirrorWindows
         }
     }
 
-    /** The windows a player is close enough to, and in front of, in a stable order. */
+    /**
+     * The windows a player is close enough to, in front of, and can actually see, in a stable
+     * order.
+     *
+     * <p>Seeing means a clear line from the eye to some open block of the opening, through the
+     * real world. Without that, somebody in a corridor was "in front of" every alcove mirror on
+     * the same wall, and a redraw spent its whole budget walking the cones of four mirrors the
+     * corridor walls hid from them, cutting short the one they were looking at.
+     */
     private static List<Window> seenBy(final Player player, final Location eye)
     {
         final double radius = ConfigManager.getMirrorProximityRadius();
         final Location at = player.getLocation();
+        final long now = now();
         final List<Window> seeing = new ArrayList<>();
         for (final Window window : WINDOWS.values())
         {
             if (!window.open.isEmpty() && window.banner.getWorld().equals(player.getWorld())
                 && (at.distanceSquared(window.banner.getLocation()) <= (radius * radius))
-                && window.shape.inFront(eye.getX(), eye.getZ()))
+                && window.shape.inFront(eye.getX(), eye.getZ())
+                && canSee(player.getWorld(), eye, window, now))
             {
                 seeing.add(window);
             }
         }
         seeing.sort(Comparator.comparing(window -> window.mirror.name()));
         return seeing;
+    }
+
+    /** Whether a clear line runs from an eye to any open block of a window's opening. */
+    private static boolean canSee(final World here, final Location eye, final Window window,
+        final long now)
+    {
+        for (final Spot cell : window.open)
+        {
+            if (clearLine(here, eye, cell, window.shape.into(), now))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether nothing solid stands between an eye and the middle of a block's front face.
+     *
+     * <p>The front face, not the block's middle: seen from an angle, the line to the middle
+     * passes through the wall block beside the opening first, and the opening would count as
+     * hidden while its face was in plain view. Walked in short steps, stopping just short of the
+     * face. Solid means occluding, so glass and the banner in front do not count as in the way.
+     */
+    private static boolean clearLine(final World here, final Location eye, final Spot cell,
+        final Spot into, final long now)
+    {
+        final double dx = ((cell.x() + 0.5) - (0.51 * into.x())) - eye.getX();
+        final double dy = (cell.y() + 0.5) - eye.getY();
+        final double dz = ((cell.z() + 0.5) - (0.51 * into.z())) - eye.getZ();
+        final double length = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+        for (double along = 0.4; along < length; along += 0.4)
+        {
+            final double t = along / length;
+            final int x = (int) Math.floor(eye.getX() + (dx * t));
+            final int y = (int) Math.floor(eye.getY() + (dy * t));
+            final int z = (int) Math.floor(eye.getZ() + (dz * t));
+            if (solidHere(here, x, y, z, now))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Whether the real block here hides what is behind it, remembered for a few seconds. */
+    private static boolean solidHere(final World here, final int x, final int y, final int z,
+        final long now)
+    {
+        if ((now - solidReadAt) >= RESAMPLE_MILLIS)
+        {
+            SOLID.clear();
+            solidReadAt = now;
+        }
+        return SOLID.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
+            key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4)
+                && here.getBlockAt(x, y, z).getBlockData().isOccluding());
     }
 
     /** Whether somebody not yet looking into anything has just come within range of a window. */

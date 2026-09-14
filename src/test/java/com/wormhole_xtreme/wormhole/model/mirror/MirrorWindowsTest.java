@@ -335,6 +335,35 @@ class MirrorWindowsTest
     }
 
     /**
+     * A mirror with something solid between the viewer and its opening is not seen at all.
+     *
+     * <p>Somebody in a corridor was "in front of" every alcove mirror on the same wall, and a
+     * redraw spent its whole budget on four mirrors the corridor walls hid from them, cutting
+     * short the one they were looking at. Take the wall away and the same mirror is seen.
+     */
+    @Test
+    void aMirrorBehindSomethingSolidIsNotSeen()
+    {
+        solidAt(10, 64, 9);
+        solidAt(10, 63, 9);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            verify(viewer, never()).sendBlockChanges(anyCollection());
+            doReturn(blockAt(10, 64, 9, true)).when(world).getBlockAt(10, 64, 9);
+            doReturn(blockAt(10, 63, 9, true)).when(world).getBlockAt(10, 63, 9);
+            MirrorProximity.clear();
+            MirrorCaptures.install(arrival, solidCapture(arrival, farOneBlock));
+            MirrorProximity.tick();
+        });
+
+        changesTo(viewer, 1);
+    }
+
+    /**
      * Two windows a block apart share the wall without drawing over each other.
      *
      * <p>Each block behind the wall is drawn once, from the window whose opening the viewer's line
@@ -788,6 +817,16 @@ class MirrorWindowsTest
     {
         hangOnAWall(bannerAt(x));
         MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", x, 64, 10), arrivalTwo));
+    }
+
+    /** Puts a solid, occluding block of the banner's world here. */
+    private void solidAt(final int x, final int y, final int z)
+    {
+        final Block block = blockAt(x, y, z, false);
+        final BlockData data = mock(BlockData.class);
+        when(data.isOccluding()).thenReturn(true);
+        when(block.getBlockData()).thenReturn(data);
+        doReturn(block).when(world).getBlockAt(x, y, z);
     }
 
     /** A block of the banner's world, with a fresh state per read as Bukkit gives. */

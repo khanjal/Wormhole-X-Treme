@@ -137,6 +137,12 @@ been running on defaults will start reading the file you have been editing.
   far side, since a drawn block hides what is behind it but a creature is not a block. Anything
   standing inside the view is now hidden from the viewer while they look, and shown again after.
   Other players are left alone, since hiding one takes them off the tab list.
+
+  And a window counts as seen only along a clear line from the eye to its opening through the
+  real world. Somebody in the library corridor was "in front of" all five alcove mirrors on that
+  wall and within range of them, so a redraw spent its whole budget on four the corridor walls
+  hid from them, and cut short the one they were looking at. `/wormhole mirror debug`, unlisted,
+  is what found that: it says what a mirror's capture holds and what your last redraw did.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 
