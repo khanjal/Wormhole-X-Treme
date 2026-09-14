@@ -354,11 +354,75 @@ public final class MirrorCaptures
         lines.add("at the arrival point " + capture.nameAt(x, y, z) + ", below it "
             + capture.nameAt(x, y - 1, z) + ", column top y " + capture.top(x, z));
         final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(mirror.destination().yaw());
+        lines.add("arrival yaw " + mirror.destination().yaw() + ", so ahead is " + ahead.x() + ","
+            + ahead.z());
         lines.add("8 ahead: " + capture.nameAt(x + (8 * ahead.x()), y, z + (8 * ahead.z()))
             + ", top y " + capture.top(x + (8 * ahead.x()), z + (8 * ahead.z()))
             + "; 32 ahead: " + capture.nameAt(x + (32 * ahead.x()), y, z + (32 * ahead.z()))
             + ", top y " + capture.top(x + (32 * ahead.x()), z + (32 * ahead.z())));
         return lines;
+    }
+
+    /**
+     * Takes a capture of loaded chunks around a point, at once, for {@code mirror debug save}.
+     *
+     * <p>Synchronous and only over chunks already loaded: it is for photographing the world
+     * around a mirror somebody is standing at, so the view drawn there can be reproduced away
+     * from the server, alongside the far side's own capture.
+     *
+     * @param world
+     *            the world
+     * @param x
+     *            centre x
+     * @param y
+     *            centre y
+     * @param z
+     *            centre z
+     * @param radius
+     *            blocks each way horizontally
+     * @param file
+     *            where to write it
+     * @return one line saying what was written
+     * @throws IOException
+     *             if it could not be written
+     */
+    public static String captureAround(final World world, final int x, final int y, final int z,
+        final int radius, final File file) throws IOException
+    {
+        final int minY = Math.max(world.getMinHeight(), y - radius);
+        final int maxY = Math.min(world.getMaxHeight() - 1, y + radius);
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder(world.getName(),
+            world.getEnvironment() == World.Environment.NORMAL, x - radius, minY, z - radius,
+            (2 * radius) + 1, (maxY - minY) + 1, (2 * radius) + 1, Bukkit.createBlockData(Material.AIR));
+        for (int chunkX = (x - radius) >> 4; chunkX <= ((x + radius) >> 4); chunkX++)
+        {
+            for (int chunkZ = (z - radius) >> 4; chunkZ <= ((z + radius) >> 4); chunkZ++)
+            {
+                if (!world.isChunkLoaded(chunkX, chunkZ))
+                {
+                    continue;
+                }
+                final ChunkSnapshot snapshot = reader.read(world, chunkX, chunkZ);
+                for (int lx = 0; lx < 16; lx++)
+                {
+                    for (int lz = 0; lz < 16; lz++)
+                    {
+                        final int top = Math.min(maxY, snapshot.getHighestBlockYAt(lx, lz));
+                        for (int by = minY; by <= top; by++)
+                        {
+                            final BlockData data = snapshot.getBlockData(lx, by, lz);
+                            if (!Job.isAir(data))
+                            {
+                                builder.put((chunkX << 4) + lx, by, (chunkZ << 4) + lz, data);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        final MirrorCapture capture = builder.build();
+        capture.save(file);
+        return "wrote " + file.getName() + ": " + capture.describe();
     }
 
     /** Reads chunks another way, for a test. */
@@ -546,7 +610,7 @@ public final class MirrorCaptures
             }
         }
 
-        private static boolean isAir(final BlockData data)
+        static boolean isAir(final BlockData data)
         {
             final Material material = data.getMaterial();
             return (material != null) && material.isAir();

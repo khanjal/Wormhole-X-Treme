@@ -1246,14 +1246,25 @@ public class MirrorCommand implements SubCommand
         return null;
     }
 
-    /** Says what a mirror's window draws from, and what it last drew for this sender. */
+    /**
+     * Says what a mirror's window draws from, and what it last drew for this sender.
+     *
+     * <p>{@code debug save} also photographs this world around the mirror into a file beside the
+     * far side's capture, so the view can be reproduced away from the server.
+     */
     private static void debug(final CommandSender sender, final String[] args)
     {
-        final QuantumMirror mirror = namedOrLookedAt(sender, (args.length > 2) ? args[2] : null,
-            () -> sayUsage(sender, "debug [<name>]"));
+        final boolean save = (args.length > 2) && "save".equalsIgnoreCase(args[args.length - 1]);
+        final String name = (args.length > (save ? 3 : 2)) ? args[2] : null;
+        final QuantumMirror mirror = namedOrLookedAt(sender, name,
+            () -> sayUsage(sender, "debug [<name>] [save]"));
         if (mirror == null)
         {
             return;
+        }
+        if (save)
+        {
+            saveDebug(sender, mirror);
         }
         say(sender, MirrorText.quoted(mirror.name()) + " at " + mirror.banner().toKey()
             + ((mirror.destination() == null) ? " goes nowhere"
@@ -1272,7 +1283,38 @@ public class MirrorCommand implements SubCommand
             {
                 say(sender, "  " + line);
             }
+            final org.bukkit.Location eye = player.getEyeLocation();
+            say(sender, "  your eye is at " + eye.getX() + "," + eye.getY() + "," + eye.getZ()
+                + " facing yaw " + eye.getYaw() + " pitch " + eye.getPitch());
         }
+    }
+
+    /** Photographs this world around a mirror's banner, 48 blocks each way, into a file. */
+    private static void saveDebug(final CommandSender sender, final QuantumMirror mirror)
+    {
+        final org.bukkit.World world = org.bukkit.Bukkit.getWorld(mirror.banner().worldName());
+        if (world == null)
+        {
+            say(sender, "The banner's world is not loaded.");
+            return;
+        }
+        final java.io.File file = new java.io.File(
+            com.wormhole_xtreme.wormhole.utils.DataLayout.mirrorCaptureDir(),
+            "debug-" + mirror.name().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9._-]", "_")
+                + "-here.view");
+        try
+        {
+            say(sender, "  " + MirrorCaptures.captureAround(world, mirror.banner().x(),
+                mirror.banner().y(), mirror.banner().z(), 48, file));
+        }
+        catch (final java.io.IOException failed)
+        {
+            say(sender, "Could not write " + file.getName() + ": " + failed.getMessage());
+        }
+        final Block banner = world.getBlockAt(mirror.banner().x(), mirror.banner().y(),
+            mirror.banner().z());
+        say(sender, "  banner is " + banner.getType() + " facing "
+            + MirrorArrival.facingOf(banner.getBlockData()));
     }
 
     private static void say(final CommandSender sender, final String message)
