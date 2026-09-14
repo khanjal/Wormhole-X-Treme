@@ -266,11 +266,9 @@ class WormholeXTremeBlockListener implements Listener
         if (MirrorPlacement.isProtected(block))
         {
             event.setCancelled(true);
-            if (player != null)
-            {
-                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                    + "That is part of a mirror. /wormhole mirror remove takes one down.");
-            }
+            // Above the hotbar: a player holding the button down would otherwise fill their chat.
+            com.wormhole_xtreme.wormhole.utils.ActionBar.send(player,
+                "§3:: That is part of a mirror. /wormhole mirror remove takes one down.");
             return;
         }
         final Stargate stargate = StargateManager.getGateFromBlock(block);

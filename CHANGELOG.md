@@ -67,6 +67,14 @@ been running on defaults will start reading the file you have been editing.
   already and waited for its next whole resend, half a minute on. A stamp now has everybody looking
   into that mirror sent the whole view again at the next sweep.
 
+  A mirror gives way to its room from twice as far: `mirror-proximity-radius` is 16 by default,
+  which is also how near somebody has to stay for a mirror they turned on to stay on. An existing
+  `config.yml` keeps the 8 it has. And what a click says about the mirror itself -- where it opens
+  onto now, "No other mirrors found", right-click first, somebody else is at it, settle for a
+  moment, that is part of a mirror -- goes above the hotbar rather than into chat, where clicking
+  through a list of mirrors filled the window. A refused trip or an unloaded world still says so in
+  chat, since those are lines to read and act on.
+
   `mirror link` and `mirror target` are gone, and with them the `-return` names. `create` is the
   verb now, and `set` still works. A mirror saved before this keeps opening where it was pointed
   until it is created again.

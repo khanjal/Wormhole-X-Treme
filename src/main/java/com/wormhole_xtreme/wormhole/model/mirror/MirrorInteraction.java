@@ -132,7 +132,7 @@ public final class MirrorInteraction
             MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player));
         if (said != null)
         {
-            say(player, said);
+            hint(player, said);
         }
         // Shown at once, rather than when the sweep next comes round.
         if (!MirrorNetwork.chosen(mirror).name().equals(before))
@@ -162,7 +162,7 @@ public final class MirrorInteraction
         {
             if (MirrorSettle.shouldExplain(player))
             {
-                say(player, "Mirrors settle for a moment after one puts you down. Step away"
+                hint(player, "Mirrors settle for a moment after one puts you down. Step away"
                     + " from the banner and try again.");
             }
             return;
@@ -179,8 +179,8 @@ public final class MirrorInteraction
         }
         if (MirrorNetwork.reflects(mirror))
         {
-            say(player, MirrorText.quoted(mirror.name()) + " is showing its own room. Right-click it"
-                + " to choose another mirror, then punch it to go through.");
+            hint(player, MirrorText.quoted(mirror.name()) + " is showing its own room. Right-click it"
+                + " to choose another mirror.");
             return;
         }
         final QuantumMirror target = MirrorNetwork.chosen(mirror);
@@ -248,5 +248,16 @@ public final class MirrorInteraction
     private static void say(final Player player, final String message)
     {
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER + message);
+    }
+
+    /**
+     * Says something about the mirror itself above the hotbar, where the next line replaces it.
+     *
+     * <p>Where it opens onto now, that there is nowhere else, to right-click first: a player clicking
+     * through a list of mirrors had a chat window full of them.
+     */
+    private static void hint(final Player player, final String message)
+    {
+        com.wormhole_xtreme.wormhole.utils.ActionBar.send(player, "§3:: " + message);
     }
 }

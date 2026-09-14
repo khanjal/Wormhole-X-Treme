@@ -101,15 +101,23 @@ class MirrorBlockProtectionTest
         return block;
     }
 
+    /** Said above the hotbar: a player holding the button down would otherwise fill their chat. */
     @Test
     void breakingAMirrorsBannerIsRefusedAndSaysHowToTakeItDown()
     {
+        final Player.Spigot hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
         final BlockBreakEvent event = new BlockBreakEvent(world.getBlockAt(10, 64, 10), player);
 
         new WormholeXTremeBlockListener().onBlockBreak(event);
 
         assertTrue(event.isCancelled(), "a mirror's banner does not break");
-        verify(player, atLeastOnce()).sendMessage(contains("mirror remove"));
+        final org.mockito.ArgumentCaptor<net.md_5.bungee.api.chat.BaseComponent> said =
+            org.mockito.ArgumentCaptor.forClass(net.md_5.bungee.api.chat.BaseComponent.class);
+        verify(hotbar).sendMessage(org.mockito.ArgumentMatchers.eq(net.md_5.bungee.api.ChatMessageType.ACTION_BAR),
+            said.capture());
+        assertTrue(said.getValue().toPlainText().contains("mirror remove"), "and says how: " + said.getValue().toPlainText());
+        verify(player, org.mockito.Mockito.never()).sendMessage(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -13,6 +15,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -35,6 +39,9 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
+
 /**
  * Clicking a mirror -- a right-click chooses where it opens onto, a punch goes through -- and,
  * mostly, clicking everything that is not one.
@@ -44,10 +51,16 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
  * it is a performance decision with a test of its own in {@code InteractLoggingCostTest}, which
  * fails if this path so much as asks a block for its world; the tests here pin the behaviour
  * that ordering has to preserve.
+ *
+ * <p>What a click says about the mirror itself -- where it opens onto now, that there is nowhere
+ * else, to right-click first, to wait a moment after arriving -- goes above the hotbar, where it
+ * replaces itself. In chat, a player clicking through a list of mirrors filled the window. What
+ * somebody needs to read and act on -- a refused trip, a world that is not loaded -- stays in chat.
  */
 class MirrorInteractionTest
 {
     private Player player;
+    private Player.Spigot hotbar;
     private World world;
 
     @BeforeEach
@@ -68,6 +81,10 @@ class MirrorInteractionTest
         // Travel is behind the USE node. Without this the handler refuses on permission and
         // returns before reaching anything below.
         when(player.isOp()).thenReturn(true);
+        // Where the hints go. An unstubbed mock answers null here, which the sending code
+        // swallows -- so without this a test would read silence off the mock.
+        hotbar = mock(Player.Spigot.class);
+        when(player.spigot()).thenReturn(hotbar);
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
     }
@@ -110,6 +127,22 @@ class MirrorInteractionTest
     private PlayerInteractEvent punch(final Block block)
     {
         return new PlayerInteractEvent(player, Action.LEFT_CLICK_BLOCK, null, block, BlockFace.UP);
+    }
+
+    /** Everything that has landed above the player's hotbar so far, in order. */
+    private List<String> hints()
+    {
+        final ArgumentCaptor<BaseComponent> said = ArgumentCaptor.forClass(BaseComponent.class);
+        verify(hotbar, atLeast(0)).sendMessage(eq(ChatMessageType.ACTION_BAR), said.capture());
+        final List<String> lines = new ArrayList<>();
+        said.getAllValues().forEach(component -> lines.add(component.toPlainText()));
+        return lines;
+    }
+
+    /** How many hints so far said this. */
+    private long hinted(final String text)
+    {
+        return hints().stream().filter(line -> line.contains(text)).count();
     }
 
     /**
@@ -157,10 +190,10 @@ class MirrorInteractionTest
     }
 
     /**
-     * A mirror with no room says so, and says how to give it one.
+     * A mirror with no room says so in chat, and says how to give it one.
      *
-     * <p>Only a mirror from before the network is like this; making one stores its room. The
-     * event is still claimed, so the click does not fall through to anything else.
+     * <p>Only a mirror from before the network is like this; making one stores its room. It is a
+     * line to act on, with a command in it, so it is not one that should fade.
      */
     @Test
     void punchingAMirrorWithNoRoomSaysHowToSetItUp()
@@ -195,7 +228,7 @@ class MirrorInteractionTest
     }
 
     /**
-     * Punching a mirror that shows its own room goes nowhere, and says what to do first.
+     * Punching a mirror that shows its own room goes nowhere, and says above the hotbar what to do.
      *
      * <p>A reflection is not somewhere to go. Stepping into it would put you back where you
      * stand, which reads as a mirror that does not work.
@@ -209,10 +242,11 @@ class MirrorInteractionTest
         assertTrue(MirrorInteraction.handle(punch(banner)));
 
         verify(player, never()).teleport(any(Location.class));
-        verify(player, atLeastOnce()).sendMessage(contains("Right-click"));
+        assertEquals(1, hinted("Right-click"), "said above the hotbar: " + hints());
+        verify(player, never()).sendMessage(any(String.class));
     }
 
-    /** Right-clicking the only mirror there is says there is nowhere else. */
+    /** Right-clicking the only mirror there is says, above the hotbar, that there is nowhere else. */
     @Test
     void rightClickingTheOnlyMirrorSaysThereAreNoOthers()
     {
@@ -221,7 +255,8 @@ class MirrorInteractionTest
 
         assertTrue(MirrorInteraction.handle(click(banner)));
 
-        verify(player, atLeastOnce()).sendMessage(contains("No other mirrors found"));
+        assertEquals(1, hinted("No other mirrors found"), "said above the hotbar: " + hints());
+        verify(player, never()).sendMessage(any(String.class));
         verify(player, never()).teleport(any(Location.class));
     }
 
@@ -240,7 +275,7 @@ class MirrorInteractionTest
         when(player.teleport(any(Location.class))).thenReturn(true);
 
         assertTrue(MirrorInteraction.handle(click(here)));
-        verify(player, atLeastOnce()).sendMessage(contains("opens onto"));
+        assertEquals(1, hinted("opens onto"), "said above the hotbar: " + hints());
         assertEquals("Library", MirrorNetwork.chosen(museum).name());
 
         travelTo(here, "world");
@@ -268,11 +303,12 @@ class MirrorInteractionTest
             null, here, BlockFace.UP, EquipmentSlot.OFF_HAND)), "the off hand's half is still claimed");
 
         assertEquals("Museum", MirrorNetwork.chosen(museum).name(), "and changes nothing");
+        assertTrue(hints().isEmpty(), "nor says anything: " + hints());
         verify(player, never()).sendMessage(any(String.class));
     }
 
     /**
-     * A mirror whose far side is in an unloaded world names the world rather than failing.
+     * A mirror whose far side is in an unloaded world names the world, in chat.
      *
      * <p>The most likely way a working mirror stops working: the archive world it opens onto is
      * not started this session.
@@ -296,11 +332,11 @@ class MirrorInteractionTest
     }
 
     /**
-     * A trip another plugin cancels is reported, not swallowed.
+     * A trip another plugin cancels is reported in chat, not swallowed.
      *
      * <p>A cancelled {@code PlayerTeleportEvent} leaves the player exactly where they were, and
      * where they were is the mirror they just punched -- which reads as a mirror that did
-     * nothing, with nothing in chat to say who had refused or why.
+     * nothing, with nothing to say who had refused or why.
      */
     @Test
     void aMirrorWhoseTeleportAnotherPluginCancelledSaysSo()
@@ -372,7 +408,7 @@ class MirrorInteractionTest
         travelTo(there, "museum_world");
 
         verify(player, times(1)).teleport(any(Location.class));
-        verify(player, atLeastOnce()).sendMessage(contains("settle for a moment"));
+        assertEquals(1, hinted("settle for a moment"), "said above the hotbar: " + hints());
     }
 
     /** The explanation is said once per arrival, not once per repeat. */
@@ -392,7 +428,7 @@ class MirrorInteractionTest
         travelTo(there, "museum_world");
         travelTo(there, "museum_world");
 
-        verify(player, times(1)).sendMessage(contains("settle for a moment"));
+        assertEquals(1, hinted("settle for a moment"), "once, however many repeats: " + hints());
     }
 
     /** A trip that never happened does not shut the mirror behind it. */
@@ -408,7 +444,7 @@ class MirrorInteractionTest
         travelTo(banner, "museum_world");
 
         verify(player, times(2)).teleport(any(Location.class));
-        verify(player, never()).sendMessage(contains("settle for a moment"));
+        assertEquals(0, hinted("settle for a moment"));
     }
 
     /** Clicking the air has no block to look up. */

@@ -1406,7 +1406,7 @@ public class ConfigManager
     public static int getMirrorProximityRadius()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_RADIUS);
-        return (s == null) ? 8 : Math.max(1, s.getIntValue());
+        return (s == null) ? 16 : Math.max(1, s.getIntValue());
     }
 
     /**
