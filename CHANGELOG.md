@@ -329,6 +329,15 @@ been running on defaults will start reading the file you have been editing.
   the opening or lies past the depth. A kept block that really is hidden is invisible; one that
   is not hidden is right.
 
+  "On a freestanding mirror surrounded by one row of bricks: when I face the frame brick and
+  slide into the mirror view I see it render. It should already be mostly there since I'm right
+  up against the frame." From beside the opening, a block straight behind it lands on the frame
+  brick, so it was not drawn until a step brought it into the opening, and a redraw is a quarter
+  block and a quarter second behind the step. The frame hides whatever lies just beside the
+  opening, so a block landing on it -- the solid blocks of the face touching the opening,
+  corners too -- is drawn beforehand now, hidden, and the walk through the opening is widened
+  by that block on each side to find them.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

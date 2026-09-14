@@ -356,6 +356,27 @@ class MirrorWindowsTest
     }
 
     /**
+     * A block landing on the frame round the opening is drawn already, hidden behind the frame.
+     *
+     * <p>"When I face the frame brick and slide into the mirror view I see it render. It should
+     * already be mostly there since I'm right up against the frame." From beside the opening, a
+     * block straight behind it lands on the frame brick; it was drawn only once a step brought it
+     * into the opening. The frame hides it, so it is drawn beforehand.
+     */
+    @Test
+    void aBlockLandingOnTheFrameRoundTheOpeningIsDrawnAlreadyHiddenBehindTheFrame()
+    {
+        standUp(banner);
+        final Player viewer = playerAt(11.5, 10.7);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 65, 15)),
+            "straight behind the opening, which from beside it lands on the frame brick");
+    }
+
+    /**
      * A block kept from the last drawing is still taken back once it would show beside the
      * opening from where the viewer now stands.
      *

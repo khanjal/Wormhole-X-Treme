@@ -276,6 +276,8 @@ public final class MirrorWindows
         /** Far-side states turned by {@link #rotation}, each turned once. */
         private final Map<BlockData, BlockData> turned = new IdentityHashMap<>();
         private Set<Long> solid = Set.of();
+        /** The solid blocks of the face touching the opening, corners too: its frame. */
+        private List<Spot> frame = List.of();
         private long solidAt;
         private boolean standing;
         /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
@@ -482,6 +484,7 @@ public final class MirrorWindows
         if ((previous != null) && previous.shape.equals(shape))
         {
             window.solid = previous.solid;
+            window.frame = previous.frame;
             window.solidAt = previous.solidAt;
             // Every mirror in a loaded chunk is a window each sweep, looked at or not: a fixed view
             // nobody has used for a while is let go rather than carried for the life of the chunk.
@@ -1096,7 +1099,8 @@ public final class MirrorWindows
                 {
                     pass.stage(from, to);
                     if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(),
-                        pass.reach, band, pass, (x, y, z) -> !pass.consider(x, y, z) || (--budget.blocks > 0)))
+                        pass.reach, band, pass, (x, y, z) -> !pass.consider(x, y, z) || (--budget.blocks > 0),
+                        pass.window.frame.isEmpty() ? 0 : 1))
                     {
                         break stages;
                     }
@@ -1627,7 +1631,8 @@ public final class MirrorWindows
         final int y, final int z, final List<Window> seeing, final Set<Long> allOpen)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
-        if ((rect == null) || !window.shape.overlaps(rect, window.open))
+        // On the opening, or on the frame round it, which hides it until the eye moves.
+        if ((rect == null) || (!window.shape.overlaps(rect, window.open) && !window.shape.overlaps(rect, window.frame)))
         {
             return null;
         }
@@ -1785,7 +1790,45 @@ public final class MirrorWindows
             }
         }
         window.solid = solid;
+        window.frame = frameOf(shape, solid);
         window.solidAt = now;
+    }
+
+    /**
+     * The solid blocks of a window's face touching its opening, corners too.
+     *
+     * <p>They hide whatever lies just beside the opening, so a block landing on them from the eye
+     * can be drawn before the eye moves to where it shows: sliding along a frame into view, it
+     * was drawn only once it came into the opening, a step late.
+     */
+    private static List<Spot> frameOf(final MirrorWindow shape, final Set<Long> solid)
+    {
+        final boolean alongX = shape.into().x() != 0;
+        final Set<Long> opening = new HashSet<>();
+        final List<int[]> cells = new ArrayList<>();
+        shape.forEachOpening((x, y, z) ->
+        {
+            opening.add(key(x, y, z));
+            cells.add(new int[] { alongX ? z : x, y });
+        });
+        final Set<Long> frame = new LinkedHashSet<>();
+        for (final int[] cell : cells)
+        {
+            for (int across = -1; across <= 1; across++)
+            {
+                for (int up = -1; up <= 1; up++)
+                {
+                    final long face = faceKey(shape, cell[0] + across, cell[1] + up);
+                    if (!opening.contains(face) && solid.contains(face))
+                    {
+                        frame.add(face);
+                    }
+                }
+            }
+        }
+        final List<Spot> spots = new ArrayList<>();
+        frame.forEach(face -> spots.add(new Spot(unpackX(face), unpackY(face), unpackZ(face))));
+        return spots;
     }
 
     /** Sends a viewer what changed since their last drawing, or all of it when asked to. */
@@ -2339,6 +2382,11 @@ public final class MirrorWindows
             final int iTo = Math.min(wide - 1, (int) Math.ceil((rect[1] - left) * FINE) - 1);
             final int jFrom = Math.max(0, (int) Math.floor((rect[2] - bottom) * FINE));
             final int jTo = Math.min(tall - 1, (int) Math.ceil((rect[3] - bottom) * FINE) - 1);
+            if ((iFrom > iTo) || (jFrom > jTo))
+            {
+                // Wholly off the opening, on its frame: nothing in the opening hides it.
+                return false;
+            }
             for (int i = iFrom; i <= iTo; i++)
             {
                 for (int j = jFrom; j <= jTo; j++)

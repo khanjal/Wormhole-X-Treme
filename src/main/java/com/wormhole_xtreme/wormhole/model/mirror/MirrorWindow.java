@@ -286,8 +286,36 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public boolean forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
         final double radius, final int band, final Limits limits, final Candidate candidate)
     {
+        return forEachCandidate(eyeX, eyeY, eyeZ, radius, band, limits, candidate, 0);
+    }
+
+    /**
+     * The same, through the opening grown by a margin on every side: for a frame round it, whose
+     * blocks hide what lies just beside the opening, so that can be drawn before it is needed.
+     *
+     * @param eyeX
+     *            the eye, x
+     * @param eyeY
+     *            the eye, y
+     * @param eyeZ
+     *            the eye, z
+     * @param radius
+     *            how far from the eye to walk
+     * @param band
+     *            which band
+     * @param limits
+     *            how deep the walk need go
+     * @param candidate
+     *            handed each block; returns false to stop
+     * @param margin
+     *            blocks to grow the opening by on each side
+     * @return false if the candidate stopped the walk
+     */
+    public boolean forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
+        final double radius, final int band, final Limits limits, final Candidate candidate, final int margin)
+    {
         final Walk walk = new Walk(this, new double[] { eyeX, eyeY, eyeZ }, radius, band, limits,
-            candidate);
+            candidate, margin);
         for (int layer = limits.shallowest(); (layer <= limits.deepest()) && walk.within(layer); layer++)
         {
             if (!walk.layer(layer))
@@ -335,15 +363,17 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         private final double radius;
         private final int baseAlong;
         private final int middle;
+        private final int margin;
         private final double inner;
         private final double outer;
         private final Limits limits;
         private final Candidate candidate;
 
         Walk(final MirrorWindow window, final double[] eye, final double radius, final int band,
-            final Limits limits, final Candidate candidate)
+            final Limits limits, final Candidate candidate, final int margin)
         {
             this.window = window;
+            this.margin = margin;
             this.alongX = window.into.x() != 0;
             this.sign = alongX ? window.into.x() : window.into.z();
             this.eyeAlong = alongX ? eye[0] : eye[2];
@@ -382,13 +412,13 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             final double farther = Math.max(one, other) / reach;
             final int bottom = window.base.y();
             int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(
-                lowest(eyeAcross, middle - HALF, middle + (WIDTH - HALF), near, farther)));
+                lowest(eyeAcross, (middle - HALF) - margin, middle + (WIDTH - HALF) + margin, near, farther)));
             int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(
-                highest(eyeAcross, middle - HALF, middle + (WIDTH - HALF), near, farther)) - 1);
+                highest(eyeAcross, (middle - HALF) - margin, middle + (WIDTH - HALF) + margin, near, farther)) - 1);
             int yFrom = Math.max(bottom - WIDEST,
-                (int) Math.floor(lowest(eyeY, bottom, bottom + HEIGHT, near, farther)));
+                (int) Math.floor(lowest(eyeY, bottom - margin, bottom + HEIGHT + margin, near, farther)));
             int yTo = Math.min(bottom + WIDEST,
-                (int) Math.ceil(highest(eyeY, bottom, bottom + HEIGHT, near, farther)) - 1);
+                (int) Math.ceil(highest(eyeY, bottom - margin, bottom + HEIGHT + margin, near, farther)) - 1);
             // Nothing in this layer further from the eye than the radius: the sphere's width here.
             final double face = nearFace(layer);
             final double wide = Math.sqrt(Math.max(0.0, (radius * radius) - (face * face))) + 1.0;
