@@ -61,6 +61,12 @@ been running on defaults will start reading the file you have been editing.
   the mirror, and facing north or west that edge rounds into the block behind, the mirror's own
   wall, so every ray stopped where it began. They start just inside that block now.
 
+  "I did mirror stamp and the banner always shows, but behind it I can see the mirrored
+  environment -- it took a while to go away." Stamping writes the banner to the world, and every
+  client is sent it over the view that draws it away; the view thought it had sent air there
+  already and waited for its next whole resend, half a minute on. A stamp now has everybody looking
+  into that mirror sent the whole view again at the next sweep.
+
   `mirror link` and `mirror target` are gone, and with them the `-return` names. `create` is the
   verb now, and `set` still works. A mirror saved before this keeps opening where it was pointed
   until it is created again.

@@ -656,6 +656,27 @@ public final class MirrorWindows
     }
 
     /**
+     * Sends the whole view again, at the next sweep, to everybody looking into one mirror.
+     *
+     * <p>For after its banner is written to the world. Stamping sends every client the real banner,
+     * which lands over the view where the banner is drawn away, and the view -- believing it sent
+     * air there already -- would not send it again until its next whole resend, half a minute later.
+     *
+     * @param mirrorName
+     *            the mirror whose banner changed
+     */
+    public static void resendFor(final String mirrorName)
+    {
+        for (final View view : VIEWS.values())
+        {
+            if (view.mirrors.contains(mirrorName))
+            {
+                view.fullAt = 0L;
+            }
+        }
+    }
+
+    /**
      * Redraws one mirror at once for whoever is looking into it, after a right-click changed what
      * it opens onto.
      *

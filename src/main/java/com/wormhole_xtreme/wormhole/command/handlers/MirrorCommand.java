@@ -38,43 +38,27 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
- * {@code /wormhole mirror} -- naming banners and pointing them somewhere.
+ * {@code /wormhole mirror} -- making mirrors, and choosing how they start and look.
  *
- * <p>Binding is two steps because the two pieces of information are in two places: you have to
- * be looking at the banner to say which one it is, and standing at the arrival spot to say
- * where it goes. No single command can be in both.
+ * <p>Nothing is pointed by hand. Every mirror is on the network: {@code create} stores its own
+ * room, it shows that room until somebody right-clicks it, and a right-click walks the other
+ * mirrors -- see {@link MirrorNetwork}.
  *
  * <pre>
- * mirror set &lt;name&gt;           look at a banner; it becomes a mirror by that name
- * mirror target &lt;name&gt;        stand where arrivals should land; point that mirror here
- * mirror link &lt;other&gt;         join the banner you are looking at to that mirror
- * mirror stamp [name] [look]  make the banner look like where it goes
+ * mirror create &lt;name&gt;        look at a wall banner; it becomes a mirror by that name (set also works)
+ * mirror start [name] &lt;m|none&gt; the mirror a right-click opens onto first
+ * mirror stamp [name] [look]  give the banner a look
  * mirror display [name] &lt;how&gt; show its look always, or only up close
  * mirror mode [name] &lt;how&gt;    keep the look, or re-read the far side
  * mirror remove [name]        forget it; the banner becomes an ordinary banner again
- * mirror list                 what exists and where each one goes
+ * mirror list                 every mirror, and what each shows
  * </pre>
  *
- * <p>The four verbs in brackets take the mirror on the banner you are looking at when you do
- * not name one. A name nobody chose is the reason: {@code link} derives {@code &lt;other&gt;-return}
- * for the second banner of a pair, so the commonest thing to want to restamp or take down is
- * the thing least likely to be remembered by name -- while standing right in front of it.
+ * <p>The verbs in brackets take the mirror on the banner you are looking at when you do not name
+ * one, since the mirror somebody wants to change is usually the one they are standing in front of.
+ * {@code create} keeps its required name: it is naming something that has no name yet.
  *
- * <p>{@code set}, {@code target} and {@code link} keep their required names. {@code set} is
- * naming something that has no name yet; {@code target} is run from the arrival spot, which is
- * the one place the banner is not; and {@code link}'s argument is the far mirror, not this one.
- *
- * <p>{@code link} is sugar over {@code target}, applied twice: it works out where each banner
- * stands and stores two ordinary points, so nothing downstream knows a second mirror was
- * involved. Two ways rather than one, because a pair of banners is what somebody hanging two
- * of them means -- pointing only the first was the commonest way to end up with a banner that
- * did nothing when clicked.
- *
- * <p>It is a snapshot rather than a subscription -- move either banner afterwards and the
- * other still opens onto where it used to be. One-way binding is still {@code target}, which
- * is also the only way to open onto a world you would rather not put a banner in.
- *
- * <p>{@code stamp} is the same kind of snapshot, and deliberately so. Named a look, it applies
+ * <p>{@code stamp} is a snapshot, and deliberately so. Named a look, it applies
  * that look and nothing else. Given no look, it goes and reads the far side -- the biome there
  * picks the frame, and the blocks around the arrival point become a few coarse squares in the
  * colours that dominate. A corridor of stamped mirrors then reads as a row of labelled doors
@@ -362,6 +346,8 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset))
         {
+            // The banner just written reaches every client over the view that hides it.
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.resendFor(mirror.name());
             remember(mirror, MirrorLook.named(preset.name()));
             say(sender, MirrorText.quoted(mirror.name()) + " looks like "
                 + MirrorText.name(preset.name()) + " now.");
@@ -441,6 +427,7 @@ public class MirrorCommand implements SubCommand
         }
         if (MirrorStamp.apply(banner, preset, view))
         {
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.resendFor(mirror.name());
             remember(mirror, look);
             say(sender, MirrorText.quoted(mirror.name()) + " now shows "
                 + describe(view, preset) + ".");

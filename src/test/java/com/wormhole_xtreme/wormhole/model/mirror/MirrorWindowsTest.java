@@ -191,6 +191,31 @@ class MirrorWindowsTest
     }
 
     /**
+     * A mirror whose banner was just written is sent whole again at the next sweep.
+     *
+     * <p>"I did mirror stamp and the banner always shows, but behind it I can see the mirrored
+     * environment -- it took a while to go away." Stamping sends every client the real banner, over
+     * the view that draws it away; the view thought it had sent air there already, and waited half a
+     * minute for its next whole resend.
+     */
+    @Test
+    void aStampedBannerIsDrawnAwayAgainAtTheNextSweep()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            MirrorWindows.resendFor("museum");
+            MirrorProximity.tick();
+        });
+
+        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
+        assertEquals(sent.get(0).size(), sent.get(1).size(), "the whole view again, banner and all");
+    }
+
+    /**
      * A right-click shows the mirror chosen at once, not when the sweep next comes round.
      *
      * <p>The sweep runs once a second, so a view waiting for it changed up to a second after the
