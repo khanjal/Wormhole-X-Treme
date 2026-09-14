@@ -693,7 +693,8 @@ public final class MirrorWindows
             final int z = at.getBlockZ();
             for (final Window window : seeing)
             {
-                if (seenThrough(eye, window, x, y, z, seeing, allOpen, Set.of()) != null)
+                final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
+                if ((rect != null) && coveredBy(window, rect, allOpen, Set.of()))
                 {
                     inside.add(entity);
                     break;
@@ -771,12 +772,10 @@ public final class MirrorWindows
      * @return the block's outline on the opening's face, or null if it is not seen through it
      */
     private static double[] seenThrough(final Location eye, final Window window, final int x,
-        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen,
-        final Set<Long> shielded)
+        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
-        if ((rect == null) || !window.shape.overlaps(rect, window.open)
-            || !window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen, shielded)))
+        if ((rect == null) || !window.shape.overlaps(rect, window.open))
         {
             return null;
         }
@@ -790,6 +789,13 @@ public final class MirrorWindows
             }
         }
         return rect;
+    }
+
+    /** Whether most of a block's outline on the face lands where nothing outside can see it. */
+    private static boolean coveredBy(final Window window, final double[] rect,
+        final Set<Long> allOpen, final Set<Long> shielded)
+    {
+        return window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen, shielded));
     }
 
     /** A viewer's windows, nearest first, so a spent budget cuts the furthest views short. */
@@ -1179,10 +1185,27 @@ public final class MirrorWindows
             {
                 return true;
             }
-            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen, shielded);
+            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
             final int layer = layerOf(x, z);
             if ((rect == null) || hidden.covers(rect, layer))
             {
+                return true;
+            }
+            final Spot at = window.shape.farOf(x, y, z);
+            final MirrorCapture capture = window.capture;
+            final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
+            if (!coveredBy(window, rect, allOpen, shielded))
+            {
+                // A block straddling the edge, most of it where the real world can see it. Left
+                // alone when the far side is solid, since drawing it would show past the edge.
+                // Carved all the same when the far side is air: it is the wall of the tunnel the
+                // carving cuts through whatever is really there, and its face inside the view --
+                // a wall of sea water, at a hut on a beach -- is worse than a notch beside it.
+                if ((distance < radius) && farAir && !emptyHere(here, x, y, z, now))
+                {
+                    wanted.put(cell, air);
+                    budget.near++;
+                }
                 return true;
             }
             if (distance >= radius)
@@ -1196,9 +1219,6 @@ public final class MirrorWindows
                 }
                 return true;
             }
-            final Spot at = window.shape.farOf(x, y, z);
-            final MirrorCapture capture = window.capture;
-            final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
             final BlockData data = farAir ? air : capture.at(at.x(), at.y(), at.z());
             if (data.isOccluding())
             {

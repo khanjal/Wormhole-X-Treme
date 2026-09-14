@@ -151,6 +151,12 @@ been running on defaults will start reading the file you have been editing.
   drawn if most of it is covered, rather than rejected if any of it is not: a sliver of far
   scenery round the corner is better than a hole with the real world in it. Captures also reach
   48 below the arrival point now, not 16; the library sits forty-seven blocks above its beach.
+
+  Even then the library showed with sea water in it. Where the far side is air and the real
+  world is not, the view is carved to air cell by cell, which cuts a tunnel through whatever is
+  really there, and the tunnel's walls -- the real blocks just outside the cone, straddling the
+  edge by less than half -- show their faces inside it. A straddler whose far side is air is now
+  carved regardless; a notch in the sea beside the hut is the lesser harm.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

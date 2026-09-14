@@ -456,6 +456,27 @@ class MirrorWindowsTest
             "most of it would show beside the opening, in the open air");
     }
 
+    /**
+     * A straddling block whose far side is air is carved all the same.
+     *
+     * <p>Carving a view through whatever is really there cuts a tunnel, and the tunnel's walls
+     * are the blocks just outside the cone, whose faces show inside it. At a hut on a beach that
+     * was a wall of sea water in the middle of the library. A notch in the sea beside the hut is
+     * the lesser harm.
+     */
+    @Test
+    void aStraddlingBlockWhoseFarSideIsAirIsCarvedAllTheSame()
+    {
+        wallBehind = false;
+        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
+        final Player viewer = playerAt(10.5, 9.2);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertSame(air, positions(changesTo(viewer, 1).get(0)).get(new Spot(9, 63, 12)));
+    }
+
     @Test
     void againstAWallTheSameBlockIsDrawnSinceTheWallHidesTheRest()
     {
