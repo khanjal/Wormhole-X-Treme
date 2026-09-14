@@ -458,6 +458,12 @@ public final class MirrorCapture
         return sizeX;
     }
 
+    /** @return the box's corners, {@code {minX, minY, minZ, maxX, maxY, maxZ}}, inclusive */
+    public int[] bounds()
+    {
+        return new int[] { minX, minY, minZ, (minX + sizeX) - 1, (minY + sizeY) - 1, (minZ + sizeZ) - 1 };
+    }
+
     /**
      * Writes the capture to a file, whole or not at all.
      *

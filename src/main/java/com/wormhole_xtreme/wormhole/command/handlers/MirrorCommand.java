@@ -1250,16 +1250,45 @@ public class MirrorCommand implements SubCommand
      * Says what a mirror's window draws from, and what it last drew for this sender.
      *
      * <p>{@code debug save} also photographs this world around the mirror into a file beside the
-     * far side's capture, so the view can be reproduced away from the server.
+     * far side's capture, so the view can be reproduced away from the server. {@code debug off}
+     * turns views off for the sender, so they see the world as it is, and {@code debug on} turns
+     * them back on. {@code debug <name> full} draws that mirror whole and without limits for the
+     * sender -- everything its capture holds, through the opening -- so what the file holds and
+     * how it comes through can be seen; {@code debug on} stops that too.
      */
     private static void debug(final CommandSender sender, final String[] args)
     {
-        final boolean save = (args.length > 2) && "save".equalsIgnoreCase(args[args.length - 1]);
-        final String name = (args.length > (save ? 3 : 2)) ? args[2] : null;
+        final String last = (args.length > 2) ? args[args.length - 1].toLowerCase(java.util.Locale.ROOT) : "";
+        if ("off".equals(last) || "on".equals(last))
+        {
+            final Player player = asPlayer(sender);
+            if (player != null)
+            {
+                com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, "off".equals(last));
+                say(sender, "off".equals(last) ? "Views are off for you: mirrors are banners, and the world is as it is. "
+                    + "mirror debug on turns them back on." : "Views are back on for you, as everyone sees them.");
+            }
+            return;
+        }
+        final boolean save = "save".equals(last);
+        final boolean full = "full".equals(last);
+        final String name = (args.length > ((save || full) ? 3 : 2)) ? args[2] : null;
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>] [save]"));
+            () -> sayUsage(sender, "debug [<name>] [save|full] | debug off|on"));
         if (mirror == null)
         {
+            return;
+        }
+        if (full)
+        {
+            final Player player = asPlayer(sender);
+            if (player != null)
+            {
+                com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.full(player, mirror.name());
+                say(sender, MirrorText.quoted(mirror.name()) + " is drawn whole and without limits for you: "
+                    + "everything its capture holds, through the opening, past the edges and into the ground. "
+                    + "mirror debug on stops that.");
+            }
             return;
         }
         if (save)

@@ -246,6 +246,22 @@ been running on defaults will start reading the file you have been editing.
   one block in between" -- since drawn whole, alcoves along a wall would each fill the same space
   behind it with a different far side. Freestanding mirrors are trimmed as before.
 
+  "It looks like we're taking a wide angle close too. I think we need to revisit the view for
+  saving the chunk data; that could give us more distance with less blocks." The wide angle in
+  that picture was the arch's whole half-sphere, above. But the capture was the wide one: a box
+  `mirror-capture-radius` across in every direction, 193 by 129 by 193 at the default, while
+  nothing outside a half-sphere of the depth ahead of the arrival point can ever be seen through
+  a window, now that the depth is measured from the opening. The capture is that half-sphere's
+  box now -- the depth plus two ahead, either side, up and down, and one layer behind -- a
+  thirty-fifth of the old one at the default depth: faster to take, a fraction of the memory,
+  and room to raise the depth. `mirror-capture-radius` is a ceiling on it, and only that.
+
+  "An admin command that forces the mirror world chunk to fully render without limits so I can
+  check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
+  whole and without limits for whoever asks -- everything its capture holds, through the
+  opening, past the edges and into the ground -- and `mirror debug off` turns views off for
+  them altogether, so the world shows as it is; `mirror debug on` ends either.
+
   Drawn whole, a view would also have carved the inside of every far hill out of the real ground
   behind the wall. Captures wrote what is buried two deep as air, which no line of sight through
   an opening ever reached but a whole view does. Buried blocks are recorded as buried now, and

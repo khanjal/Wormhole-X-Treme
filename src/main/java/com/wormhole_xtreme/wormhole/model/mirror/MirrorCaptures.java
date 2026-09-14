@@ -40,20 +40,54 @@ public final class MirrorCaptures
     /** Chunks read per tick while a capture is being taken. */
     private static final int CHUNKS_PER_TICK = 2;
 
-    /**
-     * How far below the arrival point a capture reaches.
-     *
-     * <p>Sixteen was not enough: a mirror in a library forty-seven blocks above its beach looked
-     * down through the library's openings at nothing, and the beach it should have seen was
-     * below the box. Forty-eight only just held it, so as much below as above.
-     */
-    private static final int BELOW = 64;
-
-    /** How far above it. */
-    private static final int ABOVE = 64;
-
     /** How long a capture nobody has looked at stays in memory. */
     private static final long IDLE_MILLIS = 300_000L;
+
+    /** Blocks of margin a capture keeps beyond the view depth on every side. */
+    private static final int MARGIN = 2;
+
+    /**
+     * The box a capture needs to hold, for a destination and a view depth.
+     *
+     * <p>Nothing outside a half-sphere of the depth ahead of the arrival point can be seen through
+     * a window, since the depth is measured from the opening and a block behind the opening shows
+     * the block the same way ahead of the arrival. So the box is that half-sphere's box: the depth
+     * and a margin ahead, either side, up and down, and one layer behind. A box the capture radius
+     * across in every direction was thirty-five times as much for the default depth, most of it
+     * behind the arrival point where no window ever looked.
+     *
+     * @param destination
+     *            where the mirror goes
+     * @param depth
+     *            how far ahead the view reaches
+     * @param worldMin
+     *            the far world's lowest y, or null if it is not loaded to ask
+     * @param worldMax
+     *            one above its highest, or null likewise
+     * @return {@code {minX, minY, minZ, maxX, maxY, maxZ}}, inclusive
+     */
+    static int[] needed(final MirrorPoint destination, final int depth, final Integer worldMin,
+        final Integer worldMax)
+    {
+        final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());
+        final int arrivalX = (int) Math.floor(destination.x());
+        final int arrivalY = (int) Math.floor(destination.y());
+        final int arrivalZ = (int) Math.floor(destination.z());
+        final int reach = depth + MARGIN;
+        final int minX = arrivalX - ((ahead.x() > 0) ? 1 : (ahead.x() < 0) ? reach : reach);
+        final int maxX = arrivalX + ((ahead.x() > 0) ? reach : (ahead.x() < 0) ? 1 : reach);
+        final int minZ = arrivalZ - ((ahead.z() > 0) ? 1 : (ahead.z() < 0) ? reach : reach);
+        final int maxZ = arrivalZ + ((ahead.z() > 0) ? reach : (ahead.z() < 0) ? 1 : reach);
+        final int minY = (worldMin == null) ? (arrivalY - reach) : Math.max(worldMin, arrivalY - reach);
+        final int maxY = (worldMax == null) ? (arrivalY + reach) : Math.min(worldMax - 1, arrivalY + reach);
+        return new int[] { minX, minY, minZ, maxX, maxY, maxZ };
+    }
+
+    /** The depth a capture is taken to: the view depth, or the capture radius if that is less. */
+    private static int captureDepth()
+    {
+        return Math.min(ConfigManager.getMirrorViewDepth(), ConfigManager.getMirrorCaptureRadius());
+    }
 
     /** Reads one chunk of a world, so a test can hand in chunks without a server. */
     @FunctionalInterface
@@ -201,17 +235,23 @@ public final class MirrorCaptures
      */
     static boolean outgrown(final QuantumMirror mirror, final MirrorCapture capture)
     {
-        if (capture.prunedToAir() || (capture.across() < ((2 * ConfigManager.getMirrorCaptureRadius()) + 1)))
+        if (capture.prunedToAir())
         {
             return true;
         }
-        final World far = Bukkit.getWorld(mirror.destination().worldName());
-        if (far == null)
+        final MirrorPoint destination = mirror.destination();
+        final World far = Bukkit.getWorld(destination.worldName());
+        final int[] box = needed(destination, captureDepth(),
+            (far == null) ? null : far.getMinHeight(), (far == null) ? null : far.getMaxHeight());
+        final int arrivalX = (int) Math.floor(destination.x());
+        final int arrivalY = (int) Math.floor(destination.y());
+        final int arrivalZ = (int) Math.floor(destination.z());
+        if (!capture.contains(box[0], arrivalY, box[2]) || !capture.contains(box[3], arrivalY, box[5]))
         {
-            return false;
+            return true;
         }
-        final int arrivalY = (int) Math.floor(mirror.destination().y());
-        return capture.minY() > Math.max(far.getMinHeight(), arrivalY - BELOW);
+        return (far != null)
+            && (!capture.contains(arrivalX, box[1], arrivalZ) || !capture.contains(arrivalX, box[4], arrivalZ));
     }
 
     /**
@@ -503,16 +543,13 @@ public final class MirrorCaptures
         {
             this.key = key;
             this.far = far;
-            final int radius = ConfigManager.getMirrorCaptureRadius();
-            final int arrivalX = (int) Math.floor(destination.x());
-            final int arrivalY = (int) Math.floor(destination.y());
-            final int arrivalZ = (int) Math.floor(destination.z());
-            minX = arrivalX - radius;
-            maxX = arrivalX + radius;
-            minZ = arrivalZ - radius;
-            maxZ = arrivalZ + radius;
-            minY = Math.max(far.getMinHeight(), arrivalY - BELOW);
-            maxY = Math.min(far.getMaxHeight() - 1, arrivalY + ABOVE);
+            final int[] box = needed(destination, captureDepth(), far.getMinHeight(), far.getMaxHeight());
+            minX = box[0];
+            minY = box[1];
+            minZ = box[2];
+            maxX = box[3];
+            maxY = box[4];
+            maxZ = box[5];
             builder = new MirrorCapture.Builder(far.getName(),
                 far.getEnvironment() == World.Environment.NORMAL, minX, minY, minZ,
                 (maxX - minX) + 1, (maxY - minY) + 1, (maxZ - minZ) + 1,

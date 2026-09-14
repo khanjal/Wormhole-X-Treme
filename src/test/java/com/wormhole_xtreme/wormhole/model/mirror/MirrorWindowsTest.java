@@ -228,6 +228,55 @@ class MirrorWindowsTest
     }
 
     /**
+     * With views off, a viewer is drawn nothing, and what they had is taken back.
+     *
+     * <p>For an admin who wants the world as it is: "an admin command to remove the view".
+     */
+    @Test
+    void withViewsOffAViewerIsDrawnNothingAndWhatTheyHadIsTakenBack()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            MirrorWindows.blind(viewer, true);
+            MirrorProximity.tick();
+            MirrorProximity.tick();
+        });
+
+        assertTakenBack(changesTo(viewer, 2));
+    }
+
+    /**
+     * Drawn full for one viewer, a mirror shows everything its capture holds, whatever the rules.
+     *
+     * <p>"An admin command that forces the mirror world chunk to fully render without limits so
+     * I can check what it's stored and how it's rendering." A freestanding mirror, so nothing
+     * would be drawn off to the side or past the depth otherwise; and the depth is 16, so a
+     * block at 30 would not be drawn for anyone else.
+     */
+    @Test
+    void drawnFullForOneViewerAMirrorShowsEverythingItsCaptureHolds()
+    {
+        standUp(banner);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorWindows.full(viewer, "museum");
+            MirrorProximity.tick();
+        });
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, drawn.get(new Spot(18, 64, 12)), "off to the side, past the edge");
+        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 41)), "thirty blocks in, past the depth");
+        assertFalse(drawn.containsKey(new Spot(10, 64, 60)), "but nothing the capture does not hold");
+    }
+
+    /**
      * A fixed view nobody has looked through for a minute is let go.
      *
      * <p>Every mirror in a loaded chunk is a window each sweep, looked at or not, and a fixed

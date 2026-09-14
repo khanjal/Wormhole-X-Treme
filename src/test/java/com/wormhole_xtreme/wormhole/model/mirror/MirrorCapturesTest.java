@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -106,8 +107,32 @@ class MirrorCapturesTest
         assertEquals(0, MirrorCaptures.taking());
         assertSame(sand, capture.at(100, 69, -21), "the beach at the arrival point");
         assertTrue(capture.isAir(100, 70, -21), "and air above it");
-        assertSame(sand, capture.at(116, 60, -5), "out at the box's far corner");
-        assertEquals(69, capture.top(84, -37));
+        // Yaw 0 faces south, so the box runs ahead to z -3: 16 deep and a margin of 2.
+        assertSame(sand, capture.at(116, 60, -3), "out at the box's far corner ahead");
+        assertEquals(69, capture.top(82, -22), "and its near corner, one layer behind the arrival");
+        assertTrue(capture.isAir(100, 69, -23), "two layers behind the arrival is outside the box");
+        assertTrue(capture.isAir(100, 69, -2), "and so is past the depth and margin");
+    }
+
+    /**
+     * A capture's box is the half-sphere of the depth ahead of the arrival point, boxed.
+     *
+     * <p>Nothing outside it can be seen through a window, since the depth is measured from the
+     * opening. A box the capture radius across in every direction was thirty-five times as much
+     * at the default depth, most of it behind the arrival point where no window ever looked.
+     */
+    @Test
+    void theBoxACaptureNeedsIsTheHalfSphereAheadOfTheArrivalBoxed()
+    {
+        final MirrorPoint south = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
+        final MirrorPoint west = new MirrorPoint("far", 100.5, 70.0, -20.5, 90.0f, 0.0f);
+
+        assertArrayEquals(new int[] { 82, 52, -22, 118, 88, -3 }, MirrorCaptures.needed(south, 16, null, null),
+            "16 deep plus a margin of 2 ahead, either side, up and down; one layer behind");
+        assertArrayEquals(new int[] { 82, 52, -39, 101, 88, -3 }, MirrorCaptures.needed(west, 16, null, null),
+            "facing west, the box runs to lower x");
+        assertArrayEquals(new int[] { 82, 60, -22, 118, 75, -3 }, MirrorCaptures.needed(south, 16, 60, 76),
+            "clamped to the far world's heights when it is loaded to ask");
     }
 
     /**
@@ -200,9 +225,8 @@ class MirrorCapturesTest
     @Test
     void aCaptureThatWroteBuriedBlocksAsAirIsOutgrown() throws java.io.IOException
     {
-        final int arrivalY = (int) Math.floor(mirror.destination().y());
         final File file = new File(dataFolder, "old.view");
-        new MirrorCapture.Builder("far", true, 0, arrivalY - 64, 0, 33, 129, 33, air).build().save(file);
+        new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build().save(file);
         MirrorCaptureTest.rewriteVersion(file, 1);
         final MirrorCapture old = MirrorCapture.load(file);
 
@@ -241,28 +265,27 @@ class MirrorCapturesTest
      * capture could not be retaken anyway, and asking every sweep would warn every sweep.
      */
     @Test
-    void aCaptureSmallerThanTheConfiguredBoxIsOutgrown()
+    void aCaptureSmallerThanTheBoxItNeedsIsOutgrown()
     {
-        // The configured radius is 16, so a box is 33 across, and reaches 64 below the arrival.
-        final int arrivalY = (int) Math.floor(mirror.destination().y());
-        final MirrorCapture fits = new MirrorCapture.Builder("far", true, 0, arrivalY - 64, 0, 33, 129, 33, air)
-            .build();
-        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, 0, arrivalY - 64, 0, 31, 129, 31, air)
-            .build();
-        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, 0, arrivalY - 48, 0, 33, 113, 33, air)
-            .build();
+        // The configured radius is 16, the depth 32, so the capture is taken 16 deep: a box from
+        // x 82..118, y 52..88, z -22..-3 for this mirror, facing south.
+        final MirrorCapture fits = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build();
+        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, 83, 52, -22, 36, 37, 20, air).build();
+        final MirrorCapture shortAhead = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 19, air).build();
+        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, 82, 53, -22, 37, 36, 20, air).build();
 
         withServer(() ->
         {
-            assertFalse(MirrorCaptures.outgrown(mirror, fits), "as wide and as deep as one taken now");
-            assertTrue(MirrorCaptures.outgrown(mirror, narrow), "narrower than the configured radius");
-            assertTrue(MirrorCaptures.outgrown(mirror, shallow), "not as deep below the arrival point");
+            assertFalse(MirrorCaptures.outgrown(mirror, fits), "the box one taken now would be");
+            assertTrue(MirrorCaptures.outgrown(mirror, narrow), "a block short to one side");
+            assertTrue(MirrorCaptures.outgrown(mirror, shortAhead), "a block short ahead");
+            assertTrue(MirrorCaptures.outgrown(mirror, shallow), "a block short below");
         });
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
             assertTrue(MirrorCaptures.outgrown(mirror, narrow), "width is judged without the far world");
-            assertFalse(MirrorCaptures.outgrown(mirror, shallow), "depth is not: it could not be retaken anyway");
+            assertFalse(MirrorCaptures.outgrown(mirror, shallow), "height is not: it could not be retaken anyway");
         }
     }
 
