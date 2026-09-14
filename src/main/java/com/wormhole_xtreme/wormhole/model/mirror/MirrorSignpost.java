@@ -128,7 +128,13 @@ public final class MirrorSignpost
         {
             return;
         }
-        ActionBar.send(player,
-            MirrorText.approach(mirror.name(), mirror.destination().worldName()));
+        if (MirrorNetwork.reflects(mirror))
+        {
+            ActionBar.send(player, MirrorText.reflection(mirror.name()));
+            return;
+        }
+        final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
+        ActionBar.send(player, MirrorText.approach(mirror.name(),
+            (chosen == mirror) ? mirror.destination().worldName() : chosen.name()));
     }
 }

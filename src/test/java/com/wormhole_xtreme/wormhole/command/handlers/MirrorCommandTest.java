@@ -157,7 +157,8 @@ class MirrorCommandTest
         final QuantumMirror mirror = MirrorManager.byName("museum");
         assertNotNull(mirror, "the mirror should exist after set");
         assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
-        assertNull(mirror.destination(), "set names a banner; it does not point it anywhere");
+        assertEquals(new MirrorPoint("world", 1.5, 63, 1.5, 180f, 0f), mirror.destination(),
+            "its own room: in front of the banner, level with the bottom of the opening, facing out");
     }
 
     /**
@@ -214,7 +215,8 @@ class MirrorCommandTest
 
         final QuantumMirror moved = MirrorManager.byName("museum");
         assertEquals(new MirrorBlock("world", 1, 64, 1), moved.banner(), "moved to this banner");
-        assertEquals(far, moved.destination());
+        assertEquals(new MirrorPoint("world", 1.5, 63, 1.5, 180f, 0f), moved.destination(),
+            "a moved mirror's room is in front of the banner it hangs on now");
         assertEquals(MirrorLook.named("end"), moved.look(), "a move should keep the look");
         assertEquals(MirrorDisplay.PROXIMITY, moved.display());
         assertNull(MirrorManager.at(new MirrorBlock("world", 40, 64, 40)),
@@ -343,200 +345,6 @@ class MirrorCommandTest
 
         assertNull(MirrorManager.byName("museum"));
         verify(player, atLeastOnce()).sendMessage(contains("within six blocks"));
-    }
-
-    /** The second half: where you stand becomes where arrivals land. */
-    @Test
-    void targetPointsAMirrorAtWhereThePlayerStands()
-    {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("snapshot", 0, 64, 0), null));
-
-        assertTrue(run(player, "mirror", "target", "museum"));
-
-        final MirrorPoint destination = MirrorManager.byName("museum").destination();
-        assertNotNull(destination);
-        assertEquals("world", destination.worldName());
-        assertEquals(10.0, destination.x());
-    }
-
-    /**
-     * A mirror whose two ends share a world is refused, and the message names the setting.
-     *
-     * <p>This is the rule an admin is most likely to hit while doing something perfectly
-     * reasonable -- two points in one world is what a beam place is for -- so the refusal has
-     * to say both which worlds clashed and what to change if they meant it.
-     */
-    @Test
-    void targetRefusesWhenBothEndsAreInOneWorld()
-    {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0), null));
-
-        run(player, "mirror", "target", "museum");
-
-        assertNull(MirrorManager.byName("museum").destination(),
-            "the refusal has to leave the mirror as it was");
-        verify(player, atLeastOnce()).sendMessage(contains("mirror-allow-same-world"));
-    }
-
-    /** And is allowed once an admin turns the setting on. */
-    @Test
-    void targetAllowsOneWorldWhenTheSettingSaysSo()
-    {
-        ConfigTestSupport.set(
-            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_ALLOW_SAME_WORLD,
-            true);
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0), null));
-
-        run(player, "mirror", "target", "museum");
-
-        assertNotNull(MirrorManager.byName("museum").destination(),
-            "the setting exists precisely so this case can be allowed");
-    }
-
-    /** Naming a mirror that does not exist says so rather than creating one. */
-    @Test
-    void targetRefusesAnUnknownName()
-    {
-        run(player, "mirror", "target", "nothing-by-that-name");
-
-        verify(player, atLeastOnce()).sendMessage(contains("no mirror called"));
-    }
-
-    /** A mirror cannot open onto itself; the arrival would be where you already are. */
-    @Test
-    void linkRefusesAMirrorPointedAtItself()
-    {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 0, 64, 0), null));
-
-        run(player, "mirror", "link", "museum", "MUSEUM");
-
-        verify(player, atLeastOnce()).sendMessage(contains("cannot open onto itself"));
-    }
-
-    /**
-     * Linking ties two mirrors together, each opening onto the front of the other's banner.
-     *
-     * <p>The whole reason {@code link} exists: two commands instead of walking to both ends
-     * and running {@code target} at each. What it stores is a pair of ordinary points, so
-     * nothing downstream knows a second mirror was involved -- which is also why moving either
-     * banner afterwards does not follow.
-     *
-     * <p>Both ways since two-way linking replaced one-way. Pointing only the first was the
-     * commonest way to end up with a banner that did nothing when clicked, because the
-     * argument order is invisible once you have walked away from it.
-     */
-    @Test
-    void linkTiesTwoMirrorsTogetherBothWays()
-    {
-        final World snapshot = mock(World.class);
-        when(snapshot.getName()).thenReturn("snapshot");
-
-        final Directional farFacing = mock(Directional.class);
-        when(farFacing.getFacing()).thenReturn(BlockFace.SOUTH);
-        final Block farBanner = mock(Block.class);
-        when(farBanner.getBlockData()).thenReturn(farFacing);
-        when(farBanner.getLocation()).thenReturn(new Location(snapshot, 5.0, 64.0, 5.0));
-        when(snapshot.getBlockAt(5, 64, 5)).thenReturn(farBanner);
-
-        final Directional nearFacing = mock(Directional.class);
-        when(nearFacing.getFacing()).thenReturn(BlockFace.NORTH);
-        final Block nearBanner = mock(Block.class);
-        when(nearBanner.getBlockData()).thenReturn(nearFacing);
-        when(nearBanner.getLocation()).thenReturn(new Location(here, 0.0, 64.0, 0.0));
-        when(here.getBlockAt(0, 64, 0)).thenReturn(nearBanner);
-
-        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 0, 64, 0), null));
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("snapshot", 5, 64, 5), null));
-
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("snapshot")).thenReturn(snapshot);
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(here);
-
-            assertTrue(run(player, "mirror", "link", "lobby", "museum"));
-        }
-
-        final MirrorPoint outbound = MirrorManager.byName("lobby").destination();
-        assertNotNull(outbound, "lobby should open onto the front of museum's banner");
-        assertEquals("snapshot", outbound.worldName());
-        assertEquals(5.5, outbound.x(), 0.001, "centred in the banner's own block");
-        assertEquals(5.5, outbound.z(), 0.001);
-        assertEquals(0.0f, outbound.yaw(), 0.01f, "facing the way that banner faces");
-
-        final MirrorPoint back = MirrorManager.byName("museum").destination();
-        assertNotNull(back, "and museum should open back onto the front of lobby's banner");
-        assertEquals("world", back.worldName());
-        assertEquals(0.5, back.x(), 0.001);
-        assertEquals(0.5, back.z(), 0.001);
-        assertEquals(180.0f, back.yaw(), 0.01f);
-    }
-
-    /**
-     * Linking from a banner that is already a mirror links that mirror, not a second name.
-     *
-     * <p>It used to bind {@code museum-return} beside {@code lobby} on the same banner. Both
-     * were drawn through the one opening, each onto its own world, and only one could be clicked.
-     */
-    @Test
-    void linkFromABannerThatIsAlreadyAMirrorLinksThatMirror()
-    {
-        final World snapshot = mock(World.class);
-        when(snapshot.getName()).thenReturn("snapshot");
-
-        final Directional farFacing = mock(Directional.class);
-        when(farFacing.getFacing()).thenReturn(BlockFace.SOUTH);
-        final Block farBanner = mock(Block.class);
-        when(farBanner.getBlockData()).thenReturn(farFacing);
-        when(farBanner.getLocation()).thenReturn(new Location(snapshot, 5.0, 64.0, 5.0));
-        when(snapshot.getBlockAt(5, 64, 5)).thenReturn(farBanner);
-
-        final Directional nearFacing = mock(Directional.class);
-        when(nearFacing.getFacing()).thenReturn(BlockFace.NORTH);
-        final Block nearBanner = banner(Material.WHITE_WALL_BANNER);
-        when(nearBanner.getBlockData()).thenReturn(nearFacing);
-        when(nearBanner.getLocation()).thenReturn(new Location(here, 1.0, 64.0, 1.0));
-        when(here.getBlockAt(1, 64, 1)).thenReturn(nearBanner);
-        when(player.getTargetBlockExact(6)).thenReturn(nearBanner);
-
-        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 1, 64, 1), null));
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("snapshot", 5, 64, 5), null));
-
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("snapshot")).thenReturn(snapshot);
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(here);
-
-            assertTrue(run(player, "mirror", "link", "museum"));
-        }
-
-        assertNull(MirrorManager.byName("museum-return"), "the banner is lobby already; a second name would draw twice");
-        assertEquals(2, MirrorManager.count());
-        assertNotNull(MirrorManager.byName("lobby").destination(), "lobby is the half that opens onto museum");
-        assertEquals("world", MirrorManager.byName("museum").destination().worldName(), "and museum opens back onto lobby");
-    }
-
-    /**
-     * Linking to a mirror whose world is not loaded says so.
-     *
-     * <p>The facing has to be read off the live block -- it is recorded nowhere else -- so a
-     * mirror in a world that is not up cannot be the target of a link. It can still be the
-     * source of one, which is why the message names the world rather than refusing the mirror.
-     */
-    @Test
-    void linkRefusesWhenTheTargetsWorldIsNotLoaded()
-    {
-        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 0, 64, 0), null));
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("archive", 5, 64, 5), null));
-
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("archive")).thenReturn(null);
-
-            run(player, "mirror", "link", "lobby", "museum");
-        }
-
-        assertNull(MirrorManager.byName("lobby").destination());
-        verify(player, atLeastOnce()).sendMessage(contains("archive"));
     }
 
     /** Removing gives the banner back. */
@@ -699,8 +507,7 @@ class MirrorCommandTest
     {
         final CommandSender console = mock(CommandSender.class);
 
-        assertTrue(run(console, "mirror", "set", "museum"));
-        assertTrue(run(console, "mirror", "target", "museum"));
+        assertTrue(run(console, "mirror", "create", "museum"));
 
         verify(console, atLeastOnce()).sendMessage(contains("has to be run in game"));
     }
@@ -787,15 +594,17 @@ class MirrorCommandTest
      * anything, which is exactly what was reported.
      */
     @Test
-    void setBindsAFreestandingBannerTheRayTraceMissed()
+    void setFindsAFreestandingBannerTheRayTraceMissedAndRefusesIt()
     {
         final Block post = banner(Material.WHITE_BANNER);
+        when(post.getBlockData()).thenReturn(mock(org.bukkit.block.data.Rotatable.class));
         when(player.getTargetBlockExact(6)).thenReturn(null);
         when(player.getLineOfSight(null, 6)).thenReturn(java.util.List.of(post));
 
         assertTrue(run(player, "mirror", "set", "Post"));
 
-        assertNotNull(MirrorManager.byName("Post"), "the banner on a post should have been named");
+        assertNull(MirrorManager.byName("Post"), "a banner on a post is not a mirror any more");
+        verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
     }
 
     /**
@@ -864,14 +673,16 @@ class MirrorCommandTest
      * named.
      */
     @Test
-    void namingABannerOnAPostSaysToClickItsBase()
+    void namingABannerOnAPostIsRefusedBeforeAnyAdviceAboutItsBase()
     {
         final Block post = banner(Material.WHITE_BANNER);
+        when(post.getBlockData()).thenReturn(mock(org.bukkit.block.data.Rotatable.class));
         when(player.getTargetBlockExact(6)).thenReturn(post);
 
         assertTrue(run(player, "mirror", "set", "Post"));
 
-        verify(player, atLeastOnce()).sendMessage(contains("click near its base"));
+        verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
+        verify(player, never()).sendMessage(contains("click near its base"));
     }
 
     /**

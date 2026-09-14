@@ -30,6 +30,26 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **Every mirror is on the network: it reflects its own room, a right-click chooses another, and a
+  punch goes through.** "I removed all mirrors and set the first one. It's asking to link, which
+  we should no longer be doing." A mirror no longer points anywhere by hand. `mirror create`
+  stores its own room -- the block in front of the banner, level with the bottom of the opening,
+  facing out -- and walking up to it shows that room flipped across the wall, as a mirror does,
+  with nobody in it. Blocks are flipped rather than turned (`BlockData.mirror`, on every version
+  from 1.20), so stairs and doors keep their side.
+
+  A right-click moves the mirror on to the next one: its own room first, then every other mirror
+  by name, then back. "No other mirrors found" when there are none. Alone at a mirror you can
+  click through them as fast as you like; with somebody else there, what it shows stays up three
+  seconds before it can change. A punch goes to the mirror chosen and lands in front of its
+  banner; punching a mirror that shows its own room says to right-click first. When nobody is
+  near a mirror any more it goes back to its own room. Only the main hand's half of a click
+  counts, or one press would skip a mirror.
+
+  `mirror link` and `mirror target` are gone, and with them the `-return` names. `create` is the
+  verb now, and `set` still works. A mirror saved before this keeps opening where it was pointed
+  until it is created again.
+
 - **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
   behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
   A banner on a post in the open showed the far world past its edges however the view was

@@ -231,6 +231,30 @@ class MirrorWindowTest
         assertArrayEquals(new double[] { 0.0, -0.5, 0.0 }, window.farDirection(0.0, -0.5, 0.0), 1.0e-9);
     }
 
+    /**
+     * A reflection shows the room in front of the wall flipped across it, not turned round.
+     *
+     * <p>The banner faces north, so its own room lies to the north and the view lies behind the
+     * wall to the south. One block along to the east behind the wall shows one block along to the
+     * east in front of it, as a mirror does; a window onto the same room would show the west.
+     */
+    @Test
+    void aReflectionKeepsEachBlockOnItsOwnSideOfTheRoom()
+    {
+        final MirrorPoint room = new MirrorPoint("world", 0.5, 63, 0.5, 180.0f, 0.0f);
+        final MirrorWindow reflection = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH,
+            false, room, true);
+        final MirrorWindow window = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH,
+            false, room);
+
+        assertEquals(new Spot(0, 63, 0), reflection.farOf(0, 63, 2),
+            "the first block behind the wall shows the banner's own block, in front of it");
+        assertEquals(new Spot(1, 63, -1), reflection.farOf(1, 63, 3), "east behind the wall shows east in front");
+        assertEquals(new Spot(-1, 63, -1), window.farOf(1, 63, 3), "where a window turned round shows the west");
+        assertEquals(new Spot(1, 63, 3), reflection.hereOf(1, 63, -1), "and back again");
+        assertEquals(0, reflection.quarterTurns(), "flipped, so no turn on top");
+    }
+
     private static double distance(final Spot spot, final double x, final double y, final double z)
     {
         final double dx = (spot.x() + 0.5) - x;

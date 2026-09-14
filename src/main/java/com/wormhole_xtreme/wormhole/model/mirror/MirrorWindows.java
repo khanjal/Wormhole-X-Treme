@@ -273,6 +273,8 @@ public final class MirrorWindows
         private final MirrorCapture capture;
         /** The turn far-side blocks need to face the right way here. */
         private final StructureRotation rotation;
+        /** The flip across the wall a reflection's blocks need, or none. */
+        private final org.bukkit.block.structure.Mirror flip;
         /** Far-side states turned by {@link #rotation}, each turned once. */
         private final Map<BlockData, BlockData> turned = new IdentityHashMap<>();
         private Set<Long> solid = Set.of();
@@ -306,6 +308,16 @@ public final class MirrorWindows
                 case 3 -> StructureRotation.COUNTERCLOCKWISE_90;
                 default -> StructureRotation.NONE;
             };
+            // A reflection is flipped across the wall, not turned: stairs and doors keep their side.
+            if (!shape.mirrored())
+            {
+                this.flip = org.bukkit.block.structure.Mirror.NONE;
+            }
+            else
+            {
+                this.flip = (shape.into().x() != 0) ? org.bukkit.block.structure.Mirror.FRONT_BACK
+                    : org.bukkit.block.structure.Mirror.LEFT_RIGHT;
+            }
             open.forEach(cell -> openKeys.add(key(cell.x(), cell.y(), cell.z())));
         }
     }
@@ -461,23 +473,26 @@ public final class MirrorWindows
         {
             return false;
         }
+        // The room of the mirror chosen at it, or its own, shown as a reflection.
+        final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
+        final QuantumMirror showing = (chosen == mirror) ? mirror : mirror.withDestination(chosen.destination());
         final MirrorWindow shape = MirrorWindow.of(mirror.banner(), MirrorArrival.facingOf(data),
-            standing, mirror.destination());
+            standing, showing.destination(), MirrorNetwork.reflects(mirror));
         if (shape == null)
         {
             return false;
         }
-        final MirrorCapture capture = MirrorCaptures.get(mirror);
+        final MirrorCapture capture = MirrorCaptures.get(showing);
         if (capture == null)
         {
-            MirrorCaptures.request(mirror);
+            MirrorCaptures.request(showing);
             return false;
         }
-        if (MirrorCaptures.due(mirror, capture) || MirrorCaptures.outgrown(mirror, capture))
+        if (MirrorCaptures.due(showing, capture) || MirrorCaptures.outgrown(showing, capture))
         {
-            MirrorCaptures.request(mirror);
+            MirrorCaptures.request(showing);
         }
-        final Window window = new Window(mirror, shape, banner, openCells(shape, banner.getWorld()),
+        final Window window = new Window(showing, shape, banner, openCells(shape, banner.getWorld()),
             capture);
         window.standing = standing;
         final Window previous = WINDOWS.get(mirror.name());
@@ -617,6 +632,26 @@ public final class MirrorWindows
                     update(player, player.getEyeLocation(), now, false);
                 }
             }
+        }
+    }
+
+    /**
+     * Sends a player's whole view again at the next chance.
+     *
+     * <p>A click on a mirror the server refuses -- a punch that does not break, a right-click that
+     * places nothing -- makes the server send that block as it really is, over the view.
+     *
+     * @param player
+     *            who clicked
+     */
+    public static void resend(final Player player)
+    {
+        final View view = VIEWS.get(player.getUniqueId());
+        if (view != null)
+        {
+            view.fullAt = 0L;
+            view.composedAt = 0L;
+            view.eye = Long.MIN_VALUE;
         }
     }
 
@@ -1274,7 +1309,9 @@ public final class MirrorWindows
         for (final Window window : seeing)
         {
             final Whole whole = fixed.get(window);
-            stamp.append(window.mirror.name()).append('=')
+            // Where it opens onto too: a right-click changes that without changing anything else.
+            stamp.append(window.mirror.name()).append('@').append(window.shape.far())
+                .append(window.shape.mirrored() ? "~" : "").append('=')
                 .append((whole == null) ? 0 : System.identityHashCode(whole.blocks())).append(';');
         }
         return stamp.toString();
@@ -1470,7 +1507,8 @@ public final class MirrorWindows
      */
     private static BlockData turned(final Window window, final BlockData data)
     {
-        if ((data == null) || (window.rotation == StructureRotation.NONE))
+        if ((data == null) || ((window.rotation == StructureRotation.NONE)
+            && (window.flip == org.bukkit.block.structure.Mirror.NONE)))
         {
             return data;
         }
@@ -1481,7 +1519,14 @@ public final class MirrorWindows
             {
                 return original;
             }
-            copy.rotate(window.rotation);
+            if (window.rotation != StructureRotation.NONE)
+            {
+                copy.rotate(window.rotation);
+            }
+            if (window.flip != org.bukkit.block.structure.Mirror.NONE)
+            {
+                copy.mirror(window.flip);
+            }
             return copy;
         });
     }

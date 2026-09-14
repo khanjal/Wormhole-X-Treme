@@ -51,9 +51,9 @@ class MirrorTabCompletionTest
     {
         final List<String> verbs = complete("mirror", "");
 
-        assertTrue(verbs.contains("set"), "got " + verbs);
-        assertTrue(verbs.contains("target"));
-        assertTrue(verbs.contains("link"));
+        assertTrue(verbs.contains("create"), "got " + verbs);
+        assertFalse(verbs.contains("target"), "every mirror is on the network, so none is pointed by hand");
+        assertFalse(verbs.contains("link"));
         assertTrue(verbs.contains("remove"));
         assertTrue(verbs.contains("list"));
     }
@@ -62,28 +62,15 @@ class MirrorTabCompletionTest
     @Test
     void theVerbsFilterOnThePrefix()
     {
-        // Declaration order, which is the order the usage line prints them in.
-        assertEquals(List.of("link", "list"), complete("mirror", "l"),
-            "only the two verbs beginning with l");
+        assertEquals(List.of("list"), complete("mirror", "l"), "list is the one verb beginning with l");
     }
 
     /** A verb that acts on an existing mirror completes from the ones that exist. */
     @Test
-    void targetAndRemoveCompleteFromExistingMirrors()
+    void removeCompletesFromExistingMirrors()
     {
-        assertTrue(complete("mirror", "target", "").contains("museum"));
-        assertTrue(complete("mirror", "remove", "").contains("lobby"));
+        assertTrue(complete("mirror", "remove", "").contains("museum"));
         assertEquals(List.of("lobby"), complete("mirror", "remove", "lo"));
-    }
-
-    /** link names two of them, so both positions complete. */
-    @Test
-    void linkCompletesBothOfItsNames()
-    {
-        assertTrue(complete("mirror", "link", "").contains("museum"),
-            "the mirror being pointed");
-        assertTrue(complete("mirror", "link", "lobby", "").contains("museum"),
-            "and the one it is pointed at");
     }
 
     /**
@@ -113,7 +100,6 @@ class MirrorTabCompletionTest
     {
         assertTrue(complete("mirror", "remove", "museum", "").isEmpty(),
             "remove takes one name, not two");
-        assertTrue(complete("mirror", "link", "lobby", "museum", "").isEmpty());
     }
 
     /**

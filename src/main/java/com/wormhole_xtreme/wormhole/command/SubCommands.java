@@ -415,12 +415,10 @@ public final class SubCommands
         // Named rather than excluded. Falling through for anything that is not set or list
         // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
         // which reads as though the typo were a real command.
-        final boolean takesOneName = "target".equals(verb) || REMOVE.equals(verb)
+        final boolean takesOneName = REMOVE.equals(verb)
             || "display".equals(verb) || "mode".equals(verb);
-        // link takes the existing mirror first now, and an optional name for this side.
-        final boolean takesTwoNames = "link".equals(verb);
         final boolean stamp = "stamp".equals(verb);
-        if ((args.length == 3) && (takesOneName || takesTwoNames || stamp))
+        if ((args.length == 3) && (takesOneName || stamp))
         {
             // And what the verb takes instead of a name, where it takes one. display, mode and
             // stamp act on the banner being looked at when no name is given, so the third word
@@ -428,10 +426,6 @@ public final class SubCommands
             // that the name is optional at all.
             return prefixed(args[2],
                 both(mirrorNames(), stamp ? presetNames() : settingsFor(verb)));
-        }
-        if ((args.length == 4) && takesTwoNames)
-        {
-            return prefixed(args[3], mirrorNames());
         }
         // Presets, not mirrors, and the empty offer is the point: leaving it blank is what
         // makes stamp read the far side rather than apply a look somebody picked.

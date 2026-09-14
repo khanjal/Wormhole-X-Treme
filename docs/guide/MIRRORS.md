@@ -1,18 +1,18 @@
 # Quantum mirrors
 
-A **quantum mirror** is a banner. Walk up to it, right-click, and you are in another world. Why it
-works the way it does — how a banner reads its destination, the look library, what was tried and
-dropped — is in the design notes, **[docs/MIRRORS.md](../MIRRORS.md)**.
+A **quantum mirror** is a banner on a wall. Walk up to it and it shows its own room, as a mirror
+does; right-click it to choose another mirror, and punch it to go through. Why it works the way it
+does — the look library, what was tried and dropped — is in the design notes,
+**[docs/MIRRORS.md](../MIRRORS.md)**.
 
-Nothing is built: no frame, no pad, no partner. That is why a corridor lined with mirrors is
-practical in a way a corridor of gates is not.
+Nothing is built: no frame, no pad, no partner.
 
-- **One-way by design.** A mirror sends you somewhere; that place does not know about it. To come
-  back, put a mirror at the far end pointing home. That is what lets a mirror open onto an archived
-  world you would rather not build in at all.
-- **Cross-world, and refuses otherwise.** A beam place is for points in the same world. Set
-  `mirror-allow-same-world: true` if you want one anyway.
-- One world can hold as many mirrors as you like, each opening onto a different world.
+- **Every mirror is on the network.** Nothing is pointed by hand. A right-click walks the other
+  mirrors, and a punch goes to the one showing.
+- **One to a world** by default (`mirror-per-world-limit`, 0 for no limit), so the list a
+  right-click walks is the worlds you can reach.
+- **On a wall, and it stays there.** A mirror needs solid wall two blocks out on every side of its
+  opening, and neither the banner nor that wall can be broken while it is a mirror.
 
 ## Contents
 
@@ -26,40 +26,33 @@ practical in a way a corridor of gates is not.
 
 ## Setting one up
 
-A pair of banners that lead to each other:
+Hang a banner on a wall, look at it, and:
 
 ```
-/wormhole mirror set nether      # looking at the banner in the overworld
-/wormhole mirror link nether     # looking at the banner in the nether
+/wormhole mirror create library
 ```
 
-That is the whole job. The second banner is bound for you — `nether-return`, unless you name it
-(`/wormhole mirror link nether home`) — and each points at the other. If the second banner is
-already a mirror, that mirror is the one linked; a banner is never two mirrors at once.
+That is the whole job. A plain white banner gets the `mirror` look; one you patterned first keeps
+its patterns. Walk up to it and it shows its own room, flipped across the wall, with nobody in it.
 
-One way, to a place with no banner:
+Make a mirror in another world the same way, and the two find each other:
 
-```
-/wormhole mirror set museum        # looking at the banner
-/wormhole mirror target museum     # standing where people should arrive
-```
+- **Right-click** a mirror to move it on to the next one — its own room first, then every other
+  mirror by name, then back. With no others it says "No other mirrors found". Alone, click through
+  them as fast as you like; with somebody else at the mirror, what it shows stays up three seconds.
+- **Punch** it to go to the mirror it is showing. You land in front of that mirror's banner, facing
+  out into its room.
+- **Walk away** and, once nobody is near, it goes back to its own room.
 
-**You arrive at the far banner itself**, where somebody who had just touched it would stand, looking
-out into the room — not a block in front, which could be a wall or a drop.
-
-`link` is a snapshot. Move either banner afterwards and run `link` again.
-
-Wall and standing banners both work. Clicking a mirror that is named but not pointed tells you the
-commands to finish it — if you could run them; anyone else just hears it does not open onto
-anywhere yet.
+A mirror needs solid wall two blocks out on every side of its opening — a gap is refused by the
+block to fill — and a banner on a post cannot be one. While it is a mirror, neither the banner nor
+that wall can be broken; `mirror remove` takes it down.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `mirror set <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror create` also works) |
-| `mirror target <name>` | Points it at where you are standing |
-| `mirror link <other> [name]` | Joins the banner you are looking at to that mirror, both ways |
+| `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror set` also works) |
 | `mirror stamp [name] [look]` | Makes the banner look like where it goes |
 | `mirror display [name] <always\|proximity>` | Show its look always, or only up close |
 | `mirror mode [name] <static\|dynamic>` | Keep the look, or re-read the far side |
@@ -79,9 +72,6 @@ you leave the name out:
 /wormhole mirror display proximity  # only show its look up close
 /wormhole mirror remove             # give the banner back
 ```
-
-Which is mostly for the far half of a pair. `link` names it for you — `nether-return` — and that
-is the name you are least likely to remember while standing in front of it.
 
 A mirror's name still wins where a word could be either. `stamp cavern` is the mirror called
 `cavern` if there is one, and the *look* called `cavern` only if there is not. Setting words are

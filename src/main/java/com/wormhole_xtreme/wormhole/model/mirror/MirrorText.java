@@ -98,8 +98,20 @@ public final class MirrorText
      */
     public static String approach(final String name, final String worldName)
     {
-        return "§3:: " + NAME_COLOUR + name + BODY_COLOUR + " -- click to travel to "
-            + NAME_COLOUR + worldName + BODY_COLOUR + ".";
+        return "§3:: " + NAME_COLOUR + name + BODY_COLOUR + " -- punch to travel to "
+            + NAME_COLOUR + worldName + BODY_COLOUR + ", right-click for another.";
+    }
+
+    /**
+     * The action bar line for a mirror showing its own room.
+     *
+     * @param name
+     *            the mirror
+     * @return the formatted line
+     */
+    public static String reflection(final String name)
+    {
+        return "§3:: " + NAME_COLOUR + name + BODY_COLOUR + " -- right-click to choose a mirror.";
     }
 
     /**

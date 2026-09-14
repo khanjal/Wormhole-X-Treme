@@ -15,8 +15,9 @@ import org.bukkit.block.BlockFace;
  * <p>Plain numbers only, so all of it is testable without a server. {@link MirrorWindows} is the
  * part that reads blocks and sends them.
  *
- * <p>Right through the opening is right at the far side, not left: this is a window onto where
- * the mirror goes, not a reflection of it.
+ * <p>Right through the opening is right at the far side, not left, for a window onto another
+ * mirror's room. A mirror showing its own room is {@code mirrored}: flipped across the wall, so a
+ * step to the right behind it shows a step to the right in front of it.
  *
  * @param base
  *            the middle of the opening's bottom row
@@ -28,8 +29,25 @@ import org.bukkit.block.BlockFace;
  *            one step the way a traveller faces on arrival
  */
 public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, MirrorWindow.Spot far,
-    MirrorWindow.Spot ahead)
+    MirrorWindow.Spot ahead, boolean mirrored)
 {
+    /**
+     * A window onto somewhere, not a reflection.
+     *
+     * @param base
+     *            the opening's bottom middle block
+     * @param into
+     *            one step from the opening into the wall
+     * @param far
+     *            the far block the opening's bottom middle shows
+     * @param ahead
+     *            one step the way a traveller faces on arrival
+     */
+    public MirrorWindow(final Spot base, final Spot into, final Spot far, final Spot ahead)
+    {
+        this(base, into, far, ahead, false);
+    }
+
     /** How wide the opening is, in blocks: the banner's own column. */
     static final int WIDTH = 1;
 
@@ -165,6 +183,28 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
         final boolean standing, final MirrorPoint destination)
     {
+        return of(banner, facing, standing, destination, false);
+    }
+
+    /**
+     * The window a banner makes, onto somewhere or as a reflection of its own room.
+     *
+     * @param banner
+     *            the banner block
+     * @param facing
+     *            which way the banner faces
+     * @param standing
+     *            true for a freestanding banner
+     * @param destination
+     *            where the mirror goes; for a reflection, its own room
+     * @param mirrored
+     *            true to show the far side flipped across the wall, as a mirror does, rather
+     *            than turned to face the viewer
+     * @return the window, or null for a banner facing no usable way or a mirror going nowhere
+     */
+    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
+        final boolean standing, final MirrorPoint destination, final boolean mirrored)
+    {
         if ((banner == null) || (destination == null) || (facing == null))
         {
             return null;
@@ -180,7 +220,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             new Spot(banner.x() + into.x(), bottom, banner.z() + into.z()),
             into,
             new Spot(floor(destination.x()), floor(destination.y()), floor(destination.z())),
-            aheadOf(destination.yaw()));
+            aheadOf(destination.yaw()), mirrored);
     }
 
     /**
@@ -343,7 +383,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public double[] farDirection(final double dx, final double dy, final double dz)
     {
         final Spot right = rightOf(into);
-        final Spot farRight = rightOf(ahead);
+        final Spot farRight = farRight();
         final double along = (dx * into.x()) + (dz * into.z());
         final double across = (dx * right.x()) + (dz * right.z());
         return new double[] { (along * ahead.x()) + (across * farRight.x()), dy,
@@ -501,7 +541,15 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      */
     int quarterTurns()
     {
-        return Math.floorMod(compass(into) - compass(ahead), 4);
+        // A reflection is flipped across the wall, not turned.
+        return mirrored ? 0 : Math.floorMod(compass(into) - compass(ahead), 4);
+    }
+
+    /** Which way along the far side a step to the right through the opening goes: flipped in a reflection. */
+    private Spot farRight()
+    {
+        final Spot right = rightOf(ahead);
+        return mirrored ? new Spot(-right.x(), 0, -right.z()) : right;
     }
 
     /** North 0, east 1, south 2, west 3: clockwise from above. */
@@ -532,7 +580,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public Spot hereOf(final int farX, final int farY, final int farZ)
     {
         final Spot right = rightOf(into);
-        final Spot farRight = rightOf(ahead);
+        final Spot farRight = farRight();
         final int dx = farX - far.x();
         final int dz = farZ - far.z();
         final int depth = ((dx * ahead.x()) + (dz * ahead.z())) + 1;
@@ -545,7 +593,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public Spot farOf(final int x, final int y, final int z)
     {
         final Spot right = rightOf(into);
-        final Spot farRight = rightOf(ahead);
+        final Spot farRight = farRight();
         final int dx = x - base.x();
         final int dz = z - base.z();
         final int depth = (dx * into.x()) + (dz * into.z());

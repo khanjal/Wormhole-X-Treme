@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -22,9 +24,11 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
@@ -32,13 +36,14 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 
 /**
- * Clicking a banner, and — mostly — clicking everything that is not one.
+ * Clicking a mirror -- a right-click chooses where it opens onto, a punch goes through -- and,
+ * mostly, clicking everything that is not one.
  *
- * <p>This handler runs on every right-click of every block on the server, so the case that
- * matters most is the one that happens millions of times and must do almost nothing. The
- * ordering inside it is a performance decision with a test of its own in
- * {@code InteractLoggingCostTest}, which fails if this path so much as asks a block for its
- * world; the tests here pin the behaviour that ordering has to preserve.
+ * <p>This handler runs on every click of every block on the server, so the case that matters
+ * most is the one that happens millions of times and must do almost nothing. The ordering inside
+ * it is a performance decision with a test of its own in {@code InteractLoggingCostTest}, which
+ * fails if this path so much as asks a block for its world; the tests here pin the behaviour
+ * that ordering has to preserve.
  */
 class MirrorInteractionTest
 {
@@ -48,21 +53,20 @@ class MirrorInteractionTest
     @BeforeEach
     void setUp() throws Exception
     {
-        // Reached as soon as a click lands on a bound mirror: the permission check logs
-        // through the plugin singleton, so without one these tests fail on an NPE from inside
-        // WXPermissions rather than on anything they are actually about.
+        // Reached as soon as a click lands on a mirror: the permission check logs through the
+        // plugin singleton, so without one these tests fail on an NPE from inside WXPermissions
+        // rather than on anything they are actually about.
         PluginTestSupport.install(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
         MirrorManager.clear();
         MirrorSettle.clear();
+        MirrorNetwork.clear();
         player = mock(Player.class);
         // MirrorSettle keys on the UUID, and an unstubbed mock answers null for it -- which
         // reaches ConcurrentHashMap.get and throws from inside plugin code, in every test that
         // gets as far as travelling. A real Player always has one.
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         // Travel is behind the USE node. Without this the handler refuses on permission and
-        // returns before reaching anything below -- which still claims the click and still
-        // does not teleport, so a test asserting only those two would pass for the wrong
-        // reason and never exercise the path it names.
+        // returns before reaching anything below.
         when(player.isOp()).thenReturn(true);
         world = mock(World.class);
         when(world.getName()).thenReturn("world");
@@ -73,6 +77,7 @@ class MirrorInteractionTest
     {
         MirrorManager.clear();
         MirrorSettle.clear();
+        MirrorNetwork.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -88,9 +93,23 @@ class MirrorInteractionTest
         return block;
     }
 
+    /** A mirror on this banner storing its own room, which is what a new mirror does. */
+    private QuantumMirror reflecting(final String name, final Block banner)
+    {
+        final QuantumMirror mirror = new QuantumMirror(name, MirrorBlock.of(banner),
+            new MirrorPoint("world", banner.getX() + 0.5, 63, 0.5, 180f, 0f));
+        MirrorManager.add(mirror);
+        return mirror;
+    }
+
     private PlayerInteractEvent click(final Block block)
     {
         return new PlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, null, block, BlockFace.UP);
+    }
+
+    private PlayerInteractEvent punch(final Block block)
+    {
+        return new PlayerInteractEvent(player, Action.LEFT_CLICK_BLOCK, null, block, BlockFace.UP);
     }
 
     /**
@@ -98,8 +117,8 @@ class MirrorInteractionTest
      *
      * <p>The whole-server hot path. Asking the registry means building a key, and building a
      * key means {@code getWorld()} -- so the block's type is checked first and a stone block
-     * never gets that far. Verifying the absence here is the point: it is the only way to
-     * tell "answered no cheaply" from "answered no expensively".
+     * never gets that far. Verifying the absence here is the point: it is the only way to tell
+     * "answered no cheaply" from "answered no expensively".
      */
     @Test
     void clickingAnOrdinaryBlockIsNotAMirrorAndDoesNotAskItsWorld()
@@ -107,28 +126,26 @@ class MirrorInteractionTest
         final Block stone = block(Material.STONE, 5);
 
         assertFalse(MirrorInteraction.handle(click(stone)));
+        assertFalse(MirrorInteraction.handle(punch(stone)));
 
         verify(stone, never()).getWorld();
-        verify(player, never()).teleport(any(org.bukkit.Location.class));
+        verify(player, never()).teleport(any(Location.class));
     }
 
-    /** A banner that nobody has bound is still just a banner. */
+    /** A banner that nobody has made a mirror is still just a banner. */
     @Test
-    void clickingAnUnboundBannerDoesNothing()
+    void punchingABannerThatIsNotAMirrorDoesNothing()
     {
-        assertFalse(MirrorInteraction.handle(click(block(Material.WHITE_WALL_BANNER, 5))));
+        assertFalse(MirrorInteraction.handle(punch(block(Material.WHITE_WALL_BANNER, 5))));
 
-        verify(player, never()).teleport(any(org.bukkit.Location.class));
+        verify(player, never()).teleport(any(Location.class));
     }
 
     /**
      * Both banner families are recognised.
      *
-     * <p>Sixteen wall banners and sixteen freestanding ones, one of each per dye colour.
-     * Recognising only the wall family would work on every test server built against a wall
-     * and fail on every banner on a post -- which is most of a museum corridor. Checked on a
-     * freestanding banner of a colour nobody would pick first, so a hardcoded list would have
-     * to be genuinely complete rather than merely plausible.
+     * <p>A mirror can no longer be made on a post, but one made before that rule still answers
+     * its clicks rather than being silently ignored.
      */
     @Test
     void aFreestandingBannerOfAnyColourIsRecognised()
@@ -136,50 +153,33 @@ class MirrorInteractionTest
         final Block banner = block(Material.MAGENTA_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
 
-        assertTrue(MirrorInteraction.handle(click(banner)),
-            "a freestanding banner is a mirror as much as a wall-mounted one");
+        assertTrue(MirrorInteraction.handle(punch(banner)), "a mirror claims its own click");
     }
 
     /**
-     * A mirror that has been named but not pointed says so, and says what to do about it.
+     * A mirror with no room says so, and says how to give it one.
      *
-     * <p>The event is still claimed, so the click does not fall through to placing a block
-     * against the banner. "Nothing happened" on a block you just clicked is the least useful
-     * answer available -- and "this does not go anywhere yet", while true, is the second least,
-     * because it is said at the one moment somebody has demonstrated they want this banner to
-     * work and is standing in front of it.
-     *
-     * <p>Both routes, because they answer different questions: {@code link} for a banner at the
-     * far end, {@code target} for arriving somewhere with no banner at all. The mirror's own
-     * name goes in both, so the line can be typed as it stands.
+     * <p>Only a mirror from before the network is like this; making one stores its room. The
+     * event is still claimed, so the click does not fall through to anything else.
      */
     @Test
-    void clickingAMirrorWithNoDestinationSaysHowToPointIt()
+    void punchingAMirrorWithNoRoomSaysHowToSetItUp()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
 
-        assertTrue(MirrorInteraction.handle(click(banner)), "a mirror claims its own click");
-        verify(player, never()).teleport(any(org.bukkit.Location.class));
+        assertTrue(MirrorInteraction.handle(punch(banner)), "a mirror claims its own click");
+        verify(player, never()).teleport(any(Location.class));
         verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
         verify(player, atLeastOnce()).sendMessage(contains(
-            MirrorText.COMMAND_COLOUR + "/wormhole mirror link "
-                + MirrorText.NAME_COLOUR + "Museum"));
-        verify(player, atLeastOnce()).sendMessage(contains(
-            MirrorText.COMMAND_COLOUR + "/wormhole mirror target "
-                + MirrorText.NAME_COLOUR + "Museum"));
+            MirrorText.COMMAND_COLOUR + "/wormhole mirror create " + MirrorText.NAME_COLOUR + "Museum"));
     }
 
     /**
-     * A visitor who could not run those commands is not given them.
-     *
-     * <p>Handing somebody two commands they have no permission for reads as the plugin telling
-     * them to do something, and they would be right to try. They get the plain sentence, which
-     * still beats a click that does nothing.
+     * A visitor who could not run that command is not given it.
      *
      * <p>Simple mode on purpose: it is the arrangement where a player may travel but not
-     * configure, which is exactly the split being tested. With a permissions plugin the same
-     * player would fail the USE check first and never reach this line.
+     * configure, which is exactly the split being tested.
      */
     @Test
     void aPlayerWhoCannotConfigureIsNotToldToRunCommands()
@@ -189,65 +189,118 @@ class MirrorInteractionTest
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
 
-        assertTrue(MirrorInteraction.handle(click(banner)), "a mirror still claims its click");
+        assertTrue(MirrorInteraction.handle(punch(banner)), "a mirror still claims its click");
         verify(player, atLeastOnce()).sendMessage(contains("does not open onto anywhere yet"));
         verify(player, never()).sendMessage(contains("/wormhole mirror"));
     }
 
     /**
-     * A left click is not a use.
+     * Punching a mirror that shows its own room goes nowhere, and says what to do first.
      *
-     * <p>Breaking a banner starts with hitting it, and a mirror that teleported on the first
-     * swing would be impossible to take down.
+     * <p>A reflection is not somewhere to go. Stepping into it would put you back where you
+     * stand, which reads as a mirror that does not work.
      */
     @Test
-    void hittingAMirrorIsNotClickingIt()
+    void punchingAMirrorShowingItsOwnRoomSaysToChooseFirst()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
-        MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner), null));
+        reflecting("Museum", banner);
 
-        assertFalse(MirrorInteraction.handle(new PlayerInteractEvent(
-            player, Action.LEFT_CLICK_BLOCK, null, banner, BlockFace.UP)));
-        verify(player, never()).teleport(any(org.bukkit.Location.class));
+        assertTrue(MirrorInteraction.handle(punch(banner)));
+
+        verify(player, never()).teleport(any(Location.class));
+        verify(player, atLeastOnce()).sendMessage(contains("Right-click"));
+    }
+
+    /** Right-clicking the only mirror there is says there is nowhere else. */
+    @Test
+    void rightClickingTheOnlyMirrorSaysThereAreNoOthers()
+    {
+        final Block banner = block(Material.WHITE_WALL_BANNER, 5);
+        reflecting("Museum", banner);
+
+        assertTrue(MirrorInteraction.handle(click(banner)));
+
+        verify(player, atLeastOnce()).sendMessage(contains("No other mirrors found"));
+        verify(player, never()).teleport(any(Location.class));
+    }
+
+    /**
+     * A right-click moves the mirror on to the next one, and a punch then goes there.
+     *
+     * <p>Where it lands is the other mirror's room: in front of its banner, not in its wall.
+     */
+    @Test
+    void rightClickingChoosesTheNextMirrorAndPunchingGoesThere()
+    {
+        final Block here = block(Material.WHITE_WALL_BANNER, 5);
+        final Block there = block(Material.WHITE_WALL_BANNER, 9);
+        final QuantumMirror museum = reflecting("Museum", here);
+        reflecting("Library", there);
+        when(player.teleport(any(Location.class))).thenReturn(true);
+
+        assertTrue(MirrorInteraction.handle(click(here)));
+        verify(player, atLeastOnce()).sendMessage(contains("opens onto"));
+        assertEquals("Library", MirrorNetwork.chosen(museum).name());
+
+        travelTo(here, "world");
+
+        final ArgumentCaptor<Location> landed = ArgumentCaptor.forClass(Location.class);
+        verify(player).teleport(landed.capture());
+        assertEquals(9.5, landed.getValue().getX(), 0.001, "in front of Library's banner");
+        assertEquals(63.0, landed.getValue().getY(), 0.001, "level with the bottom of its opening");
+    }
+
+    /**
+     * A right-click arrives once for each hand, and only the first moves the mirror.
+     *
+     * <p>Otherwise one press would skip a mirror every time, and with two mirrors it would land
+     * straight back where it started.
+     */
+    @Test
+    void theOffHandHalfOfARightClickDoesNothing()
+    {
+        final Block here = block(Material.WHITE_WALL_BANNER, 5);
+        final QuantumMirror museum = reflecting("Museum", here);
+        reflecting("Library", block(Material.WHITE_WALL_BANNER, 9));
+
+        assertTrue(MirrorInteraction.handle(new PlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK,
+            null, here, BlockFace.UP, EquipmentSlot.OFF_HAND)), "the off hand's half is still claimed");
+
+        assertEquals("Museum", MirrorNetwork.chosen(museum).name(), "and changes nothing");
+        verify(player, never()).sendMessage(any(String.class));
     }
 
     /**
      * A mirror whose far side is in an unloaded world names the world rather than failing.
      *
-     * <p>The most likely way a working mirror stops working: the archive world it opens onto
-     * is not started this session. Every store in this plugin resolves a world by name, so
-     * this is also what a world renamed out from under it looks like -- and either way the
-     * mirror stays in the registry and refuses, rather than being dropped.
+     * <p>The most likely way a working mirror stops working: the archive world it opens onto is
+     * not started this session.
      */
     @Test
-    void clickingAMirrorIntoAnUnloadedWorldNamesTheWorld()
+    void punchingAMirrorIntoAnUnloadedWorldNamesTheWorld()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
             new MirrorPoint("a_world_nobody_started", 0, 64, 0, 0, 0)));
 
-        // MirrorPoint resolves its world through Bukkit, so the static has to answer for the
-        // "not loaded" branch to be reachable at all -- the same idiom OwnerCommandTest uses.
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
             bukkit.when(() -> Bukkit.getWorld("a_world_nobody_started")).thenReturn(null);
 
-            assertTrue(MirrorInteraction.handle(click(banner)), "the mirror still claims the click");
+            assertTrue(MirrorInteraction.handle(punch(banner)), "the mirror still claims the click");
         }
 
-        verify(player, never()).teleport(any(org.bukkit.Location.class));
+        verify(player, never()).teleport(any(Location.class));
         verify(player, atLeastOnce()).sendMessage(contains("a_world_nobody_started"));
     }
 
     /**
      * A trip another plugin cancels is reported, not swallowed.
      *
-     * <p>What this is actually guarding: a cancelled {@code PlayerTeleportEvent} leaves the
-     * player exactly where they were, and where they were is the banner they just clicked. A
-     * server running Multiverse with {@code enforce-access}, or a land-claim plugin, cancels
-     * cross-world teleports for anybody without the right node -- and until the boolean
-     * {@code teleport} returns was looked at, that arrived as a mirror that silently sent you
-     * back to itself, with nothing in chat to say who had refused or why.
+     * <p>A cancelled {@code PlayerTeleportEvent} leaves the player exactly where they were, and
+     * where they were is the mirror they just punched -- which reads as a mirror that did
+     * nothing, with nothing in chat to say who had refused or why.
      */
     @Test
     void aMirrorWhoseTeleportAnotherPluginCancelledSaysSo()
@@ -255,10 +308,7 @@ class MirrorInteractionTest
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
             new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
-        // The cancel, as the API reports it. An unstubbed mock answers false here anyway, which
-        // is exactly why it is stubbed on purpose in both this test and its opposite below --
-        // otherwise the two would differ by an accident of Mockito's defaults.
-        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(false);
+        when(player.teleport(any(Location.class))).thenReturn(false);
 
         travelTo(banner, "museum_world");
 
@@ -266,35 +316,27 @@ class MirrorInteractionTest
         verify(player, atLeastOnce()).sendMessage(contains("world-access or land-claim"));
     }
 
-    /**
-     * A trip that goes through says nothing at all.
-     *
-     * <p>The other half of the refusal: a message on every successful click would be noise on
-     * the mechanic's one ordinary path, and a test that only pinned the refusal would pass just
-     * as happily if the line were sent every time.
-     */
+    /** A trip that goes through says nothing at all. */
     @Test
     void aMirrorThatTravelsDoesNotComplainAboutBeingRefused()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
             new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
-        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(true);
+        when(player.teleport(any(Location.class))).thenReturn(true);
 
         travelTo(banner, "museum_world");
 
-        verify(player, atLeastOnce()).teleport(any(org.bukkit.Location.class));
+        verify(player, atLeastOnce()).teleport(any(Location.class));
         verify(player, never()).sendMessage(contains("would not let you into"));
     }
 
     /**
-     * Clicks a mirror with its destination world loaded.
+     * Punches a mirror with its destination world loaded.
      *
-     * <p>{@link MirrorPoint} resolves its world through {@link Bukkit}, so a mirror that
-     * actually travels can only be exercised with the static standing in. The world is a bare
-     * mock: the safe-location search asks it for blocks, gets null for every one of them, and
-     * falls back to the stored point -- which is all this needs, since where the player lands
-     * is {@code WorldUtilsTest}'s subject, not this one's.
+     * <p>{@link MirrorPoint} resolves its world through {@link Bukkit}, so a mirror that actually
+     * travels can only be exercised with the static standing in. The world is a bare mock: the
+     * safe-location search gets null for every block and falls back to the stored point.
      */
     private void travelTo(final Block banner, final String worldName)
     {
@@ -304,49 +346,36 @@ class MirrorInteractionTest
         {
             bukkit.when(() -> Bukkit.getWorld(worldName)).thenReturn(destination);
 
-            assertTrue(MirrorInteraction.handle(click(banner)), "the mirror claims its click");
+            assertTrue(MirrorInteraction.handle(punch(banner)), "the mirror claims its click");
         }
     }
 
     /**
-     * The banner you arrive at does not fire the moment you land in front of it.
+     * The mirror you arrive at does not send you straight back.
      *
-     * <p>The bug this whole pair of mirrors was reported for. A mirror puts the player at the
-     * destination banner's own block, so they land inside or under it with that banner filling
-     * the screen; a right-click still being delivered -- a held button, or the client resolving
-     * the interaction again at the new position -- then lands on the far banner and sends them
-     * straight back. On a linked pair it is a round trip in under a second, and it reads as a
-     * mirror that returned you to where you started.
-     *
-     * <p>Two banners, both bound, exactly as a linked pair is: the trip out must be accepted
-     * and the immediate click on the far one must not travel. Asserting only one teleport is
-     * what distinguishes "the settle works" from "nothing travels at all".
+     * <p>A mirror puts the player in front of the destination banner; a punch still being
+     * delivered then lands on that one and returns them. Asserting exactly one teleport is what
+     * distinguishes "the settle works" from "nothing travels at all".
      */
     @Test
-    void theBannerYouArriveAtDoesNotFireStraightBack()
+    void theMirrorYouArriveAtDoesNotFireStraightBack()
     {
         final Block here = block(Material.WHITE_WALL_BANNER, 5);
         final Block there = block(Material.WHITE_WALL_BANNER, 9);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
             new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
-        MirrorManager.add(new QuantumMirror("Museum-return", MirrorBlock.of(there),
+        MirrorManager.add(new QuantumMirror("Library", MirrorBlock.of(there),
             new MirrorPoint("museum_world", 5, 64, 0, 0, 0)));
-        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(true);
+        when(player.teleport(any(Location.class))).thenReturn(true);
 
         travelTo(here, "museum_world");
         travelTo(there, "museum_world");
 
-        verify(player, times(1)).teleport(any(org.bukkit.Location.class));
+        verify(player, times(1)).teleport(any(Location.class));
         verify(player, atLeastOnce()).sendMessage(contains("settle for a moment"));
     }
 
-    /**
-     * The explanation is said once per arrival, not once per repeat.
-     *
-     * <p>A held right-click repeats several times a second, so a line sent on every ignored
-     * click would put a column of the same sentence in chat for one press -- the same failure
-     * this project already fixed for a player holding forward against a locked gate.
-     */
+    /** The explanation is said once per arrival, not once per repeat. */
     @Test
     void theSettleIsExplainedOnceNotOnEveryRepeat()
     {
@@ -354,9 +383,9 @@ class MirrorInteractionTest
         final Block there = block(Material.WHITE_WALL_BANNER, 9);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(here),
             new MirrorPoint("museum_world", 9, 64, 0, 0, 0)));
-        MirrorManager.add(new QuantumMirror("Museum-return", MirrorBlock.of(there),
+        MirrorManager.add(new QuantumMirror("Library", MirrorBlock.of(there),
             new MirrorPoint("museum_world", 5, 64, 0, 0, 0)));
-        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(true);
+        when(player.teleport(any(Location.class))).thenReturn(true);
 
         travelTo(here, "museum_world");
         travelTo(there, "museum_world");
@@ -366,25 +395,19 @@ class MirrorInteractionTest
         verify(player, times(1)).sendMessage(contains("settle for a moment"));
     }
 
-    /**
-     * A trip that never happened does not shut the mirror behind it.
-     *
-     * <p>The settle is armed on an accepted teleport only. Arming it at the click would mean a
-     * player whose trip another plugin refused is then told to step away from a banner they
-     * never left -- and has to wait out a window earned by a journey they did not take.
-     */
+    /** A trip that never happened does not shut the mirror behind it. */
     @Test
     void aRefusedTripDoesNotStartTheSettle()
     {
         final Block banner = block(Material.WHITE_WALL_BANNER, 5);
         MirrorManager.add(new QuantumMirror("Museum", MirrorBlock.of(banner),
             new MirrorPoint("museum_world", 0, 64, 0, 0, 0)));
-        when(player.teleport(any(org.bukkit.Location.class))).thenReturn(false);
+        when(player.teleport(any(Location.class))).thenReturn(false);
 
         travelTo(banner, "museum_world");
         travelTo(banner, "museum_world");
 
-        verify(player, times(2)).teleport(any(org.bukkit.Location.class));
+        verify(player, times(2)).teleport(any(Location.class));
         verify(player, never()).sendMessage(contains("settle for a moment"));
     }
 

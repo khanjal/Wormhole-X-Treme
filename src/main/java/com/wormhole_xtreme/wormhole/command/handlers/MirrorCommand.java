@@ -25,6 +25,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPreset;
@@ -121,15 +122,9 @@ public class MirrorCommand implements SubCommand
      */
     private static final int REACH = 6;
 
-    /** The two verbs that point a mirror, named in the verb list, the switch and the prose. */
-    private static final String TARGET = "target";
-
-    /** @see #TARGET */
-    private static final String LINK = "link";
-
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS =
-        { "set", TARGET, LINK, "stamp", "display", "mode", "remove", "list" };
+        { "create", "stamp", "display", "mode", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -149,12 +144,8 @@ public class MirrorCommand implements SubCommand
         final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "";
         switch (verb)
         {
-            // create for the same reason gate accepts it. set stays documented here because it
-            // is the wider verb: on a banner that is already a mirror it renames, and "create
-            // old-spawn" would read as making a second one.
-            case "set", "create" -> set(sender, args);
-            case TARGET -> target(sender, args);
-            case LINK -> link(sender, args);
+            // create is the verb; set stays as the older word for it, which also renames.
+            case "create", "set" -> set(sender, args);
             case "stamp" -> stamp(sender, args);
             case "display" -> display(sender, args);
             case "mode" -> mode(sender, args);
@@ -173,10 +164,9 @@ public class MirrorCommand implements SubCommand
     {
         say(sender, USAGE + MirrorText.command(
             "/wormhole mirror <" + String.join("|", VERBS) + ">"));
-        say(sender, "A mirror is a banner you click to travel. Name one with "
-            + MirrorText.name("set") + " while");
-        say(sender, "looking at it, then point it with " + MirrorText.name(TARGET) + " or "
-            + MirrorText.name(LINK) + ".");
+        say(sender, "A mirror is a wall banner. Make one with " + MirrorText.name("create")
+            + " while looking at it;");
+        say(sender, "right-click it to choose another mirror, and punch it to go through.");
     }
 
     /**
@@ -248,6 +238,15 @@ public class MirrorCommand implements SubCommand
         {
             dressPlainBanner(block, name);
         }
+        // Its own room, which it shows as a reflection and where anybody coming through lands.
+        // The capture of it is taken by the next sweep.
+        final QuantumMirror made = MirrorManager.byName(name);
+        final MirrorPoint room = MirrorNetwork.roomOf(block);
+        if ((onThisBanner == null) && (made != null) && (room != null))
+        {
+            MirrorManager.add(made.withDestination(room));
+            MirrorYamlManager.saveAll();
+        }
     }
 
     /**
@@ -295,261 +294,13 @@ public class MirrorCommand implements SubCommand
         MirrorManager.add(mirror);
         MirrorYamlManager.saveAll();
 
-        if (mirror.destination() == null)
+        if ((previous != null) && !previous.equalsIgnoreCase(name))
         {
-            say(sender, MIRROR_IS + MirrorText.quoted(name)
-                + " is this banner. It goes nowhere yet.");
-            say(sender, "Hang a banner at the far end, look at it, and run");
-            say(sender, MirrorText.command("/wormhole mirror link", name)
-                + " -- or stand where arrivals should");
-            say(sender, "land and run " + MirrorText.command("/wormhole mirror target", name));
+            say(sender, MIRROR_IS + MirrorText.quoted(previous) + " is " + MirrorText.quoted(name) + " now.");
             return;
         }
-        final String opening = ((previous != null) && !previous.equalsIgnoreCase(name))
-            ? MIRROR_IS + MirrorText.quoted(previous) + " is " + MirrorText.quoted(name) + " now"
-            : MIRROR_IS + MirrorText.quoted(name) + " is this banner now";
-        say(sender, opening + ", still pointing at " + describe(mirror.destination()) + ".");
-    }
-
-    /** Points a named mirror at where the player is standing. */
-    private static void target(final CommandSender sender, final String[] args)
-    {
-        final Player player = asPlayer(sender);
-        if ((player == null) || !named(sender, args, "target <name>"))
-        {
-            return;
-        }
-        final QuantumMirror mirror = known(sender, args[2]);
-        if (mirror != null)
-        {
-            pointAndSay(sender, mirror, MirrorPoint.of(player.getLocation()));
-        }
-    }
-
-    /**
-     * Ties the banner you are looking at to a mirror that already exists.
-     *
-     * <pre>
-     * mirror set nether            at the first banner, wherever you want to come back to
-     * mirror link nether           at the second, in the other world -- that is the whole job
-     * </pre>
-     *
-     * <p>One argument, because by the time you are hanging the second banner the only thing
-     * you still have to say is which one it joins. The banner you are looking at becomes the
-     * other half, and both are pointed at each other.
-     *
-     * <p>A second name is accepted for the case where both banners already exist, or where you
-     * want to choose what this side is called rather than take the derived name. Naming it is
-     * the only way to get something other than {@code <other>-return}.
-     *
-     * <p>Both ways, always. Pointing only one was the commonest way to end up with a banner
-     * that did nothing when clicked, and the argument order was invisible once you had walked
-     * away from it. One-way binding is still {@code target}, which is also the only way to open
-     * onto a world you would rather not put a banner in.
-     */
-    private static void link(final CommandSender sender, final String[] args)
-    {
-        if (args.length < 3)
-        {
-            say(sender, USAGE
-                + MirrorText.command("/wormhole mirror link <other> [name for this one]"));
-            say(sender, "Run it looking at the banner you want to join to <other>.");
-            return;
-        }
-        final QuantumMirror other = known(sender, args[2]);
-        if (other == null)
-        {
-            return;
-        }
-        final String thisName = (args.length > 3) ? args[3] : freeNameFrom(args[2] + "-return");
-        if (thisName.equalsIgnoreCase(other.name()))
-        {
-            say(sender, "A mirror cannot open onto itself.");
-            return;
-        }
-        final QuantumMirror here = existingOrLookedAt(sender, thisName);
-        if (here == null)
-        {
-            return;
-        }
-        if (here.name().equalsIgnoreCase(other.name()))
-        {
-            say(sender, "A mirror cannot open onto itself.");
-            return;
-        }
-        // Both arrivals are worked out before either is stored, so a pair that cannot be tied
-        // both ways is not left tied one way -- the state this command exists to stop people
-        // ending up in.
-        final Location toOther = arrivalAt(sender, other);
-        final Location toHere = arrivalAt(sender, here);
-        if ((toOther == null) || (toHere == null))
-        {
-            return;
-        }
-        if (point(sender, here, MirrorPoint.of(toOther))
-            && point(sender, other, MirrorPoint.of(toHere)))
-        {
-            say(sender, MirrorText.quoted(here.name()) + " and "
-                + MirrorText.quoted(other.name()) + " now open onto each other.");
-        }
-    }
-
-    /**
-     * A name nobody is using, starting from the one derived for this side.
-     *
-     * <p>Only for the derived name. A name given on purpose may well be an existing mirror --
-     * that is how two banners already bound get tied together -- but a derived one silently
-     * landing on somebody else's mirror would repoint a banner the operator never mentioned,
-     * in a command they ran while looking at a different one entirely.
-     *
-     * @param wanted
-     *            the name derived from the other side
-     * @return that name, or the first numbered variant of it that is free
-     */
-    private static String freeNameFrom(final String wanted)
-    {
-        String candidate = wanted;
-        // Two is where a human starts counting a second one of something.
-        int suffix = 2;
-        while (MirrorManager.byName(candidate) != null)
-        {
-            candidate = wanted + "-" + suffix;
-            suffix++;
-        }
-        return candidate;
-    }
-
-    /**
-     * A mirror by that name, or the banner the player is looking at bound under it.
-     *
-     * <p>What makes {@code link} usable from the far end of a journey. A name nobody has yet is
-     * not a mistake here -- it is the second banner, and the player is standing in front of it.
-     *
-     * @param sender
-     *            who ran it, and who gets told what went wrong
-     * @param name
-     *            the name for this side, given or derived
-     * @return the mirror, or null with the reason already sent
-     */
-    private static QuantumMirror existingOrLookedAt(final CommandSender sender, final String name)
-    {
-        final QuantumMirror existing = MirrorManager.byName(name);
-        if (existing != null)
-        {
-            return existing;
-        }
-        final Player player = asPlayer(sender);
-        if (player == null)
-        {
-            return null;
-        }
-        final Block block = lookedAtBanner(player);
-        if (block == null)
-        {
-            return null;
-        }
-        // Joined as the mirror it already is. Bound under a second name, both claimed the banner,
-        // and the sweep drew each one's far side through the same opening.
-        final QuantumMirror already = MirrorManager.at(MirrorBlock.of(block));
-        if (already != null)
-        {
-            say(sender, "This banner is already " + MirrorText.quoted(already.name())
-                + ", so that is the one being linked.");
-            return already;
-        }
-        final QuantumMirror bound = new QuantumMirror(name, MirrorBlock.of(block), null);
-        MirrorManager.add(bound);
-        MirrorYamlManager.saveAll();
-        say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner.");
-        sayWhereToClick(sender, block);
-        return bound;
-    }
-
-    /**
-     * Where a player should land when stepping out of a mirror's banner.
-     *
-     * <p>Needs the banner's own world loaded, because the facing has to be read off the live
-     * block -- there is nowhere else it is recorded. A mirror in an unloaded world can still
-     * be the <em>source</em> of a link; it just cannot be the target of one until its world is
-     * up.
-     *
-     * @param sender
-     *            who to tell if it cannot be worked out
-     * @param to
-     *            the mirror being linked to
-     * @return the arrival location, or null with the reason already sent
-     */
-    private static Location arrivalAt(final CommandSender sender, final QuantumMirror to)
-    {
-        final MirrorBlock banner = to.banner();
-        final World world = Bukkit.getWorld(banner.worldName());
-        if (world == null)
-        {
-            say(sender, MirrorText.quoted(to.name()) + " is in "
-                + MirrorText.name(banner.worldName())
-                + ", which is not loaded, so where its banner faces cannot be read.");
-            return null;
-        }
-        final Location arrival =
-            MirrorArrival.atTheBanner(world.getBlockAt(banner.x(), banner.y(), banner.z()));
-        if (arrival == null)
-        {
-            say(sender, MirrorText.quoted(to.name()) + " is no longer a banner, so there is"
-                + " nowhere to arrive. Put one back, or re-run "
-                + MirrorText.command("/wormhole mirror set") + " on a banner that is there.");
-        }
-        return arrival;
-    }
-
-    /**
-     * Stores a destination, applying the cross-world rule.
-     *
-     * <p>The refusal is here rather than at {@code set} time because this is the first moment
-     * both worlds are known -- a mirror named but not yet pointed has only one.
-     *
-     * @param sender
-     *            who to tell
-     * @param mirror
-     *            the mirror being pointed
-     * @param destination
-     *            where it should open onto
-     */
-    private static boolean point(final CommandSender sender, final QuantumMirror mirror,
-        final MirrorPoint destination)
-    {
-        final QuantumMirror pointed = mirror.withDestination(destination);
-        if (pointed.isSameWorld() && !ConfigManager.isMirrorAllowSameWorld())
-        {
-            say(sender, "A quantum mirror connects two worlds, and both ends of "
-                + MirrorText.quoted(mirror.name()) + " are in "
-                + MirrorText.name(destination.worldName()) + ".");
-            say(sender, "Use a gate, a ring, or a beam place for travel inside one world --");
-            say(sender, "or set " + MirrorText.name("mirror-allow-same-world")
-                + " to true if you want this anyway.");
-            return false;
-        }
-        MirrorManager.add(pointed);
-        MirrorYamlManager.saveAll();
-        return true;
-    }
-
-    /**
-     * Points one mirror and says so.
-     *
-     * <p>Separate from {@link #point} because {@code link} points two and wants one line about
-     * the pair rather than two about the halves. The boolean {@code point} returns is not the
-     * {@code true} this project took out of thirty-four helpers -- it says whether the
-     * cross-world rule allowed it, which is the one thing a caller pointing two mirrors has to
-     * know before it claims both worked.
-     */
-    private static void pointAndSay(final CommandSender sender, final QuantumMirror mirror,
-        final MirrorPoint destination)
-    {
-        if (point(sender, mirror, destination))
-        {
-            say(sender, MirrorText.quoted(mirror.name()) + " now opens onto "
-                + describe(destination) + ".");
-        }
+        say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner. Walk up to it to see its reflection;");
+        say(sender, "right-click it to choose another mirror, and punch it to go through.");
     }
 
     /**
@@ -1000,8 +751,7 @@ public class MirrorCommand implements SubCommand
         for (final QuantumMirror mirror : MirrorManager.all())
         {
             lines.add(MirrorText.BODY_COLOUR + "  " + MirrorText.name(mirror.name()) + " -- "
-                + MirrorText.name(mirror.banner().worldName()) + " -> "
-                + ((mirror.destination() == null) ? "nowhere yet" : describe(mirror.destination()))
+                + MirrorText.name(mirror.banner().worldName()) + " -> " + showing(mirror)
                 + settingsOf(mirror));
         }
         if (lines.isEmpty())
@@ -1012,6 +762,21 @@ public class MirrorCommand implements SubCommand
         }
         say(sender, lines.size() + " mirror(s):");
         lines.forEach(sender::sendMessage);
+    }
+
+    /** What a mirror shows right now, for the list. */
+    private static String showing(final QuantumMirror mirror)
+    {
+        if (mirror.destination() == null)
+        {
+            return "nowhere yet";
+        }
+        if (MirrorNetwork.reflects(mirror))
+        {
+            return "its own reflection";
+        }
+        final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
+        return (chosen == mirror) ? describe(mirror.destination()) : MirrorText.name(chosen.name());
     }
 
     /**

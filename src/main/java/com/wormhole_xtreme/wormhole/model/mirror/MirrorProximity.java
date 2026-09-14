@@ -134,6 +134,7 @@ public final class MirrorProximity
         release(mirror);
         SAMPLED.remove(mirror.name());
         MirrorCaptures.forget(mirror);
+        MirrorNetwork.forget(mirror.name());
     }
 
     /**
@@ -234,7 +235,13 @@ public final class MirrorProximity
     {
         // A mirror going nowhere has no view, and its banner need not be read to learn that.
         final Block block = (mirror.destination() == null) ? null : bannerOf(mirror);
-        return (block != null) && MirrorWindows.offer(mirror, block);
+        if (block == null)
+        {
+            return false;
+        }
+        // Nobody at it any more: back to its own room.
+        MirrorNetwork.settle(mirror, MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), null));
+        return MirrorWindows.offer(mirror, block);
     }
 
     /**
