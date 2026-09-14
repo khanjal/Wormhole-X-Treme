@@ -157,17 +157,6 @@ public class ConfigManager
         BEAM_ECONOMY_USE_COST,
 
         /**
-         * Whether a quantum mirror may point somewhere in the world it stands in.
-         *
-         * <p>The opposite polarity to {@link #SAME_WORLD_ONLY}, which lets an admin
-         * <em>restrict</em> gates to one world and defaults to not restricting. A mirror is
-         * cross-world by default and this relaxes it, because being the bridge between two
-         * worlds is what separates a mirror from a beam place -- which is the mechanic for
-         * naming a point in the world you are already standing in.
-         */
-        MIRROR_ALLOW_SAME_WORLD,
-
-        /**
          * How many mirrors one world may hold, or 0 for no limit.
          *
          * <p>One by default: a mirror is the door into its world, and scrolling one mirror
@@ -203,21 +192,12 @@ public class ConfigManager
         MIRROR_DYNAMIC_RESAMPLE_SECONDS,
 
         /**
-         * How far from a viewer's eye a mirror's far side is drawn as real blocks, in blocks.
+         * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
          *
-         * <p>A radius from the eye rather than a depth behind the opening, because that is what
-         * bounds the work however close somebody stands. Past it the rest of the view is painted
-         * onto a shell, so nothing is lost but the parallax of distant things.
+         * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
+         * no further.
          */
         MIRROR_VIEW_DEPTH,
-
-        /**
-         * How far around its arrival point a mirror's far side is captured, in blocks.
-         *
-         * <p>A capture is what a window draws from, and its edge is the view's horizon: a line
-         * of sight that leaves the box has met nothing, and shows sky.
-         */
-        MIRROR_CAPTURE_RADIUS,
 
         /**
          * Whether a mirror names itself above the hotbar to whoever is looking at it.
@@ -1373,21 +1353,6 @@ public class ConfigManager
     }
 
     /**
-     * Whether a quantum mirror is allowed to point somewhere in its own world.
-     *
-     * <p>False by default, so binding one refuses when both ends share a world and says why.
-     * The opposite polarity to {@link #isSameWorldOnly()}: that one lets an admin restrict
-     * gates to a single world and defaults to off, this one relaxes a restriction that is on.
-     *
-     * @return true if a mirror may connect two points in the same world
-     */
-    public static boolean isMirrorAllowSameWorld()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ALLOW_SAME_WORLD);
-        return (s != null) && s.getBooleanValue();
-    }
-
-    /**
      * How many mirrors one world may hold.
      *
      * @return the most, or 0 for no limit
@@ -1462,17 +1427,6 @@ public class ConfigManager
         // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
         // few bits per block over a box 325 across, tens of megabytes for a few seconds.
         return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
-    }
-
-    /**
-     * How far around its arrival point a mirror's far side is captured.
-     *
-     * @return the radius in blocks, between 16 and 128
-     */
-    public static int getMirrorCaptureRadius()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_CAPTURE_RADIUS);
-        return (s == null) ? 96 : Math.max(16, Math.min(160, s.getIntValue()));
     }
 
     /**

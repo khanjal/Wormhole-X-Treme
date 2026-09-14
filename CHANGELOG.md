@@ -816,6 +816,16 @@ been running on defaults will start reading the file you have been editing.
   about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
   something wrong ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
 
+### Removed
+
+- **Two mirror settings nothing read.** "Do we still need `mirror-capture-radius`?" No. It capped
+  how deep a capture is taken, from when a capture was a dense box at the render distance and
+  eighty megabytes; a capture keeps only the surfaces in view now, and is taken to
+  `mirror-view-depth`, which is already capped at 160. Lowering it only made the view stop at the
+  capture's edge. `mirror-allow-same-world` went the same way: every mirror is on the network,
+  nothing is pointed by hand, and its getter had no caller. A line for either in an existing
+  `config.yml` is ignored and left where it is.
+
 ### Fixed
 
 - **A tidy-up that failed on shutdown took every save with it.** Reported from a live server:

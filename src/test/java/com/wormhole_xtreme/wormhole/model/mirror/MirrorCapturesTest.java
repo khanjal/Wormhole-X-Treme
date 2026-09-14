@@ -61,7 +61,7 @@ class MirrorCapturesTest
         PluginTestSupport.scheduler(null);
         ConfigTestSupport.clear();
         // A small box: 33 across, so three chunks a side.
-        ConfigTestSupport.set(ConfigKeys.MIRROR_CAPTURE_RADIUS, 16);
+        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
         MirrorManager.clear();
         MirrorCaptures.clear();
         when(air.getAsString()).thenReturn("minecraft:air");

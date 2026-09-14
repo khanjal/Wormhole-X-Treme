@@ -84,10 +84,10 @@ public final class MirrorCaptures
         return new int[] { minX, minY, minZ, maxX, maxY, maxZ };
     }
 
-    /** The depth a capture is taken to: the view depth, or the capture radius if that is less. */
+    /** The depth a capture is taken to: the view depth, since a view is never drawn past it. */
     private static int captureDepth()
     {
-        return Math.min(ConfigManager.getMirrorViewDepth(), ConfigManager.getMirrorCaptureRadius());
+        return ConfigManager.getMirrorViewDepth();
     }
 
     /** Reads one chunk of a world, so a test can hand in chunks without a server. */
