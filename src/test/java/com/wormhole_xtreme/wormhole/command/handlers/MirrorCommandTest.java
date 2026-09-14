@@ -347,6 +347,41 @@ class MirrorCommandTest
         verify(player, atLeastOnce()).sendMessage(contains("within six blocks"));
     }
 
+    /**
+     * start sets the mirror one opens onto when nobody at it has chosen, and none clears it.
+     *
+     * <p>"In a historical world we can default the mirror to the main server first." Saved with the
+     * mirror, so it is still the start after a restart.
+     */
+    @Test
+    void startSetsTheMirrorOneOpensOntoAndNoneClearsIt()
+    {
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
+
+        assertTrue(run(player, "mirror", "start", "archive", "hub"));
+        assertEquals("hub", MirrorManager.byName("archive").start());
+        verify(player, atLeastOnce()).sendMessage(contains("until somebody at it chooses another"));
+
+        assertTrue(run(player, "mirror", "start", "archive", "none"));
+        assertNull(MirrorManager.byName("archive").start(), "none is its own room again");
+    }
+
+    /** A start nobody has, or the mirror itself, is refused and changes nothing. */
+    @Test
+    void startRefusesAMirrorNobodyHasAndTheMirrorItself()
+    {
+        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
+
+        run(player, "mirror", "start", "archive", "nowhere");
+        verify(player, atLeastOnce()).sendMessage(contains("no mirror called"));
+
+        run(player, "mirror", "start", "archive", "ARCHIVE");
+        verify(player, atLeastOnce()).sendMessage(contains("own room"));
+
+        assertNull(MirrorManager.byName("archive").start(), "neither is a start");
+    }
+
     /** Removing gives the banner back. */
     @Test
     void removeForgetsTheMirror()

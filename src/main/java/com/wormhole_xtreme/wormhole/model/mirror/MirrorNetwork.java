@@ -104,8 +104,14 @@ public final class MirrorNetwork
      */
     public static QuantumMirror chosen(final QuantumMirror mirror)
     {
-        final String name = CHOSEN.get(key(mirror.name()));
-        final QuantumMirror other = (name == null) ? null : MirrorManager.byName(name);
+        // Chosen at it, which may be its own room on purpose; otherwise its start.
+        final String chosen = CHOSEN.get(key(mirror.name()));
+        final String name = (chosen != null) ? chosen : mirror.start();
+        if ((name == null) || name.equalsIgnoreCase(mirror.name()))
+        {
+            return mirror;
+        }
+        final QuantumMirror other = MirrorManager.byName(name);
         return ((other == null) || (other.destination() == null)) ? mirror : other;
     }
 
@@ -185,7 +191,8 @@ public final class MirrorNetwork
         CHOSEN_AT.put(key(mirror.name()), now);
         if (next == 0)
         {
-            CHOSEN.remove(key(mirror.name()));
+            // Its own room on purpose, which a start must not take back until nobody is here.
+            CHOSEN.put(key(mirror.name()), mirror.name());
             return MirrorText.quoted(mirror.name()) + " shows its own room again.";
         }
         CHOSEN.put(key(mirror.name()), order.get(next).name());

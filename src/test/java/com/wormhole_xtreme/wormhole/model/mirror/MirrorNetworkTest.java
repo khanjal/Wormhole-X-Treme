@@ -184,6 +184,46 @@ class MirrorNetworkTest
         assertTrue(MirrorNetwork.reflects(library));
     }
 
+    /**
+     * A mirror with a start shows that mirror until somebody chooses another, and goes back to it.
+     *
+     * <p>"In a historical world we can default the mirror to the main server first, and right-click
+     * scroll from there." The start is where scrolling carries on from, and the mirror's own room is
+     * still one of the stops.
+     */
+    @Test
+    void aMirrorWithAStartShowsItFirstScrollsOnFromItAndGoesBackToIt()
+    {
+        mirror("hub", "world");
+        mirror("nether", "world_nether");
+        final QuantumMirror archive = new QuantumMirror("archive", new MirrorBlock("world_2011", 10, 64, 10),
+            new MirrorPoint("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
+        MirrorManager.add(archive);
+
+        assertEquals("hub", MirrorNetwork.chosen(archive).name(), "the start, with nobody having chosen");
+        assertFalse(MirrorNetwork.reflects(archive));
+
+        MirrorNetwork.scroll(archive, false);
+        assertEquals("nether", MirrorNetwork.chosen(archive).name(), "on from the start, by name");
+        now += 500L;
+        MirrorNetwork.scroll(archive, false);
+        assertTrue(MirrorNetwork.reflects(archive), "its own room is still a stop, and the start does not take it back");
+
+        MirrorNetwork.settle(archive, false);
+        assertEquals("hub", MirrorNetwork.chosen(archive).name(), "nobody near: back to its start");
+    }
+
+    /** A start that has been removed leaves the mirror showing its own room. */
+    @Test
+    void aStartThatIsGoneLeavesItsOwnRoom()
+    {
+        final QuantumMirror archive = new QuantumMirror("archive", new MirrorBlock("world_2011", 10, 64, 10),
+            new MirrorPoint("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
+        MirrorManager.add(archive);
+
+        assertTrue(MirrorNetwork.reflects(archive), "there is no mirror called hub");
+    }
+
     /** Somebody is near a mirror inside the proximity radius, and not past it; the clicker does not count. */
     @Test
     void whoIsNearIsMeasuredFromTheBannerAndLeavesOutTheClicker()

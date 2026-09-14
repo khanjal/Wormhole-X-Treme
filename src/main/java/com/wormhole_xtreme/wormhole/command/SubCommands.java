@@ -416,7 +416,7 @@ public final class SubCommands
         // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
         // which reads as though the typo were a real command.
         final boolean takesOneName = REMOVE.equals(verb)
-            || "display".equals(verb) || "mode".equals(verb);
+            || "display".equals(verb) || "mode".equals(verb) || "start".equals(verb);
         final boolean stamp = "stamp".equals(verb);
         if ((args.length == 3) && (takesOneName || stamp))
         {
@@ -478,6 +478,10 @@ public final class SubCommands
         if ("mode".equals(verb))
         {
             return new String[] { "static", "dynamic" };
+        }
+        if ("start".equals(verb))
+        {
+            return both(mirrorNames(), new String[] { "none" });
         }
         return new String[0];
     }

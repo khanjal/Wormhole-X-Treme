@@ -48,6 +48,12 @@ been running on defaults will start reading the file you have been editing.
   next comes round a second later -- long enough to click again and skip the mirror you wanted;
   a room not captured yet leaves the mirror showing what it did until it is ready.
 
+  "In a historical world we can default the mirror to the main server first, and right-click
+  scroll from there." `mirror start [name] <mirror|none>` gives a mirror a start: the mirror it
+  opens onto when nobody at it has chosen, and goes back to when they leave. Right-clicks carry
+  on from the start, and the mirror's own room is still one of the stops. Saved with the mirror as
+  `Start`; a start that has been removed is no start.
+
   "I don't see a reflection at all" -- on a mirror facing north. Its capture kept 8 blocks and no
   air: the rays that decide what can be seen started on the back edge of the block in front of
   the mirror, and facing north or west that edge rounds into the block behind, the mirror's own

@@ -43,6 +43,10 @@ Make a mirror in another world the same way, and the two find each other:
 - **Punch** it to go to the mirror it is showing. You land in front of that mirror's banner, facing
   out into its room.
 - **Walk away** and, once nobody is near, it goes back to its own room.
+- **Give it a start** to open onto another mirror first: `/wormhole mirror start archive hub` has
+  the mirror in an archived world open onto the main world's `hub` until somebody chooses
+  another, and go back to `hub` when they leave. Right-clicks scroll on from the start, and its own
+  room is still one of the stops. `start archive none` takes it off.
 
 A mirror needs solid wall two blocks out on every side of its opening — a gap is refused by the
 block to fill — and a banner on a post cannot be one. While it is a mirror, neither the banner nor
@@ -53,6 +57,7 @@ that wall can be broken; `mirror remove` takes it down.
 | Command | What it does |
 | --- | --- |
 | `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror set` also works) |
+| `mirror start [name] <mirror\|none>` | The mirror it opens onto when nobody has chosen one; `none` for its own room |
 | `mirror stamp [name] [look]` | Makes the banner look like where it goes |
 | `mirror display [name] <always\|proximity>` | Show its look always, or only up close |
 | `mirror mode [name] <static\|dynamic>` | Keep the look, or re-read the far side |

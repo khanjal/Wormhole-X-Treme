@@ -124,7 +124,7 @@ public class MirrorCommand implements SubCommand
 
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS =
-        { "create", "stamp", "display", "mode", "remove", "list" };
+        { "create", "start", "stamp", "display", "mode", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -149,6 +149,7 @@ public class MirrorCommand implements SubCommand
             case "stamp" -> stamp(sender, args);
             case "display" -> display(sender, args);
             case "mode" -> mode(sender, args);
+            case "start" -> start(sender, args);
             case "remove" -> remove(sender, args);
             case "list" -> list(sender);
             // Unlisted: what a window is drawing from and what it drew, for chasing a view that
@@ -713,6 +714,58 @@ public class MirrorCommand implements SubCommand
         say(sender, "it to go dark in between.");
     }
 
+    /**
+     * Sets the mirror one opens onto when nobody at it has chosen.
+     *
+     * <p>For a mirror in an archived world, say, that should open onto the main world's mirror
+     * first, with a right-click scrolling on from there. {@code none} is its own room again.
+     */
+    private static void start(final CommandSender sender, final String[] args)
+    {
+        if (args.length < 3)
+        {
+            sayStartUsage(sender);
+            return;
+        }
+        // By the rule display and mode use: one word alone is the start, for the banner being looked at.
+        final boolean unnamed = args.length == 3;
+        final String word = unnamed ? args[2] : args[3];
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayStartUsage(sender));
+        if (mirror == null)
+        {
+            return;
+        }
+        if ("none".equalsIgnoreCase(word))
+        {
+            MirrorManager.add(mirror.withStart(null));
+            MirrorYamlManager.saveAll();
+            say(sender, MirrorText.quoted(mirror.name()) + " shows its own room when nobody has chosen.");
+            return;
+        }
+        final QuantumMirror first = known(sender, word);
+        if (first == null)
+        {
+            return;
+        }
+        if (first.name().equalsIgnoreCase(mirror.name()))
+        {
+            say(sender, "A mirror starts on its own room already; " + MirrorText.name("none")
+                + " is the way to say so.");
+            return;
+        }
+        MirrorManager.add(mirror.withStart(first.name()));
+        MirrorYamlManager.saveAll();
+        say(sender, MirrorText.quoted(mirror.name()) + " opens onto " + MirrorText.quoted(first.name())
+            + " until somebody at it chooses another.");
+    }
+
+    /** @see #start */
+    private static void sayStartUsage(final CommandSender sender)
+    {
+        sayUsage(sender, "start [<name>] <mirror|none>");
+    }
+
     private static void remove(final CommandSender sender, final String[] args)
     {
         final QuantumMirror mirror = namedOrLookedAt(sender,
@@ -800,6 +853,10 @@ public class MirrorCommand implements SubCommand
         if (mirror.mode() != MirrorMode.STATIC)
         {
             notes.add(mirror.mode().lower());
+        }
+        if (mirror.start() != null)
+        {
+            notes.add("starts on " + mirror.start());
         }
         return notes.isEmpty() ? "" : " (" + String.join(", ", notes) + ")";
     }

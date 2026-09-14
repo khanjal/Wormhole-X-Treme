@@ -1,16 +1,12 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
 /**
- * One banner bound to one place to arrive.
+ * One banner on the mirror network.
  *
- * <p>A mirror is one-way. Clicking this banner sends the player to {@link #destination()}, and
- * nothing about that destination knows a mirror points at it -- a return trip is a second
- * mirror at the far end, bound back. That is what makes the museum case work without putting a
- * banner inside a frozen snapshot world at all: the snapshot need only be somewhere to arrive.
- *
- * <p>The destination is a plain point rather than another mirror for the same reason. Binding
- * mirrors to each other would read well, but it would make a return banner mandatory on the
- * far side, which is exactly the requirement one-way exists to avoid.
+ * <p>A mirror stores its own room as its {@link #destination()}: the point in front of its banner
+ * where anybody coming through it lands, and which it shows as a reflection. Which mirror it opens
+ * onto at any moment is {@link MirrorNetwork}'s to say -- its {@link #start()} until somebody at it
+ * chooses another, or its own room if it has no start.
  *
  * @param name
  *            what the mirror is called, unique across the server, and the key it is stored
@@ -18,68 +14,89 @@ package com.wormhole_xtreme.wormhole.model.mirror;
  * @param banner
  *            the block a player clicks
  * @param destination
- *            where clicking it sends them, which may be in a world that is not loaded
+ *            its own room, which may be in a world that is not loaded; a mirror saved before
+ *            the network may still hold somewhere else it was pointed
  * @param display
  *            whether the look is in the block for everyone, or sent to whoever comes close
  * @param mode
  *            whether the look was chosen once or is re-read from the far side
  * @param look
  *            what it looks like, or null if it has never been stamped
+ * @param start
+ *            the mirror it opens onto when nobody at it has chosen, or null for its own room
  */
 public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destination,
-    MirrorDisplay display, MirrorMode mode, MirrorLook look)
+    MirrorDisplay display, MirrorMode mode, MirrorLook look, String start)
 {
     /**
      * A mirror with nothing chosen about how it looks.
-     *
-     * <p>Three arguments rather than six, because naming and pointing a mirror is what most of
-     * this plugin does with one and the cosmetics are a later, optional step. Every mirror
-     * created before looks existed reads as this.
      *
      * @param name
      *            what it is called
      * @param banner
      *            the block a player clicks
      * @param destination
-     *            where clicking it sends them
+     *            its room
      */
     public QuantumMirror(final String name, final MirrorBlock banner,
         final MirrorPoint destination)
     {
-        this(name, banner, destination, MirrorDisplay.ALWAYS, MirrorMode.STATIC, null);
+        this(name, banner, destination, MirrorDisplay.ALWAYS, MirrorMode.STATIC, null, null);
     }
 
     /**
-     * Defaults the two settings, so a mirror read from an older file is not half-built.
+     * A mirror with no start of its own.
+     *
+     * @param name
+     *            what it is called
+     * @param banner
+     *            the block a player clicks
+     * @param destination
+     *            its room
+     * @param display
+     *            how its look is shown
+     * @param mode
+     *            whether its look is re-read
+     * @param look
+     *            what it looks like, or null
+     */
+    public QuantumMirror(final String name, final MirrorBlock banner, final MirrorPoint destination,
+        final MirrorDisplay display, final MirrorMode mode, final MirrorLook look)
+    {
+        this(name, banner, destination, display, mode, look, null);
+    }
+
+    /**
+     * Defaults the settings, so a mirror read from an older file is not half-built.
      *
      * <p>A null {@code display} or {@code mode} would otherwise reach the proximity sweep and
-     * the stamp, both of which switch on them. Defaulting here rather than at each use is what
-     * keeps "an old mirror behaves exactly as it did" true in one place.
+     * the stamp, both of which switch on them. A blank start is no start.
      */
     public QuantumMirror
     {
         display = (display == null) ? MirrorDisplay.ALWAYS : display;
         mode = (mode == null) ? MirrorMode.STATIC : mode;
+        start = ((start == null) || start.isBlank()) ? null : start;
     }
 
     /**
-     * The same mirror pointing somewhere else.
+     * The same mirror with another room.
      *
      * @param newDestination
-     *            where it should send a player now
+     *            its room now
      * @return a new instance; this one is unchanged
      */
     public QuantumMirror withDestination(final MirrorPoint newDestination)
     {
-        return new QuantumMirror(name, banner, newDestination, display, mode, look);
+        return new QuantumMirror(name, banner, newDestination, display, mode, look, start);
     }
 
     /**
      * The same mirror under a different name.
      *
      * <p>Everything else comes with it, which is the whole point. Rebuilding a renamed mirror
-     * from its name and banner alone drops where it goes, what it looks like and whether it
-     * hides itself -- and does it silently, because the result is a perfectly valid mirror.
+     * from its name and banner alone drops its room, what it looks like and whether it hides
+     * itself -- and does it silently, because the result is a perfectly valid mirror.
      *
      * @param newName
      *            what it should be called now
@@ -87,7 +104,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withName(final String newName)
     {
-        return new QuantumMirror(newName, banner, destination, display, mode, look);
+        return new QuantumMirror(newName, banner, destination, display, mode, look, start);
     }
 
     /**
@@ -99,7 +116,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withBanner(final MirrorBlock newBanner)
     {
-        return new QuantumMirror(name, newBanner, destination, display, mode, look);
+        return new QuantumMirror(name, newBanner, destination, display, mode, look, start);
     }
 
     /**
@@ -111,7 +128,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withDisplay(final MirrorDisplay newDisplay)
     {
-        return new QuantumMirror(name, banner, destination, newDisplay, mode, look);
+        return new QuantumMirror(name, banner, destination, newDisplay, mode, look, start);
     }
 
     /**
@@ -123,7 +140,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withMode(final MirrorMode newMode)
     {
-        return new QuantumMirror(name, banner, destination, display, newMode, look);
+        return new QuantumMirror(name, banner, destination, display, newMode, look, start);
     }
 
     /**
@@ -135,16 +152,23 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withLook(final MirrorLook newLook)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, newLook);
+        return new QuantumMirror(name, banner, destination, display, mode, newLook, start);
+    }
+
+    /**
+     * The same mirror, opening onto another mirror when nobody has chosen.
+     *
+     * @param newStart
+     *            the mirror's name, or null for its own room
+     * @return a new instance; this one is unchanged
+     */
+    public QuantumMirror withStart(final String newStart)
+    {
+        return new QuantumMirror(name, banner, destination, display, mode, look, newStart);
     }
 
     /**
      * Whether both ends of this mirror are in the same world.
-     *
-     * <p>Refused at bind time unless an admin has turned that refusal off. A quantum mirror is
-     * named for a window into a different reality, and the cross-world default is what gives it
-     * an identity separate from a beam place -- which is the mechanic for naming a point in the
-     * world you are already standing in.
      *
      * @return true if the banner and its destination share a world name
      */

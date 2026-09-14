@@ -47,6 +47,9 @@ public final class MirrorYamlManager
     /** The section holding what it looks like. */
     private static final String LOOK = "Look";
 
+    /** The mirror it opens onto when nobody at it has chosen, if it has one. */
+    private static final String START = "Start";
+
     /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
     private static final String PRESET = "Preset";
 
@@ -146,7 +149,7 @@ public final class MirrorYamlManager
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
                 MirrorDisplay.of(text(map.get(DISPLAY))), MirrorMode.of(text(map.get(MODE))),
-                readLook(map.get(LOOK)));
+                readLook(map.get(LOOK)), text(map.get(START)));
         }
         catch (final RuntimeException e)
         {
@@ -325,6 +328,10 @@ public final class MirrorYamlManager
         if (mirror.mode() != MirrorMode.STATIC)
         {
             map.put(MODE, mirror.mode().lower());
+        }
+        if (mirror.start() != null)
+        {
+            map.put(START, mirror.start());
         }
         writeLook(map, mirror.look());
         return map;

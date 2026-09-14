@@ -73,6 +73,16 @@ class MirrorTabCompletionTest
         assertEquals(List.of("lobby"), complete("mirror", "remove", "lo"));
     }
 
+    /** start takes a mirror, or none, after the optional name of the mirror being set. */
+    @Test
+    void startCompletesMirrorsAndNoneInBothPlaces()
+    {
+        assertTrue(complete("mirror", "start", "").contains("museum"), "the mirror being set, or its start");
+        assertTrue(complete("mirror", "start", "").contains("none"), "looking at the banner, the start is the first word");
+        assertTrue(complete("mirror", "start", "museum", "").contains("lobby"), "then the start");
+        assertTrue(complete("mirror", "start", "museum", "").contains("none"));
+    }
+
     /**
      * set offers nothing, on purpose.
      *
