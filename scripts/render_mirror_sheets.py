@@ -56,7 +56,7 @@ GROUPS = [
     ("The End, and nowhere at all", [
         "end", "end_highlands", "end_midlands", "small_end_islands", "end_barrens",
         "the_void"]),
-    ("Looks the plugin asks for by name", ["overworld", "indoors", "cavern"]),
+    ("Looks the plugin asks for by name", ["mirror", "overworld", "indoors", "cavern"]),
     ("Looks you stamp yourself", [
         "plain", "portal", "hub", "spawn", "exit", "arrival", "compass", "port", "market",
         "library", "forge", "vault", "shrine", "staff", "private", "locked", "warning",
@@ -65,6 +65,7 @@ GROUPS = [
 
 # What each stamp-only look is for, since it has no biome to name.
 PURPOSE = {
+    "mirror": "what a plain white banner becomes when it is made a mirror",
     "overworld": "fallback, for a biome nothing names",
     "indoors": "a far side that turned out to be a room",
     "cavern": "generic underground",

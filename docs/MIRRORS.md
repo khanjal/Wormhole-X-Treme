@@ -242,7 +242,7 @@ cut from the end rather than refused.
 
 ### The library at a glance
 
-Eighty-eight looks is more than anybody wants to open one file at a time. The name beside each
+Eighty-nine looks is more than anybody wants to open one file at a time. The name beside each
 one is what `mirror stamp <name> <look>` takes; the column beside that is the biome it answers
 for, or what the look is for when it answers for none.
 
@@ -361,6 +361,7 @@ recipe as a tooltip, which is the same thing the last column says.
 
 | | Look | For | Layers, in order |
 |---|---|---|---|
+| <a href="images/mirrors/mirror.svg" title="LIGHT_BLUE base + WHITE stripe_downleft + LIGHT_GRAY gradient + GRAY border"><img src="images/mirrors/mirror.svg" width="26" alt="the mirror look"></a> | `mirror` | what a plain white banner becomes when it is made a mirror | `LIGHT_BLUE` base + `WHITE stripe_downleft` + `LIGHT_GRAY gradient` + `GRAY border` |
 | <a href="images/mirrors/overworld.svg" title="GREEN base + LIGHT_BLUE half_horizontal + GREEN triangles_bottom + GREEN border"><img src="images/mirrors/overworld.svg" width="26" alt="the overworld look"></a> | `overworld` | fallback, for a biome nothing names | `GREEN` base + `LIGHT_BLUE half_horizontal` + `GREEN triangles_bottom` + `GREEN border` |
 | <a href="images/mirrors/indoors.svg" title="BROWN base + BLACK stripe_top + BLACK border"><img src="images/mirrors/indoors.svg" width="26" alt="the indoors look"></a> | `indoors` | a far side that turned out to be a room | `BROWN` base + `BLACK stripe_top` + `BLACK border` |
 | <a href="images/mirrors/cavern.svg" title="GRAY base + BLACK triangles_top + BLACK triangles_bottom + GRAY border"><img src="images/mirrors/cavern.svg" width="26" alt="the cavern look"></a> | `cavern` | generic underground | `GRAY` base + `BLACK triangles_top` + `BLACK triangles_bottom` + `GRAY border` |
@@ -407,7 +408,7 @@ disagreement worth reporting.
 
 ### What ships
 
-Eighty-eight files, in two groups, and the difference between them is the `Biome` line.
+Eighty-nine files, in two groups, and the difference between them is the `Biome` line.
 
 **Sixty-five places, one per biome.** Every biome in the game has a look of its own, down to the
 nine oceans and the ten woods that used to share one between them. That is the point of the
@@ -429,16 +430,17 @@ it silently picks whichever file loaded first.
 Some name biomes a given server has never heard of. `pale_garden` exists only from 1.21.4 on,
 and a 1.20 server simply never matches it — the file loads, it just never wins.
 
-**Twenty-three looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
+**Twenty-four looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
 `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`, `vault`, `forge`,
 `library`, `port` and `compass` name no biome at all, so nothing picks them automatically and
 `mirror stamp <name> <look>` is the only way to get one. They are for what an operator wants
 said about a mirror when it is not where it goes: the middle of a network, the way out, one that
 is not for general use, one that leads somewhere worth thinking about first.
 
-`overworld`, `indoors` and `cavern` are the three the plugin asks for by name rather than the
-operator — the fallback for a biome nothing names, the answer for a far side that turned out to
-be a room, and a generic underground.
+`mirror`, `overworld`, `indoors` and `cavern` are the four the plugin asks for by name rather than
+the operator — what a plain white banner becomes when it is made a mirror, the fallback for a
+biome nothing names, the answer for a far side that turned out to be a room, and a generic
+underground.
 
 None of them carry any behaviour. `private` is a bar painted across a banner and not a
 permission; whether anybody may use that mirror is a question for the permission nodes, and a

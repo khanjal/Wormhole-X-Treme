@@ -7,7 +7,9 @@ import java.util.Locale;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
@@ -23,6 +25,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPreset;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry;
@@ -232,8 +235,40 @@ public class MirrorCommand implements SubCommand
                 + " banner. Nothing to do.");
             return;
         }
+        // Renaming the mirror a banner already is changes nothing about where it hangs.
+        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(block, name) : null;
+        if (refused != null)
+        {
+            say(sender, refused);
+            return;
+        }
         sayWhereToClick(sender, block);
         setFrom(sender, (byThatName != null) ? byThatName : onThisBanner, name, here);
+        if ((byThatName == null) && (onThisBanner == null))
+        {
+            dressPlainBanner(block, name);
+        }
+    }
+
+    /**
+     * Gives a plain white banner that has just become a mirror the mirror look.
+     *
+     * <p>Only a plain one. A banner somebody patterned before hanging it keeps what they gave it,
+     * and after that only {@code mirror stamp} changes it.
+     */
+    private static void dressPlainBanner(final Block block, final String name)
+    {
+        final MirrorPreset look = MirrorPresetRegistry.byName("mirror");
+        if ((look == null) || (block.getType() != Material.WHITE_WALL_BANNER)
+            || !(block.getState() instanceof Banner banner) || !banner.getPatterns().isEmpty())
+        {
+            return;
+        }
+        final QuantumMirror mirror = MirrorManager.byName(name);
+        if ((mirror != null) && MirrorStamp.apply(block, look))
+        {
+            remember(mirror, MirrorLook.named("mirror"));
+        }
     }
 
     /**

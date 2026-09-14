@@ -168,6 +168,14 @@ public class ConfigManager
         MIRROR_ALLOW_SAME_WORLD,
 
         /**
+         * How many mirrors one world may hold, or 0 for no limit.
+         *
+         * <p>One by default: a mirror is the door into its world, and scrolling one mirror
+         * through every other is only a short list while each world has one.
+         */
+        MIRROR_PER_WORLD_LIMIT,
+
+        /**
          * How close a player must be for a proximity mirror to show its look, in blocks.
          *
          * <p>Compared squared, so this never costs a square root. Small on purpose: the point
@@ -1377,6 +1385,17 @@ public class ConfigManager
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ALLOW_SAME_WORLD);
         return (s != null) && s.getBooleanValue();
+    }
+
+    /**
+     * How many mirrors one world may hold.
+     *
+     * @return the most, or 0 for no limit
+     */
+    public static int getMirrorPerWorldLimit()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PER_WORLD_LIMIT);
+        return (s == null) ? 1 : Math.max(0, s.getIntValue());
     }
 
     /**

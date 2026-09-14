@@ -124,7 +124,7 @@ Or name a look:
 /wormhole mirror stamp museum cavern
 ```
 
-Eighty-eight ship. Sixty-five are places, one for every biome in the game, and `stamp` picks among
+Eighty-nine ship. Sixty-five are places, one for every biome in the game, and `stamp` picks among
 them on its own. The rest say something about the mirror instead — `hub`, `exit`, `market`,
 `warning`, `private`, `plain` and more — and only a named `stamp` gets one. None change what a
 mirror does: `private` is paint, not a permission.

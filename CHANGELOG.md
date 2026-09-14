@@ -30,6 +30,21 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
+  behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
+  A banner on a post in the open showed the far world past its edges however the view was
+  trimmed, so `mirror set` now refuses one: a mirror is a wall banner with solid wall two blocks
+  out on every side of its opening, and a gap is refused by the block to fill.
+
+  One mirror per world by default (`mirror-per-world-limit`, 0 for no limit), because the next
+  step has right-clicking a mirror scroll through the mirrors of every other world, and that is
+  only a short list while each world has one door.
+
+  Punching a mirror will be how you go through it, so the banner and the wall round it -- the
+  face, five wide and six tall -- cannot be broken or blown up while the mirror is there.
+  `mirror remove` takes one down. A plain white banner made a mirror gets the new `mirror` look,
+  pale glass with a glint and a frame; a banner already patterned keeps its patterns.
+
 - **A mirror opens onto where it goes.** Walk up to one, on the banner's side, and the banner is
   gone: an opening its own size, one wide and two tall, is where it was, and through it is the destination -- real blocks, so it has
   depth as you move. Click the opening to go through. A banner hung on a wall opens in the wall,

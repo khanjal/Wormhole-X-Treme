@@ -21,6 +21,7 @@ import org.bukkit.event.EventHandler;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
+import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -260,8 +261,19 @@ class WormholeXTremeBlockListener implements Listener
     public void onBlockBreak(final BlockBreakEvent event)
     {
         final Block block = event.getBlock();
-        final Stargate stargate = StargateManager.getGateFromBlock(block);
         final Player player = event.getPlayer();
+        // Punching a mirror is how you go through it, so one never breaks; mirror remove takes it down.
+        if (MirrorPlacement.isProtected(block))
+        {
+            event.setCancelled(true);
+            if (player != null)
+            {
+                player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                    + "That is part of a mirror. /wormhole mirror remove takes one down.");
+            }
+            return;
+        }
+        final Stargate stargate = StargateManager.getGateFromBlock(block);
         if ((stargate != null) && handleBlockBreak(player, stargate, block))
         {
             event.setCancelled(true);
@@ -376,6 +388,12 @@ class WormholeXTremeBlockListener implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onBlockDamage(final BlockDamageEvent event)
     {
+        // Not even started: a punch on a mirror is a trip, and an instant break would lose the banner.
+        if (MirrorPlacement.isProtected(event.getBlock()))
+        {
+            event.setCancelled(true);
+            return;
+        }
         final Stargate stargate = StargateManager.getGateFromBlock(event.getBlock());
         final Player player = event.getPlayer();
         // A stray block in the ring is not the gate's, so DAMAGE does not gate it -- and

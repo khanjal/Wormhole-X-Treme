@@ -224,6 +224,8 @@ class MirrorRoundTripTest
     @Test
     void aDerivedNameAlreadyTakenDoesNotRepointTheMirrorThatHasIt()
     {
+        // Two mirrors in the overworld, which the default of one per world would refuse.
+        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
         final Block unrelated = banner(overworld, 50, 64, 50, BlockFace.EAST);
         MirrorManager.add(new QuantumMirror("nether-return",
             new MirrorBlock("world", 50, 64, 50), null));
@@ -304,6 +306,8 @@ class MirrorRoundTripTest
     {
         final Directional data = mock(Directional.class);
         when(data.getFacing()).thenReturn(facing);
+        // Every block of this world answers as this one, so it answers solid: a mirror needs a wall.
+        when(data.isOccluding()).thenReturn(true);
 
         final Block block = mock(Block.class);
         when(block.getType()).thenReturn(Material.WHITE_WALL_BANNER);

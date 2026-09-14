@@ -1,0 +1,191 @@
+package com.wormhole_xtreme.wormhole.model.mirror;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Rotatable;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import com.wormhole_xtreme.wormhole.PluginTestSupport;
+import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
+import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
+
+/**
+ * Where a mirror may hang, and what cannot be broken once it does.
+ *
+ * <p>A mirror draws its world behind the wall it hangs on, and only the wall hides that world from
+ * anywhere but the opening. A banner on a post in the open showed the far world past its edges
+ * however the view was trimmed, so a mirror needs a wall banner with solid wall two blocks out on
+ * every side -- and once it has one, neither the banner nor that wall can be broken out from under
+ * it. One mirror per world by default, since right-clicking a mirror scrolls through the others.
+ */
+class MirrorPlacementTest
+{
+    /** Blocks of the banner's world that are not solid. */
+    private final Set<MirrorWindow.Spot> open = new HashSet<>();
+
+    private World world;
+
+    @BeforeEach
+    void setUp() throws Exception
+    {
+        PluginTestSupport.install(mock(com.wormhole_xtreme.wormhole.WormholeXTreme.class));
+        ConfigTestSupport.clear();
+        MirrorManager.clear();
+        world = mock(World.class);
+        when(world.getName()).thenReturn("world");
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
+            blockAt(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2)));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception
+    {
+        MirrorManager.clear();
+        ConfigTestSupport.clear();
+        PluginTestSupport.remove();
+    }
+
+    /** A block of the world, solid unless it is in {@link #open}; the banner itself at 10 64 10. */
+    private Block blockAt(final int x, final int y, final int z)
+    {
+        final Block block = mock(Block.class);
+        when(block.getWorld()).thenReturn(world);
+        when(block.getX()).thenReturn(x);
+        when(block.getY()).thenReturn(y);
+        when(block.getZ()).thenReturn(z);
+        if ((x == 10) && (y == 64) && (z == 10))
+        {
+            final Directional facing = mock(Directional.class);
+            when(facing.getFacing()).thenReturn(BlockFace.NORTH);
+            when(block.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+            when(block.getBlockData()).thenReturn(facing);
+            return block;
+        }
+        final BlockData data = mock(BlockData.class);
+        when(data.isOccluding()).thenReturn(!open.contains(new MirrorWindow.Spot(x, y, z)));
+        when(block.getBlockData()).thenReturn(data);
+        return block;
+    }
+
+    /** A wall banner facing north hangs on the wall to its south, z 11. */
+    @Test
+    void aWallBannerInSolidWallMayBeAMirror()
+    {
+        assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"),
+            "solid wall two blocks out on every side is exactly what a mirror needs");
+    }
+
+    /**
+     * The face is five wide and six tall: the opening, one wide and two tall running down from the
+     * banner, and two blocks round it.
+     */
+    @Test
+    void theFaceIsTheOpeningAndTwoBlocksRoundIt()
+    {
+        final Set<MirrorWindow.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH);
+
+        assertEquals(30, face.size());
+        assertTrue(face.contains(new MirrorWindow.Spot(10, 64, 11)), "the block the banner hangs on");
+        assertTrue(face.contains(new MirrorWindow.Spot(10, 63, 11)), "the opening's lower block");
+        assertTrue(face.contains(new MirrorWindow.Spot(8, 61, 11)), "two out and two below the opening");
+        assertTrue(face.contains(new MirrorWindow.Spot(12, 66, 11)), "two out and two above the banner");
+        assertFalse(face.contains(new MirrorWindow.Spot(10, 64, 10)), "not the banner's own block, which is in front");
+        assertFalse(face.contains(new MirrorWindow.Spot(13, 64, 11)), "and no further than two");
+    }
+
+    /** A gap anywhere in the face refuses, and says which block. */
+    @Test
+    void aGapTwoBlocksOutIsRefusedByName()
+    {
+        open.add(new MirrorWindow.Spot(12, 61, 11));
+
+        final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library");
+
+        assertNotNull(refused, "a gap two blocks out lets the far world show past the wall");
+        assertTrue(refused.contains("12 61 11"), "and the refusal should name the block to fill: " + refused);
+    }
+
+    /** A banner on a post is refused whatever is round it. */
+    @Test
+    void aFreestandingBannerIsRefused()
+    {
+        final Block post = mock(Block.class);
+        when(post.getWorld()).thenReturn(world);
+        when(post.getBlockData()).thenReturn(mock(Rotatable.class));
+
+        final String refused = MirrorPlacement.refusal(post, "library");
+
+        assertNotNull(refused);
+        assertTrue(refused.contains("wall"), "the refusal should say where a mirror goes: " + refused);
+    }
+
+    /** One mirror per world by default: a second is refused, and the setting is named. */
+    @Test
+    void aSecondMirrorInOneWorldIsRefusedByDefault()
+    {
+        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 40, 64, 40), null));
+
+        final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library");
+
+        assertNotNull(refused, "one mirror per world is the default");
+        assertTrue(refused.contains("mirror-per-world-limit"), "and the refusal should name the setting: " + refused);
+    }
+
+    /** A mirror in another world, or the one being moved here, does not count. */
+    @Test
+    void onlyOtherMirrorsInThisWorldCountAgainstTheLimit()
+    {
+        MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world_nether", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("library", new MirrorBlock("world", 40, 64, 40), null));
+
+        assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"),
+            "moving library within its own world, with nether elsewhere, is still one mirror here");
+    }
+
+    /** The limit is a setting, and 0 lifts it. */
+    @Test
+    void theLimitIsASettingAndZeroLiftsIt()
+    {
+        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 40, 64, 40), null));
+        ConfigTestSupport.set(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 2);
+        assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "two allowed, one there");
+
+        MirrorManager.add(new QuantumMirror("gallery", new MirrorBlock("world", 70, 64, 40), null));
+        assertNotNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "two allowed, two there");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
+        assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "0 is no limit");
+    }
+
+    /** The banner and its face cannot be broken; the block beside the face can. */
+    @Test
+    void theBannerAndItsFaceAreProtectedAndNothingElse()
+    {
+        MirrorManager.add(new QuantumMirror("library", new MirrorBlock("world", 10, 64, 10), null));
+
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 10)), "the banner");
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 11)), "the block it hangs on");
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(12, 61, 11)), "the corner of the face");
+        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(13, 64, 11)), "one past the face is ordinary wall");
+        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 12)), "and so is the block behind the wall");
+    }
+}

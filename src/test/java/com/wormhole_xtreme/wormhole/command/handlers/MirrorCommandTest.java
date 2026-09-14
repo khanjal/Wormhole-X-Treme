@@ -106,6 +106,16 @@ class MirrorCommandTest
         when(block.getX()).thenReturn(1);
         when(block.getY()).thenReturn(64);
         when(block.getZ()).thenReturn(1);
+        // Hung facing north on solid wall, which is where a mirror may be made.
+        final Directional facing = mock(Directional.class);
+        when(facing.getFacing()).thenReturn(BlockFace.NORTH);
+        when(block.getBlockData()).thenReturn(facing);
+        final org.bukkit.block.data.BlockData solid = mock(org.bukkit.block.data.BlockData.class);
+        when(solid.isOccluding()).thenReturn(true);
+        final Block wall = mock(Block.class);
+        when(wall.getBlockData()).thenReturn(solid);
+        when(here.getBlockAt(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
+            org.mockito.ArgumentMatchers.anyInt())).thenReturn(wall);
         return block;
     }
 
@@ -267,6 +277,60 @@ class MirrorCommandTest
 
         assertNull(MirrorManager.byName("museum"));
         verify(player, atLeastOnce()).sendMessage(contains("not a banner"));
+    }
+
+    /**
+     * A plain white banner made a mirror is given the mirror look.
+     *
+     * <p>So a new mirror looks like one from across a room, without anybody choosing a look.
+     */
+    @Test
+    void setGivesAPlainWhiteBannerTheMirrorLook()
+    {
+        com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load(new java.io.File(dataFolder, "presets"));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        final org.bukkit.block.Banner cloth = mock(org.bukkit.block.Banner.class);
+        when(cloth.getPatterns()).thenReturn(new java.util.ArrayList<>());
+        when(wallBanner.getState()).thenReturn(cloth);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "set", "museum"));
+
+        verify(cloth).setBaseColor(org.bukkit.DyeColor.LIGHT_BLUE);
+        verify(cloth).update(true);
+        assertEquals(MirrorLook.named("mirror"), MirrorManager.byName("museum").look(),
+            "and the mirror should remember the look it was given");
+    }
+
+    /** A banner somebody already patterned keeps its patterns. */
+    @Test
+    void setLeavesAPatternedBannerAsItWas()
+    {
+        com.wormhole_xtreme.wormhole.model.mirror.MirrorPresetRegistry.load(new java.io.File(dataFolder, "presets"));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        final org.bukkit.block.Banner cloth = mock(org.bukkit.block.Banner.class);
+        when(cloth.getPatterns()).thenReturn(java.util.List.of(mock(org.bukkit.block.banner.Pattern.class)));
+        when(wallBanner.getState()).thenReturn(cloth);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "set", "museum"));
+
+        assertNotNull(MirrorManager.byName("museum"), "it is still made a mirror");
+        verify(cloth, org.mockito.Mockito.never()).update(org.mockito.ArgumentMatchers.anyBoolean());
+    }
+
+    /** A banner on a post cannot be made a mirror, and the refusal says where one goes. */
+    @Test
+    void setRefusesAFreestandingBanner()
+    {
+        final Block post = banner(Material.WHITE_BANNER);
+        when(post.getBlockData()).thenReturn(mock(org.bukkit.block.data.Rotatable.class));
+        when(player.getTargetBlockExact(6)).thenReturn(post);
+
+        run(player, "mirror", "set", "museum");
+
+        assertNull(MirrorManager.byName("museum"), "a freestanding banner shows its world past its edges");
+        verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
     }
 
     /** Looking at nothing is its own message, since the fix is different. */
