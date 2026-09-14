@@ -242,6 +242,12 @@ public class MirrorCommand implements SubCommand
         {
             MirrorManager.add(made.withDestination(room).withWidth(width));
             MirrorYamlManager.saveAll();
+            // Made anyway: a block of wall is enough, and two is worth a word.
+            final String thin = MirrorPlacement.thinWall(base, width);
+            if (thin != null)
+            {
+                say(sender, thin);
+            }
         }
     }
 

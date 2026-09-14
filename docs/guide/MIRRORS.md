@@ -11,8 +11,9 @@ Nothing is built: no frame, no pad, no partner.
   mirrors, and a punch goes to the one showing.
 - **One to a world** by default (`mirror-per-world-limit`, 0 for no limit), so the list a
   right-click walks is the worlds you can reach.
-- **On a wall, and it stays there.** A mirror needs solid wall two blocks out on every side of its
-  opening, and neither the banner nor that wall can be broken while it is a mirror.
+- **On a wall, and it stays there.** A mirror needs solid wall a block out on every side of its
+  opening — two is better, and `create` says so — and neither the banner nor that wall can be
+  broken while it is a mirror.
 
 ## Contents
 
@@ -48,9 +49,10 @@ Make a mirror in another world the same way, and the two find each other:
   and the next go on through the rest by name. It still shows its own room until somebody
   right-clicks it. `start archive none` takes the start away.
 
-A mirror needs solid wall two blocks out on every side of its opening — a gap is refused by the
-block to fill — and a banner on a post cannot be one. While it is a mirror, neither the banner nor
-that wall can be broken; `mirror remove` takes it down.
+A mirror needs solid wall a block out on every side of its opening — a gap is refused by the block
+to fill — and a banner on a post cannot be one. Two blocks out hides the room's edges better from
+an angle, so a wall short of two is made and told which block is not solid. While it is a mirror,
+neither the banner nor that wall can be broken; `mirror remove` takes it down.
 
 ### Two banners wide
 
@@ -58,10 +60,9 @@ Hang two wall banners side by side, facing the same way, and `create` on either 
 one mirror, two wide and two tall. Either banner answers a click, neither can be broken, and a
 traveller lands between them.
 
-Its wall is a column wider: solid for **six across and six tall** — the two blocks behind the
-banners and two more either side, and from two above the banners to two below the opening, which
-with banners at head height is a block below the floor. A wall built for one banner is a column
-short, and `create` says so.
+Its wall is a column wider: solid for **four across and four tall** — the two blocks behind the
+banners and one more either side, and from one above the banners to one below the opening. A wall
+built for one banner is a column short, and `create` says so.
 
 A mirror you already made one wide stays one wide: `mirror remove` it, hang the second banner, and
 `create` again. A room captured before wide mirrors existed is a little narrow for one; `mirror

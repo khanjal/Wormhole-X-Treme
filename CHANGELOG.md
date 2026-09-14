@@ -818,6 +818,16 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A mirror needs a block of wall round its opening, not two; short of two, `create` says so.**
+  "Let's go down to 1 and then leave that the lower limit. We can do a warning if it's less than
+  2." Two was chosen while a drawn block at the edge was held until half of it was past the
+  opening, so that half-block of far room needed wall to land on. The hold is 15% now, and a
+  trimmed view only ever draws a block whose outline falls on the opening or on solid face, so one
+  block hides everything it draws. A pair needs four by four instead of six by six, and only that
+  block of wall is protected from breaking. A wall solid one out but not two is made anyway, and
+  `create` names the block that is not solid, since two hides the room's edges better from a
+  sharp angle.
+
 - **`mirror-proximity-radius` is `mirror-proximity-distance`.** "Instead of radius then should it be
   distance?" It is the one "radius" left, and it does three jobs an admin thinks of as distances:
   how close you get before the banner gives way, how far you can drift before a mirror you

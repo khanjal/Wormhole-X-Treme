@@ -16,9 +16,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  *
  * <p>A mirror draws its world behind the wall it hangs on. The wall is what hides that world
  * from anywhere but the opening, so a mirror needs one: a banner on a post in the open showed
- * the far world past its edges however the view was trimmed, and a thin frame round a wall
- * banner did little better. Two blocks of solid wall on every side of the opening is the rule,
- * and the same blocks -- the face -- cannot be broken while the mirror is there.
+ * the far world past its edges however the view was trimmed. A block of solid wall on every
+ * side of the opening is the rule, and the same blocks -- the face -- cannot be broken while
+ * the mirror is there. Two blocks hides the room's edges better from an angle, so a wall short
+ * of two is allowed and said.
  *
  * <p>A mirror is one banner wide or two. The second of two is to the right of the first, looking
  * at the wall, and the face is a block wider for it.
@@ -26,7 +27,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
 public final class MirrorPlacement
 {
     /** How many blocks of solid wall a mirror needs on every side of its opening. */
-    static final int BORDER = 2;
+    static final int BORDER = 1;
+
+    /** How many it is better with; short of this, {@code create} says so and makes it anyway. */
+    static final int BETTER = 2;
 
     /** Static helpers only. */
     private MirrorPlacement()
@@ -133,17 +137,45 @@ public final class MirrorPlacement
             return full;
         }
         final MirrorWindow.Spot gap = gapIn(world, banner.getX(), banner.getY(), banner.getZ(),
-            directional.getFacing(), width);
+            directional.getFacing(), width, BORDER);
         if (gap != null)
         {
             // A pair says how big its wall is: a wall built for one banner is a column short of two.
             final String needs = (width >= 2)
                 ? "Two banners make a mirror two wide, which needs solid wall " + (width + (2 * BORDER))
                     + " across and " + (MirrorWindow.HEIGHT + (2 * BORDER)) + " tall; the block at "
-                : "A mirror needs solid wall " + BORDER + " blocks out on every side, and the block at ";
+                : "A mirror needs solid wall a block out on every side of its opening, and the block at ";
             return needs + gap.x() + " " + gap.y() + " " + gap.z() + " is not.";
         }
         return null;
+    }
+
+    /**
+     * What to say about a wall that is solid a block out but not two, or null if it is two.
+     *
+     * <p>For after a mirror is made: a block of wall hides the room, and two hides its edges from
+     * a sharper angle, so a wall short of two is worth a word and not a refusal.
+     *
+     * @param banner
+     *            the banner just made a mirror; for two, the left one looking at the wall
+     * @param width
+     *            one banner wide or two
+     * @return the word, or null
+     */
+    public static String thinWall(final Block banner, final int width)
+    {
+        if (!(banner.getBlockData() instanceof Directional directional))
+        {
+            return null;
+        }
+        final MirrorWindow.Spot gap = gapIn(banner.getWorld(), banner.getX(), banner.getY(), banner.getZ(),
+            directional.getFacing(), width, BETTER);
+        if (gap == null)
+        {
+            return null;
+        }
+        return "Its wall is solid a block out, which is enough; two blocks out hides the room's edges better"
+            + " from an angle, and the block at " + gap.x() + " " + gap.y() + " " + gap.z() + " is not solid.";
     }
 
     /**
@@ -200,7 +232,7 @@ public final class MirrorPlacement
     static MirrorWindow.Spot gapIn(final World world, final int x, final int y, final int z,
         final BlockFace facing)
     {
-        return gapIn(world, x, y, z, facing, 1);
+        return gapIn(world, x, y, z, facing, 1, BORDER);
     }
 
     /**
@@ -218,12 +250,14 @@ public final class MirrorPlacement
      *            which way the banner faces
      * @param width
      *            one banner or two
+     * @param border
+     *            how far out the face reaches
      * @return the gap, or null
      */
     static MirrorWindow.Spot gapIn(final World world, final int x, final int y, final int z,
-        final BlockFace facing, final int width)
+        final BlockFace facing, final int width, final int border)
     {
-        for (final MirrorWindow.Spot spot : face(x, y, z, facing, width))
+        for (final MirrorWindow.Spot spot : face(x, y, z, facing, width, border))
         {
             if (!world.getBlockAt(spot.x(), spot.y(), spot.z()).getBlockData().isOccluding())
             {
@@ -272,6 +306,13 @@ public final class MirrorPlacement
     static Set<MirrorWindow.Spot> face(final int x, final int y, final int z, final BlockFace facing,
         final int width)
     {
+        return face(x, y, z, facing, width, BORDER);
+    }
+
+    /** The same, reaching {@code border} blocks out from the opening. */
+    private static Set<MirrorWindow.Spot> face(final int x, final int y, final int z, final BlockFace facing,
+        final int width, final int border)
+    {
         final Set<MirrorWindow.Spot> face = new HashSet<>();
         final int wallX = x - facing.getModX();
         final int wallZ = z - facing.getModZ();
@@ -279,9 +320,9 @@ public final class MirrorPlacement
         final int rightX = facing.getModZ();
         final int rightZ = -facing.getModX();
         final int bottom = y - (MirrorWindow.HEIGHT - 1);
-        for (int across = -BORDER; across <= ((width - 1) + BORDER); across++)
+        for (int across = -border; across <= ((width - 1) + border); across++)
         {
-            for (int at = bottom - BORDER; at <= (y + BORDER); at++)
+            for (int at = bottom - border; at <= (y + border); at++)
             {
                 face.add(new MirrorWindow.Spot(wallX + (across * rightX), at, wallZ + (across * rightZ)));
             }

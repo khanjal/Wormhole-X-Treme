@@ -224,6 +224,33 @@ class MirrorCommandTest
         verify(player).sendMessage(contains("nearer than 64"));
     }
 
+    /**
+     * A mirror on a wall solid a block out but not two is made, and told which block is short.
+     *
+     * <p>"Let's go down to 1 and then leave that the lower limit. We can do a warning if it's less
+     * than 2." The banner at 1 64 1 faces north; the wall is z 2, and 3 61 2 is two out and two down.
+     */
+    @Test
+    void aMirrorOnAWallOnlyABlockOutIsMadeAndToldSo()
+    {
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        final Block wall = here.getBlockAt(0, 0, 0);
+        final org.bukkit.block.data.BlockData open = mock(org.bukkit.block.data.BlockData.class);
+        final Block gap = mock(Block.class);
+        when(gap.getBlockData()).thenReturn(open);
+        when(here.getBlockAt(org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
+            org.mockito.ArgumentMatchers.anyInt())).thenAnswer(call ->
+                ((((int) call.getArgument(0)) == 3) && (((int) call.getArgument(1)) == 61)
+                    && (((int) call.getArgument(2)) == 2)) ? gap : wall);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        run(player, "mirror", "create", "museum");
+
+        assertNotNull(MirrorManager.byName("museum"), "a block of wall is enough to make it");
+        verify(player).sendMessage(contains("3 61 2"));
+        verify(player).sendMessage(contains("two blocks out hides"));
+    }
+
     /** A mirror far enough away, or in another world, says nothing about it. */
     @Test
     void aMirrorFarEnoughAwayOrInAnotherWorldIsNotWarnedAbout()

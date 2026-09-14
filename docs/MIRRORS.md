@@ -44,10 +44,13 @@ than on the next sweep. When nobody is near a mirror any more it is off again, s
 **A punch goes through**, which is why a mirror cannot be broken: the banner and the wall round its
 opening ignore a punch and survive an explosion, and `mirror remove` is how one comes down.
 
-**A wall, two blocks deep in every direction.** A mirror draws its room behind the wall it hangs on,
+**A wall, a block out in every direction.** A mirror draws its room behind the wall it hangs on,
 and only the wall hides that room from anywhere but the opening. A banner on a post showed the room
-past its edges however the view was trimmed, so a mirror is a wall banner with solid wall two blocks
-out on every side of its opening, and `create` refuses anything else by the block to fill.
+past its edges however the view was trimmed, so a mirror is a wall banner with solid wall a block
+out on every side of its opening, and `create` refuses anything else by the block to fill. Two was
+the rule while a drawn block at the edge held until half of it was past the opening; with the hold
+at 15% one block hides what a trimmed view draws, so two is advice — `create` names the block short
+of it — rather than a refusal.
 
 **One to a world**, by default (`mirror-per-world-limit`): a mirror is the door into its world, and
 the list a right-click walks stays short while each world has one.

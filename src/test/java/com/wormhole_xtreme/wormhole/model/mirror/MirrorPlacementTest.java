@@ -32,9 +32,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
  *
  * <p>A mirror draws its world behind the wall it hangs on, and only the wall hides that world from
  * anywhere but the opening. A banner on a post in the open showed the far world past its edges
- * however the view was trimmed, so a mirror needs a wall banner with solid wall two blocks out on
- * every side -- and once it has one, neither the banner nor that wall can be broken out from under
- * it. One mirror per world by default, since right-clicking a mirror scrolls through the others.
+ * however the view was trimmed, so a mirror needs a wall banner with solid wall a block out on
+ * every side -- two is better and said -- and once it has one, neither the banner nor that wall
+ * can be broken out from under it. One mirror per world by default, since right-clicking a mirror
+ * scrolls through the others.
  */
 class MirrorPlacementTest
 {
@@ -91,25 +92,43 @@ class MirrorPlacementTest
     void aWallBannerInSolidWallMayBeAMirror()
     {
         assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"),
-            "solid wall two blocks out on every side is exactly what a mirror needs");
+            "solid wall a block out on every side is what a mirror needs");
+        assertNull(MirrorPlacement.thinWall(world.getBlockAt(10, 64, 10), 1), "and two out is nothing to remark on");
     }
 
     /**
-     * The face is five wide and six tall: the opening, one wide and two tall running down from the
-     * banner, and two blocks round it.
+     * The face is three wide and four tall: the opening, one wide and two tall running down from
+     * the banner, and a block round it.
      */
     @Test
-    void theFaceIsTheOpeningAndTwoBlocksRoundIt()
+    void theFaceIsTheOpeningAndABlockRoundIt()
     {
         final Set<MirrorWindow.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH);
 
-        assertEquals(30, face.size());
+        assertEquals(12, face.size());
         assertTrue(face.contains(new MirrorWindow.Spot(10, 64, 11)), "the block the banner hangs on");
         assertTrue(face.contains(new MirrorWindow.Spot(10, 63, 11)), "the opening's lower block");
-        assertTrue(face.contains(new MirrorWindow.Spot(8, 61, 11)), "two out and two below the opening");
-        assertTrue(face.contains(new MirrorWindow.Spot(12, 66, 11)), "two out and two above the banner");
+        assertTrue(face.contains(new MirrorWindow.Spot(9, 62, 11)), "one out and one below the opening");
+        assertTrue(face.contains(new MirrorWindow.Spot(11, 65, 11)), "one out and one above the banner");
         assertFalse(face.contains(new MirrorWindow.Spot(10, 64, 10)), "not the banner's own block, which is in front");
-        assertFalse(face.contains(new MirrorWindow.Spot(13, 64, 11)), "and no further than two");
+        assertFalse(face.contains(new MirrorWindow.Spot(12, 64, 11)), "and no further than one");
+    }
+
+    /**
+     * A wall solid a block out but not two makes a mirror, with a word about the block short.
+     *
+     * <p>"Let's go down to 1 and then leave that the lower limit. We can do a warning if it's less
+     * than 2."
+     */
+    @Test
+    void aWallOnlyABlockOutIsAllowedAndSaid()
+    {
+        open.add(new MirrorWindow.Spot(12, 61, 11));
+
+        assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library"), "a block of wall is enough");
+        final String said = MirrorPlacement.thinWall(world.getBlockAt(10, 64, 10), 1);
+        assertNotNull(said, "but short of two is worth a word");
+        assertTrue(said.contains("12 61 11"), "naming the block: " + said);
     }
 
     /**
@@ -124,49 +143,49 @@ class MirrorPlacementTest
     {
         final Set<MirrorWindow.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH, 2);
 
-        assertEquals(36, face.size(), "six across and six tall");
+        assertEquals(16, face.size(), "four across and four tall");
         assertTrue(face.contains(new MirrorWindow.Spot(9, 64, 11)), "the wall behind the second banner");
-        assertTrue(face.contains(new MirrorWindow.Spot(7, 61, 11)), "two past it, and two below the opening");
-        assertTrue(face.contains(new MirrorWindow.Spot(12, 66, 11)), "two past the first on its other side");
-        assertFalse(face.contains(new MirrorWindow.Spot(6, 64, 11)), "no further to the right");
-        assertFalse(face.contains(new MirrorWindow.Spot(13, 64, 11)), "or to the left");
+        assertTrue(face.contains(new MirrorWindow.Spot(8, 62, 11)), "one past it, and one below the opening");
+        assertTrue(face.contains(new MirrorWindow.Spot(11, 65, 11)), "one past the first on its other side");
+        assertFalse(face.contains(new MirrorWindow.Spot(7, 64, 11)), "no further to the right");
+        assertFalse(face.contains(new MirrorWindow.Spot(12, 64, 11)), "or to the left");
 
         MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 10, 64, 10),
             new MirrorPoint("world", 10.01, 63, 10.5, 180f, 0f)).withWidth(2));
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(9, 64, 10)), "the second banner");
-        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(7, 64, 11)), "the wider face");
-        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(6, 64, 11)), "past it is ordinary wall");
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(8, 64, 11)), "the wider face");
+        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(7, 64, 11)), "past it is ordinary wall");
     }
 
     /** A gap anywhere in the face refuses, and says which block. */
     @Test
-    void aGapTwoBlocksOutIsRefusedByName()
+    void aGapABlockOutIsRefusedByName()
     {
-        open.add(new MirrorWindow.Spot(12, 61, 11));
+        open.add(new MirrorWindow.Spot(11, 62, 11));
 
         final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "library");
 
-        assertNotNull(refused, "a gap two blocks out lets the far world show past the wall");
-        assertTrue(refused.contains("12 61 11"), "and the refusal should name the block to fill: " + refused);
+        assertNotNull(refused, "a gap a block out lets the far world show past the wall");
+        assertTrue(refused.contains("11 62 11"), "and the refusal should name the block to fill: " + refused);
     }
 
     /**
      * A pair short of wall says how big its wall has to be, not only which block to fill.
      *
      * <p>"It says it needs 2 blocks around it. Is the 2nd banner messing with it?" -- "it was one
-     * column short." A wall built for one banner is five across; two need six, and the gap was the
-     * column past the second banner.
+     * column short." A wall built for one banner is three across; two need four, and the gap was
+     * the column past the second banner.
      */
     @Test
     void aPairShortOfWallSaysHowBigItsWallHasToBe()
     {
-        open.add(new MirrorWindow.Spot(7, 64, 11));
+        open.add(new MirrorWindow.Spot(8, 64, 11));
 
         final String refused = MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "hall", 2);
 
         assertNotNull(refused, "the column past the second banner is part of a pair's wall");
-        assertTrue(refused.contains("6 across and 6 tall"), "and the refusal should say how big: " + refused);
-        assertTrue(refused.contains("7 64 11"), "and which block: " + refused);
+        assertTrue(refused.contains("4 across and 4 tall"), "and the refusal should say how big: " + refused);
+        assertTrue(refused.contains("8 64 11"), "and which block: " + refused);
         assertNull(MirrorPlacement.refusal(world.getBlockAt(10, 64, 10), "hall"),
             "a single banner's wall never reaches that column");
     }
@@ -231,8 +250,8 @@ class MirrorPlacementTest
 
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 10)), "the banner");
         assertTrue(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 11)), "the block it hangs on");
-        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(12, 61, 11)), "the corner of the face");
-        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(13, 64, 11)), "one past the face is ordinary wall");
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(11, 62, 11)), "the corner of the face");
+        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(12, 64, 11)), "one past the face is ordinary wall");
         assertFalse(MirrorPlacement.isProtected(world.getBlockAt(10, 64, 12)), "and so is the block behind the wall");
     }
 }
