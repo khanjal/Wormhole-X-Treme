@@ -99,6 +99,8 @@ class MirrorReplayTest
         final double ey = Double.parseDouble(p.getProperty("eye.y"));
         final double ez = Double.parseDouble(p.getProperty("eye.z"));
         final int radius = Integer.parseInt(p.getProperty("radius", "16"));
+        // Plane spacing of the rays cast through the opening; finer finds smaller holes.
+        final double rayStep = Double.parseDouble(p.getProperty("ray.step", "0.04"));
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, radius);
 
         final World world = mock(World.class);
@@ -161,7 +163,7 @@ class MirrorReplayTest
         final int intoZ = -facing.getModZ();
         out.append("slice through the middle (depth behind the face 1..").append(radius + 2)
             .append(" left to right; rows y ").append(by + 8).append(" down to ").append(by - 8)
-            .append("): '.' not drawn, 'a' air, '#' solid, 'f' fog, '~' other\n");
+            .append("): '.' not drawn, 'a' air, '#' solid, 's' sky, '~' other\n");
         for (int y = by + 8; y >= by - 8; y--)
         {
             out.append(String.format("%4d ", y));
@@ -235,9 +237,9 @@ class MirrorReplayTest
         final java.util.Map<String, Integer> shows = new java.util.TreeMap<>();
         final int faceAlong = (intoZProbe != 0) ? (bz + intoZProbe) : (bx + intoXProbe);
         final double facePlane = faceAlong + ((intoXProbe + intoZProbe) > 0 ? 0.0 : 1.0);
-        for (double across = 0.02; across < 1.0; across += 0.04)
+        for (double across = rayStep / 2.0; across < 1.0; across += rayStep)
         {
-            for (double up = 0.02; up < 2.0; up += 0.04)
+            for (double up = rayStep / 2.0; up < 2.0; up += rayStep)
             {
                 final double px = (intoZProbe != 0) ? (bx + across) : facePlane;
                 final double pz = (intoZProbe != 0) ? facePlane : (bz + across);
@@ -289,7 +291,7 @@ class MirrorReplayTest
                             continue;
                         }
                         outcome = "ok";
-                        shows.merge("drawn " + as + (as.contains("concrete") ? " (fog)" : ""), 1, Integer::sum);
+                        shows.merge("drawn " + as + (as.contains("concrete") ? " (sky)" : ""), 1, Integer::sum);
                         break;
                     }
                     if (here.isAir(cx, cy, cz))
@@ -441,7 +443,7 @@ class MirrorReplayTest
         }
         if (as.contains("concrete"))
         {
-            return 'f';
+            return 's';
         }
         if (as.endsWith(":barrier"))
         {

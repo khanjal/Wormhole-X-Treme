@@ -48,7 +48,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * lets windows share a wall, and what keeps a freestanding one inside its edges. Their own
  * world's creatures standing inside the view are hidden from them for as long as they look.
  *
- * <p>Real blocks reach {@code mirror-view-depth} from the eye. Past that a shell of fog closes the
+ * <p>Real blocks reach {@code mirror-view-depth} from the eye. Past that a shell of sky closes the
  * view: one block thick, crossed by every line of sight through the opening, so behind it
  * nothing of the real world shows. See {@link Pass}.
  *
@@ -529,7 +529,7 @@ public final class MirrorWindows
         view.lastRedraw = (most - budget.blocks) + " of " + most + " blocks walked"
             + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + drawnAt
             + ((view.radius != drawnAt) ? (", next " + view.radius) : "") + ", "
-            + budget.near + " drawn near, " + budget.shell + " of fog, eye " + (int) eye.getX() + ","
+            + budget.near + " drawn near, " + budget.shell + " on the shell, eye " + (int) eye.getX() + ","
             + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
         view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
@@ -883,20 +883,20 @@ public final class MirrorWindows
         }
     }
 
-    /** The fog a window's view ends in; see {@link #fogMaterial(boolean, boolean)}. */
-    private static BlockData fog(final MirrorCapture capture)
+    /** The sky a window's view ends in; see {@link #skyMaterial(boolean, boolean)}. */
+    private static BlockData sky(final MirrorCapture capture)
     {
-        return Bukkit.createBlockData(fogMaterial(capture.hasSky(), daylightIn(capture.worldName())));
+        return Bukkit.createBlockData(skyMaterial(capture.hasSky(), daylightIn(capture.worldName())));
     }
 
     /**
-     * The block that stands for fog.
+     * The block that stands for sky.
      *
-     * <p>The shell used to be painted with what each line of sight would meet further on, or
-     * sky: a flat picture of the distance, which looked like what it was, and in the dark
-     * behind a wall the sky-blue looked like water. It is fog now, the way the world ends at the
-     * render distance: white by the far world's day, black by its night and where there is no
-     * sky, lit like everything else by the real world where it is drawn.
+     * <p>The shell used to be painted with what each line of sight would meet further on: a
+     * flat picture of the distance, which looked like what it was. Then it was fog, which
+     * looked like a wall. Now the view is simply cut at the depth and the shell is sky: blue by
+     * the far world's day, black by its night and where there is no sky, lit like everything
+     * else by the real world where it is drawn.
      *
      * @param hasSky
      *            whether the far world has a sky at all
@@ -904,9 +904,9 @@ public final class MirrorWindows
      *            whether it is day there
      * @return the material to paint
      */
-    static Material fogMaterial(final boolean hasSky, final boolean daylight)
+    static Material skyMaterial(final boolean hasSky, final boolean daylight)
     {
-        return (hasSky && daylight) ? Material.WHITE_CONCRETE : Material.BLACK_CONCRETE;
+        return (hasSky && daylight) ? Material.LIGHT_BLUE_CONCRETE : Material.BLACK_CONCRETE;
     }
 
     /** Whether it is day in a world, by name; day if the world is not loaded to ask. */
@@ -1315,9 +1315,9 @@ public final class MirrorWindows
      * real world's own horizon shows through it.
      *
      * <p>Just past the radius lies a shell, one block thick, that closes the view: every line of
-     * sight from the eye through the opening crosses it. It is fog, so the view ends the way
-     * the world does at the render distance, and in return it has no edge where the real world
-     * shows and costs the same however close the eye comes.
+     * sight from the eye through the opening crosses it. It is sky, so the view is cut at the
+     * depth the way the world is at the render distance, and it has no edge where the real
+     * world shows and costs the same however close the eye comes.
      */
     private static final class Pass implements MirrorWindow.Limits
     {
@@ -1327,7 +1327,7 @@ public final class MirrorWindows
         private final Set<Long> allOpen;
         private final Map<Long, BlockData> wanted;
         private final BlockData air;
-        private final BlockData fog;
+        private final BlockData sky;
         private final double radius;
         private final Budget budget;
         private final long now;
@@ -1349,7 +1349,7 @@ public final class MirrorWindows
             this.allOpen = allOpen;
             this.wanted = wanted;
             this.air = air;
-            this.fog = fog(window.capture);
+            this.sky = sky(window.capture);
             this.radius = radius;
             this.budget = budget;
             this.now = now;
@@ -1410,7 +1410,7 @@ public final class MirrorWindows
             }
             if (distance >= radius)
             {
-                wanted.put(cell, fog);
+                wanted.put(cell, sky);
                 budget.shell++;
                 return true;
             }
@@ -1494,39 +1494,45 @@ public final class MirrorWindows
      * covers it whole would keep slivers but let a lattice of parts along every block boundary
      * stay open, and draw everything behind a solid wall; finer parts keep both.
      */
-    private static final class Occlusion
+    /**
+     * Which parts of the opening solid far-side blocks have covered, and from how near.
+     *
+     * <p>A grid over the opening's face, thirty-two parts to a block, and for each part the
+     * exact rectangle of it that solid blocks' outlines have covered so far, with the layer of
+     * the farthest of those blocks. A block is hidden only where the whole of its outline lies
+     * inside rectangles covered from nearer than it.
+     *
+     * <p>A part used to be marked hidden, whole, when a block's outline crossed its middle. From
+     * an eye a third of a block from the opening a floor row twenty blocks in is a band far
+     * thinner than a part, and once one row had marked the part every farther row in it was
+     * called hidden: the floor vanished in patches, and the corridor's shelves, seen edge-on,
+     * with it. Two outlines that meet in a part are joined only when the join is itself a
+     * rectangle -- the same span across, one above the other, or the same span up, side by
+     * side -- since the rectangle round an L claims the corner neither covers, and a shelf and
+     * the floor meeting at such a corner let twenty-two rays in eighty thousand through to
+     * the lake behind the mirror. Otherwise the larger of the two is kept.
+     */
+    static final class Occlusion
     {
         private static final int FINE = 32;
+        private static final double EPSILON = 1.0e-9;
 
         private final int left;
         private final int bottom;
         private final int wide;
         private final int tall;
         private final int[] nearest;
-        private int count;
+        private final double[] x0;
+        private final double[] x1;
+        private final double[] y0;
+        private final double[] y1;
+        private int marked;
+        private int full;
         private int horizon = Integer.MAX_VALUE;
 
         Occlusion(final Window window)
         {
-            final boolean alongX = window.shape.into().x() != 0;
-            int acrossMin = Integer.MAX_VALUE;
-            int acrossMax = Integer.MIN_VALUE;
-            int yMin = Integer.MAX_VALUE;
-            int yMax = Integer.MIN_VALUE;
-            for (final Spot cell : window.open)
-            {
-                final int across = alongX ? cell.z() : cell.x();
-                acrossMin = Math.min(acrossMin, across);
-                acrossMax = Math.max(acrossMax, across);
-                yMin = Math.min(yMin, cell.y());
-                yMax = Math.max(yMax, cell.y());
-            }
-            left = acrossMin;
-            bottom = yMin;
-            wide = ((acrossMax + 1) - acrossMin) * FINE;
-            tall = ((yMax + 1) - yMin) * FINE;
-            nearest = new int[wide * tall];
-            java.util.Arrays.fill(nearest, Integer.MAX_VALUE);
+            this(leftOf(window), bottomOf(window), widthOf(window), heightOf(window));
             // The parts of the opening's outline that are closed hide everything behind them.
             for (int i = 0; i < wide; i++)
             {
@@ -1534,19 +1540,96 @@ public final class MirrorWindows
                 {
                     if (!window.openKeys.contains(faceKey(window.shape, left + (i / FINE), bottom + (j / FINE))))
                     {
-                        hide(i, j, 0);
+                        mark((i * tall) + j, cellX0(i), cellX1(i), cellY0(j), cellY1(j), 0);
                     }
                 }
             }
         }
 
+        /** A grid over an opening so many blocks wide and tall, all of it open. */
+        Occlusion(final int left, final int bottom, final int blocksWide, final int blocksTall)
+        {
+            this.left = left;
+            this.bottom = bottom;
+            this.wide = blocksWide * FINE;
+            this.tall = blocksTall * FINE;
+            nearest = new int[wide * tall];
+            java.util.Arrays.fill(nearest, Integer.MAX_VALUE);
+            x0 = new double[wide * tall];
+            x1 = new double[wide * tall];
+            y0 = new double[wide * tall];
+            y1 = new double[wide * tall];
+        }
+
+        private static int leftOf(final Window window)
+        {
+            final boolean alongX = window.shape.into().x() != 0;
+            int least = Integer.MAX_VALUE;
+            for (final Spot cell : window.open)
+            {
+                least = Math.min(least, alongX ? cell.z() : cell.x());
+            }
+            return least;
+        }
+
+        private static int widthOf(final Window window)
+        {
+            final boolean alongX = window.shape.into().x() != 0;
+            int most = Integer.MIN_VALUE;
+            for (final Spot cell : window.open)
+            {
+                most = Math.max(most, alongX ? cell.z() : cell.x());
+            }
+            return (most + 1) - leftOf(window);
+        }
+
+        private static int bottomOf(final Window window)
+        {
+            int least = Integer.MAX_VALUE;
+            for (final Spot cell : window.open)
+            {
+                least = Math.min(least, cell.y());
+            }
+            return least;
+        }
+
+        private static int heightOf(final Window window)
+        {
+            int most = Integer.MIN_VALUE;
+            for (final Spot cell : window.open)
+            {
+                most = Math.max(most, cell.y());
+            }
+            return (most + 1) - bottomOf(window);
+        }
+
+        private double cellX0(final int i)
+        {
+            return left + ((double) i / FINE);
+        }
+
+        private double cellX1(final int i)
+        {
+            return left + ((double) (i + 1) / FINE);
+        }
+
+        private double cellY0(final int j)
+        {
+            return bottom + ((double) j / FINE);
+        }
+
+        private double cellY1(final int j)
+        {
+            return bottom + ((double) (j + 1) / FINE);
+        }
+
         /**
          * @return the deepest layer anything could still be seen at: past the deepest solid
-         *         block hiding each part of the opening, once every part is hidden
+         *         block hiding each part of the opening, once every part is hidden whole
          */
         int horizon()
         {
-            if ((count < nearest.length) || (horizon != Integer.MAX_VALUE))
+            if ((full < nearest.length) || (horizon != Integer.MAX_VALUE))
             {
                 return horizon;
             }
@@ -1559,10 +1642,10 @@ public final class MirrorWindows
             return horizon;
         }
 
-        /** Whether every part of the opening a projected block touches is hidden in front of it. */
+        /** Whether the whole of a projected block's outline lies within what nearer blocks cover. */
         boolean covers(final double[] rect, final int layer)
         {
-            if (count == 0)
+            if (marked == 0)
             {
                 return false;
             }
@@ -1574,7 +1657,15 @@ public final class MirrorWindows
             {
                 for (int j = jFrom; j <= jTo; j++)
                 {
-                    if (nearest[(i * tall) + j] >= layer)
+                    final int at = (i * tall) + j;
+                    if (nearest[at] >= layer)
+                    {
+                        return false;
+                    }
+                    if ((Math.max(rect[0], cellX0(i)) < (x0[at] - EPSILON))
+                        || (Math.min(rect[1], cellX1(i)) > (x1[at] + EPSILON))
+                        || (Math.max(rect[2], cellY0(j)) < (y0[at] - EPSILON))
+                        || (Math.min(rect[3], cellY1(j)) > (y1[at] + EPSILON)))
                     {
                         return false;
                     }
@@ -1583,34 +1674,107 @@ public final class MirrorWindows
             return true;
         }
 
-        /** Marks the parts of the opening a solid block hides: those whose middles it covers. */
+        /** Covers the parts of the opening a solid block's outline lies on, as far as it does. */
         void add(final double[] rect, final int layer)
         {
-            final int iFrom = Math.max(0, (int) Math.ceil(((rect[0] - left) * FINE) - 0.5));
-            final int iTo = Math.min(wide - 1, (int) Math.floor(((rect[1] - left) * FINE) - 0.5));
-            final int jFrom = Math.max(0, (int) Math.ceil(((rect[2] - bottom) * FINE) - 0.5));
-            final int jTo = Math.min(tall - 1, (int) Math.floor(((rect[3] - bottom) * FINE) - 0.5));
+            final int iFrom = Math.max(0, (int) Math.floor((rect[0] - left) * FINE));
+            final int iTo = Math.min(wide - 1, (int) Math.ceil((rect[1] - left) * FINE) - 1);
+            final int jFrom = Math.max(0, (int) Math.floor((rect[2] - bottom) * FINE));
+            final int jTo = Math.min(tall - 1, (int) Math.ceil((rect[3] - bottom) * FINE) - 1);
             for (int i = iFrom; i <= iTo; i++)
             {
                 for (int j = jFrom; j <= jTo; j++)
                 {
-                    hide(i, j, layer);
+                    mark((i * tall) + j, Math.max(rect[0], cellX0(i)), Math.min(rect[1], cellX1(i)),
+                        Math.max(rect[2], cellY0(j)), Math.min(rect[3], cellY1(j)), layer);
                 }
             }
         }
 
-        private void hide(final int i, final int j, final int layer)
+        /**
+         * Covers part of one part of the grid.
+         *
+         * <p>A rectangle that holds what was covered before replaces it, with its own layer. One
+         * inside what was covered changes nothing. One that meets it along a whole side is
+         * joined to it, with the farther of the two layers, since only past both is everything
+         * in the join hidden. Otherwise the larger of the two stands.
+         */
+        private void mark(final int at, final double nx0, final double nx1, final double ny0,
+            final double ny1, final int layer)
         {
-            final int at = (i * tall) + j;
+            if (((nx1 - nx0) <= EPSILON) || ((ny1 - ny0) <= EPSILON))
+            {
+                return;
+            }
+            final boolean wasFull = isFull(at);
             if (nearest[at] == Integer.MAX_VALUE)
             {
-                count++;
+                marked++;
+                set(at, nx0, nx1, ny0, ny1, layer);
             }
-            if (layer < nearest[at])
+            else if ((nx0 <= (x0[at] + EPSILON)) && (nx1 >= (x1[at] - EPSILON))
+                && (ny0 <= (y0[at] + EPSILON)) && (ny1 >= (y1[at] - EPSILON)))
             {
-                nearest[at] = layer;
-                horizon = Integer.MAX_VALUE;
+                set(at, nx0, nx1, ny0, ny1, layer);
             }
+            else if ((nx0 >= (x0[at] - EPSILON)) && (nx1 <= (x1[at] + EPSILON))
+                && (ny0 >= (y0[at] - EPSILON)) && (ny1 <= (y1[at] + EPSILON)))
+            {
+                return;
+            }
+            else if (sameSpan(nx0, nx1, x0[at], x1[at]) && (ny0 <= (y1[at] + EPSILON))
+                && (ny1 >= (y0[at] - EPSILON)))
+            {
+                set(at, x0[at], x1[at], Math.min(ny0, y0[at]), Math.max(ny1, y1[at]),
+                    Math.max(layer, nearest[at]));
+            }
+            else if (sameSpan(ny0, ny1, y0[at], y1[at]) && (nx0 <= (x1[at] + EPSILON))
+                && (nx1 >= (x0[at] - EPSILON)))
+            {
+                set(at, Math.min(nx0, x0[at]), Math.max(nx1, x1[at]), y0[at], y1[at],
+                    Math.max(layer, nearest[at]));
+            }
+            else if (((nx1 - nx0) * (ny1 - ny0)) > ((x1[at] - x0[at]) * (y1[at] - y0[at])))
+            {
+                set(at, nx0, nx1, ny0, ny1, layer);
+            }
+            else
+            {
+                return;
+            }
+            if (!wasFull && isFull(at))
+            {
+                full++;
+            }
+            horizon = Integer.MAX_VALUE;
+        }
+
+        private static boolean sameSpan(final double from, final double to, final double storedFrom,
+            final double storedTo)
+        {
+            return (Math.abs(from - storedFrom) <= EPSILON) && (Math.abs(to - storedTo) <= EPSILON);
+        }
+
+        private void set(final int at, final double nx0, final double nx1, final double ny0,
+            final double ny1, final int layer)
+        {
+            x0[at] = nx0;
+            x1[at] = nx1;
+            y0[at] = ny0;
+            y1[at] = ny1;
+            nearest[at] = layer;
+        }
+
+        private boolean isFull(final int at)
+        {
+            if (nearest[at] == Integer.MAX_VALUE)
+            {
+                return false;
+            }
+            final int i = at / tall;
+            final int j = at % tall;
+            return (x0[at] <= (cellX0(i) + EPSILON)) && (x1[at] >= (cellX1(i) - EPSILON))
+                && (y0[at] <= (cellY0(j) + EPSILON)) && (y1[at] >= (cellY1(j) - EPSILON));
         }
     }
 }

@@ -86,7 +86,7 @@ class MirrorWindowsTest
     private Block banner;
     private final BlockData air = named("minecraft:air");
     private final BlockData barrier = named("minecraft:barrier");
-    private final BlockData fog = named("minecraft:white_concrete");
+    private final BlockData sky = named("minecraft:light_blue_concrete");
     private final BlockData farOneBlock = named("far:one");
     private final BlockData farTwoBlock = named("far:two");
     private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
@@ -214,27 +214,27 @@ class MirrorWindowsTest
         // sit on one such line, thirteen, sixteen and a half, and twenty-three blocks out.
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 62, 20)), "within the radius, the block itself");
-        assertSame(fog, drawn.get(new Spot(10, 61, 23)), "on the shell, fog");
+        assertSame(sky, drawn.get(new Spot(10, 61, 23)), "on the shell, sky");
         assertFalse(drawn.containsKey(new Spot(10, 60, 30)), "past the shell, nothing");
     }
 
     /**
-     * The shell is fog whatever lies beyond it, near or far.
+     * The shell is sky whatever lies beyond it, near or far.
      *
-     * <p>It was painted with what each line of sight would meet further on, or sky: a flat
-     * picture of the distance that looked like what it was, and in the dark looked like water.
-     * The view ends in fog now, the way the world ends at the render distance.
+     * <p>It was painted with what each line of sight would meet further on: a flat picture of
+     * the distance that looked like what it was. The view is cut at the depth now, the way the
+     * world is at the render distance, and past it is sky.
      */
     @Test
-    void theShellIsFogWhateverLiesBeyondIt()
+    void theShellIsSkyWhateverLiesBeyondIt()
     {
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
-        assertSame(fog, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 61, 23)),
-            "solid far side beyond, and still fog");
+        assertSame(sky, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 61, 23)),
+            "solid far side beyond, and still sky");
     }
 
     /**
@@ -259,7 +259,7 @@ class MirrorWindowsTest
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
         assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
             "within the radius, air over air is not sent");
-        assertTrue(drawnAs(batch, fog) > 10, "but the shell past it is, as fog: " + drawnAs(batch, fog));
+        assertTrue(drawnAs(batch, sky) > 10, "but the shell past it is, as sky: " + drawnAs(batch, sky));
     }
 
     /**
@@ -958,8 +958,8 @@ class MirrorWindowsTest
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
-            bukkit.when(() -> Bukkit.createBlockData(Material.WHITE_CONCRETE)).thenReturn(fog);
-            bukkit.when(() -> Bukkit.createBlockData(Material.BLACK_CONCRETE)).thenReturn(fog);
+            bukkit.when(() -> Bukkit.createBlockData(Material.LIGHT_BLUE_CONCRETE)).thenReturn(sky);
+            bukkit.when(() -> Bukkit.createBlockData(Material.BLACK_CONCRETE)).thenReturn(sky);
             for (final Player player : world.getPlayers())
             {
                 bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
@@ -1005,18 +1005,94 @@ class MirrorWindowsTest
         assertFalse(MirrorWindows.daylight((24000L * 300L) + 18000L), "midnight of the three hundredth");
     }
 
+    /** Sky is blue by the far world's day, and black by its night and where there is no sky. */
+    @Test
+    void skyIsBlueByDayAndBlackByNightOrWhereThereIsNoSky()
+    {
+        assertSame(Material.LIGHT_BLUE_CONCRETE, MirrorWindows.skyMaterial(true, true), "day");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(true, false), "night");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, true), "the Nether by day");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, false), "and by night");
+    }
+
     /**
-     * Fog is white by the far world's day, and black by its night and where there is no sky.
+     * A floor row seen from close to the opening is a band thinner than a grid part, and the
+     * next row is the band above it; the nearer must not hide the farther.
      *
-     * <p>A painted sky was navy in the dark behind a wall, and looked like water. Fog is what
-     * the world ends in at the render distance, and takes the light of wherever it is drawn.
+     * <p>Marking a part hidden whole when an outline crossed its middle did exactly that: the
+     * floor of the library vanished in patches from a few blocks in, and its shelves, seen
+     * edge-on, with it. Behind all the rows together, within them, a block is hidden.
      */
     @Test
-    void fogIsWhiteByDayAndBlackByNightOrWhereThereIsNoSky()
+    void aThinFloorRowDoesNotHideTheRowBehindIt()
     {
-        assertSame(Material.WHITE_CONCRETE, MirrorWindows.fogMaterial(true, true), "day");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.fogMaterial(true, false), "night");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.fogMaterial(false, true), "the Nether by day");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.fogMaterial(false, false), "and by night");
+        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
+        for (int row = 1; row <= 20; row++)
+        {
+            final double[] band = { 0.0, 1.0, 0.5 + ((row - 1) * 0.01), 0.5 + (row * 0.01) };
+            assertFalse(grid.covers(band, row), "row " + row + " lies above every row before it");
+            grid.add(band, row);
+        }
+        assertTrue(grid.covers(new double[] { 0.2, 0.8, 0.51, 0.69 }, 30),
+            "within the twenty rows together, further back than all of them");
+        assertFalse(grid.covers(new double[] { 0.2, 0.8, 0.69, 0.71 }, 30),
+            "but not where it reaches past them");
+    }
+
+    /**
+     * A wall of blocks that tile the opening hides everything behind it and closes the horizon.
+     */
+    @Test
+    void aWallOfTiledBlocksHidesWhatIsBehindItAndClosesTheHorizon()
+    {
+        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
+        assertEquals(Integer.MAX_VALUE, grid.horizon(), "open, nothing hides anything");
+        grid.add(new double[] { 0.0, 1.0, 0.0, 1.0 }, 4);
+        assertEquals(Integer.MAX_VALUE, grid.horizon(), "half a wall is no horizon");
+        grid.add(new double[] { 0.0, 1.0, 1.0, 2.0 }, 4);
+
+        assertTrue(grid.covers(new double[] { 0.3, 0.7, 0.2, 1.8 }, 5), "behind the wall");
+        assertFalse(grid.covers(new double[] { 0.3, 0.7, 0.2, 1.8 }, 4), "not by its own layer");
+        assertEquals(4, grid.horizon(), "and nothing past the wall is worth walking");
+    }
+
+    /**
+     * Two outlines meeting in one part are joined, and the join hides only what is behind both.
+     *
+     * <p>Joined with the nearer layer, a block between the two would have been hidden by the
+     * farther one, which is in front of nothing.
+     */
+    @Test
+    void outlinesJoinedInOnePartHideOnlyWhatIsBehindBothOfThem()
+    {
+        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
+        grid.add(new double[] { 0.0, 1.0, 0.0, 0.51 }, 3);
+        grid.add(new double[] { 0.0, 1.0, 0.51, 1.0 }, 7);
+        final double[] onTheSeam = { 0.2, 0.8, 0.505, 0.508 };
+
+        assertFalse(grid.covers(onTheSeam, 5), "between the two, drawn to be safe");
+        assertTrue(grid.covers(onTheSeam, 8), "behind both, hidden");
+        assertTrue(grid.covers(new double[] { 0.2, 0.8, 0.1, 0.4 }, 5), "and behind the nearer alone, hidden");
+    }
+
+    /**
+     * Two outlines meeting at a corner in one part are not joined: the rectangle round both
+     * would claim the corner neither covers.
+     *
+     * <p>Found by the replay with its rays a two-hundredth of a block apart: a shelf's outline
+     * and the floor's met at a corner in one part of the opening, the join claimed the corner,
+     * and twenty-two rays through it met the lake behind the mirror.
+     */
+    @Test
+    void outlinesMeetingAtACornerDoNotClaimTheCornerBetweenThem()
+    {
+        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
+        // Inside the first part, a thirty-second of a block square: a strip up its left side
+        // and a strip along its top, leaving the bottom-right corner open.
+        grid.add(new double[] { 0.0, 0.02, 0.0, 0.03 }, 3);
+        grid.add(new double[] { 0.0, 0.03125, 0.02, 0.03125 }, 3);
+
+        assertFalse(grid.covers(new double[] { 0.022, 0.03, 0.005, 0.015 }, 5), "the open corner");
+        assertTrue(grid.covers(new double[] { 0.005, 0.015, 0.005, 0.015 }, 5), "inside the strip that stands");
     }
 }

@@ -192,6 +192,29 @@ class MirrorCapturesTest
     }
 
     /**
+     * A captures folder left beside the mirror file by an earlier build is moved under mirror/.
+     *
+     * <p>Captures moved from data/mirror-captures/ to data/mirror/captures/ so that whatever
+     * else mirrors keep has a folder to go in. The old folder is moved rather than abandoned,
+     * so nobody's captures are left behind to puzzle over.
+     */
+    @Test
+    void anEarlierBuildsCaptureFolderIsMovedUnderMirror() throws java.io.IOException
+    {
+        final File data = new File(dataFolder, "data");
+        final File earlier = new File(data, "mirror-captures");
+        assertTrue(earlier.mkdirs());
+        final File kept = new File(earlier, "world_1_2_3.view");
+        java.nio.file.Files.writeString(kept.toPath(), "not really a capture");
+
+        final File dir = DataLayout.mirrorCaptureDir();
+
+        assertEquals(new File(new File(data, "mirror"), "captures"), dir);
+        assertTrue(new File(dir, "world_1_2_3.view").isFile(), "the file came along");
+        assertFalse(earlier.exists(), "and the old folder is gone");
+    }
+
+    /**
      * A capture smaller than the configured box is outgrown, and taken again on the next look.
      *
      * <p>The box grew twice during testing, and a file from before kept its old horizon until

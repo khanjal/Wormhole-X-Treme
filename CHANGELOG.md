@@ -123,7 +123,7 @@ been running on defaults will start reading the file you have been editing.
   far sand, and the far side's chunks, asked for in the background, never came. So a window now
   draws from a photograph -- a box of blocks around the arrival point, `mirror-capture-radius`
   across (96 by default), 64 below to 64 above, taken a couple of chunks a tick the first time
-  anybody looks and kept in `data/mirror-captures/`. Palette and index, gzipped, with anything
+  anybody looks and kept in `data/mirror/captures/`. Palette and index, gzipped, with anything
   buried two deep pruned to air: a beach comes to a few hundred kilobytes at most.
 
   Once taken it never needs the far world again, which is the museum case #22 was filed for: a
@@ -207,11 +207,34 @@ been running on defaults will start reading the file you have been editing.
   through which the client showed the real world.
 
   So the shell is not a painting any more. "I don't like the fake sky/ground in the distance.
-  I'd rather just do a render distance with fog": it is fog now, white by the far world's day
-  and black by its night, the way the world ends at the render distance. Nothing flat pretends
-  to be far away, nothing on it is see-through, and the far heightmap and the lines of sight
-  through the capture are gone with it. The rest of the far side stays lit by this world, which
-  is the prototype's known limit: behind a dark wall, only what makes its own light is bright.
+  I'd rather just do a render distance with fog" -- and then, of a wall of white concrete,
+  "let's not do that weird shell thing. Just cut the render and display sky." So the view is
+  cut at the depth, the way the world is at the render distance, and the shell that closes it
+  is plain sky: blue by the far world's day, black by its night. Nothing flat pretends to be
+  far away, nothing on it is see-through, and the far heightmap and the lines of sight through
+  the capture are gone with it. The rest of the far side stays lit by this world, which is the
+  prototype's known limit: behind a dark wall, only what makes its own light is bright.
+
+  "The flooring still gets messed up; fences and signs need to allow blocks behind them to
+  render." Fences and signs never hid anything -- only occluding blocks mark the grid -- but
+  the floor did vanish in patches, and the corridor's shelves with it, for a reason the replay
+  found once it was looked for: from an eye a third of a block from the opening, a floor row
+  twenty blocks in projects onto the opening as a band far thinner than a grid part, and the
+  next row is the band just above it. A part was marked hidden, whole, when a block's outline
+  crossed its middle, so once one row had marked a part every farther row in it was called
+  hidden. Each part now keeps the exact rectangle of itself that solid outlines have covered,
+  and a block is hidden only where the whole of its outline lies inside rectangles covered from
+  nearer than it. Two outlines that meet in a part are joined, with the farther of their two
+  layers, since only past both is everything in the join hidden -- but only when the join is
+  itself a rectangle. Joined into the rectangle round both, an L claimed the corner neither
+  covered, and the replay's rays, now a two-hundredth of a block apart rather than a
+  twenty-fifth, found twenty-two in eighty thousand going through that corner to the lake
+  behind the mirror. With that, none, at any of five eyes from against the mirror to seven
+  blocks back.
+
+  And captures live in `data/mirror/captures/` now, not `data/mirror-captures/`: a folder of
+  their own under `mirror/`, so whatever else mirrors come to keep has somewhere to go. A
+  folder left by an earlier build of this branch is moved in the first time it is asked for.
 
   Captures reach further, in case: `mirror-capture-radius` is 96 by default and 160 at most,
   and the box goes 64 below the arrival point, not 48, which only just held the beach. And
