@@ -141,7 +141,7 @@ class MirrorCommandTest
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
-            run(player, "mirror", "debug", "museum");
+            run(player, "mirror", "debug", "museum", "all");
         }
 
         final String value = MirrorText.VALUE_COLOUR;
@@ -151,6 +151,35 @@ class MirrorCommandTest
         verify(player).sendMessage(contains("file: " + value + MirrorText.BAD_COLOUR + "missing"));
         verify(player).sendMessage(contains("looking into: " + value + "no window"));
         verify(player).sendMessage(contains("your eye: " + value + "10.00,64.00,10.00"));
+    }
+
+    /**
+     * debug without all fits on a screen of chat: the mirror, its capture and your view, a line each.
+     *
+     * <p>"The debug scrolls off the chat (I know you can scroll). Is there a more compact version?"
+     * All of it was some twenty lines, and chat shows ten.
+     */
+    @Test
+    void debugWithoutAllFitsOnAScreenOfChat()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
+            new MirrorPoint("far", 0.5, 70.0, 0.5, 0.0f, 0.0f)));
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        final org.mockito.ArgumentCaptor<String> said = org.mockito.ArgumentCaptor.forClass(String.class);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            run(player, "mirror", "debug", "museum");
+        }
+
+        verify(player, atLeastOnce()).sendMessage(said.capture());
+        final java.util.List<String> lines = said.getAllValues();
+        assertTrue(lines.size() <= 6, "chat shows ten lines, and this should leave room around it: " + lines);
+        assertTrue(lines.stream().anyMatch(line -> line.contains(
+            "capture: " + MirrorText.VALUE_COLOUR + MirrorText.BAD_COLOUR + "file missing")), "the capture on one line: " + lines);
+        assertTrue(lines.stream().anyMatch(line -> line.contains(
+            "view: " + MirrorText.VALUE_COLOUR + "you are looking into no window")), "your view: " + lines);
+        assertTrue(lines.stream().anyMatch(line -> line.contains("debug museum all")), "and how to see the rest: " + lines);
     }
 
     /**

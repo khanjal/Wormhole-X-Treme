@@ -147,8 +147,8 @@ through the opening from where you stand, so nothing shows past its edges.
 - **Blocks only.** No players or creatures from the room shown, and your own world's creatures
   inside the view are hidden from you while you look. Lit by this world, so a room behind a wall is
   dark except for what makes its own light.
-- **For checking a mirror:** `/wormhole mirror debug <name>` lists, a line each, what its capture
-  holds and how your view of it is drawn: green when it is drawn whole, and in red whatever trims
+- **For checking a mirror:** `/wormhole mirror debug <name>` says in a few lines what its capture
+  is and how your view of it is drawn, and `debug <name> all` lists everything, a fact a line: green when it is drawn whole, and in red whatever trims
   it or stops it — a gap in its wall, another mirror too near, a missing capture file. It is not in
   the usage line, but tab-completes for anyone who may run it. `debug <name> full` draws the whole
   capture for you alone, wherever you stand. `mirror debug off`

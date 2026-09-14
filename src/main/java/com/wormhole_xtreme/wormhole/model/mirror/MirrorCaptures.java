@@ -489,6 +489,27 @@ public final class MirrorCaptures
     }
 
     /**
+     * What a mirror's capture is, on one line, for {@code mirror debug} without {@code all}.
+     *
+     * @param mirror
+     *            the mirror
+     * @return the line
+     */
+    public static String summary(final QuantumMirror mirror)
+    {
+        if (mirror.destination() == null)
+        {
+            return MirrorText.field("capture", MirrorText.bad("none, the mirror has no room"));
+        }
+        final String key = keyOf(mirror.destination());
+        final File file = fileOf(key);
+        final Held held = LOADED.get(key);
+        return MirrorText.field("capture", (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
+            + ", " + ((held == null) ? "not in memory" : ("in memory, taken " + held.capture.secondsOld() + "s ago"))
+            + (JOBS.containsKey(key) ? ", being taken now" : ""));
+    }
+
+    /**
      * Takes a capture of loaded chunks around a point, at once, for {@code mirror debug save}.
      *
      * <p>Synchronous and only over chunks already loaded: it is for photographing the world

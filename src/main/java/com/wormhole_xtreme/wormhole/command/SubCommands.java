@@ -449,8 +449,8 @@ public final class SubCommands
     /** The mirror verb for what a window draws from; not in the usage line. */
     private static final String DEBUG = "debug";
 
-    /** What {@code mirror debug} takes on its own, or after a name: save and full take one. */
-    private static final String[] DEBUG_SWITCHES = { "save", "full", "off", "on" };
+    /** What {@code mirror debug} takes on its own, or after a name: all, save and full take one. */
+    private static final String[] DEBUG_SWITCHES = { "all", "save", "full", "off", "on" };
 
     /**
      * Completions for {@code /wormhole mirror debug [name] [save|full]} and {@code debug off|on}.
@@ -473,7 +473,7 @@ public final class SubCommands
         }
         final boolean afterName = (args.length == 4)
             && java.util.Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
-        return afterName ? prefixed(args[3], "save", "full") : none();
+        return afterName ? prefixed(args[3], "all", "save", "full") : none();
     }
 
     /**

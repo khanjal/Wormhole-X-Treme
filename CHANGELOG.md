@@ -166,6 +166,14 @@ been running on defaults will start reading the file you have been editing.
 
   The distance is one number now, in `MirrorPlacement`, read by both the warning and the drawing.
 
+- **`mirror debug` fits on a screen of chat, and `all` has the rest.** "The debug scrolls off the
+  chat (I know you can scroll). Is there a more compact version we can do?" A fact a line came to
+  some twenty lines, and chat shows ten. Without `all` it says five or so: the mirror, its banner
+  and room on one line; its capture on one (size or a red `file missing`, in memory or not, how
+  old); each mirror in your view and how it is drawn; the last redraw; and the command for the
+  rest. `mirror debug <name> all` is the full listing, and completes after a name with `save` and
+  `full`.
+
 - **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
   behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
   A banner on a post in the open showed the far world past its edges however the view was

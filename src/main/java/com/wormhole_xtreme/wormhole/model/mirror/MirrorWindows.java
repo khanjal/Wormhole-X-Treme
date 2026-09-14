@@ -417,6 +417,44 @@ public final class MirrorWindows
     }
 
     /**
+     * What a player's view is doing, a line a mirror and one for the last redraw, for
+     * {@code mirror debug} without {@code all}.
+     *
+     * @param player
+     *            the player
+     * @return lines to say
+     */
+    public static List<String> summary(final Player player)
+    {
+        final List<String> lines = new ArrayList<>();
+        if (BLIND.contains(player.getUniqueId()))
+        {
+            lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
+        }
+        final View view = VIEWS.get(player.getUniqueId());
+        if (view == null)
+        {
+            lines.add(MirrorText.field("view", "you are looking into no window"));
+            return lines;
+        }
+        final String fullName = FULL.get(player.getUniqueId());
+        for (final String name : view.mirrors)
+        {
+            final Window window = WINDOWS.get(name);
+            if (window != null)
+            {
+                lines.add(MirrorText.field(name, name.equals(fullName) ? "whole and unlimited for you"
+                    : howDrawn(window, view.fixedNames.contains(name))));
+            }
+        }
+        if (view.lastRedraw != null)
+        {
+            lines.add(view.lastRedraw.brief());
+        }
+        return lines;
+    }
+
+    /**
      * What one redraw walked and drew.
      *
      * <p>Numbers, written out only when {@code mirror debug} asks: a sentence built on every redraw
@@ -438,6 +476,13 @@ public final class MirrorWindows
             }
             lines.add(MirrorText.field("drawn from", eye.x() + "," + eye.y() + "," + eye.z()));
             return lines;
+        }
+
+        String brief()
+        {
+            return MirrorText.field("redraw", walked + " of " + most + " walked"
+                + ((walked >= most) ? (", " + MirrorText.bad("budget spent")) : "") + ", radius " + radius + ", "
+                + tookMillis + " ms");
         }
     }
 

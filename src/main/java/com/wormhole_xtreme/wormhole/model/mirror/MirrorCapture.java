@@ -1187,6 +1187,12 @@ public final class MirrorCapture
             + (complete ? ", complete" : "");
     }
 
+    /** @return how long ago this capture was taken, in whole seconds */
+    long secondsOld()
+    {
+        return (System.currentTimeMillis() - takenAt) / 1000L;
+    }
+
     /**
      * What a capture holds, one {@code mirror debug} line each.
      *
@@ -1199,7 +1205,7 @@ public final class MirrorCapture
                 + (minY + sizeY - 1) + " z " + minZ + ".." + (minZ + sizeZ - 1)),
             MirrorText.field("kept", filled() + " blocks and " + seenAir() + " air of " + size() + ", "
                 + names.length + " kinds"),
-            MirrorText.field("taken", ((System.currentTimeMillis() - takenAt) / 1000L) + "s ago, "
+            MirrorText.field("taken", secondsOld() + "s ago, "
                 + (hasSky ? "sky" : "no sky") + (complete ? ", complete" : "")));
     }
 

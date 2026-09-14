@@ -1201,9 +1201,10 @@ public class MirrorCommand implements SubCommand
         }
         final boolean save = "save".equals(last);
         final boolean full = "full".equals(last);
-        final String name = (args.length > ((save || full) ? 3 : 2)) ? args[2] : null;
+        final boolean all = "all".equals(last);
+        final String name = (args.length > ((save || full || all) ? 3 : 2)) ? args[2] : null;
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>] [save|full] | debug off|on"));
+            () -> sayUsage(sender, "debug [<name>] [all|save|full] | debug off|on"));
         if (mirror == null)
         {
             return;
@@ -1224,14 +1225,14 @@ public class MirrorCommand implements SubCommand
         {
             saveDebug(sender, mirror);
         }
+        if (!all)
+        {
+            sayBrief(sender, mirror);
+            return;
+        }
         say(sender, MirrorText.heading("mirror ") + MirrorText.quoted(mirror.name()));
-        say(sender, MirrorText.field("banner", mirror.banner().toKey()
-            + ((mirror.width() >= 2) ? ", two wide" : "")));
-        say(sender, MirrorText.field("room", (mirror.destination() == null) ? MirrorText.bad("none")
-            : (MirrorText.NAME_COLOUR + mirror.destination().worldName() + MirrorText.VALUE_COLOUR + " "
-                + (int) Math.floor(mirror.destination().x()) + ","
-                + (int) Math.floor(mirror.destination().y()) + ","
-                + (int) Math.floor(mirror.destination().z()))));
+        say(sender, MirrorText.field("banner", bannerOf(mirror)));
+        say(sender, MirrorText.field("room", roomOf(mirror)));
         MirrorCaptures.describe(mirror).forEach(line -> say(sender, line));
         if (sender instanceof Player player)
         {
@@ -1240,6 +1241,39 @@ public class MirrorCommand implements SubCommand
             say(sender, MirrorText.field("your eye", String.format(Locale.ROOT, "%.2f,%.2f,%.2f, yaw %.1f, pitch %.1f",
                 eye.getX(), eye.getY(), eye.getZ(), eye.getYaw(), eye.getPitch())));
         }
+    }
+
+    /**
+     * {@code debug} without {@code all}: the mirror, its capture and your view, a line or so each.
+     *
+     * <p>All of it was some twenty lines, and chat shows ten, so it scrolled off before it was read.
+     */
+    private static void sayBrief(final CommandSender sender, final QuantumMirror mirror)
+    {
+        say(sender, MirrorText.heading("mirror ") + MirrorText.quoted(mirror.name()) + " at " + MirrorText.VALUE_COLOUR
+            + bannerOf(mirror) + MirrorText.BODY_COLOUR + ", room " + MirrorText.VALUE_COLOUR + roomOf(mirror));
+        say(sender, MirrorCaptures.summary(mirror));
+        if (sender instanceof Player player)
+        {
+            com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.summary(player).forEach(line -> say(sender, line));
+        }
+        say(sender, "  " + MirrorText.command("/wormhole mirror debug " + mirror.name() + " all") + " for the rest.");
+    }
+
+    /** Where a mirror's banner is, for debug. */
+    private static String bannerOf(final QuantumMirror mirror)
+    {
+        return mirror.banner().toKey() + ((mirror.width() >= 2) ? ", two wide" : "");
+    }
+
+    /** Where a mirror's room is, for debug, ending in the value colour. */
+    private static String roomOf(final QuantumMirror mirror)
+    {
+        return (mirror.destination() == null) ? MirrorText.bad("none")
+            : (MirrorText.NAME_COLOUR + mirror.destination().worldName() + MirrorText.VALUE_COLOUR + " "
+                + (int) Math.floor(mirror.destination().x()) + ","
+                + (int) Math.floor(mirror.destination().y()) + ","
+                + (int) Math.floor(mirror.destination().z()));
     }
 
     /** Photographs this world around a mirror's banner, 48 blocks each way, into a file. */
