@@ -765,6 +765,41 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /**
+     * Whether a block behind the face could project, from this eye, onto a span of the face: a
+     * cheap bound before {@link #projected}, for walking a whole room's blocks against one eye.
+     *
+     * <p>A corner's projection scales by the face's distance over the corner's, so the nearest
+     * and farthest depths of the block bound where its corners can land.
+     *
+     * @param span
+     *            {@code {acrossMin, acrossMax, yMin, yMax}} on the face, as {@link #projected} measures
+     * @return false only if no part of the block can land on the span
+     */
+    boolean mightLandOn(final double eyeX, final double eyeY, final double eyeZ, final int x, final int y,
+        final int z, final double[] span)
+    {
+        final boolean alongX = into.x() != 0;
+        final double eyeDepth = alongX ? eyeX : eyeZ;
+        final double eyeAcross = alongX ? eyeZ : eyeX;
+        final double reach = Math.abs(face() - eyeDepth);
+        final int near = alongX ? x : z;
+        final double nearest = Math.min(Math.abs(near - eyeDepth), Math.abs((near + 1) - eyeDepth));
+        if (nearest <= reach)
+        {
+            return true;
+        }
+        final double nearScale = reach / nearest;
+        final double farScale = reach / (nearest + 1.0);
+        final double across = alongX ? z : x;
+        final double acrossLow = Math.min(eyeAcross + ((across - eyeAcross) * nearScale), eyeAcross + ((across - eyeAcross) * farScale));
+        final double acrossHigh = Math.max(eyeAcross + (((across + 1.0) - eyeAcross) * nearScale),
+            eyeAcross + (((across + 1.0) - eyeAcross) * farScale));
+        final double upLow = Math.min(eyeY + ((y - eyeY) * nearScale), eyeY + ((y - eyeY) * farScale));
+        final double upHigh = Math.max(eyeY + (((y + 1.0) - eyeY) * nearScale), eyeY + (((y + 1.0) - eyeY) * farScale));
+        return (acrossHigh >= span[0]) && (acrossLow <= span[1]) && (upHigh >= span[2]) && (upLow <= span[3]);
+    }
+
+    /**
      * Whether a projected block falls, even partly, on any of these blocks of the opening.
      *
      * @param rect

@@ -818,6 +818,25 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A mirror on any wall reaches the full depth, standing or walking: its room is held whole and
+  clipped to each eye.** "I want to capture further for the mirror. Right now it seems short and
+  is showing the real world after the mirror one." Only a mirror walled to the proximity distance
+  was drawn whole. Any other wall was walked like a freestanding mirror: the cone from the eye
+  through the opening, block by block, with an occlusion grid and a budget, reaching what one
+  redraw could afford -- shallower right against the mirror and while walking, and never the
+  render distance. Every one-block-border mirror was one of those.
+
+  Now every wall mirror's room is held whole, as a walled one's is, and a mirror that cannot be
+  drawn whole -- a gap in its wall within the proximity distance, or another mirror within twice
+  the depth -- is clipped to each eye instead: each redraw keeps the blocks of the room this eye
+  sees through the opening, landing where the wall hides the rest, by the same edge rule as
+  before. Nothing is walked, occluded or budgeted: the capture already holds only what somebody
+  at the opening could see, and a cheap bound on where a block can land spares most of the room a
+  projection. So `mirror-view-depth 160`, ten chunks, reaches as far as the server sends chunks,
+  on a thin wall as on a thick one; past it the client has nothing to show, which is the cut
+  with nothing painted. `mirror debug` says `whole to depth N, clipped to each eye`. Only a
+  freestanding mirror is still walked, and that code goes with it.
+
 - **The outer half of the wall's edge is a margin nothing is drawn onto, so what a mirror shows
   beside its opening scales with its wall.** "For a border of 1 we need to trim better; there's a
   lot of leaking around the border. Should it change based on border, up to a max?" A block drawn

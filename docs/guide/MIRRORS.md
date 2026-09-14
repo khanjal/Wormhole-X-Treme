@@ -127,9 +127,10 @@ Nothing in the world changes. Only the players looking in are sent the view. A m
 solid wall — solid for `mirror-proximity-distance` blocks on every side of the opening, with no other
 mirror within twice the depth — shows everything behind the wall out to its depth, the same from
 wherever you stand in front of it. `create` says so when a new mirror is closer than that to
-another. Any other mirror shows only the blocks you could actually see
-through the opening from where you stand, so nothing shows past its edges — and the outer half of
+another. Any other mirror shows the same room, clipped to where you stand: only the blocks you
+could actually see through the opening, so nothing shows past its edges — and the outer half of
 its wall's edge is kept clear, so a wider wall shows a little more beside the opening as you move.
+Either way it reaches the full depth, standing or walking.
 
 - **What you see is a capture:** a photograph of a mirror's room, kept in
   `data/mirror/captures/` under its place's name, which `mirror list` shows; a capture no mirror
@@ -143,8 +144,8 @@ its wall's edge is kept clear, so a wider wall shows a little more beside the op
   opening, rays a degree apart through it, and the blocks they reach, air included; everything else
   is left to the real world. So a capture is the surfaces in view, and that is all a viewer is sent.
 - **The view reaches `mirror-view-depth` from the opening** (32 by default, up to 160) and nothing
-  is drawn past it. A mirror in a solid wall always reaches the whole depth; any other reaches what
-  one redraw can afford, shorter right against it and while you walk.
+  is drawn past it, standing or walking, on any wall. At 160 — ten chunks, as far as a server
+  usually sends — the room ends where the client has nothing to show anyway.
 - **One-sided.** From behind, a mirror is its banner.
 - **Blocks only.** No players or creatures from the room shown, and your own world's creatures
   inside the view are hidden from you while you look. Lit by this world, so a room behind a wall is

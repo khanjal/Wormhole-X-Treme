@@ -763,6 +763,39 @@ class MirrorWindowsTest
     }
 
     /**
+     * A wall mirror short of the proximity distance is held whole and clipped to each eye, so it
+     * reaches the full depth on the move, where walking its cone ran out.
+     *
+     * <p>"I want to capture further for the mirror. Right now it seems short and is showing the
+     * real world after the mirror one." A wall with a gap was walked like a freestanding mirror,
+     * and a redraw on the move reached what its budget allowed: from right against the mirror,
+     * well short of the depth. With the same budget of two hundred, the clipped room reaches the
+     * configured depth, and says so.
+     */
+    @Test
+    void aWallShortOfTheProximityDistanceIsHeldWholeAndClippedToEachEye()
+    {
+        gap = new Spot(16, 64, 11);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            MirrorWindows.mostWhileMoving = 200;
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
+        });
+
+        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        assertTrue(said.contains("radius: 16"), "the configured depth, however small the walking budget: " + said);
+        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: whole to depth 16, clipped to each eye")),
+            "and how it is drawn: " + said);
+        assertFalse(positions(changesTo(viewer, 2).get(1)).containsKey(new Spot(10, 65, 22)),
+            "the deep block drawn at first is not taken back");
+    }
+
+    /**
      * A wall mirror with another mirror within twice the depth is trimmed, whether or not the
      * viewer can see the other one.
      *
