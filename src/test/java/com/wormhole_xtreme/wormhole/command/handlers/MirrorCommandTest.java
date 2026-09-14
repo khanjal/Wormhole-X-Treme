@@ -361,7 +361,7 @@ class MirrorCommandTest
 
         assertTrue(run(player, "mirror", "start", "archive", "hub"));
         assertEquals("hub", MirrorManager.byName("archive").start());
-        verify(player, atLeastOnce()).sendMessage(contains("until somebody at it chooses another"));
+        verify(player, atLeastOnce()).sendMessage(contains("first."));
 
         assertTrue(run(player, "mirror", "start", "archive", "none"));
         assertNull(MirrorManager.byName("archive").start(), "none is its own room again");

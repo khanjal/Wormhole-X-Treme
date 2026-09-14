@@ -49,10 +49,12 @@ been running on defaults will start reading the file you have been editing.
   a room not captured yet leaves the mirror showing what it did until it is ready.
 
   "In a historical world we can default the mirror to the main server first, and right-click
-  scroll from there." `mirror start [name] <mirror|none>` gives a mirror a start: the mirror it
-  opens onto when nobody at it has chosen, and goes back to when they leave. Right-clicks carry
-  on from the start, and the mirror's own room is still one of the stops. Saved with the mirror as
-  `Start`; a start that has been removed is no start.
+  scroll from there." `mirror start [name] <mirror|none>` gives a mirror a start: first in its
+  list. A mirror nobody has turned on still shows its own room -- "mirrors should reflect
+  themselves when approached if they are off" -- and the first right-click opens onto the start,
+  the next ones onto the rest by name, then round to its own room. Saved with the mirror as
+  `Start`; a start that has been removed is no start. It opened onto the start on approach for
+  one commit, which was not the idea.
 
   "I don't see a reflection at all" -- on a mirror facing north. Its capture kept 8 blocks and no
   air: the rays that decide what can be seen started on the back edge of the block in front of

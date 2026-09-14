@@ -740,7 +740,8 @@ public class MirrorCommand implements SubCommand
         {
             MirrorManager.add(mirror.withStart(null));
             MirrorYamlManager.saveAll();
-            say(sender, MirrorText.quoted(mirror.name()) + " shows its own room when nobody has chosen.");
+            say(sender, "A right-click on " + MirrorText.quoted(mirror.name())
+                + " goes through the other mirrors by name.");
             return;
         }
         final QuantumMirror first = known(sender, word);
@@ -756,8 +757,8 @@ public class MirrorCommand implements SubCommand
         }
         MirrorManager.add(mirror.withStart(first.name()));
         MirrorYamlManager.saveAll();
-        say(sender, MirrorText.quoted(mirror.name()) + " opens onto " + MirrorText.quoted(first.name())
-            + " until somebody at it chooses another.");
+        say(sender, "A right-click on " + MirrorText.quoted(mirror.name()) + " opens onto "
+            + MirrorText.quoted(first.name()) + " first.");
     }
 
     /** @see #start */

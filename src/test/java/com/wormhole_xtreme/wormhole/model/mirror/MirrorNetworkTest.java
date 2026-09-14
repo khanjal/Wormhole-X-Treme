@@ -185,43 +185,49 @@ class MirrorNetworkTest
     }
 
     /**
-     * A mirror with a start shows that mirror until somebody chooses another, and goes back to it.
+     * A mirror with a start still reflects itself when approached; the first right-click opens onto
+     * the start, and the list goes on from there.
      *
-     * <p>"In a historical world we can default the mirror to the main server first, and right-click
-     * scroll from there." The start is where scrolling carries on from, and the mirror's own room is
-     * still one of the stops.
+     * <p>"Mirrors should reflect themselves when approached if they are off. A right-click turns the
+     * mirror on and it starts down the list; they turn off if everyone leaves." The start is first in
+     * the list -- the main world's mirror, for one in an archived world -- and the mirror's own room
+     * is still where the list comes round to.
      */
     @Test
-    void aMirrorWithAStartShowsItFirstScrollsOnFromItAndGoesBackToIt()
+    void aMirrorWithAStartReflectsUntilARightClickOpensOntoItFirst()
     {
         mirror("hub", "world");
-        mirror("nether", "world_nether");
+        mirror("end", "world_the_end");
         final QuantumMirror archive = new QuantumMirror("archive", new MirrorBlock("world_2011", 10, 64, 10),
             new MirrorPoint("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
         MirrorManager.add(archive);
 
-        assertEquals("hub", MirrorNetwork.chosen(archive).name(), "the start, with nobody having chosen");
-        assertFalse(MirrorNetwork.reflects(archive));
+        assertTrue(MirrorNetwork.reflects(archive), "off until somebody right-clicks it");
 
         MirrorNetwork.scroll(archive, false);
-        assertEquals("nether", MirrorNetwork.chosen(archive).name(), "on from the start, by name");
+        assertEquals("hub", MirrorNetwork.chosen(archive).name(), "the first right-click opens onto the start");
         now += 500L;
         MirrorNetwork.scroll(archive, false);
-        assertTrue(MirrorNetwork.reflects(archive), "its own room is still a stop, and the start does not take it back");
+        assertEquals("end", MirrorNetwork.chosen(archive).name(), "then the rest by name, the start not twice");
+        now += 500L;
+        MirrorNetwork.scroll(archive, false);
+        assertTrue(MirrorNetwork.reflects(archive), "and round to its own room");
 
+        MirrorNetwork.scroll(archive, false);
         MirrorNetwork.settle(archive, false);
-        assertEquals("hub", MirrorNetwork.chosen(archive).name(), "nobody near: back to its start");
+        assertTrue(MirrorNetwork.reflects(archive), "everybody gone: off again");
     }
 
-    /** A start that has been removed leaves the mirror showing its own room. */
+    /** A start that has been removed is no start: the list is the other mirrors by name. */
     @Test
-    void aStartThatIsGoneLeavesItsOwnRoom()
+    void aStartThatIsGoneIsLeftOutOfTheList()
     {
         final QuantumMirror archive = new QuantumMirror("archive", new MirrorBlock("world_2011", 10, 64, 10),
             new MirrorPoint("world_2011", 10.5, 63, 10.5, 180f, 0f)).withStart("hub");
         MirrorManager.add(archive);
 
-        assertTrue(MirrorNetwork.reflects(archive), "there is no mirror called hub");
+        assertTrue(MirrorNetwork.reflects(archive));
+        assertEquals("No other mirrors found.", MirrorNetwork.scroll(archive, false), "there is no mirror called hub");
     }
 
     /** Somebody is near a mirror inside the proximity radius, and not past it; the clicker does not count. */

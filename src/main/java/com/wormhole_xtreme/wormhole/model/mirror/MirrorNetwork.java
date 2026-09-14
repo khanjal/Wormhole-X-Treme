@@ -104,9 +104,8 @@ public final class MirrorNetwork
      */
     public static QuantumMirror chosen(final QuantumMirror mirror)
     {
-        // Chosen at it, which may be its own room on purpose; otherwise its start.
-        final String chosen = CHOSEN.get(key(mirror.name()));
-        final String name = (chosen != null) ? chosen : mirror.start();
+        // Nothing chosen is off: a mirror nobody has turned on shows its own room.
+        final String name = CHOSEN.get(key(mirror.name()));
         if ((name == null) || name.equalsIgnoreCase(mirror.name()))
         {
             return mirror;
@@ -145,6 +144,16 @@ public final class MirrorNetwork
             }
         }
         order.sort(Comparator.comparing(other -> other.name().toLowerCase(Locale.ROOT)));
+        // Its start first, so the first right-click opens onto it.
+        final String start = mirror.start();
+        for (int i = 0; (start != null) && (i < order.size()); i++)
+        {
+            if (order.get(i).name().equalsIgnoreCase(start))
+            {
+                order.add(0, order.remove(i));
+                break;
+            }
+        }
         order.add(0, mirror);
         return order;
     }
@@ -191,8 +200,8 @@ public final class MirrorNetwork
         CHOSEN_AT.put(key(mirror.name()), now);
         if (next == 0)
         {
-            // Its own room on purpose, which a start must not take back until nobody is here.
-            CHOSEN.put(key(mirror.name()), mirror.name());
+            // Round to its own room: off again, as it is when everybody leaves.
+            CHOSEN.remove(key(mirror.name()));
             return MirrorText.quoted(mirror.name()) + " shows its own room again.";
         }
         CHOSEN.put(key(mirror.name()), order.get(next).name());

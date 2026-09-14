@@ -43,10 +43,10 @@ Make a mirror in another world the same way, and the two find each other:
 - **Punch** it to go to the mirror it is showing. You land in front of that mirror's banner, facing
   out into its room.
 - **Walk away** and, once nobody is near, it goes back to its own room.
-- **Give it a start** to open onto another mirror first: `/wormhole mirror start archive hub` has
-  the mirror in an archived world open onto the main world's `hub` until somebody chooses
-  another, and go back to `hub` when they leave. Right-clicks scroll on from the start, and its own
-  room is still one of the stops. `start archive none` takes it off.
+- **Give it a start** to put one mirror first in its list: `/wormhole mirror start archive hub`
+  has the first right-click on the mirror in an archived world open onto the main world's `hub`,
+  and the next go on through the rest by name. It still shows its own room until somebody
+  right-clicks it. `start archive none` takes the start away.
 
 A mirror needs solid wall two blocks out on every side of its opening — a gap is refused by the
 block to fill — and a banner on a post cannot be one. While it is a mirror, neither the banner nor
