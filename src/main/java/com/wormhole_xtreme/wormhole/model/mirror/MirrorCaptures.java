@@ -691,10 +691,12 @@ public final class MirrorCaptures
             // in the middle of the view.
             for (final QuantumMirror other : MirrorManager.all())
             {
-                final MirrorBlock banner = other.banner();
-                if (banner.worldName().equals(far.getName()))
+                for (final MirrorBlock banner : other.banners())
                 {
-                    builder.clear(banner.x(), banner.y(), banner.z());
+                    if (banner.worldName().equals(far.getName()))
+                    {
+                        builder.clear(banner.x(), banner.y(), banner.z());
+                    }
                 }
             }
             final MirrorWindow.Spot ahead = MirrorWindow.aheadOf(destination.yaw());

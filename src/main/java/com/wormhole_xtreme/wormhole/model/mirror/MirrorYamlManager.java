@@ -149,7 +149,8 @@ public final class MirrorYamlManager
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
                 MirrorDisplay.of(text(map.get(DISPLAY))), MirrorMode.of(text(map.get(MODE))),
-                readLook(map.get(LOOK)), text(map.get(START)));
+                readLook(map.get(LOOK)), text(map.get(START)),
+                (map.get("Width") instanceof Number wide) ? wide.intValue() : 1);
         }
         catch (final RuntimeException e)
         {
@@ -332,6 +333,10 @@ public final class MirrorYamlManager
         if (mirror.start() != null)
         {
             map.put(START, mirror.start());
+        }
+        if (mirror.width() > 1)
+        {
+            map.put("Width", mirror.width());
         }
         writeLook(map, mirror.look());
         return map;

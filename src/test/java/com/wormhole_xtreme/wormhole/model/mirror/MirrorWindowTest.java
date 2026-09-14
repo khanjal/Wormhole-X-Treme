@@ -232,6 +232,25 @@ class MirrorWindowTest
     }
 
     /**
+     * A mirror two banners wide opens two columns, the second to the right looking at the wall.
+     *
+     * <p>The banner faces north, so the wall is to its south and, looking at the wall, right is
+     * west: the second column is at x - 1.
+     */
+    @Test
+    void aMirrorTwoWideOpensTwoColumnsToItsRight()
+    {
+        final MirrorWindow wide = MirrorWindow.of(new MirrorBlock("world", 0, 64, 0), BlockFace.NORTH,
+            false, far(0.0f), false, 2);
+
+        assertEquals(Set.of(new Spot(0, 63, 1), new Spot(0, 64, 1), new Spot(-1, 63, 1), new Spot(-1, 64, 1)),
+            opening(wide), "two columns, two tall");
+        assertTrue(wide.isOpening(-1, 63, 1), "the second column is the opening");
+        assertFalse(wide.isOpening(1, 63, 1), "and nothing to the left of the first");
+        assertEquals(new Spot(-1, 63, 0).x() + 1, wide.base().x(), "the window is still held by the left banner");
+    }
+
+    /**
      * A reflection shows the room in front of the wall flipped across it, not turned round.
      *
      * <p>The banner faces north, so its own room lies to the north and the view lies behind the

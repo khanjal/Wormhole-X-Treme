@@ -19,6 +19,9 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  * the far world past its edges however the view was trimmed, and a thin frame round a wall
  * banner did little better. Two blocks of solid wall on every side of the opening is the rule,
  * and the same blocks -- the face -- cannot be broken while the mirror is there.
+ *
+ * <p>A mirror is one banner wide or two. The second of two is to the right of the first, looking
+ * at the wall, and the face is a block wider for it.
  */
 public final class MirrorPlacement
 {
@@ -31,16 +34,32 @@ public final class MirrorPlacement
     }
 
     /**
-     * Why a banner cannot become a mirror called {@code name}, or null if it can.
+     * Why a banner cannot become a mirror one banner wide called {@code name}, or null if it can.
      *
      * @param banner
      *            the banner being made a mirror
      * @param name
-     *            the name it would have; a mirror already called this is the one moving here,
-     *            and does not count against the limit
+     *            the name it would have
      * @return what to tell whoever tried, or null
      */
     public static String refusal(final Block banner, final String name)
+    {
+        return refusal(banner, name, 1);
+    }
+
+    /**
+     * Why a banner cannot become a mirror called {@code name}, or null if it can.
+     *
+     * @param banner
+     *            the banner being made a mirror; for two, the left one looking at the wall
+     * @param name
+     *            the name it would have; a mirror already called this is the one moving here,
+     *            and does not count against the limit
+     * @param width
+     *            one banner wide or two
+     * @return what to tell whoever tried, or null
+     */
+    public static String refusal(final Block banner, final String name, final int width)
     {
         final BlockData data = banner.getBlockData();
         if (!(data instanceof Directional directional))
@@ -54,7 +73,7 @@ public final class MirrorPlacement
             return full;
         }
         final MirrorWindow.Spot gap = gapIn(world, banner.getX(), banner.getY(), banner.getZ(),
-            directional.getFacing());
+            directional.getFacing(), width);
         if (gap != null)
         {
             return "A mirror needs solid wall " + BORDER + " blocks out on every side, and the block at "
@@ -84,7 +103,7 @@ public final class MirrorPlacement
         int others = 0;
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            if (mirror.banner().worldName().equals(worldName) && !mirror.banner().equals(banner)
+            if (mirror.banner().worldName().equals(worldName) && !mirror.banners().contains(banner)
                 && !mirror.name().equalsIgnoreCase(name))
             {
                 others++;
@@ -100,10 +119,7 @@ public final class MirrorPlacement
     }
 
     /**
-     * The first block of a wall banner's face that is not solid, or null if the face is whole.
-     *
-     * <p>The face is the wall the banner hangs on: the opening, one wide and two tall running
-     * down from the banner, and {@link #BORDER} blocks round it.
+     * The first block of a one-banner face that is not solid, or null if the face is whole.
      *
      * @param world
      *            the banner's world
@@ -120,7 +136,30 @@ public final class MirrorPlacement
     static MirrorWindow.Spot gapIn(final World world, final int x, final int y, final int z,
         final BlockFace facing)
     {
-        for (final MirrorWindow.Spot spot : face(x, y, z, facing))
+        return gapIn(world, x, y, z, facing, 1);
+    }
+
+    /**
+     * The first block of a wall banner's face that is not solid, or null if the face is whole.
+     *
+     * @param world
+     *            the banner's world
+     * @param x
+     *            the left banner, x
+     * @param y
+     *            the banner, y
+     * @param z
+     *            the left banner, z
+     * @param facing
+     *            which way the banner faces
+     * @param width
+     *            one banner or two
+     * @return the gap, or null
+     */
+    static MirrorWindow.Spot gapIn(final World world, final int x, final int y, final int z,
+        final BlockFace facing, final int width)
+    {
+        for (final MirrorWindow.Spot spot : face(x, y, z, facing, width))
         {
             if (!world.getBlockAt(spot.x(), spot.y(), spot.z()).getBlockData().isOccluding())
             {
@@ -131,7 +170,7 @@ public final class MirrorPlacement
     }
 
     /**
-     * Every block of a wall banner's face, the opening included.
+     * Every block of a one-banner face, the opening included.
      *
      * @param x
      *            the banner, x
@@ -141,29 +180,53 @@ public final class MirrorPlacement
      *            the banner, z
      * @param facing
      *            which way the banner faces
-     * @return the blocks, top row first
+     * @return the blocks
      */
     static Set<MirrorWindow.Spot> face(final int x, final int y, final int z, final BlockFace facing)
+    {
+        return face(x, y, z, facing, 1);
+    }
+
+    /**
+     * Every block of a wall banner's face, the opening included.
+     *
+     * <p>The face is the wall the banner hangs on: the opening, one or two wide and two tall running
+     * down from the banner, and {@link #BORDER} blocks round it.
+     *
+     * @param x
+     *            the left banner, x
+     * @param y
+     *            the banner, y
+     * @param z
+     *            the left banner, z
+     * @param facing
+     *            which way the banner faces
+     * @param width
+     *            one banner or two
+     * @return the blocks
+     */
+    static Set<MirrorWindow.Spot> face(final int x, final int y, final int z, final BlockFace facing,
+        final int width)
     {
         final Set<MirrorWindow.Spot> face = new HashSet<>();
         final int wallX = x - facing.getModX();
         final int wallZ = z - facing.getModZ();
-        // A banner facing north or south hangs on a wall running east to west.
-        final boolean alongX = facing.getModZ() != 0;
+        // To the right, looking at the wall.
+        final int rightX = facing.getModZ();
+        final int rightZ = -facing.getModX();
         final int bottom = y - (MirrorWindow.HEIGHT - 1);
-        for (int across = -BORDER; across <= BORDER; across++)
+        for (int across = -BORDER; across <= ((width - 1) + BORDER); across++)
         {
             for (int at = bottom - BORDER; at <= (y + BORDER); at++)
             {
-                face.add(new MirrorWindow.Spot(alongX ? (wallX + across) : wallX, at,
-                    alongX ? wallZ : (wallZ + across)));
+                face.add(new MirrorWindow.Spot(wallX + (across * rightX), at, wallZ + (across * rightZ)));
             }
         }
         return face;
     }
 
     /**
-     * Every block in a world that keeps a mirror working: each banner, and its face.
+     * Every block in a world that keeps a mirror working: its banners, and its face.
      *
      * <p>Read from the banners as they stand, since which way one faces is recorded nowhere
      * else. A banner in an unloaded chunk protects nothing, and nothing near it can be broken.
@@ -183,11 +246,12 @@ public final class MirrorPlacement
             {
                 continue;
             }
-            kept.add(at);
+            kept.addAll(mirror.banners());
             final BlockData data = world.getBlockAt(at.x(), at.y(), at.z()).getBlockData();
             if (data instanceof Directional directional)
             {
-                for (final MirrorWindow.Spot spot : face(at.x(), at.y(), at.z(), directional.getFacing()))
+                for (final MirrorWindow.Spot spot : face(at.x(), at.y(), at.z(), directional.getFacing(),
+                    mirror.width()))
                 {
                     kept.add(new MirrorBlock(worldName, spot.x(), spot.y(), spot.z()));
                 }
@@ -201,7 +265,7 @@ public final class MirrorPlacement
      *
      * @param block
      *            the block
-     * @return true if it is a mirror's banner or part of its face
+     * @return true if it is one of a mirror's banners or part of its face
      */
     public static boolean isProtected(final Block block)
     {

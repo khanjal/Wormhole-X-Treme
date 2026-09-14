@@ -156,19 +156,25 @@ class MirrorCaptureTest
     @Test
     void keepingOnlyWhatIsSeenLeavesWhatAWallHidesToTheRealWorld()
     {
-        // A 9-block box, arrival at (4, 2, 0) facing +z; a stone wall right across at z 4.
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, 0, 0, 0, 9, 9, 9, air);
+        // A box 9 wide, 12 tall and 9 deep, arrival at (4, 2, 0) facing +z; a stone wall right across
+        // at z 4, to the top.
+        final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, 0, 0, 0, 9, 12, 9, air);
         for (int x = 0; x < 9; x++)
         {
-            for (int y = 0; y < 9; y++)
+            for (int y = 0; y < 12; y++)
             {
                 builder.put(x, y, 4, stone);
-                builder.put(x, 0, y, stone);
+            }
+            for (int z = 0; z < 9; z++)
+            {
+                builder.put(x, 0, z, stone);
             }
         }
         builder.put(4, 2, 6, glass);
         builder.put(1, 3, 3, stone);
-        builder.put(0, 6, 1, stone);
+        // Eight blocks up one block in, clear of the box's top: a line through the back of a hole two
+        // tall climbs under two blocks for each block in, however wide the hole.
+        builder.put(1, 10, 1, stone);
         // A pane of glass in the way, with stone behind it: what a viewer sees through the pane.
         builder.put(6, 2, 2, glass);
         builder.put(6, 2, 3, stone);
@@ -178,7 +184,7 @@ class MirrorCaptureTest
 
         assertSame(stone, capture.at(4, 2, 4), "the wall, straight ahead");
         assertSame(stone, capture.at(1, 3, 3), "to one side, within a block sideways per block in");
-        assertTrue(capture.isBuried(0, 6, 1), "beside the opening at a slant no line through the hole makes");
+        assertTrue(capture.isBuried(1, 10, 1), "above the opening at a slant no line through the hole makes");
         assertSame(stone, capture.at(4, 0, 2), "the floor in front of the wall");
         assertSame(glass, capture.at(6, 2, 2), "the pane");
         assertSame(stone, capture.at(6, 2, 3), "and the stone seen through it");

@@ -210,28 +210,77 @@ public class MirrorCommand implements SubCommand
                 + " banner. Nothing to do.");
             return;
         }
+        // A second wall banner beside this one, facing the same way, makes the pair one mirror two wide,
+        // held by the left banner of the two, looking at the wall.
+        final Block partner = (onThisBanner == null) ? partnerOf(block) : null;
+        final Block left = ((partner != null) && isRightOf(partner, block)) ? block : partner;
+        final Block base = (partner == null) ? block : left;
+        final int width = (partner == null) ? 1 : 2;
         // Renaming the mirror a banner already is changes nothing about where it hangs.
-        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(block, name) : null;
+        final String refused = (onThisBanner == null) ? MirrorPlacement.refusal(base, name, width) : null;
         if (refused != null)
         {
             say(sender, refused);
             return;
         }
         sayWhereToClick(sender, block);
-        setFrom(sender, (byThatName != null) ? byThatName : onThisBanner, name, here);
+        setFrom(sender, (byThatName != null) ? byThatName : onThisBanner, name,
+            (onThisBanner != null) ? onThisBanner.banner() : MirrorBlock.of(base));
         if ((byThatName == null) && (onThisBanner == null))
         {
             dressPlainBanner(block, name);
+            if (partner != null)
+            {
+                dressPlainBanner(partner, name);
+            }
         }
         // Its own room, which it shows as a reflection and where anybody coming through lands.
         // The capture of it is taken by the next sweep.
         final QuantumMirror made = MirrorManager.byName(name);
-        final MirrorPoint room = MirrorNetwork.roomOf(block);
+        final MirrorPoint room = MirrorNetwork.roomOf(base, width);
         if ((onThisBanner == null) && (made != null) && (room != null))
         {
-            MirrorManager.add(made.withDestination(room));
+            MirrorManager.add(made.withDestination(room).withWidth(width));
             MirrorYamlManager.saveAll();
         }
+    }
+
+    /**
+     * The wall banner beside this one that makes the two a mirror two wide, or null.
+     *
+     * <p>Along the wall to either side, facing the same way, and not already a mirror; the right
+     * one first, looking at the wall, if there are two.
+     */
+    private static Block partnerOf(final Block block)
+    {
+        if (!(block.getBlockData() instanceof org.bukkit.block.data.Directional directional))
+        {
+            return null;
+        }
+        final BlockFace facing = directional.getFacing();
+        for (final int side : new int[] { 1, -1 })
+        {
+            final Block beside = block.getWorld().getBlockAt(block.getX() + (side * facing.getModZ()),
+                block.getY(), block.getZ() - (side * facing.getModX()));
+            if ((beside != null) && (beside.getType() != null) && beside.getType().name().endsWith("WALL_BANNER")
+                && (beside.getBlockData() instanceof org.bukkit.block.data.Directional other)
+                && (other.getFacing() == facing) && (MirrorManager.at(MirrorBlock.of(beside)) == null))
+            {
+                return beside;
+            }
+        }
+        return null;
+    }
+
+    /** Whether one wall banner is the one to the right of another, looking at the wall they hang on. */
+    private static boolean isRightOf(final Block right, final Block of)
+    {
+        if (!(of.getBlockData() instanceof org.bukkit.block.data.Directional directional))
+        {
+            return false;
+        }
+        final BlockFace facing = directional.getFacing();
+        return ((right.getX() - of.getX()) == facing.getModZ()) && ((right.getZ() - of.getZ()) == -facing.getModX());
     }
 
     /**

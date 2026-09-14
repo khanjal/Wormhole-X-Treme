@@ -477,7 +477,7 @@ public final class MirrorWindows
         final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
         final QuantumMirror showing = (chosen == mirror) ? mirror : mirror.withDestination(chosen.destination());
         final MirrorWindow shape = MirrorWindow.of(mirror.banner(), MirrorArrival.facingOf(data),
-            standing, showing.destination(), MirrorNetwork.reflects(mirror));
+            standing, showing.destination(), MirrorNetwork.reflects(mirror), mirror.width());
         if (shape == null)
         {
             return false;
@@ -1156,8 +1156,13 @@ public final class MirrorWindows
             // stays hanging in front of the view.
             if (MirrorPackets.available())
             {
+                // Both banners of a pair: the second is to the right of the first, looking at the wall.
                 final MirrorBlock banner = window.mirror.banner();
-                wanted.put(key(banner.x(), banner.y(), banner.z()), air);
+                final Spot into = window.shape.into();
+                for (int across = 0; across < window.shape.width(); across++)
+                {
+                    wanted.put(key(banner.x() - (across * into.z()), banner.y(), banner.z() + (across * into.x())), air);
+                }
             }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
         }
@@ -1342,9 +1347,8 @@ public final class MirrorWindows
         final MirrorWindow shape = window.shape;
         final Set<Long> opening = new HashSet<>();
         shape.forEachOpening((x, y, z) -> opening.add(key(x, y, z)));
-        final int centre = (shape.into().x() != 0) ? shape.base().z() : shape.base().x();
-        final int reach = SURROUND + MirrorWindow.WIDTH;
-        for (int across = centre - reach; across <= (centre + reach); across++)
+        final int[] span = acrossSpan(shape);
+        for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - SURROUND; y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
             {
@@ -1549,7 +1553,10 @@ public final class MirrorWindows
     private static double[] centreOf(final MirrorWindow shape)
     {
         final boolean alongX = shape.into().x() != 0;
-        final double across = (alongX ? shape.base().z() : shape.base().x()) + 0.5;
+        // Halfway along the opening: for two banners, between them, a step right being (-into.z, into.x).
+        final int rightStep = alongX ? shape.into().x() : -shape.into().z();
+        final double across = (alongX ? shape.base().z() : shape.base().x()) + 0.5
+            + ((shape.width() - 1) * 0.5 * rightStep);
         final double y = shape.base().y() + (MirrorWindow.HEIGHT / 2.0);
         final double along = (alongX ? shape.base().x() : shape.base().z()) + 0.5;
         return alongX ? new double[] { along, y, across } : new double[] { across, y, along };
@@ -1834,13 +1841,12 @@ public final class MirrorWindows
         final World here = window.banner.getWorld();
         final Spot into = shape.into();
         final boolean alongX = into.x() != 0;
-        final int centre = alongX ? shape.base().z() : shape.base().x();
-        final int reach = SURROUND + MirrorWindow.WIDTH;
+        final int[] span = acrossSpan(shape);
         final Set<Long> hidden = new HashSet<>();
         for (int front = 1; front <= SURROUND; front++)
         {
             final int along = (alongX ? shape.base().x() : shape.base().z()) - (front * (alongX ? into.x() : into.z()));
-            for (int across = centre - reach; across <= (centre + reach); across++)
+            for (int across = span[0]; across <= span[1]; across++)
             {
                 for (int y = shape.base().y() - SURROUND;
                     y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
@@ -1869,6 +1875,23 @@ public final class MirrorWindows
         return hidden;
     }
 
+    /**
+     * The coordinates along a window's face that its wall is read across: the opening, one or two
+     * columns, and the surround and one more on either side of it.
+     *
+     * @return {@code {from, to}}, both inclusive
+     */
+    private static int[] acrossSpan(final MirrorWindow shape)
+    {
+        final boolean alongX = shape.into().x() != 0;
+        // A step right, looking at the wall, is (-into.z, into.x); a pair's second column may lie below its first.
+        final int rightStep = alongX ? shape.into().x() : -shape.into().z();
+        final int first = alongX ? shape.base().z() : shape.base().x();
+        final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
+        final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
+        return new int[] { low - (SURROUND + 1), high + (SURROUND + 1) };
+    }
+
     /** The block of a window's face at a coordinate along it. */
     private static long faceKey(final MirrorWindow shape, final int across, final int y)
     {
@@ -1885,10 +1908,9 @@ public final class MirrorWindows
         }
         final MirrorWindow shape = window.shape;
         final World here = window.banner.getWorld();
-        final int centre = (shape.into().x() != 0) ? shape.base().z() : shape.base().x();
-        final int reach = SURROUND + MirrorWindow.WIDTH;
+        final int[] span = acrossSpan(shape);
         final Set<Long> solid = new HashSet<>();
-        for (int across = centre - reach; across <= (centre + reach); across++)
+        for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - SURROUND;
                 y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)

@@ -67,6 +67,14 @@ been running on defaults will start reading the file you have been editing.
   already and waited for its next whole resend, half a minute on. A stamp now has everybody looking
   into that mirror sent the whole view again at the next sweep.
 
+  "How about wide support for the mirror too, for even places?" Two wall banners side by side,
+  facing the same way, are one mirror two wide: `mirror create` on either finds the other, and the
+  opening is two wide and two tall. The pair is held by the left banner looking at the wall, both
+  banners answer a click, cannot be broken and are drawn away together, the wall it needs is a
+  block wider, and a traveller lands between them. `Width: 2` in `mirror.yml`. A room is captured
+  as if through a hole three wide now, so a mirror of either width looking into any room, turned
+  or reflected, finds the column its extra width shows.
+
   A mirror gives way to its room from twice as far: `mirror-proximity-radius` is 16 by default,
   which is also how near somebody has to stay for a mirror they turned on to stay on. An existing
   `config.yml` keeps the 8 it has. And what a click says about the mirror itself -- where it opens

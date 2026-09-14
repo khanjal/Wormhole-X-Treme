@@ -492,12 +492,15 @@ public final class MirrorCapture
             final int rightZ = aheadX;
             final double reach = depth + 2.0;
             final double step = Math.tan(Math.toRadians(1.0));
-            for (double across = -0.4; across <= 0.41; across += 0.2)
+            // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
+            // than its room's, on whichever side its view turns that column to, so a room captured
+            // once serves a mirror of either width looking in either way.
+            for (double across = -1.4; across <= 1.41; across += 0.35)
             {
                 for (double up = 0.1; up < 2.0; up += 0.2)
                 {
                     // From this point at the front of the hole, every direction out of its back.
-                    for (double sideways = (-0.5 - across) + (step / 2); sideways < (0.5 - across); sideways += step)
+                    for (double sideways = (-1.5 - across) + (step / 2); sideways < (1.5 - across); sideways += step)
                     {
                         for (double upward = -up + (step / 2); upward < (2.0 - up); upward += step)
                         {

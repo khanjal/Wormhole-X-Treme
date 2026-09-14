@@ -29,23 +29,29 @@ import org.bukkit.block.BlockFace;
  *            one step the way a traveller faces on arrival
  */
 public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, MirrorWindow.Spot far,
-    MirrorWindow.Spot ahead, boolean mirrored)
+    MirrorWindow.Spot ahead, boolean mirrored, int width)
 {
     /**
-     * A window onto somewhere, not a reflection.
+     * A window one banner wide onto somewhere, not a reflection.
      *
      * @param base
-     *            the opening's bottom middle block
+     *            the opening's bottom left block
      * @param into
      *            one step from the opening into the wall
      * @param far
-     *            the far block the opening's bottom middle shows
+     *            the far block the opening's bottom left shows
      * @param ahead
      *            one step the way a traveller faces on arrival
      */
     public MirrorWindow(final Spot base, final Spot into, final Spot far, final Spot ahead)
     {
-        this(base, into, far, ahead, false);
+        this(base, into, far, ahead, false, 1);
+    }
+
+    /** A width is one banner or two. */
+    public MirrorWindow
+    {
+        width = (width >= 2) ? 2 : 1;
     }
 
     /** How wide the opening is, in blocks: the banner's own column. */
@@ -205,6 +211,29 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
         final boolean standing, final MirrorPoint destination, final boolean mirrored)
     {
+        return of(banner, facing, standing, destination, mirrored, 1);
+    }
+
+    /**
+     * The window a banner makes, one banner wide or two.
+     *
+     * @param banner
+     *            the banner block; for two, the left one looking at the wall
+     * @param facing
+     *            which way the banner faces
+     * @param standing
+     *            true for a freestanding banner
+     * @param destination
+     *            where the mirror goes; for a reflection, its own room
+     * @param mirrored
+     *            true to show the far side flipped across the wall
+     * @param width
+     *            one banner or two, the second to the right of the first
+     * @return the window, or null for a banner facing no usable way or a mirror going nowhere
+     */
+    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
+        final boolean standing, final MirrorPoint destination, final boolean mirrored, final int width)
+    {
         if ((banner == null) || (destination == null) || (facing == null))
         {
             return null;
@@ -220,7 +249,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             new Spot(banner.x() + into.x(), bottom, banner.z() + into.z()),
             into,
             new Spot(floor(destination.x()), floor(destination.y()), floor(destination.z())),
-            aheadOf(destination.yaw()), mirrored);
+            aheadOf(destination.yaw()), mirrored, width);
     }
 
     /**
@@ -274,7 +303,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     public void forEachOpening(final Opening opening)
     {
         final Spot right = rightOf(into);
-        for (int across = -HALF; across < (WIDTH - HALF); across++)
+        // From the left banner's column, rightwards, looking at the wall.
+        for (int across = 0; across < width; across++)
         {
             for (int up = 0; up < HEIGHT; up++)
             {
@@ -422,7 +452,9 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             this.reach = Math.max(NEAREST_EYE, Math.abs(window.face() - eyeAlong));
             this.radius = radius;
             this.baseAlong = alongX ? window.base.x() : window.base.z();
-            this.middle = alongX ? window.base.z() : window.base.x();
+            // The opening's lowest coordinate along the face: a pair's second column may lie below its first.
+            final int rightStep = alongX ? window.into.x() : -window.into.z();
+            this.middle = (alongX ? window.base.z() : window.base.x()) + Math.min(0, (window.width - 1) * rightStep);
             this.inner = (band == 0) ? -1.0 : BANDS[band - 1];
             this.outer = BANDS[band];
             this.limits = limits;
@@ -451,8 +483,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             final double near = Math.min(one, other) / reach;
             final double farther = Math.max(one, other) / reach;
             final int bottom = window.base.y();
-            final double left = (double) middle - HALF - margin;
-            final double right = (double) middle + (WIDTH - HALF) + margin;
+            final double left = (double) middle - margin;
+            final double right = (double) middle + window.width + margin;
             final double down = (double) bottom - margin;
             final double up = (double) bottom + HEIGHT + margin;
             int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(lowest(eyeAcross, left, right, near, farther)));
@@ -641,7 +673,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         }
         final Spot right = rightOf(into);
         final int across = (dx * right.x()) + (dz * right.z());
-        return (across >= -HALF) && (across < (WIDTH - HALF));
+        return (across >= 0) && (across < width);
     }
 
     /**

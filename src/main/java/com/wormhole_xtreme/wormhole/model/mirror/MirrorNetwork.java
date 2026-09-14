@@ -67,13 +67,33 @@ public final class MirrorNetwork
      */
     public static MirrorPoint roomOf(final Block banner)
     {
+        return roomOf(banner, 1);
+    }
+
+    /**
+     * The room of a mirror one banner wide or two.
+     *
+     * <p>For two, between the banners, so a traveller lands in the middle of the pair -- but still
+     * inside the left banner's column, which is the column the room's view is measured from.
+     *
+     * @param banner
+     *            the banner block; for two, the left one looking at the wall
+     * @param width
+     *            one banner or two
+     * @return the room, or null if the block is not a wall banner
+     */
+    public static MirrorPoint roomOf(final Block banner, final int width)
+    {
         if ((banner == null) || !(banner.getBlockData() instanceof Directional directional))
         {
             return null;
         }
-        return new MirrorPoint(banner.getWorld().getName(), banner.getX() + 0.5,
-            banner.getY() - (MirrorWindow.HEIGHT - 1), banner.getZ() + 0.5,
-            MirrorArrival.yawOf(directional.getFacing()), 0.0f);
+        final org.bukkit.block.BlockFace facing = directional.getFacing();
+        // Right, looking at the wall; a hair short of the boundary, so the column stays the left one.
+        final double shift = (width >= 2) ? 0.49 : 0.0;
+        return new MirrorPoint(banner.getWorld().getName(), banner.getX() + 0.5 + (shift * facing.getModZ()),
+            banner.getY() - (MirrorWindow.HEIGHT - 1), banner.getZ() + 0.5 - (shift * facing.getModX()),
+            MirrorArrival.yawOf(facing), 0.0f);
     }
 
     /**

@@ -112,6 +112,32 @@ class MirrorPlacementTest
         assertFalse(face.contains(new MirrorWindow.Spot(13, 64, 11)), "and no further than two");
     }
 
+    /**
+     * A mirror two banners wide needs a face a block wider, on its right looking at the wall, and
+     * cannot be broken at either banner.
+     *
+     * <p>"How about wide support for the mirror too, for even places?" Facing north, the wall is to
+     * the south, and looking at it, right is west.
+     */
+    @Test
+    void aMirrorTwoWideHasAFaceABlockWiderAndBothBannersAreProtected()
+    {
+        final Set<MirrorWindow.Spot> face = MirrorPlacement.face(10, 64, 10, BlockFace.NORTH, 2);
+
+        assertEquals(36, face.size(), "six across and six tall");
+        assertTrue(face.contains(new MirrorWindow.Spot(9, 64, 11)), "the wall behind the second banner");
+        assertTrue(face.contains(new MirrorWindow.Spot(7, 61, 11)), "two past it, and two below the opening");
+        assertTrue(face.contains(new MirrorWindow.Spot(12, 66, 11)), "two past the first on its other side");
+        assertFalse(face.contains(new MirrorWindow.Spot(6, 64, 11)), "no further to the right");
+        assertFalse(face.contains(new MirrorWindow.Spot(13, 64, 11)), "or to the left");
+
+        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 10, 64, 10),
+            new MirrorPoint("world", 10.01, 63, 10.5, 180f, 0f)).withWidth(2));
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(9, 64, 10)), "the second banner");
+        assertTrue(MirrorPlacement.isProtected(world.getBlockAt(7, 64, 11)), "the wider face");
+        assertFalse(MirrorPlacement.isProtected(world.getBlockAt(6, 64, 11)), "past it is ordinary wall");
+    }
+
     /** A gap anywhere in the face refuses, and says which block. */
     @Test
     void aGapTwoBlocksOutIsRefusedByName()

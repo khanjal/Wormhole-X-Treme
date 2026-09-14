@@ -304,6 +304,37 @@ class MirrorCommandTest
             "and the mirror should remember the look it was given");
     }
 
+    /**
+     * create on a wall banner with another beside it, facing the same way, makes one mirror two wide.
+     *
+     * <p>"How about wide support for the mirror too, for even places?" The banner faces north, so
+     * looking at the wall right is west, and the one at x 0 is the right of the pair: the mirror is
+     * held by the banner at x 1, and either answers a click.
+     */
+    @Test
+    void createOnABannerWithAnotherBesideItMakesOneMirrorTwoWide()
+    {
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        final Block beside = mock(Block.class);
+        when(beside.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(beside.getWorld()).thenReturn(here);
+        when(beside.getX()).thenReturn(0);
+        when(beside.getY()).thenReturn(64);
+        when(beside.getZ()).thenReturn(1);
+        final Directional northward = mock(Directional.class);
+        when(northward.getFacing()).thenReturn(BlockFace.NORTH);
+        when(beside.getBlockData()).thenReturn(northward);
+        when(here.getBlockAt(0, 64, 1)).thenReturn(beside);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        assertTrue(run(player, "mirror", "create", "hall"));
+
+        final QuantumMirror hall = MirrorManager.byName("hall");
+        assertEquals(2, hall.width(), "two banners, one mirror");
+        assertEquals(new MirrorBlock("world", 1, 64, 1), hall.banner(), "held by the left banner, looking at the wall");
+        assertEquals(hall, MirrorManager.at(new MirrorBlock("world", 0, 64, 1)), "and the other answers a click too");
+    }
+
     /** A banner somebody already patterned keeps its patterns. */
     @Test
     void setLeavesAPatternedBannerAsItWas()
