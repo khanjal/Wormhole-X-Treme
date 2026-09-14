@@ -338,6 +338,13 @@ been running on defaults will start reading the file you have been editing.
   corners too -- is drawn beforehand now, hidden, and the walk through the opening is widened
   by that block on each side to find them.
 
+  "Vines and torches aren't being shown in the mirror on the other world." A capture read each
+  column only up to its highest block, and it asked the chunk snapshot, whose highest block is
+  the highest one a player would collide with -- the heightmap the server keeps for movement.
+  A torch on a floor under the sky, a flower, a rail, or a vine on an outside wall stands above
+  that, and was never read. It asks the world's surface heightmap now, which counts every block
+  that is not air.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

@@ -43,6 +43,8 @@ class MirrorCapturesTest
     File dataFolder;
 
     private World far;
+    /** A torch on the sand three blocks ahead of the arrival point, or null for none. */
+    private BlockData torch;
     private final BlockData air = mock(BlockData.class);
     private final BlockData sand = mock(BlockData.class);
     private final QuantumMirror mirror = new QuantumMirror("museum",
@@ -72,13 +74,27 @@ class MirrorCapturesTest
         when(far.getMinHeight()).thenReturn(-64);
         when(far.getMaxHeight()).thenReturn(320);
         when(far.getEnvironment()).thenReturn(World.Environment.NORMAL);
-        // Sand up to y 69 everywhere, air above: the arrival point stands on the beach.
+        // Sand up to y 69 everywhere, air above: the arrival point stands on the beach. A test may
+        // stand a torch on the sand three blocks ahead, at (100, 70, -18), which the world's
+        // surface heightmap counts and the snapshot's own -- blocks a player collides with -- does not.
+        when(far.getHighestBlockYAt(anyInt(), anyInt(), org.mockito.ArgumentMatchers.any(org.bukkit.HeightMap.class)))
+            .thenAnswer(invocation -> ((torch != null) && (((int) invocation.getArgument(0)) == 100)
+                && (((int) invocation.getArgument(1)) == -18)) ? 70 : 69);
         MirrorCaptures.readChunksWith((world, chunkX, chunkZ) ->
         {
             final ChunkSnapshot chunk = mock(ChunkSnapshot.class);
             when(chunk.getHighestBlockYAt(anyInt(), anyInt())).thenReturn(69);
             when(chunk.getBlockData(anyInt(), anyInt(), anyInt())).thenAnswer(invocation ->
-                (((int) invocation.getArgument(1)) < 70) ? sand : air);
+            {
+                final int lx = invocation.getArgument(0);
+                final int y = invocation.getArgument(1);
+                final int lz = invocation.getArgument(2);
+                if ((torch != null) && (chunkX == 6) && (chunkZ == -2) && (lx == 4) && (y == 70) && (lz == 14))
+                {
+                    return torch;
+                }
+                return (y < 70) ? sand : air;
+            });
             return chunk;
         });
     }
@@ -123,6 +139,31 @@ class MirrorCapturesTest
             "nothing seen in the column at its near corner, one layer behind the arrival: one below the box");
         assertTrue(capture.isAir(100, 69, -23), "two layers behind the arrival is outside the box");
         assertTrue(capture.isAir(100, 69, -2), "and so is past the depth and margin");
+    }
+
+    /**
+     * A torch standing above the highest block a player would collide with is captured.
+     *
+     * <p>"Vines and torches aren't being shown in the mirror on the other world." A column was
+     * read only up to the chunk snapshot's highest block, which is the highest one with a
+     * collision box; a torch on the sand above it, like a flower, a rail or a vine on an outside
+     * wall, was never read at all.
+     */
+    @Test
+    void aTorchStandingAboveTheHighestSolidBlockIsCaptured()
+    {
+        torch = mock(BlockData.class);
+        when(torch.getAsString()).thenReturn("minecraft:torch");
+        when(torch.getMaterial()).thenReturn(Material.TORCH);
+        when(torch.isOccluding()).thenReturn(false);
+
+        withServer(() ->
+        {
+            MirrorCaptures.request(mirror);
+            MirrorCaptures.step(100);
+        });
+
+        assertSame(torch, MirrorCaptures.get(mirror).at(100, 70, -18), "the torch on the sand, three blocks ahead");
     }
 
     /**

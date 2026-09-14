@@ -13,6 +13,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -473,7 +474,8 @@ public final class MirrorCaptures
                 {
                     for (int lz = 0; lz < 16; lz++)
                     {
-                        final int top = Math.min(maxY, snapshot.getHighestBlockYAt(lx, lz));
+                        final int top = Math.min(maxY,
+                            highest(world, snapshot, (chunkX << 4) + lx, (chunkZ << 4) + lz, lx, lz));
                         for (int by = minY; by <= top; by++)
                         {
                             final BlockData data = snapshot.getBlockData(lx, by, lz);
@@ -489,6 +491,21 @@ public final class MirrorCaptures
         final MirrorCapture capture = builder.build();
         capture.save(file);
         return "wrote " + file.getName() + ": " + capture.describe();
+    }
+
+    /**
+     * The highest block in a column that is not air, whatever it is.
+     *
+     * <p>A chunk snapshot's own highest block is the highest one a player would collide with --
+     * the server keeps that heightmap for movement -- so a torch on a floor under the sky, a
+     * flower, a rail, or a vine hanging on an outside wall stood above it and was never read.
+     * The world's surface heightmap counts every block that is not air. The higher of the two, in
+     * case a world answers one and not the other.
+     */
+    private static int highest(final World world, final ChunkSnapshot snapshot, final int x, final int z,
+        final int lx, final int lz)
+    {
+        return Math.max(snapshot.getHighestBlockYAt(lx, lz), world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
     }
 
     /** Reads chunks another way, for a test. */
@@ -645,7 +662,7 @@ public final class MirrorCaptures
                         continue;
                     }
                     // Nothing above the column's highest block but air, which needs no writing.
-                    final int top = Math.min(maxY, snapshot.getHighestBlockYAt(lx, lz));
+                    final int top = Math.min(maxY, highest(far, snapshot, x, z, lx, lz));
                     for (int y = minY; y <= top; y++)
                     {
                         if (noting)
