@@ -92,6 +92,27 @@ been running on defaults will start reading the file you have been editing.
   verb now, and `set` still works. A mirror saved before this keeps opening where it was pointed
   until it is created again.
 
+- **A mirror keeps its far room inside its edges.** "Even though we have 2 blocks on each side, are
+  we still keeping it tight? Sometimes I can see the overflow on the sides." Not tight enough, in
+  two ways, one for each way a mirror is drawn.
+
+  A mirror in a wall solid all round is drawn whole, and the wall hides the room behind it. That
+  wall was read eight blocks out, which was the approach distance when it was chosen. When
+  `mirror-proximity-radius` doubled to 16 I left it at eight, and said so -- "the wall a mirror
+  needs to be drawn whole is its own number" -- which was wrong: twelve blocks to one side, you
+  look round the end of eight blocks of wall into the room drawn behind it. The wall is read out
+  to the radius now, which is what the guide already said.
+
+  Any other mirror is trimmed to what each eye sees through the opening. A block at the edge,
+  once drawn, stayed until half of it was beside the opening -- up to half a block of the far room
+  past the edge. It goes once more than 15% of it is. The half was there so the edge did not
+  flicker as you walked, so a moving viewer is redrawn ten times a second instead of four, which
+  also shortens how long a sidestep shows the blocks drawn for where you just were.
+
+  Standing still costs what it did, and so does a mirror drawn whole. On the move, a trimmed view
+  costs up to two and a half times as much for each viewer; the server's share per second, every
+  viewer together, is unchanged, so the most it spends is too.
+
 - **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
   behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
   A banner on a post in the open showed the far world past its edges however the view was

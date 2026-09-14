@@ -80,10 +80,10 @@ public final class MirrorWindows
     private static final long RESAMPLE_MILLIS = 5000L;
 
     /** Least time between two redraws of one viewer as they move. */
-    static final long REDRAW_MILLIS = 250L;
+    static final long REDRAW_MILLIS = 100L;
 
     /** The same, in ticks, for the redraw that catches a viewer up after they stop. */
-    private static final long REDRAW_TICKS = 5L;
+    private static final long REDRAW_TICKS = 2L;
 
     /** Most blocks one redraw considers across every window a viewer sees, while they move. */
     private static final int MOST_CANDIDATES = 40_000;
@@ -91,20 +91,20 @@ public final class MirrorWindows
     /**
      * The same for a redraw while they stand still.
      *
-     * <p>A view is redrawn up to four times a second while its viewer moves, so that budget is
+     * <p>A view is redrawn up to ten times a second while its viewer moves, so that budget is
      * kept small. Standing still, one redraw at a time grows the view towards the configured
      * depth, and each may cost more: the depth a viewer sees is what these can afford.
      */
     private static final int MOST_STILL = 120_000;
 
-    /** How far around an opening its solid surroundings are read. */
+    /** How far in front of an opening real blocks are read for what they hide, and the least its wall is read. */
     private static final int SURROUND = 8;
 
     /** The most of a block's outline that may land beside the opening for it to be drawn. */
     private static final double MOST_BESIDE = 0.05;
 
     /** The same for a block already drawn, so a step does not take it away and the next give it back. */
-    private static final double HALF_BESIDE = 0.5;
+    private static final double KEPT_BESIDE = 0.15;
 
     /** How long a walled window's fixed view is kept before the real world behind it is read again. */
     private static final long FIXED_MILLIS = 60_000L;
@@ -820,7 +820,7 @@ public final class MirrorWindows
         final int configured = ConfigManager.getMirrorViewDepth();
         view.radius = Math.min(configured, view.radius);
         // A sweep redraws a viewer who has not moved, to grow their view; a move redraws them
-        // on the way somewhere, and may be one of four this second.
+        // on the way somewhere, and may be one of ten this second.
         final int most = fromSweep ? MOST_STILL : mostWhileMoving;
         List<Entity> inside = new ArrayList<>();
         Budget budget = new Budget(most);
@@ -917,7 +917,7 @@ public final class MirrorWindows
                 }
                 final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
                 if ((rect == null) || !coveredBy(window, rect, allOpen,
-                    shields.computeIfAbsent(window, w -> shielded(w, eye, now)), HALF_BESIDE))
+                    shields.computeIfAbsent(window, w -> shielded(w, eye, now)), KEPT_BESIDE))
                 {
                     continue;
                 }
@@ -1347,10 +1347,11 @@ public final class MirrorWindows
         final MirrorWindow shape = window.shape;
         final Set<Long> opening = new HashSet<>();
         shape.forEachOpening((x, y, z) -> opening.add(key(x, y, z)));
-        final int[] span = acrossSpan(shape);
+        final int reach = wallReach();
+        final int[] span = acrossSpan(shape, reach);
         for (int across = span[0]; across <= span[1]; across++)
         {
-            for (int y = shape.base().y() - SURROUND; y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
+            for (int y = shape.base().y() - reach; y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
             {
                 final long face = faceKey(shape, across, y);
                 if (!opening.contains(face) && !window.solid.contains(face))
@@ -1841,7 +1842,7 @@ public final class MirrorWindows
         final World here = window.banner.getWorld();
         final Spot into = shape.into();
         final boolean alongX = into.x() != 0;
-        final int[] span = acrossSpan(shape);
+        final int[] span = acrossSpan(shape, SURROUND);
         final Set<Long> hidden = new HashSet<>();
         for (int front = 1; front <= SURROUND; front++)
         {
@@ -1877,11 +1878,11 @@ public final class MirrorWindows
 
     /**
      * The coordinates along a window's face that its wall is read across: the opening, one or two
-     * columns, and the surround and one more on either side of it.
+     * columns, and a reach and one more on either side of it.
      *
      * @return {@code {from, to}}, both inclusive
      */
-    private static int[] acrossSpan(final MirrorWindow shape)
+    private static int[] acrossSpan(final MirrorWindow shape, final int reach)
     {
         final boolean alongX = shape.into().x() != 0;
         // A step right, looking at the wall, is (-into.z, into.x); a pair's second column may lie below its first.
@@ -1889,7 +1890,13 @@ public final class MirrorWindows
         final int first = alongX ? shape.base().z() : shape.base().x();
         final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
         final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
-        return new int[] { low - (SURROUND + 1), high + (SURROUND + 1) };
+        return new int[] { low - (reach + 1), high + (reach + 1) };
+    }
+
+    /** How far out a window's wall is read: a viewer the proximity radius to one side looks past that much of it. */
+    private static int wallReach()
+    {
+        return Math.max(SURROUND, (int) Math.ceil(ConfigManager.getMirrorProximityRadius()));
     }
 
     /** The block of a window's face at a coordinate along it. */
@@ -1908,12 +1915,13 @@ public final class MirrorWindows
         }
         final MirrorWindow shape = window.shape;
         final World here = window.banner.getWorld();
-        final int[] span = acrossSpan(shape);
+        final int reach = wallReach();
+        final int[] span = acrossSpan(shape, reach);
         final Set<Long> solid = new HashSet<>();
         for (int across = span[0]; across <= span[1]; across++)
         {
-            for (int y = shape.base().y() - SURROUND;
-                y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
+            for (int y = shape.base().y() - reach;
+                y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
             {
                 final long face = faceKey(shape, across, y);
                 if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
@@ -2268,7 +2276,7 @@ public final class MirrorWindows
             final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
             // A block at the edge of the opening flickered as the viewer walked, drawn one step
             // and left the next; once drawn it stays drawn while half of it is behind the opening.
-            if (!coveredBy(window, rect, allOpen, shielded, before.contains(cell) ? HALF_BESIDE : MOST_BESIDE))
+            if (!coveredBy(window, rect, allOpen, shielded, before.contains(cell) ? KEPT_BESIDE : MOST_BESIDE))
             {
                 // A block straddling the edge, part of it where the real world can see it: left
                 // alone, solid or air, since drawing it either way shows the far side past the

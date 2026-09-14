@@ -345,17 +345,55 @@ class MirrorWindowsTest
     }
 
     /**
-     * A block at the edge of a trimmed view, once drawn, stays drawn while half of it is behind
-     * the opening.
+     * A block at the edge of a trimmed view, once drawn, stays drawn while all but a little of it
+     * is behind the opening.
      *
      * <p>"The bricks behind the fence flicker when approaching or backing away from the portal."
      * Drawn when all but a twentieth of it was behind the opening and left alone otherwise, a
      * block at the edge flipped with every step. This finds a block the first eye drew that the
-     * second sees between a twentieth and a half beside the opening, and checks it was not taken
-     * back -- failing, rather than passing, if no such block turns up.
+     * second sees between a twentieth and {@link #KEPT_BESIDE} beside the opening, and checks it
+     * was not taken back.
      */
     @Test
-    void aBlockAtTheEdgeOnceDrawnStaysDrawnWhileHalfOfItIsBehindTheOpening()
+    void aBlockAtTheEdgeOnceDrawnStaysDrawnWhileAlmostAllOfItIsBehindTheOpening()
+    {
+        final Step step = stepPutting(0.05, KEPT_BESIDE);
+
+        assertFalse(step.update().containsKey(step.block()) && (step.update().get(step.block()) == null),
+            step.block() + " was taken back after a step to " + step.x() + "," + step.z());
+    }
+
+    /**
+     * A block at the edge of a trimmed view is taken back once more of it than that is beside the
+     * opening.
+     *
+     * <p>"Sometimes I can see the overflow on the sides." Kept while half of it was behind the
+     * opening, a block at the edge showed the far side up to half a block past it. This finds a
+     * block the first eye drew that the second sees between a fifth and a half beside the
+     * opening, and checks it was taken back.
+     */
+    @Test
+    void aBlockAtTheEdgeIsTakenBackOnceAFifthOfItIsBesideTheOpening()
+    {
+        final Step step = stepPutting(0.2, 0.5);
+
+        assertTrue(step.update().containsKey(step.block()) && (step.update().get(step.block()) == null),
+            step.block() + " should have been taken back after a step to " + step.x() + "," + step.z()
+                + ": that much of it shows the far side past the edge");
+    }
+
+    /** How much of a drawn block the view keeps beside the opening, as {@code MirrorWindows} has it. */
+    private static final double KEPT_BESIDE = 0.15;
+
+    /** A block a first view drew, the step after it, and what that step sent. */
+    private record Step(Spot block, double x, double z, Map<Spot, BlockData> update) {}
+
+    /**
+     * Draws a freestanding mirror's view, then steps to where some block it drew lies partly
+     * beside the opening -- more than {@code least} of it and no more than {@code most} -- failing,
+     * rather than passing, if no such step turns up.
+     */
+    private Step stepPutting(final double least, final double most)
     {
         wallBehind = false;
         standUp(banner);
@@ -370,9 +408,8 @@ class MirrorWindowsTest
         {
             MirrorProximity.tick();
             final Map<Spot, BlockData> first = positions(changesTo(viewer, 1).get(0));
-            // A step that puts some block the first eye drew partly beside the opening: to one side
-            // of the opening's column, nearer or both, in tenths of a block. From inside the column
-            // a block behind the opening projects inside it however near the eye comes.
+            // To one side of the opening's column, nearer or both, in tenths of a block. From inside
+            // the column a block behind the opening projects inside it however near the eye comes.
             search:
             for (double x = 8.5; x <= 12.55; x += 0.1)
             {
@@ -386,7 +423,7 @@ class MirrorWindowsTest
                             continue;
                         }
                         final double[] rect = shape.projected(x, 65.62, z, spot.x(), spot.y(), spot.z());
-                        if ((rect != null) && !shape.covered(rect, open, 0.05) && shape.covered(rect, open, 0.5))
+                        if ((rect != null) && !shape.covered(rect, open, least) && shape.covered(rect, open, most))
                         {
                             edge[0] = spot;
                             second[0] = x;
@@ -401,10 +438,7 @@ class MirrorWindowsTest
             MirrorWindows.moved(viewer, new Location(world, second[0], 64.0, second[2]));
         });
 
-        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
-        final Map<Spot, BlockData> update = positions(sent.get(1));
-        assertFalse(update.containsKey(edge[0]) && (update.get(edge[0]) == null),
-            edge[0] + " was taken back after a step to " + second[0] + "," + second[2]);
+        return new Step(edge[0], second[0], second[2], positions(changesTo(viewer, 2).get(1)));
     }
 
     /**
@@ -640,6 +674,43 @@ class MirrorWindowsTest
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
         assertFalse(drawn.containsKey(new Spot(18, 64, 12)), "off to the side, not drawn");
+    }
+
+    /**
+     * A gap in the wall twelve blocks out trims a mirror while the proximity radius is sixteen.
+     *
+     * <p>"Sometimes I can see the overflow on the sides." The wall was read eight blocks out, the
+     * radius when that was chosen, and stayed eight when the radius doubled: a viewer twelve blocks
+     * to one side looked round the end of eight blocks of wall into the far side drawn behind it.
+     */
+    @Test
+    void aGapInTheWallWithinASixteenBlockRadiusButPastEightTrimsTheMirror()
+    {
+        gap = new Spot(22, 64, 11);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
+        assertFalse(drawn.containsKey(new Spot(18, 64, 12)),
+            "off to the side: a viewer within the radius can see the far side through that gap");
+    }
+
+    /** The same gap is past the wall a mirror needs while the radius is eight, and it is drawn whole. */
+    @Test
+    void theSameGapPastAnEightBlockRadiusLeavesTheMirrorDrawnWhole()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_PROXIMITY_RADIUS, 8);
+        gap = new Spot(22, 64, 11);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(18, 64, 12)),
+            "off to the side, drawn: nobody near enough to see the gap");
     }
 
     /**
