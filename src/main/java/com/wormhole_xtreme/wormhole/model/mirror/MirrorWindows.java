@@ -48,9 +48,8 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * lets windows share a wall, and what keeps a freestanding one inside its edges. Their own
  * world's creatures standing inside the view are hidden from them for as long as they look.
  *
- * <p>Real blocks reach {@code mirror-view-depth} from the eye. Past that a shell of sky closes the
- * view: one block thick, crossed by every line of sight through the opening, so behind it
- * nothing of the real world shows. See {@link Pass}.
+ * <p>Far-side blocks reach {@code mirror-view-depth} from the eye, and nothing is drawn past that.
+ * See {@link Pass}.
  *
  * <h2>What it costs, and what keeps that down</h2>
  *
@@ -58,7 +57,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * <li>Only the cone from the eye through the opening is walked, and only out to a radius from
  * the eye, so the work grows with what can be seen and is bounded however close the eye comes:
  * right against a mirror the cone is half a sphere, and half a sphere of a fixed radius is a
- * fixed number of blocks. The shell is that sphere's surface.</li>
+ * fixed number of blocks.</li>
  * <li>A viewer is redrawn at most a few times a second as they move, and not at all on a sweep
  * where nothing changed. Only the difference is sent, except after crossing into a new chunk --
  * which is when the client is handed fresh chunks that erase what was drawn -- and as a long
@@ -199,10 +198,9 @@ public final class MirrorWindows
         /**
          * How far this viewer's view reaches, at most the configured radius.
          *
-         * <p>Shrunk when a redraw spends its budget, and grown back when there is room. A
-         * spent budget used to leave everything past it undrawn with no shell to close it --
-         * holes with the real world in them, by construction. A shorter radius is a complete
-         * view, closed by its shell, that is simply shallower while the eye is close.
+         * <p>Shrunk when a redraw spends its budget, and grown back when there is room. A spent
+         * budget used to leave the view ragged -- drawn deep in the middle and shallow at its
+         * edges. A shorter radius is a whole view that is simply shallower while the eye is close.
          */
         private int radius = Integer.MAX_VALUE;
 
@@ -529,7 +527,7 @@ public final class MirrorWindows
         view.lastRedraw = (most - budget.blocks) + " of " + most + " blocks walked"
             + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + drawnAt
             + ((view.radius != drawnAt) ? (", next " + view.radius) : "") + ", "
-            + budget.near + " drawn near, " + budget.shell + " on the shell, eye " + (int) eye.getX() + ","
+            + budget.near + " drawn, eye " + (int) eye.getX() + ","
             + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
         view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
@@ -873,7 +871,6 @@ public final class MirrorWindows
     {
         private int blocks;
         private int near;
-        private int shell;
         /** The deepest layer every view was walked to in full before the budget ran out. */
         private int reached;
 
@@ -881,53 +878,6 @@ public final class MirrorWindows
         {
             this.blocks = most;
         }
-    }
-
-    /** The sky a window's view ends in; see {@link #skyMaterial(boolean, boolean)}. */
-    private static BlockData sky(final MirrorCapture capture)
-    {
-        return Bukkit.createBlockData(skyMaterial(capture.hasSky(), daylightIn(capture.worldName())));
-    }
-
-    /**
-     * The block that stands for sky.
-     *
-     * <p>The shell used to be painted with what each line of sight would meet further on: a
-     * flat picture of the distance, which looked like what it was. Then it was fog, which
-     * looked like a wall. Now the view is simply cut at the depth and the shell is sky: blue by
-     * the far world's day, black by its night and where there is no sky, lit like everything
-     * else by the real world where it is drawn.
-     *
-     * @param hasSky
-     *            whether the far world has a sky at all
-     * @param daylight
-     *            whether it is day there
-     * @return the material to paint
-     */
-    static Material skyMaterial(final boolean hasSky, final boolean daylight)
-    {
-        return (hasSky && daylight) ? Material.LIGHT_BLUE_CONCRETE : Material.BLACK_CONCRETE;
-    }
-
-    /** Whether it is day in a world, by name; day if the world is not loaded to ask. */
-    private static boolean daylightIn(final String worldName)
-    {
-        final World world = (worldName == null) ? null : Bukkit.getWorld(worldName);
-        return (world == null) || daylight(world.getTime());
-    }
-
-    /**
-     * Whether a world's clock says day: from a little before sunrise to a little after sunset,
-     * when the sky is still light.
-     *
-     * @param time
-     *            the world's time of day, in ticks from 0 at dawn
-     * @return true by day
-     */
-    static boolean daylight(final long time)
-    {
-        final long ofDay = ((time % 24000L) + 24000L) % 24000L;
-        return (ofDay < 13000L) || (ofDay >= 23000L);
     }
 
     /**
@@ -1310,14 +1260,11 @@ public final class MirrorWindows
      * <p>Within the radius of the eye, a block is drawn as the capture's block it maps to, if it
      * is seen through this window ({@link #seenThrough}), is not already hidden behind a solid
      * block drawn nearer the eye, and would change what the client shows -- far-side air over a
-     * block that is really empty would not. That last saving is for the near volume only: a
-     * shell block is solid, and has to be drawn over open air as much as over anything, or the
-     * real world's own horizon shows through it.
+     * block that is really empty would not.
      *
-     * <p>Just past the radius lies a shell, one block thick, that closes the view: every line of
-     * sight from the eye through the opening crosses it. It is sky, so the view is cut at the
-     * depth the way the world is at the render distance, and it has no edge where the real
-     * world shows and costs the same however close the eye comes.
+     * <p>Past the radius nothing is drawn, so a line of sight that gets that far meets whatever
+     * the real world has there. The shell that closed the view was painted, then fog, then sky,
+     * and none of them looked right.
      */
     private static final class Pass implements MirrorWindow.Limits
     {
@@ -1327,7 +1274,6 @@ public final class MirrorWindows
         private final Set<Long> allOpen;
         private final Map<Long, BlockData> wanted;
         private final BlockData air;
-        private final BlockData sky;
         private final double radius;
         private final Budget budget;
         private final long now;
@@ -1349,7 +1295,6 @@ public final class MirrorWindows
             this.allOpen = allOpen;
             this.wanted = wanted;
             this.air = air;
-            this.sky = sky(window.capture);
             this.radius = radius;
             this.budget = budget;
             this.now = now;
@@ -1373,7 +1318,7 @@ public final class MirrorWindows
             final double dy = (y + 0.5) - eye.getY();
             final double dz = (z + 0.5) - eye.getZ();
             final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-            if (distance >= (radius + 1.0))
+            if (distance >= radius)
             {
                 probe(x, y, z, "beyond");
                 return false;
@@ -1395,23 +1340,10 @@ public final class MirrorWindows
             final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
             if (!coveredBy(window, rect, allOpen, shielded))
             {
+                // A block straddling the edge, part of it where the real world can see it: left
+                // alone, solid or air, since drawing it either way shows the far side past the
+                // edge. Carving the air ones cut notches beside small freestanding mirrors.
                 probe(x, y, z, "not covered, rect " + java.util.Arrays.toString(rect));
-                // A block straddling the edge, most of it where the real world can see it. Left
-                // alone when the far side is solid, since drawing it would show past the edge.
-                // Carved all the same when the far side is air: it is the wall of the tunnel the
-                // carving cuts through whatever is really there, and its face inside the view --
-                // a wall of sea water, at a hut on a beach -- is worse than a notch beside it.
-                if ((distance < radius) && farAir && !emptyHere(here, x, y, z, now))
-                {
-                    wanted.put(cell, air);
-                    budget.near++;
-                }
-                return true;
-            }
-            if (distance >= radius)
-            {
-                wanted.put(cell, sky);
-                budget.shell++;
                 return true;
             }
             final BlockData data = farAir ? air : capture.at(at.x(), at.y(), at.z());

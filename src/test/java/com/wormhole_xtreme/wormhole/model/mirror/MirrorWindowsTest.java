@@ -86,7 +86,6 @@ class MirrorWindowsTest
     private Block banner;
     private final BlockData air = named("minecraft:air");
     private final BlockData barrier = named("minecraft:barrier");
-    private final BlockData sky = named("minecraft:light_blue_concrete");
     private final BlockData farOneBlock = named("far:one");
     private final BlockData farTwoBlock = named("far:two");
     private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
@@ -196,70 +195,25 @@ class MirrorWindowsTest
     }
 
     /**
-     * Past the radius, the far side is painted onto a shell rather than cut off.
+     * Past the radius nothing is drawn.
      *
-     * <p>Every line of sight through the opening crosses the shell, so past it nothing of the
-     * real world shows -- which a depth limit could not promise, and a barrier keeping viewers
-     * back from the opening only half did.
+     * <p>The view was closed with a shell a block thick -- painted with the distance, then fog,
+     * then sky -- and none of them looked right. The view stops at the depth now, and past it
+     * a line of sight meets the real world.
      */
     @Test
-    void pastTheRadiusTheFarSideIsPaintedOntoAShell()
+    void pastTheRadiusNothingIsDrawn()
     {
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
-        // The eye is just above the opening, so every line through it slopes down: these three
-        // sit on one such line, thirteen, sixteen and a half, and twenty-three blocks out.
+        // The eye is just above the opening, so every line through it slopes down: these two
+        // sit on one such line, thirteen and sixteen and a half blocks out, either side of 16.
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 62, 20)), "within the radius, the block itself");
-        assertSame(sky, drawn.get(new Spot(10, 61, 23)), "on the shell, sky");
-        assertFalse(drawn.containsKey(new Spot(10, 60, 30)), "past the shell, nothing");
-    }
-
-    /**
-     * The shell is sky whatever lies beyond it, near or far.
-     *
-     * <p>It was painted with what each line of sight would meet further on: a flat picture of
-     * the distance that looked like what it was. The view is cut at the depth now, the way the
-     * world is at the render distance, and past it is sky.
-     */
-    @Test
-    void theShellIsSkyWhateverLiesBeyondIt()
-    {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        assertSame(sky, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 61, 23)),
-            "solid far side beyond, and still sky");
-    }
-
-    /**
-     * The shell is painted even where the real world is open air.
-     *
-     * <p>Far-side air over a really empty block is left out within the radius, since it would
-     * change nothing. Applied to the shell, that left the real world's horizon showing through a
-     * mirror on a beach: the sand near the arrival point was drawn, and above it the viewer's own
-     * glass house and sky. A shell block is solid, and needs painting over open air most of all.
-     */
-    @Test
-    void theShellIsPaintedEvenWhereTheRealWorldIsOpenAir()
-    {
-        wallBehind = false;
-        localEmpty = true;
-        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
-        assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
-            "within the radius, air over air is not sent");
-        assertTrue(drawnAs(batch, sky) > 10, "but the shell past it is, as sky: " + drawnAs(batch, sky));
+        assertFalse(drawn.containsKey(new Spot(10, 61, 23)), "just past it, nothing at all");
     }
 
     /**
@@ -451,15 +405,14 @@ class MirrorWindowsTest
     }
 
     /**
-     * A straddling block whose far side is air is carved all the same.
+     * In open air, a straddling block whose far side is air is left alone, not carved.
      *
-     * <p>Carving a view through whatever is really there cuts a tunnel, and the tunnel's walls
-     * are the blocks just outside the cone, whose faces show inside it. At a hut on a beach that
-     * was a wall of sea water in the middle of the library. A notch in the sea beside the hut is
-     * the lesser harm.
+     * <p>Carving it opened a notch of the far side beside the opening: on small freestanding
+     * mirrors the other world showed in this one. A block straight behind the opening, all of
+     * it covered, is still carved.
      */
     @Test
-    void aStraddlingBlockWhoseFarSideIsAirIsCarvedAllTheSame()
+    void inOpenAirAStraddlingBlockWhoseFarSideIsAirIsLeftAlone()
     {
         wallBehind = false;
         MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
@@ -468,7 +421,9 @@ class MirrorWindowsTest
 
         withServer(MirrorProximity::tick);
 
-        assertSame(air, positions(changesTo(viewer, 1).get(0)).get(new Spot(9, 63, 12)));
+        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
+        assertSame(air, drawn.get(new Spot(10, 63, 12)), "straight behind the opening, carved");
+        assertFalse(drawn.containsKey(new Spot(9, 63, 12)), "beside it, left as it really is");
     }
 
     @Test
@@ -958,8 +913,6 @@ class MirrorWindowsTest
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
-            bukkit.when(() -> Bukkit.createBlockData(Material.LIGHT_BLUE_CONCRETE)).thenReturn(sky);
-            bukkit.when(() -> Bukkit.createBlockData(Material.BLACK_CONCRETE)).thenReturn(sky);
             for (final Player player : world.getPlayers())
             {
                 bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
@@ -987,32 +940,6 @@ class MirrorWindowsTest
         assertEquals(32, MirrorWindows.grown(30, 32, most - 4_000, most), "and never past the configured depth");
         assertEquals(32, MirrorWindows.grown(40, 32, most, most), "a radius above the configured depth comes down to it");
         assertEquals(28, MirrorWindows.grown(19, 32, 108_000, 120_000), "the same tenth of a bigger budget, standing still");
-    }
-
-    /**
-     * Daylight is from a little before dawn to a little after dusk, whatever day it is.
-     */
-    @Test
-    void daylightFollowsTheFarWorldsClockThroughAnyNumberOfDays()
-    {
-        assertTrue(MirrorWindows.daylight(0L), "dawn");
-        assertTrue(MirrorWindows.daylight(6000L), "noon");
-        assertTrue(MirrorWindows.daylight(12999L), "dusk, sky still light");
-        assertFalse(MirrorWindows.daylight(13000L), "night falls");
-        assertFalse(MirrorWindows.daylight(18000L), "midnight");
-        assertTrue(MirrorWindows.daylight(23000L), "sky lightens before dawn");
-        assertTrue(MirrorWindows.daylight(24000L + 6000L), "noon of the second day");
-        assertFalse(MirrorWindows.daylight((24000L * 300L) + 18000L), "midnight of the three hundredth");
-    }
-
-    /** Sky is blue by the far world's day, and black by its night and where there is no sky. */
-    @Test
-    void skyIsBlueByDayAndBlackByNightOrWhereThereIsNoSky()
-    {
-        assertSame(Material.LIGHT_BLUE_CONCRETE, MirrorWindows.skyMaterial(true, true), "day");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(true, false), "night");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, true), "the Nether by day");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, false), "and by night");
     }
 
     /**

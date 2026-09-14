@@ -48,6 +48,9 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      */
     private static final double[] BANDS = { 0.5, 1.5, Double.POSITIVE_INFINITY };
 
+    /** The most of a drawn block's outline that may land beside the opening, in open air. */
+    private static final double MOST_BESIDE = 0.05;
+
     /** No limit on a walk beyond the cone's own shape. */
     public static final Limits UNLIMITED = () -> Integer.MAX_VALUE;
 
@@ -112,10 +115,10 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         }
 
         /**
-         * The highest block in a column that could need drawing, other than the shell.
+         * The highest block in a column that could need drawing.
          *
          * <p>Above it there is only air over air, which changes nothing on the client and need
-         * not be walked. The shell is walked regardless, since it is painted there too.
+         * not be walked.
          *
          * @param x
          *            the column's x
@@ -257,9 +260,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *
      * <p>Bounded by distance from the eye rather than depth behind the opening, because that is
      * what bounds the work however close the eye comes: right up against a mirror the cone is
-     * nearly half a sphere, and half a sphere of a fixed radius is a fixed number of blocks. The
-     * bound includes one block past the radius, which is where a shell of blocks lies that
-     * {@link MirrorWindows} paints the rest of the view onto.
+     * nearly half a sphere, and half a sphere of a fixed radius is a fixed number of blocks.
      *
      * <p>In bands, steepest last, so the middle of a view can be walked to its full depth before
      * its edges are, and a walk that runs out of budget loses the edges of the view, not its
@@ -349,8 +350,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             this.eyeAcross = alongX ? eye[2] : eye[0];
             this.eyeY = eye[1];
             this.reach = Math.max(NEAREST_EYE, Math.abs(window.face() - eyeAlong));
-            // One past the given radius: the shell lies in that last block.
-            this.radius = radius + 1.0;
+            this.radius = radius;
             this.baseAlong = alongX ? window.base.x() : window.base.z();
             this.middle = alongX ? window.base.z() : window.base.x();
             this.inner = (band == 0) ? -1.0 : BANDS[band - 1];
@@ -422,29 +422,18 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         /**
          * One column of one layer, only the blocks in this band.
          *
-         * <p>Above the column's top only the shell is offered: sky over sky changes nothing on
-         * the client, and outdoors it is most of the cone.
+         * <p>Nothing above the column's top is offered: sky over sky changes nothing on the
+         * client, and outdoors it is most of the cone.
          *
          * @return false if stopped
          */
         private boolean column(final int x, final int z, final double offAcross, final int yFrom,
             final int yTo, final double distance)
         {
-            final int top = limits.top(x, z);
-            final double flat = (distance * distance) + (offAcross * offAcross);
-            final double shellFrom = (radius - 1.0) * (radius - 1.0);
-            final double shellTo = radius * radius;
-            for (int y = yFrom; y <= yTo; y++)
+            final int last = Math.min(yTo, limits.top(x, z));
+            for (int y = yFrom; y <= last; y++)
             {
                 final double offY = (y + 0.5) - eyeY;
-                if (y > top)
-                {
-                    final double squared = flat + (offY * offY);
-                    if ((squared < shellFrom) || (squared >= shellTo))
-                    {
-                        continue;
-                    }
-                }
                 final double steep = Math.max(Math.abs(offAcross), Math.abs(offY)) / distance;
                 if ((steep > inner) && (steep <= outer) && !candidate.at(x, y, z))
                 {
@@ -621,20 +610,21 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /**
-     * Whether most of a projected block falls on blocks of the face that keep it in view.
+     * Whether nearly all of a projected block falls on blocks of the face that keep it in view.
      *
      * <p>A drawn block is a whole block, not a picture cut to the opening. In a wall that is
      * harmless: the wall hides whatever of it lies outside. In open air nothing does, so a block
-     * partly behind the opening shows partly beside it. Most rather than all, because at the
-     * edge of a small structure -- a hut, a tower -- blocks straddle, and a block can only be one
-     * thing on the client: rejected, the real world shows through it inside the opening; drawn,
-     * a sliver of far scenery peeks round the corner. The hole is worse.
+     * partly behind the opening shows partly beside it. Half used to be enough, on the grounds
+     * that a sliver of real world inside the opening was worse than far scenery beside it; on
+     * small freestanding mirrors the far world then showed well past their edges, which was
+     * worse. A twentieth is allowed for the rounding of a block that only just touches the edge.
      *
      * @param rect
      *            from {@link #projected}
      * @param face
      *            what each block of the face lets through
-     * @return true if at least half the projection's area lands on clear blocks of the face
+     * @return true if all but a twentieth of the projection's area lands on clear blocks of the
+     *         face
      */
     boolean covered(final double[] rect, final Face face)
     {
@@ -660,7 +650,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
                 }
             }
         }
-        return (area <= 0.0) || (clear >= (0.5 * area));
+        return (area <= 0.0) || (clear >= ((1.0 - MOST_BESIDE) * area));
     }
 
     /**

@@ -163,7 +163,7 @@ class MirrorReplayTest
         final int intoZ = -facing.getModZ();
         out.append("slice through the middle (depth behind the face 1..").append(radius + 2)
             .append(" left to right; rows y ").append(by + 8).append(" down to ").append(by - 8)
-            .append("): '.' not drawn, 'a' air, '#' solid, 's' sky, '~' other\n");
+            .append("): '.' not drawn, 'a' air, '#' solid, '~' other\n");
         for (int y = by + 8; y >= by - 8; y--)
         {
             out.append(String.format("%4d ", y));
@@ -228,8 +228,8 @@ class MirrorReplayTest
             }
         }
         // Ground truth: rays from the eye through the opening, followed the way the client
-        // shows them. A ray that meets a real block nobody drew, before a drawn solid or the
-        // shell, is a hole with the real world in it.
+        // shows them. A ray that meets a real block nobody drew, before a drawn solid and within
+        // the depth, is a hole with the real world in it. Past the depth nothing is drawn.
         final java.util.Map<String, Integer> holes = new java.util.TreeMap<>();
         final java.util.Map<String, MirrorWindow.Spot> holeAt = new HashMap<>();
         int rays = 0;
@@ -280,6 +280,15 @@ class MirrorReplayTest
                     c[next] += step[next];
                     tMax[next] += tDelta[next];
                     final MirrorWindow.Spot spot = new MirrorWindow.Spot(cx, cy, cz);
+                    final double ox = (cx + 0.5) - ex;
+                    final double oy = (cy + 0.5) - ey;
+                    final double oz = (cz + 0.5) - ez;
+                    if (Math.sqrt((ox * ox) + (oy * oy) + (oz * oz)) >= radius)
+                    {
+                        outcome = "ok";
+                        shows.merge("past the depth", 1, Integer::sum);
+                        break;
+                    }
                     final String as = drawn.get(spot);
                     trail.append(' ').append(cx).append(',').append(cy).append(',').append(cz).append('=')
                         .append((as == null) ? (here.isAir(cx, cy, cz) ? "real-air" : "REAL-" + here.nameAt(cx, cy, cz)) : as)
@@ -291,7 +300,7 @@ class MirrorReplayTest
                             continue;
                         }
                         outcome = "ok";
-                        shows.merge("drawn " + as + (as.contains("concrete") ? " (sky)" : ""), 1, Integer::sum);
+                        shows.merge("drawn " + as, 1, Integer::sum);
                         break;
                     }
                     if (here.isAir(cx, cy, cz))
@@ -319,7 +328,7 @@ class MirrorReplayTest
                 if (!"ok".equals(outcome))
                 {
                     holed++;
-                    final String why = (where == null) ? "escaped past the shell"
+                    final String why = (where == null) ? "escaped"
                         : ("real " + here.nameAt(where.x(), where.y(), where.z()) + " at " + where
                             + ", verdict: " + verdicts.getOrDefault(where, "never walked"));
                     holes.merge(why, 1, Integer::sum);
@@ -440,10 +449,6 @@ class MirrorReplayTest
         if (as.endsWith(":air"))
         {
             return 'a';
-        }
-        if (as.contains("concrete"))
-        {
-            return 's';
         }
         if (as.endsWith(":barrier"))
         {

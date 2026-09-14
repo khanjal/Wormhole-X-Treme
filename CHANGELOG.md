@@ -208,11 +208,21 @@ been running on defaults will start reading the file you have been editing.
 
   So the shell is not a painting any more. "I don't like the fake sky/ground in the distance.
   I'd rather just do a render distance with fog" -- and then, of a wall of white concrete,
-  "let's not do that weird shell thing. Just cut the render and display sky." So the view is
-  cut at the depth, the way the world is at the render distance, and the shell that closes it
-  is plain sky: blue by the far world's day, black by its night. Nothing flat pretends to be
-  far away, nothing on it is see-through, and the far heightmap and the lines of sight through
-  the capture are gone with it. The rest of the far side stays lit by this world, which is the
+  "let's not do that weird shell thing. Just cut the render and display sky" -- and then, of a
+  shell of light-blue concrete, "can we just make nothing render past that point? for now." So
+  nothing is drawn past the depth: no painting, no fog, no sky. A line of sight that gets that
+  far meets whatever the real world has there, which is the trade, and the far heightmap and
+  the lines of sight through the capture are gone with the shell.
+
+  "Can we tighten up the edges for those smaller mirrors in the open? Sometimes the other world
+  renders in the current world." Two rules made at the hut on the beach let it. A block was
+  drawn if half its outline, seen from the eye, landed on the opening -- so the other half
+  showed beside it -- because a sliver of real world inside the opening seemed the worse of
+  the two. And a real block straddling the edge was carved to air whenever its far side was
+  air, however little of it was behind the opening, which cut a notch of the far side into the
+  open air beside the mirror. Both were the wrong way round for a small freestanding mirror. A
+  block is drawn now only if all but a twentieth of its outline is behind the opening or on face
+  that hides it, and a straddler is left as it really is, solid or air. The rest of the far side stays lit by this world, which is the
   prototype's known limit: behind a dark wall, only what makes its own light is bright.
 
   "The flooring still gets messed up; fences and signs need to allow blocks behind them to

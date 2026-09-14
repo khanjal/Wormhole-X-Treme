@@ -154,11 +154,10 @@ class MirrorWindowTest
     }
 
     /**
-     * Candidates are behind the opening, nearest layer first, out to a block past the radius.
+     * Candidates are behind the opening, nearest layer first, out to the radius.
      *
      * <p>Nothing on the viewer's side, where a drawn block would stand where they are standing,
-     * and nothing more than a block past the radius from the eye -- the block past it is the
-     * shell the rest of the view is painted on.
+     * and no layer whose nearest face is further from the eye than the radius.
      */
     @Test
     void candidatesAreBehindTheOpeningNearestFirstAndOutToTheRadius()
@@ -166,10 +165,10 @@ class MirrorWindowTest
         final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, -3.0, 20);
 
         assertEquals(2, seen.get(0).z(), "the first layer behind the opening comes first");
-        assertTrue(seen.stream().allMatch(spot -> (spot.z() >= 2) && (spot.z() <= 18)),
-            "all of them behind the opening, and none more than a block past the radius");
+        assertTrue(seen.stream().allMatch(spot -> (spot.z() >= 2) && (spot.z() <= 17)),
+            "all of them behind the opening, and none past the radius");
         assertTrue(seen.contains(new Spot(0, 63, 2)), "straight behind");
-        assertTrue(seen.contains(new Spot(0, 63, 17)), "as far as the radius and its shell reach");
+        assertTrue(seen.contains(new Spot(0, 63, 17)), "as far as the radius reaches");
     }
 
     /**
@@ -202,8 +201,8 @@ class MirrorWindowTest
 
         assertTrue(seen.size() < 12_000, seen.size() + " blocks walked");
         // The walk's own bound is a box around the sphere; the exact test is per block, after.
-        assertTrue(seen.stream().allMatch(spot -> (spot.z() <= 17) && (distance(spot, 0.5, 64.0, 0.6) < 31.0)),
-            "none more than a block past the radius along the axis, and none outside its box");
+        assertTrue(seen.stream().allMatch(spot -> (spot.z() <= 16) && (distance(spot, 0.5, 64.0, 0.6) < 31.0)),
+            "none past the radius along the axis, and none outside its box");
     }
 
     /** A direction through the opening turns the way the block mapping turns. */
@@ -226,15 +225,13 @@ class MirrorWindowTest
     }
 
     /**
-     * Above a column's top, only the shell is offered.
+     * Above a column's top, nothing is offered.
      *
      * <p>Sky over sky changes nothing on the client and outdoors is most of the cone, so a walk
-     * that offered it spent half its budget on nothing. The shell is still painted there -- a
-     * sky with a hole in it would show the real world -- so what is offered above the top must
-     * be exactly the blocks a block past the radius, and there must be some.
+     * that offered it spent half its budget on nothing.
      */
     @Test
-    void aboveAColumnsTopOnlyTheShellIsOffered()
+    void aboveAColumnsTopNothingIsOffered()
     {
         final double ex = 0.5;
         final double ey = 64.0;
@@ -259,14 +256,9 @@ class MirrorWindowTest
         final List<Spot> sky = seen.stream().filter(spot -> spot.y() > top).toList();
         final List<Spot> all = candidates(northFacing(0.0f), ex, ey, ez, radius);
 
-        assertFalse(sky.isEmpty(), "the shell above the top is still offered");
-        for (final Spot spot : sky)
-        {
-            final double distance = distance(spot, ex, ey, ez);
-            assertTrue((distance >= radius) && (distance < (radius + 1.0)),
-                spot + " is above the top but not on the shell, " + distance + " from the eye");
-        }
-        assertTrue(all.size() > seen.size(), "and the sky between was skipped");
+        assertTrue(sky.isEmpty(), sky.size() + " offered above the top");
+        assertTrue(all.stream().anyMatch(spot -> spot.y() > top), "which the full walk does offer");
+        assertTrue(seen.stream().anyMatch(spot -> spot.y() <= top), "and the column below it still is");
         assertTrue(all.containsAll(seen), "without offering anything the full walk did not");
     }
 
@@ -297,7 +289,7 @@ class MirrorWindowTest
     {
         final List<Spot> seen = candidates(northFacing(0.0f), 0.5, 64.0, 0.6, 48);
 
-        final int deepMiddle = seen.indexOf(new Spot(0, 64, 49));
+        final int deepMiddle = seen.indexOf(new Spot(0, 64, 48));
         final int nearEdge = seen.indexOf(new Spot(2, 64, 2));
         assertTrue((deepMiddle >= 0) && (nearEdge >= 0), "both are in the view");
         assertTrue(deepMiddle < nearEdge, "the deep middle first: " + deepMiddle + " vs " + nearEdge);
@@ -385,18 +377,21 @@ class MirrorWindowTest
      * hole in the view, and the hole is worse.
      */
     @Test
-    void aBlockReachingPastTheEdgeIsCoveredWhereMostOfItLandsOnSomethingSolid()
+    void aBlockReachingPastTheEdgeInOpenAirIsCoveredOnlyIfNearlyAllOfItIsBehindTheOpening()
     {
         final MirrorWindow window = northFacing(0.0f);
         final double[] inside = { 0.2, 0.8, 63.2, 64.8 };
         final double[] mostlyPast = { 0.6, 1.5, 63.2, 63.8 };
         final double[] mostlyInside = { 0.2, 1.4, 63.2, 63.8 };
+        final double[] justTouching = { 0.2, 1.02, 63.2, 63.8 };
         final MirrorWindow.Face openAir = (across, y) -> (across == 0) && ((y == 63) || (y == 64));
         final MirrorWindow.Face wall = (across, y) -> true;
 
         assertTrue(window.covered(inside, openAir), "all of it behind the opening");
         assertFalse(window.covered(mostlyPast, openAir), "most of it beside the opening, in the air");
-        assertTrue(window.covered(mostlyInside, openAir), "most of it behind the opening");
+        assertFalse(window.covered(mostlyInside, openAir),
+            "a third of it beside the opening, which used to be drawn and showed past small mirrors");
+        assertTrue(window.covered(justTouching, openAir), "a fortieth over the edge is rounding");
         assertTrue(window.covered(mostlyPast, wall), "beside the opening, but in the wall");
     }
 
