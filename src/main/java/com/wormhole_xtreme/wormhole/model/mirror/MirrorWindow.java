@@ -576,17 +576,20 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /**
-     * Whether everything of a projected block falls on blocks of the face that keep it in view.
+     * Whether most of a projected block falls on blocks of the face that keep it in view.
      *
      * <p>A drawn block is a whole block, not a picture cut to the opening. In a wall that is
      * harmless: the wall hides whatever of it lies outside. In open air nothing does, so a block
-     * only partly behind the opening would show in full beside it.
+     * partly behind the opening shows partly beside it. Most rather than all, because at the
+     * edge of a small structure -- a hut, a tower -- blocks straddle, and a block can only be one
+     * thing on the client: rejected, the real world shows through it inside the opening; drawn,
+     * a sliver of far scenery peeks round the corner. The hole is worse.
      *
      * @param rect
      *            from {@link #projected}
      * @param face
      *            what each block of the face lets through
-     * @return true if every block of the face the projection touches is clear
+     * @return true if at least half the projection's area lands on clear blocks of the face
      */
     boolean covered(final double[] rect, final Face face)
     {
@@ -599,17 +602,74 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         {
             return false;
         }
+        final double area = (rect[1] - rect[0]) * (rect[3] - rect[2]);
+        double clear = 0.0;
         for (int across = acrossFrom; across <= acrossTo; across++)
         {
             for (int y = yFrom; y <= yTo; y++)
             {
-                if (!face.clear(across, y))
+                if (face.clear(across, y))
                 {
-                    return false;
+                    clear += (Math.min(rect[1], across + 1) - Math.max(rect[0], across))
+                        * (Math.min(rect[3], y + 1) - Math.max(rect[2], y));
                 }
             }
         }
-        return true;
+        return (area <= 0.0) || (clear >= (0.5 * area));
+    }
+
+    /**
+     * Where a block in front of the face -- between it and the eye -- hides the face from that
+     * eye: its outline, thrown onto the face plane.
+     *
+     * <p>For real blocks on the viewer's side, such as a corridor's walls or a hut's sides and
+     * roof, which hide parts of the face beside the opening as surely as the wall itself does.
+     *
+     * @param eyeX
+     *            the eye, x
+     * @param eyeY
+     *            the eye, y
+     * @param eyeZ
+     *            the eye, z
+     * @param x
+     *            the block, x
+     * @param y
+     *            the block, y
+     * @param z
+     *            the block, z
+     * @return {@code {acrossMin, acrossMax, yMin, yMax}} on the face; or null if the block is
+     *         not wholly between the eye and the face
+     */
+    double[] shadow(final double eyeX, final double eyeY, final double eyeZ, final int x,
+        final int y, final int z)
+    {
+        final boolean alongX = into.x() != 0;
+        final double eyeDepth = alongX ? eyeX : eyeZ;
+        final double eyeAcross = alongX ? eyeZ : eyeX;
+        final double reach = face() - eyeDepth;
+        final double[] rect =
+            { Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE };
+        for (int corner = 0; corner < 8; corner++)
+        {
+            final double cornerX = x + (corner & 1);
+            final double cornerY = y + ((corner >> 1) & 1);
+            final double cornerZ = z + ((corner >> 2) & 1);
+            final double depth = (alongX ? cornerX : cornerZ) - eyeDepth;
+            // The same way from the eye as the face, nearer than it, and not on top of the eye.
+            if ((depth * reach <= 0.0) || (Math.abs(depth) > Math.abs(reach))
+                || (Math.abs(depth) < 0.05))
+            {
+                return null;
+            }
+            final double scale = reach / depth;
+            final double across = eyeAcross + (scale * ((alongX ? cornerZ : cornerX) - eyeAcross));
+            final double up = eyeY + (scale * (cornerY - eyeY));
+            rect[0] = Math.min(rect[0], across);
+            rect[1] = Math.max(rect[1], across);
+            rect[2] = Math.min(rect[2], up);
+            rect[3] = Math.max(rect[3], up);
+        }
+        return rect;
     }
 
     /**

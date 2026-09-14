@@ -693,7 +693,7 @@ public final class MirrorWindows
             final int z = at.getBlockZ();
             for (final Window window : seeing)
             {
-                if (seenThrough(eye, window, x, y, z, seeing, allOpen) != null)
+                if (seenThrough(eye, window, x, y, z, seeing, allOpen, Set.of()) != null)
                 {
                     inside.add(entity);
                     break;
@@ -771,11 +771,12 @@ public final class MirrorWindows
      * @return the block's outline on the opening's face, or null if it is not seen through it
      */
     private static double[] seenThrough(final Location eye, final Window window, final int x,
-        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen)
+        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen,
+        final Set<Long> shielded)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
         if ((rect == null) || !window.shape.overlaps(rect, window.open)
-            || !window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen)))
+            || !window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen, shielded)))
         {
             return null;
         }
@@ -814,13 +815,67 @@ public final class MirrorWindows
             key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
     }
 
-    /** Whether a block of a window's face keeps a drawn block behind it out of sight elsewhere. */
+    /**
+     * Whether a block of a window's face keeps a drawn block behind it out of sight elsewhere:
+     * the opening itself, a solid block of the wall, or a block of the face hidden from this eye
+     * by something real in front of it.
+     */
     private static boolean clear(final Window window, final int across, final int y,
-        final Set<Long> allOpen)
+        final Set<Long> allOpen, final Set<Long> shielded)
     {
         final long face = faceKey(window.shape, across, y);
         return window.openKeys.contains(face)
-            || (window.solid.contains(face) && !allOpen.contains(face));
+            || ((window.solid.contains(face) || shielded.contains(face)) && !allOpen.contains(face));
+    }
+
+    /**
+     * The blocks of a window's face hidden from an eye by real solid blocks in front of it.
+     *
+     * <p>A corridor's walls, a hut's sides and roof: every solid block on the viewer's side
+     * within reach of the opening is thrown onto the face plane from the eye, and the face
+     * blocks wholly inside its shadow are hidden. That is what makes a hut or a corridor work
+     * like a thick wall, instead of leaving holes wherever a drawn block's outline strayed past
+     * a three-block-wide wall into the open air beside it.
+     */
+    private static Set<Long> shielded(final Window window, final Location eye, final long now)
+    {
+        final MirrorWindow shape = window.shape;
+        final World here = window.banner.getWorld();
+        final Spot into = shape.into();
+        final boolean alongX = into.x() != 0;
+        final int centre = alongX ? shape.base().z() : shape.base().x();
+        final int reach = SURROUND + MirrorWindow.WIDTH;
+        final Set<Long> hidden = new HashSet<>();
+        for (int front = 1; front <= SURROUND; front++)
+        {
+            final int along = (alongX ? shape.base().x() : shape.base().z()) - (front * (alongX ? into.x() : into.z()));
+            for (int across = centre - reach; across <= (centre + reach); across++)
+            {
+                for (int y = shape.base().y() - SURROUND;
+                    y <= (shape.base().y() + MirrorWindow.HEIGHT + SURROUND); y++)
+                {
+                    final int x = alongX ? along : across;
+                    final int z = alongX ? across : along;
+                    if (!solidHere(here, x, y, z, now))
+                    {
+                        continue;
+                    }
+                    final double[] rect = shape.shadow(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
+                    if (rect == null)
+                    {
+                        continue;
+                    }
+                    for (int a = (int) Math.ceil(rect[0]); (a + 1) <= rect[1]; a++)
+                    {
+                        for (int b = (int) Math.ceil(rect[2]); (b + 1) <= rect[3]; b++)
+                        {
+                            hidden.add(faceKey(shape, a, b));
+                        }
+                    }
+                }
+            }
+        }
+        return hidden;
     }
 
     /** The block of a window's face at a coordinate along it. */
@@ -1085,6 +1140,7 @@ public final class MirrorWindows
         private final int min;
         private final int max;
         private final Occlusion hidden;
+        private final Set<Long> shielded;
 
         Pass(final Location eye, final Window window, final List<Window> seeing,
             final Set<Long> allOpen, final Map<Long, BlockData> wanted, final BlockData air,
@@ -1104,6 +1160,7 @@ public final class MirrorWindows
             this.min = here.getMinHeight();
             this.max = here.getMaxHeight();
             this.hidden = new Occlusion(window);
+            this.shielded = shielded(window, eye, now);
         }
 
         /** @return true, always: the walk is stopped by the budget, not by one block */
@@ -1122,7 +1179,7 @@ public final class MirrorWindows
             {
                 return true;
             }
-            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
+            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen, shielded);
             final int layer = layerOf(x, z);
             if ((rect == null) || hidden.covers(rect, layer))
             {

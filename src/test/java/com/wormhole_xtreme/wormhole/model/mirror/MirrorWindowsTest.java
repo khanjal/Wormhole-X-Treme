@@ -411,6 +411,51 @@ class MirrorWindowsTest
         assertFalse(drawn.containsKey(new Spot(11, 65, 12)), "close, and half of it beside");
     }
 
+    /**
+     * In open air, a block straddling the edge of a narrow wall is drawn when a real wall in
+     * front hides the face beside it.
+     *
+     * <p>A mirror on a small hut on a beach showed the sea through the view: blocks behind the
+     * hut straddled the edge of its three-block front wall, were rejected as showing beside it,
+     * and the real sea in them stayed. With the hut's side walls counted, the face beside the
+     * front wall is hidden from the eye inside, and the same blocks are drawn.
+     */
+    @Test
+    void aRealWallInFrontHidesTheFaceBesideANarrowWall()
+    {
+        wallBehind = false;
+        for (int y = 62; y <= 66; y++)
+        {
+            for (int z = 8; z <= 10; z++)
+            {
+                solidAt(9, y, z);
+                solidAt(11, y, z);
+            }
+        }
+        final Player viewer = playerAt(10.5, 9.2);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        // Just behind the opening and a block to the side: two thirds of its outline lands on
+        // the face beside the opening, which the side wall at x 9 hides from this eye.
+        assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(new Spot(9, 63, 12)));
+    }
+
+    /** The same block, with nothing real in front to hide the face beside the opening. */
+    @Test
+    void withoutARealWallInFrontTheSameStraddlingBlockIsLeftOut()
+    {
+        wallBehind = false;
+        final Player viewer = playerAt(10.5, 9.2);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertFalse(positions(changesTo(viewer, 1).get(0)).containsKey(new Spot(9, 63, 12)),
+            "most of it would show beside the opening, in the open air");
+    }
+
     @Test
     void againstAWallTheSameBlockIsDrawnSinceTheWallHidesTheRest()
     {

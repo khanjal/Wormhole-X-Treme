@@ -330,24 +330,47 @@ class MirrorWindowTest
     }
 
     /**
-     * A block reaching past the opening's edge is kept only where something solid hides the rest.
+     * A block reaching past the opening's edge is kept only where something solid hides most of
+     * the rest.
      *
      * <p>In a wall, the wall hides it. A freestanding mirror in open air has nothing there, so the
-     * same block would show in full beside the opening -- which is what a mirror on a glowstone
-     * tower did, showing its far side well past its edges.
+     * same block would show partly beside the opening -- which is what a mirror on a glowstone
+     * tower did, showing its far side well past its edges. Most rather than all, since a block
+     * straddling the edge of a hut's wall is either a sliver of far scenery round the corner or a
+     * hole in the view, and the hole is worse.
      */
     @Test
-    void aBlockReachingPastTheEdgeIsCoveredOnlyWhereTheEdgeIsSolid()
+    void aBlockReachingPastTheEdgeIsCoveredWhereMostOfItLandsOnSomethingSolid()
     {
         final MirrorWindow window = northFacing(0.0f);
         final double[] inside = { 0.2, 0.8, 63.2, 64.8 };
-        final double[] pastTheEdge = { 0.5, 1.5, 63.2, 63.8 };
+        final double[] mostlyPast = { 0.6, 1.5, 63.2, 63.8 };
+        final double[] mostlyInside = { 0.2, 1.4, 63.2, 63.8 };
         final MirrorWindow.Face openAir = (across, y) -> (across == 0) && ((y == 63) || (y == 64));
         final MirrorWindow.Face wall = (across, y) -> true;
 
         assertTrue(window.covered(inside, openAir), "all of it behind the opening");
-        assertFalse(window.covered(pastTheEdge, openAir), "part of it beside the opening, in the air");
-        assertTrue(window.covered(pastTheEdge, wall), "part of it beside the opening, in the wall");
+        assertFalse(window.covered(mostlyPast, openAir), "most of it beside the opening, in the air");
+        assertTrue(window.covered(mostlyInside, openAir), "most of it behind the opening");
+        assertTrue(window.covered(mostlyPast, wall), "beside the opening, but in the wall");
+    }
+
+    /**
+     * A real block between the eye and the wall throws a shadow on the wall, wider than itself.
+     *
+     * <p>A corridor's wall a block from the eye hides a swathe of the face plane four blocks
+     * away. A block behind the face, or one at the eye, throws none.
+     */
+    @Test
+    void aBlockInFrontOfTheWallThrowsAShadowOnItFromTheEye()
+    {
+        final MirrorWindow window = northFacing(0.0f);
+
+        final double[] shadow = window.shadow(0.5, 64.0, -3.0, 2, 63, -2);
+        assertTrue((shadow != null) && (shadow[0] > 1.0) && ((shadow[1] - shadow[0]) > 1.5),
+            "off to the right and magnified: " + java.util.Arrays.toString(shadow));
+        assertNull(window.shadow(0.5, 64.0, -3.0, 0, 63, 3), "behind the face");
+        assertNull(window.shadow(0.5, 64.0, -3.0, 0, 63, -3), "at the eye");
     }
 
     @Test

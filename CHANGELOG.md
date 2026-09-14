@@ -143,6 +143,14 @@ been running on defaults will start reading the file you have been editing.
   wall and within range of them, so a redraw spent its whole budget on four the corridor walls
   hid from them, and cut short the one they were looking at. `/wormhole mirror debug`, unlisted,
   is what found that: it says what a mirror's capture holds and what your last redraw did.
+
+  A mirror on a small hut in open air still showed the sea through the view. Whether a drawn
+  block's outline lands on something that hides it was judged against the wall plane alone, and
+  a hut's side walls and roof are on the viewer's side; they now throw their shadow onto the
+  wall from the eye, and wall blocks in shadow count as solid. And a block straddling the edge is
+  drawn if most of it is covered, rather than rejected if any of it is not: a sliver of far
+  scenery round the corner is better than a hole with the real world in it. Captures also reach
+  48 below the arrival point now, not 16; the library sits forty-seven blocks above its beach.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 

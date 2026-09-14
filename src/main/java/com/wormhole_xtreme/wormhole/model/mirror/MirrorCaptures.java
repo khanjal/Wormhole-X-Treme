@@ -40,8 +40,14 @@ public final class MirrorCaptures
     /** Chunks read per tick while a capture is being taken. */
     private static final int CHUNKS_PER_TICK = 2;
 
-    /** How far below the arrival point a capture reaches. */
-    private static final int BELOW = 16;
+    /**
+     * How far below the arrival point a capture reaches.
+     *
+     * <p>Sixteen was not enough: a mirror in a library forty-seven blocks above its beach looked
+     * down through the library's openings at nothing, and the beach it should have seen was
+     * below the box.
+     */
+    private static final int BELOW = 48;
 
     /** How far above it. */
     private static final int ABOVE = 64;
