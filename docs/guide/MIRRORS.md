@@ -34,7 +34,8 @@ A pair of banners that lead to each other:
 ```
 
 That is the whole job. The second banner is bound for you — `nether-return`, unless you name it
-(`/wormhole mirror link nether home`) — and each points at the other.
+(`/wormhole mirror link nether home`) — and each points at the other. If the second banner is
+already a mirror, that mirror is the one linked; a banner is never two mirrors at once.
 
 One way, to a place with no banner:
 

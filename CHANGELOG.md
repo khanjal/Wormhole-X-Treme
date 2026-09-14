@@ -345,6 +345,15 @@ been running on defaults will start reading the file you have been editing.
   that, and was never read. It asks the world's surface heightmap now, which counts every block
   that is not air.
 
+  "I stamped a mirror with the wrong world, then set it to the right one and stamped again. It
+  looks like they're both trying to render." Re-pointing one mirror replaces its view whole; what
+  drew two was two mirrors. `mirror link` run at a banner that was already a mirror bound the
+  derived `<other>-return` name to it as well, and both names claimed the banner. A click went
+  through whichever was indexed last, but the sweep offered every name, so two windows shared one
+  opening and each drew its own far side into it. `link` now joins the banner as the mirror it
+  already is, and the sweep skips a name whose banner is indexed under another, so a `mirror.yml`
+  that already holds two draws only the one a click would take -- `mirror remove` the other.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

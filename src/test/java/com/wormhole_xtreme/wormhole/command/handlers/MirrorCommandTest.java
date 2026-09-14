@@ -408,6 +408,50 @@ class MirrorCommandTest
     }
 
     /**
+     * Linking from a banner that is already a mirror links that mirror, not a second name.
+     *
+     * <p>It used to bind {@code museum-return} beside {@code lobby} on the same banner. Both
+     * were drawn through the one opening, each onto its own world, and only one could be clicked.
+     */
+    @Test
+    void linkFromABannerThatIsAlreadyAMirrorLinksThatMirror()
+    {
+        final World snapshot = mock(World.class);
+        when(snapshot.getName()).thenReturn("snapshot");
+
+        final Directional farFacing = mock(Directional.class);
+        when(farFacing.getFacing()).thenReturn(BlockFace.SOUTH);
+        final Block farBanner = mock(Block.class);
+        when(farBanner.getBlockData()).thenReturn(farFacing);
+        when(farBanner.getLocation()).thenReturn(new Location(snapshot, 5.0, 64.0, 5.0));
+        when(snapshot.getBlockAt(5, 64, 5)).thenReturn(farBanner);
+
+        final Directional nearFacing = mock(Directional.class);
+        when(nearFacing.getFacing()).thenReturn(BlockFace.NORTH);
+        final Block nearBanner = banner(Material.WHITE_WALL_BANNER);
+        when(nearBanner.getBlockData()).thenReturn(nearFacing);
+        when(nearBanner.getLocation()).thenReturn(new Location(here, 1.0, 64.0, 1.0));
+        when(here.getBlockAt(1, 64, 1)).thenReturn(nearBanner);
+        when(player.getTargetBlockExact(6)).thenReturn(nearBanner);
+
+        MirrorManager.add(new QuantumMirror("lobby", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("snapshot", 5, 64, 5), null));
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("snapshot")).thenReturn(snapshot);
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(here);
+
+            assertTrue(run(player, "mirror", "link", "museum"));
+        }
+
+        assertNull(MirrorManager.byName("museum-return"), "the banner is lobby already; a second name would draw twice");
+        assertEquals(2, MirrorManager.count());
+        assertNotNull(MirrorManager.byName("lobby").destination(), "lobby is the half that opens onto museum");
+        assertEquals("world", MirrorManager.byName("museum").destination().worldName(), "and museum opens back onto lobby");
+    }
+
+    /**
      * Linking to a mirror whose world is not loaded says so.
      *
      * <p>The facing has to be read off the live block -- it is recorded nowhere else -- so a

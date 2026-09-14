@@ -195,6 +195,13 @@ public final class MirrorProximity
     {
         for (final QuantumMirror mirror : MirrorManager.all())
         {
+            // A name whose banner is indexed under another mirror is not clicked through, so it is
+            // not drawn either: two of them drew two far sides through one opening.
+            final QuantumMirror onItsBanner = MirrorManager.at(mirror.banner());
+            if ((onItsBanner != null) && !onItsBanner.name().equalsIgnoreCase(mirror.name()))
+            {
+                continue;
+            }
             if (!offerWindow(mirror))
             {
                 // Two separate reasons to visit a mirror, and they are not the same reason.

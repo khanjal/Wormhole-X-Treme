@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -158,6 +159,35 @@ class MirrorWindowsTest
 
         assertTrue(drawnAs(changesTo(viewer, 1).get(0), farOneBlock) > 0,
             "the far side is in the view");
+    }
+
+    /**
+     * Two names on one banner draw one far side: the one a click would travel through.
+     *
+     * <p>{@code link} used to bind a second name to a banner that was already a mirror. Both
+     * were windows on the same opening, each drawing its own capture, and a viewer saw the two
+     * worlds mixed in one view.
+     */
+    @Test
+    void twoNamesOnOneBannerDrawOnlyTheOneItIsIndexedUnder()
+    {
+        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world", 10, 64, 10), arrivalTwo));
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        final List<String> said = new ArrayList<>();
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            said.addAll(MirrorWindows.describe(viewer));
+        });
+
+        // Asked of the windows, not of the blocks drawn: two windows on one opening take turns per
+        // block, and a single sweep can happen to draw all of one.
+        assertTrue(said.get(0).startsWith("1 window(s)"), "one banner is one window, not one per name: " + said);
+        assertTrue(said.stream().anyMatch(line -> line.startsWith("you see [archive]:")),
+            "the window is archive's, the mirror a click would take: " + said);
+        assertTrue(drawnAs(changesTo(viewer, 1).get(0), farTwoBlock) > 0, "and archive's far side is what shows");
     }
 
     /**

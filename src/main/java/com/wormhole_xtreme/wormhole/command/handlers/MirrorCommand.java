@@ -337,6 +337,11 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
+        if (here.name().equalsIgnoreCase(other.name()))
+        {
+            say(sender, "A mirror cannot open onto itself.");
+            return;
+        }
         // Both arrivals are worked out before either is stored, so a pair that cannot be tied
         // both ways is not left tied one way -- the state this command exists to stop people
         // ending up in.
@@ -407,6 +412,15 @@ public class MirrorCommand implements SubCommand
         if (block == null)
         {
             return null;
+        }
+        // Joined as the mirror it already is. Bound under a second name, both claimed the banner,
+        // and the sweep drew each one's far side through the same opening.
+        final QuantumMirror already = MirrorManager.at(MirrorBlock.of(block));
+        if (already != null)
+        {
+            say(sender, "This banner is already " + MirrorText.quoted(already.name())
+                + ", so that is the one being linked.");
+            return already;
         }
         final QuantumMirror bound = new QuantumMirror(name, MirrorBlock.of(block), null);
         MirrorManager.add(bound);
