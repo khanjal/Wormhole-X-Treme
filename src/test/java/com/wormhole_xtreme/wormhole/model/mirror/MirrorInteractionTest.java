@@ -89,9 +89,27 @@ class MirrorInteractionTest
         when(world.getName()).thenReturn("world");
     }
 
+    /**
+     * What a click says above the hotbar holds the approach line off, so it can be read.
+     *
+     * <p>"The showing its own room message appears when clicking but is quickly replaced."
+     */
+    @Test
+    void whatAClickSaysAboveTheHotbarHoldsTheApproachLineOff()
+    {
+        final Block banner = block(Material.WHITE_WALL_BANNER, 5);
+        reflecting("museum", banner);
+
+        MirrorInteraction.handle(punch(banner));
+
+        assertTrue(hints().stream().anyMatch(line -> line.contains("own room")), "got " + hints());
+        assertTrue(MirrorSignpost.held(player), "the next sweep must not speak over it");
+    }
+
     @AfterEach
     void tearDown() throws Exception
     {
+        MirrorSignpost.clear();
         MirrorManager.clear();
         MirrorSettle.clear();
         MirrorNetwork.clear();

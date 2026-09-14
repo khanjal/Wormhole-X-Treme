@@ -335,6 +335,26 @@ public class MirrorCommand implements SubCommand
         }
         say(sender, MIRROR_IS + MirrorText.quoted(name) + " is this banner. Walk up to it to see its reflection;");
         say(sender, "right-click it to choose another mirror, and punch it to go through.");
+        warnIfTooNear(sender, mirror);
+    }
+
+    /**
+     * Says so when a mirror just made is too close to another for either to be drawn whole.
+     *
+     * <p>Made anyway: it works, but each is trimmed to what a viewer sees through it, which costs
+     * more as people walk past and leaves more to show at the edges.
+     */
+    private static void warnIfTooNear(final CommandSender sender, final QuantumMirror mirror)
+    {
+        final QuantumMirror near = MirrorPlacement.tooNear(mirror);
+        if (near == null)
+        {
+            return;
+        }
+        final long apart = Math.round(Math.sqrt(MirrorPlacement.squaredApartOf(mirror, near)));
+        say(sender, "It is " + apart + " blocks from " + MirrorText.quoted(near.name()) + ". Mirrors nearer than "
+            + (long) MirrorPlacement.apartToDrawWhole() + " -- twice mirror-view-depth -- are not drawn whole:");
+        say(sender, "each shows only what a viewer sees through it, which costs more as people walk past.");
     }
 
     /**

@@ -1,7 +1,10 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
@@ -36,14 +39,58 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
  * regardless of how many mirrors there are, and asks nobody at all in a world that has none.
  *
  * <p>The line is re-sent every sweep rather than only when the target changes. That is the
- * point of it: the action bar fades on its own, so a steady line is a repeated one. Nothing is
- * remembered between sweeps, which is also why there is no state here to get out of step with
- * a player who logged out, changed world, or had the mirror broken in front of them.
+ * point of it: the action bar fades on its own, so a steady line is a repeated one. The only thing
+ * remembered between sweeps is a short hold after a click says something there, so the next sweep
+ * does not speak over it; it runs out on its own.
  */
 public final class MirrorSignpost
 {
     /** How far a player can be and still be looking <em>at</em> a banner rather than past it. */
     private static final int REACH = 6;
+
+    /** How long a line a click put above the hotbar stays before this speaks over it again. */
+    private static final long HOLD_MILLIS = 3000L;
+
+    /**
+     * Who a click has just told something, and until when.
+     *
+     * <p>The one thing remembered between sweeps. "Showing its own room" from a punch was replaced by
+     * the approach line at the next sweep, before it could be read. Main thread only.
+     */
+    private static final Map<UUID, Long> HELD = new HashMap<>();
+
+    /**
+     * Keeps this quiet for a player a moment, after a click said something to them above the hotbar.
+     *
+     * @param player
+     *            who was told
+     */
+    public static void hold(final Player player)
+    {
+        HELD.put(player.getUniqueId(), System.currentTimeMillis() + HOLD_MILLIS);
+    }
+
+    /** Forgets every hold, for a test or a reload. */
+    static void clear()
+    {
+        HELD.clear();
+    }
+
+    /** Whether a click spoke to this player too recently to speak over it. */
+    static boolean held(final Player player)
+    {
+        final Long until = HELD.get(player.getUniqueId());
+        if (until == null)
+        {
+            return false;
+        }
+        if (until > System.currentTimeMillis())
+        {
+            return true;
+        }
+        HELD.remove(player.getUniqueId());
+        return false;
+    }
 
     /** Static state only. */
     private MirrorSignpost()
@@ -118,6 +165,10 @@ public final class MirrorSignpost
      */
     private static void tell(final Player player)
     {
+        if (held(player))
+        {
+            return;
+        }
         final Block looked = player.getTargetBlockExact(REACH);
         if ((looked == null) || !looked.getType().name().endsWith("BANNER"))
         {

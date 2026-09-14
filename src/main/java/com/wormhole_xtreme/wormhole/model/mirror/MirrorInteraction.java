@@ -259,5 +259,7 @@ public final class MirrorInteraction
     private static void hint(final Player player, final String message)
     {
         com.wormhole_xtreme.wormhole.utils.ActionBar.send(player, "§3:: " + message);
+        // Or the approach line replaces it at the next sweep, before it can be read.
+        MirrorSignpost.hold(player);
     }
 }

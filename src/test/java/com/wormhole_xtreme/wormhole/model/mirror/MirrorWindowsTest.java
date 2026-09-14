@@ -222,6 +222,45 @@ class MirrorWindowsTest
      * <p>The sweep runs once a second, so a view waiting for it changed up to a second after the
      * click that chose it -- long enough to click again, and skip past the mirror you wanted.
      */
+    /**
+     * A click on a mirror sends the whole view again a tick later.
+     *
+     * <p>"When right clicking, the real banner and block shows." The server answers a refused click
+     * by sending the clicked block and the one beside it as they really are, once the click is
+     * handled; the view was only marked to be sent again, so the real banner and wall stayed until
+     * the player moved or the sweep came round.
+     */
+    @Test
+    void aClickOnAMirrorSendsTheWholeViewAgainATickLater() throws Exception
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                MirrorWindows.resend(viewer);
+                final org.mockito.ArgumentCaptor<Runnable> later = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+                verify(scheduler, org.mockito.Mockito.atLeastOnce()).scheduleSyncDelayedTask(
+                    org.mockito.ArgumentMatchers.any(org.bukkit.plugin.Plugin.class), later.capture(),
+                    org.mockito.ArgumentMatchers.eq(1L));
+                verify(viewer, times(1)).sendBlockChanges(anyCollection());
+                later.getAllValues().forEach(Runnable::run);
+            });
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+
+        final Map<Spot, BlockData> again = positions(changesTo(viewer, 2).get(1));
+        assertTrue(again.containsKey(new Spot(10, 64, 10)), "the banner, drawn away again");
+        assertTrue(again.containsKey(new Spot(10, 64, 11)), "and the wall it hangs on, drawn as the opening again");
+    }
+
     @Test
     void aRightClickShowsTheChosenMirrorWithoutWaitingForTheSweep()
     {

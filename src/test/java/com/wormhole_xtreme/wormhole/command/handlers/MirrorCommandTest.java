@@ -174,6 +174,43 @@ class MirrorCommandTest
         assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
     }
 
+    /**
+     * A mirror made too close to another is made, and says it will not be drawn whole.
+     *
+     * <p>"Add the create warning for mirrors too close together." Within twice the view depth,
+     * neither is drawn whole: each is trimmed to what a viewer sees, which costs more.
+     */
+    @Test
+    void aMirrorMadeTooCloseToAnotherSaysSo()
+    {
+        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
+        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 1, 64, 12), null));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        run(player, "mirror", "create", "museum");
+
+        assertNotNull(MirrorManager.byName("museum"), "made anyway: it works, only not drawn whole");
+        verify(player).sendMessage(contains("It is 11 blocks from"));
+        verify(player).sendMessage(contains("nearer than 64"));
+    }
+
+    /** A mirror far enough away, or in another world, says nothing about it. */
+    @Test
+    void aMirrorFarEnoughAwayOrInAnotherWorldIsNotWarnedAbout()
+    {
+        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_PER_WORLD_LIMIT, 0);
+        MirrorManager.add(new QuantumMirror("hall", new MirrorBlock("world", 1, 64, 66), null));
+        MirrorManager.add(new QuantumMirror("nether", new MirrorBlock("world_nether", 1, 64, 2), null));
+        final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
+
+        run(player, "mirror", "create", "museum");
+
+        assertNotNull(MirrorManager.byName("museum"));
+        verify(player, never()).sendMessage(contains("blocks from"));
+    }
+
     /** Naming the banner you are looking at is the first half of binding one. */
     @Test
     void setNamesTheBannerThePlayerIsLookingAt()

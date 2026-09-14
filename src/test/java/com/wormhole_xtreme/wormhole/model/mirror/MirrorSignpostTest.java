@@ -93,9 +93,33 @@ class MirrorSignpostTest
     @AfterEach
     void tearDown() throws Exception
     {
+        MirrorSignpost.clear();
         MirrorManager.clear();
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
+    }
+
+    /**
+     * A line a click put above the hotbar is not spoken over at the next sweep.
+     *
+     * <p>"The showing its own room message appears when clicking but is quickly replaced by right
+     * click to choose a mirror." The approach line is sent again every sweep, and took the slot back
+     * before the click's line could be read.
+     */
+    @Test
+    void aLineAClickPutAboveTheHotbarIsNotSpokenOver()
+    {
+        boundMirror();
+        lookingAt(banner);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        MirrorSignpost.hold(player);
+
+        sweep();
+
+        assertEquals(0, shown().size(), "held while the click's line is up");
+        MirrorSignpost.clear();
+        sweep();
+        assertEquals(1, shown().size(), "and saying it again once the hold is over");
     }
 
     /**

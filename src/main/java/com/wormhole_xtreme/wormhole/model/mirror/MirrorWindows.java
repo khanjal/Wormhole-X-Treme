@@ -673,10 +673,12 @@ public final class MirrorWindows
     }
 
     /**
-     * Sends a player's whole view again at the next chance.
+     * Sends a player's whole view again a tick after they click a mirror.
      *
-     * <p>A click on a mirror the server refuses -- a punch that does not break, a right-click that
-     * places nothing -- makes the server send that block as it really is, over the view.
+     * <p>A click the server refuses -- a punch that does not break, a right-click that places
+     * nothing -- makes it send the clicked block, and the one beside it, as they really are once
+     * the click is handled. Only marking the view left the real banner and wall showing until the
+     * player moved or the sweep came round.
      *
      * @param player
      *            who clicked
@@ -684,11 +686,31 @@ public final class MirrorWindows
     public static void resend(final Player player)
     {
         final View view = VIEWS.get(player.getUniqueId());
+        if (view == null)
+        {
+            return;
+        }
+        view.fullAt = 0L;
+        view.composedAt = 0L;
+        view.eye = Long.MIN_VALUE;
+        try
+        {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
+                () -> sendAgain(player), 1L);
+        }
+        catch (final RuntimeException noScheduler)
+        {
+            // No scheduler yet, during startup or in tests. The next move or sweep sends it.
+        }
+    }
+
+    /** Sends everything a view holds again, as it holds it. */
+    private static void sendAgain(final Player player)
+    {
+        final View view = VIEWS.get(player.getUniqueId());
         if (view != null)
         {
-            view.fullAt = 0L;
-            view.composedAt = 0L;
-            view.eye = Long.MIN_VALUE;
+            send(player, view, view.drawn, now(), true);
         }
     }
 
@@ -1266,7 +1288,7 @@ public final class MirrorWindows
             }
             return fixed;
         }
-        final double apart = 2.0 * ConfigManager.getMirrorViewDepth();
+        final double apart = MirrorPlacement.apartToDrawWhole();
         for (final Window window : seeing)
         {
             if (window.standing || !walled(window))

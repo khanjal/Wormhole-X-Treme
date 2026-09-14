@@ -142,6 +142,30 @@ been running on defaults will start reading the file you have been editing.
   moving one needs a new room captured anyway. That leaves the folder hard to read, so `mirror
   list` ends each mirror's line with its capture key, which is the file's name.
 
+- **Clicking a mirror no longer shows the real banner, and what a click says stays up.** "When
+  right clicking, the real banner and block shows. Should that be happening?" No. The server
+  answers a refused click by sending the clicked block, and the one beside it, as they really
+  are, once the click has been handled. The view was only marked to be sent again, so the real
+  banner and wall stayed until you moved or the sweep came round. It is sent again a tick after
+  the click now, once the server's own correction is out.
+
+  "The showing its own room message appears when clicking but is quickly replaced by right click
+  to choose a mirror." The approach line is sent again every sweep so that it stays up while you
+  look, and it took the slot back before the click's line could be read. A click that says
+  something above the hotbar holds the approach line off for three seconds.
+
+- **`mirror create` says when a mirror is too close to another to be drawn whole.** Within twice
+  `mirror-view-depth` of another mirror in the same world, both fill the same space behind the
+  wall, so each is trimmed to what a viewer sees through it -- more work as people walk past, and
+  more to show at the edges. It is still made, and says so:
+
+  ```
+  It is 11 blocks from 'hall'. Mirrors nearer than 64 -- twice mirror-view-depth -- are not drawn whole:
+  each shows only what a viewer sees through it, which costs more as people walk past.
+  ```
+
+  The distance is one number now, in `MirrorPlacement`, read by both the warning and the drawing.
+
 - **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
   behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
   A banner on a post in the open showed the far world past its edges however the view was

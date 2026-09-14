@@ -34,6 +34,66 @@ public final class MirrorPlacement
     }
 
     /**
+     * How far apart two mirrors must be for either to be drawn whole: twice the view depth.
+     *
+     * <p>Nearer, each would fill the same space behind the wall with its own room, so both are
+     * trimmed to what each eye sees through them.
+     *
+     * @return the distance between banners, in blocks
+     */
+    public static double apartToDrawWhole()
+    {
+        return 2.0 * ConfigManager.getMirrorViewDepth();
+    }
+
+    /**
+     * The nearest other mirror in the same world too close for either to be drawn whole.
+     *
+     * @param mirror
+     *            the mirror just made or moved
+     * @return that mirror, or null if there is none
+     */
+    public static QuantumMirror tooNear(final QuantumMirror mirror)
+    {
+        final double apart = apartToDrawWhole();
+        double nearest = apart * apart;
+        QuantumMirror found = null;
+        for (final QuantumMirror other : MirrorManager.all())
+        {
+            final double apartSquared = squaredApart(mirror, other);
+            if (!other.name().equalsIgnoreCase(mirror.name())
+                && other.banner().worldName().equals(mirror.banner().worldName()) && (apartSquared < nearest))
+            {
+                nearest = apartSquared;
+                found = other;
+            }
+        }
+        return found;
+    }
+
+    /**
+     * The squared distance between two mirrors' banners.
+     *
+     * @param one
+     *            a mirror
+     * @param other
+     *            another
+     * @return the distance squared, in blocks
+     */
+    public static double squaredApartOf(final QuantumMirror one, final QuantumMirror other)
+    {
+        return squaredApart(one, other);
+    }
+
+    private static double squaredApart(final QuantumMirror one, final QuantumMirror other)
+    {
+        final double dx = (double) one.banner().x() - other.banner().x();
+        final double dy = (double) one.banner().y() - other.banner().y();
+        final double dz = (double) one.banner().z() - other.banner().z();
+        return (dx * dx) + (dy * dy) + (dz * dz);
+    }
+
+    /**
      * Why a banner cannot become a mirror one banner wide called {@code name}, or null if it can.
      *
      * @param banner
