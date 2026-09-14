@@ -339,9 +339,6 @@ public final class MirrorWindows
         /** Whether the last redraw had room to reach further, so the next sweep redraws. */
         private boolean growing;
 
-        /** How far the view last sent reached, carried deeper blocks included. */
-        private int lastRadius;
-
         View(final World world)
         {
             this.world = world;
@@ -746,19 +743,12 @@ public final class MirrorWindows
         }
         workSpent += most - budget.blocks;
         final int drawnAt = view.radius;
-        // A redraw on the move has a smaller budget than one standing still, and close to the
-        // mirror it runs out and reaches less far. Taking back what lay further was the flicker
-        // of the bricks behind the fence as a viewer walked up to the mirror and away: gone on a
-        // step, back on the next sweep. Blocks drawn further out stay until a redraw that can
-        // afford the depth -- the next sweep -- says otherwise.
-        if (!fromSweep && (drawnAt < view.lastRadius))
-        {
-            carryDeeper(view, wanted, seeing, fixed, drawnAt, view.lastRadius);
-        }
-        else
-        {
-            view.lastRadius = drawnAt;
-        }
+        // A block the last drawing had is taken back only when it would now be wrong: beside the
+        // opening from this eye, or past the depth. A redraw that did not reach it -- out of
+        // budget on the move, or stopped early behind nearer blocks -- leaves it where it is; if
+        // it is hidden it is invisible, and if it is not, it is right. Taking back whatever a
+        // walk missed was the flicker of the bricks behind the fence.
+        keepStillShown(view, wanted, seeing, fixed, eye, now);
         view.radius = grown(view.radius, configured, budget.blocks, most);
         view.growing = eyeMatters && (view.radius < configured) && (budget.blocks > (most / 2));
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
@@ -785,15 +775,25 @@ public final class MirrorWindows
     }
 
     /**
-     * Keeps in a redraw the blocks the last drawing had between a shorter reach and the longer
-     * one it replaced, behind a trimmed window's wall.
+     * Keeps in a redraw every block the last drawing had that is still right to show from this
+     * eye through a trimmed window: behind its face, within the depth, seen through its opening
+     * and no other, and at least half of it behind the opening or on face that hides it. Drawn
+     * as the window's far side has it now.
      */
-    private static void carryDeeper(final View view, final Map<Long, BlockData> wanted,
-        final List<Window> seeing, final Map<Window, Whole> fixed, final int from, final int to)
+    private static void keepStillShown(final View view, final Map<Long, BlockData> wanted,
+        final List<Window> seeing, final Map<Window, Whole> fixed, final Location eye, final long now)
     {
-        for (final Map.Entry<Long, BlockData> entry : view.drawn.entrySet())
+        if (view.drawn.isEmpty())
         {
-            final long cell = entry.getKey();
+            return;
+        }
+        final int depth = ConfigManager.getMirrorViewDepth();
+        final Set<Long> allOpen = new HashSet<>();
+        seeing.forEach(window -> allOpen.addAll(window.openKeys));
+        final Map<Window, Set<Long>> shields = new HashMap<>();
+        BlockData air = null;
+        for (final Long cell : view.drawn.keySet())
+        {
             if (wanted.containsKey(cell))
             {
                 continue;
@@ -817,12 +817,34 @@ public final class MirrorWindows
                 final double dx = (x + 0.5) - centre[0];
                 final double dy = (y + 0.5) - centre[1];
                 final double dz = (z + 0.5) - centre[2];
-                final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-                if ((distance >= from) && (distance < to))
+                if (((dx * dx) + (dy * dy) + (dz * dz)) >= ((double) depth * depth))
                 {
-                    wanted.put(cell, entry.getValue());
-                    break;
+                    continue;
                 }
+                final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
+                if ((rect == null) || !coveredBy(window, rect, allOpen,
+                    shields.computeIfAbsent(window, w -> shielded(w, eye, now)), HALF_BESIDE))
+                {
+                    continue;
+                }
+                final Spot at = shape.farOf(x, y, z);
+                if (!window.capture.contains(at.x(), at.y(), at.z()) || window.capture.isBuried(at.x(), at.y(), at.z()))
+                {
+                    continue;
+                }
+                if (window.capture.isAir(at.x(), at.y(), at.z()))
+                {
+                    if (air == null)
+                    {
+                        air = Bukkit.createBlockData(Material.AIR);
+                    }
+                    wanted.put(cell, air);
+                }
+                else
+                {
+                    wanted.put(cell, turned(window, window.capture.at(at.x(), at.y(), at.z())));
+                }
+                break;
             }
         }
     }

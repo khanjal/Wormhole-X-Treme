@@ -319,6 +319,16 @@ been running on defaults will start reading the file you have been editing.
   everything past the moving reach. A redraw on the move keeps the blocks the last drawing had
   further out than it could reach, until a redraw that can afford the depth says otherwise.
 
+  That was not the whole of it either. `mirror debug`, a step apart: standing, 66,785 blocks
+  walked at radius 46; a step nearer, 1,045 of 40,000 at the same radius, and the bricks gone.
+  The budget had not run out -- the walk stopped early, judging the rest hidden behind nearer
+  blocks -- and whatever a redraw did not reach, it took back. "What if we simply render bricks
+  behind bricks just in case?" In effect: a redraw keeps every block the last drawing had that
+  is still right to show from the new eye -- behind the face, within the depth, seen through
+  this opening and at least half behind it -- and takes one back only when it would show beside
+  the opening or lies past the depth. A kept block that really is hidden is invisible; one that
+  is not hidden is right.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

@@ -324,8 +324,10 @@ class MirrorWindowsTest
      *
      * <p>"Still flickering on the stone bricks behind the fence." A redraw while walking has a
      * third of a still one's budget; close to the mirror it ran out, reached less far, and took
-     * back what lay further, which the next sweep drew again. The move's reach is checked to have
-     * really shrunk, so the test cannot pass by never running out.
+     * back what lay further, which the next sweep drew again. Any redraw that does not reach a
+     * block -- out of budget, or stopped behind nearer blocks -- keeps it while it is still right
+     * to show. The move's reach is checked to have really shrunk, so the test cannot pass by
+     * never running out.
      */
     @Test
     void aRedrawOnTheMoveThatRunsOutKeepsTheDeeperBlocksTheLastOneDrew()
@@ -351,6 +353,36 @@ class MirrorWindowsTest
         final List<Collection<BlockState>> sent = changesTo(viewer, 2);
         final Map<Spot, BlockData> update = positions(sent.get(1));
         assertFalse(update.containsKey(deep) && (update.get(deep) == null), deep + " was taken back: " + redraw);
+    }
+
+    /**
+     * A block kept from the last drawing is still taken back once it would show beside the
+     * opening from where the viewer now stands.
+     *
+     * <p>A redraw keeps what it did not reach, so the bricks behind the fence stop flickering;
+     * it must not keep what is now wrong. Stepped well to the side of a freestanding mirror in
+     * open air, a block straight behind the opening lands beside it.
+     */
+    @Test
+    void aBlockKeptFromTheLastDrawingIsTakenBackOnceItWouldShowBesideTheOpening()
+    {
+        wallBehind = false;
+        standUp(banner);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final Spot straight = new Spot(10, 65, 13);
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(straight), "drawn straight ahead");
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, 13.5, 64.0, 9.5));
+        });
+
+        final Map<Spot, BlockData> update = positions(changesTo(viewer, 2).get(1));
+        assertTrue(update.containsKey(straight) && (update.get(straight) == null),
+            "taken back: from here it lands beside the opening, in the open air");
     }
 
     /**
