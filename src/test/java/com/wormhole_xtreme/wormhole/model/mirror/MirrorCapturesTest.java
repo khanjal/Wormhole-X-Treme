@@ -191,6 +191,39 @@ class MirrorCapturesTest
         assertTrue(MirrorCaptures.due(mirror.withMode(MirrorMode.DYNAMIC), old));
     }
 
+    /**
+     * A capture smaller than the configured box is outgrown, and taken again on the next look.
+     *
+     * <p>The box grew twice during testing, and a file from before kept its old horizon until
+     * somebody ran mirror stamp. Depth is judged only with the far world loaded: without it the
+     * capture could not be retaken anyway, and asking every sweep would warn every sweep.
+     */
+    @Test
+    void aCaptureSmallerThanTheConfiguredBoxIsOutgrown()
+    {
+        // The configured radius is 16, so a box is 33 across, and reaches 64 below the arrival.
+        final int arrivalY = (int) Math.floor(mirror.destination().y());
+        final MirrorCapture fits = new MirrorCapture.Builder("far", true, 0, arrivalY - 64, 0, 33, 129, 33, air)
+            .build();
+        final MirrorCapture narrow = new MirrorCapture.Builder("far", true, 0, arrivalY - 64, 0, 31, 129, 31, air)
+            .build();
+        final MirrorCapture shallow = new MirrorCapture.Builder("far", true, 0, arrivalY - 48, 0, 33, 113, 33, air)
+            .build();
+
+        withServer(() ->
+        {
+            assertFalse(MirrorCaptures.outgrown(mirror, fits), "as wide and as deep as one taken now");
+            assertTrue(MirrorCaptures.outgrown(mirror, narrow), "narrower than the configured radius");
+            assertTrue(MirrorCaptures.outgrown(mirror, shallow), "not as deep below the arrival point");
+        });
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
+            assertTrue(MirrorCaptures.outgrown(mirror, narrow), "width is judged without the far world");
+            assertFalse(MirrorCaptures.outgrown(mirror, shallow), "depth is not: it could not be retaken anyway");
+        }
+    }
+
     private void withServer(final Runnable body)
     {
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))

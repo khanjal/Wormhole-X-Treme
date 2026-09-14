@@ -86,7 +86,7 @@ class MirrorWindowsTest
     private Block banner;
     private final BlockData air = named("minecraft:air");
     private final BlockData barrier = named("minecraft:barrier");
-    private final BlockData sky = named("minecraft:light_blue_concrete");
+    private final BlockData fog = named("minecraft:white_concrete");
     private final BlockData farOneBlock = named("far:one");
     private final BlockData farTwoBlock = named("far:two");
     private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
@@ -214,37 +214,27 @@ class MirrorWindowsTest
         // sit on one such line, thirteen, sixteen and a half, and twenty-three blocks out.
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 62, 20)), "within the radius, the block itself");
-        assertSame(farOneBlock, drawn.get(new Spot(10, 61, 23)), "on the shell, what the line meets");
+        assertSame(fog, drawn.get(new Spot(10, 61, 23)), "on the shell, fog");
         assertFalse(drawn.containsKey(new Spot(10, 60, 30)), "past the shell, nothing");
     }
 
-    /** A shell block shows the first thing its line of sight meets, however far off. */
+    /**
+     * The shell is fog whatever lies beyond it, near or far.
+     *
+     * <p>It was painted with what each line of sight would meet further on, or sky: a flat
+     * picture of the distance that looked like what it was, and in the dark looked like water.
+     * The view ends in fog now, the way the world ends at the render distance.
+     */
     @Test
-    void aShellBlockShowsTheFirstThingItsLineOfSightMeets()
+    void theShellIsFogWhateverLiesBeyondIt()
     {
-        final BlockData ground = named("far:ground");
-        MirrorCaptures.install(arrival, groundBelow(arrival, 60, ground));
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
-        // A line sloping down from the eye that crosses the shell in open air and meets the
-        // ground a dozen blocks on.
-        assertSame(ground, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 58, 22)));
-    }
-
-    /** Where a line of sight leaves the capture without meeting anything, the shell shows sky. */
-    @Test
-    void whereALineOfSightMeetsNothingTheShellShowsSky()
-    {
-        MirrorCaptures.install(arrival, groundBelow(arrival, -100, farOneBlock));
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        assertSame(sky, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 61, 23)));
+        assertSame(fog, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 61, 23)),
+            "solid far side beyond, and still fog");
     }
 
     /**
@@ -269,7 +259,7 @@ class MirrorWindowsTest
         final Collection<BlockState> batch = changesTo(viewer, 1).get(0);
         assertEquals(MirrorPackets.available() ? 1 : 0, drawnAs(batch, air),
             "within the radius, air over air is not sent");
-        assertTrue(drawnAs(batch, sky) > 10, "but the shell past it is, as sky: " + drawnAs(batch, sky));
+        assertTrue(drawnAs(batch, fog) > 10, "but the shell past it is, as fog: " + drawnAs(batch, fog));
     }
 
     /**
@@ -968,9 +958,8 @@ class MirrorWindowsTest
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
-            bukkit.when(() -> Bukkit.createBlockData(Material.LIGHT_BLUE_CONCRETE)).thenReturn(sky);
-            bukkit.when(() -> Bukkit.createBlockData(Material.SEA_LANTERN)).thenReturn(sky);
-            bukkit.when(() -> Bukkit.createBlockData(Material.BLACK_CONCRETE)).thenReturn(sky);
+            bukkit.when(() -> Bukkit.createBlockData(Material.WHITE_CONCRETE)).thenReturn(fog);
+            bukkit.when(() -> Bukkit.createBlockData(Material.BLACK_CONCRETE)).thenReturn(fog);
             for (final Player player : world.getPlayers())
             {
                 bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
@@ -991,12 +980,13 @@ class MirrorWindowsTest
     void reachGrowsByTheCubeRootOfTheRoomToSpareAndAtMostHalfAgain()
     {
         final int most = 40_000;
-        assertEquals(19, MirrorWindows.grown(19, 32, most / 2), "half spent is no room to grow");
-        assertEquals(19, MirrorWindows.grown(19, 32, 0), "a spent budget never grows");
-        assertEquals(21, MirrorWindows.grown(19, 32, (most / 2) + 1), "just under half spent grows two, the least step");
-        assertEquals(28, MirrorWindows.grown(19, 32, most - 4_000), "a tenth spent grows half again, not the cube root's 1.7");
-        assertEquals(32, MirrorWindows.grown(30, 32, most - 4_000), "and never past the configured depth");
-        assertEquals(32, MirrorWindows.grown(40, 32, most), "a radius above the configured depth comes down to it");
+        assertEquals(19, MirrorWindows.grown(19, 32, most / 2, most), "half spent is no room to grow");
+        assertEquals(19, MirrorWindows.grown(19, 32, 0, most), "a spent budget never grows");
+        assertEquals(21, MirrorWindows.grown(19, 32, (most / 2) + 1, most), "just under half spent grows two, the least step");
+        assertEquals(28, MirrorWindows.grown(19, 32, most - 4_000, most), "a tenth spent grows half again, not the cube root's 1.7");
+        assertEquals(32, MirrorWindows.grown(30, 32, most - 4_000, most), "and never past the configured depth");
+        assertEquals(32, MirrorWindows.grown(40, 32, most, most), "a radius above the configured depth comes down to it");
+        assertEquals(28, MirrorWindows.grown(19, 32, 108_000, 120_000), "the same tenth of a bigger budget, standing still");
     }
 
     /**
@@ -1016,19 +1006,17 @@ class MirrorWindowsTest
     }
 
     /**
-     * Sky is a block that makes its own light by day, an unlit blue by night, and black where
-     * there is no sky at all.
+     * Fog is white by the far world's day, and black by its night and where there is no sky.
      *
-     * <p>Every drawn block is lit by the real world where it is drawn, and behind a wall that is
-     * dark: a sky-blue block there was navy, and a wall of navy at the end of a corridor looked
-     * like water.
+     * <p>A painted sky was navy in the dark behind a wall, and looked like water. Fog is what
+     * the world ends in at the render distance, and takes the light of wherever it is drawn.
      */
     @Test
-    void skyMakesItsOwnLightByDayAndIsUnlitBlueByNight()
+    void fogIsWhiteByDayAndBlackByNightOrWhereThereIsNoSky()
     {
-        assertSame(Material.SEA_LANTERN, MirrorWindows.skyMaterial(true, true), "day: lit whatever the real side is");
-        assertSame(Material.LIGHT_BLUE_CONCRETE, MirrorWindows.skyMaterial(true, false), "night: the night sky");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, true), "the Nether has no sky by day");
-        assertSame(Material.BLACK_CONCRETE, MirrorWindows.skyMaterial(false, false), "or by night");
+        assertSame(Material.WHITE_CONCRETE, MirrorWindows.fogMaterial(true, true), "day");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.fogMaterial(true, false), "night");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.fogMaterial(false, true), "the Nether by day");
+        assertSame(Material.BLACK_CONCRETE, MirrorWindows.fogMaterial(false, false), "and by night");
     }
 }

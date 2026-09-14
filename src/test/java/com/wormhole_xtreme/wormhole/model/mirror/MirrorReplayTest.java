@@ -161,7 +161,7 @@ class MirrorReplayTest
         final int intoZ = -facing.getModZ();
         out.append("slice through the middle (depth behind the face 1..").append(radius + 2)
             .append(" left to right; rows y ").append(by + 8).append(" down to ").append(by - 8)
-            .append("): '.' not drawn, 'a' air, '#' solid, 's' sky, '~' other\n");
+            .append("): '.' not drawn, 'a' air, '#' solid, 'f' fog, '~' other\n");
         for (int y = by + 8; y >= by - 8; y--)
         {
             out.append(String.format("%4d ", y));
@@ -289,7 +289,7 @@ class MirrorReplayTest
                             continue;
                         }
                         outcome = "ok";
-                        shows.merge("drawn " + as + ((as.contains("concrete") || as.contains("sea_lantern")) ? " (sky)" : ""), 1, Integer::sum);
+                        shows.merge("drawn " + as + (as.contains("concrete") ? " (fog)" : ""), 1, Integer::sum);
                         break;
                     }
                     if (here.isAir(cx, cy, cz))
@@ -439,9 +439,9 @@ class MirrorReplayTest
         {
             return 'a';
         }
-        if (as.contains("concrete") || as.contains("sea_lantern"))
+        if (as.contains("concrete"))
         {
-            return 's';
+            return 'f';
         }
         if (as.endsWith(":barrier"))
         {

@@ -48,9 +48,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  * lets windows share a wall, and what keeps a freestanding one inside its edges. Their own
  * world's creatures standing inside the view are hidden from them for as long as they look.
  *
- * <p>Real blocks reach {@code mirror-view-depth} from the eye. Past that a shell closes the view,
- * each of its blocks painted with what the line of sight through it meets in the capture, or
- * with sky. See {@link Pass}.
+ * <p>Real blocks reach {@code mirror-view-depth} from the eye. Past that a shell of fog closes the
+ * view: one block thick, crossed by every line of sight through the opening, so behind it
+ * nothing of the real world shows. See {@link Pass}.
  *
  * <h2>What it costs, and what keeps that down</h2>
  *
@@ -82,11 +82,17 @@ public final class MirrorWindows
     /** The same, in ticks, for the redraw that catches a viewer up after they stop. */
     private static final long REDRAW_TICKS = 5L;
 
-    /** Most blocks one redraw considers across every window a viewer sees. */
+    /** Most blocks one redraw considers across every window a viewer sees, while they move. */
     private static final int MOST_CANDIDATES = 40_000;
 
-    /** Most steps one redraw's lines of sight into the far side may take between them. */
-    private static final int MOST_RAY_STEPS = 150_000;
+    /**
+     * The same for a redraw while they stand still.
+     *
+     * <p>A view is redrawn up to four times a second while its viewer moves, so that budget is
+     * kept small. Standing still, one redraw at a time grows the view towards the configured
+     * depth, and each may cost more: the depth a viewer sees is what these can afford.
+     */
+    private static final int MOST_STILL = 120_000;
 
     /** How far around an opening its solid surroundings are read. */
     private static final int SURROUND = 8;
@@ -287,7 +293,7 @@ public final class MirrorWindows
             MirrorCaptures.request(mirror);
             return false;
         }
-        if (MirrorCaptures.due(mirror, capture))
+        if (MirrorCaptures.due(mirror, capture) || MirrorCaptures.outgrown(mirror, capture))
         {
             MirrorCaptures.request(mirror);
         }
@@ -500,8 +506,11 @@ public final class MirrorWindows
         }
         final int configured = ConfigManager.getMirrorViewDepth();
         view.radius = Math.min(configured, view.radius);
+        // A sweep redraws a viewer who has not moved, to grow their view; a move redraws them
+        // on the way somewhere, and may be one of four this second.
+        final int most = fromSweep ? MOST_STILL : MOST_CANDIDATES;
         List<Entity> inside = new ArrayList<>();
-        Budget budget = new Budget();
+        Budget budget = new Budget(most);
         Map<Long, BlockData> wanted = compose(eye, seeing, now, inside, budget, view.radius);
         // Too much to draw from here: draw as far as the walk got in full, which it can
         // afford by construction, until it fits. Three tries, in case the eye moved closer.
@@ -509,20 +518,18 @@ public final class MirrorWindows
         {
             view.radius = Math.max(4, Math.min(view.radius - 1, budget.reached));
             inside = new ArrayList<>();
-            budget = new Budget();
+            budget = new Budget(most);
             wanted = compose(eye, seeing, now, inside, budget, view.radius);
         }
         final int drawnAt = view.radius;
-        view.radius = grown(view.radius, configured, budget.blocks);
-        view.growing = (view.radius < configured) && (budget.blocks > (MOST_CANDIDATES / 2));
+        view.radius = grown(view.radius, configured, budget.blocks, most);
+        view.growing = (view.radius < configured) && (budget.blocks > (most / 2));
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
-        view.lastRedraw = (MOST_CANDIDATES - budget.blocks) + " blocks walked"
+        view.lastRedraw = (most - budget.blocks) + " of " + most + " blocks walked"
             + ((budget.blocks <= 0) ? " (budget spent)" : "") + " at radius " + drawnAt
             + ((view.radius != drawnAt) ? (", next " + view.radius) : "") + ", "
-            + budget.near
-            + " drawn near, " + budget.shell + " on the shell (" + budget.sky + " as sky), "
-            + (MOST_RAY_STEPS - budget.raySteps) + " line steps, eye " + (int) eye.getX() + ","
+            + budget.near + " drawn near, " + budget.shell + " of fog, eye " + (int) eye.getX() + ","
             + (int) eye.getY() + "," + (int) eye.getZ() + ", took " + (now() - now) + " ms";
         view.mirrors = names(seeing);
         view.eye = eyeKey(eye);
@@ -559,16 +566,18 @@ public final class MirrorWindows
      *            the most allowed
      * @param left
      *            how much of the block budget the redraw left
+     * @param most
+     *            what that budget was
      * @return the radius for the next redraw
      */
-    static int grown(final int radius, final int configured, final int left)
+    static int grown(final int radius, final int configured, final int left, final int most)
     {
-        if ((left <= (MOST_CANDIDATES / 2)) || (radius >= configured))
+        if ((left <= (most / 2)) || (radius >= configured))
         {
             return Math.min(radius, configured);
         }
-        final double used = Math.max(1.0, MOST_CANDIDATES - left);
-        final double scaled = radius * Math.cbrt((MOST_CANDIDATES / 2.0) / used);
+        final double used = Math.max(1.0, most - left);
+        final double scaled = radius * Math.cbrt((most / 2.0) / used);
         final int next = (int) Math.min(scaled, (radius * 3) / 2.0);
         return Math.min(configured, Math.max(radius + 2, next));
     }
@@ -862,35 +871,32 @@ public final class MirrorWindows
     /** What one redraw may spend, across every window a viewer sees, and what it drew. */
     private static final class Budget
     {
-        private int blocks = MOST_CANDIDATES;
-        private int raySteps = MOST_RAY_STEPS;
+        private int blocks;
         private int near;
         private int shell;
-        private int sky;
         /** The deepest layer every view was walked to in full before the budget ran out. */
         private int reached;
+
+        Budget(final int most)
+        {
+            this.blocks = most;
+        }
     }
 
-    /**
-     * What the shell shows where a line of sight into the far side finds nothing at all.
-     *
-     * <p>The End has no sky, and the Nether's ceiling is bedrock, so a line that finds nothing
-     * there is looking into the dark. Elsewhere it is sky, lit or unlit; see
-     * {@link #skyMaterial(boolean, boolean)} for why that depends on the far world's clock.
-     */
-    private static BlockData sky(final MirrorCapture capture)
+    /** The fog a window's view ends in; see {@link #fogMaterial(boolean, boolean)}. */
+    private static BlockData fog(final MirrorCapture capture)
     {
-        return Bukkit.createBlockData(skyMaterial(capture.hasSky(), daylightIn(capture.worldName())));
+        return Bukkit.createBlockData(fogMaterial(capture.hasSky(), daylightIn(capture.worldName())));
     }
 
     /**
-     * The block that stands for sky.
+     * The block that stands for fog.
      *
-     * <p>Every drawn block is lit by the client with the light of the real world where it is
-     * drawn, and behind a wall that is usually none: a sky-blue block in the dark is navy, and
-     * a wall of navy at the end of a corridor looked like water to the first person who saw it.
-     * By the far world's day the sky is a block that makes its own light, so it is bright
-     * wherever the real side is dark. By its night, the unlit blue is the night sky.
+     * <p>The shell used to be painted with what each line of sight would meet further on, or
+     * sky: a flat picture of the distance, which looked like what it was, and in the dark
+     * behind a wall the sky-blue looked like water. It is fog now, the way the world ends at the
+     * render distance: white by the far world's day, black by its night and where there is no
+     * sky, lit like everything else by the real world where it is drawn.
      *
      * @param hasSky
      *            whether the far world has a sky at all
@@ -898,13 +904,9 @@ public final class MirrorWindows
      *            whether it is day there
      * @return the material to paint
      */
-    static Material skyMaterial(final boolean hasSky, final boolean daylight)
+    static Material fogMaterial(final boolean hasSky, final boolean daylight)
     {
-        if (!hasSky)
-        {
-            return Material.BLACK_CONCRETE;
-        }
-        return daylight ? Material.SEA_LANTERN : Material.LIGHT_BLUE_CONCRETE;
+        return (hasSky && daylight) ? Material.WHITE_CONCRETE : Material.BLACK_CONCRETE;
     }
 
     /** Whether it is day in a world, by name; day if the world is not loaded to ask. */
@@ -1309,15 +1311,13 @@ public final class MirrorWindows
      * is seen through this window ({@link #seenThrough}), is not already hidden behind a solid
      * block drawn nearer the eye, and would change what the client shows -- far-side air over a
      * block that is really empty would not. That last saving is for the near volume only: a
-     * shell block is solid, and has to be painted over open air as much as over anything, or the
+     * shell block is solid, and has to be drawn over open air as much as over anything, or the
      * real world's own horizon shows through it.
      *
      * <p>Just past the radius lies a shell, one block thick, that closes the view: every line of
-     * sight from the eye through the opening crosses it. A block there is drawn as whatever the
-     * same line of sight, carried on through the capture, first meets -- or as sky if it leaves
-     * the capture first. Things past the radius lose their parallax that way, which at that
-     * distance is little, and in return the view has no edge where the real world shows and costs
-     * the same however close the eye comes.
+     * sight from the eye through the opening crosses it. It is fog, so the view ends the way
+     * the world does at the render distance, and in return it has no edge where the real world
+     * shows and costs the same however close the eye comes.
      */
     private static final class Pass implements MirrorWindow.Limits
     {
@@ -1327,7 +1327,7 @@ public final class MirrorWindows
         private final Set<Long> allOpen;
         private final Map<Long, BlockData> wanted;
         private final BlockData air;
-        private final BlockData sky;
+        private final BlockData fog;
         private final double radius;
         private final Budget budget;
         private final long now;
@@ -1349,7 +1349,7 @@ public final class MirrorWindows
             this.allOpen = allOpen;
             this.wanted = wanted;
             this.air = air;
-            this.sky = sky(window.capture);
+            this.fog = fog(window.capture);
             this.radius = radius;
             this.budget = budget;
             this.now = now;
@@ -1410,13 +1410,8 @@ public final class MirrorWindows
             }
             if (distance >= radius)
             {
-                final BlockData painted = shell(x, y, z, dx / distance, dy / distance, dz / distance);
-                wanted.put(cell, painted);
+                wanted.put(cell, fog);
                 budget.shell++;
-                if (painted == sky)
-                {
-                    budget.sky++;
-                }
                 return true;
             }
             final BlockData data = farAir ? air : capture.at(at.x(), at.y(), at.z());
@@ -1436,57 +1431,6 @@ public final class MirrorWindows
                 probe(x, y, z, "air over air");
             }
             return true;
-        }
-
-        /**
-         * What a block of the shell shows: the first thing the line of sight through it meets
-         * in the capture, or sky.
-         *
-         * <p>The line is followed a block at a time. Where it climbs above the highest block in
-         * its column it can only meet sky, and where it is above that column's surface but
-         * falling it skips down to the surface rather than walking the air. Leaving the capture
-         * is meeting nothing.
-         */
-        private BlockData shell(final int x, final int y, final int z, final double dx,
-            final double dy, final double dz)
-        {
-            final MirrorCapture capture = window.capture;
-            final double[] dir = window.shape.farDirection(dx, dy, dz);
-            final Spot start = window.shape.farOf(x, y, z);
-            long last = Long.MIN_VALUE;
-            for (double t = 0.0; budget.raySteps > 0; t += 1.0)
-            {
-                final int farX = (int) Math.floor(start.x() + 0.5 + (dir[0] * t));
-                final int farY = (int) Math.floor(start.y() + 0.5 + (dir[1] * t));
-                final int farZ = (int) Math.floor(start.z() + 0.5 + (dir[2] * t));
-                if (!capture.contains(farX, farY, farZ))
-                {
-                    return sky;
-                }
-                final long step = key(farX, farY, farZ);
-                if (step == last)
-                {
-                    continue;
-                }
-                last = step;
-                budget.raySteps--;
-                final int top = capture.top(farX, farZ);
-                if (farY > top)
-                {
-                    if (dir[1] >= 0.0)
-                    {
-                        return sky;
-                    }
-                    // Only air between here and that column's surface: skip down to it.
-                    t += Math.max(0.0, ((farY - top - 1) / -dir[1]) - 1.0);
-                    continue;
-                }
-                if (!capture.isAir(farX, farY, farZ))
-                {
-                    return capture.at(farX, farY, farZ);
-                }
-            }
-            return sky;
         }
 
         /** Confines the next walk to these layers. */

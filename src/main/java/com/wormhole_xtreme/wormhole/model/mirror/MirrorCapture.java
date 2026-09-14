@@ -392,6 +392,12 @@ public final class MirrorCapture
         return minY;
     }
 
+    /** @return how many blocks the box is across, along x */
+    public int across()
+    {
+        return sizeX;
+    }
+
     /**
      * Writes the capture to a file, whole or not at all.
      *

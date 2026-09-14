@@ -184,6 +184,35 @@ public final class MirrorCaptures
     }
 
     /**
+     * Whether a capture is smaller than one taken now would be, so it should be taken again.
+     *
+     * <p>The box grew twice while this was being tested, and a file from before either kept
+     * its old horizon until somebody thought to run {@code mirror stamp}. Depth is judged only
+     * while the far world is loaded, since its floor is part of the answer and a capture that
+     * cannot be retaken anyway should not be asked for every sweep.
+     *
+     * @param mirror
+     *            the mirror
+     * @param capture
+     *            its capture
+     * @return true if a capture taken now would reach further
+     */
+    static boolean outgrown(final QuantumMirror mirror, final MirrorCapture capture)
+    {
+        if (capture.across() < ((2 * ConfigManager.getMirrorCaptureRadius()) + 1))
+        {
+            return true;
+        }
+        final World far = Bukkit.getWorld(mirror.destination().worldName());
+        if (far == null)
+        {
+            return false;
+        }
+        final int arrivalY = (int) Math.floor(mirror.destination().y());
+        return capture.minY() > Math.max(far.getMinHeight(), arrivalY - BELOW);
+    }
+
+    /**
      * Starts taking a mirror's capture, if the far world is loaded and none is being taken.
      *
      * @param mirror
@@ -610,10 +639,18 @@ public final class MirrorCaptures
             }
         }
 
+        /**
+         * Whether a block is air of any kind.
+         *
+         * <p>By comparing the constants: from 1.20.6 {@code Material.isAir()} asks the block
+         * registry, which a server-free test cannot reach, and CI on 1.20.6 through 1.21.10
+         * failed on exactly that while 1.20 through 1.20.4 passed.
+         */
         static boolean isAir(final BlockData data)
         {
             final Material material = data.getMaterial();
-            return (material != null) && material.isAir();
+            return (material == Material.AIR) || (material == Material.CAVE_AIR)
+                || (material == Material.VOID_AIR);
         }
 
         /** Writes the file off the main thread, or on it where there is no other. */

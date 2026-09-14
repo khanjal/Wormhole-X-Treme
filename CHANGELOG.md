@@ -189,22 +189,28 @@ been running on defaults will start reading the file you have been editing.
   called the floor behind it a hole); from the recorded eye it finds no ray that meets a real
   block nobody drew, at any depth, from against the mirror to seven blocks back.
 
-  With that, the cap is 64 and the default 32. "Sixteen isn't enough; the other plugin goes
-  further" -- and it does not need to be sixteen. What made 32 affordable from right against a
-  mirror is that sky over sky is no longer walked: above both the real column's top and the far
-  one's there is nothing to draw, and outdoors that was most of the cone. The shell is still
-  offered there, since a sky with a hole in it shows the real world. From the recorded eye a
-  third of a block from the mirror, 32 costs 27,000 blocks of a 40,000 budget; from a block and
-  a half back, 48 costs 4,000.
+  "Sixteen isn't enough; the other plugin goes further" -- and it does not need to be sixteen.
+  Sky over sky is no longer walked: above both the real column's top and the far one's there is
+  nothing to draw, and outdoors that was most of the cone. The shell is still offered there,
+  since a shell with a hole in it shows the real world. From the recorded eye a third of a
+  block from the mirror, 32 costs 27,000 blocks of a 40,000 budget; from a block and a half
+  back, 48 costs 4,000. And a redraw while the viewer stands still may spend 120,000, so the
+  view grows to the full depth over a second or so of standing, and is shallower again while
+  they walk. The default is 64 and the cap 128, so the builds in the distance show.
 
   The far side of that same mirror ended in "water on the floor instead of wooden planks", and
   the glass wall beyond it cut off. It was neither: the corridor ends at a glass wall with open
-  air beyond, the library being a tower, and past the glass the shell paints sky. Sky is
+  air beyond, the library being a tower, and past the glass the shell painted sky. Sky was
   light-blue concrete, and every drawn block is lit by the real world where it is drawn --
-  behind that wall, a lake at night. Unlit light blue is navy, and a wall of navy at the end of a
-  corridor is water to anyone who looks at it. By the far world's day the sky is now a sea
-  lantern, which makes its own light, so it is bright wherever the real side is dark; by its
-  night the unlit blue is the night sky. The rest of the far side stays lit by this world, which
+  behind that wall, a lake at night. Unlit light blue is navy, and a wall of navy at the end of
+  a corridor is water to anyone who looks at it. And the shell painted a glass wall as glass,
+  through which the client showed the real world.
+
+  So the shell is not a painting any more. "I don't like the fake sky/ground in the distance.
+  I'd rather just do a render distance with fog": it is fog now, white by the far world's day
+  and black by its night, the way the world ends at the render distance. Nothing flat pretends
+  to be far away, nothing on it is see-through, and the far heightmap and the lines of sight
+  through the capture are gone with it. The rest of the far side stays lit by this world, which
   is the prototype's known limit: behind a dark wall, only what makes its own light is bright.
 
   Captures reach further, in case: `mirror-capture-radius` is 96 by default and 160 at most,
@@ -212,7 +218,13 @@ been running on defaults will start reading the file you have been editing.
   pruning keeps the layer under every open face, blanking only what is buried two deep, so a
   surface block that is wrong for any reason has ground under it rather than a hole. Wider is
   more memory while a far side is being looked at -- 96 is about eight megabytes -- and the
-  file stays small, since only the open faces and the layer under them are in it.
+  file stays small, since only the open faces and the layer under them are in it. A capture
+  from before the box grew is taken again on the next look, so nobody has to know to run
+  `mirror stamp`.
+
+  Taking a capture failed on 1.20.6 and everything after it, in CI only: `Material.isAir()`
+  asks the block registry from 1.20.6 on, one call down, where a server-free test cannot
+  reach. The air check compares the constants now.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 
