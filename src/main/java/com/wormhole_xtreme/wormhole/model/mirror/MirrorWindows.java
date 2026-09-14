@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -97,6 +99,12 @@ public final class MirrorWindows
 
     /** How far around an opening its solid surroundings are read. */
     private static final int SURROUND = 8;
+
+    /** The most of a block's outline that may land beside the opening for it to be drawn. */
+    private static final double MOST_BESIDE = 0.05;
+
+    /** The same for a block already drawn, so a step does not take it away and the next give it back. */
+    private static final double HALF_BESIDE = 0.5;
 
     /** How long a walled window's fixed view is kept before the real world behind it is read again. */
     private static final long FIXED_MILLIS = 60_000L;
@@ -260,6 +268,10 @@ public final class MirrorWindows
         private final List<Spot> open;
         private final Set<Long> openKeys = new HashSet<>();
         private final MirrorCapture capture;
+        /** The turn far-side blocks need to face the right way here. */
+        private final StructureRotation rotation;
+        /** Far-side states turned by {@link #rotation}, each turned once. */
+        private final Map<BlockData, BlockData> turned = new IdentityHashMap<>();
         private Set<Long> solid = Set.of();
         private long solidAt;
         private boolean standing;
@@ -282,6 +294,13 @@ public final class MirrorWindows
             this.banner = banner;
             this.open = open;
             this.capture = capture;
+            this.rotation = switch (shape.quarterTurns())
+            {
+                case 1 -> StructureRotation.CLOCKWISE_90;
+                case 2 -> StructureRotation.CLOCKWISE_180;
+                case 3 -> StructureRotation.COUNTERCLOCKWISE_90;
+                default -> StructureRotation.NONE;
+            };
             open.forEach(cell -> openKeys.add(key(cell.x(), cell.y(), cell.z())));
         }
     }
@@ -707,7 +726,8 @@ public final class MirrorWindows
         final int most = fromSweep ? MOST_STILL : MOST_CANDIDATES;
         List<Entity> inside = new ArrayList<>();
         Budget budget = new Budget(most);
-        Map<Long, BlockData> wanted = compose(eye, seeing, fixed, now, inside, budget, view.radius);
+        final Set<Long> before = view.drawn.keySet();
+        Map<Long, BlockData> wanted = compose(eye, seeing, fixed, before, now, inside, budget, view.radius);
         // Too much to draw from here: draw as far as the walk got in full, which it can
         // afford by construction, until it fits. Three tries, in case the eye moved closer.
         for (int shrink = 0; (budget.blocks <= 0) && (view.radius > 4) && (shrink < 3); shrink++)
@@ -715,7 +735,7 @@ public final class MirrorWindows
             view.radius = Math.max(4, Math.min(view.radius - 1, budget.reached));
             inside = new ArrayList<>();
             budget = new Budget(most);
-            wanted = compose(eye, seeing, fixed, now, inside, budget, view.radius);
+            wanted = compose(eye, seeing, fixed, before, now, inside, budget, view.radius);
         }
         workSpent += most - budget.blocks;
         final int drawnAt = view.radius;
@@ -943,8 +963,8 @@ public final class MirrorWindows
      * the whole redraw -- see {@link Pass} for which of them are drawn.
      */
     private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
-        final Map<Window, Whole> fixed, final long now, final List<Entity> inside, final Budget budget,
-        final int radius)
+        final Map<Window, Whole> fixed, final Set<Long> before, final long now, final List<Entity> inside,
+        final Budget budget, final int radius)
     {
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
@@ -974,7 +994,7 @@ public final class MirrorWindows
             }
             else
             {
-                passes.add(new Pass(eye, window, seeing, allOpen, wanted, air, radius, budget, now));
+                passes.add(new Pass(eye, window, seeing, allOpen, wanted, before, air, radius, budget, now));
             }
         }
         // In stages of depth, and within each stage the middle of every view before its edges,
@@ -1207,13 +1227,75 @@ public final class MirrorWindows
     }
 
     /**
-     * A walled window's view to a depth, or null if it would hold more than {@link #MOST_FIXED}.
+     * A walled window's view to a depth, or null if it would hold more than {@code most}.
      *
-     * <p>Every block behind the wall within the depth of the opening's middle: the far side's block
-     * where it is not air, air where the far side is air and the real block is not empty, and
-     * nothing where the far side is buried or outside the capture -- there the real world stays.
+     * <p>Every block the capture kept that lies behind the wall within the depth of the opening's
+     * middle: the far side's block where it is not air, and air where the far side's air was seen
+     * and the real block is not empty. The capture holds only what somebody at the opening could
+     * see, so this is a walk over what is kept, not over the volume, and a view at the render
+     * distance costs what its surfaces cost.
      */
     private static Map<Long, BlockData> fixedTo(final Window window, final int depth, final long now,
+        final int most)
+    {
+        if (window.capture.complete())
+        {
+            // A capture that never went through the seen pass keeps nothing for air: walk the volume.
+            return fixedToByVolume(window, depth, now, most);
+        }
+        final MirrorWindow shape = window.shape;
+        final MirrorCapture capture = window.capture;
+        final World here = window.banner.getWorld();
+        final double[] centre = centreOf(shape);
+        final int min = here.getMinHeight();
+        final int max = here.getMaxHeight();
+        final BlockData air = Bukkit.createBlockData(Material.AIR);
+        final double reach = (double) depth * depth;
+        final Map<Long, BlockData> view = new HashMap<>();
+        final boolean[] over = { false };
+        capture.forEachKept((fx, fy, fz, farAir) ->
+        {
+            if (over[0])
+            {
+                return;
+            }
+            final Spot at = shape.hereOf(fx, fy, fz);
+            final int x = at.x();
+            final int y = at.y();
+            final int z = at.z();
+            final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
+            if ((layer < 1) || (y < min) || (y >= max))
+            {
+                return;
+            }
+            final double dx = (x + 0.5) - centre[0];
+            final double dy = (y + 0.5) - centre[1];
+            final double dz = (z + 0.5) - centre[2];
+            if (((dx * dx) + (dy * dy) + (dz * dz)) >= reach)
+            {
+                return;
+            }
+            if (!farAir)
+            {
+                view.put(key(x, y, z), turned(window, capture.at(fx, fy, fz)));
+            }
+            else if (!reallyEmpty(here, x, y, z, now))
+            {
+                view.put(key(x, y, z), air);
+            }
+            if (view.size() > most)
+            {
+                over[0] = true;
+            }
+        });
+        return over[0] ? null : view;
+    }
+
+    /**
+     * The same for a complete capture, whose missing entries are air: every block behind the wall
+     * within the depth, walked through the volume.
+     */
+    private static Map<Long, BlockData> fixedToByVolume(final Window window, final int depth, final long now,
         final int most)
     {
         final MirrorWindow shape = window.shape;
@@ -1247,13 +1329,13 @@ public final class MirrorWindows
                     final int x = alongX ? along : across;
                     final int z = alongX ? across : along;
                     final Spot at = shape.farOf(x, y, z);
-                    if (!capture.contains(at.x(), at.y(), at.z()) || capture.isBuried(at.x(), at.y(), at.z()))
+                    if (!capture.contains(at.x(), at.y(), at.z()))
                     {
                         continue;
                     }
                     if (!capture.isAir(at.x(), at.y(), at.z()))
                     {
-                        view.put(key(x, y, z), capture.at(at.x(), at.y(), at.z()));
+                        view.put(key(x, y, z), turned(window, capture.at(at.x(), at.y(), at.z())));
                     }
                     else if (!reallyEmpty(here, x, y, z, now))
                     {
@@ -1288,6 +1370,30 @@ public final class MirrorWindows
         final double y = shape.base().y() + (MirrorWindow.HEIGHT / 2.0);
         final double along = (alongX ? shape.base().x() : shape.base().z()) + 0.5;
         return alongX ? new double[] { along, y, across } : new double[] { across, y, along };
+    }
+
+    /**
+     * A far-side state as it shows through a window: turned the way the window turns the far side.
+     *
+     * <p>A pane's connections and a stair's facing are compass directions; drawn as captured, a
+     * far side turned round showed panes that did not join. Turned once per state and window.
+     */
+    private static BlockData turned(final Window window, final BlockData data)
+    {
+        if ((data == null) || (window.rotation == StructureRotation.NONE))
+        {
+            return data;
+        }
+        return window.turned.computeIfAbsent(data, original ->
+        {
+            final BlockData copy = original.clone();
+            if (copy == null)
+            {
+                return original;
+            }
+            copy.rotate(window.rotation);
+            return copy;
+        });
     }
 
     /** Whether a block is inside a walled window's fixed view: behind its wall, within its depth. */
@@ -1345,7 +1451,7 @@ public final class MirrorWindows
                     continue;
                 }
                 final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
-                if ((rect != null) && coveredBy(window, rect, allOpen, Set.of()))
+                if ((rect != null) && coveredBy(window, rect, allOpen, Set.of(), MOST_BESIDE))
                 {
                     inside.add(entity);
                     break;
@@ -1454,9 +1560,9 @@ public final class MirrorWindows
 
     /** Whether most of a block's outline on the face lands where nothing outside can see it. */
     private static boolean coveredBy(final Window window, final double[] rect,
-        final Set<Long> allOpen, final Set<Long> shielded)
+        final Set<Long> allOpen, final Set<Long> shielded, final double mostBeside)
     {
-        return window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen, shielded));
+        return window.shape.covered(rect, (across, up) -> clear(window, across, up, allOpen, shielded), mostBeside);
     }
 
     /** A viewer's windows, nearest first, so a spent budget cuts the furthest views short. */
@@ -1825,6 +1931,8 @@ public final class MirrorWindows
         private final int max;
         private final Occlusion hidden;
         private final Set<Long> shielded;
+        /** What this viewer was drawn last time, which stays drawn while half of it is behind the opening. */
+        private final Set<Long> before;
         private final double[] centre;
         /** How far from the eye the walk must reach to cover the radius around the opening. */
         private final double reach;
@@ -1832,8 +1940,8 @@ public final class MirrorWindows
         private int to = Integer.MAX_VALUE;
 
         Pass(final Location eye, final Window window, final List<Window> seeing,
-            final Set<Long> allOpen, final Map<Long, BlockData> wanted, final BlockData air,
-            final int radius, final Budget budget, final long now)
+            final Set<Long> allOpen, final Map<Long, BlockData> wanted, final Set<Long> before,
+            final BlockData air, final int radius, final Budget budget, final long now)
         {
             this.eye = eye;
             this.window = window;
@@ -1849,6 +1957,7 @@ public final class MirrorWindows
             this.max = here.getMaxHeight();
             this.hidden = new Occlusion(window);
             this.shielded = shielded(window, eye, now);
+            this.before = before;
             this.centre = centreOf(window.shape);
             final double ex = eye.getX() - centre[0];
             final double ey = eye.getY() - centre[1];
@@ -1896,7 +2005,9 @@ public final class MirrorWindows
                 return true;
             }
             final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
-            if (!coveredBy(window, rect, allOpen, shielded))
+            // A block at the edge of the opening flickered as the viewer walked, drawn one step
+            // and left the next; once drawn it stays drawn while half of it is behind the opening.
+            if (!coveredBy(window, rect, allOpen, shielded, before.contains(cell) ? HALF_BESIDE : MOST_BESIDE))
             {
                 // A block straddling the edge, part of it where the real world can see it: left
                 // alone, solid or air, since drawing it either way shows the far side past the
@@ -1904,7 +2015,7 @@ public final class MirrorWindows
                 probe(x, y, z, "not covered, rect " + java.util.Arrays.toString(rect));
                 return true;
             }
-            final BlockData data = farAir ? air : capture.at(at.x(), at.y(), at.z());
+            final BlockData data = farAir ? air : turned(window, capture.at(at.x(), at.y(), at.z()));
             if (data.isOccluding())
             {
                 hidden.add(rect, layer);

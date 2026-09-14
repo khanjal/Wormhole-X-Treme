@@ -285,6 +285,33 @@ been running on defaults will start reading the file you have been editing.
   beside seen fence and seen glass. Anything beside a seen block that can be seen through is
   kept now, and one layer behind every kept block besides, in case.
 
+  "If we're having more reasonable renders, can we make them go further back? Like to render
+  distance?" Not with the capture stored as it was: a dense grid of its box, a short per block,
+  which at depth 160 is a box 325 across and eighty megabytes while it is taken. A capture keeps
+  entries for the blocks that can be seen now, sorted by position, and the air that can be seen
+  as runs of y per column -- "if a mirror connects to a flat desert with cliffs in the distance,
+  it shouldn't be as large", and it is not: a hundred thousand columns of one run each, not tens
+  of millions of blocks of air. Air that can be seen has to be kept one way or another, because
+  without it "no block here" could mean open air, which a view carves through the real world,
+  or ground behind a far surface, which it must leave alone. Taking a capture is two passes over
+  the chunks now: the first notes a bit or two per block, the rays work out what can be seen
+  from those off the main thread, and the second reads the states of the blocks kept. A walled
+  mirror's whole view is a walk over what is kept rather than over the volume, and the depth may
+  be set to 160, ten chunks. Earlier capture files are refused as an earlier version and taken
+  again on the next look.
+
+  "The bricks behind the fence are stored but seem to flicker when approaching or backing away
+  from the portal." A block at the edge of a trimmed view was drawn when all but a twentieth of
+  it was behind the opening and left alone otherwise, so a step either way flipped it. A block
+  already drawn stays drawn now while half of it is behind the opening.
+
+  "The glass panes aren't connecting." The library mirror faces south and its far side arrives
+  facing the other way, so the far side is turned right round to face the viewer -- positions
+  were, but the blocks at them were not. A pane's connections, a fence's arms and a stair's
+  facing are compass directions, so every one of them pointed the wrong way. Each far-side
+  state is turned now with `BlockData.rotate`, which every version from 1.20 to 1.21.10 has,
+  once per state per window.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

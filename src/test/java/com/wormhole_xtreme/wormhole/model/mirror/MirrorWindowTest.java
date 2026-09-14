@@ -205,6 +205,21 @@ class MirrorWindowTest
             "none past the radius along the axis, and none outside its box");
     }
 
+    /**
+     * The turn a far-side block's facing needs follows the arrival yaw.
+     *
+     * <p>A far side turned round showed glass panes that did not join: their connections are
+     * compass directions, and positions were turned but the blocks at them were not.
+     */
+    @Test
+    void theQuarterTurnsFromTheFarSideToThisOneFollowTheArrivalYaw()
+    {
+        assertEquals(0, northFacing(0.0f).quarterTurns(), "arriving facing south, the way a viewer looks in");
+        assertEquals(2, northFacing(180.0f).quarterTurns(), "arriving facing north: turned right round");
+        assertEquals(3, northFacing(90.0f).quarterTurns(), "arriving facing west: a quarter turn anticlockwise");
+        assertEquals(1, northFacing(-90.0f).quarterTurns(), "arriving facing east: a quarter turn clockwise");
+    }
+
     /** A direction through the opening turns the way the block mapping turns. */
     @Test
     void aDirectionThroughTheOpeningTurnsWithTheFarSide()

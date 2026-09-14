@@ -459,6 +459,59 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            the block behind the opening, z
      * @return the block at the far side
      */
+    /**
+     * How many quarter turns clockwise, seen from above, take the far side's forward to this
+     * side's: the turn every far-side block's facing needs to show here the right way round.
+     *
+     * <p>{@link #farOf} turns positions, not the blocks at them. A glass pane's connections, a
+     * stair's facing and a fence's arms are compass directions, so a far side turned round showed
+     * panes that did not join and stairs climbing the wrong way.
+     *
+     * @return 0 to 3
+     */
+    int quarterTurns()
+    {
+        return Math.floorMod(compass(into) - compass(ahead), 4);
+    }
+
+    /** North 0, east 1, south 2, west 3: clockwise from above. */
+    private static int compass(final Spot step)
+    {
+        if (step.z() < 0)
+        {
+            return 0;
+        }
+        if (step.x() > 0)
+        {
+            return 1;
+        }
+        return (step.z() > 0) ? 2 : 3;
+    }
+
+    /**
+     * The block behind the opening that shows a far-side block: {@link #farOf} the other way.
+     *
+     * @param farX
+     *            the far-side block, x
+     * @param farY
+     *            its y
+     * @param farZ
+     *            its z
+     * @return the block here that shows it, which may be in front of the opening or in its layer
+     */
+    public Spot hereOf(final int farX, final int farY, final int farZ)
+    {
+        final Spot right = rightOf(into);
+        final Spot farRight = rightOf(ahead);
+        final int dx = farX - far.x();
+        final int dz = farZ - far.z();
+        final int depth = ((dx * ahead.x()) + (dz * ahead.z())) + 1;
+        final int across = (dx * farRight.x()) + (dz * farRight.z());
+        return new Spot(base.x() + (depth * into.x()) + (across * right.x()),
+            base.y() + (farY - far.y()),
+            base.z() + (depth * into.z()) + (across * right.z()));
+    }
+
     public Spot farOf(final int x, final int y, final int z)
     {
         final Spot right = rightOf(into);
@@ -628,6 +681,22 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      */
     boolean covered(final double[] rect, final Face face)
     {
+        return covered(rect, face, MOST_BESIDE);
+    }
+
+    /**
+     * The same, allowing a given share of the outline beside the opening.
+     *
+     * @param rect
+     *            from {@link #projected}
+     * @param face
+     *            what each block of the face lets through
+     * @param mostBeside
+     *            the most of the outline's area that may land where nothing hides it
+     * @return true if the rest lands on clear blocks of the face
+     */
+    boolean covered(final double[] rect, final Face face, final double mostBeside)
+    {
         final int acrossFrom = (int) Math.floor(rect[0]);
         final int acrossTo = (int) Math.ceil(rect[1]) - 1;
         final int yFrom = (int) Math.floor(rect[2]);
@@ -650,7 +719,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
                 }
             }
         }
-        return (area <= 0.0) || (clear >= ((1.0 - MOST_BESIDE) * area));
+        return (area <= 0.0) || (clear >= ((1.0 - mostBeside) * area));
     }
 
     /**

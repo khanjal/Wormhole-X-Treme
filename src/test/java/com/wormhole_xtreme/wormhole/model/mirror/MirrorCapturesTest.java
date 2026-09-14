@@ -92,6 +92,10 @@ class MirrorCapturesTest
         PluginTestSupport.remove();
     }
 
+    /**
+     * A capture is taken in two passes over the chunks -- what kind of block stands where, then
+     * the states of the blocks that can be seen -- and is there after the second.
+     */
     @Test
     void aCaptureIsTakenChunkByChunkAndThenThere()
     {
@@ -100,6 +104,9 @@ class MirrorCapturesTest
             assertTrue(MirrorCaptures.request(mirror));
             assertNull(MirrorCaptures.get(mirror), "not there until it has been taken");
             assertEquals(1, MirrorCaptures.taking());
+            // The box is x 82..118 by z -22..-3: three chunks by two.
+            MirrorCaptures.step(6);
+            assertNull(MirrorCaptures.get(mirror), "not after the first pass over the six chunks either");
             MirrorCaptures.step(100);
         });
 
@@ -218,24 +225,6 @@ class MirrorCapturesTest
 
         assertFalse(MirrorCaptures.due(mirror, old), "static, however old");
         assertTrue(MirrorCaptures.due(mirror.withMode(MirrorMode.DYNAMIC), old));
-    }
-
-    /**
-     * A capture from before buried blocks were marked is outgrown, whatever its size.
-     *
-     * <p>It wrote them as air, and a window in a wall draws the far side whole: the inside of the
-     * far hill would be carved out of the real ground behind the wall.
-     */
-    @Test
-    void aCaptureThatWroteBuriedBlocksAsAirIsOutgrown() throws java.io.IOException
-    {
-        final File file = new File(dataFolder, "old.view");
-        new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build().save(file);
-        MirrorCaptureTest.rewriteVersion(file, 1);
-        final MirrorCapture old = MirrorCapture.load(file);
-
-        withServer(() -> assertTrue(MirrorCaptures.outgrown(mirror, old),
-            "as wide and deep as one taken now, but from before"));
     }
 
     /**

@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -39,6 +40,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Rotatable;
+import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -225,6 +227,96 @@ class MirrorWindowsTest
         assertSame(farOneBlock, drawn.get(new Spot(18, 64, 12)),
             "off to the side, where no line of sight from the first eye goes");
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 26)), "fifteen blocks in, however close the eye comes");
+    }
+
+    /**
+     * A far side turned round is drawn with its blocks turned too, each state turned once.
+     *
+     * <p>"The glass panes aren't connecting." A pane's connections are compass directions; the
+     * far side's positions were turned to face the viewer, and the panes at them were not.
+     */
+    @Test
+    void aFarSideTurnedRoundIsDrawnWithItsBlocksTurnedToo()
+    {
+        final MirrorPoint northward = new MirrorPoint("far", 100.5, 70.0, -20.5, 180.0f, 0.0f);
+        final BlockData pane = named("far:pane");
+        final BlockData turnedPane = named("far:pane-turned");
+        when(pane.clone()).thenReturn(turnedPane);
+        MirrorCaptures.install(northward, groundBelow(northward, 1000, pane));
+        MirrorManager.clear();
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10), northward));
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        assertSame(turnedPane, positions(changesTo(viewer, 1).get(0)).get(new Spot(10, 64, 13)),
+            "drawn as the turned copy");
+        verify(turnedPane).rotate(StructureRotation.CLOCKWISE_180);
+        verify(pane, times(1)).clone();
+    }
+
+    /**
+     * A block at the edge of a trimmed view, once drawn, stays drawn while half of it is behind
+     * the opening.
+     *
+     * <p>"The bricks behind the fence flicker when approaching or backing away from the portal."
+     * Drawn when all but a twentieth of it was behind the opening and left alone otherwise, a
+     * block at the edge flipped with every step. This finds a block the first eye drew that the
+     * second sees between a twentieth and a half beside the opening, and checks it was not taken
+     * back -- failing, rather than passing, if no such block turns up.
+     */
+    @Test
+    void aBlockAtTheEdgeOnceDrawnStaysDrawnWhileHalfOfItIsBehindTheOpening()
+    {
+        wallBehind = false;
+        standUp(banner);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final MirrorWindow shape = MirrorWindow.of(new MirrorBlock("world", 10, 64, 10), BlockFace.NORTH, true, arrival);
+        final MirrorWindow.Face open = (across, y) -> (across == 10) && ((y == 64) || (y == 65));
+        final Spot[] edge = { null };
+        final double[] second = new double[3];
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            final Map<Spot, BlockData> first = positions(changesTo(viewer, 1).get(0));
+            // A step that puts some block the first eye drew partly beside the opening: to one side
+            // of the opening's column, nearer or both, in tenths of a block. From inside the column
+            // a block behind the opening projects inside it however near the eye comes.
+            search:
+            for (double x = 8.5; x <= 12.55; x += 0.1)
+            {
+                for (double z = 7.5; z <= 10.35; z += 0.1)
+                {
+                    for (final Map.Entry<Spot, BlockData> entry : first.entrySet())
+                    {
+                        final Spot spot = entry.getKey();
+                        if (entry.getValue() != farOneBlock)
+                        {
+                            continue;
+                        }
+                        final double[] rect = shape.projected(x, 65.62, z, spot.x(), spot.y(), spot.z());
+                        if ((rect != null) && !shape.covered(rect, open, 0.05) && shape.covered(rect, open, 0.5))
+                        {
+                            edge[0] = spot;
+                            second[0] = x;
+                            second[2] = z;
+                            break search;
+                        }
+                    }
+                }
+            }
+            assertNotNull(edge[0], "a step that puts a drawn block partly beside the opening");
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, second[0], 64.0, second[2]));
+        });
+
+        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
+        final Map<Spot, BlockData> update = positions(sent.get(1));
+        assertFalse(update.containsKey(edge[0]) && (update.get(edge[0]) == null),
+            edge[0] + " was taken back after a step to " + second[0] + "," + second[2]);
     }
 
     /**

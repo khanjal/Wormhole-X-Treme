@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 
 import org.bukkit.block.data.BlockData;
 import org.junit.jupiter.api.Test;
@@ -188,7 +189,7 @@ class MirrorCaptureTest
         assertTrue(capture.isBuried(4, 0, 5), "and the floor two blocks behind the last seen");
     }
 
-    /** A buried block is still buried after the disk, and a fresh capture is not from before. */
+    /** A buried block is still buried after the disk. */
     @Test
     void aBuriedBlockSurvivesTheDiskAsBuried(@TempDir final File dir) throws IOException
     {
@@ -211,26 +212,48 @@ class MirrorCaptureTest
 
         assertTrue(after.isBuried(2, 2, 2));
         assertFalse(after.isBuried(0, 0, 0), "the edge");
-        assertFalse(after.prunedToAir());
     }
 
     /**
-     * A capture written before buried blocks were marked still loads, and says so.
+     * A file of an earlier kind is refused, and says why.
      *
-     * <p>Its buried blocks read as air, which a window in a wall would carve out of the real
-     * ground, so it is taken again on the next look rather than refused and left a banner.
+     * <p>Earlier files were a dense grid of the whole box; this one keeps only what can be seen.
+     * Refused, the mirror it is for asks for a fresh capture on the next look, the same as for a
+     * file that is missing, which is what the earlier build's users get: a few seconds of banner.
      */
     @Test
-    void aCaptureFromBeforeBuriedBlocksWereMarkedLoadsAndSaysSo(@TempDir final File dir) throws IOException
+    void aFileOfAnEarlierKindIsRefused(@TempDir final File dir) throws IOException
     {
         final File file = new File(dir, "old.view");
         box().build().save(file);
-        rewriteVersion(file, 1);
+        rewriteVersion(file, 2);
 
-        final MirrorCapture old = MirrorCapture.load(file);
+        final IOException refused = assertThrows(IOException.class, () -> MirrorCapture.load(file));
 
-        assertTrue(old.prunedToAir());
-        assertFalse(old.isBuried(2, 2, 2), "nothing in it is marked buried");
+        assertTrue(refused.getMessage().contains("version 2"), refused.getMessage());
+    }
+
+    /**
+     * What is kept is visited in order of position, seen air marked as such.
+     *
+     * <p>A wall mirror's whole view is a walk over what is kept, not over the box, so a view at
+     * the render distance costs what its surfaces cost.
+     */
+    @Test
+    void whatIsKeptIsVisitedInOrderWithSeenAirMarked()
+    {
+        final MirrorCapture.Builder builder = box();
+        builder.put(3, 0, 0, stone);
+        builder.put(0, 0, 3, glass);
+        builder.put(1, 2, 1, air);
+        final MirrorCapture capture = builder.build();
+
+        final List<String> visited = new java.util.ArrayList<>();
+        capture.forEachKept((x, y, z, isAir) -> visited.add(x + "," + y + "," + z + (isAir ? " air" : "")));
+
+        assertEquals(List.of("0,0,3", "1,2,1 air", "3,0,0"), visited);
+        assertEquals(3, capture.kept());
+        assertEquals(2, capture.filled(), "seen air is kept but not filled");
     }
 
     /** Rewrites a capture file's version number, as an older build would have written it. */

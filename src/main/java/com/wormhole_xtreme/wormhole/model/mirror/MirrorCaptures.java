@@ -223,9 +223,8 @@ public final class MirrorCaptures
      * <p>The box grew twice while this was being tested, and a file from before either kept
      * its old horizon until somebody thought to run {@code mirror stamp}. Depth is judged only
      * while the far world is loaded, since its floor is part of the answer and a capture that
-     * cannot be retaken anyway should not be asked for every sweep. A capture that wrote buried
-     * blocks as air is outgrown too: a window in a wall would carve the far hill's inside out of
-     * the real ground.
+     * cannot be retaken anyway should not be asked for every sweep. A file of an earlier kind
+     * does not load at all, and the mirror asks for a fresh one the same way.
      *
      * @param mirror
      *            the mirror
@@ -235,10 +234,6 @@ public final class MirrorCaptures
      */
     static boolean outgrown(final QuantumMirror mirror, final MirrorCapture capture)
     {
-        if (capture.prunedToAir())
-        {
-            return true;
-        }
         final MirrorPoint destination = mirror.destination();
         final World far = Bukkit.getWorld(destination.worldName());
         final int[] box = needed(destination, captureDepth(),
@@ -522,7 +517,15 @@ public final class MirrorCaptures
         return new File(DataLayout.mirrorCaptureDir(), key + ".view");
     }
 
-    /** One capture being taken, a couple of chunks a tick. */
+    /**
+     * One capture being taken, a couple of chunks a tick.
+     *
+     * <p>In two passes over the far world's chunks. The first notes only what kind of block
+     * stands where -- air, see-through, or solid -- a bit each, since the box at the render
+     * distance is too big to hold every block's state. Off the main thread between them, the
+     * builder works out what somebody at the opening could see. The second pass records the
+     * state of those blocks alone.
+     */
     private static final class Job implements Runnable
     {
         private final String key;
@@ -537,6 +540,8 @@ public final class MirrorCaptures
         private final int maxZ;
         private final List<int[]> chunks = new ArrayList<>();
         private int next;
+        private boolean noting = true;
+        private boolean sifting;
         private boolean done;
         private BukkitTask task;
 
@@ -583,16 +588,16 @@ public final class MirrorCaptures
         @Override
         public void run()
         {
-            for (int i = 0; (i < CHUNKS_PER_TICK) && !done; i++)
+            for (int i = 0; (i < CHUNKS_PER_TICK) && !done && !sifting; i++)
             {
                 step();
             }
         }
 
-        /** Reads one chunk into the box, and finishes the capture after the last. */
+        /** Reads one chunk, and moves the capture on after the last of a pass. */
         void step()
         {
-            if (done)
+            if (done || sifting)
             {
                 return;
             }
@@ -612,7 +617,14 @@ public final class MirrorCaptures
             }
             if (next >= chunks.size())
             {
-                finish();
+                if (noting)
+                {
+                    sift();
+                }
+                else
+                {
+                    finish();
+                }
             }
         }
 
@@ -636,20 +648,28 @@ public final class MirrorCaptures
                     final int top = Math.min(maxY, snapshot.getHighestBlockYAt(lx, lz));
                     for (int y = minY; y <= top; y++)
                     {
-                        final BlockData data = snapshot.getBlockData(lx, y, lz);
-                        if (!isAir(data))
+                        if (noting)
                         {
-                            builder.put(x, y, z, data);
+                            final BlockData data = snapshot.getBlockData(lx, y, lz);
+                            if (!isAir(data))
+                            {
+                                builder.note(x, y, z, data);
+                            }
+                        }
+                        else if (builder.wanted(x, y, z))
+                        {
+                            builder.put(x, y, z, snapshot.getBlockData(lx, y, lz));
                         }
                     }
                 }
             }
         }
 
-        private void finish()
+        /** Between the passes: works out what can be seen, off the main thread, then reads again. */
+        private void sift()
         {
-            done = true;
-            cancel();
+            noting = false;
+            sifting = true;
             // A linked pair arrives in the far banner's own block, so it would otherwise hang
             // in the middle of the view.
             for (final QuantumMirror other : MirrorManager.all())
@@ -665,37 +685,45 @@ public final class MirrorCaptures
             final int arrivalY = (int) Math.floor(destination.y());
             final int arrivalZ = (int) Math.floor(destination.z());
             final int depth = captureDepth();
-            // Three quarters of a million rays: off the main thread, since the box is copied and
+            // A third of a million rays: off the main thread, since the box is noted and
             // nothing here reads the world again.
-            final Runnable sift = () ->
+            final Runnable work = () ->
             {
                 builder.keepOnlySeen(arrivalX, arrivalY, arrivalZ, ahead.x(), ahead.z(), depth);
                 builder.prune();
             };
-            final Runnable install = () ->
+            final Runnable again = () ->
             {
-                final MirrorCapture capture = builder.build();
-                JOBS.remove(key);
-                LOADED.put(key, new Held(capture, System.currentTimeMillis()));
-                ABSENT.remove(key);
-                WARNED.remove(key);
-                generation++;
-                WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe());
-                save(capture, fileOf(key));
+                next = 0;
+                sifting = false;
             };
             try
             {
                 WormholeXTreme.getScheduler().runTaskAsynchronously(WormholeXTreme.getThisPlugin(), () ->
                 {
-                    sift.run();
-                    WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), install);
+                    work.run();
+                    WormholeXTreme.getScheduler().runTask(WormholeXTreme.getThisPlugin(), again);
                 });
             }
             catch (final RuntimeException noScheduler)
             {
-                sift.run();
-                install.run();
+                work.run();
+                again.run();
             }
+        }
+
+        private void finish()
+        {
+            done = true;
+            cancel();
+            final MirrorCapture capture = builder.build();
+            JOBS.remove(key);
+            LOADED.put(key, new Held(capture, System.currentTimeMillis()));
+            ABSENT.remove(key);
+            WARNED.remove(key);
+            generation++;
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe());
+            save(capture, fileOf(key));
         }
 
         void cancel()
