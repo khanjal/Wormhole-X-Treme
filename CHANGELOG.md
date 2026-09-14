@@ -312,6 +312,13 @@ been running on defaults will start reading the file you have been editing.
   state is turned now with `BlockData.rotate`, which every version from 1.20 to 1.21.10 has,
   once per state per window.
 
+  "Still flickering on the stone bricks behind the fence." The edge hold was not the whole of
+  it. A redraw while walking has a third of a still one's budget, and close to the mirror,
+  where the view is widest, it ran out, reached less far and took back what lay further; the
+  next sweep, standing, drew it again. So walking up to the mirror or backing away flipped
+  everything past the moving reach. A redraw on the move keeps the blocks the last drawing had
+  further out than it could reach, until a redraw that can afford the depth says otherwise.
+
   "An admin command that forces the mirror world chunk to fully render without limits so I can
   check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
   whole and without limits for whoever asks -- everything its capture holds, through the

@@ -320,6 +320,40 @@ class MirrorWindowsTest
     }
 
     /**
+     * A redraw on the move that runs out of budget keeps the deeper blocks the last one drew.
+     *
+     * <p>"Still flickering on the stone bricks behind the fence." A redraw while walking has a
+     * third of a still one's budget; close to the mirror it ran out, reached less far, and took
+     * back what lay further, which the next sweep drew again. The move's reach is checked to have
+     * really shrunk, so the test cannot pass by never running out.
+     */
+    @Test
+    void aRedrawOnTheMoveThatRunsOutKeepsTheDeeperBlocksTheLastOneDrew()
+    {
+        standUp(banner);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final Spot deep = new Spot(10, 65, 22);
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(deep), "drawn standing still");
+            MirrorWindows.mostWhileMoving = 200;
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
+        });
+
+        final String redraw = MirrorWindows.describe(viewer).stream().filter(line -> line.startsWith("last redraw"))
+            .findFirst().orElse("");
+        final int reach = Integer.parseInt(redraw.replaceAll(".* at radius (\\d+).*", "$1"));
+        assertTrue(reach < 11, "the move's own reach fell short of the deep block: " + redraw);
+        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
+        final Map<Spot, BlockData> update = positions(sent.get(1));
+        assertFalse(update.containsKey(deep) && (update.get(deep) == null), deep + " was taken back: " + redraw);
+    }
+
+    /**
      * With views off, a viewer is drawn nothing, and what they had is taken back.
      *
      * <p>For an admin who wants the world as it is: "an admin command to remove the view".

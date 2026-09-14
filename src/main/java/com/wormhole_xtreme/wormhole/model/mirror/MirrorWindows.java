@@ -125,6 +125,9 @@ public final class MirrorWindows
      */
     static int workPerSecond = WORK_PER_SECOND;
 
+    /** One redraw's budget while the viewer moves; settable so a test can make it run out. */
+    static int mostWhileMoving = MOST_CANDIDATES;
+
     private static long workSecond;
     private static int workSpent;
 
@@ -336,6 +339,9 @@ public final class MirrorWindows
         /** Whether the last redraw had room to reach further, so the next sweep redraws. */
         private boolean growing;
 
+        /** How far the view last sent reached, carried deeper blocks included. */
+        private int lastRadius;
+
         View(final World world)
         {
             this.world = world;
@@ -430,6 +436,7 @@ public final class MirrorWindows
         MirrorCaptures.clear();
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
+        mostWhileMoving = MOST_CANDIDATES;
         workSecond = 0L;
         workSpent = 0;
     }
@@ -723,7 +730,7 @@ public final class MirrorWindows
         view.radius = Math.min(configured, view.radius);
         // A sweep redraws a viewer who has not moved, to grow their view; a move redraws them
         // on the way somewhere, and may be one of four this second.
-        final int most = fromSweep ? MOST_STILL : MOST_CANDIDATES;
+        final int most = fromSweep ? MOST_STILL : mostWhileMoving;
         List<Entity> inside = new ArrayList<>();
         Budget budget = new Budget(most);
         final Set<Long> before = view.drawn.keySet();
@@ -739,6 +746,19 @@ public final class MirrorWindows
         }
         workSpent += most - budget.blocks;
         final int drawnAt = view.radius;
+        // A redraw on the move has a smaller budget than one standing still, and close to the
+        // mirror it runs out and reaches less far. Taking back what lay further was the flicker
+        // of the bricks behind the fence as a viewer walked up to the mirror and away: gone on a
+        // step, back on the next sweep. Blocks drawn further out stay until a redraw that can
+        // afford the depth -- the next sweep -- says otherwise.
+        if (!fromSweep && (drawnAt < view.lastRadius))
+        {
+            carryDeeper(view, wanted, seeing, fixed, drawnAt, view.lastRadius);
+        }
+        else
+        {
+            view.lastRadius = drawnAt;
+        }
         view.radius = grown(view.radius, configured, budget.blocks, most);
         view.growing = eyeMatters && (view.radius < configured) && (budget.blocks > (most / 2));
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
@@ -761,6 +781,49 @@ public final class MirrorWindows
         if (wanted.isEmpty())
         {
             VIEWS.remove(id);
+        }
+    }
+
+    /**
+     * Keeps in a redraw the blocks the last drawing had between a shorter reach and the longer
+     * one it replaced, behind a trimmed window's wall.
+     */
+    private static void carryDeeper(final View view, final Map<Long, BlockData> wanted,
+        final List<Window> seeing, final Map<Window, Whole> fixed, final int from, final int to)
+    {
+        for (final Map.Entry<Long, BlockData> entry : view.drawn.entrySet())
+        {
+            final long cell = entry.getKey();
+            if (wanted.containsKey(cell))
+            {
+                continue;
+            }
+            final int x = unpackX(cell);
+            final int y = unpackY(cell);
+            final int z = unpackZ(cell);
+            for (final Window window : seeing)
+            {
+                if (fixed.containsKey(window))
+                {
+                    continue;
+                }
+                final MirrorWindow shape = window.shape;
+                final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
+                if (layer < 1)
+                {
+                    continue;
+                }
+                final double[] centre = centreOf(shape);
+                final double dx = (x + 0.5) - centre[0];
+                final double dy = (y + 0.5) - centre[1];
+                final double dz = (z + 0.5) - centre[2];
+                final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+                if ((distance >= from) && (distance < to))
+                {
+                    wanted.put(cell, entry.getValue());
+                    break;
+                }
+            }
         }
     }
 
