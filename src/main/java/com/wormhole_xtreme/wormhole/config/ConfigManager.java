@@ -1435,12 +1435,14 @@ public class ConfigManager
     /**
      * How far from a viewer's eye a mirror's far side is drawn as real blocks.
      *
-     * @return the radius in blocks, between 4 and 64
+     * @return the radius in blocks, between 4 and 32
      */
     public static int getMirrorViewDepth()
     {
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
-        return (s == null) ? 16 : Math.max(4, Math.min(64, s.getIntValue()));
+        // 32 at most: a prototype build wrote 48 into configs as the default, and at 48 the cone
+        // through a mirror from a block away is more than a redraw's budget, which cuts the view.
+        return (s == null) ? 16 : Math.max(4, Math.min(32, s.getIntValue()));
     }
 
     /**

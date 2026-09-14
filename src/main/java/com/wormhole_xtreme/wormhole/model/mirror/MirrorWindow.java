@@ -104,6 +104,12 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     {
         /** @return the deepest layer still worth walking, as it stands right now */
         int deepest();
+
+        /** @return the first layer to walk; earlier ones were walked by an earlier stage */
+        default int shallowest()
+        {
+            return 1;
+        }
     }
 
     /** Handed each block a viewer might see through the opening. */
@@ -264,7 +270,7 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     {
         final Walk walk = new Walk(this, new double[] { eyeX, eyeY, eyeZ }, radius, band, limits,
             candidate);
-        for (int layer = 1; (layer <= limits.deepest()) && walk.within(layer); layer++)
+        for (int layer = limits.shallowest(); (layer <= limits.deepest()) && walk.within(layer); layer++)
         {
             if (!walk.layer(layer))
             {

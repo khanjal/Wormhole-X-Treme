@@ -157,6 +157,23 @@ been running on defaults will start reading the file you have been editing.
   really there, and the tunnel's walls -- the real blocks just outside the cone, straddling the
   edge by less than half -- show their faces inside it. A straddler whose far side is air is now
   carved regardless; a notch in the sea beside the hut is the lesser harm.
+
+  And still the sea showed, and the fourth theory from a screenshot would have been as wrong as
+  the other three. So `mirror debug save` photographs *this* side of a mirror into a file beside
+  the far side's own, and a replay test draws the view from the two files and the eye's position
+  away from the server, printing what became of every block. From the hut it showed the library
+  drawn to five layers and nothing past them: a corridor beyond a row of pillars was visible
+  through a sliver of the opening a tenth of a block wide, the occlusion grid -- eight parts to
+  a block, a part hidden when a nearer block covers its middle -- rounded the sliver away and
+  called the whole opening hidden, and the walk stopped there. The grid is thirty-two parts to a
+  block now. Marking a part hidden only when covered whole would have kept the sliver too, but
+  left a lattice open along every block boundary and drawn everything behind a solid wall.
+
+  Two things came out of the same replay. The cone is walked in stages of depth, all bands
+  within each, rather than band by band to full depth: a wide radius spent the whole budget on
+  the far middle before the near sides were walked at all. And `mirror-view-depth` reads at most
+  32, since a prototype build wrote 48 into configs as its default and at 48 the cone from a
+  block away is more than a redraw's budget.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 
