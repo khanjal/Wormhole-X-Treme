@@ -191,6 +191,39 @@ class MirrorWindowsTest
     }
 
     /**
+     * A right-click shows the mirror chosen at once, not when the sweep next comes round.
+     *
+     * <p>The sweep runs once a second, so a view waiting for it changed up to a second after the
+     * click that chose it -- long enough to click again, and skip past the mirror you wanted.
+     */
+    @Test
+    void aRightClickShowsTheChosenMirrorWithoutWaitingForTheSweep()
+    {
+        secondWindowAt(20);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        try
+        {
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                final QuantumMirror museum = MirrorManager.byName("museum");
+                MirrorNetwork.scroll(museum, false);
+                MirrorWindows.redraw(museum, banner);
+            });
+
+            final List<Collection<BlockState>> sent = changesTo(viewer, 2);
+            assertTrue(drawnAs(sent.get(0), farOneBlock) > 0, "museum's own far side, from the sweep");
+            assertTrue(drawnAs(sent.get(1), farTwoBlock) > 0, "then archive's, straight after the click");
+        }
+        finally
+        {
+            MirrorNetwork.clear();
+        }
+    }
+
+    /**
      * The opening is drawn as barrier: invisible, and as solid as the wall it covers.
      *
      * <p>Drawn as air, the client would let the player walk into blocks the server still has,

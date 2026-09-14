@@ -655,6 +655,41 @@ public final class MirrorWindows
         }
     }
 
+    /**
+     * Redraws one mirror at once for whoever is looking into it, after a right-click changed what
+     * it opens onto.
+     *
+     * <p>The sweep would get to it within a second, and a click should not wait that long. A room
+     * that is not captured yet leaves the window showing what it did until the sweep finds it ready.
+     *
+     * @param mirror
+     *            the mirror whose choice changed
+     * @param banner
+     *            its loaded banner block, or null to leave it to the sweep
+     */
+    public static void redraw(final QuantumMirror mirror, final Block banner)
+    {
+        if ((banner == null) || !WINDOWS.containsKey(mirror.name()))
+        {
+            return;
+        }
+        OFFERED.remove(mirror.name());
+        if (!offer(mirror, banner))
+        {
+            return;
+        }
+        WINDOWS.put(mirror.name(), OFFERED.remove(mirror.name()));
+        final long now = now();
+        for (final Player player : banner.getWorld().getPlayers())
+        {
+            final View view = VIEWS.get(player.getUniqueId());
+            if ((view != null) && view.mirrors.contains(mirror.name()))
+            {
+                update(player, player.getEyeLocation(), now, false);
+            }
+        }
+    }
+
     /** Takes every view back, as the plugin stops. */
     public static void restoreAll()
     {

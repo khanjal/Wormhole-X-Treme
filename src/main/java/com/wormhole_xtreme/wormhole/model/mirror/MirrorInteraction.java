@@ -127,11 +127,18 @@ public final class MirrorInteraction
             player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
             return;
         }
+        final String before = MirrorNetwork.chosen(mirror).name();
         final String said = MirrorNetwork.scroll(mirror,
             MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player));
         if (said != null)
         {
             say(player, said);
+        }
+        // Shown at once, rather than when the sweep next comes round.
+        if (!MirrorNetwork.chosen(mirror).name().equals(before))
+        {
+            final MirrorBlock at = mirror.banner();
+            MirrorWindows.redraw(mirror, block.getWorld().getBlockAt(at.x(), at.y(), at.z()));
         }
     }
 

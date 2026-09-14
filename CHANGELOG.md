@@ -44,7 +44,9 @@ been running on defaults will start reading the file you have been editing.
   seconds before it can change. A punch goes to the mirror chosen and lands in front of its
   banner; punching a mirror that shows its own room says to right-click first. When nobody is
   near a mirror any more it goes back to its own room. Only the main hand's half of a click
-  counts, or one press would skip a mirror.
+  counts, or one press would skip a mirror. The view changes as you click, not when the sweep
+  next comes round a second later -- long enough to click again and skip the mirror you wanted;
+  a room not captured yet leaves the mirror showing what it did until it is ready.
 
   "I don't see a reflection at all" -- on a mirror facing north. Its capture kept 8 blocks and no
   air: the rays that decide what can be seen started on the back edge of the block in front of
