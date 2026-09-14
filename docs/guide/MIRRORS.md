@@ -57,24 +57,23 @@ that wall can be broken; `mirror remove` takes it down.
 | Command | What it does |
 | --- | --- |
 | `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror set` also works) |
-| `mirror start [name] <mirror\|none>` | The mirror it opens onto when nobody has chosen one; `none` for its own room |
+| `mirror start [name] <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
 | `mirror stamp [name] [look]` | Makes the banner look like where it goes |
 | `mirror display [name] <always\|proximity>` | Show its look always, or only up close |
 | `mirror mode [name] <static\|dynamic>` | Keep the look, or re-read the far side |
 | `mirror remove [name]` | Makes it an ordinary banner again |
-| `mirror list` | Every mirror and where it opens onto |
+| `mirror list` | Every mirror, and what each is showing |
 
 All of them need `wormhole.config`: a mirror moves players between worlds.
 
 ### Naming one, or just looking at it
 
-The four verbs with `[name]` in brackets take the mirror on the banner you are looking at when
-you leave the name out:
+The verbs with `[name]` in brackets take the mirror on the banner you are looking at when you
+leave the name out:
 
 ```
-/wormhole mirror stamp cavern       # looking at the banner: give it the cavern look
-/wormhole mirror stamp              # ... or read the far side and paint it from that
-/wormhole mirror display proximity  # only show its look up close
+/wormhole mirror start hub          # looking at the banner: a right-click opens onto hub first
+/wormhole mirror stamp cavern       # give it the cavern look
 /wormhole mirror remove             # give the banner back
 ```
 
@@ -85,109 +84,92 @@ name with the setting forgotten, so it says so.
 
 ### Renaming one
 
-`set` again, looking at the banner:
+`create` again, looking at the banner:
 
 ```
-/wormhole mirror set old-spawn      # looking at a banner that is already a mirror
+/wormhole mirror create old-spawn   # looking at a banner that is already a mirror
 ```
 
-It keeps where the mirror goes, what it looks like, and its display and mode settings — only the
-name changes, and the old one is gone rather than left behind. `set` works out what you meant from
-what already exists: a name it knows moves that mirror to this banner, a banner it knows renames
-the mirror on it, and neither makes a new one. The single case it will not guess at is a name that
-belongs to a mirror elsewhere *and* a banner that is already a different mirror, since either
-reading would quietly strand one of them; it says so and changes nothing.
+It keeps its start, what it looks like, and its display and mode settings — only the name
+changes, and the old one is gone rather than left behind. `create` works out what you meant from
+what already exists: a name it knows moves that mirror to this banner (which has to pass the wall
+rules), a banner it knows renames the mirror on it, and neither makes a new one. The single case it
+will not guess at is a name that belongs to a mirror elsewhere *and* a banner that is already a
+different mirror, since either reading would quietly strand one of them; it says so and changes
+nothing.
 
-## Making it look like where it goes
+## What you see in one
 
-A corridor of plain white banners tells you nothing. `stamp` reads the destination and paints the
-banner from it:
+Walk up to a mirror, on the banner's side and within `mirror-proximity-radius` blocks, and the banner
+is gone: an opening its own size, one wide and two tall, running down from where it hangs, shows a
+room — its own, flipped across the wall as a mirror would show it and with nobody in it, or the room
+of the mirror chosen at it. Real blocks, so it has depth as you move. On plain 1.20 the banner stays
+where it is, in front of the view: taking it away needs a call that arrived in 1.20.1, without which
+its patterns could not be put back.
+
+Nothing in the world changes. Only the players looking in are sent the view. A mirror set in a
+solid wall — solid for `mirror-proximity-radius` blocks on every side of the opening, with no other
+mirror within twice the depth — shows everything behind the wall out to its depth, the same from
+wherever you stand in front of it. Any other mirror shows only the blocks you could actually see
+through the opening from where you stand, so nothing shows past its edges.
+
+- **What you see is a capture:** a photograph of a mirror's room, kept in
+  `data/mirror/captures/`. A new mirror's is taken within a second of `create`, over a few seconds;
+  another mirror's room is taken the first time somebody chooses it, if nobody has yet. After that
+  its world need not be loaded at all, so a mirror in an archived world still shows. `mirror stamp`
+  takes a capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while
+  somebody is looking; `mode static`, the default, never does, so a reflection shows the room as it
+  was when captured.
+- **A capture holds what somebody at the opening could see:** within `mirror-view-depth` of the
+  opening, rays a degree apart through it, and the blocks they reach, air included; everything else
+  is left to the real world. So a capture is the surfaces in view, and that is all a viewer is sent.
+- **The view reaches `mirror-view-depth` from the opening** (32 by default, up to 160) and nothing
+  is drawn past it. A mirror in a solid wall always reaches the whole depth; any other reaches what
+  one redraw can afford, shorter right against it and while you walk.
+- **One-sided.** From behind, a mirror is its banner.
+- **Blocks only.** No players or creatures from the room shown, and your own world's creatures
+  inside the view are hidden from you while you look. Lit by this world, so a room behind a wall is
+  dark except for what makes its own light.
+- **For checking a mirror:** `/wormhole mirror debug <name>` says what its capture holds, and
+  `debug <name> full` draws the whole capture for you alone, wherever you stand. `mirror debug off`
+  turns views off for you, so you see the world as it is; `mirror debug on` puts either back.
+
+## Its look
+
+A plain white banner made a mirror gets the `mirror` look: pale glass, a glint and a frame. A banner
+you patterned first keeps its patterns. The look is what you see from further than
+`mirror-proximity-radius`, from behind, and before a mirror's room is captured — so a corridor of
+mirrors still reads as a row of doors from the far end.
 
 ```
-/wormhole mirror stamp museum
+/wormhole mirror stamp museum cavern   # a named look
+/wormhole mirror stamp museum          # read the mirror's room and paint the banner from that
 ```
 
-The biome picks the frame — rising flame for the Nether, white crests over blue for an ocean — and
-the blocks around the arrival point become coarse squares in their dominant colours. **Indoors**,
+Read from the room, the biome picks the frame — rising flame for the Nether, white crests over blue
+for an ocean — and the blocks around it become coarse squares in their dominant colours. **Indoors**,
 the room's own blocks decide instead, so a library comes back the brown of its shelves.
 
-It is a snapshot, not a live window. Rebuild the far side and stamp again.
-
-Or name a look:
-
-```
-/wormhole mirror stamp museum cavern
-```
-
-Eighty-nine ship. Sixty-five are places, one for every biome in the game, and `stamp` picks among
-them on its own. The rest say something about the mirror instead — `hub`, `exit`, `market`,
-`warning`, `private`, `plain` and more — and only a named `stamp` gets one. None change what a
-mirror does: `private` is paint, not a permission.
+Eighty-nine looks ship. Sixty-five are places, one for every biome in the game. The rest say
+something about the mirror instead — `mirror`, `hub`, `exit`, `market`, `warning`, `private`, `plain`
+and more. None change what a mirror does: `private` is paint, not a permission.
 
 They are `.mirror` text files in `shapes/mirror/`. Edit one and it stays edited; delete one and it
 comes back; add your own and `stamp` offers it. Every look is drawn, with its recipe, in
 [docs/MIRRORS.md](../MIRRORS.md#the-library-at-a-glance).
 
-## Going dark, and keeping up
-
-```
-/wormhole mirror display museum proximity   # dark until somebody walks up to it
-/wormhole mirror mode museum dynamic        # re-reads the far side when they do
-```
-
-**`proximity`** shows the mirror blank until a player is within `mirror-proximity-radius` blocks.
-The banner in the world stays stamped — only far-away players are sent the blank — so if you ever
-remove the plugin, your corridor is still painted. Needs 1.20.1; on 1.20 the mirror just stays
-visible.
-
-**`dynamic`** re-reads the destination when somebody walks up, at most once every
-`mirror-dynamic-resample-seconds`. A mirror nobody visits is never re-read. Works on every version.
-
-The two are independent; any combination works.
-
-## Mirrors are windows (prototype)
-
-A mirror opens onto where it goes. There is nothing to set, and mirrors made before this open the
-same way.
-
-Anybody within `mirror-proximity-radius` blocks, on the banner's side, sees the banner vanish and a
-banner-sized opening, one wide and two tall, showing the destination: real blocks, so it has depth as you move. A banner hung on a
-wall opens in the wall, running down from the banner. A freestanding banner opens in the air behind
-it, running up from where it stands, facing whichever of north, south, east or west is nearest.
-On plain 1.20 the banner stays where it is, in front of the view: taking it away needs a call that
-arrived in 1.20.1, without which its patterns could not be put back.
-The middle of the opening's bottom row is where a traveller lands, facing the way the mirror was
-pointed. Click the opening to go through.
-
-Nothing in the world changes. Only the players looking in are sent the view. A mirror set in a
-solid wall -- solid for `mirror-proximity-radius` blocks on every side of the opening, with no
-other mirror within twice the depth -- shows everything behind the wall out to its depth, the
-same from wherever you stand in front of it. Any other mirror shows only the blocks you could
-actually see through the opening from where you stand. That is what lets mirrors share a wall: a
-row of alcoves a block apart each shows its own far side, whichever way you look in.
-
-It is a first cut of [#278](https://github.com/khanjal/Wormhole-X-Treme/issues/278):
-
-- **One-sided.** From behind, a mirror is its banner.
-- **Only the open part of the opening opens.** Something solid in front of part of it closes that part.
-- **Nothing shows past the opening's edges.** In a solid wall the wall hides them, so the far side behind it is drawn whole and does not change as you move. Anywhere else -- open air, a gap in the wall within `mirror-proximity-radius` of the opening, another mirror within twice the depth -- blocks that would reach past the edge are left out. The catch with a wall: from anywhere else you can see the space behind it, such as a doorway round the side, you see the far side there while you look in.
-- **What you see is a capture**, a photograph of the far side taken once and kept in `data/mirror/captures/`. The first time anyone looks into a mirror, its capture is taken over a few seconds (the far world has to be loaded for that, and only then), and the mirror opens when it is ready. After that the far world need not be loaded at all: a mirror onto an archived world still shows it. `mirror stamp` takes the capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while somebody is looking; `mode static` (the default) never does, so a museum stays as captured.
-- **The capture is the half-sphere a window can show, boxed:** `mirror-view-depth` plus two blocks ahead of the arrival point, to either side, up and down, and one block behind (`mirror-capture-radius` caps it). Inside that box it keeps only what somebody at the opening could see -- rays a degree apart from across the opening's face, in every direction a viewer in front of it could look, and the blocks they reach, air included, plus each block beside seen air; everything else is left to the real world. So a capture is the surfaces in view, and that is all a viewer is ever sent. A capture smaller than the box it needs, or from before buried blocks were marked, is taken again on the next look.
-- **For checking a mirror:** `/wormhole mirror debug <name> full` draws that mirror whole and without limits for you alone -- everything its capture holds, through the opening, past the edges and into the ground, and wherever you stand, looking or not -- so you can walk round what the file holds and see how it comes through. `mirror debug off` turns views off for you, so you see the world as it is; `mirror debug on` puts either back.
-- **The view reaches up to `mirror-view-depth` from the middle of the opening** (32 by default, up to 160, a server's usual view distance; a capture keeps only what can be seen, so a deeper one costs what its surfaces cost) and nothing is drawn past it, so further off you see what is really behind the mirror. A mirror in a solid wall always reaches the whole depth. A trimmed one reaches what one redraw can afford, up to that: shorter right against the mirror, where the view is widest, and shorter while you walk, growing to the full depth over a second or so when you stand still.
-- **Your own world's creatures inside the view are hidden** from you while you look. Other players are not.
-- **A mirror's banner at the far end is left out of the view**, so a linked pair looks straight through.
-- **Blocks only, no mobs or players from the far side**, and lit by this world rather than the far one: behind a wall that is dark, and only what makes its own light -- glowstone, lanterns -- is bright.
-- **The look, `display` and `mode` show only where there is no view**: from behind, from out of range, or onto a world that is not loaded.
+`display proximity` shows the banner blank until somebody is within `mirror-proximity-radius` blocks,
+and `mode dynamic` re-reads its look when they walk up. Both matter only where there is no view — a
+mirror whose room is not captured yet.
 
 ## Saying what it is
 
-Look at a mirror from about six blocks and it names itself, and the world it opens onto, above the
-hotbar:
+Look at a mirror from about six blocks and it says what a click will do, above the hotbar:
 
 ```
-:: museum -- click to travel to nether.
+:: museum -- right-click to choose a mirror.
+:: museum -- punch to travel to hub, right-click for another.
 ```
 
 It stays while you keep looking, and only one mirror speaks at a time — the one under your crosshair.
-Mirrors that do not go anywhere yet say nothing. `mirror-approach-message: false` turns it off.
+`mirror-approach-message: false` turns it off.
