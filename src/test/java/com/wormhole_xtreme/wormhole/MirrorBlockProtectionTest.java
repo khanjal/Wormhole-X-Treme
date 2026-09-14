@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,7 +21,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
@@ -141,14 +141,16 @@ class MirrorBlockProtectionTest
         final Block behind = world.getBlockAt(10, 63, 11);
         final Block beside = world.getBlockAt(14, 64, 11);
         final List<Block> blown = new ArrayList<>(List.of(banner, behind, beside));
-        final EntityExplodeEvent event = new EntityExplodeEvent(mock(Entity.class),
-            new Location(world, 12, 64, 9), blown, 1.0f);
+        // Mocked rather than built: from 1.21 the constructor also takes an ExplosionResult, which
+        // 1.20 does not have, so no one constructor call compiles across the supported range.
+        final EntityExplodeEvent event = mock(EntityExplodeEvent.class);
+        when(event.blockList()).thenReturn(blown);
 
         new WormholeXTremeEntityListener().onEntityExplode(event);
 
-        assertFalse(event.isCancelled(), "the blast itself still happens");
-        assertFalse(event.blockList().contains(banner), "the banner survives it");
-        assertFalse(event.blockList().contains(behind), "and so does the opening behind it");
-        assertTrue(event.blockList().contains(beside), "while wall past the face goes as usual");
+        verify(event, never()).setCancelled(true);
+        assertFalse(blown.contains(banner), "the banner survives it");
+        assertFalse(blown.contains(behind), "and so does the opening behind it");
+        assertTrue(blown.contains(beside), "while wall past the face goes as usual");
     }
 }
