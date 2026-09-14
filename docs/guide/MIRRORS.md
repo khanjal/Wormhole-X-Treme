@@ -115,7 +115,7 @@ nothing.
 
 ## What you see in one
 
-Walk up to a mirror, on the banner's side and within `mirror-proximity-radius` blocks, and the banner
+Walk up to a mirror, on the banner's side and within `mirror-proximity-distance` blocks, and the banner
 is gone: an opening its own size, one wide and two tall, running down from where it hangs, shows a
 room — its own, flipped across the wall as a mirror would show it and with nobody in it, or the room
 of the mirror chosen at it. Real blocks, so it has depth as you move. On plain 1.20 the banner stays
@@ -123,7 +123,7 @@ where it is, in front of the view: taking it away needs a call that arrived in 1
 its patterns could not be put back.
 
 Nothing in the world changes. Only the players looking in are sent the view. A mirror set in a
-solid wall — solid for `mirror-proximity-radius` blocks on every side of the opening, with no other
+solid wall — solid for `mirror-proximity-distance` blocks on every side of the opening, with no other
 mirror within twice the depth — shows everything behind the wall out to its depth, the same from
 wherever you stand in front of it. `create` says so when a new mirror is closer than that to
 another. Any other mirror shows only the blocks you could actually see
@@ -158,7 +158,7 @@ through the opening from where you stand, so nothing shows past its edges.
 
 A plain white banner made a mirror gets the `mirror` look: pale glass, a glint and a frame. A banner
 you patterned first keeps its patterns. The look is what you see from further than
-`mirror-proximity-radius`, from behind, and before a mirror's room is captured — so a corridor of
+`mirror-proximity-distance`, from behind, and before a mirror's room is captured — so a corridor of
 mirrors still reads as a row of doors from the far end.
 
 ```
@@ -178,7 +178,7 @@ They are `.mirror` text files in `shapes/mirror/`. Edit one and it stays edited;
 comes back; add your own and `stamp` offers it. Every look is drawn, with its recipe, in
 [docs/MIRRORS.md](../MIRRORS.md#the-library-at-a-glance).
 
-`display proximity` shows the banner blank until somebody is within `mirror-proximity-radius` blocks,
+`display proximity` shows the banner blank until somebody is within `mirror-proximity-distance` blocks,
 and `mode dynamic` re-reads its look when they walk up. Both matter only where there is no view — a
 mirror whose room is not captured yet.
 

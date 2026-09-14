@@ -247,7 +247,7 @@ public final class MirrorNetwork
     }
 
     /**
-     * Whether anybody, other than one player, is within the proximity radius of a banner.
+     * Whether anybody, other than one player, is within the proximity distance of a banner.
      *
      * @param world
      *            the banner's world
@@ -259,7 +259,7 @@ public final class MirrorNetwork
      */
     public static boolean anybodyNear(final World world, final MirrorBlock banner, final Player except)
     {
-        final double reach = ConfigManager.getMirrorProximityRadius();
+        final double reach = ConfigManager.getMirrorProximityDistance();
         for (final Player player : world.getPlayers())
         {
             if (player.equals(except))

@@ -18,7 +18,7 @@ import com.wormhole_xtreme.wormhole.utils.ActionBar;
  *
  * <h2>Why looking at, rather than standing near</h2>
  *
- * <p>This began as a line sent once, when a player crossed into the proximity radius. That is
+ * <p>This began as a line sent once, when a player crossed into the proximity distance. That is
  * how the transport rings announce themselves, and for a ring it is right: walking in starts
  * something. A mirror is not started by arriving at it -- it is looked at, considered, and then
  * clicked -- and an action bar line fades after about three seconds, so the message had come

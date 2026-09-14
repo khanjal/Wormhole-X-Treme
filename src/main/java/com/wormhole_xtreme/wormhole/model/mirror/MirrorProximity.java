@@ -401,10 +401,10 @@ public final class MirrorProximity
         return block.getType().name().endsWith("BANNER") ? block : null;
     }
 
-    /** @return the proximity radius, squared, so no square root is taken per player */
+    /** @return the proximity distance, squared, so no square root is taken per player */
     private static double reachSquared()
     {
-        final double radius = ConfigManager.getMirrorProximityRadius();
+        final double radius = ConfigManager.getMirrorProximityDistance();
         return radius * radius;
     }
 

@@ -1128,7 +1128,7 @@ public final class MirrorWindows
      */
     private static List<Window> seenBy(final Player player, final Location eye)
     {
-        final double radius = ConfigManager.getMirrorProximityRadius();
+        final double radius = ConfigManager.getMirrorProximityDistance();
         final Location at = player.getLocation();
         final long now = now();
         final List<Window> seeing = new ArrayList<>();
@@ -1219,7 +1219,7 @@ public final class MirrorWindows
     /** Whether somebody not yet looking into anything has just come within range of a window. */
     private static boolean nearAWindow(final Player player, final Location to)
     {
-        final double radius = ConfigManager.getMirrorProximityRadius();
+        final double radius = ConfigManager.getMirrorProximityDistance();
         for (final Window window : WINDOWS.values())
         {
             if (window.banner.getWorld().equals(player.getWorld())
@@ -1427,7 +1427,7 @@ public final class MirrorWindows
     }
 
     /**
-     * Whether a window's face is solid as far as the proximity radius on every side of its opening.
+     * Whether a window's face is solid as far as the proximity distance on every side of its opening.
      *
      * <p>Then the wall hides whatever of the far side lies beside the opening, from anywhere a
      * viewer can be, and the far side can be drawn whole. A gap anywhere in that span shows it.
@@ -1440,7 +1440,7 @@ public final class MirrorWindows
     /** The first block of the face touching a window's opening that is not solid, or null if none. */
     private static Spot gapBeside(final Window window)
     {
-        // As far as the proximity radius: a viewer that far to one side looks at the space
+        // As far as the proximity distance: a viewer that far to one side looks at the space
         // behind the wall across the face that far out, and a block of open air there shows it.
         // One ring of wall was not enough -- a pillar two blocks wide in open air passed.
         final MirrorWindow shape = window.shape;
@@ -1723,9 +1723,9 @@ public final class MirrorWindows
         final List<Window> seeing, final Map<Window, Whole> fixed, final Set<Long> allOpen,
         final List<Entity> inside)
     {
-        // Depth is from the opening, and the eye may be the proximity radius from that.
+        // Depth is from the opening, and the eye may be the proximity distance from that.
         final double reach = Math.max(radius, ConfigManager.getMirrorViewDepth())
-            + ConfigManager.getMirrorProximityRadius() + 1.0;
+            + ConfigManager.getMirrorProximityDistance() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {
             if (entity instanceof Player)
@@ -1992,10 +1992,10 @@ public final class MirrorWindows
         return new int[] { low - (reach + 1), high + (reach + 1) };
     }
 
-    /** How far out a window's wall is read: a viewer the proximity radius to one side looks past that much of it. */
+    /** How far out a window's wall is read: a viewer the proximity distance to one side looks past that much of it. */
     private static int wallReach()
     {
-        return Math.max(SURROUND, (int) Math.ceil(ConfigManager.getMirrorProximityRadius()));
+        return Math.max(SURROUND, (int) Math.ceil(ConfigManager.getMirrorProximityDistance()));
     }
 
     /** The block of a window's face at a coordinate along it. */

@@ -93,6 +93,12 @@ public class ConfigurationYAML
             // no such section falls back to the built-in Standard group.
             loadMaterialGroups(map.get(MATERIAL_GROUPS_KEY));
 
+            // A line under a setting's old name is written back under its new one, so the file
+            // says what the plugin reads rather than keeping an orphan beside a new default.
+            if (map.keySet().stream().anyMatch(RENAMED::containsKey))
+            {
+                renameOldKeys(cfg);
+            }
             // Appended to the file as well as defaulted in memory, so an admin can see the
             // setting exists and change it.
             if (!missing.isEmpty())
@@ -154,8 +160,26 @@ public class ConfigurationYAML
         {
             return map.get(kebabKey);
         }
-        return map.containsKey(enumKey) ? map.get(enumKey) : null;
+        if (map.containsKey(enumKey))
+        {
+            return map.get(enumKey);
+        }
+        for (final Map.Entry<String, ConfigManager.ConfigKeys> renamed : RENAMED.entrySet())
+        {
+            if ((renamed.getValue() == element.getName()) && map.containsKey(renamed.getKey()))
+            {
+                return map.get(renamed.getKey());
+            }
+        }
+        return null;
     }
+
+    /**
+     * Keys a setting used to be written under, so a config.yml from before the rename still
+     * loads and is written back under the new name.
+     */
+    private static final Map<String, ConfigManager.ConfigKeys> RENAMED =
+        Map.of("mirror-proximity-radius", ConfigManager.ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
 
     /**
      * Builds a setting from whatever type the YAML parser handed back.
@@ -393,6 +417,41 @@ public class ConfigurationYAML
         return new File(pluginDirectory(pluginName), "config.yml");
     }
 
+    /** Rewrites the file with every renamed setting's line under its new name. */
+    private static void renameOldKeys(final File cfg) throws IOException
+    {
+        final List<String> renamed = renameSettingLines(java.nio.file.Files.readAllLines(cfg.toPath()));
+        try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8))
+        {
+            for (final String line : renamed)
+            {
+                writer.write(line + System.lineSeparator());
+            }
+        }
+    }
+
+    /**
+     * The file's lines with each top-level key that has been renamed written under its new name,
+     * its value as it was.
+     *
+     * @param lines
+     *            the file as it stands
+     * @return the lines to write back
+     */
+    static List<String> renameSettingLines(final List<String> lines)
+    {
+        final List<String> out = new ArrayList<>(lines.size());
+        for (final String line : lines)
+        {
+            final int colon = line.indexOf(':');
+            final boolean topLevel = (colon > 0) && !Character.isWhitespace(line.charAt(0)) && (line.charAt(0) != '#');
+            final String key = topLevel ? line.substring(0, colon).trim() : null;
+            out.add(((key != null) && RENAMED.containsKey(key))
+                ? (kebabKeyName(RENAMED.get(key).name()) + line.substring(colon)) : line);
+        }
+        return out;
+    }
+
     private static void appendMissingSettings(final File cfg, final List<Setting> missing)
     {
         try (final java.io.FileWriter writer = new java.io.FileWriter(cfg, StandardCharsets.UTF_8, true /* append */))
@@ -488,7 +547,9 @@ public class ConfigurationYAML
                 && !Character.isWhitespace(line.charAt(0))
                 && (line.charAt(0) != '#'))
             {
-                final String key = line.substring(0, colon).trim();
+                final String written = line.substring(0, colon).trim();
+                // A line under a setting's old name is written back under its new one.
+                final String key = RENAMED.containsKey(written) ? kebabKeyName(RENAMED.get(written).name()) : written;
                 if (values.containsKey(key))
                 {
                     out.add(key + ": " + values.get(key));

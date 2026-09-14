@@ -816,6 +816,14 @@ been running on defaults will start reading the file you have been editing.
   about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
   something wrong ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
 
+### Changed
+
+- **`mirror-proximity-radius` is `mirror-proximity-distance`.** "Instead of radius then should it be
+  distance?" It is the one "radius" left, and it does three jobs an admin thinks of as distances:
+  how close you get before the banner gives way, how far you can drift before a mirror you
+  turned on goes off, and how far out its wall is read. A `config.yml` with the old key still
+  loads, and the next write carries the value over under the new name and drops the old line.
+
 ### Removed
 
 - **Two mirror settings nothing read.** "Do we still need `mirror-capture-radius`?" No. It capped

@@ -165,13 +165,13 @@ public class ConfigManager
         MIRROR_PER_WORLD_LIMIT,
 
         /**
-         * How close a player must be for a proximity mirror to show its look, in blocks.
+         * How close a player must be for a mirror's banner to give way to its room, in blocks.
          *
-         * <p>Compared squared, so this never costs a square root. Small on purpose: the point
-         * of a proximity mirror is that a corridor reads as blank cloth until you walk up to
-         * one, and a radius wide enough to light the whole corridor at once defeats it.
+         * <p>Also how far they may drift before a mirror they turned on goes off, and how far
+         * out its wall is read before it can be drawn whole. Compared squared where it is a
+         * distance check, so it never costs a square root. Was {@code mirror-proximity-radius}.
          */
-        MIRROR_PROXIMITY_RADIUS,
+        MIRROR_PROXIMITY_DISTANCE,
 
         /**
          * How often the proximity sweep runs, in ticks.
@@ -1364,13 +1364,14 @@ public class ConfigManager
     }
 
     /**
-     * How close a player must be for a proximity mirror to show its look.
+     * How close a player must be for a mirror's banner to give way to its room, how far they may
+     * drift before a mirror they turned on goes off, and how far out its wall is read.
      *
-     * @return the radius in blocks, never below one
+     * @return the distance in blocks, never below one
      */
-    public static int getMirrorProximityRadius()
+    public static int getMirrorProximityDistance()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_RADIUS);
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
         return (s == null) ? 16 : Math.max(1, s.getIntValue());
     }
 

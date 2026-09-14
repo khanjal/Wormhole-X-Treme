@@ -700,7 +700,7 @@ class MirrorWindowsTest
     }
 
     /**
-     * A mirror on a wall with a gap in the wall within the proximity radius is trimmed, like a
+     * A mirror on a wall with a gap in the wall within the proximity distance is trimmed, like a
      * freestanding one.
      *
      * <p>Through the gap, the far side drawn whole would show beside the mirror. One ring of
@@ -722,7 +722,7 @@ class MirrorWindowsTest
     }
 
     /**
-     * A gap in the wall twelve blocks out trims a mirror while the proximity radius is sixteen.
+     * A gap in the wall twelve blocks out trims a mirror while the proximity distance is sixteen.
      *
      * <p>"Sometimes I can see the overflow on the sides." The wall was read eight blocks out, the
      * radius when that was chosen, and stayed eight when the radius doubled: a viewer twelve blocks
@@ -747,7 +747,7 @@ class MirrorWindowsTest
     @Test
     void theSameGapPastAnEightBlockRadiusLeavesTheMirrorDrawnWhole()
     {
-        ConfigTestSupport.set(ConfigKeys.MIRROR_PROXIMITY_RADIUS, 8);
+        ConfigTestSupport.set(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 8);
         gap = new Spot(22, 64, 11);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));

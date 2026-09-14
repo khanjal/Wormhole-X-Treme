@@ -722,7 +722,7 @@ public class MirrorCommand implements SubCommand
             return;
         }
         say(sender, MirrorText.quoted(name) + " goes dark until somebody comes within "
-            + ConfigManager.getMirrorProximityRadius() + " blocks.");
+            + ConfigManager.getMirrorProximityDistance() + " blocks.");
         if (!MirrorProximity.canHide())
         {
             say(sender, "This server has no Player.sendBlockUpdate, which arrived in 1.20.1,");

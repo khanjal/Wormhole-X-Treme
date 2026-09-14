@@ -64,7 +64,7 @@ way.
 ## The banner's look
 
 Up close a mirror shows a room, drawn in real blocks behind its wall, and nothing on the banner
-matters. From further than `mirror-proximity-radius`, from behind, and before a room is captured,
+matters. From further than `mirror-proximity-distance`, from behind, and before a room is captured,
 the banner is what shows — so a corridor of mirrors still reads as a row of doors.
 
 A banner is a dyed base plus at most six flat patterns, in sixteen colours, and what it can carry
@@ -150,7 +150,7 @@ mirror re-reads on the next approach anyway. The worst a restart costs is one sa
 ## Always and proximity
 
 A corridor of lit banners is a corridor of lit banners. `mirror display <name> proximity` makes
-one go dark until somebody comes within `mirror-proximity-radius` blocks of it.
+one go dark until somebody comes within `mirror-proximity-distance` blocks of it.
 
 ### The banner in the world is never the blank one
 
@@ -224,7 +224,7 @@ then goes, where chat would leave a line behind for every banner walked past —
 cost a player their whole chat window to walk down.
 
 **Looking at, not standing near.** This began the other way: sent once, on crossing into the
-proximity radius, which is how the rings announce themselves. For a ring that is right, because
+proximity distance, which is how the rings announce themselves. For a ring that is right, because
 walking in starts something. A mirror is not started by arriving at it — it is looked at,
 considered, and then clicked — and an action bar line fades after about three seconds, so the
 message had come and gone by the moment it was wanted. You were told there was a door while

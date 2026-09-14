@@ -38,7 +38,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 /**
  * The line a mirror shows to whoever is looking at it.
  *
- * <p>This replaced a line sent once, on crossing into the proximity radius, and the two tests
+ * <p>This replaced a line sent once, on crossing into the proximity distance, and the two tests
  * that matter most here are the ones that pin down why. An action bar entry fades after about
  * three seconds, so a message sent on arrival is gone by the time somebody is stood in front of
  * the banner deciding whether to click it -- the one moment it is worth having. So the line is

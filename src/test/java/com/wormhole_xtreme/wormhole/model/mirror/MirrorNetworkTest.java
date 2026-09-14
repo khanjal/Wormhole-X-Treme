@@ -230,7 +230,7 @@ class MirrorNetworkTest
         assertEquals("No other mirrors found.", MirrorNetwork.scroll(archive, false), "there is no mirror called hub");
     }
 
-    /** Somebody is near a mirror inside the proximity radius, and not past it; the clicker does not count. */
+    /** Somebody is near a mirror inside the proximity distance, and not past it; the clicker does not count. */
     @Test
     void whoIsNearIsMeasuredFromTheBannerAndLeavesOutTheClicker()
     {
