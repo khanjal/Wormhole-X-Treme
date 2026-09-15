@@ -101,6 +101,20 @@ public final class MirrorWindows
     /** The same, settable so a test can make a room not fit. */
     static int mostFixed = MOST_FIXED;
 
+    /**
+     * Most blocks a room may hold to be sent whole; past it, it is clipped to each eye however
+     * good its wall.
+     *
+     * <p>A room at the render distance is some eighty thousand blocks, and sending them all as a
+     * viewer came into range -- and taking them all back as they left -- re-meshed every chunk
+     * section they touched on the client, a moment's freeze each way. Clipped to an eye the same
+     * room is a few thousand, and a step is a small difference.
+     */
+    private static final int MOST_WHOLE = 20_000;
+
+    /** The same, settable so a test can make a small room too big. */
+    static int mostWhole = MOST_WHOLE;
+
     /** The server's share of work per second, by default: blocks walked, fixed and sent, all viewers together. */
     private static final int WORK_PER_SECOND = 400_000;
 
@@ -440,6 +454,11 @@ public final class MirrorWindows
             return "whole " + toDepth(window) + ", clipped to each eye: " + MirrorText.bad("wall within "
                 + wallReach() + " open at " + gap.x() + "," + gap.y() + "," + gap.z()) + " (" + what + ")";
         }
+        if (!fixedForViewer && (window.fixed != null) && (window.fixed.size() > mostWhole))
+        {
+            return "whole " + toDepth(window) + ", clipped to each eye: a room of " + window.fixed.size()
+                + " blocks is more than " + mostWhole + " to send at once";
+        }
         if (!fixedForViewer)
         {
             return "whole " + toDepth(window) + ", clipped to each eye: "
@@ -481,6 +500,7 @@ public final class MirrorWindows
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
+        mostWhole = MOST_WHOLE;
         workSecond = 0L;
         workSpent = 0;
     }
@@ -1173,7 +1193,9 @@ public final class MirrorWindows
                 fixedView(window, now);
             }
             window.fixedUsedAt = now;
-            (alone ? whole : clipped).put(window, new Whole(window.fixed, window.fixedDepth));
+            // Whole only while it is small enough to send at once; see MOST_WHOLE.
+            final boolean asIs = alone && (window.fixed.size() <= mostWhole);
+            (asIs ? whole : clipped).put(window, new Whole(window.fixed, window.fixedDepth));
         }
         return new Wholes(whole, clipped);
     }

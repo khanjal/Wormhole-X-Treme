@@ -126,8 +126,9 @@ its patterns could not be put back.
 Nothing in the world changes. Only the players looking in are sent the view. A mirror set in a
 solid wall — solid for `mirror-proximity-distance` blocks on every side of the opening, with no other
 mirror within twice the depth — shows everything behind the wall out to its depth, the same from
-wherever you stand in front of it. `create` says so when a new mirror is closer than that to
-another. Any other mirror shows the same room, clipped to where you stand: only the blocks you
+wherever you stand in front of it, while its room is small enough to send at once (20,000 blocks;
+a deep room is more). `create` says so when a new mirror is closer than that to another. Any
+other mirror shows the same room, clipped to where you stand: only the blocks you
 could actually see through the opening, so nothing shows past its edges — and the outer half of
 its wall's edge is kept clear, so a wider wall shows a little more beside the opening as you move.
 Either way it reaches the full depth, standing or walking.

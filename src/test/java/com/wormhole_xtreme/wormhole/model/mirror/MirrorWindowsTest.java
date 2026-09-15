@@ -706,6 +706,32 @@ class MirrorWindowsTest
     }
 
     /**
+     * A room too big to send at once is clipped to each eye, however good its wall.
+     *
+     * <p>"It's rendering lag when you look at or move in/out of view: it remains and then takes a
+     * moment to generate." A room at the render distance is some eighty thousand blocks, and a
+     * mirror in a solid wall sent them all as a viewer came into range and took them all back as
+     * they left; the client re-meshed every chunk section they touched. Past a size the room is
+     * clipped to the eye -- a few thousand blocks, and a step is a small difference -- and debug
+     * says why.
+     */
+    @Test
+    void aRoomTooBigToSendAtOnceIsClippedToEachEyeHoweverGoodItsWall()
+    {
+        MirrorWindows.mostWhole = 10;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: whole to depth 16, clipped to each eye: a room of ")
+            && line.endsWith(" blocks is more than 10 to send at once")), "clipped for its size: " + said);
+        assertFalse(positions(changesTo(viewer, 1).get(0)).containsKey(new Spot(18, 64, 12)),
+            "and off to the side, where no line of sight from this eye goes, nothing is sent");
+    }
+
+    /**
      * A room cut shallower than the depth to fit under the cap says so, in red.
      *
      * <p>"If it says a smaller depth, the 250,000-block cap on a held room cut it." It reported

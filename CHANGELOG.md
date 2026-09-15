@@ -818,6 +818,15 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A room too big to send at once is clipped to each eye, however good its wall.** "It's
+  rendering lag when you look at or move in/out of view: it remains and then takes a moment to
+  generate." A room at the render distance is some eighty thousand blocks, and a mirror in a
+  solid wall sent every one of them as a viewer came into range, and took every one back as they
+  left: the client re-meshed every chunk section they touched, a moment's freeze each way. Past
+  20,000 blocks a room is clipped to the eye like any other -- a few thousand blocks through a
+  one-block opening, and a step is a small difference -- and `debug` says why. A small room in a
+  good wall is still sent whole, the same from every eye.
+
 - **`mirror-view-depth` is 160 by default, and a room cut to fit says so.** "Should we increase
   the distance, or do something about preventing the real world bleeding through the mirror
   world?" What shows through is whatever lies past the depth, and the depth was 32 from when a
