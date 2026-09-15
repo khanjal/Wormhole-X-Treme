@@ -818,6 +818,16 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A clipped room's far part stands between small steps.** "It was real laggy" at depth 160,
+  and fine at 60. Through a one-block opening, a tenth-of-a-block step swings the far end of the
+  view a dozen blocks sideways, so thousands of blocks a hundred and more deep changed on every
+  redraw, ten times a second: projected on the server and re-meshed on the client, each time. The
+  near part of a room has to move with every step; the far part is now judged again only once the
+  eye has left the block it was in, or half a second on, and stands as last judged between. At a
+  walk that is a couple of far redraws a second instead of ten, and the room reaches the render
+  distance without the stutter. `debug`'s `last redraw` line counts only what a redraw projected,
+  so a small step shows a small number and a whole-block step the far layers too.
+
 - **A room too big to send at once is clipped to each eye, however good its wall.** "It's
   rendering lag when you look at or move in/out of view: it remains and then takes a moment to
   generate." A room at the render distance is some eighty thousand blocks, and a mirror in a

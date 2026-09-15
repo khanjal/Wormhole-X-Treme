@@ -115,6 +115,24 @@ public final class MirrorWindows
     /** The same, settable so a test can make a small room too big. */
     static int mostWhole = MOST_WHOLE;
 
+    /**
+     * How deep behind the opening a clipped room is judged afresh on every redraw; past it, only
+     * on a whole-block move or after {@link #FAR_MILLIS}.
+     *
+     * <p>Through a one-block opening, a tenth-of-a-block step swings the far end of a view a
+     * dozen blocks sideways: thousands of blocks a hundred and more deep changed ten times a
+     * second, projected here and re-meshed on the client, and a mirror at the render distance
+     * stuttered. The near part of a room moves with every step and must; the far part may lag a
+     * step behind, since parallax that far off is what a step is.
+     */
+    private static final int NEAR_LAYERS = 48;
+
+    /** The same, settable so a test can push the far part close. */
+    static int nearLayers = NEAR_LAYERS;
+
+    /** How long a clipped room's far part stands before it is judged again from the same block. */
+    private static final long FAR_MILLIS = 500L;
+
     /** The server's share of work per second, by default: blocks walked, fixed and sent, all viewers together. */
     private static final int WORK_PER_SECOND = 400_000;
 
@@ -312,6 +330,8 @@ public final class MirrorWindows
         private Location pendingEye;
         private boolean catchUpQueued;
         private Redraw lastRedraw;
+        /** Each clipped window's far part as last judged, by mirror name; see {@link #NEAR_LAYERS}. */
+        private final Map<String, Far> far = new HashMap<>();
         private String stamp = "";
 
         View(final World world)
@@ -501,6 +521,7 @@ public final class MirrorWindows
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
         mostWhole = MOST_WHOLE;
+        nearLayers = NEAR_LAYERS;
         workSecond = 0L;
         workSpent = 0;
     }
@@ -894,7 +915,7 @@ public final class MirrorWindows
         }
         final List<Entity> inside = new ArrayList<>();
         final Budget budget = new Budget();
-        final Map<Long, BlockData> wanted = compose(eye, seeing, wholes, view.drawn.keySet(), now, inside, budget);
+        final Map<Long, BlockData> wanted = compose(view, eye, seeing, wholes, view.drawn.keySet(), now, inside, budget);
         workSpent += budget.projected;
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
@@ -1081,7 +1102,7 @@ public final class MirrorWindows
      * room judged against this eye ({@link #clipWhole}). A window whose room is not held yet --
      * the server's share of work spent before it was built -- draws nothing until it is.
      */
-    private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
+    private static Map<Long, BlockData> compose(final View view, final Location eye, final List<Window> seeing,
         final Wholes wholes, final Set<Long> before, final long now, final List<Entity> inside,
         final Budget budget)
     {
@@ -1119,7 +1140,7 @@ public final class MirrorWindows
             }
             else if (clipped != null)
             {
-                clipWhole(eye, window, clipped, seeing, allOpen, wanted, before, budget, now);
+                clipWhole(view, eye, window, clipped, seeing, allOpen, wanted, before, budget, now);
             }
         }
         if (!seeing.isEmpty())
@@ -1128,6 +1149,21 @@ public final class MirrorWindows
                 allOpen, inside);
         }
         return wanted;
+    }
+
+    /**
+     * A clipped room's far part as one eye last judged it: which room, from which block the eye
+     * was in, when, and the blocks kept.
+     */
+    private record Far(Whole whole, int eyeX, int eyeY, int eyeZ, long at, Map<Long, BlockData> blocks)
+    {
+        /** Whether this still stands for an eye, or the far part is to be judged again. */
+        boolean standsFor(final Whole room, final Location eye, final long now)
+        {
+            // The room's blocks, not the record round them, which every redraw makes anew.
+            return (whole.blocks() == room.blocks()) && (eyeX == eye.getBlockX()) && (eyeY == eye.getBlockY())
+                && (eyeZ == eye.getBlockZ()) && ((now - at) < FAR_MILLIS);
+        }
     }
 
     /** The windows a viewer sees whose rooms are held whole: drawn as they are, or clipped to the eye. */
@@ -1211,13 +1247,21 @@ public final class MirrorWindows
      * each redraw keeps the blocks this eye may see. What the capture kept is already only what
      * somebody at the opening could see, so there is nothing to occlude, and a bound on where a
      * block can land ({@link MirrorWindow#mightLandOn}) spares most of the room a projection.
+     *
+     * <p>Only the near part every time: the far part, past {@link #NEAR_LAYERS}, is judged again
+     * only once the eye has left the block it was in or {@link #FAR_MILLIS} have passed, and stands
+     * as last judged meanwhile.
      */
-    private static void clipWhole(final Location eye, final Window window, final Whole whole,
+    private static void clipWhole(final View view, final Location eye, final Window window, final Whole whole,
         final List<Window> seeing, final Set<Long> allOpen, final Map<Long, BlockData> wanted,
         final Set<Long> before, final Budget budget, final long now)
     {
+        final Far last = view.far.get(window.mirror.name());
+        final boolean farAgain = (last == null) || !last.standsFor(whole, eye, now);
+        final Map<Long, BlockData> farKept = farAgain ? new HashMap<>() : last.blocks();
         final Set<Long> shielded = shielded(window, eye, now);
         final double[] span = spanOf(window);
+        final MirrorWindow shape = window.shape;
         for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
         {
             final long cell = entry.getKey();
@@ -1228,7 +1272,13 @@ public final class MirrorWindows
             final int x = unpackX(cell);
             final int y = unpackY(cell);
             final int z = unpackZ(cell);
-            if (!window.shape.mightLandOn(eye.getX(), eye.getY(), eye.getZ(), x, y, z, span))
+            final boolean farOff = (((x - shape.base().x()) * shape.into().x())
+                + ((z - shape.base().z()) * shape.into().z())) > nearLayers;
+            if (farOff && !farAgain)
+            {
+                continue;
+            }
+            if (!shape.mightLandOn(eye.getX(), eye.getY(), eye.getZ(), x, y, z, span))
             {
                 continue;
             }
@@ -1240,7 +1290,20 @@ public final class MirrorWindows
                 continue;
             }
             wanted.put(cell, entry.getValue());
+            if (farOff)
+            {
+                farKept.put(cell, entry.getValue());
+            }
             budget.near++;
+        }
+        if (farAgain)
+        {
+            view.far.put(window.mirror.name(), new Far(whole, eye.getBlockX(), eye.getBlockY(), eye.getBlockZ(), now, farKept));
+        }
+        else
+        {
+            farKept.forEach(wanted::putIfAbsent);
+            budget.near += farKept.size();
         }
         budget.fixedDepth = Math.max(budget.fixedDepth, whole.depth());
     }

@@ -706,6 +706,51 @@ class MirrorWindowsTest
     }
 
     /**
+     * A clipped room's far part stands between small steps, and is judged again on a whole-block move.
+     *
+     * <p>"It was real laggy." Through a one-block opening a tenth-of-a-block step swings the far
+     * end of a view a dozen blocks sideways, so thousands of far blocks changed ten times a second.
+     * With the far part starting four layers in, a step inside the same block projects only the
+     * near layers, and a step into the next block projects the far ones too.
+     */
+    @Test
+    void aClippedRoomsFarPartStandsBetweenSmallStepsAndFollowsAWholeBlockMove()
+    {
+        MirrorWindows.nearLayers = 4;
+        gap = new Spot(16, 64, 11);
+        // A clock of our own: a redraw over these mocks takes longer than the half second the far
+        // part stands, so real time would judge it again on every step.
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final int[] projected = new int[2];
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            projected[0] = projectedByTheLastRedraw(viewer);
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 11.5, 64.0, 7.5));
+            projected[1] = projectedByTheLastRedraw(viewer);
+        });
+
+        assertTrue(projected[0] > 0, "a step inside the block projects the near layers");
+        assertTrue(projected[1] > (2 * projected[0]),
+            "a step into the next block projects the far layers too: " + projected[0] + " then " + projected[1]);
+    }
+
+    /** How many blocks the viewer's last redraw projected, off the debug line. */
+    private static int projectedByTheLastRedraw(final Player viewer)
+    {
+        final String line = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain)
+            .filter(said -> said.startsWith("last redraw: ")).findFirst().orElseThrow();
+        return Integer.parseInt(line.replaceAll("last redraw: (\\d+) blocks projected.*", "$1"));
+    }
+
+    /**
      * A room too big to send at once is clipped to each eye, however good its wall.
      *
      * <p>"It's rendering lag when you look at or move in/out of view: it remains and then takes a
