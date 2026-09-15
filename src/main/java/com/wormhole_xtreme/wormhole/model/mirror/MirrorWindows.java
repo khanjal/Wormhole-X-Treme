@@ -75,6 +75,9 @@ public final class MirrorWindows
     /** How often a viewer is sent their whole view again when nothing else has prompted it. */
     private static final long RESEND_MILLIS = 30_000L;
 
+    /** The unit every count in {@code mirror debug} is said in. */
+    private static final String BLOCKS = " blocks";
+
     /** How old a reading of what surrounds an opening may get. */
     private static final long RESAMPLE_MILLIS = 5000L;
 
@@ -382,7 +385,7 @@ public final class MirrorWindows
             return lines;
         }
         lines.add(MirrorText.field("looking into", String.join(", ", view.mirrors)));
-        lines.add(MirrorText.field("drawn", view.drawn.size() + " blocks"));
+        lines.add(MirrorText.field("drawn", view.drawn.size() + BLOCKS));
         lines.add(MirrorText.field("creatures hidden", String.valueOf(view.veiled.size())));
         if (view.undrawable > 0)
         {
@@ -481,7 +484,7 @@ public final class MirrorWindows
         if (full)
         {
             return List.of(MirrorText.field(name, "whole and unlimited for you, "
-                + ((window.full == null) ? 0 : window.full.blocks().size()) + " blocks"));
+                + ((window.full == null) ? 0 : window.full.blocks().size()) + BLOCKS));
         }
         final boolean fixedForViewer = view.fixedNames.contains(name);
         final List<String> lines = new ArrayList<>();
@@ -518,7 +521,7 @@ public final class MirrorWindows
                 + MirrorText.bad("another mirror within twice the depth");
         }
         return MirrorText.good("drawn whole") + " " + toDepth(window) + ", "
-            + ((window.fixed == null) ? 0 : window.fixed.size()) + " blocks";
+            + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS;
     }
 
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
@@ -527,7 +530,7 @@ public final class MirrorWindows
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
         {
             return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixed
-                + " blocks");
+                + BLOCKS);
         }
         return "to depth " + window.fixedDepth;
     }
@@ -1468,43 +1471,12 @@ public final class MirrorWindows
         final Location from = farAgain ? fatEye(eye, farCell, window.shape) : last.from();
         final double spread = farCell / 2.0;
         // What stands in front of the opening is thrown onto the face from this eye alone.
-        final Set<Long> shielded = shielded(window, eye, now);
+        final Sight sight = new Sight(seeing, allOpen, shielded(window, eye, now), before, budget);
         final double[] span = spanOf(window);
-        final Eye own = new Eye(eye, span, 0.0);
-        final Eye fat = new Eye(from, new double[] { span[0] - spread, span[1] + spread, span[2] - spread,
-            span[3] + spread }, spread);
-        final double near = nearDistance * nearDistance;
-        for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
-        {
-            final long cell = entry.getKey();
-            if (wanted.containsKey(cell))
-            {
-                continue;
-            }
-            final int x = unpackX(cell);
-            final int y = unpackY(cell);
-            final int z = unpackZ(cell);
-            final double dx = (x + 0.5) - from.getX();
-            final double dy = (y + 0.5) - from.getY();
-            final double dz = (z + 0.5) - from.getZ();
-            final boolean farOff = ((dx * dx) + (dy * dy) + (dz * dz)) > near;
-            if (farOff && !farAgain)
-            {
-                continue;
-            }
-            final double[] rect = (farOff ? fat : own).outline(window, x, y, z, seeing, allOpen, budget);
-            if ((rect == null)
-                || !coveredBy(window, rect, allOpen, shielded, before.contains(cell) ? KEPT_BESIDE : MOST_BESIDE))
-            {
-                continue;
-            }
-            wanted.put(cell, entry.getValue());
-            if (farOff)
-            {
-                farKept.put(cell, entry.getValue());
-            }
-            budget.near++;
-        }
+        final Eye own = new Eye(eye, span, 0.0, sight);
+        final Eye fat = farAgain ? new Eye(from, new double[] { span[0] - spread, span[1] + spread,
+            span[2] - spread, span[3] + spread }, spread, sight) : null;
+        keep(window, whole, from, own, fat, wanted, farKept);
         if (farAgain)
         {
             view.far.put(window.mirror.name(), Far.judged(whole, eye, farCell, from, now, farKept));
@@ -1518,21 +1490,92 @@ public final class MirrorWindows
     }
 
     /**
+     * Keeps every block of a room an eye sees: the near part as the viewer's own eye sees it, the
+     * far part as the fat eye does, and the far part left as it stands when there is no fat eye
+     * this redraw.
+     *
+     * @param from
+     *            the point near and far are split from
+     * @param fat
+     *            the eye the far part is judged for, or null to leave the far part alone
+     */
+    private static void keep(final Window window, final Whole whole, final Location from, final Eye own,
+        final Eye fat, final Map<Long, BlockData> wanted, final Map<Long, BlockData> farKept)
+    {
+        final double near = nearDistance * nearDistance;
+        for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
+        {
+            final long cell = entry.getKey();
+            if (wanted.containsKey(cell))
+            {
+                continue;
+            }
+            final double dx = (unpackX(cell) + 0.5) - from.getX();
+            final double dy = (unpackY(cell) + 0.5) - from.getY();
+            final double dz = (unpackZ(cell) + 0.5) - from.getZ();
+            final boolean farOff = ((dx * dx) + (dy * dy) + (dz * dz)) > near;
+            if (farOff && (fat == null))
+            {
+                continue;
+            }
+            if (!(farOff ? fat : own).sees(window, cell))
+            {
+                continue;
+            }
+            wanted.put(cell, entry.getValue());
+            if (farOff)
+            {
+                farKept.put(cell, entry.getValue());
+            }
+        }
+    }
+
+    /** What one redraw judges a clipped room's blocks against, the same for every eye it judges from. */
+    private record Sight(List<Window> seeing, Set<Long> allOpen, Set<Long> shielded, Set<Long> before, Budget budget)
+    {
+    }
+
+    /**
      * An eye a clipped room's block is judged from: the viewer's own, or the middle of their cell
      * with every landing widened by half the cell, for the far part ({@link #fatEye}).
      */
-    private record Eye(Location from, double[] span, double spread)
+    private static final class Eye
     {
-        /** A block's outline on the face from here, or null if it cannot land on the span or is not seen through the window. */
-        double[] outline(final Window window, final int x, final int y, final int z, final List<Window> seeing,
-            final Set<Long> allOpen, final Budget budget)
+        private final Location from;
+        private final double[] span;
+        private final double spread;
+        private final Sight sight;
+
+        Eye(final Location from, final double[] span, final double spread, final Sight sight)
         {
+            this.from = from;
+            this.span = span;
+            this.spread = spread;
+            this.sight = sight;
+        }
+
+        /**
+         * Whether a block is seen through the window from here and lands where the wall hides it,
+         * counting the projection and, if it is, the block.
+         */
+        boolean sees(final Window window, final long cell)
+        {
+            final int x = unpackX(cell);
+            final int y = unpackY(cell);
+            final int z = unpackZ(cell);
             if (!window.shape.mightLandOn(from.getX(), from.getY(), from.getZ(), x, y, z, span))
             {
-                return null;
+                return false;
             }
-            budget.projected++;
-            return seenThrough(from, window, x, y, z, seeing, allOpen, spread);
+            sight.budget().projected++;
+            final double[] rect = seenThrough(from, window, x, y, z, sight.seeing(), spread);
+            if ((rect == null) || !coveredBy(window, rect, sight.allOpen(), sight.shielded(),
+                sight.before().contains(cell) ? KEPT_BESIDE : MOST_BESIDE))
+            {
+                return false;
+            }
+            sight.budget().near++;
+            return true;
         }
     }
 
@@ -1932,7 +1975,7 @@ public final class MirrorWindows
                     }
                     continue;
                 }
-                final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen, 0.0);
+                final double[] rect = seenThrough(eye, window, x, y, z, seeing, 0.0);
                 if ((rect != null) && coveredBy(window, rect, allOpen, Set.of(), MOST_BESIDE))
                 {
                     inside.add(entity);
@@ -2005,7 +2048,7 @@ public final class MirrorWindows
      * @return the block's outline on the opening's face, or null if it is not seen through it
      */
     private static double[] seenThrough(final Location eye, final Window window, final int x,
-        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen, final double spread)
+        final int y, final int z, final List<Window> seeing, final double spread)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
         if (rect == null)
