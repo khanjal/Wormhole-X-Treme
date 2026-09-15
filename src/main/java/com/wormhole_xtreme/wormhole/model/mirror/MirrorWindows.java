@@ -264,8 +264,7 @@ public final class MirrorWindows
     /** One window: where it is, which of its opening can be seen through, and its far side. */
     private static final class Window
     {
-        /** The mirror, as last registered; {@link #replace} swaps it when a setting changes. */
-        private QuantumMirror mirror;
+        private final QuantumMirror mirror;
         private final MirrorWindow shape;
         private final Block banner;
         private final List<Spot> open;
@@ -289,10 +288,6 @@ public final class MirrorWindows
         private long fixedAt;
         private int fixedFor;
         private int fixedDepth;
-        /** What the wall past the depth was made of when the view was fixed, or null for none. */
-        private Material fixedSky;
-        /** How many blocks of that wall the view holds. */
-        private int backdrop;
         private long fixedUsedAt;
         /** The whole capture through this window, for an admin who asked; null until then. */
         private Whole full;
@@ -512,10 +507,7 @@ public final class MirrorWindows
             return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixed
                 + " blocks");
         }
-        return "to depth " + window.fixedDepth + ((window.backdrop > 0)
-            ? (", a wall of " + window.fixedSky.name().toLowerCase(java.util.Locale.ROOT) + " past it, "
-                + window.backdrop + " blocks")
-            : "");
+        return "to depth " + window.fixedDepth;
     }
 
     /** Static state only. */
@@ -838,25 +830,6 @@ public final class MirrorWindows
         if (view != null)
         {
             send(player, view, view.drawn, now(), true);
-        }
-    }
-
-    /**
-     * Gives a window the mirror as it is now registered, after a setting changed.
-     *
-     * <p>A window holds the mirror it was offered, and a record is not changed but replaced. The
-     * fixed view is judged fresh against the mirror's settings, so the next redraw takes the new
-     * ones up.
-     *
-     * @param mirror
-     *            the mirror as it is now
-     */
-    public static void replace(final QuantumMirror mirror)
-    {
-        final Window window = WINDOWS.get(mirror.name());
-        if (window != null)
-        {
-            window.mirror = mirror;
         }
     }
 
@@ -1489,8 +1462,7 @@ public final class MirrorWindows
     private static boolean fixedIsFresh(final Window window, final long now)
     {
         return (window.fixed != null) && (window.fixedFrom == window.capture)
-            && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS)
-            && (window.fixedSky == backdropOf(window.banner.getWorld(), window.mirror));
+            && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS);
     }
 
     /** Whether this second's share of work is spent, starting a new second's if one has begun. */
@@ -1578,8 +1550,7 @@ public final class MirrorWindows
      * the whole far side is drawn once, and kept for a minute before the real world is read again.
      * The cost is that a viewer sees the far side in place of the real world behind that wall
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
-     * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits, and a wall of the
-     * sky's colour stands a block past the depth ({@link #backdrop}).
+     * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits.
      */
     private static void fixedView(final Window window, final long now)
     {
@@ -1598,126 +1569,11 @@ public final class MirrorWindows
             view = fixedTo(window, depth, now, mostFixed);
             workSpent += (int) (2.1 * depth * depth * depth);
         }
-        final Material sky = backdropOf(window.banner.getWorld(), window.mirror);
         window.fixed = (view == null) ? new HashMap<>() : view;
-        window.backdrop = ((view == null) || (sky == null)) ? 0 : backdrop(window, depth, sky, view);
-        window.fixedSky = sky;
         window.fixedFrom = window.capture;
         window.fixedAt = now;
         window.fixedFor = configured;
         window.fixedDepth = depth;
-    }
-
-    /**
-     * What the wall past a mirror's depth is made of in a world, or null for none.
-     *
-     * <p>The mirror's own backdrop, or {@code mirror-backdrop}: {@code sky} is the sky's colour
-     * -- light blue, light grey in rain, black under the nether's and the end's -- which the
-     * client dims with the sky at night; a block's name is that block; {@code none} is no wall.
-     */
-    static Material backdropOf(final World here, final QuantumMirror mirror)
-    {
-        final String setting = (mirror.backdrop() != null) ? mirror.backdrop() : ConfigManager.getMirrorBackdrop();
-        if ("none".equals(setting))
-        {
-            return null;
-        }
-        final Material named = "sky".equals(setting) ? null : Material.matchMaterial(setting);
-        return (named != null) ? named : skyOf(here);
-    }
-
-    /** The sky's colour over a world, as a block. */
-    private static Material skyOf(final World here)
-    {
-        final World.Environment environment = here.getEnvironment();
-        if ((environment == World.Environment.NETHER) || (environment == World.Environment.THE_END))
-        {
-            return Material.BLACK_CONCRETE;
-        }
-        return here.hasStorm() ? Material.LIGHT_GRAY_CONCRETE : Material.LIGHT_BLUE_CONCRETE;
-    }
-
-    /**
-     * A wall of the sky's colour a block past the depth, across the far side of the room.
-     *
-     * <p>Nothing stops a client drawing past a distance one way, so what this world has beyond
-     * the room -- hills, trees -- showed through its far edge. Carving all of that to air is
-     * hundreds of thousands of blocks; a flat wall across the room's end is a few thousand, from
-     * the lowest surface loaded beyond it to the highest, and from the opening's foot to its top
-     * besides, since a line through the opening meets the wall between the opening's height and
-     * what it goes on to. Coloured as the sky, it reads as more sky. No wall where nothing is
-     * loaded beyond the depth: the client shows nothing there anyway.
-     *
-     * @return how many blocks the wall is
-     */
-    private static int backdrop(final Window window, final int depth, final Material sky,
-        final Map<Long, BlockData> view)
-    {
-        final MirrorWindow shape = window.shape;
-        final World here = window.banner.getWorld();
-        final boolean alongX = shape.into().x() != 0;
-        final int sign = alongX ? shape.into().x() : shape.into().z();
-        final int baseAlong = alongX ? shape.base().x() : shape.base().z();
-        final double[] centre = centreOf(shape);
-        final int centreAcross = (int) Math.floor(alongX ? centre[2] : centre[0]);
-        final int max = here.getMaxHeight();
-        // The chunks the server sends reach a chunk past its view distance from a viewer, and a
-        // viewer stands up to the proximity distance in front of the wall: two chunks over it.
-        final int sent = (here.getViewDistance() + 2) * 16;
-        final Map<Long, Boolean> loaded = new HashMap<>();
-        int low = Integer.MAX_VALUE;
-        int high = Integer.MIN_VALUE;
-        for (int ahead = depth + 2; ahead <= sent; ahead++)
-        {
-            final int along = baseAlong + (sign * ahead);
-            // Within the fan a line through the opening can reach: a block and a half sideways per block in.
-            final int fan = ((ahead * 3) / 2) + 3;
-            for (int across = centreAcross - fan; across <= (centreAcross + fan); across++)
-            {
-                final int x = alongX ? along : across;
-                final int z = alongX ? across : along;
-                if (!loaded.computeIfAbsent(chunkKey(x, z), key -> here.isChunkLoaded(x >> 4, z >> 4)))
-                {
-                    continue;
-                }
-                final int top = here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
-                if (top < max)
-                {
-                    low = Math.min(low, top);
-                    high = Math.max(high, top);
-                }
-            }
-        }
-        if (low > high)
-        {
-            return 0;
-        }
-        low = Math.max(here.getMinHeight(), Math.min(low, shape.base().y()));
-        high = Math.min(max - 1, Math.max(high, (shape.base().y() + MirrorWindow.HEIGHT) - 1));
-        BlockData data;
-        try
-        {
-            data = Bukkit.createBlockData(sky);
-        }
-        catch (final IllegalArgumentException notABlock)
-        {
-            data = Bukkit.createBlockData(skyOf(here));
-        }
-        final int wallAt = baseAlong + (sign * (depth + 1));
-        int count = 0;
-        for (int across = centreAcross - (depth + 2); across <= (centreAcross + depth + 2); across++)
-        {
-            for (int y = low; y <= high; y++)
-            {
-                final int x = alongX ? wallAt : across;
-                final int z = alongX ? across : wallAt;
-                if (view.putIfAbsent(key(x, y, z), data) == null)
-                {
-                    count++;
-                }
-            }
-        }
-        return count;
     }
 
     /**
@@ -1740,9 +1596,11 @@ public final class MirrorWindows
         final MirrorWindow shape = window.shape;
         final MirrorCapture capture = window.capture;
         final World here = window.banner.getWorld();
+        final double[] centre = centreOf(shape);
         final int min = here.getMinHeight();
         final int max = here.getMaxHeight();
         final BlockData air = Bukkit.createBlockData(Material.AIR);
+        final double reach = (double) depth * depth;
         final Map<Long, BlockData> view = new HashMap<>();
         final boolean[] over = { false };
         capture.forEachKept((fx, fy, fz, farAir) ->
@@ -1755,10 +1613,15 @@ public final class MirrorWindows
             final int x = at.x();
             final int y = at.y();
             final int z = at.z();
-            // To the depth straight in, whatever the angle: a box, so the wall past it is flat. A
-            // sphere left this world showing at the corners between it and the wall.
             final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
-            if ((layer < 1) || (layer > depth) || (y < min) || (y >= max))
+            if ((layer < 1) || (y < min) || (y >= max))
+            {
+                return;
+            }
+            final double dx = (x + 0.5) - centre[0];
+            final double dy = (y + 0.5) - centre[1];
+            final double dz = (z + 0.5) - centre[2];
+            if (((dx * dx) + (dy * dy) + (dz * dz)) >= reach)
             {
                 return;
             }
@@ -1780,7 +1643,7 @@ public final class MirrorWindows
 
     /**
      * The same for a complete capture, whose missing entries are air: every block behind the wall
-     * within the depth, walked through the box the capture keeps.
+     * within the depth, walked through the volume.
      */
     private static Map<Long, BlockData> fixedToByVolume(final Window window, final int depth, final long now,
         final int most)
@@ -1792,21 +1655,27 @@ public final class MirrorWindows
         final int sign = alongX ? shape.into().x() : shape.into().z();
         final int baseAlong = alongX ? shape.base().x() : shape.base().z();
         final double[] centre = centreOf(shape);
-        final int centreAcross = (int) Math.floor(alongX ? centre[2] : centre[0]);
+        final double centreAcross = alongX ? centre[2] : centre[0];
         final int min = here.getMinHeight();
         final int max = here.getMaxHeight();
         final BlockData air = Bukkit.createBlockData(Material.AIR);
+        final double reach = (double) depth * depth;
         final Map<Long, BlockData> view = new HashMap<>();
-        // The capture's box: the depth and a margin of two to each side and up and down.
-        final int wide = depth + 2;
-        for (int layer = 1; layer <= depth; layer++)
+        for (int layer = 1; layer < depth; layer++)
         {
             final int along = baseAlong + (sign * layer);
-            for (int across = centreAcross - wide; across <= (centreAcross + wide); across++)
+            final double wide = Math.sqrt(reach - ((double) layer * layer));
+            for (int across = (int) Math.floor(centreAcross - wide); across <= (int) Math.ceil(centreAcross + wide); across++)
             {
-                final int yTo = Math.min(max - 1, (int) Math.floor(centre[1]) + wide);
-                for (int y = Math.max(min, (int) Math.floor(centre[1]) - wide); y <= yTo; y++)
+                final double offAcross = (across + 0.5) - centreAcross;
+                final int yTo = Math.min(max - 1, (int) Math.ceil(centre[1] + wide));
+                for (int y = Math.max(min, (int) Math.floor(centre[1] - wide)); y <= yTo; y++)
                 {
+                    final double offY = (y + 0.5) - centre[1];
+                    if ((((double) layer * layer) + (offAcross * offAcross) + (offY * offY)) >= reach)
+                    {
+                        continue;
+                    }
                     final int x = alongX ? along : across;
                     final int z = alongX ? across : along;
                     final Spot at = shape.farOf(x, y, z);

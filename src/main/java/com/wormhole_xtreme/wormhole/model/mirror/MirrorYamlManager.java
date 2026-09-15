@@ -50,9 +50,6 @@ public final class MirrorYamlManager
     /** The mirror it opens onto when nobody at it has chosen, if it has one. */
     private static final String START = "Start";
 
-    /** What stands past its depth, if it is not the server's. */
-    private static final String BACKDROP = "Backdrop";
-
     /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
     private static final String PRESET = "Preset";
 
@@ -153,7 +150,7 @@ public final class MirrorYamlManager
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
                 MirrorDisplay.of(text(map.get(DISPLAY))), MirrorMode.of(text(map.get(MODE))),
                 readLook(map.get(LOOK)), text(map.get(START)),
-                (map.get("Width") instanceof Number wide) ? wide.intValue() : 1, text(map.get(BACKDROP)));
+                (map.get("Width") instanceof Number wide) ? wide.intValue() : 1);
         }
         catch (final RuntimeException e)
         {
@@ -340,10 +337,6 @@ public final class MirrorYamlManager
         if (mirror.width() > 1)
         {
             map.put("Width", mirror.width());
-        }
-        if (mirror.backdrop() != null)
-        {
-            map.put(BACKDROP, mirror.backdrop());
         }
         writeLook(map, mirror.look());
         return map;

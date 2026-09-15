@@ -84,10 +84,35 @@ public final class MirrorCaptures
         return new int[] { minX, minY, minZ, maxX, maxY, maxZ };
     }
 
-    /** The depth a capture is taken to: the view depth, since a view is never drawn past it. */
-    private static int captureDepth()
+    /** The furthest a capture reaches ahead of its arrival point: ten chunks, as far as a server usually sends. */
+    static final int MOST_REACH = 160;
+
+    /**
+     * How far ahead of the arrival point a capture of a world is taken.
+     *
+     * <p>As far as that world's server sends -- its view distance, in blocks -- and never short
+     * of the view depth, so a capture always holds what a view draws. A capture used to be taken
+     * to the view depth and no further, which tied the two together the wrong way round: lowering
+     * {@code mirror-view-depth} to make a mirror cheaper cut every capture to match, and raising
+     * it again meant taking every one again, loading each room's world for a few seconds. The
+     * reach is the capture's own now, and the depth says how much of it a view draws
+     * ({@code MirrorWindows.fixedTo}), so the depth can change without a capture being touched.
+     * Never past {@link #MOST_REACH}: a box that size is what the bits of a capture being taken
+     * are sized for, and past ten chunks a client has nothing to show anyway.
+     *
+     * @param far
+     *            the far world, or null if it is not loaded to ask; then the view depth, which any
+     *            capture taken by this rule holds
+     * @return the reach, in blocks
+     */
+    static int reach(final World far)
     {
-        return ConfigManager.getMirrorViewDepth();
+        final int depth = ConfigManager.getMirrorViewDepth();
+        if (far == null)
+        {
+            return depth;
+        }
+        return Math.max(depth, Math.min(MOST_REACH, far.getViewDistance() * 16));
     }
 
     /** Reads one chunk of a world, so a test can hand in chunks without a server. */
@@ -291,7 +316,7 @@ public final class MirrorCaptures
     {
         final MirrorPoint destination = mirror.destination();
         final World far = Bukkit.getWorld(destination.worldName());
-        final int[] box = needed(destination, captureDepth(),
+        final int[] box = needed(destination, reach(far),
             (far == null) ? null : far.getMinHeight(), (far == null) ? null : far.getMaxHeight());
         final int arrivalX = (int) Math.floor(destination.x());
         final int arrivalY = (int) Math.floor(destination.y());
@@ -581,7 +606,7 @@ public final class MirrorCaptures
             this.key = key;
             this.far = far;
             this.destination = destination;
-            final int[] box = needed(destination, captureDepth(), far.getMinHeight(), far.getMaxHeight());
+            final int[] box = needed(destination, reach(far), far.getMinHeight(), far.getMaxHeight());
             minX = box[0];
             minY = box[1];
             minZ = box[2];
@@ -717,7 +742,7 @@ public final class MirrorCaptures
             final int arrivalX = (int) Math.floor(destination.x());
             final int arrivalY = (int) Math.floor(destination.y());
             final int arrivalZ = (int) Math.floor(destination.z());
-            final int depth = captureDepth();
+            final int depth = reach(far);
             // A third of a million rays: off the main thread, since the box is noted and
             // nothing here reads the world again.
             final Runnable work = () ->

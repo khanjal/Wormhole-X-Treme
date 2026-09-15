@@ -490,9 +490,7 @@ public final class MirrorCapture
             final double exitZ = (arrivalZ + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
-            // To the corners of the box: a room is a box to the depth ahead, not a sphere, and a
-            // ray that leaves the box stops at its edge.
-            final double reach = (depth + 2.0) * 2.0;
+            final double reach = depth + 2.0;
             final double step = Math.tan(Math.toRadians(1.0));
             // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
             // than its room's, on whichever side its view turns that column to, so a room captured

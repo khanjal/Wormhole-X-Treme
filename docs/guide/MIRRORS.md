@@ -75,7 +75,6 @@ stamp <name> mirror` retakes it.
 | --- | --- |
 | `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror set` also works) |
 | `mirror start [name] <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
-| `mirror backdrop [name] <sky\|none\|block\|default>` | What stands past this mirror's depth; `default` is `mirror-backdrop` |
 | `mirror stamp [name] [look]` | Makes the banner look like where it goes |
 | `mirror display [name] <always\|proximity>` | Show its look always, or only up close |
 | `mirror mode [name] <static\|dynamic>` | Keep the look, or re-read the far side |
@@ -147,19 +146,18 @@ more than a quarter of the server's time however close you stand.
   takes a capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while
   somebody is looking; `mode static`, the default, never does, so a reflection shows the room as it
   was when captured.
-- **A capture holds what somebody at the opening could see:** within `mirror-view-depth` of the
-  opening, rays a degree apart through it, and the blocks they reach, air included; everything else
-  is left to the real world. So a capture is the surfaces in view, and that is all a viewer is sent.
-- **The view reaches `mirror-view-depth` from the opening** (160 by default, from 4), straight
-  in, on any wall, standing or walking: a room is a box that deep. A block past it stands a flat
-  wall the colour of the sky (`mirror-backdrop: sky`) — light blue, light grey in rain, black in
-  the nether and the end, and dimmed with the sky at night by the client — from the lowest ground
-  loaded beyond it to the highest, so this world's hills and trees past the room do not show
-  through. Name a block instead (`black_concrete`), or `none` for no wall; `mirror backdrop <name>
-  black_concrete` sets one mirror apart from the rest. At 160 — ten chunks, as
-  far as a server usually sends — nothing is loaded beyond, so there is no wall. A room is its
-  surfaces, so depth costs the server little; the client re-meshes what a view changes as you come
-  to a mirror and leave it, so a lower depth is a smoother one.
+- **A capture holds what somebody at the opening could see:** as far as the room's world sends
+  (its view distance, up to ten chunks) whatever `mirror-view-depth` is, rays a degree apart
+  through the opening, and the blocks they reach, air included; everything else is left to the
+  real world. So a capture is the surfaces in view, and a viewer is sent the part of it within
+  the depth.
+- **The view reaches `mirror-view-depth` from the opening** (160 by default, from 4) and nothing
+  is drawn past it, standing or walking, on any wall. At 160 — ten chunks, as far as a server
+  usually sends — the room ends where the client has nothing to show anyway, so nothing of this
+  world shows through. A room is its surfaces, so depth costs the server little; the client
+  re-meshes what a view changes as you come to a mirror and leave it, so a lower depth is a
+  smoother one, and it draws less of the same capture rather than taking a new one. Lower it for
+  a mirror onto somewhere small.
 - **One-sided.** From behind, a mirror is its banner.
 - **Blocks only.** No players or creatures from the room shown, and your own world's creatures
   inside the view are hidden from you while you look. Lit by this world, so a room behind a wall is

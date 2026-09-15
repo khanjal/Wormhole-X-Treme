@@ -127,16 +127,6 @@ class MirrorTabCompletionTest
         assertTrue(complete("mirror", "start", "museum", "").contains("none"));
     }
 
-    /** backdrop takes sky, none, a block or default, after the optional name of the mirror being set. */
-    @Test
-    void backdropCompletesItsWordsInBothPlaces()
-    {
-        assertTrue(complete("mirror", "backdrop", "").contains("museum"), "the mirror being set");
-        assertTrue(complete("mirror", "backdrop", "").contains("none"), "looking at the banner, the setting is the first word");
-        assertTrue(complete("mirror", "backdrop", "museum", "").contains("default"), "then the setting");
-        assertTrue(complete("mirror", "backdrop", "museum", "bl").contains("black_concrete"));
-    }
-
     /**
      * set offers nothing, on purpose.
      *

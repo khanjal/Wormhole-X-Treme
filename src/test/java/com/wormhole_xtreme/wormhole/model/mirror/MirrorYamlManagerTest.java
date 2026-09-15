@@ -312,21 +312,6 @@ class MirrorYamlManagerTest
             .containsKey("Width"));
     }
 
-    /** A mirror with a backdrop of its own keeps it across the file; one on the server's writes nothing. */
-    @Test
-    void keepsTheBackdropAcrossARoundTripAndWritesNoneForTheServers()
-    {
-        final QuantumMirror before = new QuantumMirror("hall", new MirrorBlock("world", 1, 2, 3),
-            new MirrorPoint("world", 1.01, 1, 3.5, 180f, 0f)).withBackdrop("Black_Concrete");
-
-        final QuantumMirror after = MirrorYamlManager.readMirror("hall", MirrorYamlManager.writeMirror(before));
-
-        assertEquals("black_concrete", after.backdrop(), "kept, in lower case");
-        assertEquals("black_concrete", after.withName("lobby").withWidth(2).backdrop(), "and carried by every change");
-        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
-            .containsKey("Backdrop"));
-    }
-
     @Test
     void keepsASampledLookAcrossARoundTrip()
     {
