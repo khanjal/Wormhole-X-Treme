@@ -760,25 +760,29 @@ class MirrorWindowsTest
     }
 
     /**
-     * A clipped room's far part stands between small steps, and is judged again on a whole-block move.
+     * A clipped room's far part stands between small steps, and behind a wall two blocks wide it
+     * stands for a whole-block move and follows a move of a block and a half.
      *
      * <p>"It was real laggy." Through a one-block opening a tenth-of-a-block step swings the far
      * end of a view a dozen blocks sideways, so thousands of far blocks changed ten times a second.
-     * With the far part starting eight blocks from the eye, a step inside the same block projects
-     * only what is near, and a step into the next block projects the far part too.
+     * With the far part starting eight blocks from the eye, a step inside the same cell projects
+     * only what is near, and a step into the next cell projects the far part too. The cell is
+     * half a block less than the wall is wide: the gap here is three blocks from the opening, so
+     * the wall round it is two wide and the cell a block and a half, and a whole-block move that
+     * once judged the far part again no longer does.
      */
     @Test
-    void aClippedRoomsFarPartStandsBetweenSmallStepsAndFollowsAWholeBlockMove()
+    void behindATwoBlockWallTheFarPartStandsForAWholeBlockMoveAndFollowsABlockAndAHalf()
     {
         MirrorWindows.nearDistance = 8.0;
-        gap = new Spot(16, 64, 11);
-        // A clock of our own: a redraw over these mocks takes longer than the half second the far
+        gap = new Spot(13, 64, 11);
+        // A clock of our own: a redraw over these mocks takes longer than the second the far
         // part stands, so real time would judge it again on every step.
         final long[] clock = { 1_000_000L };
         MirrorWindows.clock = () -> clock[0];
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final int[] projected = new int[2];
+        final int[] projected = new int[3];
 
         withServer(() ->
         {
@@ -789,11 +793,72 @@ class MirrorWindowsTest
             clock[0] += 200L;
             MirrorWindows.moved(viewer, new Location(world, 11.5, 64.0, 7.5));
             projected[1] = projectedByTheLastRedraw(viewer);
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
+            projected[2] = projectedByTheLastRedraw(viewer);
         });
 
-        assertTrue(projected[0] > 0, "a step inside the block projects the near layers");
-        assertTrue(projected[1] > (2 * projected[0]),
-            "a step into the next block projects the far layers too: " + projected[0] + " then " + projected[1]);
+        assertEquals(1.5, MirrorWindows.farCellFor(2), "two blocks of wall: a cell of a block and a half");
+        assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
+        assertTrue(projected[1] < (2 * projected[0]),
+            "a whole-block move inside the cell projects the near layers alone: " + projected[0] + " then "
+                + projected[1]);
+        assertTrue(projected[2] > (2 * projected[0]),
+            "a step into the next cell projects the far layers too: " + projected[0] + " then " + projected[2]);
+    }
+
+    /**
+     * Behind a wide wall the far part stands across several blocks of movement, and is judged for
+     * every eye in the cell at once.
+     *
+     * <p>Through a one-by-two opening a step at the opening swings the far end of the view by the
+     * room's depth, so the far part must be sent again for each cell the eye walks through; what a
+     * wall's width buys is how far a cell is. Judged from the eye alone, a cell that wide would
+     * leave holes and leaks for every eye but the one it was judged for, so the far part is judged
+     * for the whole cell: a block seen through the opening from anywhere in it is drawn, and lands
+     * where the wall hides it from everywhere in it. The gap here is six blocks out, so the wall is
+     * five wide and the cell four: three whole-block moves project the near layers alone, and the
+     * fourth, into the next cell, projects the far part. The same blocks are sent per block walked,
+     * in a quarter of the batches, and the client re-meshes each far chunk section a quarter as often.
+     */
+    @Test
+    void behindAWideWallTheFarPartStandsAcrossFourBlocksOfMovement()
+    {
+        MirrorWindows.nearDistance = 8.0;
+        gap = new Spot(16, 64, 11);
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        // Cells are laid on the world's grid: from 8.5, the cell of four runs to 12.
+        final Player viewer = playerAt(8.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final int[] projected = new int[4];
+        final List<String> said = new ArrayList<>();
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            for (int step = 0; step < 4; step++)
+            {
+                clock[0] += 200L;
+                MirrorWindows.moved(viewer, new Location(world, 9.5 + step, 64.0, 7.5));
+                projected[step] = projectedByTheLastRedraw(viewer);
+            }
+            said.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+        });
+
+        assertEquals(4.0, MirrorWindows.farCellFor(5), "five blocks of wall: a cell of four");
+        assertEquals(4.0, MirrorWindows.farCellFor(16), "a wall solid as far as it is read: still four");
+        assertTrue(projected[0] > 0, "a step inside the cell projects the near layers");
+        for (int step = 1; step < 3; step++)
+        {
+            assertTrue(projected[step] < (2 * projected[0]), "whole-block move " + (step + 1)
+                + " inside the cell projects the near layers alone: " + projected[0] + " then " + projected[step]);
+        }
+        assertTrue(projected[3] > (2 * projected[0]),
+            "the move into the next cell projects the far layers too: " + projected[0] + " then " + projected[3]);
+        assertTrue(said.stream().anyMatch(line -> line.startsWith(
+            "museum far part: judged once per 4.0 blocks of movement, wall 5 on every side, ")
+            && line.endsWith(" blocks kept")), "debug says how far the far part stands: " + said);
     }
 
     /**
@@ -830,7 +895,7 @@ class MirrorWindowsTest
         });
 
         assertEquals(0.5, MirrorWindows.farCellFor(1), "a one-block wall: half a block");
-        assertEquals(1.0, MirrorWindows.farCellFor(2), "two blocks: a whole block, as before");
+        assertEquals(0.5, MirrorWindows.farCellFor(0), "no wall at all: no less than half a block");
         assertTrue(projected[0] > 0, "a step within the half block projects the near layers");
         assertTrue(projected[1] > (2 * projected[0]),
             "a step into the other half of the same block projects the far layers too: " + projected[0] + " then "

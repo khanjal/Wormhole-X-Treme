@@ -856,6 +856,29 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A clipped room's far part is judged for a whole cell of eyes at once, as wide as the wall
+  allows.** "Larger border the more stuff has time to change." It should have, and it did not:
+  the far part stood for a block of movement behind any wall two or more blocks wide, since it
+  was judged for the one eye that happened to be there, which is right for that eye and wrong for
+  the next, and a block of wall was as far as a stale block's landing could shift before the next
+  redraw. Every wider wall was on a two-block wall's footing.
+
+  The far part is judged for the whole cell now: from the cell's middle, with each block's landing
+  on the wall widened by half the cell on every side, which is as far as it moves for any eye in
+  the cell. A block seen through the opening from anywhere in the cell is drawn, and lands from
+  everywhere in it where the wall hides it -- so the cell is half a block narrower than the wall,
+  up to four blocks. Still half a block behind a one-block wall, a block and a half behind two,
+  four behind five. The same blocks are sent per block walked, in a fraction of the batches, and
+  the client re-meshes each far chunk section a fraction as often: a quarter as often behind a
+  wall five wide. Not measured on a server yet. `mirror debug` says each clipped mirror's cell and
+  wall, and how many far blocks it keeps.
+
+  Near and far are split from the same point the far part is judged from, not from the eye. Split
+  from the eye, a block 24 off changed sides as the eye moved within its cell, and one that was
+  near when the far part was judged and far now was drawn by neither pass: a thin shell of holes
+  that moved with the viewer until the far part was judged again a second on. That was so before
+  this change, a block of movement wide, and would have been four.
+
 - **A right-click never comes round to a mirror's own room.** "We shouldn't have the mirror's own
   room be on the right-click scroll. It should only show when approached and the mirror turns on;
   otherwise just scroll through the other mirrors." The list a right-click walked ended with the
