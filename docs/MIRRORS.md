@@ -54,9 +54,9 @@ at 15% one block hides what a trimmed view draws, so two is advice — `create` 
 of it — rather than a refusal. What a wall's width buys is tolerance for movement between redraws,
 not depth: a stale drawn block's landing on the wall shifts by about as far as the eye moved,
 whatever the block's depth, and only the inner half of a wall block with open air past it counts
-as hiding anything. So behind a one-block wall the far part of a clipped room is judged again every
-half block the eye moves rather than every block, at twice that part's cost, which a wall two
-blocks wide never pays.
+as hiding anything. So the far part of a clipped room is judged for every eye within a cell half a
+block narrower than the wall, up to four blocks, and again once the eye leaves it: half a block
+behind a one-block wall, four behind a wall five wide. See [the far edge of the room](#the-far-edge-of-the-room).
 
 **One to a world**, by default (`mirror-per-world-limit`): a mirror is the door into its world, and
 the list a right-click walks stays short while each world has one.
@@ -676,7 +676,9 @@ In the order they were tried. The commit is where the reasoning is written out i
   But a clipped room's far part changed thousands of blocks a step, and "it was real laggy" at
   160 and fine at 60. Softened since — the far part stands between small steps and a slow redraw
   earns a rest (`d594907`), rooms over 20,000 blocks are clipped rather than sent at once
-  (`2bfd70a`) — and a deep clipped mirror still stutters on the move. This is where it stands.
+  (`2bfd70a`), and the far part is judged for a whole cell of eyes at once, as wide as the wall
+  allows (the fat eye, below) — and a deep clipped mirror behind a thin wall still stutters on the
+  move. This is where it stands.
 - **The depth lowered, and a flat wall of the sky's colour a block past it** (`524cc24`). "It
   brings too much attention to the issue." Taken back in #282, with the box-shaped room that
   existed only so the wall could be flat.
@@ -686,23 +688,33 @@ In the order they were tried. The commit is where the reasoning is written out i
   end of a view.
 - **Depth keyed to the wall's width.** No mechanism, by the third fact. What the idea did yield
   is the far part's cell: half a block behind a one-block wall, a block behind anything wider
-  (#282).
+  (#282), and then the fat eye (#283).
 - **A capture radius setting** (`mirror-capture-radius`, retired in `f1675c5`). Lowering it only
   made the view stop at the capture's edge. A capture reaches the render limit on its own now,
   whatever the depth, and the depth draws part of it (#282).
 
+### Built: the fat eye
+
+A clipped room's far part is judged for every eye in a cell at once rather than for the one eye
+that happens to be there (#283). The cell is half a block narrower than the wall, up to four
+blocks; the far part is judged from the cell's middle, with each block's landing on the wall
+widened by half the cell on every side, which is as far as it moves for any eye in the cell. A
+block seen through the opening from anywhere in the cell is drawn, and lands from everywhere in
+it where the wall hides it — the wall is at least the cell wide by construction, since only the
+inner half of its outermost ring counts. Near and far are split from the same point, so a block
+cannot change sides as the eye moves within the cell and go unjudged by both.
+
+The same blocks are sent per block travelled, in a fraction of the batches, and the client
+re-meshes each far chunk section a fraction as often: nothing gained behind a one-block wall,
+where the cell is the same half block it was, and a quarter of the batches behind a wall five
+wide. `mirror debug` says the cell and the wall for each clipped mirror. Not measured on a
+server yet; the test surface is `MirrorWindowsTest`'s three `behindA...Wall` tests.
+
 ### What is left to try
 
-Each of these is a real lever, and none is free. The first two are the ones to build next.
+Each of these is a real lever, and none is free. The first is the one to build next.
 
-1. **The fat eye.** Judge a clipped room's far part for every eye within the wall's width at
-   once, and pre-draw the blocks that land on the wall's ring, so a wall B blocks wide judges
-   the far part again every B minus a half blocks of movement rather than every one. The same
-   blocks are sent per block travelled, but in a fraction of the batches, and the client
-   re-meshes each far section a fraction as often. The gain scales with the wall: nothing for a
-   one-block wall, several times fewer batches for four. The cheapest to build, and the test
-   surface for it exists.
-2. **Stream whole rooms.** Send a whole room over ticks as a viewer comes in through the
+1. **Stream whole rooms.** Send a whole room over ticks as a viewer comes in through the
    proximity distance — a few thousand blocks a tick over the last sixteen blocks of approach —
    and take it back the same way as they leave, instead of one batch each way. That lifts the
    20,000-block cap on a room sent whole, and a walled mirror at 160 then costs nothing per step.

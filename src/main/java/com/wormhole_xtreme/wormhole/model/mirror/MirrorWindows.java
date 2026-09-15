@@ -117,16 +117,16 @@ public final class MirrorWindows
     static int mostWhole = MOST_WHOLE;
 
     /**
-     * How far from the eye a clipped room is judged afresh on every redraw; past it, only on a
-     * whole-block move or after {@link #FAR_MILLIS}.
+     * How far from the eye a clipped room is judged afresh on every redraw; past it, only once
+     * the eye has left its cell ({@link #farCellFor}) or after {@link #FAR_MILLIS}.
      *
      * <p>Through a one-block opening, a tenth-of-a-block step swings the far end of a view a
      * dozen blocks sideways: thousands of blocks a hundred and more deep changed ten times a
      * second, projected here and re-meshed on the client, and a mirror at the render distance
      * stuttered. What moves with a step is what is near the eye, and must be judged each time;
-     * the rest may lag a step behind, since parallax that far off is what a step is. From the
-     * eye, not by depth behind the opening: right against the opening the whole half-sphere is in
-     * view, and the first layers of a deep room were most of it.
+     * the rest is judged for the whole cell at once. From the eye's cell, not by depth behind
+     * the opening: right against the opening the whole half-sphere is in view, and the first
+     * layers of a deep room were most of it.
      */
     private static final double NEAR_DISTANCE = 24.0;
 
@@ -394,9 +394,7 @@ public final class MirrorWindows
             final Window window = WINDOWS.get(name);
             if (window != null)
             {
-                lines.add(MirrorText.field(name, name.equals(fullName) ? ("whole and unlimited for you, "
-                    + ((window.full == null) ? 0 : window.full.blocks().size()) + " blocks")
-                    : howDrawn(window, view.fixedNames.contains(name))));
+                lines.addAll(mirrorLines(view, window, name.equals(fullName)));
             }
         }
         if (view.lastRedraw == null)
@@ -474,6 +472,28 @@ public final class MirrorWindows
             return MirrorText.field("redraw", projected + " projected, " + near + " drawn"
                 + ((fixed > 0) ? (", " + fixed + " whole") : "") + ", " + tookMillis + " ms");
         }
+    }
+
+    /** How one window is being drawn for a viewer, and for a clipped one how far its far part stands, for {@code mirror debug}. */
+    private static List<String> mirrorLines(final View view, final Window window, final boolean full)
+    {
+        final String name = window.mirror.name();
+        if (full)
+        {
+            return List.of(MirrorText.field(name, "whole and unlimited for you, "
+                + ((window.full == null) ? 0 : window.full.blocks().size()) + " blocks"));
+        }
+        final boolean fixedForViewer = view.fixedNames.contains(name);
+        final List<String> lines = new ArrayList<>();
+        lines.add(MirrorText.field(name, howDrawn(window, fixedForViewer)));
+        if (!fixedForViewer)
+        {
+            final Far far = view.far.get(name);
+            lines.add(MirrorText.field(name + " far part", "judged once per " + farCellFor(window.border)
+                + " blocks of movement, wall " + window.border + " on every side, "
+                + ((far == null) ? "not yet" : (far.blocks().size() + " blocks kept"))));
+        }
+        return lines;
     }
 
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
@@ -1258,17 +1278,18 @@ public final class MirrorWindows
     }
 
     /**
-     * A clipped room's far part as one eye last judged it: which room, from which block the eye
-     * was in, when, and the blocks kept.
+     * A clipped room's far part as last judged: which room, from which cell the eye was in and
+     * the point it was judged from ({@link #fatEye}), when, and the blocks kept.
      */
-    private record Far(Whole whole, int eyeX, int eyeY, int eyeZ, double cell, long at, Map<Long, BlockData> blocks)
+    private record Far(Whole whole, int eyeX, int eyeY, int eyeZ, double cell, Location from, long at,
+        Map<Long, BlockData> blocks)
     {
-        /** A far part judged from an eye, for a room, now. */
-        static Far judged(final Whole whole, final Location eye, final double cell, final long now,
-            final Map<Long, BlockData> blocks)
+        /** A far part judged for the cell an eye is in, from a point, for a room, now. */
+        static Far judged(final Whole whole, final Location eye, final double cell, final Location from,
+            final long now, final Map<Long, BlockData> blocks)
         {
             return new Far(whole, cellOf(eye.getX(), cell), cellOf(eye.getY(), cell), cellOf(eye.getZ(), cell), cell,
-                now, blocks);
+                from, now, blocks);
         }
 
         /** Whether this still stands for an eye, or the far part is to be judged again. */
@@ -1286,16 +1307,20 @@ public final class MirrorWindows
         }
     }
 
+    /** The most an eye may move before a clipped room's far part is judged again, however wide the wall. */
+    private static final double WIDEST_FAR_CELL = 4.0;
+
     /**
      * How far an eye may move before a clipped room's far part is judged again, behind a wall.
      *
-     * <p>A block, as a rule. A block drawn onto the wall beside the opening is hidden from the eye
-     * it was drawn for, and only the inner half of a wall block with open air past it is counted
-     * as hiding anything, so that a step has somewhere to land before the next redraw. Behind a
-     * wall only a block wide that half block is all there is: a whole-block move could shift a
-     * stale far block's landing past the wall's edge, and "there's a lot of leaking around the
-     * border" of a one-block wall. Half a block there, then, at twice the far part's cost, which
-     * a wall two blocks wide never pays.
+     * <p>Half a block less than the wall is wide, up to four. The far part is judged for every
+     * eye in the cell at once ({@link #clipWhole}), so a block drawn for an eye at one edge of
+     * it lands, from the other edge, up to the cell's width along the wall, which is where the
+     * wall has to hide it; and only the inner half of a wall block with open air past it counts
+     * as hiding anything, so that a step out of the cell has somewhere to land before the next
+     * redraw. What is left of the wall is the cell: half a block behind a wall a block wide,
+     * where "there's a lot of leaking around the border". Wider cells send a wider far part for
+     * the wall to hide, so four is as far as it goes.
      *
      * @param border
      *            how many blocks of solid wall stand on every side of the opening
@@ -1303,7 +1328,41 @@ public final class MirrorWindows
      */
     static double farCellFor(final int border)
     {
-        return (border <= 1) ? 0.5 : 1.0;
+        return Math.min(WIDEST_FAR_CELL, Math.max(0.5, border - 0.5));
+    }
+
+    /**
+     * The point a clipped room's far part is judged from for every eye in a cell: the middle of
+     * the cell, kept no nearer the face than the eye itself, since a cell four blocks wide can
+     * reach past the wall.
+     */
+    private static Location fatEye(final Location eye, final double cell, final MirrorWindow shape)
+    {
+        final Location from = eye.clone();
+        from.setX(middleOf(eye.getX(), cell));
+        from.setY(middleOf(eye.getY(), cell));
+        from.setZ(middleOf(eye.getZ(), cell));
+        final boolean alongX = shape.into().x() != 0;
+        final double toEye = shape.face() - (alongX ? eye.getX() : eye.getZ());
+        final double toMiddle = shape.face() - (alongX ? from.getX() : from.getZ());
+        if (((toMiddle * toEye) <= 0.0) || (Math.abs(toMiddle) < Math.abs(toEye)))
+        {
+            if (alongX)
+            {
+                from.setX(eye.getX());
+            }
+            else
+            {
+                from.setZ(eye.getZ());
+            }
+        }
+        return from;
+    }
+
+    /** The middle of the cell of a size a coordinate falls in. */
+    private static double middleOf(final double at, final double cell)
+    {
+        return (Math.floor(at / cell) + 0.5) * cell;
     }
 
     /** The windows a viewer sees whose rooms are held whole: drawn as they are, or clipped to the eye. */
@@ -1388,10 +1447,13 @@ public final class MirrorWindows
      * somebody at the opening could see, so there is nothing to occlude, and a bound on where a
      * block can land ({@link MirrorWindow#mightLandOn}) spares most of the room a projection.
      *
-     * <p>Only the near part every time: the far part, past {@link #NEAR_DISTANCE} from the eye, is
-     * judged again only once the eye has left the cell it was in -- a block, or half a block
-     * behind a wall only a block wide ({@link #farCellFor}) -- or {@link #FAR_MILLIS} have
-     * passed, and stands as last judged meanwhile.
+     * <p>Only the near part every time. The far part, past {@link #NEAR_DISTANCE}, is judged for
+     * the whole cell the eye is in ({@link #farCellFor}) rather than for the eye: from the
+     * cell's middle ({@link #fatEye}), with each block's landing widened by half the cell on
+     * every side, which is as far as it moves for any eye in the cell. A block seen through the
+     * opening from anywhere in the cell is drawn, and lands from everywhere in it where the wall
+     * hides it. It stands until the eye leaves the cell or {@link #FAR_MILLIS} have passed, and
+     * the same blocks are sent per block walked, in a fraction of the batches.
      */
     private static void clipWhole(final View view, final Location eye, final Window window, final Whole whole,
         final List<Window> seeing, final Set<Long> allOpen, final Map<Long, BlockData> wanted,
@@ -1400,9 +1462,17 @@ public final class MirrorWindows
         final Far last = view.far.get(window.mirror.name());
         final boolean farAgain = (last == null) || !last.standsFor(whole, eye, now);
         final Map<Long, BlockData> farKept = farAgain ? new HashMap<>() : last.blocks();
+        final double farCell = farCellFor(window.border);
+        // Near and far are split from the point the far part is judged from, so a block does not
+        // change sides as the eye moves within the cell and go unjudged by both.
+        final Location from = farAgain ? fatEye(eye, farCell, window.shape) : last.from();
+        final double spread = farCell / 2.0;
+        // What stands in front of the opening is thrown onto the face from this eye alone.
         final Set<Long> shielded = shielded(window, eye, now);
         final double[] span = spanOf(window);
-        final MirrorWindow shape = window.shape;
+        final Eye own = new Eye(eye, span, 0.0);
+        final Eye fat = new Eye(from, new double[] { span[0] - spread, span[1] + spread, span[2] - spread,
+            span[3] + spread }, spread);
         final double near = nearDistance * nearDistance;
         for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
         {
@@ -1414,20 +1484,15 @@ public final class MirrorWindows
             final int x = unpackX(cell);
             final int y = unpackY(cell);
             final int z = unpackZ(cell);
-            final double dx = (x + 0.5) - eye.getX();
-            final double dy = (y + 0.5) - eye.getY();
-            final double dz = (z + 0.5) - eye.getZ();
+            final double dx = (x + 0.5) - from.getX();
+            final double dy = (y + 0.5) - from.getY();
+            final double dz = (z + 0.5) - from.getZ();
             final boolean farOff = ((dx * dx) + (dy * dy) + (dz * dz)) > near;
             if (farOff && !farAgain)
             {
                 continue;
             }
-            if (!shape.mightLandOn(eye.getX(), eye.getY(), eye.getZ(), x, y, z, span))
-            {
-                continue;
-            }
-            budget.projected++;
-            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
+            final double[] rect = (farOff ? fat : own).outline(window, x, y, z, seeing, allOpen, budget);
             if ((rect == null)
                 || !coveredBy(window, rect, allOpen, shielded, before.contains(cell) ? KEPT_BESIDE : MOST_BESIDE))
             {
@@ -1442,7 +1507,7 @@ public final class MirrorWindows
         }
         if (farAgain)
         {
-            view.far.put(window.mirror.name(), Far.judged(whole, eye, farCellFor(window.border), now, farKept));
+            view.far.put(window.mirror.name(), Far.judged(whole, eye, farCell, from, now, farKept));
         }
         else
         {
@@ -1450,6 +1515,25 @@ public final class MirrorWindows
             budget.near += farKept.size();
         }
         budget.fixedDepth = Math.max(budget.fixedDepth, whole.depth());
+    }
+
+    /**
+     * An eye a clipped room's block is judged from: the viewer's own, or the middle of their cell
+     * with every landing widened by half the cell, for the far part ({@link #fatEye}).
+     */
+    private record Eye(Location from, double[] span, double spread)
+    {
+        /** A block's outline on the face from here, or null if it cannot land on the span or is not seen through the window. */
+        double[] outline(final Window window, final int x, final int y, final int z, final List<Window> seeing,
+            final Set<Long> allOpen, final Budget budget)
+        {
+            if (!window.shape.mightLandOn(from.getX(), from.getY(), from.getZ(), x, y, z, span))
+            {
+                return null;
+            }
+            budget.projected++;
+            return seenThrough(from, window, x, y, z, seeing, allOpen, spread);
+        }
     }
 
     /** The face a block must land on to be seen through a window: its opening and frame, and a block round them. */
@@ -1848,7 +1932,7 @@ public final class MirrorWindows
                     }
                     continue;
                 }
-                final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
+                final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen, 0.0);
                 if ((rect != null) && coveredBy(window, rect, allOpen, Set.of(), MOST_BESIDE))
                 {
                     inside.add(entity);
@@ -1915,14 +1999,25 @@ public final class MirrorWindows
      * never across open air or another window's opening -- and through no opening in the same
      * face whose middle the line of sight passes nearer.
      *
+     * @param spread
+     *            how far the outline is widened on every side: half the cell, for a far block
+     *            judged for every eye in one ({@link #clipWhole}), else nothing
      * @return the block's outline on the opening's face, or null if it is not seen through it
      */
     private static double[] seenThrough(final Location eye, final Window window, final int x,
-        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen)
+        final int y, final int z, final List<Window> seeing, final Set<Long> allOpen, final double spread)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
+        if (rect == null)
+        {
+            return null;
+        }
+        rect[0] -= spread;
+        rect[1] += spread;
+        rect[2] -= spread;
+        rect[3] += spread;
         // On the opening, or on the frame round it, which hides it until the eye moves.
-        if ((rect == null) || (!window.shape.overlaps(rect, window.open) && !window.shape.overlaps(rect, window.frame)))
+        if (!window.shape.overlaps(rect, window.open) && !window.shape.overlaps(rect, window.frame))
         {
             return null;
         }
