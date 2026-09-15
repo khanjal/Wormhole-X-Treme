@@ -98,7 +98,6 @@ class MirrorWindowsTest
     private final BlockData barrier = named("minecraft:barrier");
     private final BlockData farOneBlock = named("far:one");
     private final BlockData farTwoBlock = named("far:two");
-    private final BlockData sky = named("minecraft:light_blue_concrete");
     private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
     private final MirrorPoint arrivalTwo = new MirrorPoint("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f);
 
@@ -117,9 +116,6 @@ class MirrorWindowsTest
         // A redraw over these mocks takes hundreds of milliseconds; resting three times that would
         // put every step that follows a pause() off until a catch-up that never comes.
         MirrorWindows.restFactor = 0L;
-        // A test capture is solid through its box, 21,000 blocks at depth 16 now that a room is a
-        // box: over the cap that sends a real room, its surfaces only, to each eye instead.
-        MirrorWindows.mostWhole = 40_000;
 
         world = named(mock(World.class), "world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
@@ -240,7 +236,9 @@ class MirrorWindowsTest
      * <p>"We still have a very quick flicker of a banner when right clicking and switching mirrors."
      * The client, seeing the banner drawn as air, clicks the barrier in the opening behind it; the
      * server corrects that block and the one on its near face, the banner's, in the same tick, and
-     * the whole view sent a tick later left the banner showing for that tick.
+     * the whole view sent a tick later left the banner showing for that tick. On plain 1.20 the
+     * banner is never drawn as air, since its patterns could not be sent back, so only the
+     * barrier is sent again there: the one job in the matrix that failed this test before it said so.
      */
     @Test
     void aClickSendsTheTwoBlocksTheServerCorrectsAgainWithinTheTick() throws Exception
@@ -265,7 +263,16 @@ class MirrorWindowsTest
                 soon.getValue().run();
             });
             verify(viewer).sendBlockChange(new Location(world, 10, 64, 11), barrier);
-            verify(viewer).sendBlockChange(new Location(world, 10, 64, 10), air);
+            if (MirrorPackets.available())
+            {
+                verify(viewer).sendBlockChange(new Location(world, 10, 64, 10), air);
+            }
+            else
+            {
+                // Plain 1.20 cannot send a banner's patterns back, so the view never draws the
+                // banner as air there, and there is nothing of it to send again.
+                verify(viewer, never()).sendBlockChange(new Location(world, 10, 64, 10), air);
+            }
         }
         finally
         {
@@ -790,6 +797,47 @@ class MirrorWindowsTest
     }
 
     /**
+     * Behind a wall only a block wide, the far part follows a half-block move.
+     *
+     * <p>"This problem is mostly because of the 1 block border mirrors." Only the inner half of a
+     * wall block with open air past it counts as hiding anything, so a one-block wall absorbs
+     * half a block of movement before a stale far block's landing slips past its edge; the far
+     * part standing for a whole-block move let half a block of stale room show. The gap here is
+     * two blocks from the opening, so the wall round it is one block wide. A step within the same
+     * half block projects the near part alone; a step into the other half of the same block, not
+     * a new block, projects the far part too.
+     */
+    @Test
+    void behindAOneBlockWallTheFarPartFollowsAHalfBlockMove()
+    {
+        MirrorWindows.nearDistance = 8.0;
+        gap = new Spot(12, 64, 11);
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final int[] projected = new int[2];
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            projected[0] = projectedByTheLastRedraw(viewer);
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.4, 64.0, 7.5));
+            projected[1] = projectedByTheLastRedraw(viewer);
+        });
+
+        assertEquals(0.5, MirrorWindows.farCellFor(1), "a one-block wall: half a block");
+        assertEquals(1.0, MirrorWindows.farCellFor(2), "two blocks: a whole block, as before");
+        assertTrue(projected[0] > 0, "a step within the half block projects the near layers");
+        assertTrue(projected[1] > (2 * projected[0]),
+            "a step into the other half of the same block projects the far layers too: " + projected[0] + " then "
+                + projected[1]);
+    }
+
+    /**
      * A redraw that took long earns a rest three times as long before the next; a quick one none.
      *
      * <p>Right against a deep mirror a redraw projected the whole half-sphere in sixty-five
@@ -933,146 +981,6 @@ class MirrorWindowsTest
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
         assertSame(farOneBlock, drawn.get(new Spot(10, 64, 26)), "within the depth, the block itself");
         assertFalse(drawn.containsKey(new Spot(10, 64, 28)), "past it, nothing at all");
-    }
-
-    /**
-     * A wall of the sky's colour stands a block past the depth, where this world has anything loaded beyond.
-     *
-     * <p>"There's just no way to stop rendering blocks after x distance to the client?" There is
-     * not, and carving this world to air past the depth is hundreds of thousands of blocks. A flat
-     * wall across the room's end is a few thousand: from the lowest surface loaded beyond it to
-     * the highest, and the opening's own rows besides. The opening's rows are 63 and 64, and the
-     * hills beyond reach 70.
-     */
-    @Test
-    void aWallOfTheSkysColourStandsPastTheDepthWhereThisWorldHasHillsBeyond()
-    {
-        when(world.getViewDistance()).thenReturn(4);
-        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(org.bukkit.HeightMap.class)))
-            .thenAnswer(call -> (((int) call.getArgument(1)) >= 28) ? 70 : Integer.MAX_VALUE);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        // The opening is z 11 and the depth 16, so the room ends at z 27 and the wall is z 28.
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 27)), "the room's last block");
-        assertSame(sky, drawn.get(new Spot(10, 64, 28)), "the wall, level with the opening");
-        assertSame(sky, drawn.get(new Spot(10, 70, 28)), "up to the highest surface beyond");
-        assertSame(sky, drawn.get(new Spot(10, 63, 28)), "and down to the opening's foot");
-        assertFalse(drawn.containsKey(new Spot(10, 71, 28)), "nothing above the hills: the real sky is the sky");
-        assertFalse(drawn.containsKey(new Spot(10, 62, 28)), "nothing below what a line through the opening can reach");
-        assertFalse(drawn.containsKey(new Spot(10, 64, 29)), "a block thick");
-    }
-
-    /**
-     * The wall reaches the opening's own rows when the ground beyond is lower than they are.
-     *
-     * <p>A line through the opening meets the wall between the opening's height and whatever it
-     * goes on to, so ground at 60 beyond a wall that stopped at 60 was still seen over the wall's
-     * top from an eye at the opening. The wall runs from the ground to the opening's top row, 64.
-     */
-    @Test
-    void theWallReachesTheOpeningsRowsWhenTheGroundBeyondIsLower()
-    {
-        when(world.getViewDistance()).thenReturn(4);
-        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(org.bukkit.HeightMap.class)))
-            .thenAnswer(call -> (((int) call.getArgument(1)) >= 28) ? 60 : Integer.MAX_VALUE);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(sky, drawn.get(new Spot(10, 60, 28)), "from the ground beyond");
-        assertSame(sky, drawn.get(new Spot(10, 64, 28)), "up to the opening's top row");
-        assertFalse(drawn.containsKey(new Spot(10, 65, 28)), "and no higher");
-    }
-
-    /**
-     * No wall where nothing is loaded past the depth, and none with the setting off.
-     *
-     * <p>At 160 on a server sending ten chunks the client has nothing to show past the room, and
-     * a wall there would be blocks for nothing.
-     */
-    @Test
-    void noWallWhereNothingIsLoadedBeyondTheDepthOrWithTheBackdropOff()
-    {
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-        assertFalse(positions(changesTo(viewer, 1).get(0)).containsKey(new Spot(10, 64, 28)),
-            "every column beyond reads as unloaded: nothing to hide");
-
-        ConfigTestSupport.set(ConfigKeys.MIRROR_BACKDROP, "none");
-        when(world.getViewDistance()).thenReturn(4);
-        when(world.getHighestBlockYAt(anyInt(), anyInt(), any(org.bukkit.HeightMap.class)))
-            .thenAnswer(call -> (((int) call.getArgument(1)) >= 28) ? 70 : Integer.MAX_VALUE);
-        final Player second = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer, second));
-        withServer(MirrorProximity::tick);
-        assertFalse(positions(changesTo(second, 1).get(0)).containsKey(new Spot(10, 64, 28)),
-            "hills beyond, but no wall asked for");
-    }
-
-    /**
-     * The wall is the sky's colour: light blue, light grey in rain, black under the nether and the
-     * end; a block's name is that block, and none is no wall.
-     *
-     * <p>"I guess one for day/night?" One: the client dims a block with the sky at night, so
-     * light blue by day is dark blue by night on its own.
-     */
-    @Test
-    void theWallIsTheSkysColourByWeatherAndWorldUnlessASettingNamesABlock()
-    {
-        final World clear = mock(World.class);
-        when(clear.getEnvironment()).thenReturn(World.Environment.NORMAL);
-        final World raining = mock(World.class);
-        when(raining.getEnvironment()).thenReturn(World.Environment.NORMAL);
-        when(raining.hasStorm()).thenReturn(true);
-        final World nether = mock(World.class);
-        when(nether.getEnvironment()).thenReturn(World.Environment.NETHER);
-
-        final QuantumMirror mirror = MirrorManager.byName("museum");
-        assertEquals(Material.LIGHT_BLUE_CONCRETE, MirrorWindows.backdropOf(clear, mirror));
-        assertEquals(Material.LIGHT_GRAY_CONCRETE, MirrorWindows.backdropOf(raining, mirror));
-        assertEquals(Material.BLACK_CONCRETE, MirrorWindows.backdropOf(nether, mirror));
-
-        ConfigTestSupport.set(ConfigKeys.MIRROR_BACKDROP, "white_concrete");
-        assertEquals(Material.WHITE_CONCRETE, MirrorWindows.backdropOf(raining, mirror), "a block named is that block");
-        ConfigTestSupport.set(ConfigKeys.MIRROR_BACKDROP, "no such block");
-        assertEquals(Material.LIGHT_GRAY_CONCRETE, MirrorWindows.backdropOf(raining, mirror),
-            "a name nobody has is the sky");
-        ConfigTestSupport.set(ConfigKeys.MIRROR_BACKDROP, "none");
-        assertNull(MirrorWindows.backdropOf(raining, mirror));
-
-        // "We should also be able to set the flat background per mirror, just in case."
-        assertEquals(Material.BLACK_CONCRETE, MirrorWindows.backdropOf(raining, mirror.withBackdrop("black_concrete")),
-            "a mirror's own backdrop over the server's");
-        assertEquals(Material.LIGHT_GRAY_CONCRETE, MirrorWindows.backdropOf(raining, mirror.withBackdrop("sky")));
-    }
-
-    /**
-     * A room is a box to the depth straight in, not a sphere: a block past the depth's distance
-     * from the opening's middle but not past the depth straight in is drawn.
-     *
-     * <p>With a sphere and a flat wall past it, this world showed in the corners between them.
-     * The block at 20 64 24 is 16.4 from the opening's middle and 13 in; the eye at 2.5 1.5 sees
-     * it through the opening at an angle.
-     */
-    @Test
-    void aRoomIsABoxToTheDepthNotASphere()
-    {
-        final Player viewer = playerAt(2.5, 1.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(20, 64, 24)), "in the box's corner, past a sphere's edge");
-        assertFalse(drawn.containsKey(new Spot(20, 64, 28)), "and nothing past the depth straight in");
     }
 
     /**
@@ -1867,7 +1775,6 @@ class MirrorWindowsTest
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
             bukkit.when(() -> Bukkit.createBlockData(Material.BARRIER)).thenReturn(barrier);
-            bukkit.when(() -> Bukkit.createBlockData(Material.LIGHT_BLUE_CONCRETE)).thenReturn(sky);
             for (final Player player : world.getPlayers())
             {
                 bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);

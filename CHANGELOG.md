@@ -30,28 +30,43 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
-- **A wall the colour of the sky stands past the depth, and a room is a box.** "Still lag when I
-  leave the mirror view and slide to the real world -- half a second, sometimes a full second.
-  How can we limit the view into it?" and "There's just no way to stop rendering blocks after x
-  distance to the client? Or set them all to air?" There is not: a client draws every chunk it
-  has in every direction, blindness and darkness dim the whole screen, and carving this world to
-  air past the depth is the hundreds of thousands of blocks that lagged at 160 in the first
-  place -- the lag is the client meshing what a view changes. So the depth is lowered instead,
-  and what this world has beyond the room is hidden by a flat wall a block past it, from the
-  lowest ground loaded beyond to the highest and the opening's own rows besides: a few thousand
-  blocks. "Let's do the flat wall colour. One for day/night, or shades depending on the sun?"
-  One: `mirror-backdrop: sky` is light blue concrete, light grey in rain, black under the nether
-  and the end, and the client dims it with the sky at night on its own. A block's name is that
-  block; `none` is no wall. No wall where nothing is loaded past the depth, so at 160 on a server
-  sending ten chunks there is none. "We should also be able to set the flat background per
-  mirror, just in case": `mirror backdrop [name] <sky|none|block|default>`, saved with the
-  mirror as `Backdrop`.
+- **A capture reaches as far as the room's world sends, and the depth draws part of it.** "Maybe
+  the capture grabs all the way to the server view limit, then we dynamically pull that data
+  depending on the wall?" A capture was taken to `mirror-view-depth` and no further, which tied
+  the two together the wrong way round: lowering the depth to make a mirror smoother cut every
+  capture to match, and raising it again loaded and photographed every room's world again. A
+  capture now reaches the far world's view distance in blocks -- never past 160, never short of
+  the depth -- and the depth says how much of it a view draws. Change the depth and nothing is
+  retaken. A capture taken by the old rule is taken again once, the next time somebody looks,
+  since a server sending further can now show more of the room.
 
-  For the wall to be flat the room had to be a box: it was a half-sphere from the opening's
-  middle, and between the sphere and a flat wall this world showed at the corners. A room reaches
-  the depth straight in now, whatever the angle, and a capture's rays reach the box's corners.
-  The circular shell was the first try at this, months of commits ago, and "you can see it being
-  made like a circle, and it's distracting"; a flat wall across the end is not.
+  Three limits on what a capture keeps, since the depth no longer trims it. "We can't see
+  through lava": Bukkit counts neither fluid as occluding, so a ray went through a lava lake as
+  through a pond and a mirror onto the Nether kept every block under every lake it faced; lava
+  ends a ray as stone does now. Water ends one after 32 blocks of it, about where the game's own
+  fog would, so a mirror onto a beach no longer keeps the water in the whole fan of its view. And
+  a capture that would keep more than half a million blocks even so is taken shorter, a quarter
+  of its reach at a time, until it fits -- never short of `mirror-view-depth`, since a view drawn
+  past its capture would run out of room. The log says when one was cut, and `mirror debug` says
+  how many blocks a capture keeps.
+
+  And the one-block wall's leak. "This problem is mostly because of the 1 block border mirrors.
+  Larger border the more stuff has time to change." Just so: what a wall's width buys is
+  tolerance for movement between redraws, not depth. A stale drawn block's landing on the wall
+  shifts by about as far as the eye moved, whatever the block's depth, and only the inner half of
+  a wall block with open air past it counts as hiding anything -- so a one-block wall absorbs half
+  a block of movement, and a clipped room's far part standing for a whole-block move let half a
+  block of stale room show past it. Behind a wall a block wide the far part now follows every half
+  block the eye moves; behind two or more it stands for a block, as before.
+
+  The wall of sky past the depth is gone before it shipped. "I think a backdrop/shell is out. It
+  brings too much attention to the issue." Its `mirror-backdrop` setting and `mirror backdrop`
+  verb go with it, and a `Backdrop` line in `mirror.yml` from a build of the last day is read as
+  nothing and dropped on the next save. The room is a half-sphere from the opening's middle
+  again rather than a box, since the box existed for the wall to be flat -- and the box had cost
+  the tests their heap: a test room went from 8,600 blocks to 21,900, three mocks each, and CI
+  died of it on every version. What stands past the depth is this world, as before; at 160 the
+  client has nothing to show there anyway.
 
 - **Every mirror is on the network: it reflects its own room, a right-click chooses another, and a
   punch goes through.** "I removed all mirrors and set the first one. It's asking to link, which

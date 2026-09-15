@@ -201,15 +201,6 @@ public class ConfigManager
         MIRROR_VIEW_DEPTH,
 
         /**
-         * What stands a block past the depth, across the far end of a mirror's room.
-         *
-         * <p>{@code sky}, a block's name, or {@code none}. This world's hills and trees beyond
-         * the room showed through its far end otherwise, and nothing stops a client drawing
-         * past a distance one way.
-         */
-        MIRROR_BACKDROP,
-
-        /**
          * Whether a mirror names itself above the hotbar to whoever is looking at it.
          *
          * <p>A stamped banner looks like scenery, and a corridor of them looks like
@@ -1438,18 +1429,6 @@ public class ConfigManager
         // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
         // few bits per block over a box 325 across, tens of megabytes for a few seconds.
         return (s == null) ? 160 : Math.max(4, Math.min(160, s.getIntValue()));
-    }
-
-    /**
-     * What stands a block past the depth, across the far end of a mirror's room.
-     *
-     * @return {@code sky}, {@code none}, or a block's name, in lower case
-     */
-    public static String getMirrorBackdrop()
-    {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_BACKDROP);
-        final String value = (s == null) ? "" : String.valueOf(s.getStringValue()).trim().toLowerCase(java.util.Locale.ROOT);
-        return value.isEmpty() ? "sky" : value;
     }
 
     /**

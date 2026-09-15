@@ -158,8 +158,7 @@ class MirrorCapturesTest
         // Yaw 0 faces south, so the box runs ahead to z -3: 16 deep and a margin of 2.
         assertSame(sand, capture.at(100, 69, -6), "the beach's surface fifteen blocks straight ahead");
         assertTrue(capture.isBuried(100, 60, -6), "nine blocks under it, which nobody at the opening could see");
-        // A room is a box, so the rays reach its corners: 16 across at 18 in is within the fan.
-        assertSame(sand, capture.at(116, 69, -3), "the box's far corner");
+        assertTrue(capture.isBuried(116, 69, -3), "the box's far corner, past the depth");
         assertEquals(51, capture.top(82, -22),
             "nothing seen in the column at its near corner, one layer behind the arrival: one below the box");
         assertTrue(capture.isAir(100, 69, -23), "two layers behind the arrival is outside the box");
@@ -346,6 +345,58 @@ class MirrorCapturesTest
             assertTrue(MirrorCaptures.outgrown(mirror, narrow), "width is judged without the far world");
             assertFalse(MirrorCaptures.outgrown(mirror, shallow), "height is not: it could not be retaken anyway");
         }
+    }
+
+    /**
+     * A capture reaches as far as the far world's server sends, whatever the view depth.
+     *
+     * <p>"Maybe the capture grabs all the way to the server view limit, then we dynamically pull
+     * that data depending on the wall?" A capture used to be taken to the view depth and no
+     * further, so lowering the depth to make a mirror cheaper cut every capture to match, and
+     * raising it again took every one again. The reach is the capture's own: the far world's
+     * view distance in blocks, never past 160 and never short of the depth, since a view drawn
+     * past its capture would run out of room to draw.
+     */
+    @Test
+    void aCaptureReachesAsFarAsTheFarWorldSendsWhateverTheViewDepth()
+    {
+        assertEquals(16, MirrorCaptures.reach(null), "not loaded to ask: the view depth, which any capture holds");
+        assertEquals(16, MirrorCaptures.reach(far), "a world sending nothing -- a bare mock -- still reaches the depth");
+        when(far.getViewDistance()).thenReturn(6);
+        assertEquals(96, MirrorCaptures.reach(far), "six chunks is 96 blocks, well past a depth of 16");
+        when(far.getViewDistance()).thenReturn(32);
+        assertEquals(160, MirrorCaptures.reach(far), "never past ten chunks, however far a server sends");
+        ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 160);
+        when(far.getViewDistance()).thenReturn(2);
+        assertEquals(160, MirrorCaptures.reach(far), "and never short of the depth, or a view would outrun its capture");
+    }
+
+    /**
+     * Changing the view depth does not take a capture again; only a reach past what it holds does.
+     *
+     * <p>The point of a reach of its own: an operator lowering {@code mirror-view-depth} for a
+     * smoother mirror should not see every room's world loaded and photographed again for it. A
+     * capture taken by the old rule, to the depth alone, is taken again once, since a server
+     * sending further can now show more of the room.
+     */
+    @Test
+    void changingTheViewDepthDoesNotOutgrowACaptureTakenToTheReach()
+    {
+        when(far.getViewDistance()).thenReturn(6);
+        // To a depth of 16 alone, as the old rule took it: x 82..118, y 52..88, z -22..-3.
+        final MirrorCapture toTheDepth = new MirrorCapture.Builder("far", true, 82, 52, -22, 37, 37, 20, air).build();
+        // To the reach of 96: x 2..198, y -28..168, z -22..77.
+        final MirrorCapture toTheReach = new MirrorCapture.Builder("far", true, 2, -28, -22, 197, 197, 100, air).build();
+
+        withServer(() ->
+        {
+            assertTrue(MirrorCaptures.outgrown(mirror, toTheDepth), "taken to the depth alone: taken again, once");
+            assertFalse(MirrorCaptures.outgrown(mirror, toTheReach), "taken to the reach: it holds all a view can draw");
+            ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 8);
+            assertFalse(MirrorCaptures.outgrown(mirror, toTheReach), "a lower depth draws less of it and asks for nothing");
+            ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 120);
+            assertTrue(MirrorCaptures.outgrown(mirror, toTheReach), "a depth past the reach is the one thing that grows it");
+        });
     }
 
     private void withServer(final Runnable body)

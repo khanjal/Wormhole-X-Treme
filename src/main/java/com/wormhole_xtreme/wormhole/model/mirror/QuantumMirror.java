@@ -29,12 +29,9 @@ import java.util.List;
  *            the mirror a right-click opens onto first, or null for none
  * @param width
  *            how many banners wide it is, one or two
- * @param backdrop
- *            what stands past its depth -- {@code sky}, {@code none} or a block's name -- or
- *            null for the server's {@code mirror-backdrop}
  */
 public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destination,
-    MirrorDisplay display, MirrorMode mode, MirrorLook look, String start, int width, String backdrop)
+    MirrorDisplay display, MirrorMode mode, MirrorLook look, String start, int width)
 {
     /**
      * A mirror with nothing chosen about how it looks.
@@ -99,38 +96,10 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
     }
 
     /**
-     * A mirror with the server's backdrop past its depth.
-     *
-     * @param name
-     *            what it is called
-     * @param banner
-     *            the block a player clicks
-     * @param destination
-     *            its room
-     * @param display
-     *            how its look is shown
-     * @param mode
-     *            whether its look is re-read
-     * @param look
-     *            what it looks like, or null
-     * @param start
-     *            the mirror a right-click opens onto first, or null
-     * @param width
-     *            one banner or two
-     */
-    public QuantumMirror(final String name, final MirrorBlock banner, final MirrorPoint destination,
-        final MirrorDisplay display, final MirrorMode mode, final MirrorLook look, final String start,
-        final int width)
-    {
-        this(name, banner, destination, display, mode, look, start, width, null);
-    }
-
-    /**
      * Defaults the settings, so a mirror read from an older file is not half-built.
      *
      * <p>A null {@code display} or {@code mode} would otherwise reach the proximity sweep and
-     * the stamp, both of which switch on them. A blank start is no start, a width is one or two,
-     * and a blank backdrop is the server's.
+     * the stamp, both of which switch on them. A blank start is no start, and a width is one or two.
      */
     public QuantumMirror
     {
@@ -138,7 +107,6 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
         mode = (mode == null) ? MirrorMode.STATIC : mode;
         start = ((start == null) || start.isBlank()) ? null : start;
         width = (width >= 2) ? 2 : 1;
-        backdrop = ((backdrop == null) || backdrop.isBlank()) ? null : backdrop.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     /**
@@ -170,7 +138,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withDestination(final MirrorPoint newDestination)
     {
-        return new QuantumMirror(name, banner, newDestination, display, mode, look, start, width, backdrop);
+        return new QuantumMirror(name, banner, newDestination, display, mode, look, start, width);
     }
 
     /**
@@ -186,7 +154,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withName(final String newName)
     {
-        return new QuantumMirror(newName, banner, destination, display, mode, look, start, width, backdrop);
+        return new QuantumMirror(newName, banner, destination, display, mode, look, start, width);
     }
 
     /**
@@ -198,7 +166,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withBanner(final MirrorBlock newBanner)
     {
-        return new QuantumMirror(name, newBanner, destination, display, mode, look, start, width, backdrop);
+        return new QuantumMirror(name, newBanner, destination, display, mode, look, start, width);
     }
 
     /**
@@ -210,7 +178,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withDisplay(final MirrorDisplay newDisplay)
     {
-        return new QuantumMirror(name, banner, destination, newDisplay, mode, look, start, width, backdrop);
+        return new QuantumMirror(name, banner, destination, newDisplay, mode, look, start, width);
     }
 
     /**
@@ -222,7 +190,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withMode(final MirrorMode newMode)
     {
-        return new QuantumMirror(name, banner, destination, display, newMode, look, start, width, backdrop);
+        return new QuantumMirror(name, banner, destination, display, newMode, look, start, width);
     }
 
     /**
@@ -234,7 +202,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withLook(final MirrorLook newLook)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, newLook, start, width, backdrop);
+        return new QuantumMirror(name, banner, destination, display, mode, newLook, start, width);
     }
 
     /**
@@ -246,7 +214,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withStart(final String newStart)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, look, newStart, width, backdrop);
+        return new QuantumMirror(name, banner, destination, display, mode, look, newStart, width);
     }
 
     /**
@@ -258,19 +226,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withWidth(final int newWidth)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, look, start, newWidth, backdrop);
-    }
-
-    /**
-     * The same mirror, with something else past its depth.
-     *
-     * @param newBackdrop
-     *            {@code sky}, {@code none}, a block's name, or null for the server's
-     * @return a new instance; this one is unchanged
-     */
-    public QuantumMirror withBackdrop(final String newBackdrop)
-    {
-        return new QuantumMirror(name, banner, destination, display, mode, look, start, width, newBackdrop);
+        return new QuantumMirror(name, banner, destination, display, mode, look, start, newWidth);
     }
 
     /**

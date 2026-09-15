@@ -171,12 +171,15 @@ public final class MirrorCapture
         private BlockData lastData;
         private short lastIndex;
         private boolean lastOccludes;
+        private boolean lastMurky;
         /** Every block that is not air. */
         private final BitSet filled;
         /** Every block that hides what is behind it. */
         private final BitSet solid;
         /** Blocks blanked to air by {@link #clear}, which {@link #put} then leaves alone. */
         private final BitSet cleared;
+        /** Every block of water, which a ray sees through for {@link #WATER_SIGHT} blocks and no further. */
+        private final BitSet murky;
         /** After {@link #keepOnlySeen}, the blocks it kept; before it, null: everything. */
         private BitSet kept;
         /** After {@link #keepOnlySeen}, the air it saw; before it, null: none. */
@@ -223,6 +226,7 @@ public final class MirrorCapture
             this.filled = new BitSet(volume);
             this.solid = new BitSet(volume);
             this.cleared = new BitSet(volume);
+            this.murky = new BitSet(volume);
             names.add((air == null) ? "minecraft:air" : air.getAsString());
             states.add(air);
             byName.put(names.get(0), (short) 0);
@@ -261,10 +265,12 @@ public final class MirrorCapture
                 {
                     lastData = data;
                     lastIndex = -1;
-                    lastOccludes = data.isOccluding();
+                    lastOccludes = hides(data);
+                    lastMurky = isWater(data);
                 }
                 filled.set(at);
                 solid.set(at, lastOccludes);
+                murky.set(at, lastMurky);
             }
         }
 
@@ -291,11 +297,31 @@ public final class MirrorCapture
             {
                 lastData = data;
                 lastIndex = index(data);
-                lastOccludes = (lastIndex != 0) && data.isOccluding();
+                lastOccludes = (lastIndex != 0) && hides(data);
+                lastMurky = (lastIndex != 0) && isWater(data);
             }
             filled.set(at, lastIndex != 0);
             solid.set(at, lastOccludes);
+            murky.set(at, lastMurky);
             add(x, y, z, lastIndex);
+        }
+
+        /**
+         * Whether a block hides what is behind it: one that occludes, or lava.
+         *
+         * <p>Lava does not occlude as Bukkit counts it, so a ray went through it as through
+         * water, and a mirror onto the Nether kept every block under every lava lake it faced.
+         * "We can't see through lava."
+         */
+        private static boolean hides(final BlockData data)
+        {
+            return data.isOccluding() || (data.getMaterial() == Material.LAVA);
+        }
+
+        /** Whether a block is water, which can be seen through, but only so far. */
+        private static boolean isWater(final BlockData data)
+        {
+            return data.getMaterial() == Material.WATER;
         }
 
         /**
@@ -323,6 +349,7 @@ public final class MirrorCapture
             {
                 filled.clear(at);
                 solid.clear(at);
+                murky.clear(at);
                 cleared.set(at);
                 add(x, y, z, (short) 0);
             }
@@ -445,6 +472,64 @@ public final class MirrorCapture
         }
 
         /**
+         * How many blocks of water a ray sees through before the water's own fog ends it.
+         *
+         * <p>Water does not occlude, so a ray through an ocean went on to the bed however deep,
+         * and a mirror onto a beach kept the water in the whole fan of its view. A player under
+         * water sees a few dozen blocks; past that the client draws fog.
+         */
+        static final int WATER_SIGHT = 32;
+
+        /** @return how many blocks that are not air this would keep, as it stands */
+        public int keptCount()
+        {
+            return (kept == null) ? filled.cardinality() : kept.cardinality();
+        }
+
+        /**
+         * Keeps only what can be seen, then less, until what is kept fits a budget.
+         *
+         * <p>A capture of a jungle or an ocean bed keeps a large share of the fan of its view,
+         * since leaves and water are seen through: millions of blocks, tens of megabytes on
+         * disk and as much again in memory while any window draws from it. Rather than a
+         * setting to lower, the reach is shortened by a quarter at a time until the kept blocks
+         * fit, the way a view is cut shallower until it fits ({@code MirrorWindows.MOST_FIXED}).
+         * Never short of {@code floor}, the view depth: a view drawn past its capture would run
+         * out of room, so a room that is still too big at the depth is kept as it is.
+         *
+         * @param arrivalX
+         *            the block a traveller arrives in
+         * @param arrivalY
+         *            its y
+         * @param arrivalZ
+         *            its z
+         * @param aheadX
+         *            one step the way a traveller faces on arrival, x
+         * @param aheadZ
+         *            the same, z
+         * @param reach
+         *            how far to see, to begin with
+         * @param floor
+         *            how far to see at the least
+         * @param budget
+         *            how many blocks that are not air may be kept
+         * @return how far this ended up seeing
+         */
+        public int keepOnlySeenWithin(final int arrivalX, final int arrivalY, final int arrivalZ,
+            final int aheadX, final int aheadZ, final int reach, final int floor, final int budget)
+        {
+            int to = reach;
+            keepOnlySeen(arrivalX, arrivalY, arrivalZ, aheadX, aheadZ, to);
+            while ((keptCount() > budget) && (to > floor))
+            {
+                // A shorter pass keeps a subset of the last: what a ray sees to 24 it saw to 32.
+                to = Math.max(floor, (to * 3) / 4);
+                keepOnlySeen(arrivalX, arrivalY, arrivalZ, aheadX, aheadZ, to);
+            }
+            return to;
+        }
+
+        /**
          * Keeps only what can be seen from the opening, and leaves the rest to the real world.
          *
          * <p>Rays from points across the front of the opening, in every direction that leaves
@@ -458,7 +543,8 @@ public final class MirrorCapture
          * stands behind a fence or under a glass pane, and so is one layer behind every kept
          * block, in case. Everything else is left to the real world, whatever it was: a window
          * can never show it, and a view drawn whole would have sent it, and the inside of every
-         * far hill, for nothing.
+         * far hill, for nothing. Lava ends a ray as stone does, and water ends one after
+         * {@link #WATER_SIGHT} blocks of it, which is about where the game's own fog would.
          *
          * @param arrivalX
          *            the block a traveller arrives in, which the opening's bottom row shows
@@ -490,9 +576,7 @@ public final class MirrorCapture
             final double exitZ = (arrivalZ + 0.5) - ((0.5 - 1.0e-6) * aheadZ);
             final int rightX = -aheadZ;
             final int rightZ = aheadX;
-            // To the corners of the box: a room is a box to the depth ahead, not a sphere, and a
-            // ray that leaves the box stops at its edge.
-            final double reach = (depth + 2.0) * 2.0;
+            final double reach = depth + 2.0;
             final double step = Math.tan(Math.toRadians(1.0));
             // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
             // than its room's, on whichever side its view turns that column to, so a room captured
@@ -591,6 +675,7 @@ public final class MirrorCapture
                 final double edge = (stepOf[axis] > 0) ? (c[axis] + 1) : c[axis];
                 tMax[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
             }
+            int water = 0;
             for (double t = 0.0; t < reach;)
             {
                 if ((c[0] < 0) || (c[0] >= size[0]) || (c[1] < 0) || (c[1] >= size[1]) || (c[2] < 0) || (c[2] >= size[2]))
@@ -599,7 +684,7 @@ public final class MirrorCapture
                 }
                 final int at = offset(c[0], c[1], c[2], sizeY, sizeZ);
                 seen.set(at);
-                if (solid.get(at))
+                if (solid.get(at) || (murky.get(at) && (++water > WATER_SIGHT)))
                 {
                     return;
                 }
