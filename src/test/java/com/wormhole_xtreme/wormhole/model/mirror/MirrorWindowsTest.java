@@ -113,6 +113,9 @@ class MirrorWindowsTest
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
         MirrorManager.clear();
         MirrorProximity.clear();
+        // A redraw over these mocks takes hundreds of milliseconds; resting three times that would
+        // put every step that follows a pause() off until a catch-up that never comes.
+        MirrorWindows.restFactor = 0L;
 
         world = named(mock(World.class), "world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
@@ -710,13 +713,13 @@ class MirrorWindowsTest
      *
      * <p>"It was real laggy." Through a one-block opening a tenth-of-a-block step swings the far
      * end of a view a dozen blocks sideways, so thousands of far blocks changed ten times a second.
-     * With the far part starting four layers in, a step inside the same block projects only the
-     * near layers, and a step into the next block projects the far ones too.
+     * With the far part starting eight blocks from the eye, a step inside the same block projects
+     * only what is near, and a step into the next block projects the far part too.
      */
     @Test
     void aClippedRoomsFarPartStandsBetweenSmallStepsAndFollowsAWholeBlockMove()
     {
-        MirrorWindows.nearLayers = 4;
+        MirrorWindows.nearDistance = 8.0;
         gap = new Spot(16, 64, 11);
         // A clock of our own: a redraw over these mocks takes longer than the half second the far
         // part stands, so real time would judge it again on every step.
@@ -740,6 +743,21 @@ class MirrorWindowsTest
         assertTrue(projected[0] > 0, "a step inside the block projects the near layers");
         assertTrue(projected[1] > (2 * projected[0]),
             "a step into the next block projects the far layers too: " + projected[0] + " then " + projected[1]);
+    }
+
+    /**
+     * A redraw that took long earns a rest three times as long before the next; a quick one none.
+     *
+     * <p>Right against a deep mirror a redraw projected the whole half-sphere in sixty-five
+     * milliseconds, ten times a second: two thirds of the main thread for one viewer.
+     */
+    @Test
+    void aSlowRedrawEarnsARestThreeTimesAsLong()
+    {
+        MirrorWindows.restFactor = 3L;
+        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(0L), "a quick redraw keeps the pace");
+        assertEquals(MirrorWindows.REDRAW_MILLIS, MirrorWindows.restAfter(30L), "so does one under a third of it");
+        assertEquals(195L, MirrorWindows.restAfter(65L), "sixty-five milliseconds rests nearly two hundred");
     }
 
     /** How many blocks the viewer's last redraw projected, off the debug line. */

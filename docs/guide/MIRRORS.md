@@ -132,9 +132,11 @@ a deep room is more). `create` says so when a new mirror is closer than that to 
 other mirror shows the same room, clipped to where you stand: only the blocks you
 could actually see through the opening, so nothing shows past its edges — and the outer half of
 its wall's edge is kept clear, so a wider wall shows a little more beside the opening as you move.
-Either way it reaches the full depth, standing or walking. The far part of a clipped room, past
-48 blocks, follows you a step late: it is judged again when you move into another block, not on
-every step, since a small step swings a distant view a long way sideways.
+Either way it reaches the full depth, standing or walking. The part of a clipped room more than
+24 blocks from your eye follows you a step late: it is judged again when you move into another
+block, not on every step, since a small step swings a distant view a long way sideways. And a
+redraw that took long rests three times as long before the next, so a deep mirror cannot take
+more than a quarter of the server's time however close you stand.
 
 - **What you see is a capture:** a photograph of a mirror's room, kept in
   `data/mirror/captures/` under its place's name, which `mirror list` shows; a capture no mirror

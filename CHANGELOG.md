@@ -826,15 +826,23 @@ been running on defaults will start reading the file you have been editing.
   the count reads `1 of 2`. The own room is what a mirror shows before anybody clicks it, and what
   it goes back to when everybody has gone.
 
-- **A clipped room's far part stands between small steps.** "It was real laggy" at depth 160,
-  and fine at 60. Through a one-block opening, a tenth-of-a-block step swings the far end of the
-  view a dozen blocks sideways, so thousands of blocks a hundred and more deep changed on every
-  redraw, ten times a second: projected on the server and re-meshed on the client, each time. The
-  near part of a room has to move with every step; the far part is now judged again only once the
-  eye has left the block it was in, or half a second on, and stands as last judged between. At a
-  walk that is a couple of far redraws a second instead of ten, and the room reaches the render
-  distance without the stutter. `debug`'s `last redraw` line counts only what a redraw projected,
-  so a small step shows a small number and a whole-block step the far layers too.
+- **A clipped room's far part stands between small steps, and a slow redraw earns a rest.** "It
+  was real laggy" at depth 160, and fine at 60. Through a one-block opening, a tenth-of-a-block
+  step swings the far end of the view a dozen blocks sideways, so thousands of blocks a hundred and
+  more deep changed on every redraw, ten times a second: projected on the server and re-meshed on
+  the client, each time. What moves with a step is what is near the eye, and that is judged every
+  redraw; the rest, past 24 blocks from the eye, is judged again only once the eye has left the
+  block it was in, or a second on, and stands as last judged between. Near by distance from the
+  eye, not depth behind the opening: I tried the first 48 layers first, and right against the
+  opening, where the whole half-sphere is in view, that was most of the room.
+
+  The debug lines from that mirror said the rest: a reflection at 160 held 194,000 blocks, most
+  of them the air that carves this world's own ground out from behind the wall, and a redraw at
+  the opening projected all of them in 65 milliseconds, ten times a second. A redraw now rests
+  three times as long as it took before the next, so one viewer at a deep mirror costs at most a
+  quarter of the main thread, and a quick redraw still comes ten times a second. `debug`'s
+  `last redraw` line counts only what a redraw projected, so a small step shows a small number
+  and a whole-block step the far part too.
 
 - **A room too big to send at once is clipped to each eye, however good its wall.** "It's
   rendering lag when you look at or move in/out of view: it remains and then takes a moment to

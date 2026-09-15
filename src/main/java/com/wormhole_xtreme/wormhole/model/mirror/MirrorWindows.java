@@ -116,22 +116,30 @@ public final class MirrorWindows
     static int mostWhole = MOST_WHOLE;
 
     /**
-     * How deep behind the opening a clipped room is judged afresh on every redraw; past it, only
-     * on a whole-block move or after {@link #FAR_MILLIS}.
+     * How far from the eye a clipped room is judged afresh on every redraw; past it, only on a
+     * whole-block move or after {@link #FAR_MILLIS}.
      *
      * <p>Through a one-block opening, a tenth-of-a-block step swings the far end of a view a
      * dozen blocks sideways: thousands of blocks a hundred and more deep changed ten times a
      * second, projected here and re-meshed on the client, and a mirror at the render distance
-     * stuttered. The near part of a room moves with every step and must; the far part may lag a
-     * step behind, since parallax that far off is what a step is.
+     * stuttered. What moves with a step is what is near the eye, and must be judged each time;
+     * the rest may lag a step behind, since parallax that far off is what a step is. From the
+     * eye, not by depth behind the opening: right against the opening the whole half-sphere is in
+     * view, and the first layers of a deep room were most of it.
      */
-    private static final int NEAR_LAYERS = 48;
+    private static final double NEAR_DISTANCE = 24.0;
 
     /** The same, settable so a test can push the far part close. */
-    static int nearLayers = NEAR_LAYERS;
+    static double nearDistance = NEAR_DISTANCE;
 
     /** How long a clipped room's far part stands before it is judged again from the same block. */
-    private static final long FAR_MILLIS = 500L;
+    private static final long FAR_MILLIS = 1000L;
+
+    /** How many times as long as a redraw took the viewer's next redraw waits, at least. */
+    private static final long REST_FACTOR = 3L;
+
+    /** The same, settable: a redraw over a test's mocks takes long enough to rest a test out. */
+    static long restFactor = REST_FACTOR;
 
     /** The server's share of work per second, by default: blocks walked, fixed and sent, all viewers together. */
     private static final int WORK_PER_SECOND = 400_000;
@@ -330,8 +338,10 @@ public final class MirrorWindows
         private Location pendingEye;
         private boolean catchUpQueued;
         private Redraw lastRedraw;
-        /** Each clipped window's far part as last judged, by mirror name; see {@link #NEAR_LAYERS}. */
+        /** Each clipped window's far part as last judged, by mirror name; see {@link #NEAR_DISTANCE}. */
         private final Map<String, Far> far = new HashMap<>();
+        /** The least time before this viewer's next redraw on a move, longer after a slow one. */
+        private long rest = REDRAW_MILLIS;
         private String stamp = "";
 
         View(final World world)
@@ -521,7 +531,8 @@ public final class MirrorWindows
         workPerSecond = WORK_PER_SECOND;
         mostFixed = MOST_FIXED;
         mostWhole = MOST_WHOLE;
-        nearLayers = NEAR_LAYERS;
+        nearDistance = NEAR_DISTANCE;
+        restFactor = REST_FACTOR;
         workSecond = 0L;
         workSpent = 0;
     }
@@ -669,7 +680,7 @@ public final class MirrorWindows
             return;
         }
         final long now = now();
-        if ((view != null) && ((now - view.composedAt) < REDRAW_MILLIS))
+        if ((view != null) && ((now - view.composedAt) < view.rest))
         {
             view.pendingEye = eye;
             catchUpLater(player, view);
@@ -919,8 +930,10 @@ public final class MirrorWindows
         workSpent += budget.projected;
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
+        final long took = now() - now;
         view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
-            new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), now() - now);
+            new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), took);
+        view.rest = restAfter(took);
         view.stamp = stamp;
         view.mirrors = names(seeing);
         view.fixedNames = names(new ArrayList<>(wholes.whole().keySet()));
@@ -933,6 +946,23 @@ public final class MirrorWindows
         {
             VIEWS.remove(id);
         }
+    }
+
+    /**
+     * How long a viewer's next redraw on a move waits, after one that took this long.
+     *
+     * <p>A redraw right against a deep mirror projects the whole half-sphere and took sixty-five
+     * milliseconds, ten times a second: two thirds of the main thread for one viewer. It rests
+     * three times as long as it took, so a viewer costs at most a quarter of a tick's time, and a
+     * quick redraw still comes ten times a second.
+     *
+     * @param tookMillis
+     *            how long the last redraw took
+     * @return the least time before the next, in milliseconds
+     */
+    static long restAfter(final long tookMillis)
+    {
+        return Math.max(REDRAW_MILLIS, restFactor * tookMillis);
     }
 
     /** Whether nothing a view depends on has changed since it was last drawn. */
@@ -952,8 +982,11 @@ public final class MirrorWindows
         }
         try
         {
+            // Not before the viewer's rest is up: a slow redraw's rest is longer than two ticks.
+            final long left = view.rest - (now() - view.composedAt);
+            final long ticks = Math.max(REDRAW_TICKS, (left + 49L) / 50L);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(),
-                () -> catchUp(player), REDRAW_TICKS);
+                () -> catchUp(player), ticks);
             view.catchUpQueued = true;
         }
         catch (final RuntimeException noScheduler)
@@ -1248,9 +1281,9 @@ public final class MirrorWindows
      * somebody at the opening could see, so there is nothing to occlude, and a bound on where a
      * block can land ({@link MirrorWindow#mightLandOn}) spares most of the room a projection.
      *
-     * <p>Only the near part every time: the far part, past {@link #NEAR_LAYERS}, is judged again
-     * only once the eye has left the block it was in or {@link #FAR_MILLIS} have passed, and stands
-     * as last judged meanwhile.
+     * <p>Only the near part every time: the far part, past {@link #NEAR_DISTANCE} from the eye, is
+     * judged again only once the eye has left the block it was in or {@link #FAR_MILLIS} have
+     * passed, and stands as last judged meanwhile.
      */
     private static void clipWhole(final View view, final Location eye, final Window window, final Whole whole,
         final List<Window> seeing, final Set<Long> allOpen, final Map<Long, BlockData> wanted,
@@ -1262,6 +1295,7 @@ public final class MirrorWindows
         final Set<Long> shielded = shielded(window, eye, now);
         final double[] span = spanOf(window);
         final MirrorWindow shape = window.shape;
+        final double near = nearDistance * nearDistance;
         for (final Map.Entry<Long, BlockData> entry : whole.blocks().entrySet())
         {
             final long cell = entry.getKey();
@@ -1272,8 +1306,10 @@ public final class MirrorWindows
             final int x = unpackX(cell);
             final int y = unpackY(cell);
             final int z = unpackZ(cell);
-            final boolean farOff = (((x - shape.base().x()) * shape.into().x())
-                + ((z - shape.base().z()) * shape.into().z())) > nearLayers;
+            final double dx = (x + 0.5) - eye.getX();
+            final double dy = (y + 0.5) - eye.getY();
+            final double dz = (z + 0.5) - eye.getZ();
+            final boolean farOff = ((dx * dx) + (dy * dy) + (dz * dz)) > near;
             if (farOff && !farAgain)
             {
                 continue;
