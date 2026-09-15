@@ -623,6 +623,113 @@ claims. Nothing here tries to overrule the cancel. The mechanic is a banner some
 a permission system, and a plugin whose whole job is deciding who may enter a world should win
 that argument — the bug was never that it won, only that nobody said so.
 
+## The far edge of the room
+
+The one problem this design keeps coming back to, and the record of every answer tried, so that
+the next attempt starts from here rather than from the beginning.
+
+### What a mirror is trying to do
+
+Walk up to a wall banner and see the far room drawn in real blocks behind the wall, with depth and
+parallax, out to a depth — and nothing of this world past it. Coming to the mirror, moving in front
+of it and leaving should not stutter. That is the whole of it, and every part of it has been had
+at some point; the trouble is having all of it at once.
+
+### Three facts every attempt runs into
+
+1. **A client draws every chunk it holds, in every direction.** Nothing in Bukkit stops it
+   rendering past a distance one way. The one thing that does is Paper's per-player send view
+   distance, which stops it in every direction at once, a ring of chunks at a time.
+2. **A view is block changes sent to one player, and the client re-meshes every chunk section a
+   batch touches.** The cost is per batch and per section, not per block: one large batch is a
+   freeze, and many small ones are a stutter.
+3. **Through a one-by-two opening, parallax is keyhole parallax.** From a block away, a step
+   sideways swings the far end of the view by as many blocks as the room is deep. A view that is
+   right for one eye is wrong for the next, and at 160 nearly all of a room's far part changes
+   with every step. A wall's width does not change this: what a wider wall buys is tolerance for
+   movement between redraws, since a stale block's landing on the wall shifts by about as far as
+   the eye moved, whatever the block's depth. It never buys depth.
+
+Two things follow. At 160 — ten chunks, as far as a server usually sends — nothing stands past
+the room at all, so the only reason to lower the depth is the cost of the third fact. And a room
+sent once, whole, has no cost per step, but it has to be hidden from everywhere but the opening,
+which needs wall out to the proximity distance on every side of it, no other mirror within twice
+the depth, and a room that fits one batch. A museum's row of alcoves qualifies for none of that.
+
+### Tried, and why not
+
+In the order they were tried. The commit is where the reasoning is written out in full.
+
+- **A barrier block in front of the opening**, to keep viewers a block back where the cone is
+  narrower (`503ed45`). Awkward to walk up to, and it only moved the cut; it did not remove it.
+- **A budget-limited cone walk**, the reach growing back by the cube root of the room while you
+  stood still (`726835b`, `2e43167`). A view that was shallower up close and while walking, so
+  "blocks came and went as a viewer walked". Retired with the cone walk itself (`afffee0`).
+- **A painted shell past the radius**, each shell block painted with what its line of sight meets
+  further on, or with sky (`9059fcc`). "I don't like the fake sky/ground in the distance." Unlit
+  sky colour behind a dark wall read as water, and a glass wall painted as glass showed this
+  world through it.
+- **A fog shell**, one block thick, white by day and black by night (`4662cc3`). "You can see it
+  being made like a circle, and it's distracting"; "let's not do that weird shell thing".
+- **Nothing past the depth, with the depth at the render distance** (`db30c76`, `55f05a2`).
+  Correct and clean: nothing of this world shows, because the client has nothing to show there.
+  But a clipped room's far part changed thousands of blocks a step, and "it was real laggy" at
+  160 and fine at 60. Softened since — the far part stands between small steps and a slow redraw
+  earns a rest (`d594907`), rooms over 20,000 blocks are clipped rather than sent at once
+  (`2bfd70a`) — and a deep clipped mirror still stutters on the move. This is where it stands.
+- **The depth lowered, and a flat wall of the sky's colour a block past it** (`524cc24`). "It
+  brings too much attention to the issue." Taken back in #282, with the box-shaped room that
+  existed only so the wall could be flat.
+- **Carving this world to air past the depth.** Never built: hundreds of thousands of blocks,
+  which is the same re-meshing that made 160 laggy in the first place.
+- **Blindness or darkness on the viewer.** Never built: both dim the whole screen, not the far
+  end of a view.
+- **Depth keyed to the wall's width.** No mechanism, by the third fact. What the idea did yield
+  is the far part's cell: half a block behind a one-block wall, a block behind anything wider
+  (#282).
+- **A capture radius setting** (`mirror-capture-radius`, retired in `f1675c5`). Lowering it only
+  made the view stop at the capture's edge. A capture reaches the render limit on its own now,
+  whatever the depth, and the depth draws part of it (#282).
+
+### What is left to try
+
+Each of these is a real lever, and none is free. The first two are the ones to build next.
+
+1. **The fat eye.** Judge a clipped room's far part for every eye within the wall's width at
+   once, and pre-draw the blocks that land on the wall's ring, so a wall B blocks wide judges
+   the far part again every B minus a half blocks of movement rather than every one. The same
+   blocks are sent per block travelled, but in a fraction of the batches, and the client
+   re-meshes each far section a fraction as often. The gain scales with the wall: nothing for a
+   one-block wall, several times fewer batches for four. The cheapest to build, and the test
+   surface for it exists.
+2. **Stream whole rooms.** Send a whole room over ticks as a viewer comes in through the
+   proximity distance — a few thousand blocks a tick over the last sixteen blocks of approach —
+   and take it back the same way as they leave, instead of one batch each way. That lifts the
+   20,000-block cap on a room sent whole, and a walled mirror at 160 then costs nothing per step.
+3. **Whole rooms for mirrors that share a wall.** A library's back wall is already solid across
+   its whole plane; what stops each alcove's mirror being drawn whole is the neighbour rule (two
+   whole rooms would fill the same space behind the wall) and the cap. But a viewer in one alcove
+   cannot see the next alcove's opening past the divider, and a view already draws only the
+   windows the eye has a clear line to. Judge the overlap against the windows a viewer can see
+   rather than every mirror within twice the depth, stream the rooms in and out (2), and the
+   museum's mirrors draw once each and cost nothing per step. The wall-plane rule still asks for
+   wall to the proximity distance above and below, which a low hall does not have; the honest
+   test there is whether the space behind the wall can be seen from anywhere a viewer can stand,
+   which is the next item.
+4. **Region-safe drawing.** Once per window, work out which room blocks are safe from every eye
+   in the proximity zone — seen only through the opening, or hidden by real solid blocks anywhere
+   along the line — and draw exactly those, whole, with no per-step work at all. Many eyes times
+   many blocks, so off the main thread and once a minute at most. The most general answer, the
+   most work, and unproven.
+5. **Paper's per-player send view distance.** End this world at the depth in the client's own
+   fog: `Player.setSendViewDistance`, set on approach and reset on leaving. The only true "stop
+   rendering past here", and the only one that costs no blocks. Paper and Purpur only, a radius
+   round the player rather than a direction, a ring of chunks at a time, and it does nothing for
+   the cost per step. The right pairing for a shallow depth on a Paper server.
+
+What is not on the list: another shell, wall or painting past the depth. Three have been tried
+and each drew the eye to the very edge it was there to hide.
+
 ## What was considered and not done
 
 **A map in an item frame**, rendered from the far side, was the first idea for a window. It was
