@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,6 +30,8 @@ class MirrorCaptureTest
     private final BlockData air = named("minecraft:air", false);
     private final BlockData stone = named("minecraft:stone", true);
     private final BlockData glass = named("minecraft:glass", false);
+    private final BlockData water = fluid("minecraft:water", Material.WATER);
+    private final BlockData lava = fluid("minecraft:lava", Material.LAVA);
 
     private static BlockData named(final String name, final boolean occluding)
     {
@@ -42,6 +45,14 @@ class MirrorCaptureTest
     private MirrorCapture.Builder box()
     {
         return new MirrorCapture.Builder("far", true, 0, 0, 0, 4, 4, 4, air);
+    }
+
+    /** A fluid, which does not occlude as Bukkit counts it, whatever a player can see through it. */
+    private static BlockData fluid(final String name, final Material material)
+    {
+        final BlockData data = named(name, false);
+        when(data.getMaterial()).thenReturn(material);
+        return data;
     }
 
     @Test
@@ -193,6 +204,121 @@ class MirrorCaptureTest
         assertTrue(capture.isBuried(4, 2, 6), "the glass behind the wall is left to the real world");
         assertTrue(capture.isBuried(4, 2, 5), "and so is the air behind it");
         assertTrue(capture.isBuried(4, 0, 5), "and the floor two blocks behind the last seen");
+    }
+
+    /**
+     * Lava hides what is behind it; water does not.
+     *
+     * <p>"We can't see through lava." Bukkit counts neither fluid as occluding, so a ray went
+     * through a lava lake as through a pond, and a mirror onto the Nether kept every block under
+     * every lake it faced. Lava ends a ray as stone does now. Water still lets it through, so the
+     * bed of a pond is seen, and the block behind the lava is left to the real world along with
+     * everything past it: only the block right behind it stays, as the layer behind every kept
+     * block always does.
+     */
+    @Test
+    void lavaHidesWhatIsBehindItWhereWaterDoesNot()
+    {
+        for (final BlockData wall : List.of(lava, water))
+        {
+            // A box 9 wide, 12 tall and 9 deep, arrival at (4, 2, 0) facing +z; a wall of the fluid
+            // right across at z 4, and stone two and three blocks behind it.
+            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, 0, 0, 0, 9, 12, 9, air);
+            for (int x = 0; x < 9; x++)
+            {
+                for (int y = 0; y < 12; y++)
+                {
+                    builder.put(x, y, 4, wall);
+                }
+            }
+            builder.put(4, 2, 6, stone);
+            builder.put(4, 2, 7, stone);
+            builder.keepOnlySeen(4, 2, 0, 0, 1, 8);
+
+            final MirrorCapture capture = builder.build();
+
+            assertSame(wall, capture.at(4, 2, 4), "the wall itself is seen either way");
+            if (wall == lava)
+            {
+                assertTrue(capture.isBuried(4, 2, 6), "two blocks behind lava is left to the real world");
+                assertTrue(capture.isBuried(4, 2, 7), "and so is everything past it");
+            }
+            else
+            {
+                assertSame(stone, capture.at(4, 2, 6), "the stone seen through the water");
+                assertSame(stone, capture.at(4, 2, 7), "and the layer behind it");
+            }
+        }
+    }
+
+    /**
+     * Water can be seen through only so far; glass has no such limit.
+     *
+     * <p>A ray through an ocean went on to the bed however deep, and a mirror onto a beach kept
+     * the water in the whole fan of its view: millions of blocks. A player under water sees a
+     * few dozen blocks and fog past that, so a ray ends after {@code WATER_SIGHT} blocks of it.
+     * The box is a corridor three wide and sixty long so the straight ray is the deepest one.
+     */
+    @Test
+    void waterIsSeenThroughOnlySoFarWhereGlassIsSeenThroughToTheEnd()
+    {
+        for (final BlockData fill : List.of(water, glass))
+        {
+            final MirrorCapture.Builder builder = new MirrorCapture.Builder("far", true, 0, 0, 0, 3, 5, 60, air);
+            for (int x = 0; x < 3; x++)
+            {
+                for (int y = 0; y < 5; y++)
+                {
+                    for (int z = 1; z < 60; z++)
+                    {
+                        builder.put(x, y, z, fill);
+                    }
+                }
+            }
+            builder.keepOnlySeen(1, 2, 0, 0, 1, 58);
+
+            final MirrorCapture capture = builder.build();
+
+            assertSame(fill, capture.at(1, 2, 20), "twenty blocks in is seen through either");
+            if (fill == water)
+            {
+                assertSame(water, capture.at(1, 2, 30), "and thirty, within the water's sight");
+                assertTrue(capture.isBuried(1, 2, 40), "forty blocks of water is past what fog lets through");
+                assertTrue(capture.isBuried(1, 2, 55), "and so is the far end");
+            }
+            else
+            {
+                assertSame(glass, capture.at(1, 2, 55), "glass is seen through to the end of the reach");
+            }
+        }
+    }
+
+    /**
+     * A capture that would keep too much is taken shorter, a quarter at a time, never below the depth.
+     *
+     * <p>A jungle or an ocean bed at ten chunks could keep millions of blocks. Rather than a
+     * setting to lower, the reach is cut until the kept blocks fit the budget, the way a view is
+     * cut shallower until it fits. It never goes below the floor, the view depth: a view drawn
+     * past its capture would run out of room, so a room still too big at the depth is kept as it
+     * is. A box of glass, seen through everywhere, keeps the whole fan of the view and so is the
+     * worst case.
+     */
+    @Test
+    void aCaptureThatKeepsTooMuchIsCutShorterUntilItFitsButNeverBelowTheDepth()
+    {
+        final MirrorCapture.Builder generous = new MirrorCapture.Builder("far", true, 0, 0, 0, 21, 21, 41, air);
+        generous.fillBelow(21, glass);
+        assertEquals(32, generous.keepOnlySeenWithin(10, 2, 0, 0, 1, 32, 8, 1_000_000),
+            "within a generous budget the reach asked for is the reach kept");
+        assertSame(glass, generous.build().at(10, 2, 30), "and the room is seen to the end of it");
+
+        final MirrorCapture.Builder tight = new MirrorCapture.Builder("far", true, 0, 0, 0, 21, 21, 41, air);
+        tight.fillBelow(21, glass);
+        final int kept = tight.keepOnlySeenWithin(10, 2, 0, 0, 1, 32, 8, 2000);
+        assertEquals(8, kept, "cut a quarter at a time until it fits, and stopped at the floor: 32, 24, 18, 13, 9, 8");
+        final MirrorCapture capture = tight.build();
+        assertSame(glass, capture.at(10, 2, 5), "the room to the depth is still there");
+        assertTrue(capture.isBuried(10, 2, 20), "and past the shortened reach it is left to the real world");
     }
 
     /**

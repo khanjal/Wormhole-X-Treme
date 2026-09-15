@@ -150,7 +150,10 @@ more than a quarter of the server's time however close you stand.
   (its view distance, up to ten chunks) whatever `mirror-view-depth` is, rays a degree apart
   through the opening, and the blocks they reach, air included; everything else is left to the
   real world. So a capture is the surfaces in view, and a viewer is sent the part of it within
-  the depth.
+  the depth. Lava hides what is behind it, and water is seen through for about thirty blocks,
+  as in the game. A room that would keep more than half a million blocks even so (a jungle, an
+  ocean bed) is captured shorter, a quarter at a time, until it fits, and never shorter than
+  `mirror-view-depth`; the server log says when one was cut.
 - **The view reaches `mirror-view-depth` from the opening** (160 by default, from 4) and nothing
   is drawn past it, standing or walking, on any wall. At 160 — ten chunks, as far as a server
   usually sends — the room ends where the client has nothing to show anyway, so nothing of this

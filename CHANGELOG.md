@@ -40,6 +40,16 @@ been running on defaults will start reading the file you have been editing.
   retaken. A capture taken by the old rule is taken again once, the next time somebody looks,
   since a server sending further can now show more of the room.
 
+  Three limits on what a capture keeps, since the depth no longer trims it. "We can't see
+  through lava": Bukkit counts neither fluid as occluding, so a ray went through a lava lake as
+  through a pond and a mirror onto the Nether kept every block under every lake it faced; lava
+  ends a ray as stone does now. Water ends one after 32 blocks of it, about where the game's own
+  fog would, so a mirror onto a beach no longer keeps the water in the whole fan of its view. And
+  a capture that would keep more than half a million blocks even so is taken shorter, a quarter
+  of its reach at a time, until it fits -- never short of `mirror-view-depth`, since a view drawn
+  past its capture would run out of room. The log says when one was cut, and `mirror debug` says
+  how many blocks a capture keeps.
+
   The wall of sky past the depth is gone before it shipped. "I think a backdrop/shell is out. It
   brings too much attention to the issue." Its `mirror-backdrop` setting and `mirror backdrop`
   verb go with it, and a `Backdrop` line in `mirror.yml` from a build of the last day is read as

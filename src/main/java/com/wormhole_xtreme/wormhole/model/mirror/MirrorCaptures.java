@@ -88,6 +88,16 @@ public final class MirrorCaptures
     static final int MOST_REACH = 160;
 
     /**
+     * Most blocks that are not air a capture may keep; past it, the reach is cut until it fits.
+     *
+     * <p>A room of hills and trees at ten chunks keeps a few hundred thousand. A jungle or an
+     * ocean bed, seen through leaves or water, could keep millions: tens of megabytes on disk,
+     * as much again in memory while a window draws from it, and a walk over all of it every
+     * minute to hold the room. Half a million is about five megabytes raw and a second's walk.
+     */
+    static final int MOST_KEPT = 500_000;
+
+    /**
      * How far ahead of the arrival point a capture of a world is taken.
      *
      * <p>As far as that world's server sends -- its view distance, in blocks -- and never short
@@ -528,7 +538,8 @@ public final class MirrorCaptures
         final File file = fileOf(key);
         final Held held = LOADED.get(key);
         return MirrorText.field("capture", (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
-            + ", " + ((held == null) ? "not in memory" : ("in memory, taken " + held.capture.secondsOld() + "s ago"))
+            + ", " + ((held == null) ? "not in memory"
+                : ("in memory, " + held.capture.filled() + " blocks, taken " + held.capture.secondsOld() + "s ago"))
             + (JOBS.containsKey(key) ? ", being taken now" : ""));
     }
 
@@ -600,6 +611,9 @@ public final class MirrorCaptures
         private boolean sifting;
         private boolean done;
         private BukkitTask task;
+        /** How far the capture was asked to see, and how far it saw once cut to fit {@link #MOST_KEPT}. */
+        private int reachAsked;
+        private volatile int reachKept;
 
         Job(final String key, final World far, final MirrorPoint destination)
         {
@@ -743,11 +757,15 @@ public final class MirrorCaptures
             final int arrivalY = (int) Math.floor(destination.y());
             final int arrivalZ = (int) Math.floor(destination.z());
             final int depth = reach(far);
+            final int floor = ConfigManager.getMirrorViewDepth();
+            reachAsked = depth;
+            reachKept = depth;
             // A third of a million rays: off the main thread, since the box is noted and
             // nothing here reads the world again.
             final Runnable work = () ->
             {
-                builder.keepOnlySeen(arrivalX, arrivalY, arrivalZ, ahead.x(), ahead.z(), depth);
+                reachKept = builder.keepOnlySeenWithin(arrivalX, arrivalY, arrivalZ, ahead.x(), ahead.z(), depth,
+                    floor, MOST_KEPT);
                 builder.prune();
             };
             final Runnable again = () ->
@@ -780,7 +798,9 @@ public final class MirrorCaptures
             ABSENT.remove(key);
             WARNED.remove(key);
             generation++;
-            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe());
+            WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe()
+                + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
+                    + " blocks ahead to keep under " + MOST_KEPT + " blocks") : ""));
             save(capture, fileOf(key));
         }
 
