@@ -818,6 +818,14 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A right-click never comes round to a mirror's own room.** "We shouldn't have the mirror's own
+  room be on the right-click scroll. It should only show when approached and the mirror turns on;
+  otherwise just scroll through the other mirrors." The list a right-click walked ended with the
+  mirror's own room, so at a mirror with two others every third press was a reflection. The list is
+  the other mirrors alone -- the start first, then the rest by name, then the start again -- and
+  the count reads `1 of 2`. The own room is what a mirror shows before anybody clicks it, and what
+  it goes back to when everybody has gone.
+
 - **A clipped room's far part stands between small steps.** "It was real laggy" at depth 160,
   and fine at 60. Through a one-block opening, a tenth-of-a-block step swings the far end of the
   view a dozen blocks sideways, so thousands of blocks a hundred and more deep changed on every

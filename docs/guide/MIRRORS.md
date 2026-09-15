@@ -38,9 +38,10 @@ its patterns. Walk up to it and it shows its own room, flipped across the wall, 
 
 Make a mirror in another world the same way, and the two find each other:
 
-- **Right-click** a mirror to move it on to the next one — its own room first, then every other
-  mirror by name, then back. With no others it says "No other mirrors found". Alone, click through
-  them as fast as you like; with somebody else at the mirror, what it shows stays up three seconds.
+- **Right-click** a mirror to move it on to the next of the other mirrors, by name, round and
+  round; its own room is never in the round, only what it shows before anybody clicks. With no
+  others it says "No other mirrors found". Alone, click through them as fast as you like; with
+  somebody else at the mirror, what it shows stays up three seconds.
 - **Punch** it to go to the mirror it is showing. You land in front of that mirror's banner, facing
   out into its room.
 - **Walk away** and, once nobody is near, it goes back to its own room.

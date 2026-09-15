@@ -34,7 +34,8 @@ behind the wall shows a step to the right in front of it, and blocks are flipped
 chooses it shows the same capture turned to face the viewer, the way a window would.
 
 **A right-click walks a fixed list:** the mirror's start, if it has one, then every other mirror by
-name, then back round to its own room. The start exists for a mirror in an archived world, whose
+name, then round to the start again — never its own room, which is what it shows when nobody has
+turned it on and what walking away turns it back to. The start exists for a mirror in an archived world, whose
 first right-click should open onto the main world. A player alone at a mirror can click through the
 list as fast as they like; with somebody else at it, a choice holds three seconds before it can
 change, so nobody is swapped out from under a trip they were about to take. Only the main hand's

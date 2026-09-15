@@ -25,11 +25,12 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 /**
  * Every mirror is on the network: it shows its own room until somebody at it chooses another.
  *
- * <p>A right-click walks the mirrors in a fixed order -- its own room first, then the others by
- * name -- so a player learns where one press takes them. Alone, you can click through them as
- * fast as you like; with somebody else at the mirror, what it shows stays up a few seconds before
- * it can change, so nobody is swapped out from under a trip they were about to take. When nobody
- * is at it any more, it goes back to its own room.
+ * <p>A right-click walks the other mirrors in a fixed order -- its start first, then the rest by
+ * name, round and round -- so a player learns where one press takes them. Its own room is not in
+ * the round: that is what it shows when nobody has turned it on. Alone, you can click through
+ * them as fast as you like; with somebody else at the mirror, what it shows stays up a few seconds
+ * before it can change, so nobody is swapped out from under a trip they were about to take. When
+ * nobody is at it any more, it goes back to its own room.
  */
 class MirrorNetworkTest
 {
@@ -103,23 +104,31 @@ class MirrorNetworkTest
         assertTrue(MirrorNetwork.reflects(library));
     }
 
-    /** Right-clicks walk the others by name, then come back to the mirror's own room. */
+    /**
+     * Right-clicks walk the others by name and round again, never to the mirror's own room.
+     *
+     * <p>"We shouldn't have the mirror's own room be on the right-click scroll. It should only
+     * show when approached and the mirror turns on; otherwise just scroll through the other
+     * mirrors." The own room came round after the last of the others, so a player at a mirror
+     * with two others clicked into a reflection every third press.
+     */
     @Test
-    void rightClicksWalkTheOthersByNameAndComeBackToItsOwnRoom()
+    void rightClicksWalkTheOthersByNameAndRoundAgainNeverToItsOwnRoom()
     {
         final QuantumMirror library = mirror("library", "world");
         mirror("nether", "world_nether");
         mirror("End", "world_the_end");
 
-        MirrorNetwork.scroll(library, false);
+        final String first = MirrorNetwork.scroll(library, false);
         assertEquals("End", MirrorNetwork.chosen(library).name(), "by name, whatever the case");
+        assertTrue(first.contains("(1 of 2)"), "counted among the others: " + first);
         now += 500L;
         MirrorNetwork.scroll(library, false);
         assertEquals("nether", MirrorNetwork.chosen(library).name());
         now += 500L;
         MirrorNetwork.scroll(library, false);
-        assertEquals("library", MirrorNetwork.chosen(library).name(), "and round to its own room");
-        assertTrue(MirrorNetwork.reflects(library));
+        assertEquals("End", MirrorNetwork.chosen(library).name(), "and round to the first other, not its own room");
+        assertFalse(MirrorNetwork.reflects(library));
     }
 
     /** One press arriving twice moves the mirror once. */
@@ -190,8 +199,8 @@ class MirrorNetworkTest
      *
      * <p>"Mirrors should reflect themselves when approached if they are off. A right-click turns the
      * mirror on and it starts down the list; they turn off if everyone leaves." The start is first in
-     * the list -- the main world's mirror, for one in an archived world -- and the mirror's own room
-     * is still where the list comes round to.
+     * the list -- the main world's mirror, for one in an archived world -- and the list comes round
+     * to it again, never to the mirror's own room.
      */
     @Test
     void aMirrorWithAStartReflectsUntilARightClickOpensOntoItFirst()
@@ -211,9 +220,8 @@ class MirrorNetworkTest
         assertEquals("end", MirrorNetwork.chosen(archive).name(), "then the rest by name, the start not twice");
         now += 500L;
         MirrorNetwork.scroll(archive, false);
-        assertTrue(MirrorNetwork.reflects(archive), "and round to its own room");
+        assertEquals("hub", MirrorNetwork.chosen(archive).name(), "and round to the start again, not its own room");
 
-        MirrorNetwork.scroll(archive, false);
         MirrorNetwork.settle(archive, false);
         assertTrue(MirrorNetwork.reflects(archive), "everybody gone: off again");
     }

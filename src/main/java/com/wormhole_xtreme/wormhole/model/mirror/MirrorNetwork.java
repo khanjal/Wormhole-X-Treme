@@ -21,8 +21,10 @@ import com.wormhole_xtreme.wormhole.config.ConfigManager;
  *
  * <p>Every mirror is on the network. A mirror stores its own room -- the point in front of its
  * banner, level with the bottom of its opening, facing out -- and on its own it shows that room
- * as a reflection. Right-clicking it moves it on to the next mirror, and it shows that mirror's
- * room instead; punching it goes there. When nobody is near it any more it goes back to itself.
+ * as a reflection. Right-clicking it moves it on to the next of the other mirrors, round and
+ * round, and it shows that mirror's room instead; punching it goes there. Its own room is never
+ * in that round: it is what the mirror shows when nobody has turned it on, and what it goes back
+ * to when nobody is near it any more.
  *
  * <p>The choice is kept in memory only. A restart, like walking away, leaves every mirror
  * reflecting.
@@ -151,7 +153,8 @@ public final class MirrorNetwork
      *
      * @param mirror
      *            the mirror being clicked
-     * @return itself first, then every other mirror with somewhere to go, by name
+     * @return its start if it has one, then every other mirror with somewhere to go, by name;
+     *         never the mirror itself
      */
     static List<QuantumMirror> order(final QuantumMirror mirror)
     {
@@ -174,12 +177,15 @@ public final class MirrorNetwork
                 break;
             }
         }
-        order.add(0, mirror);
         return order;
     }
 
     /**
-     * Moves a mirror on to the next one, if it may move.
+     * Moves a mirror on to the next of the other mirrors, if it may move.
+     *
+     * <p>Round the others and never to its own room: "we shouldn't have the mirror's own room be
+     * on the right-click scroll; it should only show when approached." Walking away is what turns
+     * a mirror off.
      *
      * @param mirror
      *            the mirror right-clicked
@@ -190,7 +196,7 @@ public final class MirrorNetwork
     public static String scroll(final QuantumMirror mirror, final boolean othersNear)
     {
         final List<QuantumMirror> order = order(mirror);
-        if (order.size() < 2)
+        if (order.isEmpty())
         {
             return "No other mirrors found.";
         }
@@ -208,7 +214,8 @@ public final class MirrorNetwork
             }
         }
         final String current = chosen(mirror).name();
-        int at = 0;
+        // Off -- showing its own room -- is before the first; from the last, round to the first.
+        int at = -1;
         for (int i = 0; i < order.size(); i++)
         {
             if (order.get(i).name().equalsIgnoreCase(current))
@@ -218,15 +225,9 @@ public final class MirrorNetwork
         }
         final int next = (at + 1) % order.size();
         CHOSEN_AT.put(key(mirror.name()), now);
-        if (next == 0)
-        {
-            // Round to its own room: off again, as it is when everybody leaves.
-            CHOSEN.remove(key(mirror.name()));
-            return MirrorText.quoted(mirror.name()) + " shows its own room again.";
-        }
         CHOSEN.put(key(mirror.name()), order.get(next).name());
         return MirrorText.quoted(mirror.name()) + " opens onto " + MirrorText.quoted(order.get(next).name())
-            + " (" + next + " of " + (order.size() - 1) + ").";
+            + " (" + (next + 1) + " of " + order.size() + ").";
     }
 
     /**
