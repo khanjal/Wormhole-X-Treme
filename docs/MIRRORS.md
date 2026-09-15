@@ -723,9 +723,28 @@ Each of these is a real lever, and none is free. The first two are the ones to b
    most work, and unproven.
 5. **Paper's per-player send view distance.** End this world at the depth in the client's own
    fog: `Player.setSendViewDistance`, set on approach and reset on leaving. The only true "stop
-   rendering past here", and the only one that costs no blocks. Paper and Purpur only, a radius
-   round the player rather than a direction, a ring of chunks at a time, and it does nothing for
-   the cost per step. The right pairing for a shallow depth on a Paper server.
+   rendering past here", and the only one that costs no blocks. A radius round the player rather
+   than a direction, a ring of chunks at a time, and it does nothing for the cost per step. The
+   right pairing for a shallow depth on a Paper server.
+
+   What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
+   1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4 and 1.21.10, and Paper 1.20.4, the one Paper
+   jar cached here:
+
+   - `Player.setSendViewDistance(int)`, with `setViewDistance`, `setSimulationDistance` and
+     `setNoTickViewDistance`, and the same four on `World`: Paper 1.20.4 has them all, and no
+     Spigot jar in the range has any of them. Paper only, then, and Purpur's by inheritance.
+     Whether an earlier Paper has them was not checked; 1.20.4 is the only Paper jar here.
+   - `World.getViewDistance()` and `getSimulationDistance()`, and the same on `Bukkit`: every
+     Spigot jar from 1.20 on. A capture's reach is read from the first already.
+   - `Player.getClientViewDistance()`: every Spigot jar from 1.20 on. What the client asked for,
+     which is not what the server sends.
+   - `Player.setWorldBorder(WorldBorder)` and `Bukkit.createWorldBorder()`: every Spigot jar
+     from 1.20 on, not the late addition it was taken for. A border of the player's own, which
+     the client draws as it draws the world's edge — a red wall, square, and a wall rather than a
+     fog: another shell by other means, and not on the list for the same reason.
+   - `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
+     int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
 
 What is not on the list: another shell, wall or painting past the depth. Three have been tried
 and each drew the eye to the very edge it was there to hide.
