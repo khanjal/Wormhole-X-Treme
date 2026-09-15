@@ -78,8 +78,8 @@ class MirrorTabCompletionTest
     {
         final List<String> third = complete("mirror", "debug", "");
 
-        assertTrue(third.containsAll(List.of("museum", "lobby", "all", "save", "full", "off", "on")), "got " + third);
-        assertEquals(List.of("all", "save", "full"), complete("mirror", "debug", "museum", ""));
+        assertTrue(third.containsAll(List.of("museum", "lobby", "all", "full", "off", "on")), "got " + third);
+        assertEquals(List.of("all", "full"), complete("mirror", "debug", "museum", ""));
         assertEquals(List.of("full"), complete("mirror", "debug", "museum", "f"));
         assertTrue(complete("mirror", "debug", "off", "").isEmpty(), "off takes nothing after it");
     }

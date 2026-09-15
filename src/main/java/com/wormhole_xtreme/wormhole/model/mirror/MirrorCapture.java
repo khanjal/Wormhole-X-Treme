@@ -39,8 +39,8 @@ import org.bukkit.block.data.BlockData;
  * own, since air a viewer can see is what a view carves through the real world.
  *
  * <p>A capture may instead be <em>complete</em>, holding every block that is not air, with no
- * entry meaning air: that is {@code mirror debug save}'s photograph of the viewer's own side,
- * for replaying a view away from the server.
+ * entry meaning air: the form {@code mirror debug save} once wrote, for replaying a view away
+ * from the server. Nothing writes one now; the flag is read so an old file is not misread.
  *
  * <p>Immutable once built, so it can be read by a redraw and written to disk at the same time.
  */

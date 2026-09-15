@@ -872,6 +872,16 @@ been running on defaults will start reading the file you have been editing.
 
 ### Removed
 
+- **The cone walk, and `mirror debug save` with it.** A banner on a post is refused as a mirror,
+  and every wall mirror's room is held whole and clipped to the eye, so the code that walked the
+  cone from the eye through the opening -- the occlusion grid, the depth stages, the moving and
+  standing budgets, the reach that grew back by the cube root of the room to spare, the redraw
+  that kept what the walk missed -- ran only for a mirror saved before the wall rule, which nobody
+  has. About a third of `MirrorWindows` and the walk's twenty tests are gone; the tests that said
+  something about edges, frames and steps say it about wall banners now. `mirror debug save`, which
+  photographed this side of a mirror for the replay harness that reproduced the walk's verdicts
+  away from the server, goes with the harness. A banner on a post from an older file draws nothing.
+
 - **Two mirror settings nothing read.** "Do we still need `mirror-capture-radius`?" No. It capped
   how deep a capture is taken, from when a capture was a dense box at the render distance and
   eighty megabytes; a capture keeps only the surfaces in view now, and is taken to

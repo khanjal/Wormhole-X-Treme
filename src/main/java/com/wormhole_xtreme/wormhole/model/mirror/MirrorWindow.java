@@ -8,9 +8,9 @@ import org.bukkit.block.BlockFace;
  * The shape of a window mirror: its opening, which blocks behind it a viewer could see through
  * it, and which block at the far side each of those shows.
  *
- * <p>The opening is the banner's own size, one wide and two tall, in the layer just behind it. A
- * banner hung on a wall hangs down, so the opening is in the wall and runs down from the banner's
- * row. A freestanding banner stands up, so the opening is in the air behind it and runs up.
+ * <p>The opening is the banner's own size, one wide and two tall, in the wall just behind it: a
+ * wall banner hangs down, so the opening runs down from the banner's row. Only a wall banner makes
+ * a window; one on a post has nothing round it to hide its room past its edges.
  *
  * <p>Plain numbers only, so all of it is testable without a server. {@link MirrorWindows} is the
  * part that reads blocks and sends them.
@@ -63,20 +63,8 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     /** The furthest a candidate may be from the opening along its face, however close the eye. */
     static final int WIDEST = 64;
 
-    /** An eye nearer the face than this is treated as this far, so the cone stays finite. */
-    private static final double NEAREST_EYE = 0.25;
-
-    /**
-     * The bands the cone is walked in, as how steeply a block is off the line straight through
-     * the opening: along the face or up and down, per block of distance from the eye.
-     */
-    private static final double[] BANDS = { 0.5, 1.5, Double.POSITIVE_INFINITY };
-
     /** The most of a drawn block's outline that may land beside the opening, in open air. */
     private static final double MOST_BESIDE = 0.05;
-
-    /** No limit on a walk beyond the cone's own shape. */
-    public static final Limits UNLIMITED = () -> Integer.MAX_VALUE;
 
     private static final int HALF = WIDTH / 2;
 
@@ -141,82 +129,29 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         void at(int x, int y, int z);
     }
 
-    /** What bounds a walk of the cone beyond its own shape. */
-    @FunctionalInterface
-    public interface Limits
-    {
-        /** @return the deepest layer still worth walking, as it stands right now */
-        int deepest();
-
-        /** @return the first layer to walk; earlier ones were walked by an earlier stage */
-        default int shallowest()
-        {
-            return 1;
-        }
-
-        /**
-         * The highest block in a column that could need drawing.
-         *
-         * <p>Above it there is only air over air, which changes nothing on the client and need
-         * not be walked.
-         *
-         * @param x
-         *            the column's x
-         * @param z
-         *            the column's z
-         * @return that y, or {@link Integer#MAX_VALUE} for no limit
-         */
-        default int top(final int x, final int z)
-        {
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    /** Handed each block a viewer might see through the opening. */
-    @FunctionalInterface
-    public interface Candidate
-    {
-        /**
-         * @param x
-         *            block x
-         * @param y
-         *            block y
-         * @param z
-         *            block z
-         * @return false to stop the walk here
-         */
-        boolean at(int x, int y, int z);
-    }
-
     /**
-     * The window a banner makes, if it can make one.
+     * The window a wall banner makes, if it can make one.
      *
      * @param banner
      *            the banner block
      * @param facing
-     *            which way the banner faces
-     * @param standing
-     *            true for a freestanding banner, which may face any of sixteen ways and is
-     *            snapped to the nearest cardinal; false for one hung on a wall
+     *            which way the banner faces: one of the four cardinals a wall banner hangs
      * @param destination
      *            where the mirror goes
      * @return the window, or null for a banner facing no usable way or a mirror going nowhere
      */
-    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
-        final boolean standing, final MirrorPoint destination)
+    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing, final MirrorPoint destination)
     {
-        return of(banner, facing, standing, destination, false);
+        return of(banner, facing, destination, false);
     }
 
     /**
-     * The window a banner makes, onto somewhere or as a reflection of its own room.
+     * The window a wall banner makes, onto somewhere or as a reflection of its own room.
      *
      * @param banner
      *            the banner block
      * @param facing
      *            which way the banner faces
-     * @param standing
-     *            true for a freestanding banner
      * @param destination
      *            where the mirror goes; for a reflection, its own room
      * @param mirrored
@@ -224,21 +159,19 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            than turned to face the viewer
      * @return the window, or null for a banner facing no usable way or a mirror going nowhere
      */
-    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
-        final boolean standing, final MirrorPoint destination, final boolean mirrored)
+    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing, final MirrorPoint destination,
+        final boolean mirrored)
     {
-        return of(banner, facing, standing, destination, mirrored, 1);
+        return of(banner, facing, destination, mirrored, 1);
     }
 
     /**
-     * The window a banner makes, one banner wide or two.
+     * The window a wall banner makes, one banner wide or two.
      *
      * @param banner
      *            the banner block; for two, the left one looking at the wall
      * @param facing
      *            which way the banner faces
-     * @param standing
-     *            true for a freestanding banner
      * @param destination
      *            where the mirror goes; for a reflection, its own room
      * @param mirrored
@@ -247,49 +180,21 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      *            one banner or two, the second to the right of the first
      * @return the window, or null for a banner facing no usable way or a mirror going nowhere
      */
-    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing,
-        final boolean standing, final MirrorPoint destination, final boolean mirrored, final int width)
+    public static MirrorWindow of(final MirrorBlock banner, final BlockFace facing, final MirrorPoint destination,
+        final boolean mirrored, final int width)
     {
-        if ((banner == null) || (destination == null) || (facing == null))
+        if ((banner == null) || (destination == null) || (facing == null) || !isCardinal(facing))
         {
             return null;
         }
-        final BlockFace front = standing ? nearestCardinal(facing) : facing;
-        if (!isCardinal(front))
-        {
-            return null;
-        }
-        final Spot into = new Spot(-front.getModX(), 0, -front.getModZ());
-        final int bottom = standing ? banner.y() : (banner.y() - (HEIGHT - 1));
+        final Spot into = new Spot(-facing.getModX(), 0, -facing.getModZ());
+        // A wall banner hangs down from where it is hung, so the opening runs down from it.
+        final int bottom = banner.y() - (HEIGHT - 1);
         return new MirrorWindow(
             new Spot(banner.x() + into.x(), bottom, banner.z() + into.z()),
             into,
             new Spot(floor(destination.x()), floor(destination.y()), floor(destination.z())),
             aheadOf(destination.yaw()), mirrored, width);
-    }
-
-    /**
-     * The cardinal nearest one of a freestanding banner's sixteen facings.
-     *
-     * <p>Exactly between two, it takes the north or south one, so the answer is always the same.
-     *
-     * @param facing
-     *            the banner's facing
-     * @return the nearest cardinal, or the facing itself if it has no horizontal direction
-     */
-    static BlockFace nearestCardinal(final BlockFace facing)
-    {
-        final int x = facing.getModX();
-        final int z = facing.getModZ();
-        if (Math.abs(x) > Math.abs(z))
-        {
-            return (x > 0) ? BlockFace.EAST : BlockFace.WEST;
-        }
-        if (z != 0)
-        {
-            return (z > 0) ? BlockFace.SOUTH : BlockFace.NORTH;
-        }
-        return facing;
     }
 
     /**
@@ -330,88 +235,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         }
     }
 
-    /** @return how many bands {@link #forEachCandidate} walks the cone in */
-    public static int bands()
-    {
-        return BANDS.length;
-    }
-
-    /**
-     * Visits every block of one band of the cone an eye could see through the opening, a layer at
-     * a time from the opening outwards, out to a distance from the eye.
-     *
-     * <p>Only the cone from the eye through the opening, which is what makes a deep view
-     * affordable: the blocks walked grow with what can be seen, not with a box drawn around the
-     * opening. Generous at the edges -- the exact test is {@link #projected} and what follows it.
-     *
-     * <p>Bounded by distance from the eye rather than depth behind the opening, because that is
-     * what bounds the work however close the eye comes: right up against a mirror the cone is
-     * nearly half a sphere, and half a sphere of a fixed radius is a fixed number of blocks.
-     *
-     * <p>In bands, steepest last, so the middle of a view can be walked to its full depth before
-     * its edges are, and a walk that runs out of budget loses the edges of the view, not its
-     * depth.
-     *
-     * @param eyeX
-     *            the eye, x
-     * @param eyeY
-     *            the eye, y
-     * @param eyeZ
-     *            the eye, z
-     * @param radius
-     *            how far from the eye to walk; blocks whose middle is more than a block past it
-     *            are never handed out
-     * @param band
-     *            which band, from 0 to {@link #bands()} less one
-     * @param limits
-     *            how deep the walk need go
-     * @param candidate
-     *            handed each block, nearest layers first; returns false to stop
-     * @return false if the candidate stopped the walk
-     */
-    public boolean forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
-        final double radius, final int band, final Limits limits, final Candidate candidate)
-    {
-        return forEachCandidate(eyeX, eyeY, eyeZ, radius, band, limits, candidate, 0);
-    }
-
-    /**
-     * The same, through the opening grown by a margin on every side: for a frame round it, whose
-     * blocks hide what lies just beside the opening, so that can be drawn before it is needed.
-     *
-     * @param eyeX
-     *            the eye, x
-     * @param eyeY
-     *            the eye, y
-     * @param eyeZ
-     *            the eye, z
-     * @param radius
-     *            how far from the eye to walk
-     * @param band
-     *            which band
-     * @param limits
-     *            how deep the walk need go
-     * @param candidate
-     *            handed each block; returns false to stop
-     * @param margin
-     *            blocks to grow the opening by on each side
-     * @return false if the candidate stopped the walk
-     */
-    public boolean forEachCandidate(final double eyeX, final double eyeY, final double eyeZ,
-        final double radius, final int band, final Limits limits, final Candidate candidate, final int margin)
-    {
-        final Walk walk = new Walk(this, new double[] { eyeX, eyeY, eyeZ }, radius, band, limits,
-            candidate, margin);
-        for (int layer = limits.shallowest(); (layer <= limits.deepest()) && walk.within(layer); layer++)
-        {
-            if (!walk.layer(layer))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
     /**
      * The direction at the far side that a direction through this opening becomes.
      *
@@ -434,132 +257,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         final double across = (dx * right.x()) + (dz * right.z());
         return new double[] { (along * ahead.x()) + (across * farRight.x()), dy,
             (along * ahead.z()) + (across * farRight.z()) };
-    }
-
-    /** One band of one walk of the cone. */
-    private static final class Walk
-    {
-        private final MirrorWindow window;
-        private final boolean alongX;
-        private final int sign;
-        private final double eyeAlong;
-        private final double eyeAcross;
-        private final double eyeY;
-        private final double reach;
-        private final double radius;
-        private final int baseAlong;
-        private final int middle;
-        private final int margin;
-        private final double inner;
-        private final double outer;
-        private final Limits limits;
-        private final Candidate candidate;
-
-        Walk(final MirrorWindow window, final double[] eye, final double radius, final int band,
-            final Limits limits, final Candidate candidate, final int margin)
-        {
-            this.window = window;
-            this.margin = margin;
-            this.alongX = window.into.x() != 0;
-            this.sign = alongX ? window.into.x() : window.into.z();
-            this.eyeAlong = alongX ? eye[0] : eye[2];
-            this.eyeAcross = alongX ? eye[2] : eye[0];
-            this.eyeY = eye[1];
-            this.reach = Math.max(NEAREST_EYE, Math.abs(window.face() - eyeAlong));
-            this.radius = radius;
-            this.baseAlong = alongX ? window.base.x() : window.base.z();
-            // The opening's lowest coordinate along the face: a pair's second column may lie below its first.
-            final int rightStep = alongX ? window.into.x() : -window.into.z();
-            this.middle = (alongX ? window.base.z() : window.base.x()) + Math.min(0, (window.width - 1) * rightStep);
-            this.inner = (band == 0) ? -1.0 : BANDS[band - 1];
-            this.outer = BANDS[band];
-            this.limits = limits;
-            this.candidate = candidate;
-        }
-
-        /** How far the nearest face of a layer is from the eye, along the axis. */
-        private double nearFace(final int layer)
-        {
-            final int along = baseAlong + (sign * layer);
-            return Math.max(0.0, Math.min(Math.abs(along - eyeAlong), Math.abs((along + 1) - eyeAlong)));
-        }
-
-        /** @return true if any of a layer is within the radius */
-        boolean within(final int layer)
-        {
-            return nearFace(layer) <= radius;
-        }
-
-        /** @return false if the walk was stopped */
-        boolean layer(final int layer)
-        {
-            final int along = baseAlong + (sign * layer);
-            final double one = Math.abs(along - eyeAlong);
-            final double other = Math.abs((along + 1) - eyeAlong);
-            final double near = Math.min(one, other) / reach;
-            final double farther = Math.max(one, other) / reach;
-            final int bottom = window.base.y();
-            final double left = (double) middle - margin;
-            final double right = (double) middle + window.width + margin;
-            final double down = (double) bottom - margin;
-            final double up = (double) bottom + HEIGHT + margin;
-            int acrossFrom = Math.max(middle - WIDEST, (int) Math.floor(lowest(eyeAcross, left, right, near, farther)));
-            int acrossTo = Math.min(middle + WIDEST, (int) Math.ceil(highest(eyeAcross, left, right, near, farther)) - 1);
-            int yFrom = Math.max(bottom - WIDEST, (int) Math.floor(lowest(eyeY, down, up, near, farther)));
-            int yTo = Math.min(bottom + WIDEST, (int) Math.ceil(highest(eyeY, down, up, near, farther)) - 1);
-            // Nothing in this layer further from the eye than the radius: the sphere's width here.
-            final double face = nearFace(layer);
-            final double wide = Math.sqrt(Math.max(0.0, (radius * radius) - (face * face))) + 1.0;
-            acrossFrom = Math.max(acrossFrom, (int) Math.floor(eyeAcross - wide));
-            acrossTo = Math.min(acrossTo, (int) Math.ceil(eyeAcross + wide));
-            yFrom = Math.max(yFrom, (int) Math.floor(eyeY - wide));
-            yTo = Math.min(yTo, (int) Math.ceil(eyeY + wide));
-            if (Double.isFinite(outer))
-            {
-                // No block in this band is further off the line through the eye than this.
-                final double off = (outer * Math.max(one, other)) + 1.0;
-                acrossFrom = Math.max(acrossFrom, (int) Math.floor(eyeAcross - off));
-                acrossTo = Math.min(acrossTo, (int) Math.ceil(eyeAcross + off));
-                yFrom = Math.max(yFrom, (int) Math.floor(eyeY - off));
-                yTo = Math.min(yTo, (int) Math.ceil(eyeY + off));
-            }
-            final double distance = Math.abs((along + 0.5) - eyeAlong);
-            for (int across = acrossFrom; across <= acrossTo; across++)
-            {
-                final int x = alongX ? along : across;
-                final int z = alongX ? across : along;
-                final double offAcross = (across + 0.5) - eyeAcross;
-                if (!column(x, z, offAcross, yFrom, yTo, distance))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        /**
-         * One column of one layer, only the blocks in this band.
-         *
-         * <p>Nothing above the column's top is offered: sky over sky changes nothing on the
-         * client, and outdoors it is most of the cone.
-         *
-         * @return false if stopped
-         */
-        private boolean column(final int x, final int z, final double offAcross, final int yFrom,
-            final int yTo, final double distance)
-        {
-            final int last = Math.min(yTo, limits.top(x, z));
-            for (int y = yFrom; y <= last; y++)
-            {
-                final double offY = (y + 0.5) - eyeY;
-                final double steep = Math.max(Math.abs(offAcross), Math.abs(offY)) / distance;
-                if ((steep > inner) && (steep <= outer) && !candidate.at(x, y, z))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
     }
 
     /**

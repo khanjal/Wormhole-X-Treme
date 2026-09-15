@@ -316,27 +316,6 @@ class MirrorWindowsTest
     }
 
     /**
-     * A freestanding mirror draws only far-side blocks the eye could see through the opening.
-     *
-     * <p>The rest stay as the world has them, which is what keeps the far side inside the edges
-     * of a mirror with nothing round it to hide them.
-     */
-    @Test
-    void aFreestandingMirrorDrawsOnlyBlocksSeenThroughTheOpening()
-    {
-        standUp(banner);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-
-        withServer(MirrorProximity::tick);
-
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 13)), "straight through the middle");
-        assertFalse(drawn.containsKey(new Spot(18, 64, 12)),
-            "off to the side, where no line of sight through the opening goes");
-    }
-
-    /**
      * A mirror set in a wall draws its whole far side once, the same wherever the viewer stands.
      *
      * <p>Trimmed to each eye, the view changed with every step and reached less far from close
@@ -437,18 +416,17 @@ class MirrorWindowsTest
     private record Step(Spot block, double x, double z, Map<Spot, BlockData> update) {}
 
     /**
-     * Draws a freestanding mirror's view, then steps to where some block it drew lies partly
-     * beside the opening -- more than {@code least} of it and no more than {@code most} -- failing,
-     * rather than passing, if no such step turns up.
+     * Draws a mirror's view on a wall of nothing but its opening, then steps to where some block
+     * it drew lies partly beside the opening -- more than {@code least} of it and no more than
+     * {@code most} -- failing, rather than passing, if no such step turns up.
      */
     private Step stepPutting(final double least, final double most)
     {
         wallBehind = false;
-        standUp(banner);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final MirrorWindow shape = MirrorWindow.of(new MirrorBlock("world", 10, 64, 10), BlockFace.NORTH, true, arrival);
-        final MirrorWindow.Face open = (across, y) -> (across == 10) && ((y == 64) || (y == 65));
+        final MirrorWindow shape = MirrorWindow.of(new MirrorBlock("world", 10, 64, 10), BlockFace.NORTH, arrival);
+        final MirrorWindow.Face open = (across, y) -> (across == 10) && ((y == 63) || (y == 64));
         final Spot[] edge = { null };
         final double[] second = new double[3];
 
@@ -490,54 +468,18 @@ class MirrorWindowsTest
     }
 
     /**
-     * A redraw on the move that runs out of budget keeps the deeper blocks the last one drew.
-     *
-     * <p>"Still flickering on the stone bricks behind the fence." A redraw while walking has a
-     * third of a still one's budget; close to the mirror it ran out, reached less far, and took
-     * back what lay further, which the next sweep drew again. Any redraw that does not reach a
-     * block -- out of budget, or stopped behind nearer blocks -- keeps it while it is still right
-     * to show. The move's reach is checked to have really shrunk, so the test cannot pass by
-     * never running out.
-     */
-    @Test
-    void aRedrawOnTheMoveThatRunsOutKeepsTheDeeperBlocksTheLastOneDrew()
-    {
-        standUp(banner);
-        final Player viewer = playerAt(10.5, 7.5);
-        when(world.getPlayers()).thenReturn(List.of(viewer));
-        final Spot deep = new Spot(10, 65, 22);
-
-        withServer(() ->
-        {
-            MirrorProximity.tick();
-            assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(deep), "drawn standing still");
-            MirrorWindows.mostWhileMoving = 200;
-            pause();
-            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
-        });
-
-        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
-        final String redraw = String.join("; ", said);
-        final int reach = Integer.parseInt(said.stream().filter(line -> line.startsWith("radius: ")).findFirst()
-            .orElseThrow(() -> new AssertionError("no radius said: " + redraw)).replaceAll("radius: (\\d+).*", "$1"));
-        assertTrue(reach < 11, "the move's own reach fell short of the deep block: " + redraw);
-        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
-        final Map<Spot, BlockData> update = positions(sent.get(1));
-        assertFalse(update.containsKey(deep) && (update.get(deep) == null), deep + " was taken back: " + redraw);
-    }
-
-    /**
      * A block landing on the frame round the opening is drawn already, hidden behind the frame.
      *
      * <p>"When I face the frame brick and slide into the mirror view I see it render. It should
      * already be mostly there since I'm right up against the frame." From beside the opening, a
      * block straight behind it lands on the frame brick; it was drawn only once a step brought it
-     * into the opening. The frame hides it, so it is drawn beforehand.
+     * into the opening. The frame hides it, so it is drawn beforehand. A gap in the wall, so the
+     * room is clipped to the eye rather than drawn whole.
      */
     @Test
     void aBlockLandingOnTheFrameRoundTheOpeningIsDrawnAlreadyHiddenBehindTheFrame()
     {
-        standUp(banner);
+        gap = new Spot(16, 64, 11);
         final Player viewer = playerAt(11.5, 10.7);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -551,25 +493,26 @@ class MirrorWindowsTest
      * A block kept from the last drawing is still taken back once it would show beside the
      * opening from where the viewer now stands.
      *
-     * <p>A redraw keeps what it did not reach, so the bricks behind the fence stop flickering;
-     * it must not keep what is now wrong. Stepped well to the side of a freestanding mirror in
-     * open air, a block straight behind the opening lands beside it.
+     * <p>A block already drawn is held while a little of it is beside the opening; it must not be
+     * held once most of it is. Stepped well to the side of a mirror on a wall of nothing but its
+     * opening, a block straight behind the opening lands beside it.
      */
     @Test
     void aBlockKeptFromTheLastDrawingIsTakenBackOnceItWouldShowBesideTheOpening()
     {
         wallBehind = false;
-        standUp(banner);
+        // A block lower: a wall banner's opening hangs down, and an eye at 65.6 looks over it.
         final Player viewer = playerAt(10.5, 7.5);
+        standLow(viewer, 10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
-        final Spot straight = new Spot(10, 65, 13);
+        final Spot straight = new Spot(10, 64, 13);
 
         withServer(() ->
         {
             MirrorProximity.tick();
             assertSame(farOneBlock, positions(changesTo(viewer, 1).get(0)).get(straight), "drawn straight ahead");
             pause();
-            MirrorWindows.moved(viewer, new Location(world, 13.5, 64.0, 9.5));
+            MirrorWindows.moved(viewer, new Location(world, 13.5, 63.0, 9.5));
         });
 
         final Map<Spot, BlockData> update = positions(changesTo(viewer, 2).get(1));
@@ -603,14 +546,14 @@ class MirrorWindowsTest
      * Drawn full for one viewer, a mirror shows everything its capture holds, whatever the rules.
      *
      * <p>"An admin command that forces the mirror world chunk to fully render without limits so
-     * I can check what it's stored and how it's rendering." A freestanding mirror, so nothing
-     * would be drawn off to the side or past the depth otherwise; and the depth is 16, so a
-     * block at 30 would not be drawn for anyone else.
+     * I can check what it's stored and how it's rendering." A mirror clipped to the eye by a gap
+     * in its wall, so nothing would be drawn off to the side or past the depth otherwise; and the
+     * depth is 16, so a block at 30 would not be drawn for anyone else.
      */
     @Test
     void drawnFullForOneViewerAMirrorShowsEverythingItsCaptureHolds()
     {
-        standUp(banner);
+        gap = new Spot(16, 64, 11);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -769,8 +712,8 @@ class MirrorWindowsTest
      * <p>"I want to capture further for the mirror. Right now it seems short and is showing the
      * real world after the mirror one." A wall with a gap was walked like a freestanding mirror,
      * and a redraw on the move reached what its budget allowed: from right against the mirror,
-     * well short of the depth. With the same budget of two hundred, the clipped room reaches the
-     * configured depth, and says so.
+     * well short of the depth. The clipped room reaches the configured depth from there, keeps
+     * what it drew, and says so.
      */
     @Test
     void aWallShortOfTheProximityDistanceIsHeldWholeAndClippedToEachEye()
@@ -782,15 +725,13 @@ class MirrorWindowsTest
         withServer(() ->
         {
             MirrorProximity.tick();
-            MirrorWindows.mostWhileMoving = 200;
             pause();
             MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 9.8));
         });
 
         final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
-        assertTrue(said.contains("radius: 16"), "the configured depth, however small the walking budget: " + said);
         assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: whole to depth 16, clipped to each eye")),
-            "and how it is drawn: " + said);
+            "how it is drawn: " + said);
         assertFalse(positions(changesTo(viewer, 2).get(1)).containsKey(new Spot(10, 65, 22)),
             "the deep block drawn at first is not taken back");
     }
@@ -968,21 +909,22 @@ class MirrorWindowsTest
      *
      * <p>A mirror on a tower with nothing around it showed its far side well past its edges: a
      * drawn block is a whole block, and only a wall hides the part of one that is not behind the
-     * opening. The same block against a wall is drawn, in the test after this one.
+     * opening. The same block against a wall is drawn, in the test after this one. A wall of
+     * nothing but the opening stands in for the open air.
      */
     @Test
     void inOpenAirABlockReachingPastTheOpeningIsNotDrawn()
     {
         wallBehind = false;
-        standUp(banner);
         final Player viewer = playerAt(10.5, 7.5);
+        standLow(viewer, 10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
         withServer(MirrorProximity::tick);
 
         final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(farOneBlock, drawn.get(new Spot(10, 65, 20)), "far back, all of it behind");
-        assertFalse(drawn.containsKey(new Spot(11, 65, 12)), "close, and half of it beside");
+        assertSame(farOneBlock, drawn.get(new Spot(10, 64, 20)), "far back, all of it behind");
+        assertFalse(drawn.containsKey(new Spot(11, 64, 12)), "close, and half of it beside");
     }
 
     /**
@@ -1055,7 +997,6 @@ class MirrorWindowsTest
     @Test
     void againstAWallTheSameBlockIsDrawnSinceTheWallHidesTheRest()
     {
-        standUp(banner);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -1260,13 +1201,13 @@ class MirrorWindowsTest
      * Stepping sideways redraws, and sends only what changed.
      *
      * <p>Resending all of it on every step would be the whole view several times a second. The
-     * opening did not change, so it is not in the update. A freestanding mirror, since one in a
-     * wall is the same from anywhere.
+     * opening did not change, so it is not in the update. A gap in the wall, since a mirror
+     * drawn whole is the same from anywhere.
      */
     @Test
     void steppingSidewaysSendsOnlyWhatChanged()
     {
-        standUp(banner);
+        gap = new Spot(16, 64, 11);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -1291,7 +1232,7 @@ class MirrorWindowsTest
     @Test
     void aViewerOnTheMoveIsRedrawnAtMostAFewTimesASecond()
     {
-        standUp(banner);
+        gap = new Spot(16, 64, 11);
         final Player viewer = playerAt(10.5, 7.5);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
@@ -1356,13 +1297,13 @@ class MirrorWindowsTest
     }
 
     /**
-     * A freestanding mirror opens too, behind it and upwards from where it stands.
+     * A banner on a post is no window, however it is pointed.
      *
-     * <p>A banner hung on a wall hangs down, and a standing one stands up, so the opening follows
-     * the cloth. Snapped to the nearest cardinal, since a standing banner may face sixteen ways.
+     * <p>It used to open in the air behind where it stood, and its room showed past its edges
+     * whatever trimmed it; {@code create} refuses one now, and one from an older file draws nothing.
      */
     @Test
-    void aFreestandingBannerOpensUpwardsFromWhereItStands()
+    void aFreestandingBannerIsNoWindow()
     {
         standUp(banner);
         final Player viewer = playerAt(10.5, 7.5);
@@ -1370,10 +1311,7 @@ class MirrorWindowsTest
 
         withServer(MirrorProximity::tick);
 
-        final Map<Spot, BlockData> drawn = positions(changesTo(viewer, 1).get(0));
-        assertSame(barrier, drawn.get(new Spot(10, 65, 11)), "a block above the banner's own row");
-        assertNotSame(barrier, drawn.get(new Spot(10, 63, 11)),
-            "not below it, where a wall banner's opening would be");
+        verify(viewer, never()).sendBlockChanges(anyCollection());
     }
 
     /**
@@ -1617,6 +1555,13 @@ class MirrorWindowsTest
         when(player.getEyeLocation()).thenReturn(new Location(world, x, 65.62, z));
     }
 
+    /** Stands a player a block lower, with their eye inside the opening's two rows rather than over them. */
+    private void standLow(final Player player, final double x, final double z)
+    {
+        when(player.getLocation()).thenReturn(new Location(world, x, 63.0, z));
+        when(player.getEyeLocation()).thenReturn(new Location(world, x, 64.62, z));
+    }
+
     /** Runs something with a server that knows this world, these players and the drawn blocks. */
     private void withServer(final Runnable body)
     {
@@ -1636,105 +1581,4 @@ class MirrorWindowsTest
         }
     }
 
-    /**
-     * A view's reach grows with the cube root of the room it had, at most half again per
-     * redraw, and never past the configured depth.
-     *
-     * <p>Two blocks a redraw took a dozen redraws to recover from one close approach. The cost
-     * of a view goes with the cube of its radius, so a redraw that used a tenth of its budget can
-     * afford a radius 1.7 times as large, capped at 1.5 so one guess too far costs one redraw.
-     */
-    @Test
-    void reachGrowsByTheCubeRootOfTheRoomToSpareAndAtMostHalfAgain()
-    {
-        final int most = 40_000;
-        assertEquals(19, MirrorWindows.grown(19, 32, most / 2, most), "half spent is no room to grow");
-        assertEquals(19, MirrorWindows.grown(19, 32, 0, most), "a spent budget never grows");
-        assertEquals(21, MirrorWindows.grown(19, 32, (most / 2) + 1, most), "just under half spent grows two, the least step");
-        assertEquals(28, MirrorWindows.grown(19, 32, most - 4_000, most), "a tenth spent grows half again, not the cube root's 1.7");
-        assertEquals(32, MirrorWindows.grown(30, 32, most - 4_000, most), "and never past the configured depth");
-        assertEquals(32, MirrorWindows.grown(40, 32, most, most), "a radius above the configured depth comes down to it");
-        assertEquals(28, MirrorWindows.grown(19, 32, 108_000, 120_000), "the same tenth of a bigger budget, standing still");
-    }
-
-    /**
-     * A floor row seen from close to the opening is a band thinner than a grid part, and the
-     * next row is the band above it; the nearer must not hide the farther.
-     *
-     * <p>Marking a part hidden whole when an outline crossed its middle did exactly that: the
-     * floor of the library vanished in patches from a few blocks in, and its shelves, seen
-     * edge-on, with it. Behind all the rows together, within them, a block is hidden.
-     */
-    @Test
-    void aThinFloorRowDoesNotHideTheRowBehindIt()
-    {
-        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
-        for (int row = 1; row <= 20; row++)
-        {
-            final double[] band = { 0.0, 1.0, 0.5 + ((row - 1) * 0.01), 0.5 + (row * 0.01) };
-            assertFalse(grid.covers(band, row), "row " + row + " lies above every row before it");
-            grid.add(band, row);
-        }
-        assertTrue(grid.covers(new double[] { 0.2, 0.8, 0.51, 0.69 }, 30),
-            "within the twenty rows together, further back than all of them");
-        assertFalse(grid.covers(new double[] { 0.2, 0.8, 0.69, 0.71 }, 30),
-            "but not where it reaches past them");
-    }
-
-    /**
-     * A wall of blocks that tile the opening hides everything behind it and closes the horizon.
-     */
-    @Test
-    void aWallOfTiledBlocksHidesWhatIsBehindItAndClosesTheHorizon()
-    {
-        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
-        assertEquals(Integer.MAX_VALUE, grid.horizon(), "open, nothing hides anything");
-        grid.add(new double[] { 0.0, 1.0, 0.0, 1.0 }, 4);
-        assertEquals(Integer.MAX_VALUE, grid.horizon(), "half a wall is no horizon");
-        grid.add(new double[] { 0.0, 1.0, 1.0, 2.0 }, 4);
-
-        assertTrue(grid.covers(new double[] { 0.3, 0.7, 0.2, 1.8 }, 5), "behind the wall");
-        assertFalse(grid.covers(new double[] { 0.3, 0.7, 0.2, 1.8 }, 4), "not by its own layer");
-        assertEquals(4, grid.horizon(), "and nothing past the wall is worth walking");
-    }
-
-    /**
-     * Two outlines meeting in one part are joined, and the join hides only what is behind both.
-     *
-     * <p>Joined with the nearer layer, a block between the two would have been hidden by the
-     * farther one, which is in front of nothing.
-     */
-    @Test
-    void outlinesJoinedInOnePartHideOnlyWhatIsBehindBothOfThem()
-    {
-        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
-        grid.add(new double[] { 0.0, 1.0, 0.0, 0.51 }, 3);
-        grid.add(new double[] { 0.0, 1.0, 0.51, 1.0 }, 7);
-        final double[] onTheSeam = { 0.2, 0.8, 0.505, 0.508 };
-
-        assertFalse(grid.covers(onTheSeam, 5), "between the two, drawn to be safe");
-        assertTrue(grid.covers(onTheSeam, 8), "behind both, hidden");
-        assertTrue(grid.covers(new double[] { 0.2, 0.8, 0.1, 0.4 }, 5), "and behind the nearer alone, hidden");
-    }
-
-    /**
-     * Two outlines meeting at a corner in one part are not joined: the rectangle round both
-     * would claim the corner neither covers.
-     *
-     * <p>Found by the replay with its rays a two-hundredth of a block apart: a shelf's outline
-     * and the floor's met at a corner in one part of the opening, the join claimed the corner,
-     * and twenty-two rays through it met the lake behind the mirror.
-     */
-    @Test
-    void outlinesMeetingAtACornerDoNotClaimTheCornerBetweenThem()
-    {
-        final MirrorWindows.Occlusion grid = new MirrorWindows.Occlusion(0, 0, 1, 2);
-        // Inside the first part, a thirty-second of a block square: a strip up its left side
-        // and a strip along its top, leaving the bottom-right corner open.
-        grid.add(new double[] { 0.0, 0.02, 0.0, 0.03 }, 3);
-        grid.add(new double[] { 0.0, 0.03125, 0.02, 0.03125 }, 3);
-
-        assertFalse(grid.covers(new double[] { 0.022, 0.03, 0.005, 0.015 }, 5), "the open corner");
-        assertTrue(grid.covers(new double[] { 0.005, 0.015, 0.005, 0.015 }, 5), "inside the strip that stands");
-    }
 }

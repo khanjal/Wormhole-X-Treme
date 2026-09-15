@@ -174,15 +174,13 @@ public final class MirrorCaptures
      *
      * <p>A capture goes with its mirror unless another mirror still uses the room, but a mirror file
      * edited or emptied by hand, or a delete that failed, left one behind for good. Run only once
-     * mirrors have loaded: before, every capture is abandoned. A {@code debug save} file is kept,
-     * since somebody asked for it.
+     * mirrors have loaded: before, every capture is abandoned.
      *
      * @return how many were deleted
      */
     public static int sweepAbandoned()
     {
-        final File[] files = DataLayout.mirrorCaptureDir()
-            .listFiles((dir, name) -> name.endsWith(VIEW) && !name.startsWith("debug-"));
+        final File[] files = DataLayout.mirrorCaptureDir().listFiles((dir, name) -> name.endsWith(VIEW));
         if (files == null)
         {
             return 0;
@@ -507,69 +505,6 @@ public final class MirrorCaptures
         return MirrorText.field("capture", (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
             + ", " + ((held == null) ? "not in memory" : ("in memory, taken " + held.capture.secondsOld() + "s ago"))
             + (JOBS.containsKey(key) ? ", being taken now" : ""));
-    }
-
-    /**
-     * Takes a capture of loaded chunks around a point, at once, for {@code mirror debug save}.
-     *
-     * <p>Synchronous and only over chunks already loaded: it is for photographing the world
-     * around a mirror somebody is standing at, so the view drawn there can be reproduced away
-     * from the server, alongside the far side's own capture.
-     *
-     * @param world
-     *            the world
-     * @param x
-     *            centre x
-     * @param y
-     *            centre y
-     * @param z
-     *            centre z
-     * @param radius
-     *            blocks each way horizontally
-     * @param file
-     *            where to write it
-     * @return one line saying what was written
-     * @throws IOException
-     *             if it could not be written
-     */
-    public static String captureAround(final World world, final int x, final int y, final int z,
-        final int radius, final File file) throws IOException
-    {
-        final int minY = Math.max(world.getMinHeight(), y - radius);
-        final int maxY = Math.min(world.getMaxHeight() - 1, y + radius);
-        final MirrorCapture.Builder builder = new MirrorCapture.Builder(world.getName(),
-            world.getEnvironment() == World.Environment.NORMAL, x - radius, minY, z - radius,
-            (2 * radius) + 1, (maxY - minY) + 1, (2 * radius) + 1, Bukkit.createBlockData(Material.AIR));
-        for (int chunkX = (x - radius) >> 4; chunkX <= ((x + radius) >> 4); chunkX++)
-        {
-            for (int chunkZ = (z - radius) >> 4; chunkZ <= ((z + radius) >> 4); chunkZ++)
-            {
-                if (!world.isChunkLoaded(chunkX, chunkZ))
-                {
-                    continue;
-                }
-                final ChunkSnapshot snapshot = reader.read(world, chunkX, chunkZ);
-                for (int lx = 0; lx < 16; lx++)
-                {
-                    for (int lz = 0; lz < 16; lz++)
-                    {
-                        final int top = Math.min(maxY,
-                            highest(world, snapshot, (chunkX << 4) + lx, (chunkZ << 4) + lz, lx, lz));
-                        for (int by = minY; by <= top; by++)
-                        {
-                            final BlockData data = snapshot.getBlockData(lx, by, lz);
-                            if (!Job.isAir(data))
-                            {
-                                builder.put((chunkX << 4) + lx, by, (chunkZ << 4) + lz, data);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        final MirrorCapture capture = builder.build();
-        capture.save(file);
-        return "wrote " + file.getName() + ": " + capture.describe();
     }
 
     /**

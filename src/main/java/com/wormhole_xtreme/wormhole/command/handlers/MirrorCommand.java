@@ -1205,12 +1205,11 @@ public class MirrorCommand implements SubCommand
             }
             return;
         }
-        final boolean save = "save".equals(last);
         final boolean full = "full".equals(last);
         final boolean all = "all".equals(last);
-        final String name = (args.length > ((save || full || all) ? 3 : 2)) ? args[2] : null;
+        final String name = (args.length > ((full || all) ? 3 : 2)) ? args[2] : null;
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>] [all|save|full] | debug off|on"));
+            () -> sayUsage(sender, "debug [<name>] [all|full] | debug off|on"));
         if (mirror == null)
         {
             return;
@@ -1226,10 +1225,6 @@ public class MirrorCommand implements SubCommand
                     + "mirror debug on stops that.");
             }
             return;
-        }
-        if (save)
-        {
-            saveDebug(sender, mirror);
         }
         if (!all)
         {
@@ -1280,35 +1275,6 @@ public class MirrorCommand implements SubCommand
                 + (int) Math.floor(mirror.destination().x()) + ","
                 + (int) Math.floor(mirror.destination().y()) + ","
                 + (int) Math.floor(mirror.destination().z()));
-    }
-
-    /** Photographs this world around a mirror's banner, 48 blocks each way, into a file. */
-    private static void saveDebug(final CommandSender sender, final QuantumMirror mirror)
-    {
-        final org.bukkit.World world = org.bukkit.Bukkit.getWorld(mirror.banner().worldName());
-        if (world == null)
-        {
-            say(sender, "The banner's world is not loaded.");
-            return;
-        }
-        final java.io.File file = new java.io.File(
-            com.wormhole_xtreme.wormhole.utils.DataLayout.mirrorCaptureDir(),
-            "debug-" + mirror.name().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9._-]", "_")
-                + "-here.view");
-        try
-        {
-            say(sender, MirrorText.field("saved", MirrorCaptures.captureAround(world, mirror.banner().x(),
-                mirror.banner().y(), mirror.banner().z(), 48, file)));
-        }
-        catch (final java.io.IOException failed)
-        {
-            say(sender, MirrorText.field("saved", MirrorText.bad("could not write " + file.getName() + ": "
-                + failed.getMessage())));
-        }
-        final Block banner = world.getBlockAt(mirror.banner().x(), mirror.banner().y(),
-            mirror.banner().z());
-        say(sender, MirrorText.field("banner block", banner.getType() + " facing "
-            + MirrorArrival.facingOf(banner.getBlockData())));
     }
 
     private static void say(final CommandSender sender, final String message)

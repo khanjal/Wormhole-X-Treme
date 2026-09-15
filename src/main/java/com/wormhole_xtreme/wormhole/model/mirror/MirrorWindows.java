@@ -22,7 +22,6 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.Rotatable;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -34,9 +33,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 /**
  * Drawing what is on the other side of every window mirror a player is looking into.
  *
- * <p>Every mirror with somewhere to go is a window: one hung on a wall opens in the wall, and a
- * freestanding one opens in the air behind where it stands. Nothing is stored to say so, which is
- * what lets mirrors made before windows existed open as one without being touched.
+ * <p>Every wall mirror with somewhere to go is a window, opening in the wall it hangs on. Nothing
+ * is stored to say so, which is what lets mirrors made before windows existed open as one without
+ * being touched.
  *
  * <p>What a window shows is its {@link MirrorCapture}: a photograph of the far side, taken once
  * and kept on disk, so the far world need not be loaded to be looked at. A mirror whose capture
@@ -44,32 +43,31 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
  *
  * <p>Nothing in the world changes, the way a gate's event horizon changes nothing. A viewer is
  * sent the banner as air, the open part of the opening as barrier -- invisible, and at least as
- * solid as what it covers -- and far-side blocks behind it: only the ones they could see through
- * an opening from where their eye is, all of whose outline is hidden by the opening or by solid
- * blocks around it, and each from the opening their line of sight passes through. That is what
- * lets windows share a wall, and what keeps a freestanding one inside its edges. Their own
- * world's creatures standing inside the view are hidden from them for as long as they look.
- *
- * <p>Far-side blocks reach {@code mirror-view-depth} from the middle of the opening, and nothing is
- * drawn past that. A mirror set in solid wall draws all of that at once and leaves it while the
- * viewer moves, since the wall hides its edges ({@link #fixedView}); a freestanding one, or two in
- * view together, is trimmed to what each eye can see through it ({@link Pass}).
+ * solid as what it covers -- and the room behind it, held whole ({@link #fixedView}). A mirror
+ * walled to the proximity distance with no neighbour is sent the room as it is, the same from
+ * every eye, since the wall hides its edges. Any other is sent the room clipped to the eye
+ * ({@link #clipWhole}): only the blocks they could see through an opening from where their eye
+ * is, all but a little of whose outline lands on the opening or on wall that hides the rest, each
+ * from the opening their line of sight passes through. That is what lets windows share a wall.
+ * Their own world's creatures standing inside the view are hidden from them for as long as they
+ * look.
  *
  * <h2>What it costs, and what keeps that down</h2>
  *
  * <ul>
- * <li>Only the cone from the eye through the opening is walked, and only out to a radius from
- * the eye, so the work grows with what can be seen and is bounded however close the eye comes:
- * right against a mirror the cone is half a sphere, and half a sphere of a fixed radius is a
- * fixed number of blocks.</li>
- * <li>A viewer is redrawn at most a few times a second as they move, and not at all on a sweep
+ * <li>A room is built once from the capture and kept a minute; the capture already holds only the
+ * surfaces somebody at the opening could see, so a room at the render distance costs what its
+ * surfaces cost.</li>
+ * <li>Clipping is one cheap bound and, for the blocks that pass it, one projection each; nothing
+ * is walked or occluded.</li>
+ * <li>A viewer is redrawn at most ten times a second as they move, and not at all on a sweep
  * where nothing changed. Only the difference is sent, except after crossing into a new chunk --
  * which is when the client is handed fresh chunks that erase what was drawn -- and as a long
- * safety net.</li>
+ * safety net. The server has a share of work a second across every viewer.</li>
  * <li>The far side is read from the capture, in memory, never from the live world.</li>
  * </ul>
  *
- * <p>A prototype for #278: blocks only, no entities, and lit and tinted by this world.
+ * <p>Blocks only, no entities, and lit and tinted by this world.
  */
 public final class MirrorWindows
 {
@@ -84,18 +82,6 @@ public final class MirrorWindows
 
     /** The same, in ticks, for the redraw that catches a viewer up after they stop. */
     private static final long REDRAW_TICKS = 2L;
-
-    /** Most blocks one redraw considers across every window a viewer sees, while they move. */
-    private static final int MOST_CANDIDATES = 40_000;
-
-    /**
-     * The same for a redraw while they stand still.
-     *
-     * <p>A view is redrawn up to ten times a second while its viewer moves, so that budget is
-     * kept small. Standing still, one redraw at a time grows the view towards the configured
-     * depth, and each may cost more: the depth a viewer sees is what these can afford.
-     */
-    private static final int MOST_STILL = 120_000;
 
     /** How far in front of an opening real blocks are read for what they hide, and the least its wall is read. */
     private static final int SURROUND = 8;
@@ -124,9 +110,6 @@ public final class MirrorWindows
      * Settable for a test.
      */
     static int workPerSecond = WORK_PER_SECOND;
-
-    /** One redraw's budget while the viewer moves; settable so a test can make it run out. */
-    static int mostWhileMoving = MOST_CANDIDATES;
 
     private static long workSecond;
     private static int workSpent;
@@ -163,9 +146,6 @@ public final class MirrorWindows
 
     /** When {@link #SOLID} was last cleared. */
     private static long solidReadAt;
-
-    /** Told what became of each block a redraw considered, for a replay; null otherwise. */
-    static Probe probe;
 
     /** Players who asked to see the world as it is, with no view drawn for them: admins checking. */
     private static final Set<UUID> BLIND = ConcurrentHashMap.newKeySet();
@@ -237,31 +217,6 @@ public final class MirrorWindows
         return BLIND.contains(player.getUniqueId());
     }
 
-    /** Hears each block's verdict, for a replay. */
-    @FunctionalInterface
-    interface Probe
-    {
-        /**
-         * @param x
-         *            block x
-         * @param y
-         *            block y
-         * @param z
-         *            block z
-         * @param verdict
-         *            what became of it
-         */
-        void saw(int x, int y, int z, String verdict);
-    }
-
-    private static void probe(final int x, final int y, final int z, final String verdict)
-    {
-        if (probe != null)
-        {
-            probe.saw(x, y, z, verdict);
-        }
-    }
-
     /** One window: where it is, which of its opening can be seen through, and its far side. */
     private static final class Window
     {
@@ -283,7 +238,6 @@ public final class MirrorWindows
         /** The solid blocks of the face touching the opening, corners too: its frame. */
         private List<Spot> frame = List.of();
         private long solidAt;
-        private boolean standing;
         /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
         private Map<Long, BlockData> fixed;
         private MirrorCapture fixedFrom;
@@ -343,18 +297,6 @@ public final class MirrorWindows
         private Redraw lastRedraw;
         private String stamp = "";
 
-        /**
-         * How far this viewer's view reaches, at most the configured radius.
-         *
-         * <p>Shrunk when a redraw spends its budget, and grown back when there is room. A spent
-         * budget used to leave the view ragged -- drawn deep in the middle and shallow at its
-         * edges. A shorter radius is a whole view that is simply shallower while the eye is close.
-         */
-        private int radius = Integer.MAX_VALUE;
-
-        /** Whether the last redraw had room to reach further, so the next sweep redraws. */
-        private boolean growing;
-
         View(final World world)
         {
             this.world = world;
@@ -390,7 +332,7 @@ public final class MirrorWindows
             return lines;
         }
         lines.add(MirrorText.field("looking into", String.join(", ", view.mirrors)));
-        lines.add(MirrorText.field("drawn", view.drawn.size() + " blocks, reaching " + view.radius));
+        lines.add(MirrorText.field("drawn", view.drawn.size() + " blocks"));
         lines.add(MirrorText.field("creatures hidden", String.valueOf(view.veiled.size())));
         if (view.undrawable > 0)
         {
@@ -457,21 +399,18 @@ public final class MirrorWindows
     }
 
     /**
-     * What one redraw walked and drew.
+     * What one redraw projected and drew.
      *
      * <p>Numbers, written out only when {@code mirror debug} asks: a sentence built on every redraw
      * was up to ten a second per viewer, for a command run once in a while.
      */
-    private record Redraw(int walked, int most, int radius, int next, int near, int fixed, int fixedDepth,
-        Spot eye, long tookMillis)
+    private record Redraw(int projected, int near, int fixed, int fixedDepth, Spot eye, long tookMillis)
     {
         List<String> lines()
         {
             final List<String> lines = new ArrayList<>();
-            lines.add(MirrorText.field("last redraw", walked + " of " + most + " blocks walked"
-                + ((walked >= most) ? (", " + MirrorText.bad("budget spent")) : "") + ", took " + tookMillis + " ms"));
-            lines.add(MirrorText.field("radius", radius + ((next != radius) ? (", next " + next) : "")));
-            lines.add(MirrorText.field("line of sight", near + " blocks drawn"));
+            lines.add(MirrorText.field("last redraw", projected + " blocks projected, " + near + " of them drawn, took "
+                + tookMillis + " ms"));
             if (fixed > 0)
             {
                 lines.add(MirrorText.field("drawn whole", fixed + " blocks to depth " + fixedDepth));
@@ -482,19 +421,14 @@ public final class MirrorWindows
 
         String brief()
         {
-            return MirrorText.field("redraw", walked + " of " + most + " walked"
-                + ((walked >= most) ? (", " + MirrorText.bad("budget spent")) : "") + ", radius " + radius + ", "
-                + tookMillis + " ms");
+            return MirrorText.field("redraw", projected + " projected, " + near + " drawn"
+                + ((fixed > 0) ? (", " + fixed + " whole") : "") + ", " + tookMillis + " ms");
         }
     }
 
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
     private static String howDrawn(final Window window, final boolean fixedForViewer)
     {
-        if (window.standing)
-        {
-            return "freestanding, trimmed to each eye";
-        }
         final Spot gap = gapBeside(window);
         if (gap != null)
         {
@@ -532,7 +466,6 @@ public final class MirrorWindows
         MirrorCaptures.clear();
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
-        mostWhileMoving = MOST_CANDIDATES;
         workSecond = 0L;
         workSpent = 0;
     }
@@ -553,8 +486,8 @@ public final class MirrorWindows
     static boolean offer(final QuantumMirror mirror, final Block banner)
     {
         final BlockData data = banner.getBlockData();
-        final boolean standing = data instanceof Rotatable;
-        if (!standing && !(data instanceof Directional))
+        // A banner on a post is no window: nothing hides its room past its edges, and create refuses one.
+        if (!(data instanceof Directional))
         {
             return false;
         }
@@ -562,7 +495,7 @@ public final class MirrorWindows
         final QuantumMirror chosen = MirrorNetwork.chosen(mirror);
         final QuantumMirror showing = (chosen == mirror) ? mirror : mirror.withDestination(chosen.destination());
         final MirrorWindow shape = MirrorWindow.of(mirror.banner(), MirrorArrival.facingOf(data),
-            standing, showing.destination(), MirrorNetwork.reflects(mirror), mirror.width());
+            showing.destination(), MirrorNetwork.reflects(mirror), mirror.width());
         if (shape == null)
         {
             return false;
@@ -579,7 +512,6 @@ public final class MirrorWindows
         }
         final Window window = new Window(showing, shape, banner, openCells(shape, banner.getWorld()),
             capture);
-        window.standing = standing;
         final Window previous = WINDOWS.get(mirror.name());
         if ((previous != null) && previous.shape.equals(shape))
         {
@@ -925,47 +857,14 @@ public final class MirrorWindows
             }
             return;
         }
-        final int configured = ConfigManager.getMirrorViewDepth();
-        view.radius = Math.min(configured, view.radius);
-        // A sweep redraws a viewer who has not moved, to grow their view; a move redraws them
-        // on the way somewhere, and may be one of ten this second.
-        final int most = fromSweep ? MOST_STILL : mostWhileMoving;
-        List<Entity> inside = new ArrayList<>();
-        Budget budget = new Budget(most);
-        final Set<Long> before = view.drawn.keySet();
-        Map<Long, BlockData> wanted = compose(eye, seeing, wholes, before, now, inside, budget, view.radius);
-        // Too much to draw from here: draw as far as the walk got in full, which it can
-        // afford by construction, until it fits. Three tries, in case the eye moved closer.
-        for (int shrink = 0; (budget.blocks <= 0) && (view.radius > 4) && (shrink < 3); shrink++)
-        {
-            view.radius = Math.max(4, Math.min(view.radius - 1, budget.reached));
-            inside = new ArrayList<>();
-            budget = new Budget(most);
-            wanted = compose(eye, seeing, wholes, before, now, inside, budget, view.radius);
-        }
-        workSpent += (most - budget.blocks) + budget.projected;
-        final int drawnAt = view.radius;
-        // A block the last drawing had is taken back only when it would now be wrong: beside the
-        // opening from this eye, or past the depth. A redraw that did not reach it -- out of
-        // budget on the move, or stopped early behind nearer blocks -- leaves it where it is; if
-        // it is hidden it is invisible, and if it is not, it is right. Taking back whatever a
-        // walk missed was the flicker of the bricks behind the fence.
-        keepStillShown(view, wanted, seeing, wholes, eye, now);
-        if (budget.passes == 0)
-        {
-            // Nothing walked: every window is whole, or whole and clipped, and reaches the depth.
-            view.radius = configured;
-            view.growing = false;
-        }
-        else
-        {
-            view.radius = grown(view.radius, configured, budget.blocks, most);
-            view.growing = eyeMatters && (view.radius < configured) && (budget.blocks > (most / 2));
-        }
+        final List<Entity> inside = new ArrayList<>();
+        final Budget budget = new Budget();
+        final Map<Long, BlockData> wanted = compose(eye, seeing, wholes, view.drawn.keySet(), now, inside, budget);
+        workSpent += budget.projected;
         send(player, view, wanted, now, crossed || ((now - view.fullAt) >= RESEND_MILLIS));
         veil(player, view, inside);
-        view.lastRedraw = new Redraw(most - budget.blocks, most, drawnAt, view.radius, budget.near, budget.fixed,
-            budget.fixedDepth, new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), now() - now);
+        view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
+            new Spot((int) eye.getX(), (int) eye.getY(), (int) eye.getZ()), now() - now);
         view.stamp = stamp;
         view.mirrors = names(seeing);
         view.fixedNames = names(new ArrayList<>(wholes.whole().keySet()));
@@ -980,119 +879,12 @@ public final class MirrorWindows
         }
     }
 
-    /**
-     * Keeps in a redraw every block the last drawing had that is still right to show from this
-     * eye through a trimmed window: behind its face, within the depth, seen through its opening
-     * and no other, and at least half of it behind the opening or on face that hides it. Drawn
-     * as the window's far side has it now.
-     */
-    private static void keepStillShown(final View view, final Map<Long, BlockData> wanted,
-        final List<Window> seeing, final Wholes wholes, final Location eye, final long now)
-    {
-        if (view.drawn.isEmpty())
-        {
-            return;
-        }
-        final int depth = ConfigManager.getMirrorViewDepth();
-        final Set<Long> allOpen = new HashSet<>();
-        seeing.forEach(window -> allOpen.addAll(window.openKeys));
-        final Map<Window, Set<Long>> shields = new HashMap<>();
-        BlockData air = null;
-        for (final Long cell : view.drawn.keySet())
-        {
-            if (wanted.containsKey(cell))
-            {
-                continue;
-            }
-            final int x = unpackX(cell);
-            final int y = unpackY(cell);
-            final int z = unpackZ(cell);
-            for (final Window window : seeing)
-            {
-                // A whole view is the same from every eye, and a clipped one is judged whole each time.
-                if (wholes.whole().containsKey(window) || wholes.clipped().containsKey(window))
-                {
-                    continue;
-                }
-                final MirrorWindow shape = window.shape;
-                final int layer = ((x - shape.base().x()) * shape.into().x()) + ((z - shape.base().z()) * shape.into().z());
-                if (layer < 1)
-                {
-                    continue;
-                }
-                final double[] centre = centreOf(shape);
-                final double dx = (x + 0.5) - centre[0];
-                final double dy = (y + 0.5) - centre[1];
-                final double dz = (z + 0.5) - centre[2];
-                if (((dx * dx) + (dy * dy) + (dz * dz)) >= ((double) depth * depth))
-                {
-                    continue;
-                }
-                final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
-                if ((rect == null) || !coveredBy(window, rect, allOpen,
-                    shields.computeIfAbsent(window, w -> shielded(w, eye, now)), KEPT_BESIDE))
-                {
-                    continue;
-                }
-                final Spot at = shape.farOf(x, y, z);
-                if (!window.capture.contains(at.x(), at.y(), at.z()) || window.capture.isBuried(at.x(), at.y(), at.z()))
-                {
-                    continue;
-                }
-                if (window.capture.isAir(at.x(), at.y(), at.z()))
-                {
-                    if (air == null)
-                    {
-                        air = Bukkit.createBlockData(Material.AIR);
-                    }
-                    wanted.put(cell, air);
-                }
-                else
-                {
-                    wanted.put(cell, turned(window, window.capture.at(at.x(), at.y(), at.z())));
-                }
-                break;
-            }
-        }
-    }
-
     /** Whether nothing a view depends on has changed since it was last drawn. */
     private static boolean unchanged(final View view, final List<Window> seeing, final long eye,
         final String stamp, final long now)
     {
         return (view.eye == eye) && view.stamp.equals(stamp) && ((now - view.composedAt) < RESAMPLE_MILLIS)
-            && (view.generation == MirrorCaptures.generation()) && view.mirrors.equals(names(seeing))
-            && !(view.growing && ((now - view.composedAt) >= REDRAW_MILLIS));
-    }
-
-    /**
-     * How far a view reaches next time, given what the last redraw had left.
-     *
-     * <p>The cost of a view grows with the cube of its radius, so the radius grows by the cube
-     * root of the room to spare, at most half again, and never past the configured depth. Two
-     * blocks at a time took a dozen redraws to recover from one close approach, and a viewer
-     * who then stood still never recovered at all.
-     *
-     * @param radius
-     *            the radius just drawn
-     * @param configured
-     *            the most allowed
-     * @param left
-     *            how much of the block budget the redraw left
-     * @param most
-     *            what that budget was
-     * @return the radius for the next redraw
-     */
-    static int grown(final int radius, final int configured, final int left, final int most)
-    {
-        if ((left <= (most / 2)) || (radius >= configured))
-        {
-            return Math.min(radius, configured);
-        }
-        final double used = Math.max(1.0, (double) most - left);
-        final double scaled = radius * Math.cbrt((most / 2.0) / used);
-        final int next = (int) Math.min(scaled, (radius * 3) / 2.0);
-        return Math.min(configured, Math.max(radius + 2, next));
+            && (view.generation == MirrorCaptures.generation()) && view.mirrors.equals(names(seeing));
     }
 
     /** Queues one redraw for a viewer who moved too soon after the last, if none is queued. */
@@ -1250,13 +1042,13 @@ public final class MirrorWindows
      * standing inside the view, to be hidden from them.
      *
      * <p>Openings first, so a block that is part of one opening is never drawn as another's far
-     * side. Then, nearest window first: a fixed window's whole view, and for the rest the blocks
-     * in the cone from the eye through each opening, out to the radius and within one budget for
-     * the whole redraw -- see {@link Pass} for which of them are drawn.
+     * side. Then, nearest window first: a whole window's room as it is, and a clipped window's
+     * room judged against this eye ({@link #clipWhole}). A window whose room is not held yet --
+     * the server's share of work spent before it was built -- draws nothing until it is.
      */
     private static Map<Long, BlockData> compose(final Location eye, final List<Window> seeing,
         final Wholes wholes, final Set<Long> before, final long now, final List<Entity> inside,
-        final Budget budget, final int radius)
+        final Budget budget)
     {
         final Map<Window, Whole> fixed = wholes.whole();
         final BlockData air = Bukkit.createBlockData(Material.AIR);
@@ -1280,7 +1072,6 @@ public final class MirrorWindows
             }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
         }
-        final List<Pass> passes = new ArrayList<>();
         for (final Window window : nearestFirst(seeing, eye))
         {
             final Whole whole = fixed.get(window);
@@ -1295,38 +1086,11 @@ public final class MirrorWindows
             {
                 clipWhole(eye, window, clipped, seeing, allOpen, wanted, before, budget, now);
             }
-            else
-            {
-                passes.add(new Pass(eye, window, seeing, allOpen, wanted, before, air, radius, budget, now));
-                budget.passes++;
-            }
-        }
-        // In stages of depth, and within each stage the middle of every view before its edges,
-        // so a spent budget costs what is far and oblique, never what is near. Band by band to
-        // full depth, a wide radius spent the whole budget on the far middle before the near
-        // sides were walked at all, and an alcove lost its own walls to a corridor beyond them.
-        stages:
-        for (int from = 1; !passes.isEmpty() && (from <= (radius + 1)); from = nextStage(from))
-        {
-            final int to = Math.min(radius + 1, nextStage(from) - 1);
-            for (int band = 0; band < MirrorWindow.bands(); band++)
-            {
-                for (final Pass pass : passes)
-                {
-                    pass.stage(from, to);
-                    if (!pass.window.shape.forEachCandidate(eye.getX(), eye.getY(), eye.getZ(),
-                        pass.reach, band, pass, (x, y, z) -> !pass.consider(x, y, z) || (--budget.blocks > 0),
-                        pass.window.frame.isEmpty() ? 0 : 1))
-                    {
-                        break stages;
-                    }
-                }
-            }
-            budget.reached = to;
         }
         if (!seeing.isEmpty())
         {
-            creaturesInside(seeing.get(0).banner.getWorld(), eye, radius, seeing, fixed, allOpen, inside);
+            creaturesInside(seeing.get(0).banner.getWorld(), eye, ConfigManager.getMirrorViewDepth(), seeing, fixed,
+                allOpen, inside);
         }
         return wanted;
     }
@@ -1372,10 +1136,6 @@ public final class MirrorWindows
         final double apart = MirrorPlacement.apartToDrawWhole();
         for (final Window window : seeing)
         {
-            if (window.standing)
-            {
-                continue;
-            }
             // Seen or not: alcoves a block apart along a wall would otherwise each fill the same
             // space behind it with a different far side, for whoever looks into either.
             boolean alone = walled(window);
@@ -1891,39 +1651,16 @@ public final class MirrorWindows
         view.veiled.putAll(now);
     }
 
-    /**
-     * The first layer of the stage after one starting here: 1, 5, 9, 17, 25, 33, 41 ...
-     *
-     * <p>Doubling to 17, then eight at a time: a spent budget falls back to the last stage
-     * walked in full, and a stage of sixteen layers threw away half a view that fit.
-     */
-    private static int nextStage(final int from)
-    {
-        if (from < 5)
-        {
-            return 5;
-        }
-        return (from < 17) ? (((from - 1) * 2) + 1) : (from + 8);
-    }
-
-    /** What one redraw may spend, across every window a viewer sees, and what it drew. */
+    /** What one redraw did, across every window a viewer sees. */
     private static final class Budget
     {
-        private int blocks;
+        /** Blocks of clipped rooms drawn for this eye. */
         private int near;
+        /** Blocks of rooms drawn whole, and the deepest they reach. */
         private int fixed;
         private int fixedDepth;
-        /** Windows walked, rather than held whole. */
-        private int passes;
-        /** Blocks of a whole room projected against the eye. */
+        /** Blocks of clipped rooms projected against the eye, which is what a redraw costs. */
         private int projected;
-        /** The deepest layer every view was walked to in full before the budget ran out. */
-        private int reached;
-
-        Budget(final int most)
-        {
-            this.blocks = most;
-        }
     }
 
     /**
@@ -1999,19 +1736,6 @@ public final class MirrorWindows
         }
         return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
             chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
-    }
-
-    /** Whether the real block here is empty, remembered for a few seconds. */
-    private static boolean emptyHere(final World here, final int x, final int y, final int z,
-        final long now)
-    {
-        if ((now - emptyReadAt) >= RESAMPLE_MILLIS)
-        {
-            EMPTY.clear();
-            emptyReadAt = now;
-        }
-        return EMPTY.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
     }
 
     /** How much of the wall's outermost ring, from its open edge in, absorbs a step instead of hiding a block. */
@@ -2459,484 +2183,4 @@ public final class MirrorWindows
         return (int) ((key << 26) >> 38);
     }
 
-    /**
-     * One window's part of one redraw: which blocks in its cone are drawn, and as what.
-     *
-     * <p>Within the radius of the opening's middle, a block is drawn as the capture's block it maps to, if it
-     * is seen through this window ({@link #seenThrough}), is not already hidden behind a solid
-     * block drawn nearer the eye, and would change what the client shows -- far-side air over a
-     * block that is really empty would not.
-     *
-     * <p>Past the radius nothing is drawn, so a line of sight that gets that far meets whatever
-     * the real world has there. The shell that closed the view was painted, then fog, then sky,
-     * and none of them looked right.
-     */
-    private static final class Pass implements MirrorWindow.Limits
-    {
-        private final Location eye;
-        private final Window window;
-        private final List<Window> seeing;
-        private final Set<Long> allOpen;
-        private final Map<Long, BlockData> wanted;
-        private final BlockData air;
-        private final double radius;
-        private final Budget budget;
-        private final long now;
-        private final World here;
-        private final int min;
-        private final int max;
-        private final Occlusion hidden;
-        private final Set<Long> shielded;
-        /** What this viewer was drawn last time, which stays drawn while half of it is behind the opening. */
-        private final Set<Long> before;
-        private final double[] centre;
-        /** How far from the eye the walk must reach to cover the radius around the opening. */
-        private final double reach;
-        private int from = 1;
-        private int to = Integer.MAX_VALUE;
-
-        Pass(final Location eye, final Window window, final List<Window> seeing,
-            final Set<Long> allOpen, final Map<Long, BlockData> wanted, final Set<Long> before,
-            final BlockData air, final int radius, final Budget budget, final long now)
-        {
-            this.eye = eye;
-            this.window = window;
-            this.seeing = seeing;
-            this.allOpen = allOpen;
-            this.wanted = wanted;
-            this.air = air;
-            this.radius = radius;
-            this.budget = budget;
-            this.now = now;
-            this.here = window.banner.getWorld();
-            this.min = here.getMinHeight();
-            this.max = here.getMaxHeight();
-            this.hidden = new Occlusion(window);
-            this.shielded = shielded(window, eye, now);
-            this.before = before;
-            this.centre = centreOf(window.shape);
-            final double ex = eye.getX() - centre[0];
-            final double ey = eye.getY() - centre[1];
-            final double ez = eye.getZ() - centre[2];
-            this.reach = radius + Math.sqrt((ex * ex) + (ey * ey) + (ez * ez));
-        }
-
-        /** @return true if this block cost real work, which the budget counts; false if it was cheap */
-        boolean consider(final int x, final int y, final int z)
-        {
-            final long cell = key(x, y, z);
-            if ((y < min) || (y >= max) || wanted.containsKey(cell))
-            {
-                probe(x, y, z, "already");
-                return false;
-            }
-            final double dx = (x + 0.5) - centre[0];
-            final double dy = (y + 0.5) - centre[1];
-            final double dz = (z + 0.5) - centre[2];
-            final double distance = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-            if (distance >= radius)
-            {
-                probe(x, y, z, "beyond");
-                return false;
-            }
-            final double[] rect = seenThrough(eye, window, x, y, z, seeing, allOpen);
-            final int layer = layerOf(x, z);
-            if (rect == null)
-            {
-                probe(x, y, z, "not through the opening");
-                return true;
-            }
-            if (hidden.covers(rect, layer))
-            {
-                probe(x, y, z, "hidden behind nearer solid, rect " + java.util.Arrays.toString(rect));
-                return true;
-            }
-            final Spot at = window.shape.farOf(x, y, z);
-            final MirrorCapture capture = window.capture;
-            if (capture.isBuried(at.x(), at.y(), at.z()))
-            {
-                // Solid ground at the far side, left as the real world has it.
-                hidden.add(rect, layer);
-                probe(x, y, z, "buried");
-                return true;
-            }
-            final boolean farAir = capture.isAir(at.x(), at.y(), at.z());
-            // A block at the edge of the opening flickered as the viewer walked, drawn one step
-            // and left the next; once drawn it stays drawn while half of it is behind the opening.
-            if (!coveredBy(window, rect, allOpen, shielded, before.contains(cell) ? KEPT_BESIDE : MOST_BESIDE))
-            {
-                // A block straddling the edge, part of it where the real world can see it: left
-                // alone, solid or air, since drawing it either way shows the far side past the
-                // edge. Carving the air ones cut notches beside small freestanding mirrors.
-                probe(x, y, z, "not covered, rect " + java.util.Arrays.toString(rect));
-                return true;
-            }
-            final BlockData data = farAir ? air : turned(window, capture.at(at.x(), at.y(), at.z()));
-            if (data.isOccluding())
-            {
-                hidden.add(rect, layer);
-            }
-            if (!farAir || !emptyHere(here, x, y, z, now))
-            {
-                wanted.put(cell, data);
-                budget.near++;
-                probe(x, y, z, "drawn " + data.getAsString() + " at layer " + layer + ", rect "
-                    + java.util.Arrays.toString(rect));
-            }
-            else
-            {
-                probe(x, y, z, "air over air");
-            }
-            return true;
-        }
-
-        /** Confines the next walk to these layers. */
-        void stage(final int firstLayer, final int lastLayer)
-        {
-            from = firstLayer;
-            to = lastLayer;
-        }
-
-        @Override
-        public int shallowest()
-        {
-            return from;
-        }
-
-        @Override
-        public int deepest()
-        {
-            return Math.min(to, hidden.horizon());
-        }
-
-        /**
-         * Above both the highest real block and the highest far one that column maps to,
-         * everything is air over air.
-         */
-        @Override
-        public int top(final int x, final int z)
-        {
-            final Spot column = window.shape.farOf(x, window.shape.base().y(), z);
-            final int farTop = window.capture.top(column.x(), column.z());
-            // The far column's top, brought back to this world's heights.
-            final int farTopHere = farTop + (window.shape.base().y() - window.shape.far().y());
-            return Math.max(topHere(here, x, z, now), farTopHere);
-        }
-
-        private int layerOf(final int x, final int z)
-        {
-            return ((x - window.shape.base().x()) * window.shape.into().x())
-                + ((z - window.shape.base().z()) * window.shape.into().z());
-        }
-    }
-
-    /**
-     * How much of one window's opening is hidden, from one eye, by solid far-side blocks drawn in
-     * front of what is being considered.
-     *
-     * <p>A block wholly behind solid blocks already drawn nearer the eye cannot be seen and is
-     * skipped -- and once every part of the opening is hidden, nothing deeper than the deepest of
-     * what hides it is walked at all. A view into a hillside stops at the hillside instead of
-     * drawing the inside of the hill.
-     *
-     * <p>Kept on a fine grid over the opening, thirty-two parts to a block, each remembering the
-     * layer of the nearest solid block in front of it. The layer matters because the cone is
-     * walked in bands, middle first: a solid block far back in the middle band must not hide one
-     * nearer the eye in the next.
-     *
-     * <p>Thirty-two rather than eight because of slivers. A corridor behind a row of pillars was
-     * visible through a tenth of a block of the opening; at eight parts to a block that rounded
-     * away, the grid called the whole opening hidden five layers in, the walk stopped there, and
-     * through the sliver the viewer saw their own world. Marking a part hidden only when a block
-     * covers it whole would keep slivers but let a lattice of parts along every block boundary
-     * stay open, and draw everything behind a solid wall; finer parts keep both.
-     */
-    /**
-     * Which parts of the opening solid far-side blocks have covered, and from how near.
-     *
-     * <p>A grid over the opening's face, thirty-two parts to a block, and for each part the
-     * exact rectangle of it that solid blocks' outlines have covered so far, with the layer of
-     * the farthest of those blocks. A block is hidden only where the whole of its outline lies
-     * inside rectangles covered from nearer than it.
-     *
-     * <p>A part used to be marked hidden, whole, when a block's outline crossed its middle. From
-     * an eye a third of a block from the opening a floor row twenty blocks in is a band far
-     * thinner than a part, and once one row had marked the part every farther row in it was
-     * called hidden: the floor vanished in patches, and the corridor's shelves, seen edge-on,
-     * with it. Two outlines that meet in a part are joined only when the join is itself a
-     * rectangle -- the same span across, one above the other, or the same span up, side by
-     * side -- since the rectangle round an L claims the corner neither covers, and a shelf and
-     * the floor meeting at such a corner let twenty-two rays in eighty thousand through to
-     * the lake behind the mirror. Otherwise the larger of the two is kept.
-     */
-    static final class Occlusion
-    {
-        private static final int FINE = 32;
-        private static final double EPSILON = 1.0e-9;
-
-        private final int left;
-        private final int bottom;
-        private final int wide;
-        private final int tall;
-        private final int[] nearest;
-        private final double[] x0;
-        private final double[] x1;
-        private final double[] y0;
-        private final double[] y1;
-        private int marked;
-        private int full;
-        private int horizon = Integer.MAX_VALUE;
-
-        Occlusion(final Window window)
-        {
-            this(leftOf(window), bottomOf(window), widthOf(window), heightOf(window));
-            // The parts of the opening's outline that are closed hide everything behind them.
-            for (int i = 0; i < wide; i++)
-            {
-                for (int j = 0; j < tall; j++)
-                {
-                    if (!window.openKeys.contains(faceKey(window.shape, left + (i / FINE), bottom + (j / FINE))))
-                    {
-                        mark((i * tall) + j, cellX0(i), cellX1(i), cellY0(j), cellY1(j), 0);
-                    }
-                }
-            }
-        }
-
-        /** A grid over an opening so many blocks wide and tall, all of it open. */
-        Occlusion(final int left, final int bottom, final int blocksWide, final int blocksTall)
-        {
-            this.left = left;
-            this.bottom = bottom;
-            this.wide = blocksWide * FINE;
-            this.tall = blocksTall * FINE;
-            nearest = new int[wide * tall];
-            java.util.Arrays.fill(nearest, Integer.MAX_VALUE);
-            x0 = new double[wide * tall];
-            x1 = new double[wide * tall];
-            y0 = new double[wide * tall];
-            y1 = new double[wide * tall];
-        }
-
-        private static int leftOf(final Window window)
-        {
-            final boolean alongX = window.shape.into().x() != 0;
-            int least = Integer.MAX_VALUE;
-            for (final Spot cell : window.open)
-            {
-                least = Math.min(least, alongX ? cell.z() : cell.x());
-            }
-            return least;
-        }
-
-        private static int widthOf(final Window window)
-        {
-            final boolean alongX = window.shape.into().x() != 0;
-            int most = Integer.MIN_VALUE;
-            for (final Spot cell : window.open)
-            {
-                most = Math.max(most, alongX ? cell.z() : cell.x());
-            }
-            return (most + 1) - leftOf(window);
-        }
-
-        private static int bottomOf(final Window window)
-        {
-            int least = Integer.MAX_VALUE;
-            for (final Spot cell : window.open)
-            {
-                least = Math.min(least, cell.y());
-            }
-            return least;
-        }
-
-        private static int heightOf(final Window window)
-        {
-            int most = Integer.MIN_VALUE;
-            for (final Spot cell : window.open)
-            {
-                most = Math.max(most, cell.y());
-            }
-            return (most + 1) - bottomOf(window);
-        }
-
-        private double cellX0(final int i)
-        {
-            return left + ((double) i / FINE);
-        }
-
-        private double cellX1(final int i)
-        {
-            return left + ((double) (i + 1) / FINE);
-        }
-
-        private double cellY0(final int j)
-        {
-            return bottom + ((double) j / FINE);
-        }
-
-        private double cellY1(final int j)
-        {
-            return bottom + ((double) (j + 1) / FINE);
-        }
-
-        /**
-         * @return the deepest layer anything could still be seen at: past the deepest solid
-         *         block hiding each part of the opening, once every part is hidden whole
-         */
-        int horizon()
-        {
-            if ((full < nearest.length) || (horizon != Integer.MAX_VALUE))
-            {
-                return horizon;
-            }
-            int deepest = 0;
-            for (final int layer : nearest)
-            {
-                deepest = Math.max(deepest, layer);
-            }
-            horizon = deepest;
-            return horizon;
-        }
-
-        /** Whether the whole of a projected block's outline lies within what nearer blocks cover. */
-        boolean covers(final double[] rect, final int layer)
-        {
-            if (marked == 0)
-            {
-                return false;
-            }
-            final int iFrom = Math.max(0, (int) Math.floor((rect[0] - left) * FINE));
-            final int iTo = Math.min(wide - 1, (int) Math.ceil((rect[1] - left) * FINE) - 1);
-            final int jFrom = Math.max(0, (int) Math.floor((rect[2] - bottom) * FINE));
-            final int jTo = Math.min(tall - 1, (int) Math.ceil((rect[3] - bottom) * FINE) - 1);
-            if ((iFrom > iTo) || (jFrom > jTo))
-            {
-                // Wholly off the opening, on its frame: nothing in the opening hides it.
-                return false;
-            }
-            for (int i = iFrom; i <= iTo; i++)
-            {
-                for (int j = jFrom; j <= jTo; j++)
-                {
-                    final int at = (i * tall) + j;
-                    if (nearest[at] >= layer)
-                    {
-                        return false;
-                    }
-                    if ((Math.max(rect[0], cellX0(i)) < (x0[at] - EPSILON))
-                        || (Math.min(rect[1], cellX1(i)) > (x1[at] + EPSILON))
-                        || (Math.max(rect[2], cellY0(j)) < (y0[at] - EPSILON))
-                        || (Math.min(rect[3], cellY1(j)) > (y1[at] + EPSILON)))
-                    {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        /** Covers the parts of the opening a solid block's outline lies on, as far as it does. */
-        void add(final double[] rect, final int layer)
-        {
-            final int iFrom = Math.max(0, (int) Math.floor((rect[0] - left) * FINE));
-            final int iTo = Math.min(wide - 1, (int) Math.ceil((rect[1] - left) * FINE) - 1);
-            final int jFrom = Math.max(0, (int) Math.floor((rect[2] - bottom) * FINE));
-            final int jTo = Math.min(tall - 1, (int) Math.ceil((rect[3] - bottom) * FINE) - 1);
-            for (int i = iFrom; i <= iTo; i++)
-            {
-                for (int j = jFrom; j <= jTo; j++)
-                {
-                    mark((i * tall) + j, Math.max(rect[0], cellX0(i)), Math.min(rect[1], cellX1(i)),
-                        Math.max(rect[2], cellY0(j)), Math.min(rect[3], cellY1(j)), layer);
-                }
-            }
-        }
-
-        /**
-         * Covers part of one part of the grid.
-         *
-         * <p>A rectangle that holds what was covered before replaces it, with its own layer. One
-         * inside what was covered changes nothing. One that meets it along a whole side is
-         * joined to it, with the farther of the two layers, since only past both is everything
-         * in the join hidden. Otherwise the larger of the two stands.
-         */
-        private void mark(final int at, final double nx0, final double nx1, final double ny0,
-            final double ny1, final int layer)
-        {
-            if (((nx1 - nx0) <= EPSILON) || ((ny1 - ny0) <= EPSILON))
-            {
-                return;
-            }
-            final boolean wasFull = isFull(at);
-            if (nearest[at] == Integer.MAX_VALUE)
-            {
-                marked++;
-                set(at, nx0, nx1, ny0, ny1, layer);
-            }
-            else if ((nx0 <= (x0[at] + EPSILON)) && (nx1 >= (x1[at] - EPSILON))
-                && (ny0 <= (y0[at] + EPSILON)) && (ny1 >= (y1[at] - EPSILON)))
-            {
-                set(at, nx0, nx1, ny0, ny1, layer);
-            }
-            else if ((nx0 >= (x0[at] - EPSILON)) && (nx1 <= (x1[at] + EPSILON))
-                && (ny0 >= (y0[at] - EPSILON)) && (ny1 <= (y1[at] + EPSILON)))
-            {
-                return;
-            }
-            else if (sameSpan(nx0, nx1, x0[at], x1[at]) && (ny0 <= (y1[at] + EPSILON))
-                && (ny1 >= (y0[at] - EPSILON)))
-            {
-                set(at, x0[at], x1[at], Math.min(ny0, y0[at]), Math.max(ny1, y1[at]),
-                    Math.max(layer, nearest[at]));
-            }
-            else if (sameSpan(ny0, ny1, y0[at], y1[at]) && (nx0 <= (x1[at] + EPSILON))
-                && (nx1 >= (x0[at] - EPSILON)))
-            {
-                set(at, Math.min(nx0, x0[at]), Math.max(nx1, x1[at]), y0[at], y1[at],
-                    Math.max(layer, nearest[at]));
-            }
-            else if (((nx1 - nx0) * (ny1 - ny0)) > ((x1[at] - x0[at]) * (y1[at] - y0[at])))
-            {
-                set(at, nx0, nx1, ny0, ny1, layer);
-            }
-            else
-            {
-                return;
-            }
-            if (!wasFull && isFull(at))
-            {
-                full++;
-            }
-            horizon = Integer.MAX_VALUE;
-        }
-
-        private static boolean sameSpan(final double from, final double to, final double storedFrom,
-            final double storedTo)
-        {
-            return (Math.abs(from - storedFrom) <= EPSILON) && (Math.abs(to - storedTo) <= EPSILON);
-        }
-
-        private void set(final int at, final double nx0, final double nx1, final double ny0,
-            final double ny1, final int layer)
-        {
-            x0[at] = nx0;
-            x1[at] = nx1;
-            y0[at] = ny0;
-            y1[at] = ny1;
-            nearest[at] = layer;
-        }
-
-        private boolean isFull(final int at)
-        {
-            if (nearest[at] == Integer.MAX_VALUE)
-            {
-                return false;
-            }
-            final int i = at / tall;
-            final int j = at % tall;
-            return (x0[at] <= (cellX0(i) + EPSILON)) && (x1[at] >= (cellX1(i) - EPSILON))
-                && (y0[at] <= (cellY0(j) + EPSILON)) && (y1[at] >= (cellY1(j) - EPSILON));
-        }
-    }
 }

@@ -109,8 +109,7 @@ class MirrorCapturesTest
     }
 
     /**
-     * A capture file whose place is no mirror's room is swept; one a mirror uses, and a debug save,
-     * are kept.
+     * A capture file whose place is no mirror's room is swept, and one a mirror uses is kept.
      *
      * <p>"Do we clean up any abandoned views (on startup or something)?" Only as each mirror went:
      * a mirror file emptied by hand, or a delete that failed, left its captures behind for good.
@@ -123,8 +122,7 @@ class MirrorCapturesTest
         assertTrue(dir.isDirectory() || dir.mkdirs(), "the captures folder");
         final File used = new File(dir, MirrorCaptures.keyFor(mirror) + ".view");
         final File abandoned = new File(dir, "far_1_2_3.view");
-        final File saved = new File(dir, "debug-museum-here.view");
-        for (final File file : new File[] { used, abandoned, saved })
+        for (final File file : new File[] { used, abandoned })
         {
             assertTrue(file.createNewFile(), file.getName());
         }
@@ -132,7 +130,6 @@ class MirrorCapturesTest
         assertEquals(1, MirrorCaptures.sweepAbandoned(), "one file no mirror's room is");
         assertFalse(abandoned.exists(), "the abandoned capture");
         assertTrue(used.exists(), "museum's room is kept");
-        assertTrue(saved.exists(), "and so is a debug save somebody asked for");
     }
 
     /**
