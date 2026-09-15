@@ -50,6 +50,15 @@ been running on defaults will start reading the file you have been editing.
   past its capture would run out of room. The log says when one was cut, and `mirror debug` says
   how many blocks a capture keeps.
 
+  And the one-block wall's leak. "This problem is mostly because of the 1 block border mirrors.
+  Larger border the more stuff has time to change." Just so: what a wall's width buys is
+  tolerance for movement between redraws, not depth. A stale drawn block's landing on the wall
+  shifts by about as far as the eye moved, whatever the block's depth, and only the inner half of
+  a wall block with open air past it counts as hiding anything -- so a one-block wall absorbs half
+  a block of movement, and a clipped room's far part standing for a whole-block move let half a
+  block of stale room show past it. Behind a wall a block wide the far part now follows every half
+  block the eye moves; behind two or more it stands for a block, as before.
+
   The wall of sky past the depth is gone before it shipped. "I think a backdrop/shell is out. It
   brings too much attention to the issue." Its `mirror-backdrop` setting and `mirror backdrop`
   verb go with it, and a `Backdrop` line in `mirror.yml` from a build of the last day is read as

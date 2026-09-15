@@ -786,6 +786,47 @@ class MirrorWindowsTest
     }
 
     /**
+     * Behind a wall only a block wide, the far part follows a half-block move.
+     *
+     * <p>"This problem is mostly because of the 1 block border mirrors." Only the inner half of a
+     * wall block with open air past it counts as hiding anything, so a one-block wall absorbs
+     * half a block of movement before a stale far block's landing slips past its edge; the far
+     * part standing for a whole-block move let half a block of stale room show. The gap here is
+     * two blocks from the opening, so the wall round it is one block wide. A step within the same
+     * half block projects the near part alone; a step into the other half of the same block, not
+     * a new block, projects the far part too.
+     */
+    @Test
+    void behindAOneBlockWallTheFarPartFollowsAHalfBlockMove()
+    {
+        MirrorWindows.nearDistance = 8.0;
+        gap = new Spot(12, 64, 11);
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final int[] projected = new int[2];
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            projected[0] = projectedByTheLastRedraw(viewer);
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.4, 64.0, 7.5));
+            projected[1] = projectedByTheLastRedraw(viewer);
+        });
+
+        assertEquals(0.5, MirrorWindows.farCellFor(1), "a one-block wall: half a block");
+        assertEquals(1.0, MirrorWindows.farCellFor(2), "two blocks: a whole block, as before");
+        assertTrue(projected[0] > 0, "a step within the half block projects the near layers");
+        assertTrue(projected[1] > (2 * projected[0]),
+            "a step into the other half of the same block projects the far layers too: " + projected[0] + " then "
+                + projected[1]);
+    }
+
+    /**
      * A redraw that took long earns a rest three times as long before the next; a quick one none.
      *
      * <p>Right against a deep mirror a redraw projected the whole half-sphere in sixty-five

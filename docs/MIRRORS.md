@@ -51,7 +51,12 @@ past its edges however the view was trimmed, so a mirror is a wall banner with s
 out on every side of its opening, and `create` refuses anything else by the block to fill. Two was
 the rule while a drawn block at the edge held until half of it was past the opening; with the hold
 at 15% one block hides what a trimmed view draws, so two is advice — `create` names the block short
-of it — rather than a refusal.
+of it — rather than a refusal. What a wall's width buys is tolerance for movement between redraws,
+not depth: a stale drawn block's landing on the wall shifts by about as far as the eye moved,
+whatever the block's depth, and only the inner half of a wall block with open air past it counts
+as hiding anything. So behind a one-block wall the far part of a clipped room is judged again every
+half block the eye moves rather than every block, at twice that part's cost, which a wall two
+blocks wide never pays.
 
 **One to a world**, by default (`mirror-per-world-limit`): a mirror is the door into its world, and
 the list a right-click walks stays short while each world has one.

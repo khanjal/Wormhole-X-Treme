@@ -281,6 +281,8 @@ public final class MirrorWindows
         private Map<Long, Integer> margin = Map.of();
         /** The solid blocks of the face touching the opening, corners too: its frame. */
         private List<Spot> frame = List.of();
+        /** How many blocks of solid wall stand on every side of the opening, as last read ({@link #borderOf}). */
+        private int border;
         private long solidAt;
         /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
         private Map<Long, BlockData> fixed;
@@ -1259,15 +1261,49 @@ public final class MirrorWindows
      * A clipped room's far part as one eye last judged it: which room, from which block the eye
      * was in, when, and the blocks kept.
      */
-    private record Far(Whole whole, int eyeX, int eyeY, int eyeZ, long at, Map<Long, BlockData> blocks)
+    private record Far(Whole whole, int eyeX, int eyeY, int eyeZ, double cell, long at, Map<Long, BlockData> blocks)
     {
+        /** A far part judged from an eye, for a room, now. */
+        static Far judged(final Whole whole, final Location eye, final double cell, final long now,
+            final Map<Long, BlockData> blocks)
+        {
+            return new Far(whole, cellOf(eye.getX(), cell), cellOf(eye.getY(), cell), cellOf(eye.getZ(), cell), cell,
+                now, blocks);
+        }
+
         /** Whether this still stands for an eye, or the far part is to be judged again. */
         boolean standsFor(final Whole room, final Location eye, final long now)
         {
             // The room's blocks, not the record round them, which every redraw makes anew.
-            return (whole.blocks() == room.blocks()) && (eyeX == eye.getBlockX()) && (eyeY == eye.getBlockY())
-                && (eyeZ == eye.getBlockZ()) && ((now - at) < FAR_MILLIS);
+            return (whole.blocks() == room.blocks()) && (eyeX == cellOf(eye.getX(), cell))
+                && (eyeY == cellOf(eye.getY(), cell)) && (eyeZ == cellOf(eye.getZ(), cell)) && ((now - at) < FAR_MILLIS);
         }
+
+        /** Which cell of a size a coordinate falls in. */
+        private static int cellOf(final double at, final double cell)
+        {
+            return (int) Math.floor(at / cell);
+        }
+    }
+
+    /**
+     * How far an eye may move before a clipped room's far part is judged again, behind a wall.
+     *
+     * <p>A block, as a rule. A block drawn onto the wall beside the opening is hidden from the eye
+     * it was drawn for, and only the inner half of a wall block with open air past it is counted
+     * as hiding anything, so that a step has somewhere to land before the next redraw. Behind a
+     * wall only a block wide that half block is all there is: a whole-block move could shift a
+     * stale far block's landing past the wall's edge, and "there's a lot of leaking around the
+     * border" of a one-block wall. Half a block there, then, at twice the far part's cost, which
+     * a wall two blocks wide never pays.
+     *
+     * @param border
+     *            how many blocks of solid wall stand on every side of the opening
+     * @return the cell, in blocks
+     */
+    static double farCellFor(final int border)
+    {
+        return (border <= 1) ? 0.5 : 1.0;
     }
 
     /** The windows a viewer sees whose rooms are held whole: drawn as they are, or clipped to the eye. */
@@ -1353,7 +1389,8 @@ public final class MirrorWindows
      * block can land ({@link MirrorWindow#mightLandOn}) spares most of the room a projection.
      *
      * <p>Only the near part every time: the far part, past {@link #NEAR_DISTANCE} from the eye, is
-     * judged again only once the eye has left the block it was in or {@link #FAR_MILLIS} have
+     * judged again only once the eye has left the cell it was in -- a block, or half a block
+     * behind a wall only a block wide ({@link #farCellFor}) -- or {@link #FAR_MILLIS} have
      * passed, and stands as last judged meanwhile.
      */
     private static void clipWhole(final View view, final Location eye, final Window window, final Whole whole,
@@ -1405,7 +1442,7 @@ public final class MirrorWindows
         }
         if (farAgain)
         {
-            view.far.put(window.mirror.name(), new Far(whole, eye.getBlockX(), eye.getBlockY(), eye.getBlockZ(), now, farKept));
+            view.far.put(window.mirror.name(), Far.judged(whole, eye, farCellFor(window.border), now, farKept));
         }
         else
         {
@@ -2105,9 +2142,52 @@ public final class MirrorWindows
             }
         }
         window.solid = solid;
+        window.border = borderOf(shape, solid, reach);
         window.margin = marginOf(shape, solid, span, reach);
         window.frame = frameOf(shape, solid);
         window.solidAt = now;
+    }
+
+    /**
+     * How many blocks of solid wall stand on every side of a window's opening.
+     *
+     * <p>Ring by ring out from the opening, to the first ring with a block that is not solid;
+     * a wall solid to the edge of what was read counts as that far. The one-block wall is the
+     * case that matters ({@link #farCellFor}).
+     *
+     * @param shape
+     *            the window
+     * @param solid
+     *            the solid blocks of its face, as {@link #refreshSolid} read them
+     * @param reach
+     *            how far out the face was read
+     * @return the border, in blocks, from 0 to {@code reach}
+     */
+    private static int borderOf(final MirrorWindow shape, final Set<Long> solid, final int reach)
+    {
+        final boolean alongX = shape.into().x() != 0;
+        final int rightStep = alongX ? shape.into().x() : -shape.into().z();
+        final int first = alongX ? shape.base().z() : shape.base().x();
+        final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
+        final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
+        final int bottom = shape.base().y();
+        final int top = (shape.base().y() + MirrorWindow.HEIGHT) - 1;
+        for (int ring = 1; ring <= reach; ring++)
+        {
+            for (int across = low - ring; across <= (high + ring); across++)
+            {
+                for (int y = bottom - ring; y <= (top + ring); y++)
+                {
+                    final boolean onRing = (across == (low - ring)) || (across == (high + ring))
+                        || (y == (bottom - ring)) || (y == (top + ring));
+                    if (onRing && !solid.contains(faceKey(shape, across, y)))
+                    {
+                        return ring - 1;
+                    }
+                }
+            }
+        }
+        return reach;
     }
 
     /**
