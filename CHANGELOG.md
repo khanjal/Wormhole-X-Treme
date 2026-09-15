@@ -818,6 +818,19 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **`mirror-view-depth` is 160 by default, and a room cut to fit says so.** "Should we increase
+  the distance, or do something about preventing the real world bleeding through the mirror
+  world?" What shows through is whatever lies past the depth, and the depth was 32 from when a
+  capture was a dense box and a deep view cost its volume. A room is its surfaces now -- a floor,
+  the faces of hills and trees, one layer each -- so at 160 a plain is some forty thousand blocks,
+  and 160 is ten chunks: as far as a server usually sends, past which the client has nothing to
+  show. So nothing of this world appears. The price is that the first capture loads that much of
+  the room's world, once. An existing `config.yml` keeps the depth it has.
+
+  A held room past 250,000 blocks -- glass, leaves -- is cut shallower until it fits, and `debug`
+  reported the smaller depth as though it were the setting. It says `cut to depth N of 160 to fit
+  250000 blocks`, in red.
+
 - **A mirror on any wall reaches the full depth, standing or walking: its room is held whole and
   clipped to each eye.** "I want to capture further for the mirror. Right now it seems short and
   is showing the real world after the mirror one." Only a mirror walled to the proximity distance

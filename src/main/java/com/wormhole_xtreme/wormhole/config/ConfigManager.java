@@ -195,7 +195,8 @@ public class ConfigManager
          * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
          *
          * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
-         * no further.
+         * no further. 160 by default, ten chunks, so the room ends where the client stops
+         * showing anything; a room is its surfaces, so depth costs little.
          */
         MIRROR_VIEW_DEPTH,
 
@@ -1427,7 +1428,7 @@ public class ConfigManager
         final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
         // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
         // few bits per block over a box 325 across, tens of megabytes for a few seconds.
-        return (s == null) ? 32 : Math.max(4, Math.min(160, s.getIntValue()));
+        return (s == null) ? 160 : Math.max(4, Math.min(160, s.getIntValue()));
     }
 
     /**

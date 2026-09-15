@@ -706,6 +706,27 @@ class MirrorWindowsTest
     }
 
     /**
+     * A room cut shallower than the depth to fit under the cap says so, in red.
+     *
+     * <p>"If it says a smaller depth, the 250,000-block cap on a held room cut it." It reported
+     * the smaller depth as though that were the setting; an admin raising the depth and seeing no
+     * change had nothing to tell them why.
+     */
+    @Test
+    void aRoomCutToFitUnderTheCapSaysSo()
+    {
+        MirrorWindows.mostFixed = 100;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
+        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: drawn whole cut to depth ")
+            && line.contains(" of 16 to fit 100 blocks")), "the cut and the cap named: " + said);
+    }
+
+    /**
      * A wall mirror short of the proximity distance is held whole and clipped to each eye, so it
      * reaches the full depth on the move, where walking its cone ran out.
      *

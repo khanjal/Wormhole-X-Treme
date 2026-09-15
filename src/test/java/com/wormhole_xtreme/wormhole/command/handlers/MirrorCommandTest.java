@@ -76,6 +76,8 @@ class MirrorCommandTest
         when(plugin.getDataFolder()).thenReturn(dataFolder);
         PluginTestSupport.install(plugin);
         ConfigTestSupport.clear();
+        // The too-close warning reaches twice the depth; at the default depth that is the whole world.
+        ConfigTestSupport.set(com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.MIRROR_VIEW_DEPTH, 32);
         MirrorManager.clear();
 
         here = mock(World.class);

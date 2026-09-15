@@ -143,9 +143,11 @@ Either way it reaches the full depth, standing or walking.
 - **A capture holds what somebody at the opening could see:** within `mirror-view-depth` of the
   opening, rays a degree apart through it, and the blocks they reach, air included; everything else
   is left to the real world. So a capture is the surfaces in view, and that is all a viewer is sent.
-- **The view reaches `mirror-view-depth` from the opening** (32 by default, up to 160) and nothing
+- **The view reaches `mirror-view-depth` from the opening** (160 by default, from 4) and nothing
   is drawn past it, standing or walking, on any wall. At 160 — ten chunks, as far as a server
-  usually sends — the room ends where the client has nothing to show anyway.
+  usually sends — the room ends where the client has nothing to show anyway, so nothing of this
+  world shows through. A room is its surfaces, so depth costs little; taking the first capture
+  loads that much of the room's world, once. Lower it for a mirror onto somewhere small.
 - **One-sided.** From behind, a mirror is its banner.
 - **Blocks only.** No players or creatures from the room shown, and your own world's creatures
   inside the view are hidden from you while you look. Lit by this world, so a room behind a wall is

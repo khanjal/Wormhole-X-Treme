@@ -98,6 +98,9 @@ public final class MirrorWindows
     /** Most blocks one fixed view may hold; past it the depth is cut until it fits. */
     private static final int MOST_FIXED = 250_000;
 
+    /** The same, settable so a test can make a room not fit. */
+    static int mostFixed = MOST_FIXED;
+
     /** The server's share of work per second, by default: blocks walked, fixed and sent, all viewers together. */
     private static final int WORK_PER_SECOND = 400_000;
 
@@ -434,16 +437,27 @@ public final class MirrorWindows
         {
             final String what = window.banner.getWorld().getBlockAt(gap.x(), gap.y(), gap.z())
                 .getBlockData().getAsString();
-            return "whole to depth " + window.fixedDepth + ", clipped to each eye: " + MirrorText.bad("wall within "
+            return "whole " + toDepth(window) + ", clipped to each eye: " + MirrorText.bad("wall within "
                 + wallReach() + " open at " + gap.x() + "," + gap.y() + "," + gap.z()) + " (" + what + ")";
         }
         if (!fixedForViewer)
         {
-            return "whole to depth " + window.fixedDepth + ", clipped to each eye: "
+            return "whole " + toDepth(window) + ", clipped to each eye: "
                 + MirrorText.bad("another mirror within twice the depth");
         }
-        return MirrorText.good("drawn whole") + " to depth " + window.fixedDepth + ", "
+        return MirrorText.good("drawn whole") + " " + toDepth(window) + ", "
             + ((window.fixed == null) ? 0 : window.fixed.size()) + " blocks";
+    }
+
+    /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
+    private static String toDepth(final Window window)
+    {
+        if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
+        {
+            return MirrorText.bad("cut to depth " + window.fixedDepth + " of " + window.fixedFor + " to fit " + mostFixed
+                + " blocks");
+        }
+        return "to depth " + window.fixedDepth;
     }
 
     /** Static state only. */
@@ -466,6 +480,7 @@ public final class MirrorWindows
         MirrorCaptures.clear();
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
+        mostFixed = MOST_FIXED;
         workSecond = 0L;
         workSpent = 0;
     }
@@ -1353,13 +1368,13 @@ public final class MirrorWindows
             return;
         }
         int depth = configured;
-        Map<Long, BlockData> view = fixedTo(window, depth, now, MOST_FIXED);
+        Map<Long, BlockData> view = fixedTo(window, depth, now, mostFixed);
         // Half a sphere of the depth is what was looked at, found in the capture or not.
         workSpent += (int) Math.min(Integer.MAX_VALUE / 2.0, 2.1 * depth * depth * depth);
         while ((view == null) && (depth > 4))
         {
             depth = Math.max(4, (depth * 3) / 4);
-            view = fixedTo(window, depth, now, MOST_FIXED);
+            view = fixedTo(window, depth, now, mostFixed);
             workSpent += (int) (2.1 * depth * depth * depth);
         }
         window.fixed = (view == null) ? new HashMap<>() : view;
