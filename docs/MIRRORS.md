@@ -718,22 +718,22 @@ Each of these is a real lever, and none is free. The first is the one to build n
    proximity distance — a few thousand blocks a tick over the last sixteen blocks of approach —
    and take it back the same way as they leave, instead of one batch each way. That lifts the
    20,000-block cap on a room sent whole, and a walled mirror at 160 then costs nothing per step.
-3. **Whole rooms for mirrors that share a wall.** A library's back wall is already solid across
+2. **Whole rooms for mirrors that share a wall.** A library's back wall is already solid across
    its whole plane; what stops each alcove's mirror being drawn whole is the neighbour rule (two
    whole rooms would fill the same space behind the wall) and the cap. But a viewer in one alcove
    cannot see the next alcove's opening past the divider, and a view already draws only the
    windows the eye has a clear line to. Judge the overlap against the windows a viewer can see
-   rather than every mirror within twice the depth, stream the rooms in and out (2), and the
+   rather than every mirror within twice the depth, stream the rooms in and out (1), and the
    museum's mirrors draw once each and cost nothing per step. The wall-plane rule still asks for
    wall to the proximity distance above and below, which a low hall does not have; the honest
    test there is whether the space behind the wall can be seen from anywhere a viewer can stand,
    which is the next item.
-4. **Region-safe drawing.** Once per window, work out which room blocks are safe from every eye
+3. **Region-safe drawing.** Once per window, work out which room blocks are safe from every eye
    in the proximity zone — seen only through the opening, or hidden by real solid blocks anywhere
    along the line — and draw exactly those, whole, with no per-step work at all. Many eyes times
    many blocks, so off the main thread and once a minute at most. The most general answer, the
    most work, and unproven.
-5. **Paper's per-player send view distance.** End this world at the depth in the client's own
+4. **Paper's per-player send view distance.** End this world at the depth in the client's own
    fog: `Player.setSendViewDistance`, set on approach and reset on leaving. The only true "stop
    rendering past here", and the only one that costs no blocks. A radius round the player rather
    than a direction, a ring of chunks at a time, and it does nothing for the cost per step. The

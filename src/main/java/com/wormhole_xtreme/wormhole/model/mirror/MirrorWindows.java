@@ -1284,7 +1284,7 @@ public final class MirrorWindows
      * A clipped room's far part as last judged: which room, from which cell the eye was in and
      * the point it was judged from ({@link #fatEye}), when, and the blocks kept.
      */
-    private record Far(Whole whole, int eyeX, int eyeY, int eyeZ, double cell, Location from, long at,
+    private record Far(Whole whole, int cellX, int cellY, int cellZ, double cell, Location from, long at,
         Map<Long, BlockData> blocks)
     {
         /** A far part judged for the cell an eye is in, from a point, for a room, now. */
@@ -1299,8 +1299,8 @@ public final class MirrorWindows
         boolean standsFor(final Whole room, final Location eye, final long now)
         {
             // The room's blocks, not the record round them, which every redraw makes anew.
-            return (whole.blocks() == room.blocks()) && (eyeX == cellOf(eye.getX(), cell))
-                && (eyeY == cellOf(eye.getY(), cell)) && (eyeZ == cellOf(eye.getZ(), cell)) && ((now - at) < FAR_MILLIS);
+            return (whole.blocks() == room.blocks()) && (cellX == cellOf(eye.getX(), cell))
+                && (cellY == cellOf(eye.getY(), cell)) && (cellZ == cellOf(eye.getZ(), cell)) && ((now - at) < FAR_MILLIS);
         }
 
         /** Which cell of a size a coordinate falls in. */
