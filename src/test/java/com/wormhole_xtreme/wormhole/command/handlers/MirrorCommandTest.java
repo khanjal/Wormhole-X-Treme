@@ -522,6 +522,41 @@ class MirrorCommandTest
         assertNull(MirrorManager.byName("archive").start(), "none is its own room again");
     }
 
+    /**
+     * backdrop sets what stands past one mirror's depth, and default puts it back on the server's.
+     *
+     * <p>"We should also be able to set the flat background per mirror, just in case."
+     */
+    @Test
+    void backdropSetsWhatStandsPastOneMirrorsDepthAndDefaultClearsIt()
+    {
+        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
+
+        assertTrue(run(player, "mirror", "backdrop", "archive", "Black_Concrete"));
+        assertEquals("black_concrete", MirrorManager.byName("archive").backdrop());
+        verify(player, atLeastOnce()).sendMessage(contains("a wall of black_concrete."));
+
+        assertTrue(run(player, "mirror", "backdrop", "archive", "none"));
+        assertEquals("none", MirrorManager.byName("archive").backdrop());
+        verify(player, atLeastOnce()).sendMessage(contains("no wall."));
+
+        assertTrue(run(player, "mirror", "backdrop", "archive", "default"));
+        assertNull(MirrorManager.byName("archive").backdrop(), "default is the server's again");
+        verify(player, atLeastOnce()).sendMessage(contains("the sky's colour (mirror-backdrop)."));
+    }
+
+    /** A backdrop that is not sky, none, default or a block is refused and changes nothing. */
+    @Test
+    void backdropRefusesWhatIsNotABlock()
+    {
+        MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
+
+        run(player, "mirror", "backdrop", "archive", "fog");
+
+        verify(player).sendMessage(contains("no block called"));
+        assertNull(MirrorManager.byName("archive").backdrop());
+    }
+
     /** A start nobody has, or the mirror itself, is refused and changes nothing. */
     @Test
     void startRefusesAMirrorNobodyHasAndTheMirrorItself()

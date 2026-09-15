@@ -50,6 +50,17 @@ class ConfigManagerTest
         assertEquals(160, ConfigManager.getMirrorViewDepth(), "and the default setting");
     }
 
+    /** The wall past the depth is the sky's colour by default, and a setting names a block or none. */
+    @Test
+    void theWallPastTheDepthIsTheSkyByDefault()
+    {
+        assertEquals("sky", ConfigManager.getMirrorBackdrop(), "the getter's fallback");
+        ConfigTestSupport.loadDefaults();
+        assertEquals("sky", ConfigManager.getMirrorBackdrop(), "and the default setting");
+        ConfigTestSupport.set(ConfigManager.ConfigKeys.MIRROR_BACKDROP, " Black_Concrete ");
+        assertEquals("black_concrete", ConfigManager.getMirrorBackdrop(), "trimmed and lowered");
+    }
+
     /** A configured setting is read back rather than the default. */
     @Test
     void aConfiguredSettingIsReadBackInsteadOfTheDefault()

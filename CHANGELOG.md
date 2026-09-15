@@ -30,6 +30,29 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **A wall the colour of the sky stands past the depth, and a room is a box.** "Still lag when I
+  leave the mirror view and slide to the real world -- half a second, sometimes a full second.
+  How can we limit the view into it?" and "There's just no way to stop rendering blocks after x
+  distance to the client? Or set them all to air?" There is not: a client draws every chunk it
+  has in every direction, blindness and darkness dim the whole screen, and carving this world to
+  air past the depth is the hundreds of thousands of blocks that lagged at 160 in the first
+  place -- the lag is the client meshing what a view changes. So the depth is lowered instead,
+  and what this world has beyond the room is hidden by a flat wall a block past it, from the
+  lowest ground loaded beyond to the highest and the opening's own rows besides: a few thousand
+  blocks. "Let's do the flat wall colour. One for day/night, or shades depending on the sun?"
+  One: `mirror-backdrop: sky` is light blue concrete, light grey in rain, black under the nether
+  and the end, and the client dims it with the sky at night on its own. A block's name is that
+  block; `none` is no wall. No wall where nothing is loaded past the depth, so at 160 on a server
+  sending ten chunks there is none. "We should also be able to set the flat background per
+  mirror, just in case": `mirror backdrop [name] <sky|none|block|default>`, saved with the
+  mirror as `Backdrop`.
+
+  For the wall to be flat the room had to be a box: it was a half-sphere from the opening's
+  middle, and between the sphere and a flat wall this world showed at the corners. A room reaches
+  the depth straight in now, whatever the angle, and a capture's rays reach the box's corners.
+  The circular shell was the first try at this, months of commits ago, and "you can see it being
+  made like a circle, and it's distracting"; a flat wall across the end is not.
+
 - **Every mirror is on the network: it reflects its own room, a right-click chooses another, and a
   punch goes through.** "I removed all mirrors and set the first one. It's asking to link, which
   we should no longer be doing." A mirror no longer points anywhere by hand. `mirror create`
@@ -939,6 +962,15 @@ been running on defaults will start reading the file you have been editing.
   `config.yml` is ignored and left where it is.
 
 ### Fixed
+
+- **The real banner no longer flickers on a right-click.** "We still have a very quick flicker
+  of a banner when right clicking and switching mirrors." A refused click makes the server send
+  the clicked block and the one on its face as they really are -- in the same tick, after every
+  listener -- and the view went out again a tick later, so the banner showed for that tick. The
+  client, seeing the banner drawn as air, clicks the barrier in the opening behind it, and the
+  block on its near face is the banner's. Those two are now sent again as the view draws them
+  from off the main thread thirty milliseconds on, after the correction and before the tick is
+  out; nothing reads the world off the main thread, and the whole view still follows a tick later.
 
 - **A redraw could hang the server for fifteen seconds, standing on a block boundary.** From the
   log: `MirrorWindows.shielded` adding to a set, under a redraw catching a viewer up. That pass

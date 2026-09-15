@@ -100,7 +100,7 @@ public final class MirrorInteraction
             travel(player, mirror);
         }
         // A click the server refused shows the client the real block again, over the view.
-        MirrorWindows.resend(player);
+        MirrorWindows.resend(player, block, event.getBlockFace());
         return true;
     }
 

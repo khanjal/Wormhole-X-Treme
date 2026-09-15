@@ -108,7 +108,7 @@ public class MirrorCommand implements SubCommand
 
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS =
-        { "create", "start", "stamp", "display", "mode", "remove", "list" };
+        { "create", "start", "stamp", "display", "mode", "backdrop", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -134,6 +134,7 @@ public class MirrorCommand implements SubCommand
             case "display" -> display(sender, args);
             case "mode" -> mode(sender, args);
             case "start" -> start(sender, args);
+            case "backdrop" -> backdrop(sender, args);
             case "remove" -> remove(sender, args);
             case "list" -> list(sender);
             // Unlisted: what a window is drawing from and what it drew, for chasing a view that
@@ -827,6 +828,54 @@ public class MirrorCommand implements SubCommand
     private static void sayStartUsage(final CommandSender sender)
     {
         sayUsage(sender, "start [<name>] <mirror|none>");
+    }
+
+    /**
+     * Sets what stands past one mirror's depth, apart from {@code mirror-backdrop}.
+     *
+     * <p>"We should also be able to set the flat background per mirror, just in case." The sky's
+     * colour, no wall, a block, or {@code default} for the server's. The window is offered again
+     * so the wall changes at once.
+     */
+    private static void backdrop(final CommandSender sender, final String[] args)
+    {
+        if (args.length < 3)
+        {
+            sayBackdropUsage(sender);
+            return;
+        }
+        // By the rule display and mode use: one word alone is the setting, for the banner being looked at.
+        final boolean unnamed = args.length == 3;
+        final String word = unnamed ? args[2] : args[3];
+        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
+            () -> sayBackdropUsage(sender));
+        if (mirror == null)
+        {
+            return;
+        }
+        final String setting = word.trim().toLowerCase(Locale.ROOT);
+        if (!"default".equals(setting) && !"sky".equals(setting) && !"none".equals(setting)
+            && (Material.matchMaterial(setting) == null))
+        {
+            say(sender, "There is no block called " + MirrorText.quoted(word) + ". Past a mirror's depth stands "
+                + MirrorText.name("sky") + ", " + MirrorText.name("none") + ", a block, or the server's by "
+                + MirrorText.name("default") + ".");
+            return;
+        }
+        final QuantumMirror changed = mirror.withBackdrop("default".equals(setting) ? null : setting);
+        MirrorManager.add(changed);
+        MirrorYamlManager.saveAll();
+        com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.replace(changed);
+        final String what = (changed.backdrop() == null) ? ConfigManager.getMirrorBackdrop() : changed.backdrop();
+        say(sender, "Past " + MirrorText.quoted(changed.name()) + "'s depth stands "
+            + ("none".equals(what) ? "no wall" : "sky".equals(what) ? "a wall of the sky's colour" : ("a wall of " + what))
+            + ((changed.backdrop() == null) ? " (mirror-backdrop)." : "."));
+    }
+
+    /** @see #backdrop */
+    private static void sayBackdropUsage(final CommandSender sender)
+    {
+        sayUsage(sender, "backdrop [<name>] <sky|none|<block>|default>");
     }
 
     private static void remove(final CommandSender sender, final String[] args)

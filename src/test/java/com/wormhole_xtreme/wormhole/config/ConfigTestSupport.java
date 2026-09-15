@@ -66,6 +66,19 @@ public final class ConfigTestSupport
     }
 
     /**
+     * Sets one text setting, as a config file would have.
+     *
+     * @param key
+     *            the setting to set
+     * @param value
+     *            what it should read as
+     */
+    public static void set(final ConfigManager.ConfigKeys key, final String value)
+    {
+        ConfigManager.getConfigurations().put(key, new Setting(key, value, "test", "WormholeXTreme"));
+    }
+
+    /**
      * Empties the settings map again.
      *
      * <p>The default {@link Setting} objects are shared statics, so a test that changes one
