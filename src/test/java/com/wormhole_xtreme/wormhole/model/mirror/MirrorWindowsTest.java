@@ -236,7 +236,9 @@ class MirrorWindowsTest
      * <p>"We still have a very quick flicker of a banner when right clicking and switching mirrors."
      * The client, seeing the banner drawn as air, clicks the barrier in the opening behind it; the
      * server corrects that block and the one on its near face, the banner's, in the same tick, and
-     * the whole view sent a tick later left the banner showing for that tick.
+     * the whole view sent a tick later left the banner showing for that tick. On plain 1.20 the
+     * banner is never drawn as air, since its patterns could not be sent back, so only the
+     * barrier is sent again there: the one job in the matrix that failed this test before it said so.
      */
     @Test
     void aClickSendsTheTwoBlocksTheServerCorrectsAgainWithinTheTick() throws Exception
@@ -261,7 +263,16 @@ class MirrorWindowsTest
                 soon.getValue().run();
             });
             verify(viewer).sendBlockChange(new Location(world, 10, 64, 11), barrier);
-            verify(viewer).sendBlockChange(new Location(world, 10, 64, 10), air);
+            if (MirrorPackets.available())
+            {
+                verify(viewer).sendBlockChange(new Location(world, 10, 64, 10), air);
+            }
+            else
+            {
+                // Plain 1.20 cannot send a banner's patterns back, so the view never draws the
+                // banner as air there, and there is nothing of it to send again.
+                verify(viewer, never()).sendBlockChange(new Location(world, 10, 64, 10), air);
+            }
         }
         finally
         {
