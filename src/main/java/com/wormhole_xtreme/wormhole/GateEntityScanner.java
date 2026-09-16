@@ -170,7 +170,7 @@ public final class GateEntityScanner implements Runnable
             {
                 return; // inside the bounding box but not in the wormhole itself
             }
-            sendThrough(entity, arrival, facing);
+            sendThrough(entity, arrival, facing, null);
         }
         catch (final RuntimeException t)
         {
@@ -193,7 +193,8 @@ public final class GateEntityScanner implements Runnable
      *            the velocity the replacement should leave with
      * @return the replacement, or null to fall back to a plain teleport
      */
-    private static Entity respawnProjectile(final Projectile projectile, final Location arrival, final Vector exit)
+    private static Entity respawnProjectile(final Projectile projectile, final Location arrival, final Vector exit,
+        final Stargate exitGate)
     {
         try
         {
@@ -222,7 +223,7 @@ public final class GateEntityScanner implements Runnable
             projectile.remove();
             if (spawned instanceof Projectile shot)
             {
-                ProjectileGateTracker.track(shot, projectile);
+                ProjectileGateTracker.track(shot, projectile, exitGate);
             }
             return spawned;
         }
@@ -294,7 +295,7 @@ public final class GateEntityScanner implements Runnable
         {
             return false;
         }
-        sendThrough(projectile, arrival, target.getGateFacing());
+        sendThrough(projectile, arrival, target.getGateFacing(), target);
         return true;
     }
 
@@ -421,8 +422,11 @@ public final class GateEntityScanner implements Runnable
      *            the destination
      * @param exitFacing
      *            the direction the destination gate faces
+     * @param exitGate
+     *            the gate it comes out of, or null where that does not matter
      */
-    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace exitFacing)
+    private static void sendThrough(final Entity entity, final Location arrival, final BlockFace exitFacing,
+        final Stargate exitGate)
     {
         WormholeXTremeVehicleListener.markVehicleRecentlyTeleported(entity.getUniqueId());
         final Vector incoming = entity.getVelocity();
@@ -433,7 +437,7 @@ public final class GateEntityScanner implements Runnable
         // arrives at the far gate already stuck and drops out of the air. The original is
         // consumed and a replacement fired instead.
         final Entity arrived = (entity instanceof Projectile shot)
-            ? respawnProjectile(shot, arrival, exit)
+            ? respawnProjectile(shot, arrival, exit, exitGate)
             : null;
 
         final Entity moved;
