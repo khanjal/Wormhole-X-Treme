@@ -1865,7 +1865,8 @@ class MirrorWindowsTest
 
         final String line = fogLine(playerAt(200.5, 200.5));
 
-        assertTrue(line.contains("no Player.setSendViewDistance"), "on, with no Paper under it: " + line);
+        assertTrue(line.contains("no Player.setSendViewDistance"),
+            "on, with no Paper under it: " + line);
     }
 
     /** The one debug line about the fog, without its colours. */
