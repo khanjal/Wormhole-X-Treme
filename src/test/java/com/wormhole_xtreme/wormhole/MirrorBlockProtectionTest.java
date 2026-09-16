@@ -24,7 +24,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,8 +121,7 @@ class MirrorBlockProtectionTest
     @Test
     void punchingTheWallAMirrorHangsOnDoesNotStartBreakingIt()
     {
-        final BlockDamageEvent event = new BlockDamageEvent(player, world.getBlockAt(10, 64, 11),
-            mock(ItemStack.class), false);
+        final BlockDamageEvent event = BlockEvents.damage(player, world.getBlockAt(10, 64, 11));
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 

@@ -12,12 +12,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -120,8 +118,7 @@ class GatePortalInteriorBuildTest
 
     private boolean placeRefused(final Block placed)
     {
-        final BlockPlaceEvent event = new BlockPlaceEvent(placed, mock(BlockState.class),
-            frameBlock(), mock(ItemStack.class), player, true);
+        final BlockPlaceEvent event = BlockEvents.place(player, placed, frameBlock());
         new WormholeXTremeBlockListener().onBlockPlace(event);
         return event.isCancelled();
     }
@@ -135,8 +132,7 @@ class GatePortalInteriorBuildTest
 
     private boolean hitRefused(final Block hit)
     {
-        final BlockDamageEvent event = new BlockDamageEvent(player, hit,
-            mock(ItemStack.class), false);
+        final BlockDamageEvent event = BlockEvents.damage(player, hit);
         new WormholeXTremeBlockListener().onBlockDamage(event);
         return event.isCancelled();
     }
