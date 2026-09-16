@@ -10,12 +10,10 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.utils.PluginLog;
 
 /**
- * Showing one player a block that is not what the world says it is.
+ * Sending one player a block's patterns or text, which a block change leaves out.
  *
- * <p>{@code Player.sendBlockUpdate(Location, TileState)} is the whole mechanism behind a
- * proximity mirror. The banner in the world stays stamped -- banner patterns are vanilla data
- * and outlive this plugin -- so what gets sent is the <em>blank</em>, to whoever is too far
- * away to be shown the real thing. A copy nobody else receives and nothing persists.
+ * <p>{@code Player.sendBlockUpdate(Location, TileState)} is how a window gives a viewer back the
+ * banner patterns, or sign text, that a block change cannot carry.
  *
  * <p>Reached reflectively because it <strong>does not exist on plain 1.20</strong>, which this
  * plugin still supports -- present from 1.20.1 on, checked against the jars for all ten
@@ -23,10 +21,8 @@ import com.wormhole_xtreme.wormhole.utils.PluginLog;
  * {@code NoSuchMethodError} on that one version, and it is not the kind of method whose absence
  * should be discovered at the moment a player walks down a corridor.
  *
- * <p>{@link #available()} is how the sweep asks. On 1.20 it answers false, and a proximity
- * mirror is treated as an ordinary one -- stamped into its block and always visible. A
- * cosmetic loss on the oldest supported version, rather than a mirror that is never visible
- * at all.
+ * <p>{@link #available()} is how a window asks. On 1.20 it answers false, and the banner stays
+ * hanging in front of the view rather than being taken away with no way to put it back.
  */
 final class MirrorPackets
 {
@@ -49,7 +45,7 @@ final class MirrorPackets
      *
      * <p>Failures are swallowed rather than logged per call. This runs on a sweep, once per
      * player per mirror, so a server that somehow refuses would otherwise fill the log at the
-     * rate of the sweep -- and the visible consequence is only that a banner does not light up.
+     * rate of the sweep -- and the visible consequence is only that a banner comes back plain.
      *
      * @param player
      *            who to show it to
@@ -86,15 +82,14 @@ final class MirrorPackets
         }
         catch (final NoSuchMethodException absent)
         {
-            PluginLog.log(Level.INFO, "This server has no Player.sendBlockUpdate, so quantum"
-                + " mirrors set to 'proximity' will stay visible like ordinary ones."
-                + " That method arrived in 1.20.1.");
+            PluginLog.log(Level.INFO, "This server has no Player.sendBlockUpdate, so a quantum"
+                + " mirror's banner will stay in front of its view. That method arrived in 1.20.1.");
             return null;
         }
         catch (final RuntimeException | LinkageError e)
         {
-            PluginLog.log(Level.WARNING, "Could not look up Player.sendBlockUpdate; quantum"
-                + " mirrors set to 'proximity' will stay visible like ordinary ones.", e);
+            PluginLog.log(Level.WARNING, "Could not look up Player.sendBlockUpdate; a quantum"
+                + " mirror's banner will stay in front of its view.", e);
             return null;
         }
     }

@@ -25,17 +25,16 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
- * {@code mirror set display} -- the setting, and how it refuses.
+ * {@code mirror set start} and {@code list} -- a setting, and how it is shown.
  *
  * <p>Neither touches a block, which is the point of testing them apart from the rest: they are
- * pure registry edits, and what is worth pinning down is that they persist, that they refuse a
- * word nobody has, and that {@code list} says which mirrors are not ordinary.
+ * pure registry edits, and what is worth pinning down is that they persist, that they name a
+ * mirror nobody has, and that {@code list} says which mirrors are not ordinary.
  */
 class MirrorSettingsCommandTest
 {
@@ -68,52 +67,9 @@ class MirrorSettingsCommandTest
     }
 
     @Test
-    void setsAMirrorToProximityAndSaysHowCloseIsCloseEnough()
-    {
-        assertTrue(run("mirror", "set", "museum", "display", "proximity"));
-
-        assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("museum").display());
-        verify(sender, atLeastOnce()).sendMessage(contains("goes dark"));
-        verify(sender, atLeastOnce()).sendMessage(contains("blocks"));
-    }
-
-    @Test
-    void setsAMirrorBackToAlways()
-    {
-        run("mirror", "set", "museum", "display", "proximity");
-
-        assertTrue(run("mirror", "set", "museum", "display", "always"));
-
-        assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display());
-        verify(sender, atLeastOnce()).sendMessage(contains("everyone"));
-    }
-
-
-
-    @Test
-    void refusesAWordThatIsNeitherAlwaysNorProximity()
-    {
-        run("mirror", "set", "museum", "display", "sideways");
-
-        assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
-            "a refused setting must not half-apply");
-        verify(sender, atLeastOnce())
-            .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "sideways"));
-    }
-
-
-    @Test
-    void showsTheFormWhenNotGivenItsSetting()
-    {
-        assertTrue(run("mirror", "set", "museum", "display"));
-
-        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] display <always|proximity>"));
-    }
-
-    @Test
     void namesTheUnknownMirrorRatherThanTheSetting()
     {
-        run("mirror", "set", "nosuch", "display", "proximity");
+        run("mirror", "set", "nosuch", "start", "none");
 
         verify(sender, atLeastOnce())
             .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
@@ -129,30 +85,27 @@ class MirrorSettingsCommandTest
     @Test
     void theSettingSurvivesARestart()
     {
-        run("mirror", "set", "museum", "display", "proximity");
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+        run("mirror", "set", "museum", "start", "hub");
 
         MirrorManager.clear();
         com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
 
-        assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("museum").display());
+        assertEquals("hub", MirrorManager.byName("museum").start());
     }
 
-    /**
-     * A list of ordinary mirrors says nothing extra, and a changed one says what changed.
-     *
-     * <p>A list where most lines end in "(always)" is a list nobody reads to the end of, and
-     * the word carries nothing when it is what everything says.
-     */
+    /** A list of ordinary mirrors says nothing extra, and one with a start says so. */
     @Test
     void listsOnlyTheSettingsThatAreNotTheDefault()
     {
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
         run("mirror", "list");
-        verify(sender, never()).sendMessage(contains("(always"));
+        verify(sender, never()).sendMessage(contains("(starts on"));
 
-        run("mirror", "set", "museum", "display", "proximity");
+        run("mirror", "set", "museum", "start", "hub");
         run("mirror", "list");
 
-        verify(sender, atLeastOnce()).sendMessage(contains("(proximity)"));
+        verify(sender, atLeastOnce()).sendMessage(contains("(starts on hub)"));
     }
 
     /**
@@ -186,11 +139,13 @@ class MirrorSettingsCommandTest
         final CommandSender console = mock(CommandSender.class);
         when(console.isOp()).thenReturn(true);
 
-        assertTrue(new MirrorCommand().execute(console,
-            new String[] { "mirror", "set", "museum", "display", "proximity" }));
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
 
-        assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("museum").display(),
-            "neither setting depends on where anybody is standing");
+        assertTrue(new MirrorCommand().execute(console,
+            new String[] { "mirror", "set", "museum", "start", "hub" }));
+
+        assertEquals("hub", MirrorManager.byName("museum").start(),
+            "a named mirror's setting does not depend on where anybody is standing");
     }
 
     private boolean run(final String... args)

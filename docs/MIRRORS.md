@@ -21,7 +21,7 @@ dial — which is why a door in every world is practical in a way a gate in ever
 
 - [The network](#the-network)
 - [The banner's look](#the-banners-look) · [A snapshot, not a subscription](#a-snapshot-not-a-subscription)
-- [Always and proximity](#always-and-proximity)
+- [The sweep](#the-sweep)
 - [Saying what it is](#saying-what-it-is)
 - [The preset files](#the-preset-files) · [The library at a glance](#the-library-at-a-glance) · [What ships](#what-ships)
 - [Version traps](#version-traps)
@@ -134,11 +134,9 @@ place that is enclosed by its nature, `Sheltered=true` is the whole of what you 
 A mirror is sampled once, when it is stamped, and never again. Two reasons, and the second is
 the stronger one:
 
-A **dynamic** mirror re-reads, but only when somebody walks up to it and only after
-`mirror-dynamic-resample-seconds` since the last read. That is what makes it affordable: a
-mirror nobody visits is never sampled, and a player pacing in front of one gets the same answer
-until the interval is up. One that has never been stamped takes its first look on the first
-approach, or `mode dynamic` would describe something only `stamp` could start.
+- Re-reading the far side on every click would mean loading a distant chunk on a click.
+- A banner that changed on its own would be worse to build with. A look an operator chose
+  should stay chosen.
 
 Rebuild the room and the banner still shows the old one until somebody stamps it again, and the
 room people see through the opening is the capture as it was taken until somebody runs
@@ -151,57 +149,17 @@ with the network: "we shouldn't update the banner automatically. It should be an
 command." A `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next
 save; the setting is gone from `config.yml`.
 
-## Always and proximity
+## The sweep
 
-A corridor of lit banners is a corridor of lit banners. `mirror set <name> display proximity` makes
-one go dark until somebody comes within `mirror-proximity-distance` blocks of it.
-
-The design follows from a single fact: **banner patterns are vanilla data.** Disable this
-plugin and a stamped banner is still a stamped banner. So the world's block keeps the look
-always, whatever `display` says, and what a proximity mirror does is send the *blank* to players
-who are too far away, taking that illusion back when they come close.
-
-The other way round would have been easier — keep the world's block blank, send the look to
-whoever is near, and any chunk resend self-heals to what a distant player should see anyway. It
-was rejected because it makes this plugin the only thing standing between an operator and a
-corridor of plain white cloth.
-
-Two consequences fall out of that choice, and the sweep carries both:
-
-- Being far away is not a state that arranges itself. Everyone in the world is sent the blank
-  once, after which only crossings are sent — a corridor with somebody standing still in it
-  sends nothing at all.
-- The illusion has to be handed back when the plugin stops. It is, on disable: otherwise
-  whoever was standing far off keeps a blanked banner on their client until something makes the
-  server resend that chunk, which looks exactly like the plugin having eaten their banners.
-
-### The version boundary
-
-`Player.sendBlockUpdate(Location, TileState)` is the whole mechanism, and it **does not exist
-on plain 1.20** — present from 1.20.1 on, checked against the jars for all ten versions the
-matrix builds. On that one version a proximity mirror simply stays visible, which is a cosmetic
-loss on the oldest supported server rather than a mirror that never shows anything. Setting it
-there is not wasted: the banner keeps its look either way, and the setting starts working when
-the server is upgraded.
-
-It is reached reflectively for the same reason `PatternType` is. Calling it directly would
-compile against the 1.20.4 target and throw `NoSuchMethodError` on 1.20 — at the moment a
-player walks down a corridor, which is not when that should be discovered.
-
-### What the sweep is careful about
-
-It runs on a timer for the life of the server, so the order of its checks is the design. Before
-anything touches a block it has ruled out mirrors it has no reason to visit, worlds that are not
+One task on a timer offers every mirror to the windows, so the order of its checks is the design.
+Before anything touches a block it has ruled out mirrors going nowhere, worlds that are not
 loaded, and chunks that are not loaded — the chunk check comes before `getBlockAt`, which would
 load one.
 
-There is one reason to visit a mirror and it is narrow: hiding it. So a server whose mirrors
-are all ordinary does no work here beyond walking the list.
-
-That was briefly untrue. When a mirror first learned to name itself it did so on approach, which
-meant this sweep had to visit every ordinary mirror to work out who was near it — a distance
-check per player per mirror. Moving the announcement to the player's own line of sight took the
-third reason away again, and with it the cost.
+Until 1.6.0 a mirror also had a `display` setting: `proximity` sent a blank banner to players too
+far away and gave the stamped one back on approach. Every mirror is a view now, and hiding only
+reached a mirror that was not being drawn, so the setting did nothing anybody could see. A
+`Display` line in an older `mirror.yml` is read and ignored, and dropped on the next save.
 
 ## Saying what it is
 
@@ -531,21 +489,18 @@ galleries publish in Mojang's pattern ids on whatever version the site runs.
 ## Which banner you are looking at
 
 `create` has to turn "the banner in front of me" into a block, and one ray cast is not enough to
-do it. `start`, `stamp`, `display`, `capture` and `remove` do too, when no name is given: the same
+do it. `start`, `stamp`, `capture` and `remove` do too, when no name is given: the same
 search, and then the block index answers which mirror it is.
 
 Those take a name **or** the banner you are facing, because the mirror somebody wants to change is
 usually the one they are standing in front of. `create` keeps its required name: it is naming a
 thing that has no name yet.
 
-Two words have to be told apart for that to work. `display proximity` is a setting with no name;
-`display museum proximity` is both. Only the real setting words — `always`, `proximity` —
-are read that way, so `display museum` is still a name with the setting
-forgotten and still answers with the form, rather than complaining that `museum` is not a way to
-show a mirror. `stamp` has the harder version of the same question, because `stamp cavern` could
-be a mirror or a look: a mirror wins, since that is what the word meant before the name became
-optional, and a server whose mirror and look share a name should not find the command changing
-under it.
+Two words have to be told apart for that to work. `start hub` is a setting with no name;
+`start museum hub` is both, so one word alone is the start. `stamp` has the harder version of the
+same question, because `stamp cavern` could be a mirror or a look: a mirror wins, since that is
+what the word meant before the name became optional, and a server whose mirror and look share a
+name should not find the command changing under it.
 
 `getTargetBlockExact` traces against block shapes, and a banner is a thin one: from close up the
 ray can pass it by and hit the wall behind, and the command would say "that is a stone" to

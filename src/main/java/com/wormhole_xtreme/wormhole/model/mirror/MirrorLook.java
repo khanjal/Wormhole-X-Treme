@@ -8,9 +8,8 @@ package com.wormhole_xtreme.wormhole.model.mirror;
  * stamped banners instead of finding a row of plain cloth. Nothing here is the only record of
  * what an operator built.
  *
- * <p>This copy exists because the block alone cannot answer the question. A
- * {@link MirrorDisplay#PROXIMITY} mirror has to be dressed again after a player has been shown
- * the blank, and that needs the look as data rather than as a block somebody may have re-dyed.
+ * <p>This copy is kept in {@code mirror.yml}, so whether a look was named or read from the far side
+ * is not only in a block somebody may have re-dyed.
  *
  * <p>Two ways to be stamped, and the fields say which:
  *
@@ -18,7 +17,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
  * <li>By name -- {@code stamp <mirror> cavern} -- sets {@link #presetName()} and no view. The
  * operator chose, and nothing about the far side gets to argue.</li>
  * <li>By looking -- {@code stamp <mirror>} -- sets {@link #view()}, from which the preset is
- * worked out. A dynamic mirror replaces this view and keeps the same shape.</li>
+ * worked out.</li>
  * </ul>
  *
  * @param presetName

@@ -497,7 +497,7 @@ public final class SubCommands
         final boolean stamp = "stamp".equals(property);
         if (args.length == 3)
         {
-            // And what the property takes instead of a name. display, mode and stamp act on the
+            // And what the property takes instead of a name. start and stamp act on the
             // banner being looked at when no name is given, so the third word can be the setting
             // or the look -- a completion offering only names would hide that the name is
             // optional at all.
@@ -574,10 +574,6 @@ public final class SubCommands
      */
     private static String[] settingsFor(final String verb)
     {
-        if ("display".equals(verb))
-        {
-            return new String[] { "always", "proximity" };
-        }
         if ("start".equals(verb))
         {
             return both(mirrorNames(), new String[] { "none" });

@@ -21,7 +21,6 @@ import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
@@ -47,7 +46,6 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * mirror create &lt;name&gt;              look at a wall banner; it becomes a mirror by that name
  * mirror set [name] start &lt;m|none&gt;  the mirror a right-click opens onto first
  * mirror set [name] stamp [look]    give the banner a look
- * mirror set [name] display &lt;how&gt;   show its look always, or only up close
  * mirror set [name] capture         take the room's capture again
  * mirror remove [name]              forget it; the banner becomes an ordinary banner again
  * mirror list                       every mirror, and what each shows
@@ -57,7 +55,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * one, since the mirror somebody wants to change is usually the one they are standing in front of.
  * {@code create} keeps its required name: it is naming something that has no name yet.
  *
- * <p>{@code set} is the one door to what a mirror has. The four behind it were verbs of their
+ * <p>{@code set} is the one door to what a mirror has. The settings behind it were verbs of their
  * own and most of the usage line, and none of them is what somebody making a first mirror is
  * looking for; {@code create}, {@code remove} and {@code list} are.
  *
@@ -121,9 +119,9 @@ public class MirrorCommand implements SubCommand
     private static final String[] VERBS = { CREATE, SET, "remove", "list" };
 
     /** What {@code set} can change, and so the words {@code create} refuses as a name. */
-    private static final String[] PROPERTIES = { "stamp", "display", "start", "capture" };
+    private static final String[] PROPERTIES = { "stamp", "start", "capture" };
 
-    /** The same four, for looking a word up without building a list each time. */
+    /** The same three, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
 
     /** @return the verbs, for the usage line built in SubCommands */
@@ -175,11 +173,11 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Changes one thing a mirror has: {@code set [name] <stamp|display|mode|start> ...}.
+     * Changes one thing a mirror has: {@code set [name] <stamp|start|capture> ...}.
      *
      * <p>Which word is which is settled by the third: a property there means the banner being
      * looked at, anything else is a name and the property comes after it. That works because a
-     * property word is never a mirror's name -- {@code create} refuses the four.
+     * property word is never a mirror's name -- {@code create} refuses the three.
      *
      * <p>Each property keeps the parser it had when it was a verb of its own. The words after
      * {@code set} are put back in that shape and handed on, so what may stand where a name or a
@@ -210,7 +208,6 @@ public class MirrorCommand implements SubCommand
         switch (property)
         {
             case "stamp" -> stamp(sender, shifted);
-            case "display" -> display(sender, shifted);
             case "capture" -> capture(sender, shifted);
             default -> start(sender, shifted);
         }
@@ -219,7 +216,7 @@ public class MirrorCommand implements SubCommand
     /**
      * Whether a mirror may be called that, saying why not when it may not.
      *
-     * <p>The four property words are how {@code set} tells a name from what comes after it, so
+     * <p>The three property words are how {@code set} tells a name from what comes after it, so
      * a mirror called {@code start} could never be addressed: {@code set start hub} would be the
      * banner in front of you.
      */
@@ -262,10 +259,9 @@ public class MirrorCommand implements SubCommand
      * </pre>
      *
      * <p>The first four all carry the whole mirror forward rather than rebuilding it from a
-     * name and a block. Rebuilding was the old behaviour and it lost three things quietly: the
-     * destination, the look, and whether the mirror hides itself until somebody comes close. A
-     * renamed mirror came out valid and blank, and the reply said "It goes nowhere yet", which
-     * reads as a next step rather than as a warning that the last one has been undone.
+     * name and a block. Rebuilding was the old behaviour and it lost the destination and the look
+     * quietly. A renamed mirror came out valid and blank, and the reply said "It goes nowhere
+     * yet", which reads as a next step rather than as a warning that the last one has been undone.
      *
      * <p>Renaming leaves nothing behind under the old name. It used to: the new name was added
      * beside the old one, both claiming the banner, and clearing up the orphan afterwards
@@ -528,8 +524,8 @@ public class MirrorCommand implements SubCommand
      *
      * <p>Both copies, on purpose. The banner keeps the patterns because they are vanilla data
      * and outlive this plugin -- disable it and the corridor an operator built is still there.
-     * The mirror keeps them as data because a proximity mirror has to dress the banner again
-     * after showing somebody the blank, and a dynamic one has to know what it last saw.
+     * The mirror keeps them as data too, so what was stamped, and whether it was named or read,
+     * is not only in a block somebody may re-dye.
      *
      * <p>Re-read from the registry rather than trusting the copy this command started with, so
      * anything changed in between survives -- and checked for null, because one of the things
@@ -759,77 +755,6 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Says when a mirror shows its look: always, or only to whoever comes close.
-     *
-     * <p>Nothing is written to the banner either way. The stamped banner stays stamped in the
-     * world whatever this is set to -- banner patterns are vanilla data and outlive this
-     * plugin, so turning a mirror down to proximity must not be a way to lose the look an
-     * operator built. What changes is only who gets sent a blank instead.
-     */
-    private static void display(final CommandSender sender, final String[] args)
-    {
-        // The setting word decides which word is which. "display proximity" is the banner in
-        // front of you; "display museum proximity" names one. Only the two setting words read
-        // that way, so "display museum" -- a name with the setting forgotten -- still gets the
-        // form rather than a complaint that "museum" is not a way to show a mirror.
-        final boolean unnamed = (args.length == 3) && (MirrorDisplay.of(args[2]) != null);
-        if ((args.length < 4) && !unnamed)
-        {
-            sayDisplayUsage(sender);
-            return;
-        }
-        final String word = args[unnamed ? 2 : 3];
-        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
-            () -> sayDisplayUsage(sender));
-        if (mirror == null)
-        {
-            return;
-        }
-        final MirrorDisplay wanted = MirrorDisplay.of(word);
-        if (wanted == null)
-        {
-            say(sender, "A mirror is shown " + MirrorText.quoted("always") + " or by "
-                + MirrorText.quoted("proximity") + ", not " + MirrorText.quoted(word) + ".");
-            return;
-        }
-        // Only when proximity is being turned off, and before it is: the sweep will stop
-        // visiting this mirror, and anybody holding the blank would keep it -- so turning
-        // proximity off would hide the banner from exactly the people furthest away.
-        //
-        // Not on the way in, and not on a no-op. Releasing forgets who is currently near, so
-        // the next sweep would read everybody as a fresh arrival -- revealing to people who
-        // never moved, and asking a dynamic mirror to re-read a far side nobody walked up to.
-        if ((mirror.display() == MirrorDisplay.PROXIMITY) && (wanted != MirrorDisplay.PROXIMITY))
-        {
-            MirrorProximity.release(mirror);
-        }
-        MirrorManager.add(mirror.withDisplay(wanted));
-        MirrorYamlManager.saveAll();
-        sayDisplay(sender, mirror.name(), wanted);
-    }
-
-    /** What changed, and the one thing about it worth warning an operator over. */
-    private static void sayDisplay(final CommandSender sender, final String name,
-        final MirrorDisplay wanted)
-    {
-        if (wanted == MirrorDisplay.ALWAYS)
-        {
-            say(sender, MirrorText.quoted(name)
-                + " shows its look to everyone, from anywhere.");
-            return;
-        }
-        say(sender, MirrorText.quoted(name) + " goes dark until somebody comes within "
-            + ConfigManager.getMirrorProximityDistance() + " blocks.");
-        if (!MirrorProximity.canHide())
-        {
-            say(sender, "This server has no Player.sendBlockUpdate, which arrived in 1.20.1,");
-            say(sender, "so it will stay visible until you upgrade. Nothing is lost by setting");
-            say(sender, "it now -- the banner keeps its look either way.");
-        }
-    }
-
-
-    /**
      * Sets the mirror one opens onto when nobody at it has chosen.
      *
      * <p>For a mirror in an archived world, say, that should open onto the main world's mirror
@@ -842,7 +767,7 @@ public class MirrorCommand implements SubCommand
             sayStartUsage(sender);
             return;
         }
-        // By the rule display and mode use: one word alone is the start, for the banner being looked at.
+        // One word alone is the start, for the banner being looked at.
         final boolean unnamed = args.length == 3;
         final String word = args[unnamed ? 2 : 3];
         final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
@@ -921,14 +846,8 @@ public class MirrorCommand implements SubCommand
         // No miss to report: namedOrLookedAt has already answered for a name nobody has, and
         // a mirror it found by banner is one the registry just handed over.
         MirrorManager.remove(mirror.name());
-        // The same reason display() releases before it changes the setting: anybody who was
-        // being shown the blank is still holding it, and nothing will visit this mirror again
-        // to take it back. Without this the line below would be untrue for exactly the players
-        // standing furthest away -- an ordinary banner they cannot see.
-        //
-        // forget rather than release, because this one really is gone: its re-sample clock has
-        // nothing left to throttle, and left behind it would be inherited by whatever is named
-        // after it next.
+        // Anybody looking through it still has the view drawn, and nothing will visit this mirror
+        // again to take it back.
         MirrorProximity.forget(mirror);
         MirrorYamlManager.saveAll();
         say(sender, MirrorText.quoted(mirror.name()) + " is an ordinary banner again.");
@@ -955,7 +874,7 @@ public class MirrorCommand implements SubCommand
         if (lines.isEmpty())
         {
             say(sender, "No mirrors yet. Look at a banner and run "
-                + MirrorText.command("/wormhole mirror set <name>") + ".");
+                + MirrorText.command("/wormhole mirror create <name>") + ".");
             return;
         }
         say(sender, lines.size() + " mirror(s):");
@@ -978,11 +897,7 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * The non-default settings, or nothing at all.
-     *
-     * <p>Silent for an ordinary mirror on purpose: a list where most entries end in
-     * "(always, static)" is a list nobody reads to the end of, and those two words carry no
-     * information when they are what everything says.
+     * The mirror's start, or nothing at all for a mirror without one.
      *
      * @param mirror
      *            the mirror being listed
@@ -990,16 +905,7 @@ public class MirrorCommand implements SubCommand
      */
     private static String settingsOf(final QuantumMirror mirror)
     {
-        final List<String> notes = new ArrayList<>();
-        if (mirror.display() != MirrorDisplay.ALWAYS)
-        {
-            notes.add(mirror.display().lower());
-        }
-        if (mirror.start() != null)
-        {
-            notes.add("starts on " + mirror.start());
-        }
-        return notes.isEmpty() ? "" : " (" + String.join(", ", notes) + ")";
+        return (mirror.start() == null) ? "" : " (starts on " + mirror.start() + ")";
     }
 
     /** A destination as a person would read it. */
@@ -1180,12 +1086,6 @@ public class MirrorCommand implements SubCommand
     private static void sayUsage(final CommandSender sender, final String form)
     {
         say(sender, USAGE + MirrorText.command("/wormhole mirror " + form));
-    }
-
-    /** @see #display */
-    private static void sayDisplayUsage(final CommandSender sender)
-    {
-        sayUsage(sender, "set [<name>] display <always|proximity>");
     }
 
 

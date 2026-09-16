@@ -66,8 +66,8 @@ banners and one more either side, and from one above the banners to one below th
 built for one banner is a column short, and `create` says so.
 
 A mirror you already made one wide stays one wide: `mirror remove` it, hang the second banner, and
-`create` again. A room captured before wide mirrors existed is a little narrow for one; `mirror
-stamp <name> mirror` retakes it.
+`create` again. A room captured before wide mirrors existed is a little narrow for one;
+`mirror set <name> capture` retakes it.
 
 ## Commands
 
@@ -76,7 +76,6 @@ stamp <name> mirror` retakes it.
 | `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there |
 | `mirror set [name] start <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
 | `mirror set [name] stamp [look]` | Makes the banner look like where it goes |
-| `mirror set [name] display <always\|proximity>` | Show its look always, or only up close |
 | `mirror set [name] capture` | Takes the room's capture again |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
@@ -94,12 +93,11 @@ leave the name out:
 /wormhole mirror remove             # give the banner back
 ```
 
-`set` takes the name first and then what to change: `set museum display proximity`, or
-`set display proximity` looking at the banner. The four words it takes — `stamp`, `display`,
-`start`, `capture` — are never names, and `create` refuses them, which is how it tells the two
-apart. A mirror's name still wins where a word could be either: `set stamp cavern` is the mirror
-called `cavern` if there is one, and the *look* called `cavern` only if there is not. Setting words
-are never names either: `set museum display` is a name with the setting forgotten, so it says so.
+`set` takes the name first and then what to change: `set museum start hub`, or `set start hub`
+looking at the banner. The three words it takes — `stamp`, `start`, `capture` — are never names,
+and `create` refuses them, which is how it tells the two apart. A mirror's name still wins where a
+word could be either: `set stamp cavern` is the mirror called `cavern` if there is one, and the
+*look* called `cavern` only if there is not.
 
 ### Renaming one
 
@@ -109,7 +107,7 @@ are never names either: `set museum display` is a name with the setting forgotte
 /wormhole mirror create old-spawn   # looking at a banner that is already a mirror
 ```
 
-It keeps its start, what it looks like, and its display and mode settings — only the name
+It keeps its start and what it looks like — only the name
 changes, and the old one is gone rather than left behind. `create` works out what you meant from
 what already exists: a name it knows moves that mirror to this banner (which has to pass the wall
 rules), a banner it knows renames the mirror on it, and neither makes a new one. The single case it
@@ -205,9 +203,7 @@ They are `.mirror` text files in `shapes/mirror/`. Edit one and it stays edited;
 comes back; add your own and `stamp` offers it. Every look is drawn, with its recipe, in
 [docs/MIRRORS.md](../MIRRORS.md#the-library-at-a-glance).
 
-`display proximity` shows the banner blank until somebody is within `mirror-proximity-distance` blocks.
-It matters only where there is no view — a mirror whose room is not captured yet. A look never
-changes on its own: `stamp` it again when the room has changed.
+A look never changes on its own: `stamp` it again when the room has changed.
 
 ## Saying what it is
 

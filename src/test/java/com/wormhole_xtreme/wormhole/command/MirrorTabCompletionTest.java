@@ -152,10 +152,10 @@ class MirrorTabCompletionTest
     void setOffersNamesAndPropertiesAndThenWhatEachTakes()
     {
         final List<String> third = complete("mirror", "set", "");
-        assertTrue(third.containsAll(List.of("museum", "stamp", "display", "start", "capture")), "got " + third);
-        assertEquals(List.of("display"), complete("mirror", "set", "museum", "d"), "after a name, the property");
-        assertTrue(complete("mirror", "set", "museum", "display", "").contains("proximity"), "then what it takes");
-        assertTrue(complete("mirror", "set", "museum", "display", "proximity", "").isEmpty(), "and nothing past that");
+        assertTrue(third.containsAll(List.of("museum", "stamp", "start", "capture")), "got " + third);
+        assertEquals(List.of("capture"), complete("mirror", "set", "museum", "c"), "after a name, the property");
+        assertTrue(complete("mirror", "set", "museum", "start", "").contains("none"), "then what it takes");
+        assertTrue(complete("mirror", "set", "museum", "start", "none", "").isEmpty(), "and nothing past that");
         assertTrue(complete("mirror", "set", "museum", "colour", "").isEmpty(), "a word that is not a property");
     }
 
@@ -184,16 +184,16 @@ class MirrorTabCompletionTest
     /**
      * The word where the name is optional also offers what replaces it.
      *
-     * <p>{@code display}, {@code capture} and {@code stamp} act on the banner being looked at when
+     * <p>{@code start}, {@code capture} and {@code stamp} act on the banner being looked at when
      * no name is given. Offering only mirror names there would hide that, which is most of what
      * makes the shorter form findable at all.
      */
     @Test
     void theOptionalNamePositionAlsoOffersWhatReplacesIt()
     {
-        assertTrue(complete("mirror", "set", "display", "").contains("proximity"),
-            "got " + complete("mirror", "set", "display", ""));
-        assertTrue(complete("mirror", "set", "display", "").contains("museum"),
+        assertTrue(complete("mirror", "set", "start", "").contains("none"),
+            "got " + complete("mirror", "set", "start", ""));
+        assertTrue(complete("mirror", "set", "start", "").contains("museum"),
             "and the names are still there, since the name is optional rather than gone");
         assertTrue(complete("mirror", "set", "capture", "").contains("museum"), "capture takes a name and nothing else");
         assertTrue(complete("mirror", "set", "museum", "capture", "").isEmpty());

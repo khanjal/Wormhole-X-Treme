@@ -33,8 +33,8 @@ class PaperApiTest
     }
 
     @Test
-    void aProximityMirrorFindsSendBlockUpdate()
+    void aWindowFindsSendBlockUpdate()
     {
-        assertTrue(MirrorPackets.available(), "proximity mirrors would show to everybody on Paper");
+        assertTrue(MirrorPackets.available(), "a window's banner would stay in front of its view on Paper");
     }
 }

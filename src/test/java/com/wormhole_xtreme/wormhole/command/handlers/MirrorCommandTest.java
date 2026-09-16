@@ -36,7 +36,6 @@ import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
@@ -291,7 +290,7 @@ class MirrorCommandTest
      * <p>The museum case: a room of mirrors named after the worlds they open onto, wanting
      * names that say what is through them instead. Before this, {@code set} looked the name up
      * by the *new* name, found nothing, and built a mirror from scratch -- so the rename
-     * silently dropped the destination, the look and the display setting, and left the old name in
+     * silently dropped the destination, the look and the start, and left the old name in
      * place beside it, both claiming the banner. The reply said "It goes nowhere yet", which
      * reads as a next step rather than as a warning that the mirror has just been undone.
      */
@@ -301,7 +300,7 @@ class MirrorCommandTest
         final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
         final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("world_2011_05_09", hung, far,
-            MirrorDisplay.PROXIMITY, MirrorLook.named("cavern"), "hub"));
+            MirrorLook.named("cavern"), "hub"));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -311,7 +310,6 @@ class MirrorCommandTest
         assertNotNull(renamed, "the new name should be the mirror");
         assertEquals(far, renamed.destination(), "a rename must not unpoint the mirror");
         assertEquals(MirrorLook.named("cavern"), renamed.look(), "nor forget how it looks");
-        assertEquals(MirrorDisplay.PROXIMITY, renamed.display());
         assertEquals("hub", renamed.start(), "nor the mirror it opens onto first");
         assertNull(MirrorManager.byName("world_2011_05_09"),
             "the old name should be gone, not left beside it claiming the same banner");
@@ -331,7 +329,7 @@ class MirrorCommandTest
     {
         final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 40, 64, 40), far,
-            MirrorDisplay.PROXIMITY, MirrorLook.named("end")));
+            MirrorLook.named("end")));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -342,7 +340,6 @@ class MirrorCommandTest
         assertEquals(new MirrorPoint("world", 1.5, 63, 1.5, 180f, 0f), moved.destination(),
             "a moved mirror's room is in front of the banner it hangs on now");
         assertEquals(MirrorLook.named("end"), moved.look(), "a move should keep the look");
-        assertEquals(MirrorDisplay.PROXIMITY, moved.display());
         assertNull(MirrorManager.at(new MirrorBlock("world", 40, 64, 40)),
             "and should let go of the banner it came from");
     }
@@ -600,42 +597,6 @@ class MirrorCommandTest
         verify(player, atLeastOnce()).sendMessage(contains("mirror create"));
     }
 
-    /** A setting on its own means the banner in front of you. */
-    @Test
-    void displayTakesTheBannerBeingLookedAtWhenOnlyGivenItsSetting()
-    {
-        MirrorManager.add(new QuantumMirror("nether-return",
-            new MirrorBlock("world", 1, 64, 1), null));
-        final Block inFront = banner(Material.WHITE_WALL_BANNER);
-        when(player.getTargetBlockExact(6)).thenReturn(inFront);
-
-        assertTrue(run(player, "mirror", "set", "display", "proximity"));
-
-        assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("nether-return").display(),
-            "the setting landed on the mirror nobody named");
-    }
-
-
-    /**
-     * A name with its setting forgotten still gets the form.
-     *
-     * <p>The price of reading one word as a setting. {@code set museum display} could be the mirror
-     * called museum with the setting left off, or a setting called museum -- and only the two
-     * real setting words are read as settings, so this stays the form it always was rather than
-     * becoming a complaint that museum is not a way to show a mirror.
-     */
-    @Test
-    void aNameWithItsSettingForgottenStillGetsTheForm()
-    {
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
-
-        assertTrue(run(player, "mirror", "set", "museum", "display"));
-
-        verify(player, atLeastOnce())
-            .sendMessage(contains("set [<name>] display <always|proximity>"));
-        verify(player, never()).sendMessage(contains("A mirror is shown"));
-    }
-
     /**
      * A console gets the form rather than being told to look at something.
      *
@@ -661,6 +622,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "list"));
 
         verify(player, atLeastOnce()).sendMessage(contains("No mirrors yet"));
+        verify(player, atLeastOnce()).sendMessage(contains("/wormhole mirror create <name>"));
     }
 
     /** A mirror that has not been pointed lists as such rather than being hidden. */
@@ -916,7 +878,7 @@ class MirrorCommandTest
      * {@code set} on its own, or with a name and nothing after it, says its form.
      *
      * <p>"Thinking getting rid of stamp, mode, display, start from the main submenu and move it
-     * to an edit menu?" The four are behind {@code set} now, and its form is where they are found.
+     * to an edit menu?" They are behind {@code set} now, and its form is where they are found.
      */
     @Test
     void setWithoutAPropertySaysItsForm()
@@ -926,10 +888,10 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set"));
         assertTrue(run(player, "mirror", "set", "museum"));
 
-        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <stamp|display|start|capture>"));
+        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <stamp|start|capture>"));
     }
 
-    /** A word that is not one of the four says so, and then the form. */
+    /** A word that is not one of the properties says so, and then the form. */
     @Test
     void setRefusesAWordAMirrorDoesNotHave()
     {
@@ -938,29 +900,29 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
 
         verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
-        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <stamp|display|start|capture>"));
+        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <stamp|start|capture>"));
     }
 
     /**
-     * The four are not verbs any more: at the top they get the top's usage, which names set.
+     * The properties are not verbs any more: at the top they get the top's usage, which names set.
      *
      * <p>Not silently the old behaviour. A verb that still worked unlisted would be a second way
      * to do everything, and the usage line would be lying about what the command answers to.
      */
     @Test
-    void theFourPropertiesAreNotVerbsAtTheTop()
+    void thePropertiesAreNotVerbsAtTheTop()
     {
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
 
-        assertTrue(run(player, "mirror", "display", "museum", "proximity"));
+        assertTrue(run(player, "mirror", "start", "museum", "hub"));
 
-        assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
-            "nothing changed");
+        assertNull(MirrorManager.byName("museum").start(), "nothing changed");
         verify(player, atLeastOnce()).sendMessage(contains("<create|set|remove|list>"));
     }
 
     /**
-     * A mirror cannot be called by one of the four words, since that is how set tells a name
+     * A mirror cannot be called by one of the property words, since that is how set tells a name
      * from what comes after it: {@code set start hub} would be the banner in front of you, never
      * a mirror called start.
      */

@@ -173,7 +173,7 @@ class DefaultSettings
 
         group("Quantum mirrors", "",
             new Setting(ConfigKeys.MIRROR_PER_WORLD_LIMIT, 1, "How many mirrors one world may hold. 1 by default: a mirror is the door into its world, and a right-click scrolls through the mirrors of every other. 0 for no limit.", SECTION),
-            new Setting(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16, "How close a player must be, in blocks, for a mirror's banner to give way to the room it shows, and how near they must stay for it to stay on. Also the range for a mirror set to 'proximity'.", SECTION),
+            new Setting(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 16, "How close a player must be, in blocks, for a mirror's banner to give way to the room it shows, and how near they must stay for it to stay on.", SECTION),
             new Setting(ConfigKeys.MIRROR_PROXIMITY_TICKS, 20, "How often the proximity sweep runs, in ticks. 20 is once a second. Mirrors whose world or chunk is not loaded are skipped.", SECTION),
             new Setting(ConfigKeys.MIRROR_VIEW_DEPTH, 160, "How far from a mirror's opening its room is drawn, 4 to 160; past it this world shows through. 160 is ten chunks, about as far as a server sends. Lower it for a mirror onto somewhere small, or to make one smoother to come to and leave. Changing it never retakes a capture. Above 160 is read as 160.", SECTION),
             new Setting(ConfigKeys.MIRROR_FOG_AT_DEPTH, false, "Whether a mirror pulls a viewer's own fog in to where its room ends, so the far edge is fog rather than this world showing past it. Paper only, and a radius round the player rather than a direction. Lower mirror-view-depth first: there is nothing to gain at 160.", SECTION),

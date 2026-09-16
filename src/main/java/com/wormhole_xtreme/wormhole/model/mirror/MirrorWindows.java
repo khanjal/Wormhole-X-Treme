@@ -494,14 +494,14 @@ public final class MirrorWindows
      * Offers a mirror to the sweep in progress.
      *
      * <p>A mirror whose far side has not been captured yet is not a window until it has; the
-     * capture is asked for, and the mirror stays a banner meanwhile. A dynamic mirror whose
-     * capture is old enough asks for a fresh one, and keeps showing the old until it arrives.
+     * capture is asked for, and the mirror stays a banner meanwhile. A mirror whose capture has
+     * been outgrown asks for a fresh one, and keeps showing the old until it arrives.
      *
      * @param mirror
      *            a mirror with somewhere to go
      * @param banner
      *            its loaded banner block
-     * @return true if it is a window, and nothing else should be done with it this sweep
+     * @return true if it is a window
      */
     static boolean offer(final QuantumMirror mirror, final Block banner)
     {
