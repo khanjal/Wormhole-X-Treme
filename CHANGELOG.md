@@ -8,6 +8,11 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.7.0 (unreleased)
 
+### Documentation
+
+- **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from
+  `CHANGELOG-0.x.md`.
+
 ### Internals
 
 - **Ten of the 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror
@@ -4124,5 +4129,5 @@ release is 1.1.0, and much of the storage work below was removed again there.
 ## 0.x (2011, upstream)
 
 The original plugin's releases, from January to May 2011, are in
-[CHANGELOG-0.x.md](CHANGELOG-0.x.md). They are kept verbatim: they are somebody else's release notes
+[CHANGELOG-ORIGINAL-2011.md](CHANGELOG-ORIGINAL-2011.md). They are kept verbatim: they are somebody else's release notes
 and the record of where this fork came from.

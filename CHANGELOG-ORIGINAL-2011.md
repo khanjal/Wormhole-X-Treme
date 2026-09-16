@@ -1,4 +1,4 @@
-# Changelog, 0.x (2011, upstream)
+# Changelog of the original Wormhole X-Treme, 0.3 to 0.854 (2011)
 
 The original Wormhole X-Treme's releases, January to May 2011, moved out of [CHANGELOG.md](CHANGELOG.md)
 to keep that file scrollable. Verbatim: somebody else's release notes, and the record of where this
