@@ -503,22 +503,22 @@ public final class MirrorWindows
     private static String howDrawn(final Window window, final boolean fixedForViewer)
     {
         final Spot gap = gapBeside(window);
+        final String clipped = "whole " + toDepth(window) + ", clipped to each eye: ";
         if (gap != null)
         {
             final String what = window.banner.getWorld().getBlockAt(gap.x(), gap.y(), gap.z())
                 .getBlockData().getAsString();
-            return "whole " + toDepth(window) + ", clipped to each eye: " + MirrorText.bad("wall within "
+            return clipped + MirrorText.bad("wall within "
                 + wallReach() + " open at " + gap.x() + "," + gap.y() + "," + gap.z()) + " (" + what + ")";
         }
         if (!fixedForViewer && (window.fixed != null) && (window.fixed.size() > mostWhole))
         {
-            return "whole " + toDepth(window) + ", clipped to each eye: a room of " + window.fixed.size()
+            return clipped + "a room of " + window.fixed.size()
                 + " blocks is more than " + mostWhole + " to send at once";
         }
         if (!fixedForViewer)
         {
-            return "whole " + toDepth(window) + ", clipped to each eye: "
-                + MirrorText.bad("another mirror within twice the depth");
+            return clipped + MirrorText.bad("another mirror within twice the depth");
         }
         return MirrorText.good("drawn whole") + " " + toDepth(window) + ", "
             + ((window.fixed == null) ? 0 : window.fixed.size()) + BLOCKS;
@@ -1819,7 +1819,7 @@ public final class MirrorWindows
         final int sign = alongX ? shape.into().x() : shape.into().z();
         final int baseAlong = alongX ? shape.base().x() : shape.base().z();
         final double[] centre = centreOf(shape);
-        final double centreAcross = alongX ? centre[2] : centre[0];
+        final double centreAcross = centre[alongX ? 2 : 0];
         final int min = here.getMinHeight();
         final int max = here.getMaxHeight();
         final BlockData air = Bukkit.createBlockData(Material.AIR);
@@ -2245,7 +2245,7 @@ public final class MirrorWindows
     /** How far out a window's wall is read: a viewer the proximity distance to one side looks past that much of it. */
     private static int wallReach()
     {
-        return Math.max(SURROUND, (int) Math.ceil(ConfigManager.getMirrorProximityDistance()));
+        return Math.max(SURROUND, ConfigManager.getMirrorProximityDistance());
     }
 
     /** The block of a window's face at a coordinate along it. */
@@ -2464,12 +2464,8 @@ public final class MirrorWindows
         // every changed block from the world, only to overwrite what it read.
         final Map<Long, BlockState> states = STATES.computeIfAbsent(here.getName(),
             name -> new HashMap<>());
-        BlockState state = states.get(cell);
-        if (state == null)
-        {
-            state = here.getBlockAt(x, unpackY(cell), z).getState();
-            states.put(cell, state);
-        }
+        final BlockState state = states.computeIfAbsent(cell,
+            key -> here.getBlockAt(x, unpackY(key), z).getState());
         try
         {
             state.setBlockData(data);

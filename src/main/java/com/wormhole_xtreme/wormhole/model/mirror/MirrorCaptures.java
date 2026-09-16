@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.mirror;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,7 +79,7 @@ public final class MirrorCaptures
         final int minX = arrivalX - ((ahead.x() > 0) ? 1 : reach);
         final int maxX = arrivalX + ((ahead.x() < 0) ? 1 : reach);
         final int minZ = arrivalZ - ((ahead.z() > 0) ? 1 : reach);
-        final int maxZ = arrivalZ + ((ahead.z() > 0) ? reach : (ahead.z() < 0) ? 1 : reach);
+        final int maxZ = arrivalZ + ((ahead.z() < 0) ? 1 : reach);
         final int minY = (worldMin == null) ? (arrivalY - reach) : Math.max(worldMin, arrivalY - reach);
         final int maxY = (worldMax == null) ? (arrivalY + reach) : Math.min(worldMax - 1, arrivalY + reach);
         return new int[] { minX, minY, minZ, maxX, maxY, maxZ };
@@ -230,14 +231,15 @@ public final class MirrorCaptures
             {
                 continue;
             }
-            if (file.delete())
+            try
             {
+                Files.delete(file.toPath());
                 deleted++;
             }
-            else
+            catch (final IOException refused)
             {
                 WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                    "Could not delete abandoned mirror capture " + file.getName());
+                    "Could not delete abandoned mirror capture " + file.getName(), refused);
             }
         }
         return deleted;
@@ -245,6 +247,9 @@ public final class MirrorCaptures
 
     /** A capture file's extension. */
     private static final String VIEW = ".view";
+
+    /** What the lines about a capture are headed. */
+    private static final String CAPTURE = "capture";
 
     /**
      * The capture for a mirror's far side, if there is one.
@@ -280,7 +285,7 @@ public final class MirrorCaptures
         {
             final MirrorCapture capture = MirrorCapture.load(file);
             LOADED.put(key, new Held(capture, now));
-            generation++;
+            changed();
             return capture;
         }
         catch (final IOException unreadable)
@@ -417,12 +422,19 @@ public final class MirrorCaptures
         LOADED.remove(key);
         ABSENT.remove(key);
         final File file = fileOf(key);
-        if (file.isFile() && !file.delete())
+        if (file.isFile())
         {
-            WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
-                "Could not delete mirror capture " + file.getName());
+            try
+            {
+                Files.delete(file.toPath());
+            }
+            catch (final IOException refused)
+            {
+                WormholeXTreme.getThisPlugin().prettyLog(Level.WARNING,
+                    "Could not delete mirror capture " + file.getName(), refused);
+            }
         }
-        generation++;
+        changed();
     }
 
     /**
@@ -457,6 +469,12 @@ public final class MirrorCaptures
         return generation;
     }
 
+    /** Notes that a capture arrived or changed, so every view knows to look again. */
+    private static void changed()
+    {
+        generation++;
+    }
+
     /** @return how many captures are being taken right now */
     static int taking()
     {
@@ -471,7 +489,7 @@ public final class MirrorCaptures
         LOADED.clear();
         ABSENT.clear();
         WARNED.clear();
-        generation++;
+        changed();
     }
 
     /**
@@ -484,7 +502,7 @@ public final class MirrorCaptures
     public static List<String> describe(final QuantumMirror mirror)
     {
         final List<String> lines = new ArrayList<>();
-        lines.add(MirrorText.heading("capture"));
+        lines.add(MirrorText.heading(CAPTURE));
         if (mirror.destination() == null)
         {
             lines.add(MirrorText.field("room", MirrorText.bad("none, so no capture")));
@@ -532,30 +550,15 @@ public final class MirrorCaptures
     {
         if (mirror.destination() == null)
         {
-            return MirrorText.field("capture", MirrorText.bad("none, the mirror has no room"));
+            return MirrorText.field(CAPTURE, MirrorText.bad("none, the mirror has no room"));
         }
         final String key = keyOf(mirror.destination());
         final File file = fileOf(key);
         final Held held = LOADED.get(key);
-        return MirrorText.field("capture", (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
+        return MirrorText.field(CAPTURE, (file.isFile() ? (file.length() + " bytes") : MirrorText.bad("file missing"))
             + ", " + ((held == null) ? "not in memory"
                 : ("in memory, " + held.capture.filled() + " blocks, taken " + held.capture.secondsOld() + "s ago"))
             + (JOBS.containsKey(key) ? ", being taken now" : ""));
-    }
-
-    /**
-     * The highest block in a column that is not air, whatever it is.
-     *
-     * <p>A chunk snapshot's own highest block is the highest one a player would collide with --
-     * the server keeps that heightmap for movement -- so a torch on a floor under the sky, a
-     * flower, a rail, or a vine hanging on an outside wall stood above it and was never read.
-     * The world's surface heightmap counts every block that is not air. The higher of the two, in
-     * case a world answers one and not the other.
-     */
-    private static int highest(final World world, final ChunkSnapshot snapshot, final int x, final int z,
-        final int lx, final int lz)
-    {
-        return Math.max(snapshot.getHighestBlockYAt(lx, lz), world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
     }
 
     /** Reads chunks another way, for a test. */
@@ -576,7 +579,7 @@ public final class MirrorCaptures
     {
         LOADED.put(keyOf(destination), new Held(capture, System.currentTimeMillis()));
         ABSENT.remove(keyOf(destination));
-        generation++;
+        changed();
     }
 
     private static File fileOf(final String key)
@@ -797,7 +800,7 @@ public final class MirrorCaptures
             LOADED.put(key, new Held(capture, System.currentTimeMillis()));
             ABSENT.remove(key);
             WARNED.remove(key);
-            generation++;
+            changed();
             WormholeXTreme.getThisPlugin().prettyLog(Level.INFO, "Captured " + capture.describe()
                 + ((reachKept < reachAsked) ? (", cut from " + reachAsked + " to " + reachKept
                     + " blocks ahead to keep under " + MOST_KEPT + " blocks") : ""));
@@ -851,6 +854,22 @@ public final class MirrorCaptures
             {
                 write.run();
             }
+        }
+
+        /**
+         * The highest block in a column that is not air, whatever it is.
+         *
+         * <p>A chunk snapshot's own highest block is the highest one a player would collide with --
+         * the server keeps that heightmap for movement -- so a torch on a floor under the sky, a
+         * flower, a rail, or a vine hanging on an outside wall stood above it and was never read.
+         * The world's surface heightmap counts every block that is not air. The higher of the two, in
+         * case a world answers one and not the other.
+         */
+        private static int highest(final World world, final ChunkSnapshot snapshot, final int x, final int z,
+            final int lx, final int lz)
+        {
+            return Math.max(snapshot.getHighestBlockYAt(lx, lz),
+                world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
         }
     }
 }

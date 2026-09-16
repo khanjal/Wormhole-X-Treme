@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -657,6 +659,16 @@ public final class MirrorCapture
             }
         }
 
+        /** Which axis a ray crosses a block boundary on next: whichever crossing comes soonest. */
+        private static int soonest(final double[] tMax)
+        {
+            if (tMax[0] < tMax[1])
+            {
+                return (tMax[0] < tMax[2]) ? 0 : 2;
+            }
+            return (tMax[1] < tMax[2]) ? 1 : 2;
+        }
+
         /** Follows one ray through the box, marking what it passes, until something solid or the edge. */
         private void ray(final BitSet seen, final double ox, final double oy, final double oz,
             final double dx, final double dy, final double dz, final double reach)
@@ -670,13 +682,14 @@ public final class MirrorCapture
             final double[] tDelta = new double[3];
             for (int axis = 0; axis < 3; axis++)
             {
-                stepOf[axis] = (d[axis] > 0) ? 1 : (d[axis] < 0) ? -1 : 0;
+                stepOf[axis] = (int) Math.signum(d[axis]);
                 tDelta[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : Math.abs(1.0 / d[axis]);
                 final double edge = (stepOf[axis] > 0) ? (c[axis] + 1) : c[axis];
                 tMax[axis] = (stepOf[axis] == 0) ? Double.POSITIVE_INFINITY : ((edge - o[axis]) / d[axis]);
             }
             int water = 0;
-            for (double t = 0.0; t < reach;)
+            double t = 0.0;
+            while (t < reach)
             {
                 if ((c[0] < 0) || (c[0] >= size[0]) || (c[1] < 0) || (c[1] >= size[1]) || (c[2] < 0) || (c[2] >= size[2]))
                 {
@@ -688,7 +701,7 @@ public final class MirrorCapture
                 {
                     return;
                 }
-                final int next = (tMax[0] < tMax[1]) ? ((tMax[0] < tMax[2]) ? 0 : 2) : ((tMax[1] < tMax[2]) ? 1 : 2);
+                final int next = soonest(tMax);
                 t = tMax[next];
                 c[next] += stepOf[next];
                 tMax[next] += tDelta[next];
@@ -804,6 +817,13 @@ public final class MirrorCapture
         private int offsetOf(final long cell)
         {
             return offset((int) (cell >>> 40), (int) (cell & 0xFFFFF), (int) ((cell >>> 20) & 0xFFFFF), sizeY, sizeZ);
+        }
+
+        /** Where a block of the box is in its bit sets: x-major, then z, then y. */
+        private static int offset(final int dx, final int dy, final int dz, final int sizeY,
+            final int sizeZ)
+        {
+            return (((dx * sizeZ) + dz) * sizeY) + dy;
         }
     }
 
@@ -1113,10 +1133,7 @@ public final class MirrorCapture
                 }
             }
         }
-        if (!temp.renameTo(file) && (!file.delete() || !temp.renameTo(file)))
-        {
-            throw new IOException("could not replace " + file);
-        }
+        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
@@ -1306,12 +1323,6 @@ public final class MirrorCapture
             states[index] = state;
         }
         return state;
-    }
-
-    private static int offset(final int dx, final int dy, final int dz, final int sizeY,
-        final int sizeZ)
-    {
-        return (((dx * sizeZ) + dz) * sizeY) + dy;
     }
 
     private static void writeString(final DataOutputStream out, final String value)

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -21,6 +22,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
@@ -473,7 +475,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set", "museum"));
 
         assertNotNull(MirrorManager.byName("museum"), "it is still made a mirror");
-        verify(cloth, org.mockito.Mockito.never()).update(org.mockito.ArgumentMatchers.anyBoolean());
+        verify(cloth, never()).update(anyBoolean());
     }
 
     /** A banner on a post cannot be made a mirror, and the refusal says where one goes. */
@@ -481,7 +483,8 @@ class MirrorCommandTest
     void setRefusesAFreestandingBanner()
     {
         final Block post = banner(Material.WHITE_BANNER);
-        when(post.getBlockData()).thenReturn(mock(org.bukkit.block.data.Rotatable.class));
+        final Rotatable onAPost = mock(Rotatable.class);
+        when(post.getBlockData()).thenReturn(onAPost);
         when(player.getTargetBlockExact(6)).thenReturn(post);
 
         run(player, "mirror", "set", "museum");
@@ -804,7 +807,8 @@ class MirrorCommandTest
     void setFindsAFreestandingBannerTheRayTraceMissedAndRefusesIt()
     {
         final Block post = banner(Material.WHITE_BANNER);
-        when(post.getBlockData()).thenReturn(mock(org.bukkit.block.data.Rotatable.class));
+        final Rotatable onAPost = mock(Rotatable.class);
+        when(post.getBlockData()).thenReturn(onAPost);
         when(player.getTargetBlockExact(6)).thenReturn(null);
         when(player.getLineOfSight(null, 6)).thenReturn(java.util.List.of(post));
 
@@ -883,7 +887,8 @@ class MirrorCommandTest
     void namingABannerOnAPostIsRefusedBeforeAnyAdviceAboutItsBase()
     {
         final Block post = banner(Material.WHITE_BANNER);
-        when(post.getBlockData()).thenReturn(mock(org.bukkit.block.data.Rotatable.class));
+        final Rotatable onAPost = mock(Rotatable.class);
+        when(post.getBlockData()).thenReturn(onAPost);
         when(player.getTargetBlockExact(6)).thenReturn(post);
 
         assertTrue(run(player, "mirror", "set", "Post"));

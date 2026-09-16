@@ -63,10 +63,15 @@ public final class MirrorSignpost
      * Keeps this quiet for a player a moment, after a click said something to them above the hotbar.
      *
      * @param player
-     *            who was told
+     *            who was told, or null for somebody who has since logged out, which is nothing to
+     *            remember
      */
     public static void hold(final Player player)
     {
+        if (player == null)
+        {
+            return;
+        }
         HELD.put(player.getUniqueId(), System.currentTimeMillis() + HOLD_MILLIS);
     }
 

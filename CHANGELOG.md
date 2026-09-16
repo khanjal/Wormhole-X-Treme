@@ -1398,6 +1398,26 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
   step say so ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
+- The mirror branch's SonarCloud gate went red on reliability, over two bugs that were not.
+  `MirrorSignpost.hold` read the player's id straight after `ActionBar.send` had taken the same
+  player, and that method says its player may be null, for somebody who has since logged out;
+  Sonar put the two contracts side by side and called the read a null dereference. The player
+  comes off a click event and never is null, but a hint hands it to the line and then to the hold,
+  so the hold now takes what the line takes. The other was `roomOf` subtracting one integer from
+  another before handing the result to a double, which is exact; the difference is now named for
+  what it is, the floor of the opening. With those went a `WIDTH` constant that clashed with the
+  record's own `width` and had one reader, `HALF`, which had none, and three unused helpers.
+
+  Forty of the branch's seventy-three findings, all told: three duplicated literals, seven nested
+  ternaries, two helpers moved into the only class that calls them, `File.delete` in two places
+  that could not say why a capture file stayed and now log the reason, a save that replaced its
+  file by hand in three steps and now asks `Files.move` to, unused imports, and a doc comment in
+  each of two files that had lost its method. Behaviour is unchanged, and the tests that pin
+  `needed`, `roomOf` and the ray walk pass as they did. What stays open is design rather than
+  defect -- thirteen methods over the complexity limit, six with more than seven parameters, five
+  loops with two exits, and seven `null` returns that mean "not seen" throughout the mirror code
+  -- plus one finding that is wrong, a loop bound of 1.4 read as an approximation of the square
+  root of two, and one that is deliberate, the test pause that lets the redraw clock run.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>

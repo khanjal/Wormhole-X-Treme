@@ -196,7 +196,8 @@ class MirrorPlacementTest
     {
         final Block post = mock(Block.class);
         when(post.getWorld()).thenReturn(world);
-        when(post.getBlockData()).thenReturn(mock(Rotatable.class));
+        final Rotatable onAPost = mock(Rotatable.class);
+        when(post.getBlockData()).thenReturn(onAPost);
 
         final String refused = MirrorPlacement.refusal(post, "library");
 
