@@ -5,9 +5,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -170,13 +168,13 @@ public final class MirrorWindows
     static java.util.function.LongSupplier clock = System::currentTimeMillis;
 
     /** Every window the last sweep found, by mirror name. */
-    private static final Map<String, Window> WINDOWS = new HashMap<>();
+    private static final Map<String, MirrorWindowState> WINDOWS = new HashMap<>();
 
     /** Windows found by the sweep in progress. */
-    private static final Map<String, Window> OFFERED = new HashMap<>();
+    private static final Map<String, MirrorWindowState> OFFERED = new HashMap<>();
 
     /** What each viewer's client has been told, by player. */
-    private static final Map<UUID, View> VIEWS = new ConcurrentHashMap<>();
+    private static final Map<UUID, MirrorDrawing> VIEWS = new ConcurrentHashMap<>();
 
     /** Block states reused between redraws, by world and block, rather than read again. */
     private static final Map<String, Map<Long, BlockState>> STATES = new HashMap<>();
@@ -191,7 +189,7 @@ public final class MirrorWindows
     private static final Map<UUID, String> FULL = new ConcurrentHashMap<>();
 
     /** A window's far side drawn whole: the blocks, and the depth they reach from the opening. */
-    private record Whole(Map<Long, BlockData> blocks, int depth)
+    record Whole(Map<Long, BlockData> blocks, int depth)
     {
     }
 
@@ -254,102 +252,6 @@ public final class MirrorWindows
         return BLIND.contains(player.getUniqueId());
     }
 
-    /** One window: where it is, which of its opening can be seen through, and its far side. */
-    private static final class Window
-    {
-        private final QuantumMirror mirror;
-        private final MirrorWindow shape;
-        private final Block banner;
-        private final List<Spot> open;
-        private final Set<Long> openKeys = new HashSet<>();
-        private final MirrorCapture capture;
-        /** The turn far-side blocks need to face the right way here. */
-        private final StructureRotation rotation;
-        /** The flip across the wall a reflection's blocks need, or none. */
-        private final org.bukkit.block.structure.Mirror flip;
-        /** Far-side states turned by {@link #rotation}, each turned once. */
-        private final Map<BlockData, BlockData> turned = new IdentityHashMap<>();
-        private Set<Long> solid = Set.of();
-        /** The outermost ring of the solid face, each with the sides it is open on ({@link MirrorFace#marginOf}). */
-        private Map<Long, Integer> margin = Map.of();
-        /** The solid blocks of the face touching the opening, corners too: its frame. */
-        private List<Spot> frame = List.of();
-        /** How many blocks of solid wall stand on every side of the opening, as last read ({@link MirrorFace#borderOf}). */
-        private int border;
-        private long solidAt;
-        /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
-        private Map<Long, BlockData> fixed;
-        private MirrorCapture fixedFrom;
-        private long fixedAt;
-        private int fixedFor;
-        private int fixedDepth;
-        private long fixedUsedAt;
-        /** The whole capture through this window, for an admin who asked; null until then. */
-        private Whole full;
-        private MirrorCapture fullFrom;
-
-        Window(final QuantumMirror mirror, final MirrorWindow shape, final Block banner,
-            final List<Spot> open, final MirrorCapture capture)
-        {
-            this.mirror = mirror;
-            this.shape = shape;
-            this.banner = banner;
-            this.open = open;
-            this.capture = capture;
-            this.rotation = switch (shape.quarterTurns())
-            {
-                case 1 -> StructureRotation.CLOCKWISE_90;
-                case 2 -> StructureRotation.CLOCKWISE_180;
-                case 3 -> StructureRotation.COUNTERCLOCKWISE_90;
-                default -> StructureRotation.NONE;
-            };
-            // A reflection is flipped across the wall, not turned: stairs and doors keep their side.
-            if (!shape.mirrored())
-            {
-                this.flip = org.bukkit.block.structure.Mirror.NONE;
-            }
-            else
-            {
-                this.flip = (shape.into().x() != 0) ? org.bukkit.block.structure.Mirror.FRONT_BACK
-                    : org.bukkit.block.structure.Mirror.LEFT_RIGHT;
-            }
-            open.forEach(cell -> openKeys.add(key(cell.x(), cell.y(), cell.z())));
-        }
-    }
-
-    /** One viewer's drawing, as last sent. */
-    private static final class View
-    {
-        private final World world;
-        /** What the client has been sent, as sent. */
-        private final Map<Long, BlockData> drawn = new HashMap<>();
-        /** What it is still owed, in the order to send it: a block to draw, or null for the real one. */
-        private final Map<Long, BlockData> pending = new LinkedHashMap<>();
-        private boolean streamQueued;
-        private Set<String> mirrors = Set.of();
-        private Set<String> fixedNames = Set.of();
-        private final Map<UUID, Entity> veiled = new HashMap<>();
-        private long fullAt;
-        private long composedAt;
-        private int generation;
-        private int undrawable;
-        private long eye = Long.MIN_VALUE;
-        private long chunk = Long.MIN_VALUE;
-        private Location pendingEye;
-        private boolean catchUpQueued;
-        private Redraw lastRedraw;
-        /** Each clipped window's far part as last judged, by mirror name; see {@link #NEAR_DISTANCE}. */
-        private final Map<String, Far> far = new HashMap<>();
-        /** The least time before this viewer's next redraw on a move, longer after a slow one. */
-        private long rest = REDRAW_MILLIS;
-        private String stamp = "";
-
-        View(final World world)
-        {
-            this.world = world;
-        }
-    }
-
     /**
      * What a player's view is doing, for {@code mirror debug}.
      *
@@ -363,7 +265,7 @@ public final class MirrorWindows
         lines.add(MirrorText.heading("your view"));
         lines.add(MirrorText.field("server", WINDOWS.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
         lines.add(MirrorText.field("depth", ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)"));
-        final View view = VIEWS.get(player.getUniqueId());
+        final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
         {
             lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
@@ -392,7 +294,7 @@ public final class MirrorWindows
         }
         for (final String name : view.mirrors)
         {
-            final Window window = WINDOWS.get(name);
+            final MirrorWindowState window = WINDOWS.get(name);
             if (window != null)
             {
                 lines.addAll(mirrorLines(view, window, name.equals(fullName)));
@@ -424,7 +326,7 @@ public final class MirrorWindows
         {
             lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
         }
-        final View view = VIEWS.get(player.getUniqueId());
+        final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
         {
             lines.add(MirrorText.field("view", "you are looking into no window"));
@@ -433,7 +335,7 @@ public final class MirrorWindows
         final String fullName = FULL.get(player.getUniqueId());
         for (final String name : view.mirrors)
         {
-            final Window window = WINDOWS.get(name);
+            final MirrorWindowState window = WINDOWS.get(name);
             if (window != null)
             {
                 lines.add(MirrorText.field(name, name.equals(fullName) ? "whole and unlimited for you"
@@ -453,7 +355,7 @@ public final class MirrorWindows
      * <p>Numbers, written out only when {@code mirror debug} asks: a sentence built on every redraw
      * was up to ten a second per viewer, for a command run once in a while.
      */
-    private record Redraw(int projected, int near, int fixed, int fixedDepth, Spot eye, long tookMillis)
+    record Redraw(int projected, int near, int fixed, int fixedDepth, Spot eye, long tookMillis)
     {
         List<String> lines()
         {
@@ -476,7 +378,8 @@ public final class MirrorWindows
     }
 
     /** How one window is being drawn for a viewer, and for a clipped one how far its far part stands, for {@code mirror debug}. */
-    private static List<String> mirrorLines(final View view, final Window window, final boolean full)
+    private static List<String> mirrorLines(final MirrorDrawing view, final MirrorWindowState window,
+        final boolean full)
     {
         final String name = window.mirror.name();
         if (full)
@@ -498,7 +401,7 @@ public final class MirrorWindows
     }
 
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
-    private static String howDrawn(final Window window, final boolean fixedForViewer)
+    private static String howDrawn(final MirrorWindowState window, final boolean fixedForViewer)
     {
         final Spot gap = gapBeside(window);
         final String clipped = "whole " + toDepth(window) + ", clipped to each eye: ";
@@ -518,7 +421,7 @@ public final class MirrorWindows
     }
 
     /** How deep a window's held room reaches, and in red when it was cut to fit under the cap. */
-    private static String toDepth(final Window window)
+    private static String toDepth(final MirrorWindowState window)
     {
         if ((window.fixed != null) && (window.fixedDepth < window.fixedFor))
         {
@@ -594,9 +497,9 @@ public final class MirrorWindows
         {
             MirrorCaptures.request(showing);
         }
-        final Window window = new Window(showing, shape, banner, openCells(shape, banner.getWorld()),
-            capture);
-        final Window previous = WINDOWS.get(mirror.name());
+        final MirrorWindowState window = new MirrorWindowState(showing, shape, banner,
+            openCells(shape, banner.getWorld()), capture);
+        final MirrorWindowState previous = WINDOWS.get(mirror.name());
         if ((previous != null) && previous.shape.equals(shape))
         {
             window.solid = previous.solid;
@@ -686,7 +589,7 @@ public final class MirrorWindows
             return;
         }
         final UUID id = player.getUniqueId();
-        final View view = (id == null) ? null : VIEWS.get(id);
+        final MirrorDrawing view = (id == null) ? null : VIEWS.get(id);
         if ((view == null) && !nearAWindow(player, to))
         {
             return;
@@ -720,7 +623,7 @@ public final class MirrorWindows
             return;
         }
         final long now = now();
-        for (final Map.Entry<UUID, View> entry : new ArrayList<>(VIEWS.entrySet()))
+        for (final Map.Entry<UUID, MirrorDrawing> entry : new ArrayList<>(VIEWS.entrySet()))
         {
             if (entry.getValue().mirrors.contains(mirror.name()))
             {
@@ -760,7 +663,7 @@ public final class MirrorWindows
      */
     public static void resend(final Player player, final Block clicked, final BlockFace face)
     {
-        final View view = VIEWS.get(player.getUniqueId());
+        final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
         {
             return;
@@ -820,7 +723,7 @@ public final class MirrorWindows
      */
     public static void resend(final Player player)
     {
-        final View view = VIEWS.get(player.getUniqueId());
+        final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
         {
             return;
@@ -842,7 +745,7 @@ public final class MirrorWindows
     /** Sends everything a view holds again, as it holds it. */
     private static void sendAgain(final Player player)
     {
-        final View view = VIEWS.get(player.getUniqueId());
+        final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (view != null)
         {
             send(player, view, view.drawn, player.getEyeLocation(), now(), true, Set.of());
@@ -861,7 +764,7 @@ public final class MirrorWindows
      */
     public static void resendFor(final String mirrorName)
     {
-        for (final View view : VIEWS.values())
+        for (final MirrorDrawing view : VIEWS.values())
         {
             if (view.mirrors.contains(mirrorName))
             {
@@ -897,7 +800,7 @@ public final class MirrorWindows
         final long now = now();
         for (final Player player : banner.getWorld().getPlayers())
         {
-            final View view = VIEWS.get(player.getUniqueId());
+            final MirrorDrawing view = VIEWS.get(player.getUniqueId());
             if ((view != null) && view.mirrors.contains(mirror.name()))
             {
                 update(player, player.getEyeLocation(), now, false);
@@ -909,7 +812,7 @@ public final class MirrorWindows
     public static void restoreAll()
     {
         final long now = now();
-        for (final Map.Entry<UUID, View> entry : VIEWS.entrySet())
+        for (final Map.Entry<UUID, MirrorDrawing> entry : VIEWS.entrySet())
         {
             final Player player = Bukkit.getPlayer(entry.getKey());
             if ((player != null) && player.getWorld().equals(entry.getValue().world))
@@ -938,7 +841,7 @@ public final class MirrorWindows
     static QuantumMirror clicked(final Player player, final Block block)
     {
         final UUID id = (player == null) ? null : player.getUniqueId();
-        final View view = (id == null) ? null : VIEWS.get(id);
+        final MirrorDrawing view = (id == null) ? null : VIEWS.get(id);
         if ((view == null) || (block == null))
         {
             return null;
@@ -946,7 +849,7 @@ public final class MirrorWindows
         final Spot at = new Spot(block.getX(), block.getY(), block.getZ());
         for (final String name : view.mirrors)
         {
-            final Window window = WINDOWS.get(name);
+            final MirrorWindowState window = WINDOWS.get(name);
             if ((window != null) && window.open.contains(at)
                 && window.banner.getWorld().equals(block.getWorld()))
             {
@@ -961,7 +864,7 @@ public final class MirrorWindows
         final boolean fromSweep)
     {
         final UUID id = player.getUniqueId();
-        View view = VIEWS.get(id);
+        MirrorDrawing view = VIEWS.get(id);
         if ((view != null) && !view.world.equals(player.getWorld()))
         {
             // A new world's chunks have already replaced everything drawn in the old one, and
@@ -969,14 +872,14 @@ public final class MirrorWindows
             VIEWS.remove(id);
             view = null;
         }
-        final List<Window> seeing = seenBy(player, eye);
+        final List<MirrorWindowState> seeing = seenBy(player, eye);
         if ((view == null) && seeing.isEmpty())
         {
             return;
         }
         if (view == null)
         {
-            view = new View(player.getWorld());
+            view = new MirrorDrawing(player.getWorld());
             VIEWS.put(id, view);
         }
         final long chunk = chunkOf(eye);
@@ -1055,7 +958,7 @@ public final class MirrorWindows
     }
 
     /** Whether nothing a view depends on has changed since it was last drawn. */
-    private static boolean unchanged(final View view, final List<Window> seeing, final long eye,
+    private static boolean unchanged(final MirrorDrawing view, final List<MirrorWindowState> seeing, final long eye,
         final String stamp, final long now)
     {
         return (view.eye == eye) && view.stamp.equals(stamp) && ((now - view.composedAt) < RESAMPLE_MILLIS)
@@ -1063,7 +966,7 @@ public final class MirrorWindows
     }
 
     /** Queues one redraw for a viewer who moved too soon after the last, if none is queued. */
-    private static void catchUpLater(final Player player, final View view)
+    private static void catchUpLater(final Player player, final MirrorDrawing view)
     {
         if (view.catchUpQueued)
         {
@@ -1087,7 +990,7 @@ public final class MirrorWindows
     /** Draws a viewer from where they last moved to, if that was never drawn. */
     private static void catchUp(final Player player)
     {
-        final View view = VIEWS.get(player.getUniqueId());
+        final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
         {
             return;
@@ -1110,18 +1013,18 @@ public final class MirrorWindows
      * the same wall, and a redraw spent its whole budget walking the cones of four mirrors the
      * corridor walls hid from them, cutting short the one they were looking at.
      */
-    private static List<Window> seenBy(final Player player, final Location eye)
+    private static List<MirrorWindowState> seenBy(final Player player, final Location eye)
     {
         final double radius = ConfigManager.getMirrorProximityDistance();
         final Location at = player.getLocation();
         final long now = now();
-        final List<Window> seeing = new ArrayList<>();
+        final List<MirrorWindowState> seeing = new ArrayList<>();
         if (BLIND.contains(player.getUniqueId()))
         {
             return seeing;
         }
         final String fullName = FULL.get(player.getUniqueId());
-        for (final Window window : WINDOWS.values())
+        for (final MirrorWindowState window : WINDOWS.values())
         {
             // A mirror drawn whole for an admin stays drawn wherever they stand, looking or not,
             // so they can walk round what the capture holds.
@@ -1144,7 +1047,7 @@ public final class MirrorWindows
     }
 
     /** Whether a clear line runs from an eye to any open block of a window's opening. */
-    private static boolean canSee(final World here, final Location eye, final Window window,
+    private static boolean canSee(final World here, final Location eye, final MirrorWindowState window,
         final long now)
     {
         for (final Spot cell : window.open)
@@ -1161,7 +1064,7 @@ public final class MirrorWindows
     private static boolean nearAWindow(final Player player, final Location to)
     {
         final double radius = ConfigManager.getMirrorProximityDistance();
-        for (final Window window : WINDOWS.values())
+        for (final MirrorWindowState window : WINDOWS.values())
         {
             if (window.banner.getWorld().equals(player.getWorld())
                 && (fromBanner(window.banner, to.getX(), to.getY(), to.getZ()) <= (radius * radius)))
@@ -1181,17 +1084,18 @@ public final class MirrorWindows
      * room judged against this eye ({@link #clipWhole}). A window whose room is not held yet --
      * the server's share of work spent before it was built -- draws nothing until it is.
      */
-    private static Map<Long, BlockData> compose(final View view, final Location eye, final List<Window> seeing,
+    private static Map<Long, BlockData> compose(final MirrorDrawing view, final Location eye,
+        final List<MirrorWindowState> seeing,
         final Wholes wholes, final Set<Long> before, final long now, final List<Entity> inside,
         final Budget budget)
     {
-        final Map<Window, Whole> fixed = wholes.whole();
+        final Map<MirrorWindowState, Whole> fixed = wholes.whole();
         final BlockData air = Bukkit.createBlockData(Material.AIR);
         final BlockData barrier = Bukkit.createBlockData(Material.BARRIER);
         final Map<Long, BlockData> wanted = new HashMap<>();
         final Set<Long> allOpen = new HashSet<>();
         seeing.forEach(window -> allOpen.addAll(window.openKeys));
-        for (final Window window : seeing)
+        for (final MirrorWindowState window : seeing)
         {
             // Only where the banner's patterns can be sent back afterwards. On plain 1.20 it
             // stays hanging in front of the view.
@@ -1207,7 +1111,7 @@ public final class MirrorWindows
             }
             window.open.forEach(cell -> wanted.put(key(cell.x(), cell.y(), cell.z()), barrier));
         }
-        for (final Window window : nearestFirst(seeing, eye))
+        for (final MirrorWindowState window : nearestFirst(seeing, eye))
         {
             final Whole whole = fixed.get(window);
             final Whole clipped = wholes.clipped().get(window);
@@ -1234,7 +1138,7 @@ public final class MirrorWindows
      * A clipped room's far part as last judged: which room, from which cell the eye was in and
      * the point it was judged from ({@link #fatEye}), when, and the blocks kept.
      */
-    private record Far(Whole whole, int cellX, int cellY, int cellZ, double cell, Location from, long at,
+    record Far(Whole whole, int cellX, int cellY, int cellZ, double cell, Location from, long at,
         Map<Long, BlockData> blocks)
     {
         /** A far part judged for the cell an eye is in, from a point, for a room, now. */
@@ -1319,9 +1223,9 @@ public final class MirrorWindows
     }
 
     /** The windows a viewer sees whose rooms are held whole: drawn as they are, or clipped to the eye. */
-    private record Wholes(Map<Window, Whole> whole, Map<Window, Whole> clipped)
+    private record Wholes(Map<MirrorWindowState, Whole> whole, Map<MirrorWindowState, Whole> clipped)
     {
-        Whole of(final Window window)
+        Whole of(final MirrorWindowState window)
         {
             final Whole held = whole.get(window);
             return (held != null) ? held : clipped.get(window);
@@ -1339,15 +1243,15 @@ public final class MirrorWindows
      * whole room, judged block by block against where the eye is ({@link #clipWhole}). Only a
      * freestanding window is left to be walked ({@link Pass}).
      */
-    private static Wholes wholesOf(final List<Window> seeing, final long now,
+    private static Wholes wholesOf(final List<MirrorWindowState> seeing, final long now,
         final boolean mayWork, final String fullName)
     {
-        final Map<Window, Whole> whole = new HashMap<>();
-        final Map<Window, Whole> clipped = new HashMap<>();
+        final Map<MirrorWindowState, Whole> whole = new HashMap<>();
+        final Map<MirrorWindowState, Whole> clipped = new HashMap<>();
         if (fullName != null)
         {
             // An admin's forced view: that one mirror whole and unlimited, the rest not at all.
-            for (final Window window : seeing)
+            for (final MirrorWindowState window : seeing)
             {
                 if (window.mirror.name().equals(fullName))
                 {
@@ -1357,12 +1261,12 @@ public final class MirrorWindows
             return new Wholes(whole, clipped);
         }
         final double apart = MirrorPlacement.apartToDrawWhole();
-        for (final Window window : seeing)
+        for (final MirrorWindowState window : seeing)
         {
             // Seen or not: alcoves a block apart along a wall would otherwise each fill the same
             // space behind it with a different far side, for whoever looks into either.
             boolean alone = walled(window);
-            for (final Window other : WINDOWS.values())
+            for (final MirrorWindowState other : WINDOWS.values())
             {
                 if (alone && (other != window) && other.banner.getWorld().equals(window.banner.getWorld())
                     && (fromBanner(other.banner, window.banner.getX(), window.banner.getY(), window.banner.getZ())
@@ -1406,8 +1310,9 @@ public final class MirrorWindows
      * hides it. It stands until the eye leaves the cell or {@link #FAR_MILLIS} have passed, and
      * the same blocks are sent per block walked, in a fraction of the batches.
      */
-    private static void clipWhole(final View view, final Location eye, final Window window, final Whole whole,
-        final List<Window> seeing, final Set<Long> allOpen, final Map<Long, BlockData> wanted,
+    private static void clipWhole(final MirrorDrawing view, final Location eye,
+        final MirrorWindowState window, final Whole whole,
+        final List<MirrorWindowState> seeing, final Set<Long> allOpen, final Map<Long, BlockData> wanted,
         final Set<Long> before, final Budget budget, final long now)
     {
         final Far last = view.far.get(window.mirror.name());
@@ -1447,7 +1352,7 @@ public final class MirrorWindows
      * @param fat
      *            the eye the far part is judged for, or null to leave the far part alone
      */
-    private static void keep(final Window window, final Whole whole, final Location from, final Eye own,
+    private static void keep(final MirrorWindowState window, final Whole whole, final Location from, final Eye own,
         final Eye fat, final Map<Long, BlockData> wanted, final Map<Long, BlockData> farKept)
     {
         final double near = nearDistance * nearDistance;
@@ -1479,7 +1384,8 @@ public final class MirrorWindows
     }
 
     /** What one redraw judges a clipped room's blocks against, the same for every eye it judges from. */
-    private record Sight(List<Window> seeing, Set<Long> allOpen, Set<Long> shielded, Set<Long> before, Budget budget)
+    private record Sight(List<MirrorWindowState> seeing, Set<Long> allOpen, Set<Long> shielded,
+        Set<Long> before, Budget budget)
     {
     }
 
@@ -1506,7 +1412,7 @@ public final class MirrorWindows
          * Whether a block is seen through the window from here and lands where the wall hides it,
          * counting the projection and, if it is, the block.
          */
-        boolean sees(final Window window, final long cell)
+        boolean sees(final MirrorWindowState window, final long cell)
         {
             final int x = unpackX(cell);
             final int y = unpackY(cell);
@@ -1528,7 +1434,7 @@ public final class MirrorWindows
     }
 
     /** The face a block must land on to be seen through a window: its opening and frame, and a block round them. */
-    private static double[] spanOf(final Window window)
+    private static double[] spanOf(final MirrorWindowState window)
     {
         final boolean alongX = window.shape.into().x() != 0;
         final double[] span = { Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE };
@@ -1552,7 +1458,7 @@ public final class MirrorWindows
      * <p>Reaches every corner of the capture's box from the opening's middle, and is capped by
      * nothing: an admin asked to see all of it.
      */
-    private static Whole fullView(final Window window, final long now)
+    private static Whole fullView(final MirrorWindowState window, final long now)
     {
         if ((window.full != null) && (window.fullFrom == window.capture))
         {
@@ -1571,7 +1477,7 @@ public final class MirrorWindows
     }
 
     /** Whether a window's fixed view is there, from its current capture and depth, and not old. */
-    private static boolean fixedIsFresh(final Window window, final long now)
+    private static boolean fixedIsFresh(final MirrorWindowState window, final long now)
     {
         return (window.fixed != null) && (window.fixedFrom == window.capture)
             && (window.fixedFor == ConfigManager.getMirrorViewDepth()) && ((now - window.fixedAt) < FIXED_MILLIS);
@@ -1597,7 +1503,7 @@ public final class MirrorWindows
      */
     static boolean holdsFixedView(final String name)
     {
-        final Window window = WINDOWS.get(name);
+        final MirrorWindowState window = WINDOWS.get(name);
         return (window != null) && (window.fixed != null);
     }
 
@@ -1607,13 +1513,13 @@ public final class MirrorWindows
      * <p>Then the wall hides whatever of the far side lies beside the opening, from anywhere a
      * viewer can be, and the far side can be drawn whole. A gap anywhere in that span shows it.
      */
-    private static boolean walled(final Window window)
+    private static boolean walled(final MirrorWindowState window)
     {
         return gapBeside(window) == null;
     }
 
     /** The first block of the face touching a window's opening that is not solid, or null if none. */
-    private static Spot gapBeside(final Window window)
+    private static Spot gapBeside(final MirrorWindowState window)
     {
         // As far as the proximity distance: a viewer that far to one side looks at the space
         // behind the wall across the face that far out, and a block of open air there shows it.
@@ -1638,10 +1544,10 @@ public final class MirrorWindows
     }
 
     /** What decides a view's fixed windows' content, so a change in any of them redraws it. */
-    private static String stampOf(final List<Window> seeing, final Wholes wholes)
+    private static String stampOf(final List<MirrorWindowState> seeing, final Wholes wholes)
     {
         final StringBuilder stamp = new StringBuilder();
-        for (final Window window : seeing)
+        for (final MirrorWindowState window : seeing)
         {
             final Whole whole = wholes.of(window);
             // Where it opens onto too: a right-click changes that without changing anything else.
@@ -1664,7 +1570,7 @@ public final class MirrorWindows
      * from anywhere else they can see it, a doorway round the side, while they are looking in.
      * A view past {@link #MOST_FIXED} blocks is cut shallower until it fits.
      */
-    private static void fixedView(final Window window, final long now)
+    private static void fixedView(final MirrorWindowState window, final long now)
     {
         final int configured = ConfigManager.getMirrorViewDepth();
         if (fixedIsFresh(window, now))
@@ -1697,7 +1603,7 @@ public final class MirrorWindows
      * see, so this is a walk over what is kept, not over the volume, and a view at the render
      * distance costs what its surfaces cost.
      */
-    private static Map<Long, BlockData> fixedTo(final Window window, final int depth, final long now,
+    private static Map<Long, BlockData> fixedTo(final MirrorWindowState window, final int depth, final long now,
         final int most)
     {
         if (window.capture.complete())
@@ -1757,7 +1663,7 @@ public final class MirrorWindows
      * The same for a complete capture, whose missing entries are air: every block behind the wall
      * within the depth, walked through the volume.
      */
-    private static Map<Long, BlockData> fixedToByVolume(final Window window, final int depth, final long now,
+    private static Map<Long, BlockData> fixedToByVolume(final MirrorWindowState window, final int depth, final long now,
         final int most)
     {
         final MirrorWindow shape = window.shape;
@@ -1836,7 +1742,7 @@ public final class MirrorWindows
      * <p>A pane's connections and a stair's facing are compass directions; drawn as captured, a
      * far side turned round showed panes that did not join. Turned once per state and window.
      */
-    private static BlockData turned(final Window window, final BlockData data)
+    private static BlockData turned(final MirrorWindowState window, final BlockData data)
     {
         if ((data == null) || ((window.rotation == StructureRotation.NONE)
             && (window.flip == org.bukkit.block.structure.Mirror.NONE)))
@@ -1863,7 +1769,7 @@ public final class MirrorWindows
     }
 
     /** Whether a block is inside a walled window's fixed view: behind its wall, within its depth. */
-    private static boolean insideFixed(final Window window, final int x, final int y, final int z,
+    private static boolean insideFixed(final MirrorWindowState window, final int x, final int y, final int z,
         final int depth)
     {
         final MirrorWindow shape = window.shape;
@@ -1888,7 +1794,7 @@ public final class MirrorWindows
      * it is not. Other players are left alone: hiding one would take them off the tab list too.
      */
     private static void creaturesInside(final World here, final Location eye, final int radius,
-        final List<Window> seeing, final Map<Window, Whole> fixed, final Set<Long> allOpen,
+        final List<MirrorWindowState> seeing, final Map<MirrorWindowState, Whole> fixed, final Set<Long> allOpen,
         final List<Entity> inside)
     {
         // Depth is from the opening, and the eye may be the proximity distance from that.
@@ -1904,7 +1810,7 @@ public final class MirrorWindows
             final int x = at.getBlockX();
             final int y = at.getBlockY();
             final int z = at.getBlockZ();
-            for (final Window window : seeing)
+            for (final MirrorWindowState window : seeing)
             {
                 final Whole whole = fixed.get(window);
                 if (whole != null)
@@ -1927,7 +1833,7 @@ public final class MirrorWindows
     }
 
     /** Hides from a viewer what is now inside their view, and shows again what no longer is. */
-    private static void veil(final Player player, final View view, final List<Entity> inside)
+    private static void veil(final Player player, final MirrorDrawing view, final List<Entity> inside)
     {
         final Map<UUID, Entity> now = new HashMap<>();
         inside.forEach(entity -> now.put(entity.getUniqueId(), entity));
@@ -1988,8 +1894,8 @@ public final class MirrorWindows
      *            judged for every eye in one ({@link #clipWhole}), else nothing
      * @return the block's outline on the opening's face, or null if it is not seen through it
      */
-    private static double[] seenThrough(final Location eye, final Window window, final int x,
-        final int y, final int z, final List<Window> seeing, final double spread)
+    private static double[] seenThrough(final Location eye, final MirrorWindowState window, final int x,
+        final int y, final int z, final List<MirrorWindowState> seeing, final double spread)
     {
         final double[] rect = window.shape.projected(eye.getX(), eye.getY(), eye.getZ(), x, y, z);
         if (rect == null)
@@ -2006,7 +1912,7 @@ public final class MirrorWindows
             return null;
         }
         final double mine = window.shape.offCentre(rect);
-        for (final Window other : seeing)
+        for (final MirrorWindowState other : seeing)
         {
             if ((other != window) && other.shape.sharesFace(window.shape)
                 && other.shape.overlaps(rect, other.open) && (other.shape.offCentre(rect) < mine))
@@ -2018,7 +1924,7 @@ public final class MirrorWindows
     }
 
     /** Whether most of a block's outline on the face lands where nothing outside can see it. */
-    private static boolean coveredBy(final Window window, final double[] rect,
+    private static boolean coveredBy(final MirrorWindowState window, final double[] rect,
         final Set<Long> allOpen, final Set<Long> shielded, final double mostBeside)
     {
         return window.shape.covered(rect,
@@ -2026,11 +1932,12 @@ public final class MirrorWindows
     }
 
     /** A viewer's windows, nearest first, so a spent budget cuts the furthest views short. */
-    private static List<Window> nearestFirst(final List<Window> seeing, final Location eye)
+    private static List<MirrorWindowState> nearestFirst(final List<MirrorWindowState> seeing, final Location eye)
     {
-        final List<Window> sorted = new ArrayList<>(seeing);
+        final List<MirrorWindowState> sorted = new ArrayList<>(seeing);
         sorted.sort(Comparator
-            .comparingDouble((Window window) -> fromBanner(window.banner, eye.getX(), eye.getY(), eye.getZ()))
+            .comparingDouble((MirrorWindowState window) -> fromBanner(window.banner,
+                eye.getX(), eye.getY(), eye.getZ()))
             .thenComparing(window -> window.mirror.name()));
         return sorted;
     }
@@ -2058,7 +1965,7 @@ public final class MirrorWindows
      * block may spill half a block onto it and no more, and with two the inner ring is all wall.
      * A ring hidden by something real in front hides all of itself, as before.
      */
-    private static double[] cover(final Window window, final int across, final int y,
+    private static double[] cover(final MirrorWindowState window, final int across, final int y,
         final Set<Long> allOpen, final Set<Long> shielded)
     {
         final long face = MirrorFace.faceKey(window.shape, across, y);
@@ -2087,7 +1994,7 @@ public final class MirrorWindows
      * like a thick wall, instead of leaving holes wherever a drawn block's outline strayed past
      * a three-block-wide wall into the open air beside it.
      */
-    private static Set<Long> shielded(final Window window, final Location eye, final long now)
+    private static Set<Long> shielded(final MirrorWindowState window, final Location eye, final long now)
     {
         final MirrorWindow shape = window.shape;
         final World here = window.banner.getWorld();
@@ -2145,7 +2052,7 @@ public final class MirrorWindows
     }
 
     /** Reads again which blocks around a window's opening are solid, if that reading is old. */
-    private static void refreshSolid(final Window window, final long now)
+    private static void refreshSolid(final MirrorWindowState window, final long now)
     {
         if ((now - window.solidAt) < RESAMPLE_MILLIS)
         {
@@ -2185,7 +2092,7 @@ public final class MirrorWindows
      *            the chunks the client has just been handed, whose drawing is sent again whatever
      *            it was sent before; or null for all of them
      */
-    private static void send(final Player player, final View view, final Map<Long, BlockData> wanted,
+    private static void send(final Player player, final MirrorDrawing view, final Map<Long, BlockData> wanted,
         final Location eye, final long now, final boolean full, final Set<Long> fresh)
     {
         final Map<Long, BlockData> owed = new HashMap<>();
@@ -2219,7 +2126,7 @@ public final class MirrorWindows
     }
 
     /** Sends the next of what a viewer is owed, up to a limit, and books the rest for the next tick. */
-    private static void stream(final Player player, final View view, final int limit)
+    private static void stream(final Player player, final MirrorDrawing view, final int limit)
     {
         final List<BlockState> changes = new ArrayList<>();
         final List<TileState> restored = new ArrayList<>();
@@ -2260,7 +2167,7 @@ public final class MirrorWindows
     }
 
     /** Books the next tick's worth of a viewer's stream, if it is not booked already. */
-    private static void streamLater(final Player player, final View view)
+    private static void streamLater(final Player player, final MirrorDrawing view)
     {
         if (view.streamQueued)
         {
@@ -2282,7 +2189,7 @@ public final class MirrorWindows
     private static void streamOn(final Player player)
     {
         final UUID id = player.getUniqueId();
-        final View view = VIEWS.get(id);
+        final MirrorDrawing view = VIEWS.get(id);
         if (view == null)
         {
             return;
@@ -2474,7 +2381,7 @@ public final class MirrorWindows
         return open;
     }
 
-    private static Set<String> names(final List<Window> windows)
+    private static Set<String> names(final List<MirrorWindowState> windows)
     {
         final Set<String> names = new HashSet<>();
         windows.forEach(window -> names.add(window.mirror.name()));

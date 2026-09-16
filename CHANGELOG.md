@@ -868,11 +868,23 @@ been running on defaults will start reading the file you have been editing.
   `MirrorFace` has the wall face round an opening: how far out it is solid, which of it is an
   edge and which its frame, addressed across and up so a cell of it is one number.
 
+  Then the two runtime types, which nearly every method left in the file takes one of.
+  `MirrorWindowState` is one window as the server holds it: the shape put in a world, with the
+  banner, the capture, the turn and flip its blocks need, and the wall face and held room as
+  last read. `MirrorDrawing` is one viewer's drawing as last sent. Both were private classes
+  inside `MirrorWindows` named `Window` and `View`; as their own files they are named for what
+  they are, and `MirrorWindow` keeps its own meaning as the shape alone.
+
   Move-only, and deliberately provable: not a line of logic changed, no test changed, and the
-  1,934 that were passing still pass. What moved is the same text, with `private` opened up where
-  the rest of the file still calls it and the cell packing named where it now lives. The
-  remaining pieces -- the held rooms, the streaming, the debug lines -- need the two runtime
-  types (`Window` and `View`) to come out first, since nearly every method takes one.
+  1,934 that were passing still pass. What moved is the same text, with `private` opened up
+  where the rest of the file still reads it, the cell packing and the two records named where
+  they still live, and six lines rewrapped that the longer type names pushed past 120 columns.
+
+  `MirrorWindows` is 2,449 lines from 2,786. What is left is the sweep and the redraw, and
+  around them the held rooms, the streaming and the debug lines. Those three can go too, but
+  not for free: each reads state the sweep also writes, so moving them means opening that state
+  to its neighbours or giving it accessors, which is a design change rather than a move. That
+  decision is worth making on its own.
 
 - **`stamp` is about the banner, `capture` is about the room, and nothing changes either on its
   own.** "If we still use the stamp anywhere we shouldn't update the banner automatically. It
