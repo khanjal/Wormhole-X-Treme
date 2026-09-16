@@ -209,10 +209,8 @@ class CompleteCommandTest
 
     private static Player builder(final String name)
     {
-        final Player player = mock(Player.class);
-        when(player.isOp()).thenReturn(true);
+        final Player player = builder();
         when(player.getName()).thenReturn(name);
-        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         return player;
     }
 

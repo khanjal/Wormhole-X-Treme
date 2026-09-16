@@ -159,7 +159,7 @@ public class Complete implements CommandExecutor, TabCompleter
         addPendingCompletion(player, name, idc, network);
         final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         player.sendMessage(header + "Please click the DHD lever/button to complete the gate.");
-        player.sendMessage(header + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
+        player.sendMessage(header + "Optional parameters: idc=<code> net=<network> (example: /wormhole gate complete " + name + " idc=1234 net=Private)");
         player.sendMessage(header + "Type '/wormhole gate complete " + CANCEL + "' to cancel.");
     }
 

@@ -48,6 +48,8 @@ public class GateEditCommand implements SubCommand
     }
 
     /** The fields, in the order they are offered. */
+    private static final String OWNER = "owner";
+
     private static final Map<String, Field> FIELDS = new LinkedHashMap<>();
 
     static
@@ -62,9 +64,9 @@ public class GateEditCommand implements SubCommand
             new WooshDepthCommand().execute(sender, new String[] { "wooshdepth", gate, value }));
         FIELDS.put("redstone", (sender, gate, value) ->
             new RedstoneCommand().execute(sender, new String[] { "redstone", gate, value }));
-        FIELDS.put("owner", (sender, gate, value) ->
+        FIELDS.put(OWNER, (sender, gate, value) ->
             new OwnerCommand().execute(sender, value.isEmpty()
-                ? new String[] { "owner", gate } : new String[] { "owner", gate, value }));
+                ? new String[] { OWNER, gate } : new String[] { OWNER, gate, value }));
         FIELDS.put("custom", (sender, gate, value) ->
             new CustomCommand().execute(sender, new String[] { "custom", gate, value }));
         // The odd one out: WXIDC was written as a standalone command and takes its own
