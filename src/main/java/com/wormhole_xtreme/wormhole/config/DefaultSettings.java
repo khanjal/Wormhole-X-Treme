@@ -123,8 +123,8 @@ class DefaultSettings
             new Setting(ConfigKeys.SIGN_COLOR_NEIGHBOUR, "GRAY", "Colour of the destinations either side of the selected one on a dial sign.", SECTION)),
 
         group("Transport rings", "",
-            new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 60, "Ticks a transport ring counts down before it commits. Anything below 30 is read as 30, so stepping clear stays possible.", SECTION),
-            new Setting(ConfigKeys.RING_COOLDOWN_TICKS, 1200, "Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.", SECTION),
+            new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 100, "Ticks a transport ring counts down before it commits. Anything below 30 is read as 30, so stepping clear stays possible.", SECTION),
+            new Setting(ConfigKeys.RING_COOLDOWN_TICKS, 600, "Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.", SECTION),
             new Setting(ConfigKeys.RING_DEPLOY_TICKS, 2, "Ticks between frames of the ring deploy and retract animations.", SECTION),
             new Setting(ConfigKeys.RING_SETTLE_TICKS, 20, "Ticks the fully deployed ring stack stands still before the teleport fires.", SECTION),
             new Setting(ConfigKeys.RING_FLASH_TICKS, 3, "Ticks each ring stays lit as the transport flash runs through the stack.", SECTION),

@@ -158,6 +158,11 @@ Design notes in [docs/GATES.md](docs/GATES.md), how-to in
 Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
 [docs/guide/RINGS.md](docs/guide/RINGS.md).
 
+**Changed**
+
+- **A ring counts down for five seconds and rests for thirty**, where it was three and sixty. An
+  existing `config.yml` keeps its own values.
+
 **Fixed**
 
 - **A ceiling ring in a room deeper than four blocks fired over and over and took nobody.**

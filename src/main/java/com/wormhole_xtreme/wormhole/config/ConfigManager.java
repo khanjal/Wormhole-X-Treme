@@ -502,7 +502,7 @@ public class ConfigManager
      */
     public static int getRingCountdownTicks()
     {
-        return Math.max(30, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 60));
+        return Math.max(30, intSetting(ConfigKeys.RING_COUNTDOWN_TICKS, 100));
     }
 
     /**
@@ -512,7 +512,7 @@ public class ConfigManager
      */
     public static int getRingCooldownTicks()
     {
-        return Math.max(0, intSetting(ConfigKeys.RING_COOLDOWN_TICKS, 1200));
+        return Math.max(0, intSetting(ConfigKeys.RING_COOLDOWN_TICKS, 600));
     }
 
     /**

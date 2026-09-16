@@ -191,7 +191,7 @@ exercised in one direction only. An empty committed cycle is legal and expected.
 
 **Countdown length is a constraint, not a preference.** Getting clear of a ring is around four
 blocks from the middle, close to a second at walking pace, and the abort window is only real
-because the countdown comfortably exceeds that. `rings.countdown` defaults to 60 ticks and is
+because the countdown comfortably exceeds that. `rings.countdown` defaults to 100 ticks and is
 floored at 30; below that, rings begin taking people who were only walking past.
 
 ## Trigger and re-arm
@@ -603,8 +603,8 @@ down is exactly what rings are *for*. Either set to `0` lifts that limit. **Quot
 
 ```yaml
 rings:
-  countdown: 60              # ticks; floored at 30, see the countdown section
-  cycle-cooldown: 1200       # ticks, per pair
+  countdown: 100             # ticks; floored at 30, see the countdown section
+  cycle-cooldown: 600        # ticks, per pair
   deploy-ticks: 2            # ticks between animation frames
   settle-ticks: 20           # stack stands still this long before the teleport
   hold-ticks: 20             # and this long after the light finishes, before retracting
