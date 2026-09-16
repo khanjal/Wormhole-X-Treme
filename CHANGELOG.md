@@ -71,7 +71,6 @@ A fourth way to travel, and the first one you can see. Design notes in
   `exit`, `vault`, `library` and the rest, reached only by name.
 - **A mirror can look like where it goes.** `set stamp` reads the far side and paints the banner
   from it: the biome picks the frame, the blocks there become coarse squares.
-- **Mirrors can go dark until you walk up to them** (`set display proximity`).
 - **A mirror says what it is above the hotbar** while you look at it from about six blocks, along
   with the world it opens onto (`mirror-approach-message`).
 - **`mirror debug`** says one thing a line, fits on a screen of chat with `all` for the rest, and
@@ -85,7 +84,7 @@ A fourth way to travel, and the first one you can see. Design notes in
 **Changed**
 
 - **`mirror set` is the one door to what a mirror has.** The top of the command is `create`, `set`,
-  `remove` and `list`; `set [name] <stamp|display|start|capture> ...` holds the rest.
+  `remove` and `list`; `set [name] <stamp|start|capture> ...` holds the rest.
 - **`stamp` is about the banner and `capture` is about the room**, and nothing changes either on
   its own. `mode` is gone with the automatic restamping it existed for.
 - **A room is streamed in a tick at a time** as a viewer comes into range, and taken back the same
@@ -109,6 +108,8 @@ A fourth way to travel, and the first one you can see. Design notes in
 
 - **The cone walk**, and `mirror debug save` with it.
 - **Two mirror settings nothing read**: `mirror-capture-radius` and `mirror-allow-same-world`.
+- **`mirror set display`**: every mirror is a view now, so it did nothing. An old `Display` line
+  is ignored.
 
 **Fixed**
 
@@ -121,7 +122,7 @@ A fourth way to travel, and the first one you can see. Design notes in
   it has to be clicked.
 - **A linked pair of mirrors sent you straight back where you came from.**
 - **A mirror another plugin refused** looked exactly like a mirror pointing at itself.
-- **Renaming a mirror used to quietly take it apart**, losing its destination, look and display.
+- **Renaming a mirror used to quietly take it apart**, losing its destination and look.
 - **A mirror onto the Nether was still dressed as somebody's living room.**
 
 ### Stargates

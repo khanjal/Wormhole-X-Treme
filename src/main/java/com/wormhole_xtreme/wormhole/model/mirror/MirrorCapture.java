@@ -31,7 +31,7 @@ import org.bukkit.block.data.BlockData;
  * mirror onto a world that is not loaded at all -- the archived-snapshot museum that #22 was
  * filed for -- could never show anything. A capture is always there, instantly, and a museum
  * stays exactly as it was captured. What it costs is currency: the far side changes only when
- * the capture is taken again, by {@code mirror stamp} or by {@code mode dynamic}.
+ * the capture is taken again, by {@code mirror set [name] capture}.
  *
  * <p>Stored as a palette of block states and one entry per block kept, sorted by position, so a
  * box the render distance across costs what its visible surfaces cost and nothing for the rest.

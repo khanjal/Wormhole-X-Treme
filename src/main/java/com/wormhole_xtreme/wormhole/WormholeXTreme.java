@@ -224,14 +224,12 @@ public class WormholeXTreme extends JavaPlugin
     @Override
     public void onDisable()
     {
-            // Before anything else, and outside the save: whoever was standing far from a
-            // proximity mirror is holding a blanked banner that only this plugin was going to
-            // take back. Left alone it looks exactly like the plugin having eaten their
-            // banners, which is the one impression a shutdown must not leave.
+            // Before anything else, and outside the save: whoever is looking through a mirror
+            // is holding a view that only this plugin was going to take back.
             // Past Exception on purpose, the way disableEconomyQuietly reaches past it. An
             // operator who copies a new jar over a running server leaves this classloader
             // reading a file that is no longer there, so any class it had not loaded yet --
-            // MirrorPackets, if no proximity mirror happened to hide that session -- arrives
+            // MirrorPackets, if no window happened to need it that session -- arrives
             // as NoClassDefFoundError. That is an Error, it escaped the old catch, and it took
             // every save below with it: gates, rings, beams and mirrors, none of them written.
             // Cosmetic work must never cost the save.
@@ -506,9 +504,8 @@ public class WormholeXTreme extends JavaPlugin
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.GateSounds::tickAmbient,
             20L, ConfigManager.getGateSoundAmbientTicks());
-        // Mirrors set to proximity go dark until somebody walks up to them. One sweep over
-        // the registered mirrors, which does nothing at all on a server whose mirrors are
-        // all ordinary, and nothing on 1.20 where per-player block updates do not exist.
+        // A mirror hung on a wall is drawn as a view of its room. One sweep over the registered
+        // mirrors, which skips any whose world or chunk is not loaded.
         WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(),
             com.wormhole_xtreme.wormhole.model.mirror.MirrorProximity.createTicker(),
             40L, ConfigManager.getMirrorProximityTicks());

@@ -250,9 +250,9 @@ class MirrorYamlManagerTest
      * A mirror written before any of this existed reads back exactly as it behaved.
      *
      * <p>The whole point of defaulting in the record rather than at each use. An old file has
-     * no Display, no Mode and no Look, and the mirror it produces has to be an ordinary
-     * always-visible static one rather than something with null settings that the sweep and
-     * the stamp then have to guess about.
+     * no Start, no Width and no Look, and the mirror it produces has to be an ordinary one
+     * rather than something with null settings that the sweep and the stamp then have to guess
+     * about.
      */
     @Test
     void aMirrorFromAnOlderFileIsAnOrdinaryOne()
@@ -262,20 +262,20 @@ class MirrorYamlManagerTest
 
         final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
 
-        assertEquals(MirrorDisplay.ALWAYS, mirror.display());
+        assertNull(mirror.start());
+        assertEquals(1, mirror.width());
         assertNull(mirror.look(), "it has never been stamped");
     }
 
     @Test
-    void keepsDisplayAndANamedLookAcrossARoundTrip()
+    void keepsANamedLookAcrossARoundTrip()
     {
         final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
-            null).withDisplay(MirrorDisplay.PROXIMITY).withLook(MirrorLook.named("cavern"));
+            null).withLook(MirrorLook.named("cavern"));
 
         final QuantumMirror after =
             MirrorYamlManager.readMirror("M", MirrorYamlManager.writeMirror(before));
 
-        assertEquals(MirrorDisplay.PROXIMITY, after.display());
         assertEquals("cavern", after.look().presetName());
         assertNull(after.look().view(), "a named look has nothing sampled behind it");
     }
@@ -325,10 +325,10 @@ class MirrorYamlManagerTest
     }
 
     /**
-     * The two settings are written only when they are not the default.
+     * The settings are written only when they are not the default.
      *
      * <p>So a server full of ordinary mirrors has a file that reads the way it always did,
-     * rather than one where every entry has grown two lines that say nothing.
+     * rather than one where every entry has grown lines that say nothing.
      */
     @Test
     void writesNothingExtraForAnOrdinaryMirror()
@@ -358,19 +358,6 @@ class MirrorYamlManagerTest
             "an unreadable colour costs its own square and no more");
     }
 
-    @Test
-    void treatsAnUnreadableDisplayAsTheDefault()
-    {
-        final Map<String, Object> map = new LinkedHashMap<>();
-        map.put("Banner", "world:1:2:3");
-        map.put("Display", "sideways");
-
-        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
-
-        assertNotNull(mirror, "a typo in the cosmetics must not cost a working mirror");
-        assertEquals(MirrorDisplay.ALWAYS, mirror.display());
-    }
-
     /**
      * A file from before {@code mode} went still reads, and its Mode line is dropped on the next save.
      *
@@ -388,6 +375,26 @@ class MirrorYamlManagerTest
 
         assertNotNull(mirror, "an older file's mirror is still a mirror");
         assertFalse(MirrorYamlManager.writeMirror(mirror).containsKey("Mode"),
+            "and nothing writes the line back");
+    }
+
+    /**
+     * A file from before {@code display} went still reads, and its Display line is dropped on the next save.
+     *
+     * <p>Every mirror is a view now, so the line means nothing and a mirror that had it is an
+     * ordinary mirror.
+     */
+    @Test
+    void ignoresADisplayLineFromAnOlderFileAndDropsItOnSave()
+    {
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("Banner", "world:1:2:3");
+        map.put("Display", "proximity");
+
+        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
+
+        assertNotNull(mirror, "an older file's mirror is still a mirror");
+        assertFalse(MirrorYamlManager.writeMirror(mirror).containsKey("Display"),
             "and nothing writes the line back");
     }
 }
