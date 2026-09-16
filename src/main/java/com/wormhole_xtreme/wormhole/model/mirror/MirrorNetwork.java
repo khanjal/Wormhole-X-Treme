@@ -93,8 +93,10 @@ public final class MirrorNetwork
         final org.bukkit.block.BlockFace facing = directional.getFacing();
         // Right, looking at the wall; a hair short of the boundary, so the column stays the left one.
         final double shift = (width >= 2) ? 0.49 : 0.0;
+        // The banner hangs at the top of the opening; a traveller's feet go at its bottom.
+        final int floor = banner.getY() - (MirrorWindow.HEIGHT - 1);
         return new MirrorPoint(banner.getWorld().getName(), banner.getX() + 0.5 + (shift * facing.getModZ()),
-            banner.getY() - (MirrorWindow.HEIGHT - 1), banner.getZ() + 0.5 - (shift * facing.getModX()),
+            floor, banner.getZ() + 0.5 - (shift * facing.getModX()),
             MirrorArrival.yawOf(facing), 0.0f);
     }
 

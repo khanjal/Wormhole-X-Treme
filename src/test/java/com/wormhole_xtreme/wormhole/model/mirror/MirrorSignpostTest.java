@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.model.mirror;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -120,6 +121,18 @@ class MirrorSignpostTest
         MirrorSignpost.clear();
         sweep();
         assertEquals(1, shown().size(), "and saying it again once the hold is over");
+    }
+
+    /**
+     * A hold for a player who has since logged out is quietly nothing.
+     *
+     * <p>The line above the hotbar takes a null player for exactly that, and a hint hands the same
+     * player to the line and then to the hold, so the hold has to take what the line took.
+     */
+    @Test
+    void aHoldForAPlayerWhoHasLoggedOutIsQuietlyNothing()
+    {
+        assertDoesNotThrow(() -> MirrorSignpost.hold(null));
     }
 
     /**

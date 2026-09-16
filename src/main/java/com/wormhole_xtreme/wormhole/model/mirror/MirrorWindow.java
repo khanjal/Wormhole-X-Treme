@@ -54,9 +54,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
         width = (width >= 2) ? 2 : 1;
     }
 
-    /** How wide the opening is, in blocks: the banner's own column. */
-    static final int WIDTH = 1;
-
     /** How tall the opening is: the banner's cloth. */
     static final int HEIGHT = 2;
 
@@ -65,8 +62,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
 
     /** The most of a drawn block's outline that may land beside the opening, in open air. */
     private static final double MOST_BESIDE = 0.05;
-
-    private static final int HALF = WIDTH / 2;
 
     /**
      * A block position, or a one-block step along the ground when {@code y} is zero.
@@ -260,21 +255,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     }
 
     /**
-     * The far-side block a block behind the opening shows.
-     *
-     * <p>The first layer behind the opening shows the arrival block's own layer, and the
-     * opening's bottom row lines up with the arrival block's height -- so what shows through the
-     * bottom of the opening is exactly where a traveller lands.
-     *
-     * @param x
-     *            the block behind the opening, x
-     * @param y
-     *            the block behind the opening, y
-     * @param z
-     *            the block behind the opening, z
-     * @return the block at the far side
-     */
-    /**
      * How many quarter turns clockwise, seen from above, take the far side's forward to this
      * side's: the turn every far-side block's facing needs to show here the right way round.
      *
@@ -335,6 +315,21 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
             base.z() + (depth * into.z()) + (across * right.z()));
     }
 
+    /**
+     * The far-side block a block behind the opening shows.
+     *
+     * <p>The first layer behind the opening shows the arrival block's own layer, and the
+     * opening's bottom row lines up with the arrival block's height -- so what shows through the
+     * bottom of the opening is exactly where a traveller lands.
+     *
+     * @param x
+     *            the block behind the opening, x
+     * @param y
+     *            the block behind the opening, y
+     * @param z
+     *            the block behind the opening, z
+     * @return the block at the far side
+     */
     public Spot farOf(final int x, final int y, final int z)
     {
         final Spot right = rightOf(into);
@@ -396,8 +391,11 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
      */
     int face()
     {
-        return (into.x() != 0) ? (base.x() + ((into.x() > 0) ? 0 : 1))
-            : (base.z() + ((into.z() > 0) ? 0 : 1));
+        if (into.x() != 0)
+        {
+            return base.x() + ((into.x() > 0) ? 0 : 1);
+        }
+        return base.z() + ((into.z() > 0) ? 0 : 1);
     }
 
     /**
@@ -664,28 +662,6 @@ public record MirrorWindow(MirrorWindow.Spot base, MirrorWindow.Spot into, Mirro
     {
         final double centre = ((into.x() != 0) ? base.z() : base.x()) + 0.5;
         return Math.abs(((rect[0] + rect[1]) / 2.0) - centre);
-    }
-
-    /** The lowest point either edge of a span reaches, scaled out from an eye by either factor. */
-    private static double lowest(final double eye, final double from, final double to,
-        final double near, final double farther)
-    {
-        return Math.min(Math.min(spread(eye, from, near), spread(eye, from, farther)),
-            Math.min(spread(eye, to, near), spread(eye, to, farther)));
-    }
-
-    /** The highest point either edge of a span reaches, scaled out from an eye by either factor. */
-    private static double highest(final double eye, final double from, final double to,
-        final double near, final double farther)
-    {
-        return Math.max(Math.max(spread(eye, from, near), spread(eye, from, farther)),
-            Math.max(spread(eye, to, near), spread(eye, to, farther)));
-    }
-
-    /** Where a line from an eye through an edge of the face is, that many times as far away. */
-    private static double spread(final double eye, final double edge, final double scale)
-    {
-        return eye + ((edge - eye) * scale);
     }
 
     /** @return the step to the right of somebody facing along this one */

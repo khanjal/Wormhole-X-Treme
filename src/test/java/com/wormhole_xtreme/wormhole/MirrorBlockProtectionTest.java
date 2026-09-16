@@ -3,8 +3,7 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -117,7 +116,7 @@ class MirrorBlockProtectionTest
         verify(hotbar).sendMessage(org.mockito.ArgumentMatchers.eq(net.md_5.bungee.api.ChatMessageType.ACTION_BAR),
             said.capture());
         assertTrue(said.getValue().toPlainText().contains("mirror remove"), "and says how: " + said.getValue().toPlainText());
-        verify(player, org.mockito.Mockito.never()).sendMessage(org.mockito.ArgumentMatchers.anyString());
+        verify(player, never()).sendMessage(anyString());
     }
 
     @Test

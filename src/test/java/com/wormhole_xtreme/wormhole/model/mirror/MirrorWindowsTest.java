@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -223,12 +222,6 @@ class MirrorWindowsTest
         assertEquals(sent.get(0).size(), sent.get(1).size(), "the whole view again, banner and all");
     }
 
-    /**
-     * A right-click shows the mirror chosen at once, not when the sweep next comes round.
-     *
-     * <p>The sweep runs once a second, so a view waiting for it changed up to a second after the
-     * click that chose it -- long enough to click again, and skip past the mirror you wanted.
-     */
     /**
      * The clicked block and the one on its face are sent again straight after the server's own
      * correction, off the main thread, so the real banner does not show for a tick.

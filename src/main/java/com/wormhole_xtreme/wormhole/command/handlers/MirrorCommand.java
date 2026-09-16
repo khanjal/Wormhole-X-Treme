@@ -6,7 +6,6 @@ import java.util.Locale;
 
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Banner;
@@ -18,7 +17,6 @@ import org.bukkit.entity.Player;
 import com.wormhole_xtreme.wormhole.command.CommandHandlerUtils;
 import com.wormhole_xtreme.wormhole.command.SubCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorArrival;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
@@ -106,9 +104,12 @@ public class MirrorCommand implements SubCommand
      */
     private static final int REACH = 6;
 
+    /** The verb that makes a mirror; set stays as the older word for it. */
+    private static final String CREATE = "create";
+
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS =
-        { "create", "start", "stamp", "display", "mode", "remove", "list" };
+        { CREATE, "start", "stamp", "display", "mode", "remove", "list" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -129,7 +130,7 @@ public class MirrorCommand implements SubCommand
         switch (verb)
         {
             // create is the verb; set stays as the older word for it, which also renames.
-            case "create", "set" -> set(sender, args);
+            case CREATE, "set" -> set(sender, args);
             case "stamp" -> stamp(sender, args);
             case "display" -> display(sender, args);
             case "mode" -> mode(sender, args);
@@ -149,7 +150,7 @@ public class MirrorCommand implements SubCommand
     {
         say(sender, USAGE + MirrorText.command(
             "/wormhole mirror <" + String.join("|", VERBS) + ">"));
-        say(sender, "A mirror is a wall banner. Make one with " + MirrorText.name("create")
+        say(sender, "A mirror is a wall banner. Make one with " + MirrorText.name(CREATE)
             + " while looking at it;");
         say(sender, "right-click it to choose another mirror, and punch it to go through.");
     }
@@ -687,7 +688,7 @@ public class MirrorCommand implements SubCommand
             sayDisplayUsage(sender);
             return;
         }
-        final String word = unnamed ? args[2] : args[3];
+        final String word = args[unnamed ? 2 : 3];
         final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
             () -> sayDisplayUsage(sender));
         if (mirror == null)
@@ -747,7 +748,7 @@ public class MirrorCommand implements SubCommand
             sayModeUsage(sender);
             return;
         }
-        final String word = unnamed ? args[2] : args[3];
+        final String word = args[unnamed ? 2 : 3];
         final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
             () -> sayModeUsage(sender));
         if (mirror == null)
@@ -791,7 +792,7 @@ public class MirrorCommand implements SubCommand
         }
         // By the rule display and mode use: one word alone is the start, for the banner being looked at.
         final boolean unnamed = args.length == 3;
-        final String word = unnamed ? args[2] : args[3];
+        final String word = args[unnamed ? 2 : 3];
         final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
             () -> sayStartUsage(sender));
         if (mirror == null)
@@ -1207,7 +1208,9 @@ public class MirrorCommand implements SubCommand
         }
         final boolean full = "full".equals(last);
         final boolean all = "all".equals(last);
-        final String name = (args.length > ((full || all) ? 3 : 2)) ? args[2] : null;
+        // How many words the command has with no name in it.
+        final int bare = (full || all) ? 3 : 2;
+        final String name = (args.length > bare) ? args[2] : null;
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
             () -> sayUsage(sender, "debug [<name>] [all|full] | debug off|on"));
         if (mirror == null)
