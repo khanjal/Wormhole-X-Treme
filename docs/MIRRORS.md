@@ -653,8 +653,8 @@ at some point; the trouble is having all of it at once.
 Two things follow. At 160 — ten chunks, as far as a server usually sends — nothing stands past
 the room at all, so the only reason to lower the depth is the cost of the third fact. And a room
 sent once, whole, has no cost per step, but it has to be hidden from everywhere but the opening,
-which needs wall out to the proximity distance on every side of it, no other mirror within twice
-the depth, and a room that fits one batch. A museum's row of alcoves qualifies for none of that.
+which needs wall out to the proximity distance on every side of it and no other mirror within
+twice the depth. A museum's row of alcoves qualifies for neither.
 
 ### Tried, and why not
 
@@ -675,9 +675,9 @@ In the order they were tried. The commit is where the reasoning is written out i
   Correct and clean: nothing of this world shows, because the client has nothing to show there.
   But a clipped room's far part changed thousands of blocks a step, and "it was real laggy" at
   160 and fine at 60. Softened since — the far part stands between small steps and a slow redraw
-  earns a rest (`d594907`), rooms over 20,000 blocks are clipped rather than sent at once
-  (`2bfd70a`), and the far part is judged for a whole cell of eyes at once, as wide as the wall
-  allows (the fat eye, below) — and a deep clipped mirror behind a thin wall still stutters on the
+  earns a rest (`d594907`), rooms over 20,000 blocks were clipped rather than sent at once
+  (`2bfd70a`, undone by streaming, below), and the far part is judged for a whole cell of eyes at
+  once, as wide as the wall allows (the fat eye, below) — and a deep clipped mirror behind a thin wall still stutters on the
   move. This is where it stands.
 - **The depth lowered, and a flat wall of the sky's colour a block past it** (`524cc24`). "It
   brings too much attention to the issue." Taken back in #282, with the box-shaped room that
@@ -710,30 +710,42 @@ where the cell is the same half block it was, and a quarter of the batches behin
 wide. `mirror debug` says the cell and the wall for each clipped mirror. Not measured on a
 server yet; the test surface is `MirrorWindowsTest`'s three `behindA...Wall` tests.
 
+### Built: streaming
+
+A redraw sends 2,500 blocks and books the rest a tick apart, nearest the eye first and within
+that a chunk section at a time, so the client re-meshes each section once and no frame waits for
+all of them. What a viewer is owed is worked out afresh on every redraw against what they were
+actually sent, so a step mid-stream never leaves a stale block behind; a view lasts until the last
+of the room has gone back. The 20,000-block cap on a room sent whole is gone with it, and a walled
+mirror at 160 costs nothing per step.
+
+Crossing into a new chunk sends again only what was drawn in the chunks the client is newly
+handed — the shorter of the server's view distance and the client's, a chunk over for the edge —
+where it used to send the whole view. A server that reports no reach falls back to all of it, and
+the half-minute resend stands behind both. `mirror debug` says `still to send` while a stream is
+going. Not measured on a server yet; the tests are `aRoomBiggerThanATickIsStreamedIn...`,
+`aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `MirrorWindowsTest`.
+
 ### What is left to try
 
 Each of these is a real lever, and none is free. The first is the one to build next.
 
-1. **Stream whole rooms.** Send a whole room over ticks as a viewer comes in through the
-   proximity distance — a few thousand blocks a tick over the last sixteen blocks of approach —
-   and take it back the same way as they leave, instead of one batch each way. That lifts the
-   20,000-block cap on a room sent whole, and a walled mirror at 160 then costs nothing per step.
-2. **Whole rooms for mirrors that share a wall.** A library's back wall is already solid across
+1. **Whole rooms for mirrors that share a wall.** A library's back wall is already solid across
    its whole plane; what stops each alcove's mirror being drawn whole is the neighbour rule (two
    whole rooms would fill the same space behind the wall) and the cap. But a viewer in one alcove
    cannot see the next alcove's opening past the divider, and a view already draws only the
    windows the eye has a clear line to. Judge the overlap against the windows a viewer can see
-   rather than every mirror within twice the depth, stream the rooms in and out (1), and the
+   rather than every mirror within twice the depth, stream the rooms in and out (built, above), and the
    museum's mirrors draw once each and cost nothing per step. The wall-plane rule still asks for
    wall to the proximity distance above and below, which a low hall does not have; the honest
    test there is whether the space behind the wall can be seen from anywhere a viewer can stand,
    which is the next item.
-3. **Region-safe drawing.** Once per window, work out which room blocks are safe from every eye
+2. **Region-safe drawing.** Once per window, work out which room blocks are safe from every eye
    in the proximity zone — seen only through the opening, or hidden by real solid blocks anywhere
    along the line — and draw exactly those, whole, with no per-step work at all. Many eyes times
    many blocks, so off the main thread and once a minute at most. The most general answer, the
    most work, and unproven.
-4. **Paper's per-player send view distance.** End this world at the depth in the client's own
+3. **Paper's per-player send view distance.** End this world at the depth in the client's own
    fog: `Player.setSendViewDistance`, set on approach and reset on leaving. The only true "stop
    rendering past here", and the only one that costs no blocks. A radius round the player rather
    than a direction, a ring of chunks at a time, and it does nothing for the cost per step. The

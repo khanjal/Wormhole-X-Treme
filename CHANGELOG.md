@@ -856,6 +856,31 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **A room is streamed in a tick at a time as a viewer comes into range, and taken back the same
+  way; the cap on a room sent whole is gone.** "It's rendering lag when you look at or move
+  in/out of view." A room at the render distance is some eighty thousand blocks, and sent as one
+  batch the client re-meshed every chunk section it touched before it drew another frame: a
+  moment's freeze coming into range and another leaving. The answer below was to clip any room
+  over 20,000 blocks to each eye instead, which made every step cost something behind the best
+  wall on the server. That was the wrong end to hold: the batch was the problem, not the room.
+
+  A redraw now sends 2,500 blocks and books the rest a tick apart, nearest the eye first and
+  within that a chunk section at a time, so each section is re-meshed once and no frame waits
+  for all of them. What a viewer is owed is worked out afresh on every redraw, so a step mid-stream
+  never leaves a stale block behind, and a view lasts until the last of the room has gone back.
+  A walled mirror at 160 costs nothing per step again. `mirror debug` says `still to send` while
+  a stream is going.
+
+  Crossing into a new chunk no longer sends the whole view again. A chunk arrives as the world has
+  it, over whatever was drawn there, which is why a crossing resent everything -- and with whole
+  rooms that would have been the room every sixteen blocks of walking along its wall. The client
+  is handed only the chunks that come within its reach, the shorter of the server's view distance
+  and its own (`World.getViewDistance`, `Player.getClientViewDistance`, both on every version from
+  1.20) and a chunk over for the edge, so only what was drawn in those goes again. A server that
+  reports no reach falls back to sending it all, and the half-minute resend still stands behind
+  both. Paper's `send-view-distance` set below the view distance would hand chunks over sooner
+  than this reckons; that setting defaults to the view distance, and the resend covers the rest.
+
 - **A clipped room's far part is judged for a whole cell of eyes at once, as wide as the wall
   allows.** "Larger border the more stuff has time to change." It should have, and it did not:
   the far part stood for a block of movement behind any wall two or more blocks wide, since it

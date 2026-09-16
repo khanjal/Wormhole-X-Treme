@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -115,6 +117,9 @@ class MirrorWindowsTest
         // A redraw over these mocks takes hundreds of milliseconds; resting three times that would
         // put every step that follows a pause() off until a catch-up that never comes.
         MirrorWindows.restFactor = 0L;
+        // One batch a redraw, as before streaming, unless a test is about the stream: most tests
+        // read a view off its first batch, and there is no scheduler here to send the rest.
+        MirrorWindows.streamPerTick = Integer.MAX_VALUE;
 
         world = named(mock(World.class), "world");
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
@@ -919,29 +924,179 @@ class MirrorWindowsTest
     }
 
     /**
-     * A room too big to send at once is clipped to each eye, however good its wall.
+     * A room bigger than a tick's worth is streamed in a tick at a time, nearest the eye first.
      *
      * <p>"It's rendering lag when you look at or move in/out of view: it remains and then takes a
-     * moment to generate." A room at the render distance is some eighty thousand blocks, and a
-     * mirror in a solid wall sent them all as a viewer came into range and took them all back as
-     * they left; the client re-meshed every chunk section they touched. Past a size the room is
-     * clipped to the eye -- a few thousand blocks, and a step is a small difference -- and debug
-     * says why.
+     * moment to generate." A room at the render distance is some eighty thousand blocks, and sent
+     * as one batch the client re-meshed every chunk section it touched before it drew another
+     * frame. Rooms over 20,000 blocks were clipped to each eye instead, which cost every step;
+     * now a batch is a tick's worth, the rest follows a tick apart, and the cap is gone. The near
+     * end of the room is what the viewer is looking at, so it goes first: here the first batch is
+     * all within sixteen blocks of the eye and the last is all beyond.
      */
     @Test
-    void aRoomTooBigToSendAtOnceIsClippedToEachEyeHoweverGoodItsWall()
+    void aRoomBiggerThanATickIsStreamedInATickAtATimeNearestFirst() throws Exception
     {
-        MirrorWindows.mostWhole = 10;
+        MirrorWindows.streamPerTick = 500;
         final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            final int[] ticks = new int[1];
+            final List<String> said = new ArrayList<>();
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                said.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                ticks[0] = runBooked(scheduler);
+            });
+
+            assertTrue(said.stream().anyMatch(line -> line.startsWith("still to send: ")),
+                "debug says what is owed after the first batch: " + said);
+            final List<Collection<BlockState>> sent = changesTo(viewer, ticks[0] + 1);
+            assertTrue(sent.size() > 3, "a room of thousands goes in many batches of 500: " + sent.size());
+            for (final Collection<BlockState> batch : sent)
+            {
+                assertTrue(batch.size() <= 500, "no batch over a tick's worth: " + batch.size());
+            }
+            assertTrue(farthestFromTheEye(sent.get(0)) < 16.0,
+                "the first batch is the near end of the room: " + farthestFromTheEye(sent.get(0)));
+            assertTrue(nearestToTheEye(sent.get(sent.size() - 1)) >= 16.0,
+                "the last batch is the far end: " + nearestToTheEye(sent.get(sent.size() - 1)));
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+    }
+
+    /**
+     * A room is taken back a tick at a time as the viewer leaves, and the view ends when it is done.
+     *
+     * <p>Taking eighty thousand blocks back in one batch was the same freeze as sending them, on
+     * the way out. The real blocks go back at the same pace, and the view is kept until the last
+     * of them has gone rather than dropped with blocks still owed.
+     */
+    @Test
+    void aRoomIsTakenBackATickAtATimeAsTheViewerLeaves() throws Exception
+    {
+        MirrorWindows.streamPerTick = 500;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            final int[] ticks = new int[2];
+            final List<String> midway = new ArrayList<>();
+            final List<String> after = new ArrayList<>();
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                ticks[0] = runBooked(scheduler);
+                pause();
+                MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
+                midway.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                ticks[1] = runBooked(scheduler) - ticks[0];
+                after.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+            });
+
+            assertTrue(midway.stream().anyMatch(line -> line.startsWith("still to send: ")),
+                "the view stands while the room is owed back: " + midway);
+            assertTrue(ticks[1] > 3, "a room of thousands goes back in many batches of 500: " + ticks[1]);
+            final List<Collection<BlockState>> sent = changesTo(viewer, ticks[0] + ticks[1] + 2);
+            for (final Collection<BlockState> batch : sent.subList(ticks[0] + 1, sent.size()))
+            {
+                assertTrue(batch.size() <= 500, "no batch over a tick's worth on the way out: " + batch.size());
+                assertTrue(positions(batch).values().stream().allMatch(java.util.Objects::isNull),
+                    "the way out is the real world, block for block");
+            }
+            assertTrue(after.contains("looking into: no window"), "and the view ends with the last batch: " + after);
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+    }
+
+    /**
+     * Crossing into a new chunk sends again only what was drawn in the chunks the client is newly handed.
+     *
+     * <p>A chunk arrives as the world has it, over whatever was drawn there, so a crossing used to
+     * send the whole view again. With whole rooms of eighty thousand blocks that was the whole room
+     * every sixteen blocks of walking along the wall. The client is handed only the chunks that
+     * come within its reach -- the shorter of the server's distance and its own, a chunk over for
+     * the edge -- so only what was drawn in those goes again. Here the reach is one chunk, the
+     * viewer walks one chunk to the right, and the column of chunks that comes into reach holds
+     * the room's blocks at x 16 and beyond; those are sent again, and nothing nearer is.
+     */
+    @Test
+    void aChunkCrossingSendsAgainOnlyTheChunksNewlyInReach()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_PROXIMITY_DISTANCE, 40);
+        when(world.getViewDistance()).thenReturn(1);
+        final Player viewer = playerAt(-21.5, 7.5);
+        when(viewer.getClientViewDistance()).thenReturn(1);
         when(world.getPlayers()).thenReturn(List.of(viewer));
 
-        withServer(MirrorProximity::tick);
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            pause();
+            MirrorWindows.moved(viewer, new Location(world, -5.5, 64.0, 7.5));
+        });
 
-        final List<String> said = MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList();
-        assertTrue(said.stream().anyMatch(line -> line.startsWith("museum: whole to depth 16, clipped to each eye: a room of ")
-            && line.endsWith(" blocks is more than 10 to send at once")), "clipped for its size: " + said);
-        assertFalse(positions(changesTo(viewer, 1).get(0)).containsKey(new Spot(18, 64, 12)),
-            "and off to the side, where no line of sight from this eye goes, nothing is sent");
+        final List<Collection<BlockState>> sent = changesTo(viewer, 2);
+        final Map<Spot, BlockData> first = positions(sent.get(0));
+        final Map<Spot, BlockData> again = positions(sent.get(1));
+        assertTrue(first.keySet().stream().anyMatch(spot -> spot.x() < 16), "the whole room went at first");
+        assertTrue(again.keySet().stream().anyMatch(spot -> spot.x() >= 16),
+            "what was drawn in the chunks newly in reach goes again");
+        assertTrue(again.keySet().stream().allMatch(spot -> spot.x() >= 16),
+            "and nothing in the chunks the client already had: " + again.keySet().stream()
+                .filter(spot -> spot.x() < 16).limit(3).toList());
+    }
+
+    /** Runs every task booked on a scheduler, those booked while running too, and says how many ran. */
+    private static int runBooked(final org.bukkit.scheduler.BukkitScheduler scheduler)
+    {
+        int ran = 0;
+        while (true)
+        {
+            final ArgumentCaptor<Runnable> booked = ArgumentCaptor.forClass(Runnable.class);
+            verify(scheduler, atLeast(0)).scheduleSyncDelayedTask(any(org.bukkit.plugin.Plugin.class),
+                booked.capture(), anyLong());
+            final List<Runnable> all = booked.getAllValues();
+            if (ran >= all.size())
+            {
+                return ran;
+            }
+            all.get(ran++).run();
+        }
+    }
+
+    /** How far the farthest block of a batch is from the test viewer's eye at (10.5, 65.62, 7.5). */
+    private static double farthestFromTheEye(final Collection<BlockState> batch)
+    {
+        return batch.stream().mapToDouble(MirrorWindowsTest::fromTheEye).max().orElseThrow();
+    }
+
+    /** The same for the nearest. */
+    private static double nearestToTheEye(final Collection<BlockState> batch)
+    {
+        return batch.stream().mapToDouble(MirrorWindowsTest::fromTheEye).min().orElseThrow();
+    }
+
+    private static double fromTheEye(final BlockState state)
+    {
+        final double dx = (state.getX() + 0.5) - 10.5;
+        final double dy = (state.getY() + 0.5) - 65.62;
+        final double dz = (state.getZ() + 0.5) - 7.5;
+        return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
     }
 
     /**
