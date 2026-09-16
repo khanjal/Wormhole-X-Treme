@@ -1686,6 +1686,41 @@ class MirrorWindowsTest
             "the opening, which did not change, is in it");
     }
 
+
+    /**
+     * The whole view goes again every half minute, which is what heals a chunk reload.
+     *
+     * <p>Nothing tells this plugin that a client reloaded a chunk or was teleported somewhere and
+     * back, and a chunk arriving as the world really is erases whatever was drawn in it.
+     * Differences alone would leave those holes until the viewer happened to cross a chunk, so the
+     * whole view is sent again on a timer whatever else happens. The opening is the tell: it is
+     * drawn as barrier and never changes, so it rides along only when everything does.
+     */
+    @Test
+    void theWholeViewGoesAgainAfterTheResendInterval()
+    {
+        final long[] clock = { 1_000_000L };
+        MirrorWindows.clock = () -> clock[0];
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            // A step in the same chunk, a moment later. The room is held whole behind this wall,
+            // so it is drawn the same for every eye and a step changes nothing to send.
+            clock[0] += 200L;
+            MirrorWindows.moved(viewer, new Location(world, 10.8, 64.0, 7.5));
+            verify(viewer, times(1)).sendBlockChanges(anyCollection());
+            // The same sort of step, half a minute on: everything goes again anyway.
+            clock[0] += MirrorWindows.RESEND_MILLIS + 1L;
+            MirrorWindows.moved(viewer, new Location(world, 11.1, 64.0, 7.5));
+        });
+
+        assertEquals(2, drawnAs(changesTo(viewer, 2).get(1), barrier),
+            "the opening, which never changes, rides along only when the whole view does");
+    }
+
     @Test
     void clickingTheOpeningWhileLookingInIsTheMirror()
     {
