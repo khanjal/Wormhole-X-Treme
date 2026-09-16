@@ -23,6 +23,9 @@ option only with a dash, and no name may start with one. Scripts and command blo
 
 ### Stargates
 
+- **`Large` is one layer deep**, as `Standard` is, rather than three. A server keeps the
+  `shapes/gate/Large.shape` it already has: delete it and restart for the new one. Large gates
+  already standing keep working; `gate regenerate` or `refresh` on a three-deep one no longer finds it.
 - **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
   with `-`.
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
