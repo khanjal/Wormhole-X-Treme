@@ -41,9 +41,6 @@ public final class MirrorYamlManager
     /** Whether the look is in the block for everyone, or sent to whoever comes close. */
     private static final String DISPLAY = "Display";
 
-    /** Whether the look was chosen once or is re-read from the far side. */
-    private static final String MODE = "Mode";
-
     /** The section holding what it looks like. */
     private static final String LOOK = "Look";
 
@@ -148,8 +145,7 @@ public final class MirrorYamlManager
             // mirror. A mirror that travels is worth keeping even if its cosmetics are not
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
-                MirrorDisplay.of(text(map.get(DISPLAY))), MirrorMode.of(text(map.get(MODE))),
-                readLook(map.get(LOOK)), text(map.get(START)),
+                MirrorDisplay.of(text(map.get(DISPLAY))), readLook(map.get(LOOK)), text(map.get(START)),
                 (map.get("Width") instanceof Number wide) ? wide.intValue() : 1);
         }
         catch (final RuntimeException e)
@@ -325,10 +321,6 @@ public final class MirrorYamlManager
         if (mirror.display() != MirrorDisplay.ALWAYS)
         {
             map.put(DISPLAY, mirror.display().lower());
-        }
-        if (mirror.mode() != MirrorMode.STATIC)
-        {
-            map.put(MODE, mirror.mode().lower());
         }
         if (mirror.start() != null)
         {

@@ -8,10 +8,9 @@ package com.wormhole_xtreme.wormhole.model.mirror;
  * stamped banners instead of finding a row of plain cloth. Nothing here is the only record of
  * what an operator built.
  *
- * <p>This copy exists because the block alone cannot answer two questions. A
+ * <p>This copy exists because the block alone cannot answer the question. A
  * {@link MirrorDisplay#PROXIMITY} mirror has to be dressed again after a player has been shown
- * the blank, and a {@link MirrorMode#DYNAMIC} one has to know what it last saw in order to
- * replace it. Both need the look as data rather than as a block somebody may have re-dyed.
+ * the blank, and that needs the look as data rather than as a block somebody may have re-dyed.
  *
  * <p>Two ways to be stamped, and the fields say which:
  *

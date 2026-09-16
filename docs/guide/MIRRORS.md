@@ -77,7 +77,7 @@ stamp <name> mirror` retakes it.
 | `mirror set [name] start <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
 | `mirror set [name] stamp [look]` | Makes the banner look like where it goes |
 | `mirror set [name] display <always\|proximity>` | Show its look always, or only up close |
-| `mirror set [name] mode <static\|dynamic>` | Keep the look, or re-read the far side |
+| `mirror set [name] capture` | Takes the room's capture again |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 
@@ -96,7 +96,7 @@ leave the name out:
 
 `set` takes the name first and then what to change: `set museum display proximity`, or
 `set display proximity` looking at the banner. The four words it takes — `stamp`, `display`,
-`mode`, `start` — are never names, and `create` refuses them, which is how it tells the two
+`start`, `capture` — are never names, and `create` refuses them, which is how it tells the two
 apart. A mirror's name still wins where a word could be either: `set stamp cavern` is the mirror
 called `cavern` if there is one, and the *look* called `cavern` only if there is not. Setting words
 are never names either: `set museum display` is a name with the setting forgotten, so it says so.
@@ -144,10 +144,9 @@ more than a quarter of the server's time however close you stand.
   `data/mirror/captures/` under its place's name, which `mirror list` shows; a capture no mirror
   uses is deleted at the next startup. A new mirror's is taken within a second of `create`, over a few seconds;
   another mirror's room is taken the first time somebody chooses it, if nobody has yet. After that
-  its world need not be loaded at all, so a mirror in an archived world still shows. `mirror set stamp`
-  takes a capture again; `set mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while
-  somebody is looking; `set mode static`, the default, never does, so a reflection shows the room as it
-  was when captured.
+  its world need not be loaded at all, so a mirror in an archived world still shows. Nothing
+  retakes it on its own: a reflection shows the room as it was when captured until somebody
+  runs `mirror set capture`, and `stamp` is about the banner and leaves the capture alone.
 - **A capture holds what somebody at the opening could see:** as far as the room's world sends
   (its view distance, up to ten chunks) whatever `mirror-view-depth` is, rays a degree apart
   through the opening, and the blocks they reach, air included; everything else is left to the
@@ -198,9 +197,9 @@ They are `.mirror` text files in `shapes/mirror/`. Edit one and it stays edited;
 comes back; add your own and `stamp` offers it. Every look is drawn, with its recipe, in
 [docs/MIRRORS.md](../MIRRORS.md#the-library-at-a-glance).
 
-`display proximity` shows the banner blank until somebody is within `mirror-proximity-distance` blocks,
-and `mode dynamic` re-reads its look when they walk up. Both matter only where there is no view — a
-mirror whose room is not captured yet.
+`display proximity` shows the banner blank until somebody is within `mirror-proximity-distance` blocks.
+It matters only where there is no view — a mirror whose room is not captured yet. A look never
+changes on its own: `stamp` it again when the room has changed.
 
 ## Saying what it is
 

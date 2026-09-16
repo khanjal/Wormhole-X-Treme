@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.mockStatic;
@@ -246,80 +245,7 @@ class MirrorProximityTest
         assertWasNotBlanked(sent.get(1));
     }
 
-    /**
-     * A dynamic mirror re-reads the far side when somebody walks up to it, and not otherwise.
-     *
-     * <p>The throttle is the point. Sampling loads a distant chunk, so a player pacing in and
-     * out of range must not be able to ask for that every second -- and a mirror nobody walks
-     * up to must never be sampled at all, however dynamic it is.
-     */
-    @Test
-    void readsTheFarSideAgainWhenSomebodyArrivesAtADynamicMirror()
-    {
-        assumeTrue(MirrorProximity.canHide(),
-            "this server has no per-player block update, so nothing here can happen");
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        MirrorManager.add(stamped(new QuantumMirror("museum",
-            new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
 
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-
-            MirrorProximity.tick();
-            verify(destination, never()).getBlockAt(anyInt(), anyInt(), anyInt());
-
-            walkUpTo(walker);
-            MirrorProximity.tick();
-        }
-
-        // The far side was read, and what it found replaced the named look it started with.
-        verify(destination, atLeastOnce()).getBlockAt(anyInt(), anyInt(), anyInt());
-        final MirrorLook look = MirrorManager.byName("museum").look();
-        assertNotNull(look.view(), "a dynamic mirror should remember what it saw");
-        assertNull(look.presetName(), "and stop wearing the name it was given");
-    }
-
-    @Test
-    void doesNotReadTheFarSideAgainWithinTheThrottle()
-    {
-        assumeTrue(MirrorProximity.canHide(),
-            "this server has no per-player block update, so nothing here can happen");
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        MirrorManager.add(stamped(new QuantumMirror("museum",
-            new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
-
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-
-            walkUpTo(walker);
-            MirrorProximity.tick();
-            final int afterFirst = sampleCount(destination);
-
-            // Out of range and back in, which is a fresh arrival by every measure except the
-            // clock -- and the clock is the one that decides.
-            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
-            MirrorProximity.tick();
-            walkUpTo(walker);
-            MirrorProximity.tick();
-
-            assertEquals(afterFirst, sampleCount(destination),
-                "the second arrival is inside the throttle, so nothing should be re-read");
-        }
-    }
 
     /**
      * Where the API exists, the sweep says so -- and that is what the command line promises.
@@ -487,70 +413,32 @@ class MirrorProximityTest
             "a cross-world block update would land on an unrelated block");
     }
 
+
+
+
+
+
+
     /**
-     * A destination world that was down does not use up the throttle.
+     * Walking up to a mirror never reads its far side or changes its banner.
      *
-     * <p>The timestamp marks a reading, not an attempt. Recording the attempt would leave a
-     * dynamic mirror stale for another whole interval after its world came back -- and an
-     * attempt that finds no world costs nothing, because the sampler gives up immediately.
+     * <p>{@code mode dynamic} used to do both on approach, so the room and the banner changed
+     * under a player who had asked for neither. "We shouldn't update the banner automatically.
+     * It should be an understood command." A look changes when somebody runs {@code set stamp},
+     * and the sweep only hides and reveals what is there.
      */
     @Test
-    void doesNotSpendTheThrottleOnADestinationWorldThatIsDown()
+    void walkingUpNeverReadsTheFarSideOrChangesTheLook()
     {
-        assumeTrue(MirrorProximity.canHide(), "the sweep does nothing without the API");
+        assumeTrue(MirrorProximity.canHide(), "nothing is tracked without the API");
         final World destination = destinationWorld();
         final Player walker = playerAt(200.0);
         when(world.getPlayers()).thenReturn(List.of(walker));
         MirrorManager.add(stamped(new QuantumMirror("museum",
             new MirrorBlock("world", 10, 64, 10),
             new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
-
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-            // Arrives while the far world is down, so there is nothing to read.
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
-            walkUpTo(walker);
-            MirrorProximity.tick();
-            assertNull(MirrorManager.byName("museum").look().view(),
-                "nothing was read, so it still wears the name it was given");
-
-            // The world comes back, and the next arrival should read it rather than wait out
-            // an interval it never actually used.
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
-            MirrorProximity.tick();
-            walkUpTo(walker);
-            MirrorProximity.tick();
-
-            assertNotNull(MirrorManager.byName("museum").look().view(),
-                "the far side should be read as soon as its world is back");
-        }
-    }
-
-    /**
-     * A mirror that never hides is still kept current, and on a server that cannot hide.
-     *
-     * <p>The two settings are documented as independent, and for a while they were not: the
-     * sweep visited only proximity mirrors and gave up entirely without per-player updates, so
-     * {@code always} plus {@code dynamic} never re-read anything and {@code dynamic} did
-     * nothing at all on 1.20. Re-reading writes to the banner everybody can see, so it needs
-     * no packet and belongs to neither of those conditions.
-     *
-     * <p>No assumption on this one: the point is that it holds on every version.
-     */
-    @Test
-    void keepsAnAlwaysVisibleMirrorCurrentWithoutHidingAnything()
-    {
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        MirrorManager.add(stamped(new QuantumMirror("museum",
-            new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withMode(MirrorMode.DYNAMIC));
+            .withDisplay(MirrorDisplay.PROXIMITY));
+        final MirrorLook before = MirrorManager.byName("museum").look();
 
         try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
@@ -563,176 +451,17 @@ class MirrorProximityTest
             MirrorProximity.tick();
         }
 
-        assertNotNull(MirrorManager.byName("museum").look().view(),
-            "an always-visible dynamic mirror should still read the far side on approach");
-        assertTrue(blockUpdatesTo(walker).isEmpty(),
-            "and should hide nothing from anybody while doing it");
-    }
-
-    /**
-     * A dynamic mirror nobody has stamped can go and find its own first look.
-     *
-     * <p>{@code mode dynamic} says the mirror re-reads the far side when somebody walks up. If
-     * that only held for a mirror already stamped by hand, the message would be describing a
-     * different command's work.
-     */
-    @Test
-    void givesAnUnstampedDynamicMirrorItsFirstLook()
-    {
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)).withMode(MirrorMode.DYNAMIC));
-
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-
-            walkUpTo(walker);
-            MirrorProximity.tick();
-        }
-
-        assertNotNull(MirrorManager.byName("museum").look(),
-            "walking up to it should be enough to give it a look");
-    }
-
-    /**
-     * Changing the display setting does not hand a dynamic mirror a fresh re-sample clock.
-     *
-     * <p>{@code mirror display} releases a mirror that is still there, so if releasing forgot
-     * the clock, touching that setting would make the mirror eligible to re-read the far side
-     * however recently it had read -- which is not what "at most every so many seconds" says,
-     * and would be an accidental way to force a sample by running an unrelated command.
-     */
-    @Test
-    void keepsTheResampleClockWhenOnlyTheDisplaySettingChanges()
-    {
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        MirrorManager.add(stamped(new QuantumMirror("museum",
-            new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
-
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-
-            walkUpTo(walker);
-            MirrorProximity.tick();
-            final int afterFirst = sampleCount(destination);
-
-            // An unrelated setting changes, and the mirror is released as part of it.
-            MirrorProximity.release(MirrorManager.byName("museum"));
-
-            // Leave and come back: a fresh arrival, but inside the interval.
-            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
-            MirrorProximity.tick();
-            walkUpTo(walker);
-            MirrorProximity.tick();
-
-            assertEquals(afterFirst, sampleCount(destination),
-                "releasing must not reset the clock -- only removing the mirror does");
-        }
-    }
-
-    /** A removed mirror leaves no clock behind for whatever is named after it. */
-    @Test
-    void forgettingAMirrorDropsItsResampleClockToo()
-    {
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        MirrorManager.add(stamped(new QuantumMirror("museum",
-            new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
-
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-
-            walkUpTo(walker);
-            MirrorProximity.tick();
-            final int afterFirst = sampleCount(destination);
-
-            MirrorProximity.forget(MirrorManager.byName("museum"));
-
-            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
-            MirrorProximity.tick();
-            walkUpTo(walker);
-            MirrorProximity.tick();
-
-            assertTrue(sampleCount(destination) > afterFirst,
-                "a name reused after a removal should not inherit the old mirror's throttle");
-        }
-    }
-
-    /**
-     * And {@code mirror remove} is what has to reach for it, which is its own thing to get right.
-     *
-     * <p>Driven through the command, because {@code forget} doing the right thing is worth
-     * nothing if {@code remove} calls {@code release} instead -- a mutation that survived until
-     * this test existed. The observable consequence is a name reused after a removal
-     * inheriting the old mirror's throttle and refusing to read its own far side.
-     */
-    @Test
-    void aNameReusedAfterRemovalDoesNotInheritTheOldThrottle()
-    {
-        final World destination = destinationWorld();
-        final Player walker = playerAt(200.0);
-        when(world.getPlayers()).thenReturn(List.of(walker));
-        final Player admin = mock(Player.class);
-        when(admin.isOp()).thenReturn(true);
-        MirrorManager.add(stamped(new QuantumMirror("museum",
-            new MirrorBlock("world", 10, 64, 10),
-            new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-            .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
-
-        try (final MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
-        {
-            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(world);
-            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(destination);
-            bukkit.when(() -> Bukkit.getPlayer(walker.getUniqueId())).thenReturn(walker);
-
-            walkUpTo(walker);
-            MirrorProximity.tick();
-            final int afterFirst = sampleCount(destination);
-
-            new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
-                new String[] { "mirror", "remove", "museum" });
-
-            // Somebody hangs a new banner and gives it the same name.
-            MirrorManager.add(stamped(new QuantumMirror("museum",
-                new MirrorBlock("world", 10, 64, 10),
-                new MirrorPoint("far", 0, 64, 0, 0f, 0f)))
-                .withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC));
-
-            when(walker.getLocation()).thenReturn(new Location(world, 200.0, 64.0, 10.0));
-            MirrorProximity.tick();
-            walkUpTo(walker);
-            MirrorProximity.tick();
-
-            assertTrue(sampleCount(destination) > afterFirst,
-                "the new mirror should read its own far side, not wait out the old one's clock");
-        }
+        assertEquals(0, sampleCount(destination), "the far side is never read on approach");
+        assertEquals(before, MirrorManager.byName("museum").look(),
+            "and the look is whatever stamp last put there");
     }
 
     /**
      * Setting a mirror to the display it already has changes nothing at all.
      *
      * <p>Releasing forgets who is currently near, so doing it on the way in would make the
-     * next sweep read everybody as a fresh arrival -- a reveal for people who never moved, and
-     * a dynamic mirror asked to re-read a far side nobody walked up to. Running a command
-     * should not be a way to fake an approach.
+     * next sweep read everybody as a fresh arrival -- a reveal for people who never moved.
+     * Running a command should not be a way to fake an approach.
      */
     @Test
     void settingTheDisplayItAlreadyHasIsANoOp()

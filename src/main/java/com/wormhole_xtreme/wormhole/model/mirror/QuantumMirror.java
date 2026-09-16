@@ -21,8 +21,6 @@ import java.util.List;
  *            the network may still hold somewhere else it was pointed
  * @param display
  *            whether the look is in the block for everyone, or sent to whoever comes close
- * @param mode
- *            whether the look was chosen once or is re-read from the far side
  * @param look
  *            what it looks like, or null if it has never been stamped
  * @param start
@@ -31,7 +29,7 @@ import java.util.List;
  *            how many banners wide it is, one or two
  */
 public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destination,
-    MirrorDisplay display, MirrorMode mode, MirrorLook look, String start, int width)
+    MirrorDisplay display, MirrorLook look, String start, int width)
 {
     /**
      * A mirror with nothing chosen about how it looks.
@@ -46,7 +44,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
     public QuantumMirror(final String name, final MirrorBlock banner,
         final MirrorPoint destination)
     {
-        this(name, banner, destination, MirrorDisplay.ALWAYS, MirrorMode.STATIC, null, null, 1);
+        this(name, banner, destination, MirrorDisplay.ALWAYS, null, null, 1);
     }
 
     /**
@@ -60,15 +58,13 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      *            its room
      * @param display
      *            how its look is shown
-     * @param mode
-     *            whether its look is re-read
      * @param look
      *            what it looks like, or null
      */
     public QuantumMirror(final String name, final MirrorBlock banner, final MirrorPoint destination,
-        final MirrorDisplay display, final MirrorMode mode, final MirrorLook look)
+        final MirrorDisplay display, final MirrorLook look)
     {
-        this(name, banner, destination, display, mode, look, null, 1);
+        this(name, banner, destination, display, look, null, 1);
     }
 
     /**
@@ -82,29 +78,26 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      *            its room
      * @param display
      *            how its look is shown
-     * @param mode
-     *            whether its look is re-read
      * @param look
      *            what it looks like, or null
      * @param start
      *            the mirror a right-click opens onto first, or null
      */
     public QuantumMirror(final String name, final MirrorBlock banner, final MirrorPoint destination,
-        final MirrorDisplay display, final MirrorMode mode, final MirrorLook look, final String start)
+        final MirrorDisplay display, final MirrorLook look, final String start)
     {
-        this(name, banner, destination, display, mode, look, start, 1);
+        this(name, banner, destination, display, look, start, 1);
     }
 
     /**
      * Defaults the settings, so a mirror read from an older file is not half-built.
      *
-     * <p>A null {@code display} or {@code mode} would otherwise reach the proximity sweep and
-     * the stamp, both of which switch on them. A blank start is no start, and a width is one or two.
+     * <p>A null {@code display} would otherwise reach the proximity sweep, which switches on
+     * it. A blank start is no start, and a width is one or two.
      */
     public QuantumMirror
     {
         display = (display == null) ? MirrorDisplay.ALWAYS : display;
-        mode = (mode == null) ? MirrorMode.STATIC : mode;
         start = ((start == null) || start.isBlank()) ? null : start;
         width = (width >= 2) ? 2 : 1;
     }
@@ -138,7 +131,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withDestination(final MirrorPoint newDestination)
     {
-        return new QuantumMirror(name, banner, newDestination, display, mode, look, start, width);
+        return new QuantumMirror(name, banner, newDestination, display, look, start, width);
     }
 
     /**
@@ -154,7 +147,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withName(final String newName)
     {
-        return new QuantumMirror(newName, banner, destination, display, mode, look, start, width);
+        return new QuantumMirror(newName, banner, destination, display, look, start, width);
     }
 
     /**
@@ -166,7 +159,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withBanner(final MirrorBlock newBanner)
     {
-        return new QuantumMirror(name, newBanner, destination, display, mode, look, start, width);
+        return new QuantumMirror(name, newBanner, destination, display, look, start, width);
     }
 
     /**
@@ -178,20 +171,9 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withDisplay(final MirrorDisplay newDisplay)
     {
-        return new QuantumMirror(name, banner, destination, newDisplay, mode, look, start, width);
+        return new QuantumMirror(name, banner, destination, newDisplay, look, start, width);
     }
 
-    /**
-     * The same mirror, told whether it may re-read the far side.
-     *
-     * @param newMode
-     *            static or dynamic
-     * @return a new instance; this one is unchanged
-     */
-    public QuantumMirror withMode(final MirrorMode newMode)
-    {
-        return new QuantumMirror(name, banner, destination, display, newMode, look, start, width);
-    }
 
     /**
      * The same mirror wearing a different look.
@@ -202,7 +184,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withLook(final MirrorLook newLook)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, newLook, start, width);
+        return new QuantumMirror(name, banner, destination, display, newLook, start, width);
     }
 
     /**
@@ -214,7 +196,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withStart(final String newStart)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, look, newStart, width);
+        return new QuantumMirror(name, banner, destination, display, look, newStart, width);
     }
 
     /**
@@ -226,7 +208,7 @@ public record QuantumMirror(String name, MirrorBlock banner, MirrorPoint destina
      */
     public QuantumMirror withWidth(final int newWidth)
     {
-        return new QuantumMirror(name, banner, destination, display, mode, look, start, newWidth);
+        return new QuantumMirror(name, banner, destination, display, look, start, newWidth);
     }
 
     /**

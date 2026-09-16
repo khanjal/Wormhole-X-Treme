@@ -856,6 +856,21 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **`stamp` is about the banner, `capture` is about the room, and nothing changes either on its
+  own.** "If we still use the stamp anywhere we shouldn't update the banner automatically. It
+  should be an understood command. Maybe separate ones for setting banner (or trying to
+  generate) and then one for regenerating the view manually." Three things did it unasked.
+  `stamp` retook the room's capture as a side effect, so a command about the banner changed what
+  people saw through the opening; `mode dynamic` re-read the far side when somebody walked up
+  and wrote what it saw to the banner; and `create` dressed a plain banner. The first two are
+  gone. `mirror set [name] capture` takes the room again, and only that; `mirror set [name]
+  stamp [look]` paints the banner, and only that; `mode` is no longer a thing a mirror has, and
+  `mirror-dynamic-resample-seconds` is gone from `config.yml` with it. A `Mode` line in an older
+  `mirror.yml` is read and ignored, and dropped on the next save. `create` still gives a plain
+  white banner the mirror pattern "if it's a plain banner. If the banner has a pattern leave
+  it," which is what it did already. The sweep has one reason to visit a mirror now, hiding it,
+  so a mirror that never hides is never visited.
+
 - **`mirror set` is the one door to what a mirror has.** "Thinking getting rid of stamp, mode,
   display, start from the main submenu and move it to an edit menu?" Four verbs were most of the
   usage line, and none of them is what somebody making a first mirror is after. The top is

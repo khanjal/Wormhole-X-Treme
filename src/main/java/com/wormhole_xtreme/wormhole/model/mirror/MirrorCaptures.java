@@ -297,20 +297,6 @@ public final class MirrorCaptures
         }
     }
 
-    /**
-     * Whether a mirror's capture is old enough that a dynamic mirror should take it again.
-     *
-     * @param mirror
-     *            the mirror
-     * @param capture
-     *            its capture
-     * @return true if it is dynamic and the resample interval has passed
-     */
-    static boolean due(final QuantumMirror mirror, final MirrorCapture capture)
-    {
-        return (mirror.mode() == MirrorMode.DYNAMIC) && ((System.currentTimeMillis() - capture.takenAt())
-            >= (ConfigManager.getMirrorDynamicResampleSeconds() * 1000L));
-    }
 
     /**
      * Whether a capture is smaller than one taken now would be, so it should be taken again.

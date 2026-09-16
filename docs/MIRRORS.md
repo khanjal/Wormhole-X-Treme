@@ -114,9 +114,9 @@ problem and left it looking fixed. Being enclosed drives three decisions — the
 the commonest block replaces the cloth colour, and whether that block also gets a square — and
 a fourth in the sentence the command prints. A mirror onto the Nether went on losing its red to
 whatever netherrack averaged to, and `mirror stamp` kept a *second copy* of the frame rule
-without the flag, so stamping by hand dressed a Nether mirror as a room while a dynamic one
-corrected itself on the next approach. One banner, two appearances, depending on which code
-touched it last.
+without the flag, so stamping by hand dressed a Nether mirror as a room while the sweep's own
+re-read (dynamic mode, since retired) corrected it on the next approach. One banner, two
+appearances, depending on which code touched it last.
 
 All four now ask `MirrorPreset.readsAsARoom(view)`, which is the one place that knows the
 difference between somewhere enclosed and somewhere that is a room. If you add a preset for a
@@ -125,36 +125,25 @@ place that is enclosed by its nature, `Sheltered=true` is the whole of what you 
 The threshold is a judgement and nothing more. At 55% a cellar reads as indoors, which is
 right, and a forest does not, which is also right.
 
-### Static and dynamic
+### A snapshot, not a subscription
 
-A **static** mirror is sampled once, when it is stamped, and never again. Two reasons, and the
-second is the stronger one:
+A mirror is sampled once, when it is stamped, and never again. Two reasons, and the second is
+the stronger one:
 
 - Re-reading the far side on every click would mean loading a distant chunk on a click.
 - A banner that changed on its own would be worse to build with. A look an operator chose
   should stay chosen.
 
-Rebuild the room and the banner still shows the old one until somebody stamps it again: a
-snapshot, not a subscription, the same bargain a mirror's capture makes.
+Rebuild the room and the banner still shows the old one until somebody stamps it again, and the
+room people see through the opening is the capture as it was taken until somebody runs
+`mirror set capture`. The same bargain twice, and each is its own command on purpose: `stamp`
+used to retake the capture as a side effect, so a command about the banner changed the view.
 
-A **dynamic** mirror re-reads the far side, but only when somebody walks up to it and only
-after `mirror-dynamic-resample-seconds` have passed since the last read. That is what makes it
-affordable: sampling still loads a distant chunk, so a mirror nobody visits is never sampled at
-all, and a player pacing in front of one gets the same answer until the interval is up.
-
-This is independent of `display`, and genuinely so — for a while it was not, which is worth
-recording because the mistake is an easy one to make again. The sweep visited only proximity
-mirrors and gave up entirely on a server without per-player block updates, so `always` plus
-`dynamic` never re-read anything and `dynamic` did nothing at all on 1.20. The two are separate
-because their costs are separate: hiding needs a packet per player and therefore a server that
-can send one, while re-reading writes to the banner everybody already sees and needs neither.
-
-A dynamic mirror that has never been stamped will take its first look on the first approach.
-Otherwise `mode dynamic` would describe something only `stamp` could start.
-
-The re-read look is kept in memory and written to the banner, but not saved to `mirror.yml` on
-every approach — a busy corridor would otherwise be a stream of file writes, and a dynamic
-mirror re-reads on the next approach anyway. The worst a restart costs is one sample.
+There was a **dynamic** mode for a while, which re-read the far side when somebody walked up,
+throttled by `mirror-dynamic-resample-seconds`, and wrote what it saw to the banner. It went
+with the network: "we shouldn't update the banner automatically. It should be an understood
+command." A `Mode` line in an older `mirror.yml` is read and ignored, and dropped on the next
+save; the setting is gone from `config.yml`.
 
 ## Always and proximity
 
@@ -203,9 +192,8 @@ anything touches a block it has ruled out mirrors it has no reason to visit, wor
 loaded, and chunks that are not loaded — the chunk check comes before `getBlockAt`, which would
 load one.
 
-There are two reasons to visit a mirror and both are narrow: hiding it, and keeping a dynamic
-one current. So a server whose mirrors are all ordinary does no work here beyond walking the
-list.
+There is one reason to visit a mirror and it is narrow: hiding it. So a server whose mirrors
+are all ordinary does no work here beyond walking the list.
 
 That was briefly untrue. When a mirror first learned to name itself it did so on approach, which
 meant this sweep had to visit every ordinary mirror to work out who was near it — a distance
@@ -556,7 +544,7 @@ compares names instead — a few hundred times per stamp, and no registry needed
 ## Which banner you are looking at
 
 `create` has to turn "the banner in front of me" into a block, and one ray cast is not enough to
-do it. `start`, `stamp`, `display`, `mode` and `remove` do too, when no name is given: the same
+do it. `start`, `stamp`, `display`, `capture` and `remove` do too, when no name is given: the same
 search, and then the block index answers which mirror it is.
 
 Those take a name **or** the banner you are facing, because the mirror somebody wants to change is
@@ -564,8 +552,8 @@ usually the one they are standing in front of. `create` keeps its required name:
 thing that has no name yet.
 
 Two words have to be told apart for that to work. `display proximity` is a setting with no name;
-`display museum proximity` is both. Only the real setting words — `always`, `proximity`,
-`static`, `dynamic` — are read that way, so `display museum` is still a name with the setting
+`display museum proximity` is both. Only the real setting words — `always`, `proximity` —
+are read that way, so `display museum` is still a name with the setting
 forgotten and still answers with the form, rather than complaining that `museum` is not a way to
 show a mirror. `stamp` has the harder version of the same question, because `stamp cavern` could
 be a mirror or a look: a mirror wins, since that is what the word meant before the name became

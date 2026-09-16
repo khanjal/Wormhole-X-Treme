@@ -5,10 +5,8 @@ import java.util.Locale;
 /**
  * When a mirror shows its look.
  *
- * <p>Separate from {@link MirrorMode} on purpose: this is about when the look is visible, that
- * is about where the look comes from. A proximity mirror can be static or dynamic and an always
- * mirror can be either too, so folding them into one setting would make four values where two
- * questions read more clearly.
+ * <p>About when the look is visible, not where it comes from: the look is whatever
+ * {@code mirror set stamp} last put there, and only that.
  */
 public enum MirrorDisplay
 {

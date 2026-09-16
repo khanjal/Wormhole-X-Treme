@@ -39,7 +39,6 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
@@ -292,7 +291,7 @@ class MirrorCommandTest
      * <p>The museum case: a room of mirrors named after the worlds they open onto, wanting
      * names that say what is through them instead. Before this, {@code set} looked the name up
      * by the *new* name, found nothing, and built a mirror from scratch -- so the rename
-     * silently dropped the destination, the look and the display mode, and left the old name in
+     * silently dropped the destination, the look and the display setting, and left the old name in
      * place beside it, both claiming the banner. The reply said "It goes nowhere yet", which
      * reads as a next step rather than as a warning that the mirror has just been undone.
      */
@@ -302,7 +301,7 @@ class MirrorCommandTest
         final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
         final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("world_2011_05_09", hung, far,
-            MirrorDisplay.PROXIMITY, MirrorMode.DYNAMIC, MirrorLook.named("cavern")));
+            MirrorDisplay.PROXIMITY, MirrorLook.named("cavern"), "hub"));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -313,7 +312,7 @@ class MirrorCommandTest
         assertEquals(far, renamed.destination(), "a rename must not unpoint the mirror");
         assertEquals(MirrorLook.named("cavern"), renamed.look(), "nor forget how it looks");
         assertEquals(MirrorDisplay.PROXIMITY, renamed.display());
-        assertEquals(MirrorMode.DYNAMIC, renamed.mode());
+        assertEquals("hub", renamed.start(), "nor the mirror it opens onto first");
         assertNull(MirrorManager.byName("world_2011_05_09"),
             "the old name should be gone, not left beside it claiming the same banner");
         assertEquals(renamed, MirrorManager.at(hung),
@@ -332,7 +331,7 @@ class MirrorCommandTest
     {
         final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 40, 64, 40), far,
-            MirrorDisplay.PROXIMITY, MirrorMode.STATIC, MirrorLook.named("end")));
+            MirrorDisplay.PROXIMITY, MirrorLook.named("end")));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -616,19 +615,6 @@ class MirrorCommandTest
             "the setting landed on the mirror nobody named");
     }
 
-    /** And {@code mode}, which reads its words by the same rule. */
-    @Test
-    void modeTakesTheBannerBeingLookedAtWhenOnlyGivenItsSetting()
-    {
-        MirrorManager.add(new QuantumMirror("nether-return",
-            new MirrorBlock("world", 1, 64, 1), null));
-        final Block inFront = banner(Material.WHITE_WALL_BANNER);
-        when(player.getTargetBlockExact(6)).thenReturn(inFront);
-
-        assertTrue(run(player, "mirror", "set", "mode", "dynamic"));
-
-        assertEquals(MirrorMode.DYNAMIC, MirrorManager.byName("nether-return").mode());
-    }
 
     /**
      * A name with its setting forgotten still gets the form.
@@ -940,7 +926,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set"));
         assertTrue(run(player, "mirror", "set", "museum"));
 
-        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <stamp|display|mode|start>"));
+        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <stamp|display|start|capture>"));
     }
 
     /** A word that is not one of the four says so, and then the form. */
@@ -952,7 +938,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
 
         verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
-        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <stamp|display|mode|start>"));
+        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <stamp|display|start|capture>"));
     }
 
     /**
@@ -988,5 +974,41 @@ class MirrorCommandTest
 
         assertNull(MirrorManager.byName("start"), "not made");
         verify(player, atLeastOnce()).sendMessage(contains("cannot be called that"));
+    }
+
+    /** A console has no banner in front of it, so capture with no name gets its form. */
+    @Test
+    void captureWithNoNameFromAConsoleSaysItsForm()
+    {
+        final CommandSender console = mock(CommandSender.class);
+        when(console.isOp()).thenReturn(true);
+
+        assertTrue(run(console, "mirror", "set", "capture"));
+
+        verify(console, atLeastOnce()).sendMessage(contains("set [<name>] capture"));
+    }
+
+    /**
+     * A room whose world is not loaded cannot be captured, and the reply names the world.
+     *
+     * <p>The one way a capture request fails: a capture already being taken counts as taken, so
+     * the message must not offer that as a reason.
+     */
+    @Test
+    void captureSaysWhichWorldIsNotLoadedWhenTheRoomCannotBeTaken()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
+            new MirrorPoint("archive", 0, 64, 0, 0f, 0f)));
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("archive")).thenReturn(null);
+
+            assertTrue(run(player, "mirror", "set", "museum", "capture"));
+        }
+
+        verify(player, atLeastOnce()).sendMessage(contains("cannot be captured now"));
+        verify(player, atLeastOnce()).sendMessage(contains("archive"));
+        verify(player, never()).sendMessage(contains("Capturing"));
     }
 }

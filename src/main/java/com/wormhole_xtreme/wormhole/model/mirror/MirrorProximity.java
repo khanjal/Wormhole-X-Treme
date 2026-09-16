@@ -52,9 +52,6 @@ public final class MirrorProximity
     /** Who has been sent each mirror's blank, by mirror name. */
     private static final Map<String, Set<UUID>> HIDING = new HashMap<>();
 
-    /** When each dynamic mirror last re-read its far side, by mirror name. */
-    private static final Map<String, Long> SAMPLED = new HashMap<>();
-
     /** Static state only. */
     private MirrorProximity()
     {
@@ -85,7 +82,6 @@ public final class MirrorProximity
     {
         SHOWING.clear();
         HIDING.clear();
-        SAMPLED.clear();
         MirrorWindows.clear();
     }
 
@@ -132,7 +128,6 @@ public final class MirrorProximity
     public static void forget(final QuantumMirror mirror)
     {
         release(mirror);
-        SAMPLED.remove(mirror.name());
         MirrorCaptures.forget(mirror);
         MirrorNetwork.forget(mirror.name());
     }
@@ -203,20 +198,11 @@ public final class MirrorProximity
             {
                 continue;
             }
-            if (!offerWindow(mirror))
+            // Hiding needs per-player block updates, so it needs a server that has them.
+            if (!offerWindow(mirror) && (mirror.display() == MirrorDisplay.PROXIMITY)
+                && MirrorPackets.available())
             {
-                // Two separate reasons to visit a mirror, and they are not the same reason.
-                // Hiding needs per-player block updates, so it needs a server that has them.
-                // Re-reading the far side needs only somebody to walk up, and writes its result
-                // to the banner everybody can see -- so it works on 1.20, and on a mirror that
-                // never hides. The two settings are documented as independent; this is where
-                // that is either true or a lie.
-                final boolean hides = (mirror.display() == MirrorDisplay.PROXIMITY)
-                    && MirrorPackets.available();
-                if (hides || (mirror.mode() == MirrorMode.DYNAMIC))
-                {
-                    tickOne(mirror, hides);
-                }
+                tickOne(mirror);
             }
         }
         // Windows share walls, so they are drawn together once every one has been found. A
@@ -249,11 +235,8 @@ public final class MirrorProximity
      *
      * @param mirror
      *            the mirror to visit
-     * @param hides
-     *            whether this one sends the blank to people who are far away, as opposed to
-     *            being visited only to keep its look current
      */
-    private static void tickOne(final QuantumMirror mirror, final boolean hides)
+    private static void tickOne(final QuantumMirror mirror)
     {
         if (nothingToDo(mirror))
         {
@@ -270,20 +253,12 @@ public final class MirrorProximity
 
         final Set<UUID> wasShowing = SHOWING.getOrDefault(mirror.name(), Set.of());
         final Set<UUID> wasHiding = HIDING.getOrDefault(mirror.name(), Set.of());
-        // Once per sweep rather than once per arriving player. The throttle would swallow the
-        // extra calls anyway, but asking once says plainly that a re-read belongs to the
-        // mirror and not to whoever happened to walk up to it.
-        final QuantumMirror current = anybodyNew(near, wasShowing) ? resampled(mirror) : mirror;
-
-        if (hides)
-        {
-            sendCrossings(current, block, near, far, wasShowing, wasHiding);
-        }
+        sendCrossings(mirror, block, near, far, wasShowing, wasHiding);
         // Replaced rather than merged, which is what drops a player who logged out or walked
         // into another world without this needing an event to hear about it. A mirror that
         // hides nothing tracks nobody as hidden, so there is nothing to hand back later.
         put(SHOWING, mirror.name(), ids(near));
-        put(HIDING, mirror.name(), hides ? ids(far) : Set.of());
+        put(HIDING, mirror.name(), ids(far));
     }
 
     /**
@@ -314,18 +289,6 @@ public final class MirrorProximity
         }
     }
 
-    /** @return true if somebody in range was not in range last sweep */
-    private static boolean anybodyNew(final List<Player> near, final Set<UUID> wasShowing)
-    {
-        for (final Player player : near)
-        {
-            if (!wasShowing.contains(player.getUniqueId()))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * Sends to the people who crossed the line since the last sweep, and nobody else.
@@ -364,10 +327,7 @@ public final class MirrorProximity
     /**
      * Whether this mirror has nothing for the sweep to do.
      *
-     * <p>A mirror with no look has nothing to hide and nothing to reveal. A dynamic one is the
-     * exception: it can go and get its first look, which is what {@code mode dynamic} promises
-     * when it says the mirror re-reads the far side on approach. Without the exception that
-     * promise would hold only for a mirror somebody had already stamped by hand.
+     * <p>A mirror with no look has nothing to hide and nothing to reveal.
      *
      * @param mirror
      *            the mirror being considered
@@ -376,10 +336,7 @@ public final class MirrorProximity
     private static boolean nothingToDo(final QuantumMirror mirror)
     {
         final MirrorLook look = mirror.look();
-        final boolean unstamped = (look == null) || look.isEmpty();
-        final boolean couldLearnOne =
-            (mirror.mode() == MirrorMode.DYNAMIC) && (mirror.destination() != null);
-        return unstamped && !couldLearnOne;
+        return (look == null) || look.isEmpty();
     }
 
     /** The live banner block, or null if it cannot be reached or is no longer a banner. */
@@ -422,52 +379,7 @@ public final class MirrorProximity
         }
     }
 
-    /**
-     * Re-reads the far side, if this is a dynamic mirror and the interval has passed.
-     *
-     * <p>On arrival only, and throttled, because sampling loads a distant chunk. A mirror
-     * nobody walks up to is never sampled however dynamic it is, and a player pacing in front
-     * of one gets the same answer until the interval is up.
-     *
-     * <p>The new look is kept in memory and deliberately not written to disk. Saving on every
-     * approach would turn a busy corridor into a stream of file writes, and a dynamic mirror
-     * re-reads on the next approach anyway -- so the worst a restart costs is one sample.
-     *
-     * @param mirror
-     *            the mirror somebody has just walked up to
-     * @return the mirror to show, which is the same one unless it has just been re-read
-     */
-    private static QuantumMirror resampled(final QuantumMirror mirror)
-    {
-        if ((mirror.mode() != MirrorMode.DYNAMIC) || (mirror.destination() == null)
-            || !dueASample(mirror.name()))
-        {
-            return mirror;
-        }
-        final MirrorView seen = MirrorView.look(mirror.destination());
-        if (seen == null)
-        {
-            // Stamped only on a real reading. Recording the attempt would mean a destination
-            // world that happened to be down when somebody walked up stayed stale for another
-            // whole interval after it came back -- and a look that returned nothing costs
-            // nothing, because look() gives up the moment it finds no world.
-            return mirror;
-        }
-        SAMPLED.put(mirror.name(), System.currentTimeMillis());
-        final QuantumMirror updated = mirror.withLook(MirrorLook.seen(seen));
-        MirrorManager.add(updated);
-        // The world's banner is the copy that survives this plugin, so it is kept current too.
-        MirrorStamp.applyLook(bannerOf(updated), updated.look());
-        return updated;
-    }
 
-    /** Whether enough time has passed to read one mirror's far side again. */
-    private static boolean dueASample(final String name)
-    {
-        final long interval = ConfigManager.getMirrorDynamicResampleSeconds() * 1000L;
-        final Long last = SAMPLED.get(name);
-        return (last == null) || ((System.currentTimeMillis() - last) >= interval);
-    }
 
     /** Gives one player the block as it really is: stamped. */
     private static void reveal(final QuantumMirror mirror, final Block block,

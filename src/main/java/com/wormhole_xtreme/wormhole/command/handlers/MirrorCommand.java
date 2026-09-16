@@ -24,7 +24,6 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorLook;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorNetwork;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPlacement;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorPoint;
@@ -49,7 +48,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * mirror set [name] start &lt;m|none&gt;  the mirror a right-click opens onto first
  * mirror set [name] stamp [look]    give the banner a look
  * mirror set [name] display &lt;how&gt;   show its look always, or only up close
- * mirror set [name] mode &lt;how&gt;      keep the look, or re-read the far side
+ * mirror set [name] capture         take the room's capture again
  * mirror remove [name]              forget it; the banner becomes an ordinary banner again
  * mirror list                       every mirror, and what each shows
  * </pre>
@@ -66,7 +65,9 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * that look and nothing else. Given no look, it goes and reads the far side -- the biome there
  * picks the frame, and the blocks around the arrival point become a few coarse squares in the
  * colours that dominate. A corridor of stamped mirrors then reads as a row of labelled doors
- * without anyone having chosen a label.
+ * without anyone having chosen a label. It touches the banner and only the banner: the
+ * capture a window draws from is taken again by {@code capture}, and by nothing else on
+ * purpose. "It should be an understood command."
  *
  * <p>Every verb needs the config node, the same as gate and ring management: a mirror moves
  * players between worlds, which is not something to leave open to anyone who can run
@@ -120,7 +121,7 @@ public class MirrorCommand implements SubCommand
     private static final String[] VERBS = { CREATE, SET, "remove", "list" };
 
     /** What {@code set} can change, and so the words {@code create} refuses as a name. */
-    private static final String[] PROPERTIES = { "stamp", "display", "mode", "start" };
+    private static final String[] PROPERTIES = { "stamp", "display", "start", "capture" };
 
     /** The same four, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
@@ -210,7 +211,7 @@ public class MirrorCommand implements SubCommand
         {
             case "stamp" -> stamp(sender, shifted);
             case "display" -> display(sender, shifted);
-            case "mode" -> mode(sender, shifted);
+            case "capture" -> capture(sender, shifted);
             default -> start(sender, shifted);
         }
     }
@@ -486,9 +487,6 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        // Stamping is looking at the far side again, so the window's capture is taken again
-        // too. Nothing to say about it: the view changes when the new one is ready.
-        MirrorCaptures.retake(mirror);
         // Two readings of one word, never both at once: the look alone, or the look after the
         // name. Nested as one expression this was the least readable line in the command.
         final String afterTheName = (args.length > 3) ? args[3] : null;
@@ -751,9 +749,10 @@ public class MirrorCommand implements SubCommand
         final Block block = world.getBlockAt(at.x(), at.y(), at.z());
         if (!isBanner(block))
         {
+            // create with a name that exists moves that mirror to the banner being looked at.
             say(sender, MirrorText.quoted(mirror.name()) + " is not a banner any more. Put one"
-                + " back, or re-run " + MirrorText.command("/wormhole mirror set")
-                + " on a banner that is there.");
+                + " back, or run " + MirrorText.command("/wormhole mirror create " + mirror.name())
+                + " looking at a banner that is there.");
             return null;
         }
         return block;
@@ -829,44 +828,6 @@ public class MirrorCommand implements SubCommand
         }
     }
 
-    /** Says whether a mirror keeps the look it was given or re-reads the far side. */
-    private static void mode(final CommandSender sender, final String[] args)
-    {
-        // By the same rule display uses: a setting word alone means the banner being looked at.
-        final boolean unnamed = (args.length == 3) && (MirrorMode.of(args[2]) != null);
-        if ((args.length < 4) && !unnamed)
-        {
-            sayModeUsage(sender);
-            return;
-        }
-        final String word = args[unnamed ? 2 : 3];
-        final QuantumMirror mirror = namedOrLookedAt(sender, unnamed ? null : args[2],
-            () -> sayModeUsage(sender));
-        if (mirror == null)
-        {
-            return;
-        }
-        final MirrorMode wanted = MirrorMode.of(word);
-        if (wanted == null)
-        {
-            say(sender, "A mirror is " + MirrorText.quoted("static") + " or "
-                + MirrorText.quoted("dynamic") + ", not " + MirrorText.quoted(word) + ".");
-            return;
-        }
-        MirrorManager.add(mirror.withMode(wanted));
-        MirrorYamlManager.saveAll();
-        if (wanted == MirrorMode.STATIC)
-        {
-            say(sender, MirrorText.quoted(mirror.name()) + " keeps the look it was given.");
-            return;
-        }
-        say(sender, MirrorText.quoted(mirror.name())
-            + " re-reads the far side when somebody walks up to");
-        say(sender, "it, at most every " + ConfigManager.getMirrorDynamicResampleSeconds()
-            + " seconds. Set it to " + MirrorText.name("proximity")
-            + " as well if you want");
-        say(sender, "it to go dark in between.");
-    }
 
     /**
      * Sets the mirror one opens onto when nobody at it has chosen.
@@ -919,6 +880,34 @@ public class MirrorCommand implements SubCommand
     private static void sayStartUsage(final CommandSender sender)
     {
         sayUsage(sender, "set [<name>] start <mirror|none>");
+    }
+
+    /**
+     * Takes a mirror's capture again: the photograph of its room that every window draws from.
+     *
+     * <p>The one way a capture is retaken by hand. {@code stamp} used to do it as a side
+     * effect, so a command about the banner changed what people saw through the opening; and
+     * {@code mode dynamic} did it on approach, so the room and the banner changed under a
+     * player who had asked for neither. Both are gone: what a mirror shows changes when
+     * somebody says so.
+     */
+    private static void capture(final CommandSender sender, final String[] args)
+    {
+        final QuantumMirror mirror = namedOrLookedAt(sender, (args.length > 2) ? args[2] : null,
+            () -> sayUsage(sender, "set [<name>] capture"));
+        if (mirror == null)
+        {
+            return;
+        }
+        if (MirrorCaptures.retake(mirror))
+        {
+            say(sender, "Capturing " + MirrorText.quoted(mirror.name()) + "'s room again; the view"
+                + " changes when the new one is ready.");
+            return;
+        }
+        // request() answers true for a capture already being taken, so this is the one way it fails.
+        say(sender, MirrorText.quoted(mirror.name()) + "'s room cannot be captured now: "
+            + MirrorText.name(mirror.destination().worldName()) + " is not loaded.");
     }
 
     private static void remove(final CommandSender sender, final String[] args)
@@ -1005,10 +994,6 @@ public class MirrorCommand implements SubCommand
         if (mirror.display() != MirrorDisplay.ALWAYS)
         {
             notes.add(mirror.display().lower());
-        }
-        if (mirror.mode() != MirrorMode.STATIC)
-        {
-            notes.add(mirror.mode().lower());
         }
         if (mirror.start() != null)
         {
@@ -1203,11 +1188,6 @@ public class MirrorCommand implements SubCommand
         sayUsage(sender, "set [<name>] display <always|proximity>");
     }
 
-    /** @see #mode */
-    private static void sayModeUsage(final CommandSender sender)
-    {
-        sayUsage(sender, "set [<name>] mode <static|dynamic>");
-    }
 
     /**
      * The mirror a verb is about: the one named, or the one on the banner being looked at.

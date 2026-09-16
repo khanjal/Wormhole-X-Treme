@@ -27,12 +27,11 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorBlock;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorDisplay;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorManager;
-import com.wormhole_xtreme.wormhole.model.mirror.MirrorMode;
 import com.wormhole_xtreme.wormhole.model.mirror.MirrorText;
 import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
 
 /**
- * {@code mirror display} and {@code mirror mode} -- the two settings, and how they refuse.
+ * {@code mirror set display} -- the setting, and how it refuses.
  *
  * <p>Neither touches a block, which is the point of testing them apart from the rest: they are
  * pure registry edits, and what is worth pinning down is that they persist, that they refuse a
@@ -89,26 +88,7 @@ class MirrorSettingsCommandTest
         verify(sender, atLeastOnce()).sendMessage(contains("everyone"));
     }
 
-    @Test
-    void setsAMirrorToDynamicAndSaysHowOftenItWillLook()
-    {
-        assertTrue(run("mirror", "set", "museum", "mode", "dynamic"));
 
-        assertEquals(MirrorMode.DYNAMIC, MirrorManager.byName("museum").mode());
-        verify(sender, atLeastOnce()).sendMessage(contains("re-reads the far side"));
-        verify(sender, atLeastOnce()).sendMessage(contains("seconds"));
-    }
-
-    @Test
-    void setsAMirrorBackToStatic()
-    {
-        run("mirror", "set", "museum", "mode", "dynamic");
-
-        assertTrue(run("mirror", "set", "museum", "mode", "static"));
-
-        assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
-        verify(sender, atLeastOnce()).sendMessage(contains("keeps the look"));
-    }
 
     @Test
     void refusesAWordThatIsNeitherAlwaysNorProximity()
@@ -121,61 +101,47 @@ class MirrorSettingsCommandTest
             .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "sideways"));
     }
 
-    @Test
-    void refusesAWordThatIsNeitherStaticNorDynamic()
-    {
-        run("mirror", "set", "museum", "mode", "interpretive");
-
-        assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
-        verify(sender, atLeastOnce())
-            .sendMessage(contains("'" + MirrorText.NAME_COLOUR + "interpretive"));
-    }
 
     @Test
-    void showsTheFormWhenNeitherVerbIsGivenItsSetting()
+    void showsTheFormWhenNotGivenItsSetting()
     {
         assertTrue(run("mirror", "set", "museum", "display"));
-        assertTrue(run("mirror", "set", "museum", "mode"));
 
         verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] display <always|proximity>"));
-        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] mode <static|dynamic>"));
     }
 
     @Test
     void namesTheUnknownMirrorRatherThanTheSetting()
     {
         run("mirror", "set", "nosuch", "display", "proximity");
-        run("mirror", "set", "nosuch", "mode", "dynamic");
 
         verify(sender, atLeastOnce())
             .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
     }
 
     /**
-     * Both settings survive being written and read back.
+     * The setting survives being written and read back.
      *
      * <p>Through the real file, because that is where a setting an operator chose actually has
      * to last -- one that only lives in memory is one they set again after every restart
      * without understanding why.
      */
     @Test
-    void bothSettingsSurviveARestart()
+    void theSettingSurvivesARestart()
     {
         run("mirror", "set", "museum", "display", "proximity");
-        run("mirror", "set", "museum", "mode", "dynamic");
 
         MirrorManager.clear();
         com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
 
         assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("museum").display());
-        assertEquals(MirrorMode.DYNAMIC, MirrorManager.byName("museum").mode());
     }
 
     /**
      * A list of ordinary mirrors says nothing extra, and a changed one says what changed.
      *
-     * <p>A list where most lines end in "(always, static)" is a list nobody reads to the end
-     * of, and those two words carry nothing when they are what everything says.
+     * <p>A list where most lines end in "(always)" is a list nobody reads to the end of, and
+     * the word carries nothing when it is what everything says.
      */
     @Test
     void listsOnlyTheSettingsThatAreNotTheDefault()
@@ -184,10 +150,9 @@ class MirrorSettingsCommandTest
         verify(sender, never()).sendMessage(contains("(always"));
 
         run("mirror", "set", "museum", "display", "proximity");
-        run("mirror", "set", "museum", "mode", "dynamic");
         run("mirror", "list");
 
-        verify(sender, atLeastOnce()).sendMessage(contains("(proximity, dynamic)"));
+        verify(sender, atLeastOnce()).sendMessage(contains("(proximity)"));
     }
 
     /**
