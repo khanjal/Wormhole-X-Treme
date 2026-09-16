@@ -196,6 +196,12 @@ public class MirrorCommand implements SubCommand
             saySetUsage(sender);
             return;
         }
+        // "set hub start" with no value would shift to "start hub", the looked-at banner's start.
+        if ("start".equals(property) && (at == 3) && (args.length == 4))
+        {
+            sayStartUsage(sender);
+            return;
+        }
         final List<String> asVerb = new ArrayList<>();
         asVerb.add(args[0]);
         asVerb.add(property);
