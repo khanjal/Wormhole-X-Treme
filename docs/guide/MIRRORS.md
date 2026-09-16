@@ -48,7 +48,7 @@ Make a mirror in another world the same way, and the two find each other:
 - **Give it a start** to put one mirror first in its list: `/wormhole mirror set archive -start hub`
   has the first right-click on the mirror in an archived world open onto the main world's `hub`,
   and the next go on through the rest by name. It still shows its own room until somebody
-  right-clicks it. `start archive none` takes the start away.
+  right-clicks it. `mirror set archive -start -none` takes the start away.
 
 A mirror needs solid wall a block out on every side of its opening — a gap is refused by the block
 to fill — and a banner on a post cannot be one. Two blocks out hides the room's edges better from

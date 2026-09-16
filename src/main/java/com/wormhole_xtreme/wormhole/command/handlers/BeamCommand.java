@@ -214,14 +214,7 @@ public class BeamCommand implements SubCommand
         // refusing the word.
         if (CommandHandlerUtils.verbIs(action, "set", "create"))
         {
-            if (dashed(player, name))
-            {
-                return;
-            }
-            BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
-            BeamYamlManager.saveAll();
-            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Public beam destination \"" + name + "\" set to your current location.");
+            setPublic(player, name);
             return;
         }
         if ("remove".equals(action))
@@ -580,6 +573,18 @@ public class BeamCommand implements SubCommand
         player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
             + "Unknown. Try /wormhole beam place list|set <name>|remove <name>, "
             + "or /wormhole beam to <name> to travel.");
+    }
+
+    private static void setPublic(final Player player, final String name)
+    {
+        if (dashed(player, name))
+        {
+            return;
+        }
+        BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
+        BeamYamlManager.saveAll();
+        player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+            + "Public beam destination \"" + name + "\" set to your current location.");
     }
 
     /** Refuses a new name starting with a dash, since words that do are options. */

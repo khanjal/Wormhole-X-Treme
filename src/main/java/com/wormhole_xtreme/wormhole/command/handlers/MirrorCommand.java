@@ -118,8 +118,11 @@ public class MirrorCommand implements SubCommand
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS = { CREATE, SET, "remove", "list" };
 
+    /** The property naming the mirror a right-click opens onto first. */
+    private static final String START = "-start";
+
     /** What {@code set} can change. Dashed, like every keyword that can stand where a name does. */
-    private static final String[] PROPERTIES = { "-stamp", "-start", "-capture" };
+    private static final String[] PROPERTIES = { "-stamp", START, "-capture" };
 
     /** The same three, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
@@ -200,7 +203,7 @@ public class MirrorCommand implements SubCommand
             return;
         }
         // "set hub start" with no value would shift to "start hub", the looked-at banner's start.
-        if ("-start".equals(property) && (at == 3) && (args.length == 4))
+        if (START.equals(property) && (at == 3) && (args.length == 4))
         {
             sayStartUsage(sender);
             return;
@@ -235,7 +238,7 @@ public class MirrorCommand implements SubCommand
             return true;
         }
         say(sender, "A mirror's name cannot start with " + MirrorText.quoted("-")
-            + "; words that do are options, like " + MirrorText.name("-start") + ".");
+            + "; words that do are options, like " + MirrorText.name(START) + ".");
         return false;
     }
 
