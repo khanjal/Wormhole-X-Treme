@@ -183,15 +183,6 @@ public class ConfigManager
         MIRROR_PROXIMITY_TICKS,
 
         /**
-         * Least time between two re-readings of one dynamic mirror's far side, in seconds.
-         *
-         * <p>Re-reading means loading a distant chunk, so a player pacing in front of a mirror
-         * must not be able to ask for it every second. Nothing re-reads on a timer: a mirror
-         * nobody walks up to is never sampled at all, however dynamic it is.
-         */
-        MIRROR_DYNAMIC_RESAMPLE_SECONDS,
-
-        /**
          * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
          *
          * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
@@ -1406,17 +1397,6 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
-    /**
-     * Least time between two re-readings of one dynamic mirror's far side.
-     *
-     * @return the interval in seconds, never below zero
-     */
-    public static int getMirrorDynamicResampleSeconds()
-    {
-        final Setting s =
-            ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS);
-        return (s == null) ? 60 : Math.max(0, s.getIntValue());
-    }
 
     /**
      * How far from a viewer's eye a mirror's far side is drawn as real blocks.

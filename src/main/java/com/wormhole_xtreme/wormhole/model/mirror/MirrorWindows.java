@@ -608,7 +608,7 @@ public final class MirrorWindows
             MirrorCaptures.request(showing);
             return false;
         }
-        if (MirrorCaptures.due(showing, capture) || MirrorCaptures.outgrown(showing, capture))
+        if (MirrorCaptures.outgrown(showing, capture))
         {
             MirrorCaptures.request(showing);
         }

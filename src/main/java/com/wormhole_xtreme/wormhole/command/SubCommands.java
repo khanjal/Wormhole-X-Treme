@@ -578,10 +578,6 @@ public final class SubCommands
         {
             return new String[] { "always", "proximity" };
         }
-        if ("mode".equals(verb))
-        {
-            return new String[] { "static", "dynamic" };
-        }
         if ("start".equals(verb))
         {
             return both(mirrorNames(), new String[] { "none" });

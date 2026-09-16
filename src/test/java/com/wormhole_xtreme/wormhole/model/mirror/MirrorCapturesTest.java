@@ -8,8 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -18,7 +21,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Banner;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +33,7 @@ import org.mockito.MockedStatic;
 
 import com.wormhole_xtreme.wormhole.PluginTestSupport;
 import com.wormhole_xtreme.wormhole.WormholeXTreme;
+import com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand;
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
 import com.wormhole_xtreme.wormhole.utils.DataLayout;
@@ -274,6 +281,41 @@ class MirrorCapturesTest
         assertNull(MirrorCaptures.get(mirror), "gone from disk too");
     }
 
+    /**
+     * {@code set stamp} leaves the capture alone, and {@code set capture} takes it again.
+     *
+     * <p>"It should be an understood command." stamp used to retake the capture as a side
+     * effect, so a command about the banner changed what people saw through the opening; the
+     * only way to take a room again by hand is to ask for that.
+     */
+    @Test
+    void stampLeavesTheCaptureAloneAndCaptureTakesItAgain()
+    {
+        MirrorManager.add(mirror);
+        final Player admin = mock(Player.class);
+        when(admin.isOp()).thenReturn(true);
+        final World bannerWorld = mock(World.class);
+        final Block bannerBlock = mock(Block.class);
+        when(bannerBlock.getType()).thenReturn(Material.WHITE_WALL_BANNER);
+        when(bannerBlock.getState()).thenReturn(mock(Banner.class));
+        when(bannerWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(bannerBlock);
+        final MirrorCommand command = new MirrorCommand();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
+            bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
+            bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
+
+            command.execute(admin, new String[] { "mirror", "set", "museum", "stamp", "nether" });
+            assertEquals(0, MirrorCaptures.taking(), "stamp is about the banner, not the room");
+
+            command.execute(admin, new String[] { "mirror", "set", "museum", "capture" });
+            assertEquals(1, MirrorCaptures.taking(), "capture is what takes the room again");
+        }
+        verify(admin, atLeastOnce()).sendMessage(contains("Capturing"));
+    }
+
     @Test
     void aMirrorOntoAWorldThatIsNotLoadedCannotBeCaptured()
     {
@@ -281,16 +323,6 @@ class MirrorCapturesTest
             new MirrorBlock("world", 1, 64, 1), new MirrorPoint("gone", 0, 64, 0, 0, 0)))));
     }
 
-    @Test
-    void aDynamicMirrorIsDueAgainAfterTheIntervalAndAStaticOneNever()
-    {
-        final MirrorCapture old = new MirrorCapture.Builder("far", true, 0, 0, 0, 1, 1, 1, air)
-            .build();
-        ConfigTestSupport.set(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS, 0);
-
-        assertFalse(MirrorCaptures.due(mirror, old), "static, however old");
-        assertTrue(MirrorCaptures.due(mirror.withMode(MirrorMode.DYNAMIC), old));
-    }
 
     /**
      * A captures folder left beside the mirror file by an earlier build is moved under mirror/.

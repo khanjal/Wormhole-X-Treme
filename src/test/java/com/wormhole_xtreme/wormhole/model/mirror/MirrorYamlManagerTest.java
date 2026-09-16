@@ -263,22 +263,19 @@ class MirrorYamlManagerTest
         final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
 
         assertEquals(MirrorDisplay.ALWAYS, mirror.display());
-        assertEquals(MirrorMode.STATIC, mirror.mode());
         assertNull(mirror.look(), "it has never been stamped");
     }
 
     @Test
-    void keepsDisplayModeAndANamedLookAcrossARoundTrip()
+    void keepsDisplayAndANamedLookAcrossARoundTrip()
     {
         final QuantumMirror before = new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3),
-            null).withDisplay(MirrorDisplay.PROXIMITY).withMode(MirrorMode.DYNAMIC)
-            .withLook(MirrorLook.named("cavern"));
+            null).withDisplay(MirrorDisplay.PROXIMITY).withLook(MirrorLook.named("cavern"));
 
         final QuantumMirror after =
             MirrorYamlManager.readMirror("M", MirrorYamlManager.writeMirror(before));
 
         assertEquals(MirrorDisplay.PROXIMITY, after.display());
-        assertEquals(MirrorMode.DYNAMIC, after.mode());
         assertEquals("cavern", after.look().presetName());
         assertNull(after.look().view(), "a named look has nothing sampled behind it");
     }
@@ -362,17 +359,35 @@ class MirrorYamlManagerTest
     }
 
     @Test
-    void treatsAnUnreadableDisplayOrModeAsTheDefault()
+    void treatsAnUnreadableDisplayAsTheDefault()
     {
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("Banner", "world:1:2:3");
         map.put("Display", "sideways");
-        map.put("Mode", "interpretive");
 
         final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
 
         assertNotNull(mirror, "a typo in the cosmetics must not cost a working mirror");
         assertEquals(MirrorDisplay.ALWAYS, mirror.display());
-        assertEquals(MirrorMode.STATIC, mirror.mode());
+    }
+
+    /**
+     * A file from before {@code mode} went still reads, and its Mode line is dropped on the next save.
+     *
+     * <p>Dynamic mirrors re-read the far side on approach; that is gone, so the line means
+     * nothing now and a mirror that had it is an ordinary mirror.
+     */
+    @Test
+    void ignoresAModeLineFromAnOlderFileAndDropsItOnSave()
+    {
+        final Map<String, Object> map = new LinkedHashMap<>();
+        map.put("Banner", "world:1:2:3");
+        map.put("Mode", "dynamic");
+
+        final QuantumMirror mirror = MirrorYamlManager.readMirror("M", map);
+
+        assertNotNull(mirror, "an older file's mirror is still a mirror");
+        assertFalse(MirrorYamlManager.writeMirror(mirror).containsKey("Mode"),
+            "and nothing writes the line back");
     }
 }
