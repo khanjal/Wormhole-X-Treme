@@ -75,7 +75,7 @@ import com.wormhole_xtreme.wormhole.model.mirror.MirrorWindow.Spot;
 public final class MirrorWindows
 {
     /** How often a viewer is sent their whole view again when nothing else has prompted it. */
-    private static final long RESEND_MILLIS = 30_000L;
+    static final long RESEND_MILLIS = 30_000L;
 
     /** The unit every count in {@code mirror debug} is said in. */
     private static final String BLOCKS = " blocks";
