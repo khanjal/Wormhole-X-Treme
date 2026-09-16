@@ -40,22 +40,23 @@ jobs:
       - name: Build and run tests
         run: mvn --batch-mode verify
 
-
+      # Reports only when there is a failure to read them for; a green run's are in the log.
       - name: Upload test reports
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: surefire-reports
+          name: surefire-reports-java-${{ matrix.java }}
           path: target/surefire-reports/
-          retention-days: 14
+          retention-days: 7
 
+      # One jar a run: every JDK here builds the same Java 17 bytecode.
       - name: Upload JAR artifact
-        if: success()
+        if: success() && matrix.java == '17'
         uses: actions/upload-artifact@v7
         with:
           name: WormholeXTreme-snapshot
           path: target/WormholeXTreme-*.jar
-          retention-days: 14
+          retention-days: 7
 
   # The shipped jar is built against the oldest supported server, which stops us calling
   # anything newer by accident. That says nothing about whether a newer server has since
@@ -183,7 +184,7 @@ jobs:
           path: target/spotbugsXml.xml
           # spotbugs:check writes no report when it finds nothing to report.
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
 
   sonarcloud:
     name: SonarCloud
