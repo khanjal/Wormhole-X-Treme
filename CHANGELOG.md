@@ -8,15 +8,35 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.7.0 (unreleased)
 
+**Upgrading: command keywords now start with `-`.** A word that can stand where a name does is an
+option only with a dash, and no name may start with one. Scripts and command blocks need:
+
+| Was | Now |
+|---|---|
+| `gate remove <gate> -all` | `gate remove <gate> -destroy` |
+| `complete help` | `complete -help` |
+| `custom -clean confirm` | `custom -clean -confirm` |
+| `mirror set [name] stamp\|start\|capture` | `mirror set [name] -stamp\|-start\|-capture` |
+| `mirror set [name] start none` | `mirror set [name] -start -none` |
+| `mirror debug [name] all\|full\|on\|off` | `mirror debug [name] -all\|-full\|-on\|-off` |
+| `beam admin cost <name> default` | `beam admin cost <name> -default` |
+
 ### Stargates
 
 - **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
   with `-`.
 - **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
+- **`-all` and `-clear` are recognised whatever their capitals**, like every other option.
 
 ### Quantum mirrors
 
-- **`/wormhole mirror set <name> start` with no mirror after it is refused.**
+- **`/wormhole mirror set <name> -start` with no mirror after it is refused.**
+- **A mirror may no longer be named starting with `-`**; `start`, `stamp` and `capture` are
+  ordinary names now.
+
+### Beaming
+
+- **A beam destination or place may no longer be named starting with `-`.**
 
 ### Documentation
 

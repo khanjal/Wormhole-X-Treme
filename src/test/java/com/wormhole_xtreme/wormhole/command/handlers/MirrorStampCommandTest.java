@@ -117,7 +117,7 @@ class MirrorStampCommandTest
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
 
-            assertTrue(run("mirror", "set", "museum", "stamp", "nether"));
+            assertTrue(run("mirror", "set", "museum", "-stamp", "nether"));
         }
         verify(banner).setBaseColor(DyeColor.RED);
         verify(banner).update(anyBoolean());
@@ -142,7 +142,7 @@ class MirrorStampCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
 
-            run("mirror", "set", "museum", "stamp", "chartreuse");
+            run("mirror", "set", "museum", "-stamp", "chartreuse");
         }
         verify(banner, never()).update(anyBoolean());
         verify(sender, atLeastOnce())
@@ -175,7 +175,7 @@ class MirrorStampCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
 
-            assertTrue(run("mirror", "set", "stamp", "nether"));
+            assertTrue(run("mirror", "set", "-stamp", "nether"));
         }
         // The nether preset's red, and no complaint about a mirror called nether.
         verify(banner).setBaseColor(DyeColor.RED);
@@ -201,7 +201,7 @@ class MirrorStampCommandTest
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(farWorld);
 
-            assertTrue(run("mirror", "set", "stamp", "nether"));
+            assertTrue(run("mirror", "set", "-stamp", "nether"));
         }
         // Sand, sampled from the far side, rather than the nether preset's red. The mirror was
         // read as the name it is, and the look it shares that name with was not applied.
@@ -218,7 +218,7 @@ class MirrorStampCommandTest
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(farWorld);
 
-            assertTrue(run("mirror", "set", "museum", "stamp"));
+            assertTrue(run("mirror", "set", "museum", "-stamp"));
         }
         // Sand everywhere: solid enough to read as enclosed, so the sand's own colour becomes
         // the cloth. What matters is that it sampled at all rather than applying a default.
@@ -253,7 +253,7 @@ class MirrorStampCommandTest
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
             views.when(() -> MirrorView.look(any(MirrorPoint.class))).thenReturn(nether);
 
-            assertTrue(run("mirror", "set", "museum", "stamp"));
+            assertTrue(run("mirror", "set", "museum", "-stamp"));
         }
         // The nether preset's own red, not the brown of whatever the sample happened to be
         // mostly made of. Both halves of the old bug land on this one assertion: the wrong
@@ -275,7 +275,7 @@ class MirrorStampCommandTest
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
             views.when(() -> MirrorView.look(any(MirrorPoint.class))).thenReturn(library);
 
-            assertTrue(run("mirror", "set", "museum", "stamp"));
+            assertTrue(run("mirror", "set", "museum", "-stamp"));
         }
         verify(banner).setBaseColor(DyeColor.BROWN);
         verify(sender, atLeastOnce()).sendMessage(contains("somewhere indoors"));
@@ -289,7 +289,7 @@ class MirrorStampCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
 
-            run("mirror", "set", "museum", "stamp");
+            run("mirror", "set", "museum", "-stamp");
         }
         verify(banner, never()).update(anyBoolean());
         verify(sender, atLeastOnce()).sendMessage(contains("does not go anywhere yet"));
@@ -304,7 +304,7 @@ class MirrorStampCommandTest
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(null);
 
-            run("mirror", "set", "museum", "stamp");
+            run("mirror", "set", "museum", "-stamp");
         }
         verify(banner, never()).update(anyBoolean());
         verify(sender, atLeastOnce()).sendMessage(contains("is not loaded"));
@@ -322,7 +322,7 @@ class MirrorStampCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
 
-            run("mirror", "set", "museum", "stamp", "nether");
+            run("mirror", "set", "museum", "-stamp", "nether");
         }
         verify(stone, never()).getState();
         verify(sender, atLeastOnce()).sendMessage(contains("not a banner any more"));
@@ -331,7 +331,7 @@ class MirrorStampCommandTest
     @Test
     void namesTheUnknownMirrorInItsRefusal()
     {
-        run("mirror", "set", "nosuch", "stamp", "nether");
+        run("mirror", "set", "nosuch", "-stamp", "nether");
 
         verify(sender, atLeastOnce())
             .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
@@ -350,9 +350,9 @@ class MirrorStampCommandTest
     {
         final int loaded = MirrorPresetRegistry.names().length;
 
-        assertTrue(run("mirror", "set", "stamp"));
+        assertTrue(run("mirror", "set", "-stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] stamp [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] -stamp [<look>]"));
         verify(sender, atLeastOnce()).sendMessage(contains(loaded + " looks to choose from"));
         verify(sender, atLeastOnce()).sendMessage(contains("press tab"));
     }
@@ -396,9 +396,9 @@ class MirrorStampCommandTest
     {
         pointedMirror();
 
-        assertTrue(complete("mirror", "set", "stamp", "").contains("museum"),
+        assertTrue(complete("mirror", "set", "-stamp", "").contains("museum"),
             "the third word is a mirror");
-        assertTrue(complete("mirror", "set", "museum", "stamp", "").contains("nether"),
+        assertTrue(complete("mirror", "set", "museum", "-stamp", "").contains("nether"),
             "the fourth is a look");
         assertTrue(complete("mirror", "").contains("set"),
             "set should be offered as a verb");
@@ -429,7 +429,7 @@ class MirrorStampCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
 
-            assertTrue(run("mirror", "set", "museum", "stamp", "nether"),
+            assertTrue(run("mirror", "set", "museum", "-stamp", "nether"),
                 "the command still reports itself handled rather than throwing");
         }
         verify(banner).setBaseColor(DyeColor.RED);
@@ -447,9 +447,9 @@ class MirrorStampCommandTest
     {
         emptyRegistry();
 
-        assertTrue(run("mirror", "set", "stamp"));
+        assertTrue(run("mirror", "set", "-stamp"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] stamp [<look>]"));
+        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] -stamp [<look>]"));
     }
 
     @Test
@@ -461,7 +461,7 @@ class MirrorStampCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("world")).thenReturn(bannerWorld);
 
-            run("mirror", "set", "museum", "stamp", "nether");
+            run("mirror", "set", "museum", "-stamp", "nether");
         }
         verify(banner, never()).update(anyBoolean());
         verify(sender, atLeastOnce()).sendMessage(contains("no looks loaded at all"));

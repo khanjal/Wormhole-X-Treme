@@ -183,6 +183,10 @@ Worth knowing:
 Everything is a subcommand of `/wormhole` (alias `/wx`). Run it with no arguments for the list;
 tab completion fills in subcommands, gate names, networks and values.
 
+**Words that start with `-` are options** — `-all`, `-clear`, `-none`, `-start` — and names never
+do: a gate, mirror or beam destination cannot be called `-anything`. So wherever a name could go,
+a dashed word is always the option and a bare word is always a name.
+
 | Group | Covered in |
 |---|---|
 | `gate …` | [Gate commands](GATES.md#commands) |

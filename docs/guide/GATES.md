@@ -170,7 +170,7 @@ curate the list by hand; a group you delete then stays deleted.
 
 Older versions of `/wormhole custom <gate> true` copied the shape's materials onto the gate, which
 stops it following its group. `/wormhole custom -clean` lists affected gates, and
-`/wormhole custom -clean confirm` clears them. Only a gate whose four overrides *all* match the
+`/wormhole custom -clean -confirm` clears them. Only a gate whose four overrides *all* match the
 built-in defaults is touched, so deliberate choices are left alone.
 
 ## Signs
@@ -327,7 +327,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | `gate build <shape>` | Start building |
 | `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
 | `gate list [network]` | Gates you can see |
-| `gate remove <gate> [-all]` | Take it down |
+| `gate remove <gate> [-destroy]` | Take it down; `-destroy` takes its frame down too |
 | `gate edit <gate> <field> [value]` | Change a gate — fields below |
 | `gate go <gate>` | Teleport to it |
 | `gate force <gate>` | Dial past the usual refusals |

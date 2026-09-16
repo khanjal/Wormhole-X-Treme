@@ -234,6 +234,22 @@ class CompleteCommandTest
         verify(player).sendMessage(contains("'/wormhole gate complete -cancel'"));
     }
 
+    /** -help gives the usage, and makes nothing; help is a name like any other. */
+    @Test
+    void helpTakesADash()
+    {
+        final Player player = builder("helper");
+
+        new Complete().onCommand(player, null, "wormhole", new String[] { "-help" });
+
+        assertNull(Complete.getPendingCompletion(player));
+        verify(player).sendMessage(contains("Usage: /wormhole complete <name>"));
+
+        new Complete().onCommand(player, null, "wormhole", new String[] { "help" });
+        assertEquals("help", Complete.getPendingCompletion(player)[0], "a gate called help, waiting for its DHD");
+        Complete.removePendingCompletion(player);
+    }
+
     /** A gate name may not start with a dash, since words that do are options. */
     @Test
     void aGateNameStartingWithADashIsRefused()

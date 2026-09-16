@@ -18,6 +18,8 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 public class WXRemove implements CommandExecutor
 {
+    /** After the gate: take its frame down too, not only its registration. */
+    public static final String DESTROY = "-destroy";
 
     /* (non-Javadoc)
      * @see org.bukkit.command.CommandExecutor#onCommand(org.bukkit.command.CommandSender, org.bukkit.command.Command, java.lang.String, java.lang.String[])
@@ -51,9 +53,8 @@ public class WXRemove implements CommandExecutor
      */
     private static boolean removeNamedGate(final CommandSender sender, final String[] a)
     {
-        // "-all" means "and its blocks" as the second word. There is no "remove every gate",
-        // so in the name position it is refused rather than looked up as a gate called that.
-        if ((a.length < 1) || (a.length > 2) || "-all".equals(a[0]))
+        // No gate name starts with a dash, so a dashed word in the name position is a mistake.
+        if ((a.length < 1) || (a.length > 2) || a[0].startsWith("-"))
         {
             return false;
         }
@@ -72,7 +73,7 @@ public class WXRemove implements CommandExecutor
             return true;
         }
 
-        final boolean destroy = (a.length == 2) && a[1].equalsIgnoreCase("-all");
+        final boolean destroy = (a.length == 2) && a[1].equalsIgnoreCase(DESTROY);
         CommandUtilities.gateRemove(s, destroy, true,
             CommandUtilities.playerCheck(sender) ? (Player) sender : null);
         sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()

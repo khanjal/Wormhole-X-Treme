@@ -38,7 +38,7 @@ public class CustomCommand implements SubCommand
 
         if (args[1].equalsIgnoreCase("-clean"))
         {
-            cleanSnapshottedOverrides(sender, (args.length == 3) && "confirm".equalsIgnoreCase(args[2]));
+            cleanSnapshottedOverrides(sender, (args.length == 3) && "-confirm".equalsIgnoreCase(args[2]));
             return true;
         }
         if (args[1].equalsIgnoreCase("-all") && (args.length == 3) && com.wormhole_xtreme.wormhole.command.CommandUtilities.isBoolean(args[2]))
@@ -104,7 +104,7 @@ public class CustomCommand implements SubCommand
     /** The two lines that told the caller how to use this, written once. */
     private static void sendUsage(final CommandSender sender)
     {
-        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole custom [stargate|-all] <boolean>");
+        sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Command: /wormhole custom <gate|-all> <true|false>, or -clean [-confirm]");
         sender.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Valid boolean options are: true and false");
     }
 
@@ -155,7 +155,7 @@ public class CustomCommand implements SubCommand
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Clearing them lets those gates follow their material group.");
             sender.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "Run '/wormhole custom -clean confirm' to apply.");
+                + "Run '/wormhole custom -clean -confirm' to apply.");
             return;
         }
 

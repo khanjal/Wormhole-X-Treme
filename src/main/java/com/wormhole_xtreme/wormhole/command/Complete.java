@@ -21,6 +21,9 @@ public class Complete implements CommandExecutor, TabCompleter
     /** Drops a completion waiting for a DHD click, or a detected gate not yet named. */
     public static final String CANCEL = "-cancel";
 
+    /** Says how the command is used. */
+    public static final String HELP = "-help";
+
     /** Completions a player has been asked to confirm, holding their name, idc and network. */
     private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, String[]> pendingCompletions = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -222,7 +225,7 @@ public class Complete implements CommandExecutor, TabCompleter
         final String[] arguments = CommandUtilities.commandEscaper(args);
         if ((arguments.length <= 3) && (arguments.length > 0))
         {
-            if (arguments[0].equalsIgnoreCase("help"))
+            if (arguments[0].equalsIgnoreCase(HELP))
             {
                 if (CommandUtilities.playerCheck(sender))
                 {

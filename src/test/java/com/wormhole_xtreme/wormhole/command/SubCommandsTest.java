@@ -141,7 +141,7 @@ class SubCommandsTest
     void cleanOffersConfirmRatherThanTrueFalse()
     {
         final SubCommands.Entry custom = SubCommands.find("custom");
-        assertEquals(List.of("confirm"), custom.completeArgs(null, new String[] { "custom", "-clean", "" }));
+        assertEquals(List.of("-confirm"), custom.completeArgs(null, new String[] { "custom", "-clean", "" }));
         // The gate form still offers booleans.
         assertTrue(custom.completeArgs(null, new String[] { "custom", "someGate", "" }).contains("true"));
     }

@@ -140,7 +140,7 @@ the stronger one:
 
 Rebuild the room and the banner still shows the old one until somebody stamps it again, and the
 room people see through the opening is the capture as it was taken until somebody runs
-`mirror set capture`. The same bargain twice, and each is its own command on purpose: `stamp`
+`mirror set -capture`. The same bargain twice, and each is its own command on purpose: `stamp`
 used to retake the capture as a side effect, so a command about the banner changed the view.
 
 There was a **dynamic** mode for a while, which re-read the far side when somebody walked up,
@@ -226,7 +226,7 @@ Layer=BLACK BORDER
 
 | Key | What it is |
 | --- | --- |
-| `Name` | What `mirror set stamp` calls it. Defaults to the file name. |
+| `Name` | What `mirror set -stamp` calls it. Defaults to the file name. |
 | `Base` | The banner's own colour, one of the sixteen `DyeColor` names. Required. |
 | `Biome` | Biomes this preset answers for, comma-separated. May repeat. Optional. |
 | `Layer` | `COLOUR PATTERN`, laid on in order. May repeat. Optional. |
@@ -244,7 +244,7 @@ from the end rather than refused.
 ### The library at a glance
 
 Ninety looks is more than anybody wants to open one file at a time. The name beside each
-one is what `mirror set <name> stamp <look>` takes; the column beside that is the biome it answers
+one is what `mirror set <name> -stamp <look>` takes; the column beside that is the biome it answers
 for, or what the look is for when it answers for none.
 
 **Click a banner to see it large** — each drawing is six times the size it is shown at here, so
@@ -432,7 +432,7 @@ just never wins.
 **Twenty-four looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
 `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`, `vault`, `forge`,
 `library`, `port` and `compass` name no biome at all, so nothing picks them automatically and
-`mirror set <name> stamp <look>` is the only way to get one. They are for what an operator wants
+`mirror set <name> -stamp <look>` is the only way to get one. They are for what an operator wants
 said about a mirror when it is not where it goes: the middle of a network, the way out, one that
 is not for general use, one that leads somewhere worth thinking about first.
 
@@ -489,7 +489,7 @@ galleries publish in Mojang's pattern ids on whatever version the site runs.
 ## Which banner you are looking at
 
 `create` has to turn "the banner in front of me" into a block, and one ray cast is not enough to
-do it. `start`, `stamp`, `capture` and `remove` do too, when no name is given: the same
+do it. `-start`, `-stamp`, `-capture` and `remove` do too, when no name is given: the same
 search, and then the block index answers which mirror it is.
 
 Those take a name **or** the banner you are facing, because the mirror somebody wants to change is

@@ -125,7 +125,7 @@ class BeamCostTest
     }
 
     /**
-     * And "default" is the absence of one, not a price of zero.
+     * And "-default" is the absence of one, not a price of zero.
      *
      * <p>The other half. Clearing an override hands the destination back to the configured
      * cost; setting it to zero pins it free against any later change.
@@ -136,7 +136,7 @@ class BeamCostTest
         cost(NAME, "9");
         assertNotNull(costOf(NAME), "priced to begin with");
 
-        assertTrue(cost(NAME, "default"));
+        assertTrue(cost(NAME, "-default"));
 
         assertNull(costOf(NAME), "unpriced again, so the configured default applies");
         verify(admin).sendMessage(contains("configured default"));
@@ -148,7 +148,7 @@ class BeamCostTest
     {
         cost(NAME, "9");
 
-        assertTrue(cost(NAME, "DeFaUlT"));
+        assertTrue(cost(NAME, "-DeFaUlT"));
 
         assertNull(costOf(NAME), "the same word, said louder");
     }
@@ -198,7 +198,7 @@ class BeamCostTest
     {
         assertTrue(cost(NAME));
 
-        verify(admin).sendMessage(contains("<amount|default>"));
+        verify(admin).sendMessage(contains("<amount|-default>"));
         yaml.verify(BeamYamlManager::saveAll, never());
     }
 

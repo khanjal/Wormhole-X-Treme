@@ -95,7 +95,7 @@ public class WXIDC implements CommandExecutor
      */
     private static void setCode(final Stargate s, final String value)
     {
-        if ("-clear".equals(value))
+        if ("-clear".equalsIgnoreCase(value))
         {
             StargateManager.removeBlockIndex(s.getGateIrisLeverBlock());
             s.setIrisDeactivationCode("");
