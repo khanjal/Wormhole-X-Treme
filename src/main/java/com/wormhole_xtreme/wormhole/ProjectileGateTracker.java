@@ -173,7 +173,7 @@ class ProjectileGateTracker implements Listener
             }
             if (!hit.isEmpty())
             {
-                hit.values().removeIf(at -> (tick - at.intValue()) > HIT_TICKS);
+                hit.values().removeIf(at -> (tick - at.intValue()) >= HIT_TICKS);
             }
             if (tracked.isEmpty())
             {
