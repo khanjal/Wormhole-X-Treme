@@ -160,8 +160,8 @@ Design notes in [docs/RINGS.md](docs/RINGS.md), how-to in
 
 **Changed**
 
-- **A ring counts down for five seconds and rests for thirty**, where it was three and sixty. An
-  existing `config.yml` keeps its own values.
+- **A ring counts down for five seconds and rests for thirty seconds**, where it was three and
+  sixty. An existing `config.yml` keeps its own values.
 
 **Fixed**
 
