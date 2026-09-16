@@ -138,7 +138,7 @@ public final class GatePreviews
             return Shown.NO_DHD;
         }
         final GatePreview preview = new GatePreview(at.getWorld(), shape, grid, Palette.of(shape, group),
-            GateBlueprint.of(shape, grid), GateBlueprint.openingOf(shape, grid));
+            GateBlueprint.of(shape, grid), GateBlueprint.openingOf(shape, grid), GateBlueprint.wooshOf(shape, grid));
         if ((blocksShown() + preview.size()) > ConfigManager.getGatePreviewMaxBlocks())
         {
             return Shown.OVER_LIMIT;
@@ -164,6 +164,7 @@ public final class GatePreviews
         {
             return false;
         }
+        takeBackAll(owner, preview);
         preview.remove();
         PREVIEWS.get(owner.getUniqueId()).remove(preview);
         forgetIfEmpty(owner.getUniqueId());
@@ -200,6 +201,10 @@ public final class GatePreviews
             return Control.NOT_LOOKING;
         }
         preview.irisClosed(!preview.irisClosed());
+        if (preview.irisClosed())
+        {
+            takeBack(owner, preview, preview.opening());
+        }
         sound(owner, preview.irisClosed() ? ConfigManager.getGateSoundIrisClose() : ConfigManager.getGateSoundIrisOpen(),
             1.0f);
         restyle(preview);
@@ -348,7 +353,11 @@ public final class GatePreviews
         {
             return 0;
         }
-        mine.forEach(GatePreview::remove);
+        mine.forEach(preview ->
+        {
+            takeBackAll(owner, preview);
+            preview.remove();
+        });
         return mine.size();
     }
 
@@ -418,6 +427,7 @@ public final class GatePreviews
             {
                 if (now >= preview.expiresAt())
                 {
+                    takeBackAll(owner, preview);
                     preview.remove();
                     return true;
                 }
@@ -437,7 +447,11 @@ public final class GatePreviews
     /** Removes every preview, on disable. */
     public static void restoreAll()
     {
-        PREVIEWS.values().forEach(mine -> mine.forEach(GatePreview::remove));
+        PREVIEWS.forEach((id, mine) -> mine.forEach(preview ->
+        {
+            takeBackAll(online.apply(id), preview);
+            preview.remove();
+        }));
         PREVIEWS.clear();
     }
 
@@ -492,11 +506,73 @@ public final class GatePreviews
             restyle(preview);
             return;
         }
+        final int stage = preview.wooshStage() + 1;
+        final int last = preview.lastWoosh();
+        preview.wooshStage(stage);
+        if (stage == 1)
+        {
+            sound(owner, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
+        }
+        if (stage <= last)
+        {
+            send(owner, preview, wooshStep(preview, stage));
+            return;
+        }
+        if (stage <= (2 * last))
+        {
+            takeBack(owner, preview, wooshStep(preview, (2 * last) + 1 - stage));
+            if (stage < (2 * last))
+            {
+                return;
+            }
+        }
+        // Out and back, as a real gate's woosh goes, and then the opening stays filled.
         preview.stopDialling();
         preview.open(true);
-        sound(owner, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
-        restyle(preview);
         draw(owner, preview);
+    }
+
+    /** The woosh's cells at one step. */
+    private static List<Cell> wooshStep(final GatePreview preview, final int step)
+    {
+        return preview.woosh().stream().filter(cell -> cell.wave() == step).toList();
+    }
+
+    /**
+     * Sends the owner the wormhole's material at some cells, as fake blocks: a block display draws no
+     * liquid, and a real gate draws its wormhole the same way.
+     */
+    private static void send(final Player owner, final GatePreview preview, final List<Cell> cells)
+    {
+        final BlockData portal = blockData.apply(preview.palette().portal());
+        for (final Cell cell : cells)
+        {
+            owner.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()), portal);
+            preview.sent().add(GatePreview.key(cell));
+        }
+    }
+
+    /** Shows the owner what really stands at cells a fake block was sent to. */
+    private static void takeBack(final Player owner, final GatePreview preview, final List<Cell> cells)
+    {
+        for (final Cell cell : cells)
+        {
+            if (preview.sent().remove(GatePreview.key(cell)))
+            {
+                owner.sendBlockChange(new Location(preview.world(), cell.x(), cell.y(), cell.z()),
+                    preview.world().getBlockAt(cell.x(), cell.y(), cell.z()).getBlockData());
+            }
+        }
+    }
+
+    /** Takes back every fake block a preview sent, where its owner is still here to see them. */
+    private static void takeBackAll(final Player owner, final GatePreview preview)
+    {
+        if ((owner != null) && preview.world().equals(owner.getWorld()))
+        {
+            takeBack(owner, preview, preview.woosh());
+            takeBack(owner, preview, preview.opening());
+        }
     }
 
     private static BukkitTask schedule(final long ticks, final Runnable step)
@@ -510,7 +586,10 @@ public final class GatePreviews
         {
             preview.stopDialling();
             preview.litWaves(0);
+            preview.wooshStage(0);
             preview.open(false);
+            takeBack(owner, preview, preview.woosh());
+            takeBack(owner, preview, preview.opening());
             sound(owner, ConfigManager.getGateSoundClose(), 1.0f);
             restyle(preview);
             draw(owner, preview);
@@ -597,6 +676,10 @@ public final class GatePreviews
                 continue;
             }
             spawnMissing(owner, preview.openingDisplays(), i, world, preview.opening().get(i), openingData(preview));
+        }
+        if (preview.open() && !preview.irisClosed())
+        {
+            send(owner, preview, preview.opening());
         }
         drawButton(owner, preview);
     }
@@ -693,19 +776,10 @@ public final class GatePreviews
         return light;
     }
 
-    /**
-     * What the opening shows: the iris when it is closed, the wormhole otherwise. A block display
-     * draws no fluid, so water and lava stand in as glass of their colour.
-     */
+    /** What the opening's displays show: they stand only while the iris is closed. */
     static BlockData openingData(final GatePreview preview)
     {
-        final Material material = preview.irisClosed() ? preview.palette().iris() : preview.palette().portal();
-        return blockData.apply(switch (material)
-        {
-            case WATER -> Material.LIGHT_BLUE_STAINED_GLASS;
-            case LAVA -> Material.ORANGE_STAINED_GLASS;
-            default -> material;
-        });
+        return blockData.apply(preview.palette().iris());
     }
 
     /** What a cell is drawn as, with the button and sign turned to face the builder. */

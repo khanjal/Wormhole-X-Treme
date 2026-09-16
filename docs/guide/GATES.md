@@ -42,8 +42,23 @@ its button.
 - **They go on their own** when you log out or change world, when a gate is found where one
   stood, and after `gate-preview-minutes` (default 10) without a `gate build` command.
 - **`gate-preview-max-blocks`** (default 5000) caps the blocks every preview on the server shows
-  between them. Each block is an entity; every shipped shape shown once is about 1,100. `0` turns
-  previews off.
+  between them, its opening included. Each block is an entity. `0` turns previews off.
+
+Look at a preview and these change it, for you alone:
+
+| Option | What it does |
+|---|---|
+| `gate build -activate` | Lights the chevrons in order, sends the kawoosh out and back, and leaves the wormhole open; again shuts it down. **Right-clicking the preview's button** does the same. |
+| `gate build -iris` | Closes an iris over the opening, in the group's iris material; again opens it |
+| `gate build -material <group>` | Redresses it in another material group |
+| `gate build -material <role> <block>` | Changes one material: `frame`, `chevron`, `light`, `portal`, `iris` or `sign` |
+| `gate build -chevrons` | Draws a group's chevron blocks as frame, since they are optional; lit chevrons then show the light material |
+| `gate build -dhd` | Hides the DHD and its button, for a picture of the ring; again shows them |
+
+Sounds play to you alone. The wormhole and its kawoosh are sent to you as blocks, the way a real
+gate draws them, since a display cannot show water; walk into one and your client treats it as
+water. `-dhd` hides only what stands apart from the ring: on a gate
+whose DHD is part of the ring's edge, as `Horizontal`'s is, just the button goes.
 
 The DHD takes any button — every wood, stone and Nether variant — or a lever. A button is swapped
 for a lever when the gate activates, so it can be held open.
@@ -347,6 +362,8 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 |---|---|
 | `gate build <shape> [group]` | Start building; with `wormhole.build.preview`, [show it in front of you](#previews) |
 | `gate build -clear [-all]` | Take away the preview you look at, or all of yours |
+| `gate build -activate\|-iris\|-chevrons\|-dhd` | Dial, iris, plain chevrons or hide the DHD on the preview you look at; [previews](#previews) |
+| `gate build -material <group>\|<role> <block>` | Change the materials of the preview you look at |
 | `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
 | `gate list [network]` | Gates you can see |
 | `gate remove <gate> [-destroy]` | Take it down; `-destroy` takes its frame down too |

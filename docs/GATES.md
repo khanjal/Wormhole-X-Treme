@@ -208,7 +208,18 @@ no hitbox, so it can be walked through and built into, which fake blocks sent wi
 `sendBlockChange` cannot be. `HiddenEntities` makes it unsaved and hidden by default before adding
 it to the world (`createEntity` then `addEntity`, from 1.20.2; a spawn hidden in the same tick
 before that), then shows it to its owner. The entity sweep and mirror views leave `Display`
-entities alone, since moving or re-showing one would undo exactly that.
+and `Interaction` entities alone, since moving or re-showing one would undo exactly that.
+
+A preview's controls redraw it from state rather than editing entities one by one: which chevron
+waves are lit, whether the wormhole is open or the iris closed, the palette, and whether the DHD
+and chevron blocks are shown. Each change sets every display to what its cell should now show,
+and spawns or removes the iris's and the DHD's displays to match. Dialling steps a wave every
+`LIGHT_TICKS`; the kawoosh then goes out through the shape's `W#` steps and back, and the opening
+fills. The wormhole is sent to the owner as fake blocks, as a real gate draws its own, because a
+block display draws no liquid; every one sent is remembered and taken back on shutdown, iris,
+clear, timeout and disable. The button is an `Interaction` entity over the button's
+cell, since a display cannot be clicked. The block limit counts the opening as well as the frame,
+so dialling or closing the iris never takes the server past it.
 
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions

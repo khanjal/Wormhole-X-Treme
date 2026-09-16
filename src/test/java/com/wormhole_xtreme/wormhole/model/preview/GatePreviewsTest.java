@@ -6,9 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -100,6 +102,9 @@ class GatePreviewsTest
 
         world = mock(World.class);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        final org.bukkit.block.Block air = mock(org.bukkit.block.Block.class);
+        when(air.getBlockData()).thenAnswer(inv -> data.computeIfAbsent(Material.AIR, m -> mock(BlockData.class)));
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(air);
         HiddenEntities.creationWith(creation);
 
         owner = mock(Player.class);
@@ -388,13 +393,16 @@ class GatePreviewsTest
     }
 
     /**
-     * -activate lights the chevrons a wave at a time, then fills the opening, as a gate dials.
+     * -activate lights the chevrons a wave at a time, sends the kawoosh out and back, and leaves the
+     * opening filled, as a gate dials.
      *
      * <p>Standard has no chevron material, so a lit chevron is its light material, glowstone. The
-     * opening is water, which a block display cannot draw, so it shows as light blue glass.
+     * wormhole is water, which no block display draws, so it is sent to the owner as fake blocks
+     * the way a real gate draws it: three woosh steps of 21, 13 and 5 cells out, the same back, then
+     * the 21-cell opening.
      */
     @Test
-    void activatingLightsTheChevronsInOrderThenOpensTheWormhole()
+    void activatingLightsTheChevronsThenSendsTheKawooshOutAndBackAndFillsTheOpening()
     {
         GatePreviews.show(owner, standard, null);
 
@@ -404,36 +412,44 @@ class GatePreviewsTest
         dialStep.run();
         ringDisplaysOfWave(1).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
         ringDisplaysOfWave(2).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
-
         for (int wave = 2; wave <= 7; wave++)
         {
             dialStep.run();
         }
-        assertEquals(STANDARD_BLOCKS, spawned.size(), "every chevron lit, the opening still empty");
         ringDisplaysOfWave(7).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
+        verify(owner, never()).sendBlockChange(any(Location.class), any(BlockData.class));
+
+        for (int step = 1; step <= 3; step++)
+        {
+            dialStep.run();
+        }
+        verify(owner, times(21 + 13 + 5)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
 
         dialStep.run();
-        assertEquals(STANDARD_BLOCKS + STANDARD_OPENING, spawned.size(), "the wormhole opens");
-        spawned.subList(STANDARD_BLOCKS, spawned.size())
-            .forEach(d -> verify(d).setBlock(data.get(Material.LIGHT_BLUE_STAINED_GLASS)));
+        dialStep.run();
+        verify(dialTask, never()).cancel();
+        dialStep.run();
+
+        verify(owner, times(21 + 13 + 5)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+        verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
         verify(dialTask).cancel();
+        assertEquals(STANDARD_BLOCKS, spawned.size(), "the wormhole is fake blocks, not displays");
     }
 
-    /** -activate on a gate that is open shuts it down: the chevrons go out and the opening empties. */
+    /** -activate on a gate that is open shuts it down: the chevrons go out and the opening is taken back. */
     @Test
     void activatingAnOpenGateShutsItDown()
     {
         GatePreviews.show(owner, standard, null);
         GatePreviews.activate(owner);
-        for (int step = 0; step < 8; step++)
+        for (int step = 0; step < 13; step++)
         {
             dialStep.run();
         }
-        final List<BlockDisplay> wormhole = new ArrayList<>(spawned.subList(STANDARD_BLOCKS, spawned.size()));
 
         assertEquals(GatePreviews.Control.SHUT_DOWN, GatePreviews.activate(owner));
 
-        wormhole.forEach(d -> verify(d).remove());
+        verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
         ringDisplaysOfWave(1).forEach(d -> verify(d, org.mockito.Mockito.atLeast(2)).setBlock(data.get(Material.OBSIDIAN)));
     }
 
@@ -585,5 +601,27 @@ class GatePreviewsTest
 
         assertEquals(GatePreviews.Shown.OVER_LIMIT, GatePreviews.show(owner, standard, null));
         assertTrue(spawned.isEmpty());
+    }
+
+    /** Closing the iris over an open wormhole takes the wormhole back, and clearing the preview takes back the rest. */
+    @Test
+    void theIrisAndClearingTakeTheWormholeBack()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 13; step++)
+        {
+            dialStep.run();
+        }
+        final int takenBackByTheWoosh = 21 + 13 + 5;
+
+        GatePreviews.iris(owner);
+        verify(owner, times(takenBackByTheWoosh + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
+
+        GatePreviews.iris(owner);
+        verify(owner, times((takenBackByTheWoosh + 21) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
+
+        assertEquals(1, GatePreviews.clearAll(owner));
+        verify(owner, times(takenBackByTheWoosh + 21 + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
     }
 }

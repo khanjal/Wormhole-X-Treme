@@ -2,7 +2,9 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
@@ -31,11 +33,15 @@ final class GatePreview
     private final GateGrid grid;
     private final List<Cell> cells;
     private final List<Cell> opening;
+    private final List<Cell> woosh;
+    /** Where a fake block has been sent to the owner, so it can be taken back. */
+    private final Set<Long> sent = new HashSet<>();
     /** In step with {@link #cells}; null where a display has not been, or could not be, spawned. */
     private final List<BlockDisplay> displays;
     /** In step with {@link #opening}; null wherever the opening is empty. */
     private final List<BlockDisplay> openingDisplays;
     private final int lastWave;
+    private final int lastWoosh;
     private final int minX;
     private final int minY;
     private final int minZ;
@@ -46,6 +52,7 @@ final class GatePreview
     private Interaction button;
     private BukkitTask dialling;
     private int litWaves;
+    private int wooshStage;
     private boolean open;
     private boolean irisClosed;
     private boolean dhdHidden;
@@ -54,7 +61,7 @@ final class GatePreview
     private long lastPressed;
 
     GatePreview(final World world, final Stargate3DShape shape, final GateGrid grid, final Palette palette,
-        final List<Cell> cells, final List<Cell> opening)
+        final List<Cell> cells, final List<Cell> opening, final List<Cell> woosh)
     {
         this.world = world;
         this.shape = shape;
@@ -62,9 +69,11 @@ final class GatePreview
         this.palette = palette;
         this.cells = List.copyOf(cells);
         this.opening = List.copyOf(opening);
+        this.woosh = List.copyOf(woosh);
         this.displays = new ArrayList<>(Collections.nCopies(cells.size(), (BlockDisplay) null));
         this.openingDisplays = new ArrayList<>(Collections.nCopies(opening.size(), (BlockDisplay) null));
         lastWave = cells.stream().mapToInt(Cell::wave).max().orElse(0);
+        lastWoosh = woosh.stream().mapToInt(Cell::wave).max().orElse(0);
         minX = cells.stream().mapToInt(Cell::x).min().orElse(0);
         minY = cells.stream().mapToInt(Cell::y).min().orElse(0);
         minZ = cells.stream().mapToInt(Cell::z).min().orElse(0);
@@ -112,6 +121,39 @@ final class GatePreview
     List<Cell> opening()
     {
         return opening;
+    }
+
+    List<Cell> woosh()
+    {
+        return woosh;
+    }
+
+    /** @return the last step of the kawoosh, 0 for a shape without one */
+    int lastWoosh()
+    {
+        return lastWoosh;
+    }
+
+    int wooshStage()
+    {
+        return wooshStage;
+    }
+
+    void wooshStage(final int stage)
+    {
+        wooshStage = stage;
+    }
+
+    /** @return the positions a fake block has been sent to, packed as {@link #key} */
+    Set<Long> sent()
+    {
+        return sent;
+    }
+
+    /** @return one number for a block position */
+    static long key(final Cell cell)
+    {
+        return ((cell.x() & 0x3FFFFFFL) << 38) | ((cell.z() & 0x3FFFFFFL) << 12) | (cell.y() & 0xFFFL);
     }
 
     List<BlockDisplay> displays()
@@ -232,10 +274,10 @@ final class GatePreview
         return !(cell.dhd() && dhdHidden);
     }
 
-    /** @return whether the opening shows anything */
+    /** @return whether the opening's displays stand: they are the iris; the wormhole is sent as blocks */
     boolean openingFilled()
     {
-        return open || irisClosed;
+        return irisClosed;
     }
 
     /**

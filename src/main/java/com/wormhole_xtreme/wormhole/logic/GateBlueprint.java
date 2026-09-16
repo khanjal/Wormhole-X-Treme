@@ -290,6 +290,43 @@ public final class GateBlueprint
         return cells;
     }
 
+    /**
+     * The cells the kawoosh reaches, each carrying the step of the woosh it shows at.
+     *
+     * @param shape
+     *            the shape
+     * @param grid
+     *            where it stands
+     * @return the woosh's cells, in step order within each layer
+     */
+    public static List<Cell> wooshOf(final Stargate3DShape shape, final GateGrid grid)
+    {
+        final List<Cell> cells = new ArrayList<>();
+        final List<StargateShapeLayer> layers = shape.getShapeLayers();
+        for (int layerIdx = 1; layerIdx < layers.size(); layerIdx++)
+        {
+            final StargateShapeLayer layer = layers.get(layerIdx);
+            final List<List<Integer[]>> steps = (layer == null) ? null : layer.getLayerWooshPositions();
+            if (steps == null)
+            {
+                continue;
+            }
+            for (int step = 1; step < steps.size(); step++)
+            {
+                if (steps.get(step) == null)
+                {
+                    continue;
+                }
+                for (final Integer[] pos : steps.get(step))
+                {
+                    cells.add(new Cell(grid.x(layerIdx, pos[2]), grid.y(pos[1]), grid.z(layerIdx, pos[2]), Part.PORTAL,
+                        step, false));
+                }
+            }
+        }
+        return cells;
+    }
+
     /** The highest layer with a frame or chevron block; the kawoosh may reach past it. */
     private static int lastBuiltLayer(final List<StargateShapeLayer> layers)
     {
