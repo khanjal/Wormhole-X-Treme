@@ -83,30 +83,30 @@ Nothing in a cycle changes the world: the rings and lights are drawn to nearby p
 
 ## Ring settings
 
-All under `rings:` in `config.yml`.
+In `config.yml`, under its `# --- Transport rings ---` heading. Every key is flat and `ring-` prefixed; there is no nested block.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `countdown` | 60 | Ticks before the rings commit. At least 30, so stepping clear stays possible. |
-| `cycle-cooldown` | 1200 | Ticks before a pair fires again. |
-| `deploy-ticks` | 2 | Ticks between animation frames — the speed knob. |
-| `settle-ticks` | 20 | How long the finished stack stands before transport. |
-| `flash-ticks` | 3 | How long each ring stays lit as the light passes. |
-| `hold-ticks` | 20 | How long the stack stands after the light. |
-| `lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
-| `reach` | 4 | Block layers of passenger volume above the pad. |
-| `min-separation` | 8 | Required distance between ring anchors. |
-| `max-link-distance` | 256 | Furthest two ends may be across. `0` is unlimited. |
-| `max-link-height` | 384 | Furthest two ends may be in height. `0` is unlimited. |
-| `max-ceiling-drop` | 10 | How far below a ceiling ring to look for the floor. |
-| `max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
-| `default-access` | `PRIVATE` | What a new pair starts as. |
-| `default-style` | `CONCURRENT` | How the stack deploys. |
-| `default-light-material` | `REDSTONE_LAMP` | What the pad lights up as. |
-| `default-flash-material` | `REDSTONE_LAMP` | What a ring turns to as the light passes. |
-| `default-ring-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the slabs you laid. |
-| `outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
-| `outline-ticks` | 40 | How long that outline stays up. |
+| `ring-countdown-ticks` | 60 | Ticks before the rings commit. At least 30, so stepping clear stays possible. |
+| `ring-cooldown-ticks` | 1200 | Ticks before a pair fires again. |
+| `ring-deploy-ticks` | 2 | Ticks between animation frames — the speed knob. |
+| `ring-settle-ticks` | 20 | How long the finished stack stands before transport. |
+| `ring-flash-ticks` | 3 | How long each ring stays lit as the light passes. |
+| `ring-hold-ticks` | 20 | How long the stack stands after the light. |
+| `ring-lights-linger-ticks` | 20 | How long the pad stays lit after the last ring is home. |
+| `ring-reach` | 4 | Block layers of passenger volume above the pad. |
+| `ring-min-separation` | 8 | Required distance between ring anchors. |
+| `ring-max-link-distance` | 256 | Furthest two ends may be across. `0` is unlimited. |
+| `ring-max-link-height` | 384 | Furthest two ends may be in height. `0` is unlimited. |
+| `ring-max-ceiling-drop` | 10 | How far below a ceiling ring to look for the floor. |
+| `ring-max-pairs-per-player` | 10 | Quota. `0` is unlimited. |
+| `ring-default-access` | `PRIVATE` | What a new pair starts as. |
+| `ring-default-style` | `CONCURRENT` | How the stack deploys. |
+| `ring-default-light` | `REDSTONE_LAMP` | What the pad lights up as. |
+| `ring-default-flash` | `REDSTONE_LAMP` | What a ring turns to as the light passes. |
+| `ring-default-material` | `SMOOTH_STONE_SLAB` | Fallback only; normally read from the slabs you laid. |
+| `ring-outline-on-refusal` | `true` | Briefly show the pattern to somebody a ring turns away. |
+| `ring-outline-ticks` | 40 | How long that outline stays up. |
 
 ## Editing a pair
 

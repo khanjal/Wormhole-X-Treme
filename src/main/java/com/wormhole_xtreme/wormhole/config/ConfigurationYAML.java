@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -483,6 +484,28 @@ public class ConfigurationYAML
         }
     }
 
+    /**
+     * Writes one piece of prose as wrapped {@code #} comment lines, or nothing when it is empty.
+     *
+     * @param writer
+     *            the file being written
+     * @param text
+     *            the prose, which may be null or empty
+     * @throws IOException
+     *             if the file cannot be written
+     */
+    private static void writeComment(final Writer writer, final String text) throws IOException
+    {
+        if ((text == null) || text.isEmpty())
+        {
+            return;
+        }
+        for (final String wrapped : wrapComment(text, 80))
+        {
+            writer.write("# " + wrapped + System.lineSeparator());
+        }
+    }
+
     protected static void writeFile(final File file, final Setting[] config)
     {
         try
@@ -496,20 +519,32 @@ public class ConfigurationYAML
             }
             try (final FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8))
             {
+                boolean started = false;
                 for (final Setting s : config)
                 {
-                    final String keyName = kebabKeyName(s.getName().name());
-                    // (Legacy build-group keys removed; nothing to skip here.)
-                    // Write comment description
-                    if ((s.getDescription() != null) && (!s.getDescription().isEmpty()))
+                    // A banner where a group begins, and a blank line above it. Settings inside a
+                    // group run on without one: each starts with its own comment, which separates
+                    // them well enough, and eighty blank lines is a third of the file.
+                    final DefaultSettings.Group group = DefaultSettings.groupAt(s.getName());
+                    if (group != null)
                     {
-                        for (final String wrapped : wrapComment(s.getDescription(), 80))
+                        if (started)
                         {
-                            writer.write("# " + wrapped + System.lineSeparator());
+                            writer.write(System.lineSeparator());
+                        }
+                        writer.write("# --- " + group.heading() + " ---" + System.lineSeparator());
+                        if (!group.intro().isEmpty())
+                        {
+                            writeComment(writer, group.intro());
+                            // A bare comment line, or the group note and the first
+                            // setting description read as one paragraph.
+                            writer.write("#" + System.lineSeparator());
                         }
                     }
-                    writer.write(keyName + ": " + formatValueForYaml(s.getValue()) + System.lineSeparator());
-                    writer.write(System.lineSeparator());
+                    started = true;
+                    writeComment(writer, s.getDescription());
+                    writer.write(kebabKeyName(s.getName().name()) + ": "
+                        + formatValueForYaml(s.getValue()) + System.lineSeparator());
                 }
             }
         }
