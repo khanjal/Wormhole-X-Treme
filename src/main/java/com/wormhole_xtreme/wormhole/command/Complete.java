@@ -18,6 +18,9 @@ import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
  */
 public class Complete implements CommandExecutor, TabCompleter
 {
+    /** Drops a completion waiting for a DHD click, or a detected gate not yet named. */
+    public static final String CANCEL = "-cancel";
+
     /** Completions a player has been asked to confirm, holding their name, idc and network. */
     private static final java.util.concurrent.ConcurrentHashMap<org.bukkit.entity.Player, String[]> pendingCompletions = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -48,6 +51,23 @@ public class Complete implements CommandExecutor, TabCompleter
     private static void doComplete(final Player player, final String[] args)
     {
         final String name = args[0].trim().replace("\n", "").replace("\r", "");
+        if (CANCEL.equalsIgnoreCase(name))
+        {
+            final boolean waiting = (getPendingCompletion(player) != null)
+                || (StargateManager.getIncompleteStargateName(player) != null);
+            removePendingCompletion(player);
+            StargateManager.removeIncompleteStargate(player);
+            player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
+                + (waiting ? "Gate completion cancelled." : "There was no gate completion to cancel."));
+            return;
+        }
+        // Words starting with a dash are options, so a gate may not be called one.
+        if (name.startsWith("-"))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "A gate name cannot start with '-'; words that do are options, like " + CANCEL + ".");
+            return;
+        }
         if (name.length() >= 12)
         {
             player.sendMessage(ConfigManager.MessageStrings.CONSTRUCT_NAME_TOO_LONG.toString() + "\"" + name + "\"");
@@ -137,7 +157,7 @@ public class Complete implements CommandExecutor, TabCompleter
         final String header = ConfigManager.MessageStrings.NORMAL_HEADER.toString();
         player.sendMessage(header + "Please click the DHD lever/button to complete the gate.");
         player.sendMessage(header + "Optional parameters: idc=<code> net=<network> (example: /wormhole complete " + name + " idc=1234 net=Private)");
-        player.sendMessage(header + "Type '/wormhole complete cancel' to cancel (alias: '/wx complete cancel').");
+        player.sendMessage(header + "Type '/wormhole gate complete " + CANCEL + "' to cancel.");
     }
 
     /** Finishes the gate this player already has part-built, charging for it if the server does. */

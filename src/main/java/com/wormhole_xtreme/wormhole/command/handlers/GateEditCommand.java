@@ -63,7 +63,8 @@ public class GateEditCommand implements SubCommand
         FIELDS.put("redstone", (sender, gate, value) ->
             new RedstoneCommand().execute(sender, new String[] { "redstone", gate, value }));
         FIELDS.put("owner", (sender, gate, value) ->
-            new OwnerCommand().execute(sender, new String[] { "owner", gate, value }));
+            new OwnerCommand().execute(sender, value.isEmpty()
+                ? new String[] { "owner", gate } : new String[] { "owner", gate, value }));
         FIELDS.put("custom", (sender, gate, value) ->
             new CustomCommand().execute(sender, new String[] { "custom", gate, value }));
         // The odd one out: WXIDC was written as a standalone command and takes its own

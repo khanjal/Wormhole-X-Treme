@@ -8,6 +8,16 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.7.0 (unreleased)
 
+### Stargates
+
+- **`/wormhole gate complete -cancel` cancels a waiting completion.** Gate names may no longer start
+  with `-`.
+- **`/wormhole gate edit <gate> owner` with no name reports the owner** instead of clearing it.
+
+### Quantum mirrors
+
+- **`/wormhole mirror set <name> start` with no mirror after it is refused.**
+
 ### Documentation
 
 - **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from

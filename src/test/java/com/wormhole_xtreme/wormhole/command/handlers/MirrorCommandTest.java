@@ -535,6 +535,27 @@ class MirrorCommandTest
         assertNull(MirrorManager.byName("archive").start(), "neither is a start");
     }
 
+    /**
+     * A named start with its value left off is refused, not read as the looked-at banner's start.
+     *
+     * <p>{@code set hub start} was shifted to {@code start hub}, the one-word form, so the banner
+     * in front of the player quietly started on {@code hub}.
+     */
+    @Test
+    void aNamedStartWithNoValueIsRefusedRatherThanSetOnTheBannerLookedAt()
+    {
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 40, 64, 40), null));
+        MirrorManager.add(new QuantumMirror("lobby", MirrorBlock.of(banner(Material.WHITE_WALL_BANNER)), null));
+        final Block lookedAt = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(lookedAt);
+
+        run(player, "mirror", "set", "hub", "start");
+
+        assertNull(MirrorManager.byName("lobby").start(), "the banner looked at is left alone");
+        assertNull(MirrorManager.byName("hub").start());
+        verify(player, atLeastOnce()).sendMessage(contains("start <mirror|none>"));
+    }
+
     /** Removing gives the banner back. */
     @Test
     void removeForgetsTheMirror()
