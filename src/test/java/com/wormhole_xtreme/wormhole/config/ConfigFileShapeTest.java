@@ -104,7 +104,7 @@ class ConfigFileShapeTest
         for (final DefaultSettings.Group group : DefaultSettings.groups)
         {
             assertFalse(group.heading().isBlank(), "a group with no heading");
-            assertTrue(group.settings().length > 0, "an empty group: " + group.heading());
+            assertFalse(group.settings().isEmpty(), "an empty group: " + group.heading());
         }
     }
 
