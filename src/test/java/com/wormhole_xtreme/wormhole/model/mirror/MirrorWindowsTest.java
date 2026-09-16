@@ -1811,7 +1811,8 @@ class MirrorWindowsTest
             MirrorProximity.tick();
             assertEquals(List.of(2), fog, "narrowed while being drawn a room");
             // Through a portal: the drawing's world is stale, the player's fog is not.
-            when(viewer.getWorld()).thenReturn(mock(World.class));
+            final World elsewhere = mock(World.class);
+            when(viewer.getWorld()).thenReturn(elsewhere);
             MirrorWindows.restoreAll();
         });
 
@@ -1886,7 +1887,8 @@ class MirrorWindowsTest
             assertEquals(List.of(2), fog, "narrowed while being drawn a room");
             // A redraw on a move is throttled, so wait the gap out before stepping.
             pause();
-            when(viewer.getWorld()).thenReturn(mock(World.class));
+            final World elsewhere = mock(World.class);
+            when(viewer.getWorld()).thenReturn(elsewhere);
             MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
         });
 
