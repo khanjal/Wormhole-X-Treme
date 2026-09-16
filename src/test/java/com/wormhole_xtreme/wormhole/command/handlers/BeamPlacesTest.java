@@ -104,6 +104,16 @@ class BeamPlacesTest
         yaml.verify(BeamYamlManager::saveAll);
     }
 
+    /** A place may not be called anything starting with a dash, since words that do are options. */
+    @Test
+    void aPlaceNamedWithADashIsRefused()
+    {
+        assertTrue(place(player, "set", "-home"));
+
+        assertNull(BeamManager.getPlace(UUID.fromString(MINE), "-home"), "not kept");
+        verify(player).sendMessage(contains("cannot start with '-'"));
+    }
+
     /** Setting a place records where the player is standing, under their own name for it. */
     @Test
     void settingAPlaceRecordsWhereThePlayerStands()

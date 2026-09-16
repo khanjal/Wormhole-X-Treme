@@ -144,7 +144,7 @@ class MirrorCommandTest
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
         {
-            run(player, "mirror", "debug", "museum", "all");
+            run(player, "mirror", "debug", "museum", "-all");
         }
 
         final String value = MirrorText.VALUE_COLOUR;
@@ -182,7 +182,7 @@ class MirrorCommandTest
             "capture: " + MirrorText.VALUE_COLOUR + MirrorText.BAD_COLOUR + "file missing")), "the capture on one line: " + lines);
         assertTrue(lines.stream().anyMatch(line -> line.contains(
             "view: " + MirrorText.VALUE_COLOUR + "you are looking into no window")), "your view: " + lines);
-        assertTrue(lines.stream().anyMatch(line -> line.contains("debug museum all")), "and how to see the rest: " + lines);
+        assertTrue(lines.stream().anyMatch(line -> line.contains("debug museum -all")), "and how to see the rest: " + lines);
     }
 
     /**
@@ -512,11 +512,11 @@ class MirrorCommandTest
         MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 40, 64, 40), null));
         MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
 
-        assertTrue(run(player, "mirror", "set", "archive", "start", "hub"));
+        assertTrue(run(player, "mirror", "set", "archive", "-start", "hub"));
         assertEquals("hub", MirrorManager.byName("archive").start());
         verify(player, atLeastOnce()).sendMessage(contains("first."));
 
-        assertTrue(run(player, "mirror", "set", "archive", "start", "none"));
+        assertTrue(run(player, "mirror", "set", "archive", "-start", "-none"));
         assertNull(MirrorManager.byName("archive").start(), "none is its own room again");
     }
 
@@ -526,10 +526,10 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
 
-        run(player, "mirror", "set", "archive", "start", "nowhere");
+        run(player, "mirror", "set", "archive", "-start", "nowhere");
         verify(player, atLeastOnce()).sendMessage(contains("no mirror called"));
 
-        run(player, "mirror", "set", "archive", "start", "ARCHIVE");
+        run(player, "mirror", "set", "archive", "-start", "ARCHIVE");
         verify(player, atLeastOnce()).sendMessage(contains("own room"));
 
         assertNull(MirrorManager.byName("archive").start(), "neither is a start");
@@ -549,11 +549,11 @@ class MirrorCommandTest
         final Block lookedAt = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(lookedAt);
 
-        run(player, "mirror", "set", "hub", "start");
+        run(player, "mirror", "set", "hub", "-start");
 
         assertNull(MirrorManager.byName("lobby").start(), "the banner looked at is left alone");
         assertNull(MirrorManager.byName("hub").start());
-        verify(player, atLeastOnce()).sendMessage(contains("start <mirror|none>"));
+        verify(player, atLeastOnce()).sendMessage(contains("-start <mirror|-none>"));
     }
 
     /** Removing gives the banner back. */
@@ -909,7 +909,20 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set"));
         assertTrue(run(player, "mirror", "set", "museum"));
 
-        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <stamp|start|capture>"));
+        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <-stamp|-start|-capture>"));
+    }
+
+    /** A property without its dash is not a property any more, and says so. */
+    @Test
+    void aPropertyWithoutItsDashIsRefused()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+        MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
+
+        assertTrue(run(player, "mirror", "set", "museum", "start", "hub"));
+
+        assertNull(MirrorManager.byName("museum").start(), "nothing changed");
+        verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
     }
 
     /** A word that is not one of the properties says so, and then the form. */
@@ -921,7 +934,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
 
         verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
-        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <stamp|start|capture>"));
+        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <-stamp|-start|-capture>"));
     }
 
     /**
@@ -943,20 +956,22 @@ class MirrorCommandTest
     }
 
     /**
-     * A mirror cannot be called by one of the property words, since that is how set tells a name
-     * from what comes after it: {@code set start hub} would be the banner in front of you, never
-     * a mirror called start.
+     * A mirror cannot be called anything starting with a dash, since that is how every mirror
+     * command tells a keyword from a name; a bare property word is a name like any other.
      */
     @Test
-    void createRefusesAPropertyWordAsAName()
+    void createRefusesADashedNameButNotABarePropertyWord()
     {
         final Block inFront = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
-        assertTrue(run(player, "mirror", "create", "start"));
+        assertTrue(run(player, "mirror", "create", "-start"));
 
-        assertNull(MirrorManager.byName("start"), "not made");
-        verify(player, atLeastOnce()).sendMessage(contains("cannot be called that"));
+        assertNull(MirrorManager.byName("-start"), "not made");
+        verify(player, atLeastOnce()).sendMessage(contains("cannot start with"));
+
+        assertTrue(run(player, "mirror", "create", "start"));
+        assertNotNull(MirrorManager.byName("start"), "start is a name now");
     }
 
     /** A console has no banner in front of it, so capture with no name gets its form. */
@@ -966,9 +981,9 @@ class MirrorCommandTest
         final CommandSender console = mock(CommandSender.class);
         when(console.isOp()).thenReturn(true);
 
-        assertTrue(run(console, "mirror", "set", "capture"));
+        assertTrue(run(console, "mirror", "set", "-capture"));
 
-        verify(console, atLeastOnce()).sendMessage(contains("set [<name>] capture"));
+        verify(console, atLeastOnce()).sendMessage(contains("set [<name>] -capture"));
     }
 
     /**
@@ -987,7 +1002,7 @@ class MirrorCommandTest
         {
             bukkit.when(() -> Bukkit.getWorld("archive")).thenReturn(null);
 
-            assertTrue(run(player, "mirror", "set", "museum", "capture"));
+            assertTrue(run(player, "mirror", "set", "museum", "-capture"));
         }
 
         verify(player, atLeastOnce()).sendMessage(contains("cannot be captured now"));

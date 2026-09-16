@@ -78,10 +78,10 @@ class MirrorTabCompletionTest
     {
         final List<String> third = complete("mirror", "debug", "");
 
-        assertTrue(third.containsAll(List.of("museum", "lobby", "all", "full", "off", "on")), "got " + third);
-        assertEquals(List.of("all", "full"), complete("mirror", "debug", "museum", ""));
-        assertEquals(List.of("full"), complete("mirror", "debug", "museum", "f"));
-        assertTrue(complete("mirror", "debug", "off", "").isEmpty(), "off takes nothing after it");
+        assertTrue(third.containsAll(List.of("museum", "lobby", "-all", "-full", "-off", "-on")), "got " + third);
+        assertEquals(List.of("-all", "-full"), complete("mirror", "debug", "museum", ""));
+        assertEquals(List.of("-full"), complete("mirror", "debug", "museum", "-f"));
+        assertTrue(complete("mirror", "debug", "-off", "").isEmpty(), "-off takes nothing after it");
     }
 
     private static List<String> complete(final String... args)
@@ -121,10 +121,10 @@ class MirrorTabCompletionTest
     @Test
     void startCompletesMirrorsAndNoneInBothPlaces()
     {
-        assertTrue(complete("mirror", "set", "start", "").contains("museum"), "the mirror being set, or its start");
-        assertTrue(complete("mirror", "set", "start", "").contains("none"), "looking at the banner, the start is the first word");
-        assertTrue(complete("mirror", "set", "museum", "start", "").contains("lobby"), "then the start");
-        assertTrue(complete("mirror", "set", "museum", "start", "").contains("none"));
+        assertTrue(complete("mirror", "set", "-start", "").contains("museum"), "the mirror being set, or its start");
+        assertTrue(complete("mirror", "set", "-start", "").contains("-none"), "looking at the banner, the start is the first word");
+        assertTrue(complete("mirror", "set", "museum", "-start", "").contains("lobby"), "then the start");
+        assertTrue(complete("mirror", "set", "museum", "-start", "").contains("-none"));
     }
 
     /**
@@ -152,10 +152,10 @@ class MirrorTabCompletionTest
     void setOffersNamesAndPropertiesAndThenWhatEachTakes()
     {
         final List<String> third = complete("mirror", "set", "");
-        assertTrue(third.containsAll(List.of("museum", "stamp", "start", "capture")), "got " + third);
-        assertEquals(List.of("capture"), complete("mirror", "set", "museum", "c"), "after a name, the property");
-        assertTrue(complete("mirror", "set", "museum", "start", "").contains("none"), "then what it takes");
-        assertTrue(complete("mirror", "set", "museum", "start", "none", "").isEmpty(), "and nothing past that");
+        assertTrue(third.containsAll(List.of("museum", "-stamp", "-start", "-capture")), "got " + third);
+        assertEquals(List.of("-capture"), complete("mirror", "set", "museum", "-c"), "after a name, the property");
+        assertTrue(complete("mirror", "set", "museum", "-start", "").contains("-none"), "then what it takes");
+        assertTrue(complete("mirror", "set", "museum", "-start", "-none", "").isEmpty(), "and nothing past that");
         assertTrue(complete("mirror", "set", "museum", "colour", "").isEmpty(), "a word that is not a property");
     }
 
@@ -184,13 +184,13 @@ class MirrorTabCompletionTest
     @Test
     void theOptionalNamePositionAlsoOffersWhatReplacesIt()
     {
-        assertTrue(complete("mirror", "set", "start", "").contains("none"),
-            "got " + complete("mirror", "set", "start", ""));
-        assertTrue(complete("mirror", "set", "start", "").contains("museum"),
+        assertTrue(complete("mirror", "set", "-start", "").contains("-none"),
+            "got " + complete("mirror", "set", "-start", ""));
+        assertTrue(complete("mirror", "set", "-start", "").contains("museum"),
             "and the names are still there, since the name is optional rather than gone");
-        assertTrue(complete("mirror", "set", "capture", "").contains("museum"), "capture takes a name and nothing else");
-        assertTrue(complete("mirror", "set", "museum", "capture", "").isEmpty());
-        assertTrue(complete("mirror", "set", "stamp", "").contains("museum"));
+        assertTrue(complete("mirror", "set", "-capture", "").contains("museum"), "capture takes a name and nothing else");
+        assertTrue(complete("mirror", "set", "museum", "-capture", "").isEmpty());
+        assertTrue(complete("mirror", "set", "-stamp", "").contains("museum"));
     }
 
     /**

@@ -214,6 +214,10 @@ public class BeamCommand implements SubCommand
         // refusing the word.
         if (CommandHandlerUtils.verbIs(action, "set", "create"))
         {
+            if (dashed(player, name))
+            {
+                return;
+            }
             BeamManager.setPublicDestination(BeamDestination.fromLocation(name, player.getLocation()));
             BeamYamlManager.saveAll();
             player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
@@ -252,7 +256,7 @@ public class BeamCommand implements SubCommand
         if (args.length < 5)
         {
             player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
-                + "/wormhole beam admin cost <name> <amount|default>");
+                + "/wormhole beam admin cost <name> <amount|-default>");
             return;
         }
         final BeamDestination existing = BeamManager.getPublicDestination(name);
@@ -264,7 +268,7 @@ public class BeamCommand implements SubCommand
         }
         final String raw = args[4];
         final Double newCost;
-        if ("default".equalsIgnoreCase(raw))
+        if ("-default".equalsIgnoreCase(raw))
         {
             newCost = null;
         }
@@ -578,6 +582,18 @@ public class BeamCommand implements SubCommand
             + "or /wormhole beam to <name> to travel.");
     }
 
+    /** Refuses a new name starting with a dash, since words that do are options. */
+    private static boolean dashed(final Player player, final String name)
+    {
+        if (!name.startsWith("-"))
+        {
+            return false;
+        }
+        player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+            + "A beam destination's name cannot start with '-'; words that do are options.");
+        return true;
+    }
+
     private void listPlaces(final Player player)
     {
         final StringBuilder names = new StringBuilder();
@@ -606,6 +622,10 @@ public class BeamCommand implements SubCommand
             return;
         }
         final String name = args[3];
+        if (dashed(player, name))
+        {
+            return;
+        }
         BeamManager.setPlace(player.getUniqueId(), BeamDestination.fromLocation(name, player.getLocation()));
         BeamYamlManager.saveAll();
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()

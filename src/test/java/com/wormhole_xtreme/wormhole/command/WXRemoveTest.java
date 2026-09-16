@@ -131,15 +131,15 @@ class WXRemoveTest
         verify(console).sendMessage(contains("Wormhole Removed: alpha"));
     }
 
-    /** {@code -all} as the second word takes the blocks down too. */
+    /** {@code -destroy} as the second word takes the blocks down too. */
     @Test
-    void allAsTheSecondWordDestroysTheBlocks()
+    void destroyAsTheSecondWordTakesTheBlocksDown()
     {
         final Stargate gate = registeredGate("alpha");
 
         try (MockedStatic<CommandUtilities> util = mockStatic(CommandUtilities.class, CALLS_REAL_METHODS))
         {
-            assertTrue(remove(console, "alpha", "-all"));
+            assertTrue(remove(console, "alpha", "-destroy"));
 
             util.verify(() -> CommandUtilities.gateRemove(eq(gate), eq(true), eq(true), any()));
         }
@@ -154,6 +154,20 @@ class WXRemoveTest
         try (MockedStatic<CommandUtilities> util = mockStatic(CommandUtilities.class, CALLS_REAL_METHODS))
         {
             assertTrue(remove(console, "alpha", "please"));
+
+            util.verify(() -> CommandUtilities.gateRemove(eq(gate), eq(false), eq(true), any()));
+        }
+    }
+
+    /** {@code -all}, which destroyed the blocks before {@code -destroy}, no longer does. */
+    @Test
+    void theOldAllNoLongerDestroysTheBlocks()
+    {
+        final Stargate gate = registeredGate("alpha");
+
+        try (MockedStatic<CommandUtilities> util = mockStatic(CommandUtilities.class, CALLS_REAL_METHODS))
+        {
+            assertTrue(remove(console, "alpha", "-all"));
 
             util.verify(() -> CommandUtilities.gateRemove(eq(gate), eq(false), eq(true), any()));
         }
