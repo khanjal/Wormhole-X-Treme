@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -1943,6 +1944,128 @@ class MirrorWindowsTest
             }
         });
         return asked;
+    }
+
+
+    /**
+     * A click part-way through taking a room back still takes all of it back.
+     *
+     * <p>"Scrolling through mirror worlds, sometimes part of the previous one remains for a couple
+     * seconds." A click books the whole view to be sent again a tick later, and a room big enough
+     * to stream is still going out then. That resend took what had been sent so far as the truth:
+     * it threw away the rest of the stream, and drew the part of the room not yet taken back all
+     * over again, where it stayed until the next sweep. Walking away is the plainest way to have a
+     * room half taken back; scrolling to another mirror does the same to the room it leaves.
+     */
+    @Test
+    void aClickPartWayThroughTakingARoomBackStillTakesAllOfItBack() throws Exception
+    {
+        MirrorWindows.streamPerTick = 500;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            final List<String> midway = new ArrayList<>();
+            final List<String> after = new ArrayList<>();
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                runBooked(scheduler);
+                // What has run is done: from here only the take-back and the click are booked.
+                clearInvocations(scheduler);
+                pause();
+                MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
+                MirrorWindows.resend(viewer);
+                midway.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+                runBooked(scheduler);
+                after.addAll(MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList());
+            });
+
+            assertTrue(midway.stream().anyMatch(line -> line.startsWith("still to send: ")),
+                "the click has to land while the room is still going back, or this proves nothing: " + midway);
+            assertTrue(after.contains("looking into: no window"),
+                "and every block of it goes back, rather than being drawn again: " + after);
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+    }
+
+    /**
+     * A click part-way through drawing a room still draws all of it.
+     *
+     * <p>The other half of the same resend. Blocks still owed to a room coming into view had not
+     * been sent, so they were not in what the resend sent again, and throwing the stream away lost
+     * them: the far part of the room a scroll had just opened onto stayed missing until the sweep.
+     */
+    @Test
+    void aClickPartWayThroughDrawingARoomStillDrawsAllOfIt() throws Exception
+    {
+        MirrorWindows.streamPerTick = 500;
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+        final org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        PluginTestSupport.scheduler(scheduler);
+        try
+        {
+            final int[] drawn = new int[2];
+            withServer(() ->
+            {
+                MirrorProximity.tick();
+                MirrorWindows.resend(viewer);
+                drawn[0] = drawnCount(viewer);
+                runBooked(scheduler);
+                drawn[1] = drawnCount(viewer);
+            });
+
+            assertTrue((drawn[0] > 0) && (drawn[0] <= 500), "the click has to land part-way through, with a tick sent: " + drawn[0]);
+            assertTrue(drawn[1] > (3 * drawn[0]),
+                "and the rest of the room still arrives, rather than stopping at what was out when the click"
+                    + " landed: " + drawn[0] + " then " + drawn[1]);
+        }
+        finally
+        {
+            PluginTestSupport.scheduler(null);
+        }
+    }
+
+    /** How many blocks a viewer has been sent, read from {@code mirror debug}. */
+    private static int drawnCount(final Player viewer)
+    {
+        for (final String line : MirrorWindows.describe(viewer).stream().map(MirrorWindowsTest::plain).toList())
+        {
+            if (line.startsWith("drawn: "))
+            {
+                return Integer.parseInt(line.substring("drawn: ".length()).split(" ")[0]);
+            }
+        }
+        return 0;
+    }
+
+
+    /** Turning the fog on while somebody stands at a mirror reaches them at the next sweep. */
+    @Test
+    void turningTheFogOnReachesAViewerAlreadyAtTheMirror()
+    {
+        final List<Integer> fog = watchTheFog();
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            assertEquals(List.of(), fog, "off when they walked up, so nothing yet");
+            ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+            MirrorProximity.tick();
+        });
+
+        assertEquals(List.of(2), fog, "on at the next sweep, without leaving the mirror");
     }
 
     @Test

@@ -23,7 +23,7 @@ import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
  *
  * <p>{@code Player.setSendViewDistance} is Paper's and no Spigot jar has it, so the reflective
  * lookup finds nothing on the compile path here and every decision in
- * {@link MirrorFog#narrow} would be unreachable in a test. A stand-in goes in through
+ * {@link MirrorFog#apply} would be unreachable in a test. A stand-in goes in through
  * {@link MirrorFog#sendDistanceWith} instead, which records what it was asked to set: the
  * arithmetic, the two reasons to do nothing, and putting back exactly what was there are all
  * this class's own and worth pinning whatever server is underneath.
@@ -84,7 +84,7 @@ class MirrorFogTest
     {
         final Player viewer = player();
 
-        MirrorFog.narrow(viewer, 48);
+        MirrorFog.apply(viewer, 48);
         assertEquals(List.of(4), set, "three chunks of room, and one over for the edge");
         assertTrue(MirrorFog.narrowed(viewer.getUniqueId()));
 
@@ -104,7 +104,7 @@ class MirrorFogTest
     @Test
     void aRoomAsDeepAsTheClientIsSentChangesNothing()
     {
-        MirrorFog.narrow(player(), 160);
+        MirrorFog.apply(player(), 160);
 
         assertEquals(List.of(), set, "the room already reaches as far as the chunks do");
     }
@@ -115,7 +115,7 @@ class MirrorFogTest
     {
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
 
-        MirrorFog.narrow(player(), 48);
+        MirrorFog.apply(player(), 48);
 
         assertEquals(List.of(), set, "nothing asked for with the setting off");
     }
@@ -128,7 +128,7 @@ class MirrorFogTest
     @Test
     void aTinyRoomStillLeavesTheViewerTwoChunks()
     {
-        MirrorFog.narrow(player(), 4);
+        MirrorFog.apply(player(), 4);
 
         assertEquals(List.of(MirrorFog.LEAST_CHUNKS), set, "the floor, not a chunk on its own");
     }
@@ -141,15 +141,56 @@ class MirrorFogTest
      * player had, and it would stay that way for the rest of their session.
      */
     @Test
-    void asecondAskWhileNarrowedDoesNotForgetWhatTheyHad()
+    void aChangedDepthMovesTheFogButRemembersWhatTheyHad()
     {
         final Player viewer = player();
 
-        MirrorFog.narrow(viewer, 48);
-        MirrorFog.narrow(viewer, 16);
+        MirrorFog.apply(viewer, 48);
+        MirrorFog.apply(viewer, 16);
         MirrorFog.restore(viewer.getUniqueId(), viewer);
 
-        assertEquals(List.of(4, 10), set, "asked once, and put back to the original ten");
+        assertEquals(List.of(4, 2, 10), set,
+            "a shallower room pulls it in further, and leaving still gives back the original ten");
+    }
+
+    /** Turning the setting off while somebody stands at a mirror gives their fog back. */
+    @Test
+    void turningTheSettingOffWhileNarrowedGivesTheFogBack()
+    {
+        final Player viewer = player();
+        MirrorFog.apply(viewer, 48);
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, false);
+        MirrorFog.apply(viewer, 48);
+
+        assertEquals(List.of(4, 10), set, "given back the moment the setting is off");
+        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
+    }
+
+    /** Deepening the room past what the client is sent gives the fog back: nothing left to gain. */
+    @Test
+    void deepeningTheRoomPastWhatIsSentGivesTheFogBack()
+    {
+        final Player viewer = player();
+        MirrorFog.apply(viewer, 48);
+
+        MirrorFog.apply(viewer, 160);
+
+        assertEquals(List.of(4, 10), set, "eleven chunks is no nearer than the ten being sent");
+        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
+    }
+
+    /** Runs every redraw, and each change of send distance is chunk traffic: ask only when it moves. */
+    @Test
+    void anUnchangedDepthAsksTheServerForNothingMore()
+    {
+        final Player viewer = player();
+
+        MirrorFog.apply(viewer, 48);
+        MirrorFog.apply(viewer, 48);
+        MirrorFog.apply(viewer, 48);
+
+        assertEquals(List.of(4), set, "set once, however many redraws");
     }
 
     /** Most viewers were never narrowed, and putting them back must send nothing. */
@@ -168,14 +209,14 @@ class MirrorFogTest
      *
      * <p>From the review. Their send distance dies with the connection, so there is nothing to
      * put back -- but leaving them remembered as narrowed would keep the entry for the life of
-     * the server and, worse, make {@link MirrorFog#narrow} skip them if they came back on the
+     * the server and, worse, make {@link MirrorFog#apply} skip them if they came back on the
      * same id, since it does nothing for a viewer it thinks is already narrowed.
      */
     @Test
     void aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn()
     {
         final Player viewer = player();
-        MirrorFog.narrow(viewer, 48);
+        MirrorFog.apply(viewer, 48);
         set.clear();
         sending = 10;
 
@@ -185,7 +226,7 @@ class MirrorFogTest
         assertFalse(MirrorFog.narrowed(viewer.getUniqueId()), "not remembered as narrowed");
         assertEquals(List.of(), set, "and nothing sent to somebody who is not there");
 
-        MirrorFog.narrow(viewer, 48);
+        MirrorFog.apply(viewer, 48);
         assertEquals(List.of(4), set, "so coming back narrows again rather than being skipped");
     }
 
@@ -199,7 +240,7 @@ class MirrorFogTest
     void clearForgetsWithoutSendingAnything()
     {
         final Player viewer = player();
-        MirrorFog.narrow(viewer, 48);
+        MirrorFog.apply(viewer, 48);
         set.clear();
 
         MirrorFog.clear();
@@ -215,7 +256,7 @@ class MirrorFogTest
         MirrorFog.sendDistanceWith(null);
 
         assertFalse(MirrorFog.available(), "no Spigot jar in the supported range has it");
-        MirrorFog.narrow(player(), 48);
+        MirrorFog.apply(player(), 48);
         assertEquals(List.of(), set, "and nothing is asked of the server");
     }
 }
