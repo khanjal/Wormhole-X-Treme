@@ -5,11 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -17,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -28,7 +27,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +41,8 @@ import com.wormhole_xtreme.wormhole.logic.GateBlueprint;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Cell;
 import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Part;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
+import com.wormhole_xtreme.wormhole.utils.RecordingCreation;
 
 /**
  * What a gate build preview puts in the world, who sees it, and when it goes.
@@ -62,6 +62,13 @@ class GatePreviewsTest
     private final List<BlockDisplay> spawned = new ArrayList<>();
     private final long[] now = { 1_000_000L };
     private Stargate3DShape standard;
+    private final RecordingCreation creation = new RecordingCreation(type ->
+    {
+        final BlockDisplay display = mock(BlockDisplay.class);
+        when(display.isValid()).thenReturn(true);
+        spawned.add(display);
+        return display;
+    });
 
     @BeforeEach
     void setUp() throws Exception
@@ -74,14 +81,7 @@ class GatePreviewsTest
 
         world = mock(World.class);
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
-        when(world.createEntity(any(Location.class), eq(BlockDisplay.class))).thenAnswer(inv ->
-        {
-            final BlockDisplay display = mock(BlockDisplay.class);
-            when(display.isValid()).thenReturn(true);
-            spawned.add(display);
-            return display;
-        });
-        when(world.addEntity(any(Entity.class))).thenAnswer(inv -> inv.getArgument(0));
+        HiddenEntities.creationWith(creation);
 
         owner = mock(Player.class);
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -98,6 +98,7 @@ class GatePreviewsTest
     void tearDown() throws Exception
     {
         GatePreviews.clear();
+        HiddenEntities.creationWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -136,14 +137,13 @@ class GatePreviewsTest
         assertEquals(GatePreviews.Shown.SHOWN, GatePreviews.show(owner, standard, null));
 
         assertEquals(STANDARD_BLOCKS, spawned.size());
+        assertEquals(Collections.nCopies(STANDARD_BLOCKS, true), creation.hiddenWhenAdded,
+            "each unsaved and hidden by the time it was added");
         for (final BlockDisplay display : spawned)
         {
-            final InOrder order = inOrder(display, world, owner);
-            order.verify(display).setPersistent(false);
-            order.verify(display).setVisibleByDefault(false);
-            order.verify(world).addEntity(display);
+            final InOrder order = inOrder(display, owner);
+            order.verify(display).setBlock(any(BlockData.class));
             order.verify(owner).showEntity(plugin, display);
-            verify(display).setBlock(any(BlockData.class));
         }
         verifyNoInteractions(bystander);
     }
@@ -152,14 +152,7 @@ class GatePreviewsTest
     @Test
     void theDisplaysStandOnTheBlueprintWithTheButtonFacingTheBuilder()
     {
-        final List<Location> places = new ArrayList<>();
-        when(world.createEntity(any(Location.class), eq(BlockDisplay.class))).thenAnswer(inv ->
-        {
-            places.add(inv.getArgument(0));
-            final BlockDisplay display = mock(BlockDisplay.class);
-            when(display.isValid()).thenReturn(true);
-            return display;
-        });
+        final List<Location> places = creation.places;
         final Directional button = buttonData();
         GatePreviews.blockData = material -> (material == Material.STONE_BUTTON) ? button : mock(BlockData.class);
 
@@ -302,7 +295,7 @@ class GatePreviewsTest
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         GatePreviews.tick();
         assertEquals(STANDARD_BLOCKS + 1, spawned.size(), "the one dropped display, and only that one");
-        verify(world, times(STANDARD_BLOCKS + 1)).createEntity(any(Location.class), eq(BlockDisplay.class));
+        assertEquals(STANDARD_BLOCKS + 1, creation.created.size());
     }
 
     /** Disabling the plugin takes every preview on the server. */

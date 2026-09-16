@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole.utils;
 
+import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
 import org.bukkit.Location;
@@ -12,13 +13,47 @@ import org.bukkit.plugin.Plugin;
  * Entities that exist for one player: hidden from everybody else, and never saved.
  *
  * <p>From 1.20.2 an entity is made, hidden, then added, so nobody else is ever sent it. On 1.20
- * and 1.20.1, which lack {@code createEntity}, it is spawned and hidden straight after in the
- * same tick.
+ * and 1.20.1, which have no {@code createEntity}, it is spawned and hidden straight after in the
+ * same tick. The two methods are looked up by reflection, since CI compiles against 1.20 too.
  */
 public final class HiddenEntities
 {
-    /** False once {@code RegionAccessor.createEntity} has been found missing. */
-    private static volatile boolean canCreate = true;
+    /** Making an entity without adding it, and adding it later. */
+    public interface Creation
+    {
+        /**
+         * @param world
+         *            where
+         * @param at
+         *            the place
+         * @param type
+         *            what
+         * @param <T>
+         *            the entity type
+         * @return the entity, not yet in the world, or null if it could not be made
+         */
+        <T extends Entity> T create(World world, Location at, Class<T> type);
+
+        /**
+         * @param world
+         *            where
+         * @param entity
+         *            one {@link #create} made
+         * @param <T>
+         *            the entity type
+         * @return the entity, now in the world unless something refused it
+         */
+        <T extends Entity> T add(World world, T entity);
+    }
+
+    /** {@code RegionAccessor.createEntity}, or null on a server without it. */
+    private static final Method CREATE = find("createEntity", Location.class, Class.class);
+
+    /** {@code RegionAccessor.addEntity}, or null on a server without it. */
+    private static final Method ADD = find("addEntity", Entity.class);
+
+    /** The server's own, or whatever a test installed; null where the API is absent. */
+    private static Creation creation = reflective();
 
     private HiddenEntities() {}
 
@@ -43,8 +78,13 @@ public final class HiddenEntities
         final Class<T> type, final Consumer<? super T> setup)
     {
         final World world = at.getWorld();
-        T entity = canCreate ? created(world, at, type, setup) : null;
-        if (!canCreate)
+        T entity = (creation == null) ? null : creation.create(world, at, type);
+        if (entity != null)
+        {
+            prepare(entity, setup);
+            entity = creation.add(world, entity);
+        }
+        else
         {
             entity = world.spawn(at, type);
             prepare(entity, setup);
@@ -58,20 +98,22 @@ public final class HiddenEntities
         return entity;
     }
 
-    private static <T extends Entity> T created(final World world, final Location at, final Class<T> type,
-        final Consumer<? super T> setup)
+    /** @return true if this server can make an entity before adding it */
+    public static boolean canCreateBeforeAdding()
     {
-        try
-        {
-            final T entity = world.createEntity(at, type);
-            prepare(entity, setup);
-            return world.addEntity(entity);
-        }
-        catch (final NoSuchMethodError | AbstractMethodError missing)
-        {
-            canCreate = false;
-            return null;
-        }
+        return creation != null;
+    }
+
+    /**
+     * Uses this instead of the server's own methods, for a test: the API on the compile path may
+     * be 1.20's, which has neither.
+     *
+     * @param stand
+     *            what to make and add entities through, or null to go back to the server's own
+     */
+    public static void creationWith(final Creation stand)
+    {
+        creation = (stand == null) ? reflective() : stand;
     }
 
     private static <T extends Entity> void prepare(final T entity, final Consumer<? super T> setup)
@@ -81,9 +123,54 @@ public final class HiddenEntities
         setup.accept(entity);
     }
 
-    /** Forgets what was learnt about the server, for tests. */
-    static void reset()
+    /** The server's own methods, or null where this server has none. */
+    private static Creation reflective()
     {
-        canCreate = true;
+        if ((CREATE == null) || (ADD == null))
+        {
+            return null;
+        }
+        return new Creation()
+        {
+            @Override
+            public <T extends Entity> T create(final World world, final Location at, final Class<T> type)
+            {
+                try
+                {
+                    return type.cast(CREATE.invoke(world, at, type));
+                }
+                catch (final ReflectiveOperationException | RuntimeException | LinkageError notMade)
+                {
+                    // Spawned the older way instead.
+                    return null;
+                }
+            }
+
+            @Override
+            public <T extends Entity> T add(final World world, final T entity)
+            {
+                try
+                {
+                    ADD.invoke(world, entity);
+                }
+                catch (final ReflectiveOperationException | RuntimeException | LinkageError notAdded)
+                {
+                    // Not in the world, so isValid is false and nothing is shown.
+                }
+                return entity;
+            }
+        };
+    }
+
+    private static Method find(final String name, final Class<?>... parameters)
+    {
+        try
+        {
+            return World.class.getMethod(name, parameters);
+        }
+        catch (final NoSuchMethodException | RuntimeException | LinkageError absent)
+        {
+            return null;
+        }
     }
 }
