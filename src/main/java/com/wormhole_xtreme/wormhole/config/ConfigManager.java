@@ -200,6 +200,16 @@ public class ConfigManager
          *
          * <p>Turning this off stops the signpost pass before it looks at anybody.
          */
+        /**
+         * Whether a viewer's own fog is pulled in to where a mirror's room ends.
+         *
+         * <p>Paper only, and off by default. The room ending is not the world ending: the client
+         * draws this world past it unless it is told not to have those chunks. A radius round the
+         * player rather than a direction, so it pulls the fog in everywhere, which is why it is
+         * something to turn on for a shallow depth rather than the way mirrors work.
+         */
+        MIRROR_FOG_AT_DEPTH,
+
         MIRROR_APPROACH_MESSAGE
     }
 
@@ -1397,6 +1407,22 @@ public class ConfigManager
         return (s == null) || s.getBooleanValue();
     }
 
+
+    /**
+     * Whether a viewer's own fog is pulled in to where a mirror's room ends.
+     *
+     * <p>Defaults to false when the setting is missing, which is what an existing server's
+     * config.yml looks like after an upgrade. Off is the right default: it does nothing at all on
+     * Spigot, nothing at the default depth, and where it does work it changes how the whole world
+     * looks to that player and not only the mirror.
+     *
+     * @return true if a mirror may narrow what its viewers are sent
+     */
+    public static boolean isMirrorFogAtDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_FOG_AT_DEPTH);
+        return (s != null) && s.getBooleanValue();
+    }
 
     /**
      * How far from a viewer's eye a mirror's far side is drawn as real blocks.

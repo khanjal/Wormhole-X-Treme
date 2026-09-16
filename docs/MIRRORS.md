@@ -700,6 +700,59 @@ the half-minute resend stands behind both. `mirror debug` says `still to send` w
 going. Not measured on a server yet; the tests are `aRoomBiggerThanATickIsStreamedIn...`,
 `aRoomIsTakenBackATickAtATime...` and `aChunkCrossingSendsAgainOnly...` in `MirrorWindowsTest`.
 
+### Built: the far edge in the client's own fog
+
+`mirror-fog-at-depth`, off by default and Paper only. A viewer being drawn a room has
+`Player.setSendViewDistance` set to the room's depth in chunks and a chunk over for the edge, and
+it is put back the moment they are no longer being drawn one. The far edge is then the client's
+own fog rather than anything this plugin drew, which is what the sky wall was faking, and it
+costs no blocks at all.
+
+Off by default because it is a radius round the player and not a direction: it pulls the fog in
+every way they look, not only through the opening. And it does nothing at the default depth, where
+the room already reaches about as far as a server sends — the number asked for has to be lower
+than what the client is being sent, or there is nothing to gain. Lower `mirror-view-depth` first,
+then turn it on.
+
+Giving it back is the whole of the difficulty. A view ends in four places — the eye moving to a
+world with no window in it, a redraw finding nothing left to draw, and either half of the stream
+that takes a room back — so all four go through one `endView`. Restoring only where a redraw
+finds nothing looked right and left a viewer who walked away narrowed for the rest of their
+session.
+
+The rule that settles the rest: a narrowed send distance is the player's own, not the world's
+and not the view's. So it is handed back on shutdown wherever they are standing, outside the
+check that guards sending blocks to a viewer still in the drawing's world; and what is
+remembered is dropped whenever a view ends, player or no player, since a viewer who logged out
+mid-view would otherwise be recorded as narrowed for the life of the server and be skipped if
+they came back on the same id. The tests are
+`aViewerDrawnARoomHasTheirFogPulledInAndPutBack`,
+`stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds` and
+`aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn`.
+
+On Spigot `MirrorFog.available()` is false and nothing happens: this world shows past the room,
+which is what it did before. The setting is read all the same, so a server that moves to Paper
+gets it without editing anything.
+
+What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
+1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4 and 1.21.10, and Paper 1.20.4, the one Paper jar
+cached here:
+
+- `Player.setSendViewDistance(int)`, with `setViewDistance`, `setSimulationDistance` and
+  `setNoTickViewDistance`, and the same four on `World`: Paper 1.20.4 has them all, and no
+  Spigot jar in the range has any of them. Paper only, then, and Purpur's by inheritance.
+  Whether an earlier Paper has them was not checked; 1.20.4 is the only Paper jar here.
+- `World.getViewDistance()` and `getSimulationDistance()`, and the same on `Bukkit`: every
+  Spigot jar from 1.20 on. A capture's reach is read from the first already.
+- `Player.getClientViewDistance()`: every Spigot jar from 1.20 on. What the client asked for,
+  which is not what the server sends.
+- `Player.setWorldBorder(WorldBorder)` and `Bukkit.createWorldBorder()`: every Spigot jar
+  from 1.20 on, not the late addition it was taken for. A border of the player's own, which
+  the client draws as it draws the world's edge — a red wall, square, and a wall rather than a
+  fog: another shell by other means, and not on the list for the same reason.
+- `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
+  int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
+
 ### What is left to try
 
 Each of these is a real lever, and none is free. The first is the one to build next.
@@ -719,30 +772,6 @@ Each of these is a real lever, and none is free. The first is the one to build n
    along the line — and draw exactly those, whole, with no per-step work at all. Many eyes times
    many blocks, so off the main thread and once a minute at most. The most general answer, the
    most work, and unproven.
-3. **Paper's per-player send view distance.** End this world at the depth in the client's own
-   fog: `Player.setSendViewDistance`, set on approach and reset on leaving. The only true "stop
-   rendering past here", and the only one that costs no blocks. A radius round the player rather
-   than a direction, a ring of chunks at a time, and it does nothing for the cost per step. The
-   right pairing for a shallow depth on a Paper server.
-
-   What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
-   1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4 and 1.21.10, and Paper 1.20.4, the one Paper
-   jar cached here:
-
-   - `Player.setSendViewDistance(int)`, with `setViewDistance`, `setSimulationDistance` and
-     `setNoTickViewDistance`, and the same four on `World`: Paper 1.20.4 has them all, and no
-     Spigot jar in the range has any of them. Paper only, then, and Purpur's by inheritance.
-     Whether an earlier Paper has them was not checked; 1.20.4 is the only Paper jar here.
-   - `World.getViewDistance()` and `getSimulationDistance()`, and the same on `Bukkit`: every
-     Spigot jar from 1.20 on. A capture's reach is read from the first already.
-   - `Player.getClientViewDistance()`: every Spigot jar from 1.20 on. What the client asked for,
-     which is not what the server sends.
-   - `Player.setWorldBorder(WorldBorder)` and `Bukkit.createWorldBorder()`: every Spigot jar
-     from 1.20 on, not the late addition it was taken for. A border of the player's own, which
-     the client draws as it draws the world's edge — a red wall, square, and a wall rather than a
-     fog: another shell by other means, and not on the list for the same reason.
-   - `World.refreshChunk(int, int)`: every Spigot jar from 1.20 on. `getPlayersSeeingChunk(int,
-     int)`: from 1.20.6, and absent on 1.20 through 1.20.4.
 
 What is not on the list: another shell, wall or painting past the depth. Three have been tried
 and each drew the eye to the very edge it was there to hide.

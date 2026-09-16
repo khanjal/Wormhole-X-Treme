@@ -265,6 +265,7 @@ public final class MirrorWindows
         lines.add(MirrorText.heading("your view"));
         lines.add(MirrorText.field("server", WINDOWS.size() + " window(s), " + VIEWS.size() + " viewer(s)"));
         lines.add(MirrorText.field("depth", ConfigManager.getMirrorViewDepth() + " from the opening (mirror-view-depth)"));
+        lines.add(MirrorText.field("fog", fogState(player)));
         final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
         {
@@ -400,6 +401,33 @@ public final class MirrorWindows
         return lines;
     }
 
+    /**
+     * What {@code mirror-fog-at-depth} is doing for one viewer, for {@code mirror debug}.
+     *
+     * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends
+     * -- so without a line saying whether it engaged there is no way to tell it from a shallow
+     * depth on a server that never had the method.
+     */
+    private static String fogState(final Player player)
+    {
+        if (!ConfigManager.isMirrorFogAtDepth())
+        {
+            return "off (mirror-fog-at-depth)";
+        }
+        if (!MirrorFog.available())
+        {
+            return MirrorText.bad("on, but this server has no Player.setSendViewDistance")
+                + ", which is Paper's";
+        }
+        final UUID id = player.getUniqueId();
+        if (MirrorFog.narrowed(id))
+        {
+            return MirrorText.good("pulled in to " + MirrorFog.narrowedTo(id) + " chunk(s)")
+                + ", from " + MirrorFog.wasSent(id);
+        }
+        return "on, nothing pulled in: this client is already sent no further than the room reaches";
+    }
+
     /** How a window is being drawn for a viewer, and why, for {@code mirror debug}. */
     private static String howDrawn(final MirrorWindowState window, final boolean fixedForViewer)
     {
@@ -446,6 +474,7 @@ public final class MirrorWindows
         MirrorSight.clear();
         BLIND.clear();
         FULL.clear();
+        MirrorFog.clear();
         MirrorCaptures.clear();
         clock = System::currentTimeMillis;
         workPerSecond = WORK_PER_SECOND;
@@ -558,7 +587,7 @@ public final class MirrorWindows
                 final Player player = Bukkit.getPlayer(id);
                 if (player == null)
                 {
-                    VIEWS.remove(id);
+                    endView(id, null);
                 }
                 else
                 {
@@ -630,7 +659,7 @@ public final class MirrorWindows
                 final Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null)
                 {
-                    VIEWS.remove(entry.getKey());
+                    endView(entry.getKey(), null);
                 }
                 else
                 {
@@ -822,6 +851,10 @@ public final class MirrorWindows
                 stream(player, entry.getValue(), Integer.MAX_VALUE);
                 veil(player, entry.getValue(), List.of());
             }
+            // Outside that: the fog is the player's own and not the world's, so it goes back
+            // wherever they are standing now. Blocks drawn in a world they have left are already
+            // gone, but a narrowed send distance would follow them out of it.
+            MirrorFog.restore(entry.getKey(), player);
         }
         clear();
     }
@@ -869,7 +902,7 @@ public final class MirrorWindows
         {
             // A new world's chunks have already replaced everything drawn in the old one, and
             // its creatures are all new to the client too.
-            VIEWS.remove(id);
+            endView(id, player);
             view = null;
         }
         final List<MirrorWindowState> seeing = seenBy(player, eye);
@@ -881,6 +914,8 @@ public final class MirrorWindows
         {
             view = new MirrorDrawing(player.getWorld());
             VIEWS.put(id, view);
+            // The room is about to be drawn: end this world where the room does, if asked to.
+            MirrorFog.narrow(player, ConfigManager.getMirrorViewDepth());
         }
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
@@ -936,8 +971,27 @@ public final class MirrorWindows
         view.composedAt = now();
         if (wanted.isEmpty() && view.pending.isEmpty())
         {
-            VIEWS.remove(id);
+            endView(id, player);
         }
+    }
+
+    /**
+     * Forgets a viewer's drawing, and gives back the fog a mirror pulled in for it.
+     *
+     * <p>Every ending goes through here. A view ends in four places -- the eye moving to a world
+     * with no window in it, a redraw finding nothing left to draw, and either half of the stream
+     * running out -- and a narrowed viewer who slipped out through one of them would keep a
+     * mirror's fog for the rest of their session.
+     *
+     * @param id
+     *            whose view it was
+     * @param player
+     *            that player, or null for one the server no longer has
+     */
+    private static void endView(final UUID id, final Player player)
+    {
+        VIEWS.remove(id);
+        MirrorFog.restore(id, player);
     }
 
     /**
@@ -2198,13 +2252,13 @@ public final class MirrorWindows
         if (!player.isOnline() || !player.getWorld().equals(view.world))
         {
             // Gone, or in a world whose chunks have replaced everything drawn: nothing is owed.
-            VIEWS.remove(id);
+            endView(id, player);
             return;
         }
         stream(player, view, streamPerTick);
         if (view.pending.isEmpty() && view.drawn.isEmpty())
         {
-            VIEWS.remove(id);
+            endView(id, player);
         }
     }
 
