@@ -206,6 +206,29 @@ class GateProjectileTest
         }
     }
 
+    /** A property that will not copy costs that property, not the crossing. */
+    @Test
+    void aPropertyThatWillNotCopyStillLetsTheArrowCross() throws Exception
+    {
+        if (GateEntityScanner.carriesWeapon())
+        {
+            when(arrowMethod("getWeapon").invoke(arrow)).thenReturn(mock(ItemStack.class));
+            arrowMethod("setWeapon", ItemStack.class)
+                .invoke(doThrow(new IllegalStateException("refused")).when(spawned), any(ItemStack.class));
+        }
+        else
+        {
+            when(arrowMethod("getKnockbackStrength").invoke(arrow)).thenReturn(1);
+            arrowMethod("setKnockbackStrength", int.class)
+                .invoke(doThrow(new IllegalStateException("refused")).when(spawned), anyInt());
+        }
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow).remove();
+        verify(spawned).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+    }
+
     private static Method arrowMethod(final String name, final Class<?>... parameters) throws NoSuchMethodException
     {
         return AbstractArrow.class.getMethod(name, parameters);
