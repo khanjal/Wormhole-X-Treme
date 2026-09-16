@@ -180,7 +180,7 @@ class BeamGalleryTest
      * would fail on the numbers and this would say which property had gone.
      */
     @Test
-    void theDescendStartsBeforeTheRiseHasFinished() throws IOException
+    void theDescendStartsBeforeTheRiseHasFinished()
     {
         final List<BeamFrame> frames = sequence();
         final int both = (int) frames.stream()

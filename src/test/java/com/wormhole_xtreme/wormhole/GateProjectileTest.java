@@ -212,7 +212,8 @@ class GateProjectileTest
     {
         if (GateEntityScanner.carriesWeapon())
         {
-            when(arrowMethod("getWeapon").invoke(arrow)).thenReturn(mock(ItemStack.class));
+            final ItemStack weapon = mock(ItemStack.class);
+            when(arrowMethod("getWeapon").invoke(arrow)).thenReturn(weapon);
             arrowMethod("setWeapon", ItemStack.class)
                 .invoke(doThrow(new IllegalStateException("refused")).when(spawned), any(ItemStack.class));
         }

@@ -104,6 +104,9 @@ class MirrorWindowsTest
     private final MirrorPoint arrival = new MirrorPoint("far", 100.5, 70.0, -20.5, 0.0f, 0.0f);
     private final MirrorPoint arrivalTwo = new MirrorPoint("far2", 300.5, 70.0, -20.5, 0.0f, 0.0f);
 
+    /** How far {@link #pause()} has moved the redraw clock past the real one. */
+    private static long paused;
+
     @BeforeEach
     void setUp() throws Exception
     {
@@ -116,6 +119,8 @@ class MirrorWindowsTest
         ConfigTestSupport.set(ConfigKeys.MIRROR_VIEW_DEPTH, 16);
         MirrorManager.clear();
         MirrorProximity.clear();
+        paused = 0L;
+        MirrorWindows.clock = () -> System.currentTimeMillis() + paused;
         // A redraw over these mocks takes hundreds of milliseconds; resting three times that would
         // put every step that follows a pause() off until a catch-up that never comes.
         MirrorWindows.restFactor = 0L;
@@ -2203,17 +2208,10 @@ class MirrorWindowsTest
         return line.replaceAll("§.", "").trim();
     }
 
-    /** Waits out the least time between two redraws of one viewer. */
+    /** Moves the redraw clock past the least time between two redraws of one viewer. */
     private static void pause()
     {
-        try
-        {
-            Thread.sleep(MirrorWindows.REDRAW_MILLIS + 30L);
-        }
-        catch (final InterruptedException interrupted)
-        {
-            Thread.currentThread().interrupt();
-        }
+        paused += MirrorWindows.REDRAW_MILLIS + 30L;
     }
 
     /** Asserts the second of two sends put back every block the first drew over. */

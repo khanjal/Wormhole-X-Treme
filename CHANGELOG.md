@@ -6,6 +6,13 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
+## 1.7.0 (unreleased)
+
+### Internals
+
+- **Ten of the 41 Sonar findings on main are cleared**, nine of them in the tests. The mirror
+  redraw tests move the clock where they slept.
+
 ## 1.6.0 (2026-09-16)
 
 Sixteen commits' notes had been written into 1.5.0's section as though they had shipped in it, and

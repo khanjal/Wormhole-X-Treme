@@ -211,9 +211,9 @@ class StartupBannerTest
         capturing.addHandler(new Handler()
         {
             @Override
-            public void publish(final LogRecord record)
+            public void publish(final LogRecord logRecord)
             {
-                logged.add(record.getMessage());
+                logged.add(logRecord.getMessage());
             }
 
             @Override

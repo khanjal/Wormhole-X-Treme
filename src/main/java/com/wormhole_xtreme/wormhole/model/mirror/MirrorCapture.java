@@ -583,8 +583,9 @@ public final class MirrorCapture
             // Three blocks wide, centred on the arrival: a mirror two banners wide sees one column more
             // than its room's, on whichever side its view turns that column to, so a room captured
             // once serves a mirror of either width looking in either way.
-            for (double across = -1.4; across <= 1.41; across += 0.35)
+            for (int column = -4; column <= 4; column++)
             {
+                final double across = column * 0.35;
                 for (double up = 0.1; up < 2.0; up += 0.2)
                 {
                     // From this point at the front of the hole, every direction out of its back.

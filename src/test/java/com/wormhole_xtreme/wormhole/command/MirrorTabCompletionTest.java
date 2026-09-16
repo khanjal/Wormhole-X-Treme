@@ -175,13 +175,6 @@ class MirrorTabCompletionTest
     }
 
     /**
-     * A verb nobody has offers nothing, rather than the mirror names.
-     *
-     * <p>The completer names the verbs that take one instead of excluding the two that do
-     * not. Falling through meant a typo still offered the mirror list, which reads as though
-     * the typo were a real command.
-     */
-    /**
      * The word where the name is optional also offers what replaces it.
      *
      * <p>{@code start}, {@code capture} and {@code stamp} act on the banner being looked at when
@@ -200,6 +193,13 @@ class MirrorTabCompletionTest
         assertTrue(complete("mirror", "set", "stamp", "").contains("museum"));
     }
 
+    /**
+     * A verb nobody has offers nothing, rather than the mirror names.
+     *
+     * <p>The completer names the verbs that take one instead of excluding the two that do
+     * not. Falling through meant a typo still offered the mirror list, which reads as though
+     * the typo were a real command.
+     */
     @Test
     void anUnknownVerbOffersNothing()
     {

@@ -34,7 +34,8 @@ class MirrorViewBlockGuardTest
     {
         player = mock(Player.class);
         block = mock(Block.class);
-        when(block.getWorld()).thenReturn(mock(World.class));
+        final World world = mock(World.class);
+        when(block.getWorld()).thenReturn(world);
     }
 
     @Test

@@ -190,7 +190,7 @@ class ConfigLoadTest
      * nothing in the log to suggest it existed.
      */
     @Test
-    void configIsReadFromTheServersPluginFolder(@TempDir final File dataFolder) throws Exception
+    void configIsReadFromTheServersPluginFolder(@TempDir final File dataFolder)
     {
         when(plugin.getDataFolder()).thenReturn(dataFolder);
 
