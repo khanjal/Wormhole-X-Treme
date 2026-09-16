@@ -83,7 +83,7 @@ public class Build implements CommandExecutor
         {
             case SHOWN -> player.sendMessage(header + "Previewing " + shape.getShapeName()
                 + ((group == null) ? "" : " in " + group.getName())
-                + ". Build it where it stands and press the button on its DHD. "
+                + ". Build it where it stands, then place a real button where its button is and press that. "
                 + "/wormhole gate build clear takes away the one you look at.");
             case OVER_LIMIT -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + ((ConfigManager.getGatePreviewMaxBlocks() == 0)

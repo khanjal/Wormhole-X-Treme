@@ -103,8 +103,8 @@ public final class GateBlueprint
     /** Minecraft's yaw quarters, from 0: south, west, north, east. */
     private static final BlockFace[] YAW_FACES = { BlockFace.SOUTH, BlockFace.WEST, BlockFace.NORTH, BlockFace.EAST };
 
-    /** How far in front of the player the nearest block of a blueprint stands. */
-    private static final int CLEARANCE = 2;
+    /** How far in front of the player the DHD, or any frame block nearer than it, stands. */
+    private static final int CLEARANCE = 1;
 
     private GateBlueprint() {}
 
@@ -121,9 +121,9 @@ public final class GateBlueprint
     }
 
     /**
-     * Where a shape stands when previewed in front of a player: its DHD straight ahead, its
-     * button facing them, its bottom row level with their feet, and nothing of it nearer than
-     * two blocks.
+     * Where a shape stands when previewed in front of a player: its DHD in the block straight
+     * ahead, its button facing them in the block they stand in, its bottom row level with their
+     * feet, and no frame block nearer than the DHD's.
      *
      * @param shape
      *            the shape
@@ -151,8 +151,8 @@ public final class GateBlueprint
         {
             return null;
         }
-        // Blocks in layers past the DHD's stand between it and the player; the button is one nearer still.
-        final int ahead = Math.max(CLEARANCE + 1, CLEARANCE + (lastBuiltLayer(layers) - act));
+        // Blocks in layers past the DHD's stand between it and the player, so it steps back for them.
+        final int ahead = CLEARANCE + Math.max(0, lastBuiltLayer(layers) - act);
         return GateGrid.fromActivationHolder(shape, feetX + (ahead * looking.getModX()), feetY + pos[1],
             feetZ + (ahead * looking.getModZ()), WorldUtils.getInverseDirection(looking));
     }

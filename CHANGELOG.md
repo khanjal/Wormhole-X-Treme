@@ -15,6 +15,8 @@ it explains, and a release nobody can scroll through is a release nobody reads.
   Several can stand at once; `gate build clear [all]` takes them away.
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
+- **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
+  MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
 
 ### Quantum mirrors
 

@@ -30,7 +30,7 @@ in lapis for an Atlantis one. See [Material groups](#material-groups).
 ### Previews
 
 With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its
-DHD two blocks ahead with the button facing you, its bottom row level with your feet, in the
+DHD in the block in front of you with the button facing you, its bottom row level with your feet, in the
 group's materials (the first group in `config.yml` if you name none). Only you see it, and it is
 not made of blocks, so you can walk through it and build into it. Build where it stands and press
 its button.
@@ -118,7 +118,9 @@ group is accepted.
 ## Material groups
 
 A gate's **shape** is its geometry; its **material group** is what that geometry is built from.
-Groups live in `config.yml`, and the first is the default:
+Groups live in `config.yml`, and the first is the default. A `config.yml` with no
+`gate-material-groups` section is given the four example groups (Standard, Atlantis, Universe
+and MilkyWay) at startup; a section you have written is left as it is:
 
 ```yaml
 gate-material-groups:

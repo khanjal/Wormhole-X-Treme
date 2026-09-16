@@ -172,8 +172,8 @@ class GateBlueprintTest
     /**
      * The preview stands in front of the player, with its button straight ahead and facing them.
      *
-     * <p>Two blocks away and no nearer, so it neither appears around the player nor stands off
-     * across the room; its bottom row level with their feet, so it is built on the ground they
+     * <p>The DHD in the very next block, as asked for in testing, with its button where the
+     * player stands; its bottom row level with their feet, so it is built on the ground they
      * stand on. Massive's kawoosh reaches six layers past its DHD, and is not counted.
      */
     @Test
@@ -192,10 +192,12 @@ class GateBlueprintTest
                 assertEquals(looking.getOppositeFace(), grid.facing(), where + ": the button faces the player");
                 assertEquals(0, ((button.x() - 10) * looking.getModZ()) - ((button.z() + 20) * looking.getModX()),
                     where + ": the button is straight ahead");
-                final int nearest = cells.stream()
+                assertEquals(0, ((button.x() - 10) * looking.getModX()) + ((button.z() + 20) * looking.getModZ()),
+                    where + ": the button is in the block the player stands in");
+                final int nearest = cells.stream().filter(c -> (c.part() != Part.BUTTON) && (c.part() != Part.DIAL_SIGN))
                     .mapToInt(c -> ((c.x() - 10) * looking.getModX()) + ((c.z() + 20) * looking.getModZ()))
                     .min().orElseThrow();
-                assertEquals(2, nearest, where + ": two blocks away");
+                assertEquals(1, nearest, where + ": the DHD in the block in front");
                 assertEquals(64, cells.stream().mapToInt(Cell::y).min().orElseThrow(),
                     where + ": the bottom row is level with the player's feet");
             }
@@ -203,8 +205,8 @@ class GateBlueprintTest
     }
 
     /**
-     * A shape with frame blocks nearer the player than its DHD stands back far enough to keep
-     * those two blocks away too.
+     * A shape with frame blocks nearer the player than its DHD stands back far enough to put
+     * those in the block in front instead.
      *
      * <p>No shipped shape has one: each DHD is in its nearest built layer. So Standard is edited
      * here to hang its DHD two layers back.
@@ -222,8 +224,8 @@ class GateBlueprintTest
 
         final List<Cell> cells = GateBlueprint.of(s, GateBlueprint.inFrontOf(s, 0, 64, 0, BlockFace.SOUTH));
 
-        assertEquals(2, cells.stream().mapToInt(Cell::z).min().orElseThrow(),
-            "layer 4's frame blocks are the nearest, and two blocks away");
+        assertEquals(1, cells.stream().mapToInt(Cell::z).min().orElseThrow(),
+            "layer 4's frame blocks are the nearest, in the block in front");
     }
 
     /** Each chevron carries the wave that lights it, so a test activation can light them in order. */

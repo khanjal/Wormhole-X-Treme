@@ -117,7 +117,7 @@ class GatePreviewsTest
         when(owner.getEyeLocation()).thenReturn(new Location(world, x, 65.62, z, yaw, 0f));
     }
 
-    /** Standard, north of whoever looks north from the origin: its button is two blocks ahead. */
+    /** Standard, north of whoever looks north from the origin: its DHD in the block in front. */
     private List<Cell> standardLookingNorth()
     {
         return GateBlueprint.of(standard, GateBlueprint.inFrontOf(standard, 0, 64, 0, BlockFace.NORTH));
@@ -190,7 +190,7 @@ class GatePreviewsTest
         final List<BlockDisplay> first = new ArrayList<>(spawned.subList(0, STANDARD_BLOCKS));
         final List<BlockDisplay> second = new ArrayList<>(spawned.subList(STANDARD_BLOCKS, spawned.size()));
 
-        standAt(40.5, 0.5, 0f);
+        standAt(40.5, 1.5, 0f); // a step back, out of the preview, looking away
         assertFalse(GatePreviews.clearLookedAt(owner), "looking south, away from both");
         standAt(40.5, 0.5, 180f);
         assertTrue(GatePreviews.clearLookedAt(owner));
@@ -236,7 +236,7 @@ class GatePreviewsTest
         GatePreviews.show(owner, standard, null);
 
         now[0] += 9 * 60_000L;
-        standAt(0.5, 0.5, 0f);
+        standAt(0.5, 1.5, 0f); // a step back, out of the preview, looking away
         GatePreviews.clearLookedAt(owner);
         now[0] += 6 * 60_000L;
         GatePreviews.tick();
