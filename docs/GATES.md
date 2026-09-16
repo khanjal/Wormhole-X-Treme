@@ -214,8 +214,9 @@ A preview's controls redraw it from state rather than editing entities one by on
 waves are lit, whether the wormhole is open or the iris closed, the palette, and whether the DHD
 and chevron blocks are shown. Each change sets every display to what its cell should now show,
 and spawns or removes the iris's and the DHD's displays to match. Dialling steps a wave every
-`LIGHT_TICKS`; the kawoosh then goes out through the shape's `W#` steps and back, and the opening
-fills. The wormhole is sent to the owner as fake blocks, as a real gate draws its own, because a
+`LIGHT_TICKS`; the kawoosh then goes out through the shape's `W#` steps and back every
+`WOOSH_TICKS`, and the opening fills. The woosh order is `WooshSequence` and a lit chevron is
+`MaterialUtils.litChevron`, the same code a real gate dials with, so the two cannot drift apart. The wormhole is sent to the owner as fake blocks, as a real gate draws its own, because a
 block display draws no liquid; every one sent is remembered and taken back on shutdown, iris,
 clear, timeout and disable. The button is an `Interaction` entity over the button's
 cell, since a display cannot be clicked. The block limit counts the opening as well as the frame,

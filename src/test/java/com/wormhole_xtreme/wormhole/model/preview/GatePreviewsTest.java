@@ -74,6 +74,7 @@ class GatePreviewsTest
     private final Map<Material, BlockData> data = new HashMap<>();
     private Runnable dialStep;
     private BukkitTask dialTask;
+    private final List<Long> dialDelays = new ArrayList<>();
     private final long[] now = { 1_000_000L };
     private Stargate3DShape standard;
     private final RecordingCreation creation = new RecordingCreation(type ->
@@ -116,9 +117,10 @@ class GatePreviewsTest
         GatePreviews.online = id -> owner;
         GatePreviews.blockData = material -> data.computeIfAbsent(material,
             m -> (m == Material.STONE_BUTTON) ? buttonData() : mock(BlockData.class));
-        GatePreviews.repeater = (ticks, step) ->
+        GatePreviews.later = (ticks, step) ->
         {
             dialStep = step;
+            dialDelays.add(ticks);
             dialTask = mock(BukkitTask.class);
             return dialTask;
         };
@@ -427,12 +429,15 @@ class GatePreviewsTest
 
         dialStep.run();
         dialStep.run();
-        verify(dialTask, never()).cancel();
         dialStep.run();
 
         verify(owner, times(21 + 13 + 5)).sendBlockChange(any(Location.class), eq(data.get(Material.AIR)));
         verify(owner, times((21 + 13 + 5) + 21)).sendBlockChange(any(Location.class), eq(data.get(Material.WATER)));
-        verify(dialTask).cancel();
+        final long light = standard.getShapeLightTicks();
+        final long woosh = standard.getShapeWooshTicks();
+        assertEquals(List.of(light, light, light, light, light, light, light, 1L, woosh, woosh, woosh, woosh, woosh),
+            dialDelays, "chevrons the shape's light ticks apart, the woosh a tick after the last and its woosh ticks"
+                + " apart, as a real gate times them, then nothing more");
         assertEquals(STANDARD_BLOCKS, spawned.size(), "the wormhole is fake blocks, not displays");
     }
 

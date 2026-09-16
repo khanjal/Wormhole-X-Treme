@@ -23,7 +23,17 @@ public final class MaterialUtils {
      * @return its block data, lit where that means something
      */
     public static org.bukkit.block.data.BlockData drawnAs(final Material material) {
-        final org.bukkit.block.data.BlockData data = material.createBlockData();
+        return drawnAs(material.createBlockData());
+    }
+
+    /**
+     * The same, for block data already made.
+     *
+     * @param data
+     *            the block data, switched on in place where it can be
+     * @return the same block data
+     */
+    public static org.bukkit.block.data.BlockData drawnAs(final org.bukkit.block.data.BlockData data) {
         if (data instanceof org.bukkit.block.data.Lightable lightable) {
             lightable.setLit(true);
         }
@@ -47,15 +57,42 @@ public final class MaterialUtils {
      * @return its lit block data, or null if this material has no lit state
      */
     public static org.bukkit.block.data.BlockData litFormOf(final Material material) {
-        if (material == null) {
-            return null;
-        }
-        final org.bukkit.block.data.BlockData data = material.createBlockData();
+        return (material == null) ? null : litFormOf(material.createBlockData());
+    }
+
+    /**
+     * The same, for block data already made.
+     *
+     * @param data
+     *            the block data, switched on in place where it can be; may be null
+     * @return it switched on, or null if it has no lit state
+     */
+    public static org.bukkit.block.data.BlockData litFormOf(final org.bukkit.block.data.BlockData data) {
         if (data instanceof org.bukkit.block.data.Lightable lightable) {
             lightable.setLit(true);
             return data;
         }
         return null;
+    }
+
+    /**
+     * What one chevron position shows while it is lit: a chevron block with an on state switched on,
+     * and the light material for everything else, so a gold chevron that cannot light still appears to.
+     * A real gate and a build preview both light their chevrons by this.
+     *
+     * @param standing
+     *            the material built at that position
+     * @param chevronMaterial
+     *            what an unlit chevron of this gate is built from, may be null
+     * @param fixtureOn
+     *            the chevron material switched on, or null if it has no lit state
+     * @param lightData
+     *            the gate's light material, used for everything else
+     * @return what to draw there
+     */
+    public static org.bukkit.block.data.BlockData litChevron(final Material standing, final Material chevronMaterial,
+        final org.bukkit.block.data.BlockData fixtureOn, final org.bukkit.block.data.BlockData lightData) {
+        return ((fixtureOn != null) && (standing == chevronMaterial)) ? fixtureOn : lightData;
     }
 
     /**

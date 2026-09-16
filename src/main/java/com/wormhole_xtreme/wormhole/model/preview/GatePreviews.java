@@ -15,7 +15,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.Lightable;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -35,7 +34,9 @@ import com.wormhole_xtreme.wormhole.logic.GateGrid;
 import com.wormhole_xtreme.wormhole.model.GateSounds;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.Stargate3DShape;
+import com.wormhole_xtreme.wormhole.model.WooshSequence;
 import com.wormhole_xtreme.wormhole.utils.HiddenEntities;
+import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
 import com.wormhole_xtreme.wormhole.utils.Sounds;
 
 /**
@@ -100,16 +101,16 @@ public final class GatePreviews
         CHEVRONS_SHOWN
     }
 
-    /** Starts a repeating task; tests step a dial by hand instead. */
-    interface Repeater
+    /** Runs a step of a dial later; tests step a dial by hand instead. */
+    interface Later
     {
-        BukkitTask every(long ticks, Runnable step);
+        BukkitTask after(long ticks, Runnable step);
     }
 
     static LongSupplier clock = System::currentTimeMillis;
     static Function<Material, BlockData> blockData = Bukkit::createBlockData;
     static Function<UUID, Player> online = Bukkit::getPlayer;
-    static Repeater repeater = GatePreviews::schedule;
+    static Later later = GatePreviews::schedule;
 
     private static final Map<UUID, List<GatePreview>> PREVIEWS = new HashMap<>();
 
@@ -485,11 +486,12 @@ public final class GatePreviews
         clock = System::currentTimeMillis;
         blockData = Bukkit::createBlockData;
         online = Bukkit::getPlayer;
-        repeater = GatePreviews::schedule;
+        later = GatePreviews::schedule;
     }
 
     /**
-     * Lights the next chevron, or opens the wormhole once they are all lit.
+     * Plays the next step of a dial: the next chevron wave, then the kawoosh in the order
+     * {@link WooshSequence} gives a real gate, then the open wormhole.
      *
      * @param owner
      *            whose preview
@@ -498,44 +500,79 @@ public final class GatePreviews
      */
     static void step(final Player owner, final GatePreview preview)
     {
+        preview.dialling(null);
         if (preview.litWaves() < preview.lastWave())
         {
             preview.litWaves(preview.litWaves() + 1);
             sound(owner, ConfigManager.getGateSoundChevron(),
                 GateSounds.chevronPitch(preview.litWaves(), preview.lastWave()));
             restyle(preview);
+            // A real gate starts its woosh the tick after its last chevron.
+            next(owner, preview, (preview.litWaves() < preview.lastWave())
+                ? preview.shape().getShapeLightTicks() : 1L);
             return;
         }
-        final int stage = preview.wooshStage() + 1;
-        final int last = preview.lastWoosh();
-        preview.wooshStage(stage);
-        if (stage == 1)
+        final int stage = preview.wooshStage();
+        final int steps = preview.lastWoosh();
+        if ((stage == 0) && (steps > 0))
         {
             sound(owner, ConfigManager.getGateSoundKawoosh(), GateSounds.KAWOOSH_PITCH);
         }
-        if (stage <= last)
+        final WooshSequence.Step now = WooshSequence.at(stage, steps);
+        preview.wooshStage(stage + 1);
+        if (now.move() == WooshSequence.Move.OUT)
         {
-            send(owner, preview, wooshStep(preview, stage));
+            send(owner, preview, wooshStep(preview, now.index()));
+        }
+        else if (now.move() == WooshSequence.Move.BACK)
+        {
+            takeBack(owner, preview, wooshStep(preview, now.index()));
+        }
+        // Settled in the same step as the shallowest woosh step is taken back, as a real gate does.
+        if ((now.move() == WooshSequence.Move.SETTLE)
+            || (WooshSequence.at(stage + 1, steps).move() == WooshSequence.Move.SETTLE))
+        {
+            preview.open(true);
+            draw(owner, preview);
             return;
         }
-        if (stage <= (2 * last))
-        {
-            takeBack(owner, preview, wooshStep(preview, (2 * last) + 1 - stage));
-            if (stage < (2 * last))
-            {
-                return;
-            }
-        }
-        // Out and back, as a real gate's woosh goes, and then the opening stays filled.
-        preview.stopDialling();
-        preview.open(true);
-        draw(owner, preview);
+        next(owner, preview, preview.shape().getShapeWooshTicks());
     }
 
-    /** The woosh's cells at one step. */
-    private static List<Cell> wooshStep(final GatePreview preview, final int step)
+    private static void next(final Player owner, final GatePreview preview, final long ticks)
     {
-        return preview.woosh().stream().filter(cell -> cell.wave() == step).toList();
+        preview.dialling(later.after(Math.max(1L, ticks), () -> step(owner, preview)));
+    }
+
+    private static BukkitTask schedule(final long ticks, final Runnable step)
+    {
+        return WormholeXTreme.getScheduler().runTaskLater(WormholeXTreme.getThisPlugin(), step, ticks);
+    }
+
+    private static Control toggleDial(final Player owner, final GatePreview preview)
+    {
+        if ((preview.dialling() != null) || (preview.litWaves() > 0) || preview.open())
+        {
+            preview.stopDialling();
+            preview.litWaves(0);
+            preview.wooshStage(0);
+            preview.open(false);
+            takeBack(owner, preview, preview.woosh());
+            takeBack(owner, preview, preview.opening());
+            sound(owner, ConfigManager.getGateSoundClose(), 1.0f);
+            restyle(preview);
+            draw(owner, preview);
+            return Control.SHUT_DOWN;
+        }
+        sound(owner, ConfigManager.getGateSoundActivate(), 1.0f);
+        next(owner, preview, preview.shape().getShapeLightTicks());
+        return Control.DIALLING;
+    }
+
+    /** The woosh's cells at one step, counted from 0 as {@link WooshSequence} does; the shape's W# from 1. */
+    private static List<Cell> wooshStep(final GatePreview preview, final int index)
+    {
+        return preview.woosh().stream().filter(cell -> cell.wave() == (index + 1)).toList();
     }
 
     /**
@@ -573,32 +610,6 @@ public final class GatePreviews
             takeBack(owner, preview, preview.woosh());
             takeBack(owner, preview, preview.opening());
         }
-    }
-
-    private static BukkitTask schedule(final long ticks, final Runnable step)
-    {
-        return WormholeXTreme.getScheduler().runTaskTimer(WormholeXTreme.getThisPlugin(), step, ticks, ticks);
-    }
-
-    private static Control toggleDial(final Player owner, final GatePreview preview)
-    {
-        if ((preview.dialling() != null) || (preview.litWaves() > 0) || preview.open())
-        {
-            preview.stopDialling();
-            preview.litWaves(0);
-            preview.wooshStage(0);
-            preview.open(false);
-            takeBack(owner, preview, preview.woosh());
-            takeBack(owner, preview, preview.opening());
-            sound(owner, ConfigManager.getGateSoundClose(), 1.0f);
-            restyle(preview);
-            draw(owner, preview);
-            return Control.SHUT_DOWN;
-        }
-        sound(owner, ConfigManager.getGateSoundActivate(), 1.0f);
-        preview.dialling(repeater.every(Math.max(1, preview.shape().getShapeLightTicks()),
-            () -> step(owner, preview)));
-        return Control.DIALLING;
     }
 
     /** The owner's preview their line of sight meets first, or null. */
@@ -758,22 +769,10 @@ public final class GatePreviews
      */
     static BlockData litData(final Palette palette, final Cell cell)
     {
-        final Material standing = palette.materialOf(cell);
-        if ((palette.chevron() != null) && (standing == palette.chevron()))
-        {
-            final BlockData fixture = blockData.apply(standing);
-            if (fixture instanceof Lightable lightable)
-            {
-                lightable.setLit(true);
-                return fixture;
-            }
-        }
-        final BlockData light = blockData.apply(palette.light());
-        if (light instanceof Lightable lightable)
-        {
-            lightable.setLit(true);
-        }
-        return light;
+        final BlockData fixtureOn = (palette.chevron() == null) ? null
+            : MaterialUtils.litFormOf(blockData.apply(palette.chevron()));
+        return MaterialUtils.litChevron(palette.materialOf(cell), palette.chevron(), fixtureOn,
+            MaterialUtils.drawnAs(blockData.apply(palette.light())));
     }
 
     /** What the opening's displays show: they stand only while the iris is closed. */
