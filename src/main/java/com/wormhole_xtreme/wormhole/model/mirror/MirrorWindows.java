@@ -327,6 +327,10 @@ public final class MirrorWindows
         {
             lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
         }
+        if (ConfigManager.isMirrorFogAtDepth())
+        {
+            lines.add(MirrorText.field("fog", fogState(player)));
+        }
         final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (view == null)
         {
@@ -771,14 +775,35 @@ public final class MirrorWindows
         }
     }
 
-    /** Sends everything a view holds again, as it holds it. */
+    /**
+     * Sends everything a view is meant to hold again: what it has been sent, with what it is still
+     * owed applied.
+     *
+     * <p>Not what it has been sent alone. A click books this a tick after a redraw that may still be
+     * streaming, and part-way through a stream what has gone out is half one room and half the next.
+     * Taken as the truth, that threw the rest of the stream away and drew the half-finished room
+     * again: part of the room somebody had just scrolled away from stayed up until the next sweep.
+     */
     private static void sendAgain(final Player player)
     {
         final MirrorDrawing view = VIEWS.get(player.getUniqueId());
-        if (view != null)
+        if (view == null)
         {
-            send(player, view, view.drawn, player.getEyeLocation(), now(), true, Set.of());
+            return;
         }
+        final Map<Long, BlockData> meant = new HashMap<>(view.drawn);
+        for (final Map.Entry<Long, BlockData> owed : view.pending.entrySet())
+        {
+            if (owed.getValue() == null)
+            {
+                meant.remove(owed.getKey());
+            }
+            else
+            {
+                meant.put(owed.getKey(), owed.getValue());
+            }
+        }
+        send(player, view, meant, player.getEyeLocation(), now(), true, Set.of());
     }
 
     /**
@@ -914,9 +939,9 @@ public final class MirrorWindows
         {
             view = new MirrorDrawing(player.getWorld());
             VIEWS.put(id, view);
-            // The room is about to be drawn: end this world where the room does, if asked to.
-            MirrorFog.narrow(player, ConfigManager.getMirrorViewDepth());
         }
+        // Before any early return, so a fog setting changed mid-view still reaches the viewer.
+        MirrorFog.apply(player, ConfigManager.getMirrorViewDepth());
         final long chunk = chunkOf(eye);
         final boolean crossed = view.chunk != chunk;
         seeing.forEach(window -> refreshSolid(window, now));
