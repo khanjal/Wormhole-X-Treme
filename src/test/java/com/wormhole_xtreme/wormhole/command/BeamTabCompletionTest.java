@@ -95,7 +95,7 @@ class BeamTabCompletionTest
     @Test
     void costOffersDefaultInItsValueSlot()
     {
-        assertEquals(Collections.singletonList("default"),
+        assertEquals(Collections.singletonList("-default"),
             complete("beam", "admin", "cost", "somewhere", ""));
     }
 

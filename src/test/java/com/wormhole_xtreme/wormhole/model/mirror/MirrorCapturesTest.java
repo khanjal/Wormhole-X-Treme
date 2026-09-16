@@ -308,10 +308,10 @@ class MirrorCapturesTest
             bukkit.when(() -> Bukkit.getWorld("far")).thenReturn(far);
             bukkit.when(() -> Bukkit.createBlockData(Material.AIR)).thenReturn(air);
 
-            command.execute(admin, new String[] { "mirror", "set", "museum", "stamp", "nether" });
+            command.execute(admin, new String[] { "mirror", "set", "museum", "-stamp", "nether" });
             assertEquals(0, MirrorCaptures.taking(), "stamp is about the banner, not the room");
 
-            command.execute(admin, new String[] { "mirror", "set", "museum", "capture" });
+            command.execute(admin, new String[] { "mirror", "set", "museum", "-capture" });
             assertEquals(1, MirrorCaptures.taking(), "capture is what takes the room again");
         }
         verify(admin, atLeastOnce()).sendMessage(contains("Capturing"));

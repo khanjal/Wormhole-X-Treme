@@ -191,7 +191,7 @@ public final class SubCommands
         register("complete", aliases(), "/wormhole complete <name> [idc=IDC] [net=NET]", new Complete(), true, (sender, args) ->
             // The name is new, so suggesting existing gate names would be actively wrong.
             args.length >= 3 ? prefixed(args[args.length - 1], "idc=", "net=") : none());
-        register(REMOVE, aliases("delete"), "/wormhole remove <gate>", new WXRemove(), true, GATE_NAMES);
+        register(REMOVE, aliases("delete"), "/wormhole remove <gate> [-destroy]", new WXRemove(), true, GATE_NAMES);
         register(REGENERATE, aliases("regen"), "/wormhole regenerate <gate>",
             new com.wormhole_xtreme.wormhole.command.handlers.RegenerateCommand(), false, GATE_NAMES);
         register("refresh", aliases(), "/wormhole refresh", new Refresh(), true, null);
@@ -210,10 +210,10 @@ public final class SubCommands
         // --- Per-gate settings ----------------------------------------------
         register(OWNER, aliases(), "/wormhole owner <gate> [player]",
             new com.wormhole_xtreme.wormhole.command.handlers.OwnerCommand(), false, GATE_THEN_VALUE);
-        register("idc", aliases(), "/wormhole idc <gate> [code]", new WXIDC(), true, GATE_THEN_VALUE);
+        register("idc", aliases(), "/wormhole idc <gate> [code|-clear]", new WXIDC(), true, GATE_THEN_VALUE);
         register(REDSTONE, aliases(), "/wormhole redstone <gate> [true|false]",
             new com.wormhole_xtreme.wormhole.command.handlers.RedstoneCommand(), false, GATE_THEN_BOOLEAN);
-        register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|confirm]",
+        register("custom", aliases(), "/wormhole custom <gate|-all|-clean> [true|false|-confirm]",
             new com.wormhole_xtreme.wormhole.command.handlers.CustomCommand(), false, (sender, args) ->
             {
                 if (args.length == 2)
@@ -225,7 +225,7 @@ public final class SubCommands
                 if (args.length == 3)
                 {
                     return "-clean".equalsIgnoreCase(args[1])
-                        ? prefixed(args[2], "confirm")
+                        ? prefixed(args[2], "-confirm")
                         : prefixed(args[2], TRUE, FALSE);
                 }
                 return none();
@@ -524,7 +524,7 @@ public final class SubCommands
         }
         final List<String> asVerb = new java.util.ArrayList<>();
         asVerb.add(args[0]);
-        asVerb.add(args[at].toLowerCase(java.util.Locale.ROOT));
+        asVerb.add(args[at].toLowerCase(java.util.Locale.ROOT).substring(1));
         if (!propertyFirst)
         {
             asVerb.add(args[2]);
@@ -572,10 +572,10 @@ public final class SubCommands
     private static final String DEBUG = "debug";
 
     /** What {@code mirror debug} takes on its own, or after a name: all and full take one. */
-    private static final String[] DEBUG_SWITCHES = { "all", "full", "off", "on" };
+    private static final String[] DEBUG_SWITCHES = { "-all", "-full", "-off", "-on" };
 
     /**
-     * Completions for {@code /wormhole mirror debug [name] [save|full]} and {@code debug off|on}.
+     * Completions for {@code /wormhole mirror debug [name] [-all|-full]} and {@code debug -off|-on}.
      *
      * @param sender
      *            whoever is typing; offered nothing without {@code wormhole.config}
@@ -595,7 +595,7 @@ public final class SubCommands
         }
         final boolean afterName = (args.length == 4)
             && java.util.Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
-        return afterName ? prefixed(args[3], "all", "full") : none();
+        return afterName ? prefixed(args[3], "-all", "-full") : none();
     }
 
     /**
@@ -631,7 +631,7 @@ public final class SubCommands
     {
         if ("start".equals(verb))
         {
-            return both(mirrorNames(), new String[] { "none" });
+            return both(mirrorNames(), new String[] { "-none" });
         }
         return new String[0];
     }
@@ -943,7 +943,7 @@ public final class SubCommands
         {
             if ("cost".equals(action))
             {
-                return prefixed(args[4], "default");
+                return prefixed(args[4], "-default");
             }
             // send's destination, one token in -- same shape as goto's first argument.
             if ("send".equals(action))

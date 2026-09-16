@@ -82,6 +82,24 @@ class OwnerCommandTest
         return new OwnerCommand().execute(sender, args);
     }
 
+    /**
+     * {@code gate edit <gate> owner} with no name reports the owner, and leaves them the owner.
+     *
+     * <p>The edit handed an empty string on as the new owner, so asking who owned a gate gave it
+     * to nobody.
+     */
+    @Test
+    void gateEditOwnerWithNoNameReportsTheOwnerRatherThanClearingIt()
+    {
+        final Stargate s = gate("alpha", "Ada");
+
+        assertTrue(new GateEditCommand().execute(sender, new String[] { "gate", "edit", "alpha", "owner" }));
+
+        assertEquals("Ada", s.getGateOwnerName());
+        assertEquals("Ada", s.getGateOwner());
+        verify(sender).sendMessage(contains("Owned by: Ada"));
+    }
+
     /** A player without the config node is refused, whatever they were asking for. */
     @Test
     void aPlayerWithoutTheConfigNodeIsRefused()

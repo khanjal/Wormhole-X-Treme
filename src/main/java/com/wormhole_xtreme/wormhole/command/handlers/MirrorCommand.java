@@ -118,11 +118,17 @@ public class MirrorCommand implements SubCommand
     /** What this command answers to, for the usage line and tab completion. */
     private static final String[] VERBS = { CREATE, SET, "remove", "list" };
 
-    /** What {@code set} can change, and so the words {@code create} refuses as a name. */
-    private static final String[] PROPERTIES = { "stamp", "start", "capture" };
+    /** The property naming the mirror a right-click opens onto first. */
+    private static final String START = "-start";
+
+    /** What {@code set} can change. Dashed, like every keyword that can stand where a name does. */
+    private static final String[] PROPERTIES = { "-stamp", START, "-capture" };
 
     /** The same three, for looking a word up without building a list each time. */
     private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
+
+    /** A start that is the mirror's own room again. */
+    private static final String NONE = "-none";
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
@@ -173,11 +179,11 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Changes one thing a mirror has: {@code set [name] <stamp|start|capture> ...}.
+     * Changes one thing a mirror has: {@code set [name] <-stamp|-start|-capture> ...}.
      *
      * <p>Which word is which is settled by the third: a property there means the banner being
      * looked at, anything else is a name and the property comes after it. That works because a
-     * property word is never a mirror's name -- {@code create} refuses the three.
+     * property word starts with a dash, and no mirror's name may.
      *
      * <p>Each property keeps the parser it had when it was a verb of its own. The words after
      * {@code set} are put back in that shape and handed on, so what may stand where a name or a
@@ -196,6 +202,12 @@ public class MirrorCommand implements SubCommand
             saySetUsage(sender);
             return;
         }
+        // "set hub start" with no value would shift to "start hub", the looked-at banner's start.
+        if (START.equals(property) && (at == 3) && (args.length == 4))
+        {
+            sayStartUsage(sender);
+            return;
+        }
         final List<String> asVerb = new ArrayList<>();
         asVerb.add(args[0]);
         asVerb.add(property);
@@ -207,8 +219,8 @@ public class MirrorCommand implements SubCommand
         final String[] shifted = asVerb.toArray(new String[0]);
         switch (property)
         {
-            case "stamp" -> stamp(sender, shifted);
-            case "capture" -> capture(sender, shifted);
+            case "-stamp" -> stamp(sender, shifted);
+            case "-capture" -> capture(sender, shifted);
             default -> start(sender, shifted);
         }
     }
@@ -216,18 +228,17 @@ public class MirrorCommand implements SubCommand
     /**
      * Whether a mirror may be called that, saying why not when it may not.
      *
-     * <p>The three property words are how {@code set} tells a name from what comes after it, so
-     * a mirror called {@code start} could never be addressed: {@code set start hub} would be the
-     * banner in front of you.
+     * <p>Words starting with a dash are how every mirror command tells a keyword from a name, so
+     * a mirror called {@code -start} could never be addressed.
      */
     private static boolean nameFree(final CommandSender sender, final String name)
     {
-        if (property(name) == null)
+        if (!name.startsWith("-"))
         {
             return true;
         }
-        say(sender, MirrorText.quoted(name) + " is a word " + MirrorText.name(SET)
-            + " takes, so a mirror cannot be called that.");
+        say(sender, "A mirror's name cannot start with " + MirrorText.quoted("-")
+            + "; words that do are options, like " + MirrorText.name(START) + ".");
         return false;
     }
 
@@ -664,10 +675,10 @@ public class MirrorCommand implements SubCommand
         if (looksFitInAMessage(names))
         {
             say(sender, USAGE + MirrorText.command(
-                "/wormhole mirror set [<name>] stamp [" + String.join("|", names) + "]"));
+                "/wormhole mirror set [<name>] -stamp [" + String.join("|", names) + "]"));
             return;
         }
-        say(sender, USAGE + MirrorText.command("/wormhole mirror set [<name>] stamp [<look>]"));
+        say(sender, USAGE + MirrorText.command("/wormhole mirror set [<name>] -stamp [<look>]"));
         if (names.length > 0)
         {
             say(sender, names.length + " looks to choose from -- press tab for the list, or"
@@ -776,7 +787,7 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        if ("none".equalsIgnoreCase(word))
+        if (NONE.equalsIgnoreCase(word))
         {
             MirrorManager.add(mirror.withStart(null));
             MirrorYamlManager.saveAll();
@@ -791,7 +802,7 @@ public class MirrorCommand implements SubCommand
         }
         if (first.name().equalsIgnoreCase(mirror.name()))
         {
-            say(sender, "A mirror starts on its own room already; " + MirrorText.name("none")
+            say(sender, "A mirror starts on its own room already; " + MirrorText.name(NONE)
                 + " is the way to say so.");
             return;
         }
@@ -804,7 +815,7 @@ public class MirrorCommand implements SubCommand
     /** @see #start */
     private static void sayStartUsage(final CommandSender sender)
     {
-        sayUsage(sender, "set [<name>] start <mirror|none>");
+        sayUsage(sender, "set [<name>] -start <mirror|" + NONE + ">");
     }
 
     /**
@@ -819,7 +830,7 @@ public class MirrorCommand implements SubCommand
     private static void capture(final CommandSender sender, final String[] args)
     {
         final QuantumMirror mirror = namedOrLookedAt(sender, (args.length > 2) ? args[2] : null,
-            () -> sayUsage(sender, "set [<name>] capture"));
+            () -> sayUsage(sender, "set [<name>] -capture"));
         if (mirror == null)
         {
             return;
@@ -1165,24 +1176,24 @@ public class MirrorCommand implements SubCommand
     private static void debug(final CommandSender sender, final String[] args)
     {
         final String last = (args.length > 2) ? args[args.length - 1].toLowerCase(java.util.Locale.ROOT) : "";
-        if ("off".equals(last) || "on".equals(last))
+        if ("-off".equals(last) || "-on".equals(last))
         {
             final Player player = asPlayer(sender);
             if (player != null)
             {
-                com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, "off".equals(last));
-                say(sender, "off".equals(last) ? "Views are off for you: mirrors are banners, and the world is as it is. "
-                    + "mirror debug on turns them back on." : "Views are back on for you, as everyone sees them.");
+                com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.blind(player, "-off".equals(last));
+                say(sender, "-off".equals(last) ? "Views are off for you: mirrors are banners, and the world is as it is. "
+                    + "mirror debug -on turns them back on." : "Views are back on for you, as everyone sees them.");
             }
             return;
         }
-        final boolean full = "full".equals(last);
-        final boolean all = "all".equals(last);
+        final boolean full = "-full".equals(last);
+        final boolean all = "-all".equals(last);
         // How many words the command has with no name in it.
         final int bare = (full || all) ? 3 : 2;
         final String name = (args.length > bare) ? args[2] : null;
         final QuantumMirror mirror = namedOrLookedAt(sender, name,
-            () -> sayUsage(sender, "debug [<name>] [all|full] | debug off|on"));
+            () -> sayUsage(sender, "debug [<name>] [-all|-full] | debug -off|-on"));
         if (mirror == null)
         {
             return;
@@ -1195,7 +1206,7 @@ public class MirrorCommand implements SubCommand
                 com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.full(player, mirror.name());
                 say(sender, MirrorText.quoted(mirror.name()) + " is drawn whole and without limits for you: "
                     + "everything its capture holds, through the opening, past the edges and into the ground. "
-                    + "mirror debug on stops that.");
+                    + "mirror debug -on stops that.");
             }
             return;
         }
@@ -1231,7 +1242,7 @@ public class MirrorCommand implements SubCommand
         {
             com.wormhole_xtreme.wormhole.model.mirror.MirrorWindows.summary(player).forEach(line -> say(sender, line));
         }
-        say(sender, "  " + MirrorText.command("/wormhole mirror debug " + mirror.name() + " all") + " for the rest.");
+        say(sender, "  " + MirrorText.command("/wormhole mirror debug " + mirror.name() + " -all") + " for the rest.");
     }
 
     /** Where a mirror's banner is, for debug. */

@@ -45,10 +45,10 @@ Make a mirror in another world the same way, and the two find each other:
 - **Punch** it to go to the mirror it is showing. You land in front of that mirror's banner, facing
   out into its room.
 - **Walk away** and, once nobody is near, it goes back to its own room.
-- **Give it a start** to put one mirror first in its list: `/wormhole mirror set archive start hub`
+- **Give it a start** to put one mirror first in its list: `/wormhole mirror set archive -start hub`
   has the first right-click on the mirror in an archived world open onto the main world's `hub`,
   and the next go on through the rest by name. It still shows its own room until somebody
-  right-clicks it. `start archive none` takes the start away.
+  right-clicks it. `mirror set archive -start -none` takes the start away.
 
 A mirror needs solid wall a block out on every side of its opening — a gap is refused by the block
 to fill — and a banner on a post cannot be one. Two blocks out hides the room's edges better from
@@ -67,16 +67,16 @@ built for one banner is a column short, and `create` says so.
 
 A mirror you already made one wide stays one wide: `mirror remove` it, hang the second banner, and
 `create` again. A room captured before wide mirrors existed is a little narrow for one;
-`mirror set <name> capture` retakes it.
+`mirror set <name> -capture` retakes it.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there |
-| `mirror set [name] start <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
-| `mirror set [name] stamp [look]` | Makes the banner look like where it goes |
-| `mirror set [name] capture` | Takes the room's capture again |
+| `mirror set [name] -start <mirror\|-none>` | The mirror a right-click opens onto first; `-none` takes it away |
+| `mirror set [name] -stamp [look]` | Makes the banner look like where it goes |
+| `mirror set [name] -capture` | Takes the room's capture again |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 
@@ -88,15 +88,15 @@ The verbs with `[name]` in brackets take the mirror on the banner you are lookin
 leave the name out:
 
 ```
-/wormhole mirror set start hub      # looking at the banner: a right-click opens onto hub first
-/wormhole mirror set stamp cavern   # give it the cavern look
+/wormhole mirror set -start hub      # looking at the banner: a right-click opens onto hub first
+/wormhole mirror set -stamp cavern   # give it the cavern look
 /wormhole mirror remove             # give the banner back
 ```
 
-`set` takes the name first and then what to change: `set museum start hub`, or `set start hub`
-looking at the banner. The three words it takes — `stamp`, `start`, `capture` — are never names,
-and `create` refuses them, which is how it tells the two apart. A mirror's name still wins where a
-word could be either: `set stamp cavern` is the mirror called `cavern` if there is one, and the
+`set` takes the name first and then what to change: `set museum -start hub`, or `set -start hub`
+looking at the banner. What it changes — `-stamp`, `-start`, `-capture` — starts with a dash, and
+no mirror's name may, which is how it tells the two apart. A mirror's name still wins where a
+word could be either: `set -stamp cavern` is the mirror called `cavern` if there is one, and the
 *look* called `cavern` only if there is not.
 
 ### Renaming one
@@ -144,7 +144,7 @@ more than a quarter of the server's time however close you stand.
   another mirror's room is taken the first time somebody chooses it, if nobody has yet. After that
   its world need not be loaded at all, so a mirror in an archived world still shows. Nothing
   retakes it on its own: a reflection shows the room as it was when captured until somebody
-  runs `mirror set capture`, and `stamp` is about the banner and leaves the capture alone.
+  runs `mirror set -capture`, and `-stamp` is about the banner and leaves the capture alone.
 - **Past the room, this world shows.** The room ending is not the world ending: the client
   goes on drawing the hills behind the mirror over the far edge of what it is showing. On a
   **Paper** server `mirror-fog-at-depth` fixes that by pulling your own fog in to the room's
@@ -173,11 +173,11 @@ more than a quarter of the server's time however close you stand.
   inside the view are hidden from you while you look. Lit by this world, so a room behind a wall is
   dark except for what makes its own light.
 - **For checking a mirror:** `/wormhole mirror debug <name>` says in a few lines what its capture
-  is and how your view of it is drawn, and `debug <name> all` lists everything, a fact a line: green when it is drawn whole, and in red whatever trims
+  is and how your view of it is drawn, and `debug <name> -all` lists everything, a fact a line: green when it is drawn whole, and in red whatever trims
   it or stops it — a gap in its wall, another mirror too near, a missing capture file. It is not in
-  the usage line, but tab-completes for anyone who may run it. `debug <name> full` draws the whole
-  capture for you alone, wherever you stand. `mirror debug off`
-  turns views off for you, so you see the world as it is; `mirror debug on` puts either back.
+  the usage line, but tab-completes for anyone who may run it. `debug <name> -full` draws the whole
+  capture for you alone, wherever you stand. `mirror debug -off`
+  turns views off for you, so you see the world as it is; `mirror debug -on` puts either back.
 
 ## Its look
 
@@ -187,8 +187,8 @@ you patterned first keeps its patterns. The look is what you see from further th
 mirrors still reads as a row of doors from the far end.
 
 ```
-/wormhole mirror set museum stamp cavern   # a named look
-/wormhole mirror set museum stamp          # read the mirror's room and paint the banner from that
+/wormhole mirror set museum -stamp cavern   # a named look
+/wormhole mirror set museum -stamp          # read the mirror's room and paint the banner from that
 ```
 
 Read from the room, the biome picks the frame — rising flame for the Nether, white crests over blue

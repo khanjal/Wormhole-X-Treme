@@ -147,6 +147,18 @@ class WXIDCTest
             "-clear is an instruction, not a code to store");
     }
 
+    /** Whatever its capitals, like every other dashed keyword. */
+    @Test
+    void clearIsRecognisedWhateverItsCapitals()
+    {
+        final Stargate s = gateWithIris("alpha");
+        s.setGateIrisDeactivationCode("secret");
+
+        assertTrue(idc(console, "alpha", "-CLEAR"));
+
+        assertEquals("", s.getGateIrisDeactivationCode(), "not stored as a code called -CLEAR");
+    }
+
     /**
      * A gate with no iris lever is refused.
      *

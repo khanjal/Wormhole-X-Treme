@@ -69,7 +69,7 @@ class MirrorSettingsCommandTest
     @Test
     void namesTheUnknownMirrorRatherThanTheSetting()
     {
-        run("mirror", "set", "nosuch", "start", "none");
+        run("mirror", "set", "nosuch", "-start", "-none");
 
         verify(sender, atLeastOnce())
             .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
@@ -86,7 +86,7 @@ class MirrorSettingsCommandTest
     void theSettingSurvivesARestart()
     {
         MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
-        run("mirror", "set", "museum", "start", "hub");
+        run("mirror", "set", "museum", "-start", "hub");
 
         MirrorManager.clear();
         com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
@@ -102,7 +102,7 @@ class MirrorSettingsCommandTest
         run("mirror", "list");
         verify(sender, never()).sendMessage(contains("(starts on"));
 
-        run("mirror", "set", "museum", "start", "hub");
+        run("mirror", "set", "museum", "-start", "hub");
         run("mirror", "list");
 
         verify(sender, atLeastOnce()).sendMessage(contains("(starts on hub)"));
@@ -142,7 +142,7 @@ class MirrorSettingsCommandTest
         MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 5, 64, 5), null));
 
         assertTrue(new MirrorCommand().execute(console,
-            new String[] { "mirror", "set", "museum", "start", "hub" }));
+            new String[] { "mirror", "set", "museum", "-start", "hub" }));
 
         assertEquals("hub", MirrorManager.byName("museum").start(),
             "a named mirror's setting does not depend on where anybody is standing");

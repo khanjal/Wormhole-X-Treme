@@ -305,7 +305,7 @@ command blocks.
 /wormhole beam admin set <name>           register a public destination where you stand
 /wormhole beam admin remove <name>        remove a public destination
 /wormhole beam admin cost <name> <amount> what it costs to use
-/wormhole beam admin cost <name> default  clear the override; use the configured default
+/wormhole beam admin cost <name> -default clear the override; use the configured default
 /wormhole beam admin goto <player|destination|x y z [world]>
 /wormhole beam admin send <target> <player|destination|x y z [world]>
 ```

@@ -24,7 +24,7 @@ destination in an unloaded world says so rather than loading it.
 /wormhole beam admin set <name>           register a public destination ("create" also works)
 /wormhole beam admin remove <name>        remove a public destination
 /wormhole beam admin cost <name> <amount> what it costs to use
-/wormhole beam admin cost <name> default  go back to the configured default
+/wormhole beam admin cost <name> -default go back to the configured default
 /wormhole beam admin goto <player|destination|x y z [world]>
 /wormhole beam admin send <target> <player|destination|x y z [world]>
 ```

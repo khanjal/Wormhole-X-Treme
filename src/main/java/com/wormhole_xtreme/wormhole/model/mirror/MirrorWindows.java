@@ -269,7 +269,7 @@ public final class MirrorWindows
         final MirrorDrawing view = VIEWS.get(player.getUniqueId());
         if (BLIND.contains(player.getUniqueId()))
         {
-            lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
+            lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug -on turns them back on"));
         }
         final String fullName = FULL.get(player.getUniqueId());
         if (fullName != null)
@@ -325,7 +325,7 @@ public final class MirrorWindows
         final List<String> lines = new ArrayList<>();
         if (BLIND.contains(player.getUniqueId()))
         {
-            lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug on turns them back on"));
+            lines.add(MirrorText.field("views", MirrorText.bad("off for you") + ", mirror debug -on turns them back on"));
         }
         if (ConfigManager.isMirrorFogAtDepth())
         {

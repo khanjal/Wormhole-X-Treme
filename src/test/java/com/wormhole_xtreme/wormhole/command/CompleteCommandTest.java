@@ -206,4 +206,59 @@ class CompleteCommandTest
         verify(player).sendMessage(contains("found incomplete: \"Partial\""));
         StargateManager.removeIncompleteStargate(player);
     }
+
+    private static Player builder(final String name)
+    {
+        final Player player = builder();
+        when(player.getName()).thenReturn(name);
+        return player;
+    }
+
+    /**
+     * -cancel drops a completion waiting for its DHD click, and makes no gate.
+     *
+     * <p>The waiting message told players to type {@code complete cancel}, which nothing handled:
+     * it started another completion, for a gate called cancel.
+     */
+    @Test
+    void cancelDropsAWaitingCompletionAndMakesNoGate()
+    {
+        final Player player = builder("canceller");
+        new Complete().onCommand(player, null, "wormhole", new String[] { "Waiting" });
+        assertNotNull(Complete.getPendingCompletion(player), "waiting for the DHD click");
+
+        assertTrue(new Complete().onCommand(player, null, "wormhole", new String[] { Complete.CANCEL }));
+
+        assertNull(Complete.getPendingCompletion(player), "nothing left waiting, and no gate called -cancel");
+        verify(player).sendMessage(contains("Gate completion cancelled."));
+        verify(player).sendMessage(contains("'/wormhole gate complete -cancel'"));
+    }
+
+    /** -help gives the usage, and makes nothing; help is a name like any other. */
+    @Test
+    void helpTakesADash()
+    {
+        final Player player = builder("helper");
+
+        new Complete().onCommand(player, null, "wormhole", new String[] { "-help" });
+
+        assertNull(Complete.getPendingCompletion(player));
+        verify(player).sendMessage(contains("Usage: /wormhole complete <name>"));
+
+        new Complete().onCommand(player, null, "wormhole", new String[] { "help" });
+        assertEquals("help", Complete.getPendingCompletion(player)[0], "a gate called help, waiting for its DHD");
+        Complete.removePendingCompletion(player);
+    }
+
+    /** A gate name may not start with a dash, since words that do are options. */
+    @Test
+    void aGateNameStartingWithADashIsRefused()
+    {
+        final Player player = builder("dasher");
+
+        new Complete().onCommand(player, null, "wormhole", new String[] { "-gate" });
+
+        assertNull(Complete.getPendingCompletion(player));
+        verify(player).sendMessage(contains("cannot start with '-'"));
+    }
 }
