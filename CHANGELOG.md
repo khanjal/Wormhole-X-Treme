@@ -6,11 +6,10 @@ One line an entry, under the subsystem it belongs to: what changed, and what an 
 a player has to do about it. Not why. The reasoning lives in [docs/](docs/) beside the code
 it explains, and a release nobody can scroll through is a release nobody reads.
 
-## 1.6.0 (unreleased)
+## 1.6.0 (2026-09-16)
 
-Not out yet, and still collecting. 1.5.0 was tagged on 9 September and the work carried straight
-on; sixteen commits' notes had been written into 1.5.0's section as though they had shipped in it,
-and they are here instead.
+Sixteen commits' notes had been written into 1.5.0's section as though they had shipped in it, and
+they are here instead.
 
 **Upgrading: nothing to do, with five things worth knowing.**
 
