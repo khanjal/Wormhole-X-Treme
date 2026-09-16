@@ -2090,8 +2090,39 @@ class MirrorWindowsTest
 
         assertSame(MirrorManager.byName("museum"),
             MirrorWindows.clicked(viewer, blockAt(10, 63, 11, true)), "the opening");
-        assertNull(MirrorWindows.clicked(viewer, blockAt(10, 63, 12, true)),
-            "a block behind the wall is not the opening");
+        assertNull(MirrorWindows.clicked(viewer, blockAt(40, 63, 12, true)),
+            "a block nowhere near the view is nothing to do with the mirror");
+    }
+
+    /**
+     * A block drawn into the view is the mirror's to click, not the world's.
+     *
+     * <p>From testing: right-clicking into a mirror with a torch placed it "momentarily". The
+     * client clicked the room it was shown, the server placed on the real air behind the wall, and
+     * the next redraw drew the room back over it.
+     */
+    @Test
+    void aBlockDrawnIntoTheViewIsTheMirrorToClick()
+    {
+        final Player viewer = playerAt(10.5, 7.5);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+
+        Block drawn = null;
+        for (int z = 12; (z < 40) && (drawn == null); z++)
+        {
+            final Block candidate = blockAt(10, 63, z, true);
+            if (MirrorWindows.drew(viewer, candidate))
+            {
+                drawn = candidate;
+            }
+        }
+        assertNotNull(drawn, "the room behind the opening is drawn somewhere along its middle");
+        assertSame(MirrorManager.byName("museum"), MirrorWindows.clicked(viewer, drawn),
+            "a click on it is a click on the mirror");
+        assertFalse(MirrorWindows.drew(viewer, blockAt(40, 63, 12, true)), "and nothing else is");
+        assertFalse(MirrorWindows.drew(playerAt(10.5, 7.5), drawn), "and only for whoever is shown it");
     }
 
     /** Every right-click on the server comes through here, and almost nobody is looking in. */

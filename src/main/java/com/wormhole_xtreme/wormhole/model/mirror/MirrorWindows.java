@@ -914,7 +914,53 @@ public final class MirrorWindows
                 return window.mirror;
             }
         }
-        return null;
+        // Anywhere else in a room drawn for them: the real block behind is not what they clicked.
+        return drew(player, block) ? nearestWindow(view, block) : null;
+    }
+
+    /**
+     * Whether a player is being shown this block as part of a view rather than as it is.
+     *
+     * <p>Acting on one acts on the real block behind it, unseen: a torch placed there hid under the
+     * view until it was taken back. One map lookup for anybody looking into no window.
+     *
+     * @param player
+     *            who is acting on the block
+     * @param block
+     *            the real block at that spot
+     * @return true if the block is drawn over for this player
+     */
+    public static boolean drew(final Player player, final Block block)
+    {
+        final UUID id = (player == null) ? null : player.getUniqueId();
+        final MirrorDrawing view = ((id == null) || (block == null)) ? null : VIEWS.get(id);
+        return (view != null) && view.world.equals(block.getWorld())
+            && view.drawn.containsKey(key(block.getX(), block.getY(), block.getZ()));
+    }
+
+    /** The mirror nearest a block, of the windows a view is looking into in its world. */
+    private static QuantumMirror nearestWindow(final MirrorDrawing view, final Block block)
+    {
+        QuantumMirror nearest = null;
+        long best = Long.MAX_VALUE;
+        for (final String name : view.mirrors)
+        {
+            final MirrorWindowState window = WINDOWS.get(name);
+            if ((window == null) || !window.banner.getWorld().equals(block.getWorld()))
+            {
+                continue;
+            }
+            final long dx = (long) window.banner.getX() - block.getX();
+            final long dy = (long) window.banner.getY() - block.getY();
+            final long dz = (long) window.banner.getZ() - block.getZ();
+            final long distance = (dx * dx) + (dy * dy) + (dz * dz);
+            if (distance < best)
+            {
+                best = distance;
+                nearest = window.mirror;
+            }
+        }
+        return nearest;
     }
 
     /** Redraws one player's view from where their eye is, sending only what needs sending. */

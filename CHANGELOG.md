@@ -119,6 +119,7 @@ A fourth way to travel, and the first one you can see. Design notes in
 
 - **A redraw could hang the server for fifteen seconds** while standing on a block boundary.
 - **The real banner no longer flickers on a right-click.**
+- **A block placed or broken through a mirror's view acted on the real world behind it**, unseen.
 - **Scrolling quickly between mirrors could leave part of the last room up** for a few seconds.
 - **Changing the fog setting or the depth did nothing for somebody already at a mirror** until
   they walked away and back.
