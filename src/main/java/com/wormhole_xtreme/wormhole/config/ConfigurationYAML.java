@@ -66,7 +66,7 @@ public class ConfigurationYAML
             directory.mkdir();
         }
 
-        final File cfg = new File(directory, "config.yml");
+        final File cfg = new File(directory, CONFIG_FILE);
         if (!cfg.exists())
         {
             writeFile(cfg, DefaultSettings.config);
@@ -266,7 +266,7 @@ public class ConfigurationYAML
      */
     static List<String> bundledMaterialGroups()
     {
-        try (InputStream in = ConfigurationYAML.class.getClassLoader().getResourceAsStream("config.yml"))
+        try (InputStream in = ConfigurationYAML.class.getClassLoader().getResourceAsStream(CONFIG_FILE))
         {
             if (in == null)
             {
@@ -297,6 +297,9 @@ public class ConfigurationYAML
 
     /** The section every Setting is filed under; the same name for all of them. */
     private static final String SETTING_SECTION = "WormholeXTreme";
+
+    /** The file this reads, in the plugin folder and inside the jar alike. */
+    private static final String CONFIG_FILE = "config.yml";
 
     /** The config.yml key holding the nested material-group definitions. */
     private static final String MATERIAL_GROUPS_KEY = "gate-material-groups";
@@ -482,7 +485,7 @@ public class ConfigurationYAML
      */
     static File getConfigFile(final String pluginName)
     {
-        return new File(pluginDirectory(pluginName), "config.yml");
+        return new File(pluginDirectory(pluginName), CONFIG_FILE);
     }
 
     /** Rewrites the file with every renamed setting's line under its new name. */
