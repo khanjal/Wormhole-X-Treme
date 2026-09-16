@@ -72,7 +72,7 @@ it stands down. Then four rings rise, the light runs through them, and you are a
 - **It refuses if the inside is not fit to arrive in**: every square must be clear, with solid
   ground under it. Water and lava do not count as ground. What is built *around* a ring is up to
   you. A refused trip costs nothing.
-- **A pair rests for a minute** after carrying somebody. Stepping onto a resting pad tells you how
+- **A pair rests for thirty seconds** after carrying somebody. Stepping onto a resting pad tells you how
   long is left and briefly shows where the ring is.
 - **Name an end** — `/wormhole ring edit name Tower`, standing in it — and its partner tells
   travellers where they are heading.
@@ -87,8 +87,8 @@ In `config.yml`, under its `# --- Transport rings ---` heading. Every key is fla
 
 | Setting | Default | What it does |
 |---|---|---|
-| `ring-countdown-ticks` | 60 | Ticks before the rings commit. At least 30, so stepping clear stays possible. |
-| `ring-cooldown-ticks` | 1200 | Ticks before a pair fires again. |
+| `ring-countdown-ticks` | 100 | Ticks before the rings commit. At least 30, so stepping clear stays possible. |
+| `ring-cooldown-ticks` | 600 | Ticks before a pair fires again. |
 | `ring-deploy-ticks` | 2 | Ticks between animation frames — the speed knob. |
 | `ring-settle-ticks` | 20 | How long the finished stack stands before transport. |
 | `ring-flash-ticks` | 3 | How long each ring stays lit as the light passes. |
