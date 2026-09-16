@@ -21,7 +21,6 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
-import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -329,8 +328,7 @@ class GateBlockProtectionTest
     @Test
     void aPlayerWithoutTheDamageNodeCannotHitAGateBlock()
     {
-        final BlockDamageEvent event = new BlockDamageEvent(player, gateBlock,
-            mock(ItemStack.class), false);
+        final BlockDamageEvent event = BlockEvents.damage(player, gateBlock);
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 
@@ -342,8 +340,7 @@ class GateBlockProtectionTest
     void anOperatorMayHitAGateBlock()
     {
         when(player.isOp()).thenReturn(Boolean.TRUE);
-        final BlockDamageEvent event = new BlockDamageEvent(player, gateBlock,
-            mock(ItemStack.class), false);
+        final BlockDamageEvent event = BlockEvents.damage(player, gateBlock);
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 
@@ -354,9 +351,7 @@ class GateBlockProtectionTest
     @Test
     void hittingAnOrdinaryBlockIsNotInterferedWith()
     {
-        final BlockDamageEvent event = new BlockDamageEvent(player,
-            blockAt(GX + 40, GY, GZ, Material.STONE),
-            mock(ItemStack.class), false);
+        final BlockDamageEvent event = BlockEvents.damage(player, blockAt(GX + 40, GY, GZ, Material.STONE));
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 

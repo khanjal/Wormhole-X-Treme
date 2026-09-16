@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -17,6 +18,7 @@ import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
@@ -89,7 +91,6 @@ class GateProjectileTest
         when(arrow.getType()).thenReturn(EntityType.ARROW);
         when(arrow.getDamage()).thenReturn(2.5);
         when(arrow.isCritical()).thenReturn(true);
-        when(arrow.getKnockbackStrength()).thenReturn(1);
         when(arrow.getPierceLevel()).thenReturn(3);
         when(arrow.getPickupStatus()).thenReturn(AbstractArrow.PickupStatus.ALLOWED);
         when(world.getNearbyEntities(any(BoundingBox.class)))
@@ -170,9 +171,67 @@ class GateProjectileTest
         verify(spawned).setShooter(shooter);
         verify(spawned).setDamage(2.5);
         verify(spawned).setCritical(true);
-        verify(spawned).setKnockbackStrength(1);
         verify(spawned).setPierceLevel(3);
         verify(spawned).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+    }
+
+    /**
+     * A Punch bow's knockback and a crossbow shot survive the crossing, however this server keeps them.
+     *
+     * <p>From 1.21 the arrow remembers its weapon; before, it held knockback and the crossbow flag
+     * itself. Reached by name, because the old setters are marked for removal: the matrix runs
+     * both halves.
+     */
+    @Test
+    void theReplacementKeepsWhatItsWeaponGaveIt() throws Exception
+    {
+        if (GateEntityScanner.carriesWeapon())
+        {
+            final ItemStack bow = mock(ItemStack.class);
+            when(arrowMethod("getWeapon").invoke(arrow)).thenReturn(bow);
+
+            sendArrowThroughGate();
+
+            arrowMethod("setWeapon", ItemStack.class).invoke(verify(spawned), bow);
+        }
+        else
+        {
+            when(arrowMethod("getKnockbackStrength").invoke(arrow)).thenReturn(1);
+            when(arrowMethod("isShotFromCrossbow").invoke(arrow)).thenReturn(true);
+
+            sendArrowThroughGate();
+
+            arrowMethod("setKnockbackStrength", int.class).invoke(verify(spawned), 1);
+            arrowMethod("setShotFromCrossbow", boolean.class).invoke(verify(spawned), true);
+        }
+    }
+
+    /** A property that will not copy costs that property, not the crossing. */
+    @Test
+    void aPropertyThatWillNotCopyStillLetsTheArrowCross() throws Exception
+    {
+        if (GateEntityScanner.carriesWeapon())
+        {
+            when(arrowMethod("getWeapon").invoke(arrow)).thenReturn(mock(ItemStack.class));
+            arrowMethod("setWeapon", ItemStack.class)
+                .invoke(doThrow(new IllegalStateException("refused")).when(spawned), any(ItemStack.class));
+        }
+        else
+        {
+            when(arrowMethod("getKnockbackStrength").invoke(arrow)).thenReturn(1);
+            arrowMethod("setKnockbackStrength", int.class)
+                .invoke(doThrow(new IllegalStateException("refused")).when(spawned), anyInt());
+        }
+
+        assertDoesNotThrow(this::sendArrowThroughGate);
+
+        verify(arrow).remove();
+        verify(spawned).setPickupStatus(AbstractArrow.PickupStatus.ALLOWED);
+    }
+
+    private static Method arrowMethod(final String name, final Class<?>... parameters) throws NoSuchMethodException
+    {
+        return AbstractArrow.class.getMethod(name, parameters);
     }
 
     @Test

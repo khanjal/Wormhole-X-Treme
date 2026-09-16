@@ -1,5 +1,6 @@
 package com.wormhole_xtreme.wormhole;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.BoundingBox;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -263,15 +265,79 @@ public final class GateEntityScanner implements Runnable
             b.setCritical(a.isCritical());
             b.setPierceLevel(a.getPierceLevel());
             b.setPickupStatus(a.getPickupStatus());
-            // Knockback and the crossbow flag are deprecated on 1.21: both are now derived
-            // from the weapon an arrow was fired from, which a respawned arrow does not
-            // have. They still work, and they are the only way to carry a Punch bow's
-            // knockback and a crossbow shot's identity across a gate. Dropping them would
-            // quietly weaken every arrow that made the trip, so they stay until there is a
-            // replacement that survives being re-fired.
-            b.setKnockbackStrength(a.getKnockbackStrength());
-            b.setShotFromCrossbow(a.isShotFromCrossbow());
+            // A Punch bow's knockback and a crossbow shot's identity: from 1.21 both come from the
+            // weapon the arrow remembers, and the old setters are marked for removal.
+            if (!copy(GET_WEAPON, SET_WEAPON, a, b))
+            {
+                copy(GET_KNOCKBACK, SET_KNOCKBACK, a, b);
+                copy(IS_CROSSBOW, SET_CROSSBOW, a, b);
+            }
         }
+    }
+
+    /** {@code AbstractArrow.getWeapon()}, from 1.21, or null. */
+    private static final Method GET_WEAPON = arrowMethod("getWeapon");
+
+    /** {@code AbstractArrow.setWeapon(ItemStack)}, from 1.21, or null. */
+    private static final Method SET_WEAPON = arrowMethod("setWeapon", ItemStack.class);
+
+    /** {@code AbstractArrow.getKnockbackStrength()}, marked for removal from 1.21, or null once gone. */
+    private static final Method GET_KNOCKBACK = arrowMethod("getKnockbackStrength");
+
+    /** {@code AbstractArrow.setKnockbackStrength(int)}, marked for removal from 1.21, or null once gone. */
+    private static final Method SET_KNOCKBACK = arrowMethod("setKnockbackStrength", int.class);
+
+    /** {@code AbstractArrow.isShotFromCrossbow()}, or null once gone. */
+    private static final Method IS_CROSSBOW = arrowMethod("isShotFromCrossbow");
+
+    /** {@code AbstractArrow.setShotFromCrossbow(boolean)}, marked for removal from 1.21, or null once gone. */
+    private static final Method SET_CROSSBOW = arrowMethod("setShotFromCrossbow", boolean.class);
+
+    /** @return true if arrows on this server carry the weapon that fired them */
+    static boolean carriesWeapon()
+    {
+        return (GET_WEAPON != null) && (SET_WEAPON != null);
+    }
+
+    /** Looks an arrow method up once, by name, so none is linked against directly. */
+    private static Method arrowMethod(final String name, final Class<?>... parameters)
+    {
+        try
+        {
+            return AbstractArrow.class.getMethod(name, parameters);
+        }
+        catch (final NoSuchMethodException | RuntimeException | LinkageError absent)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Copies one property from arrow to arrow through a getter and setter found by name.
+     *
+     * @return true if this server has both, whether or not there was anything to copy
+     */
+    private static boolean copy(final Method getter, final Method setter, final AbstractArrow from,
+        final AbstractArrow to)
+    {
+        if ((getter == null) || (setter == null))
+        {
+            return false;
+        }
+        try
+        {
+            final Object value = getter.invoke(from);
+            if (value != null)
+            {
+                setter.invoke(to, value);
+            }
+        }
+        catch (final ReflectiveOperationException | RuntimeException | LinkageError e)
+        {
+            WormholeXTreme.getThisPlugin().prettyLog(Level.FINE,
+                "Could not copy " + getter.getName() + " to a projectile's replacement", e);
+        }
+        return true;
     }
 
     /**

@@ -234,6 +234,8 @@ was chosen for scaling with how much exists rather than with how much is happeni
 - **Forty Sonar findings on the mirror code are cleared**, including two typed as bugs that
   were not: a null check read across two contracts, and an exact integer subtraction.
 - **The release workflow can be rehearsed without publishing.**
+- **Nothing marked for removal in newer Bukkit is called directly.** An arrow through a gate
+  keeps its weapon from 1.21, and its knockback and crossbow flag before.
 
 **Fixed**
 

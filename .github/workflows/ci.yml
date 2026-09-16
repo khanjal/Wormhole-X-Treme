@@ -173,6 +173,8 @@ jobs:
         with:
           name: spotbugs-report
           path: target/spotbugsXml.xml
+          # spotbugs:check writes no report when it finds nothing to report.
+          if-no-files-found: ignore
           retention-days: 14
 
   sonarcloud:
