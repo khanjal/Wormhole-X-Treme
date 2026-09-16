@@ -45,7 +45,7 @@ Make a mirror in another world the same way, and the two find each other:
 - **Punch** it to go to the mirror it is showing. You land in front of that mirror's banner, facing
   out into its room.
 - **Walk away** and, once nobody is near, it goes back to its own room.
-- **Give it a start** to put one mirror first in its list: `/wormhole mirror start archive hub`
+- **Give it a start** to put one mirror first in its list: `/wormhole mirror set archive start hub`
   has the first right-click on the mirror in an archived world open onto the main world's `hub`,
   and the next go on through the rest by name. It still shows its own room until somebody
   right-clicks it. `start archive none` takes the start away.
@@ -73,11 +73,11 @@ stamp <name> mirror` retakes it.
 
 | Command | What it does |
 | --- | --- |
-| `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there (`mirror set` also works) |
-| `mirror start [name] <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
-| `mirror stamp [name] [look]` | Makes the banner look like where it goes |
-| `mirror display [name] <always\|proximity>` | Show its look always, or only up close |
-| `mirror mode [name] <static\|dynamic>` | Keep the look, or re-read the far side |
+| `mirror create <name>` | Makes the banner you are looking at a mirror, or renames the one already there |
+| `mirror set [name] start <mirror\|none>` | The mirror a right-click opens onto first; `none` takes it away |
+| `mirror set [name] stamp [look]` | Makes the banner look like where it goes |
+| `mirror set [name] display <always\|proximity>` | Show its look always, or only up close |
+| `mirror set [name] mode <static\|dynamic>` | Keep the look, or re-read the far side |
 | `mirror remove [name]` | Makes it an ordinary banner again |
 | `mirror list` | Every mirror, and what each is showing |
 
@@ -89,15 +89,17 @@ The verbs with `[name]` in brackets take the mirror on the banner you are lookin
 leave the name out:
 
 ```
-/wormhole mirror start hub          # looking at the banner: a right-click opens onto hub first
-/wormhole mirror stamp cavern       # give it the cavern look
+/wormhole mirror set start hub      # looking at the banner: a right-click opens onto hub first
+/wormhole mirror set stamp cavern   # give it the cavern look
 /wormhole mirror remove             # give the banner back
 ```
 
-A mirror's name still wins where a word could be either. `stamp cavern` is the mirror called
-`cavern` if there is one, and the *look* called `cavern` only if there is not. Setting words are
-never names: `display proximity` is always the banner you are facing, and `display museum` is a
-name with the setting forgotten, so it says so.
+`set` takes the name first and then what to change: `set museum display proximity`, or
+`set display proximity` looking at the banner. The four words it takes — `stamp`, `display`,
+`mode`, `start` — are never names, and `create` refuses them, which is how it tells the two
+apart. A mirror's name still wins where a word could be either: `set stamp cavern` is the mirror
+called `cavern` if there is one, and the *look* called `cavern` only if there is not. Setting words
+are never names either: `set museum display` is a name with the setting forgotten, so it says so.
 
 ### Renaming one
 
@@ -142,9 +144,9 @@ more than a quarter of the server's time however close you stand.
   `data/mirror/captures/` under its place's name, which `mirror list` shows; a capture no mirror
   uses is deleted at the next startup. A new mirror's is taken within a second of `create`, over a few seconds;
   another mirror's room is taken the first time somebody chooses it, if nobody has yet. After that
-  its world need not be loaded at all, so a mirror in an archived world still shows. `mirror stamp`
-  takes a capture again; `mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while
-  somebody is looking; `mode static`, the default, never does, so a reflection shows the room as it
+  its world need not be loaded at all, so a mirror in an archived world still shows. `mirror set stamp`
+  takes a capture again; `set mode dynamic` retakes it every `mirror-dynamic-resample-seconds` while
+  somebody is looking; `set mode static`, the default, never does, so a reflection shows the room as it
   was when captured.
 - **A capture holds what somebody at the opening could see:** as far as the room's world sends
   (its view distance, up to ten chunks) whatever `mirror-view-depth` is, rays a degree apart
@@ -180,8 +182,8 @@ you patterned first keeps its patterns. The look is what you see from further th
 mirrors still reads as a row of doors from the far end.
 
 ```
-/wormhole mirror stamp museum cavern   # a named look
-/wormhole mirror stamp museum          # read the mirror's room and paint the banner from that
+/wormhole mirror set museum stamp cavern   # a named look
+/wormhole mirror set museum stamp          # read the mirror's room and paint the banner from that
 ```
 
 Read from the room, the biome picks the frame — rising flame for the Nether, white crests over blue

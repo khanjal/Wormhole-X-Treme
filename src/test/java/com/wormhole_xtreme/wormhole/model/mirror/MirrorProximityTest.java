@@ -418,7 +418,7 @@ class MirrorProximityTest
         {
             MirrorProximity.tick();
             new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
-                new String[] { "mirror", "display", "museum", "always" });
+                new String[] { "mirror", "set", "museum", "display", "always" });
         });
 
         final List<TileState> sent = sentTo(far, 2);
@@ -748,7 +748,7 @@ class MirrorProximityTest
         {
             MirrorProximity.tick();
             new com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand().execute(admin,
-                new String[] { "mirror", "display", "museum", "proximity" });
+                new String[] { "mirror", "set", "museum", "display", "proximity" });
             MirrorProximity.tick();
         });
 
