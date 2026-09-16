@@ -41,11 +41,15 @@ class ProjectileGateTrackerTest
 {
     private World world;
     private Stargate origin;
+    private Stargate destination;
     private Arrow arrow;
     private Arrow spawned;
     private Runnable ticker;
 
     private static final int BX = 10, BY = 64, BZ = 20;
+
+    /** Where the destination gate's portal is, for the tests that need one. */
+    private static final int DX = 40;
 
     @BeforeEach
     void setUp() throws Exception
@@ -81,7 +85,7 @@ class ProjectileGateTrackerTest
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(elsewhere);
         when(world.getBlockAt(BX, BY, BZ)).thenReturn(portal);
 
-        final Stargate destination = new Stargate();
+        destination = new Stargate();
         destination.setGateName("destination");
         destination.setGateWorld(world);
         destination.setGateFacing(BlockFace.EAST);
@@ -326,20 +330,76 @@ class ProjectileGateTrackerTest
         assertEquals(0, ProjectileGateTracker.trackedCount(), "gone when the original's time runs out");
     }
 
-    /** An arrow that has hit something is no longer sent through a gate, even bounced back into one. */
+    /**
+     * An arrow that crosses a gate and hits the wall behind it in the same tick still goes through.
+     *
+     * <p>The hit lands mid-tick and the path is walked at the start of the next. Dropping the arrow
+     * on the hit stopped arrows crossing any gate with something close behind it.
+     */
     @Test
-    void anArrowThatHitSomethingIsNotSentThroughAgain()
+    void anArrowThatHitsTheWallJustBehindTheGateStillCrosses()
     {
         new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
         arrowAt(BX + 0.5, BY, BZ + 3.5);
         ticker.run();
 
         new ProjectileGateTracker().onProjectileHit(hitOn(arrow));
-        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        arrowAt(BX + 0.5, BY, BZ - 1.5);
         ticker.run();
 
-        verify(arrow, never()).remove();
+        verify(arrow).remove();
+        verify(world).spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class));
+    }
+
+    /** An arrow that hit something without crossing a gate is followed no further. */
+    @Test
+    void anArrowThatHitsSomethingAwayFromAGateIsForgotten()
+    {
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 100, BY, BZ + 100);
+        ticker.run();
+
+        new ProjectileGateTracker().onProjectileHit(hitOn(arrow));
+        arrowAt(BX + 101, BY, BZ + 100);
+        ticker.run();
+
         assertEquals(0, ProjectileGateTracker.trackedCount());
+    }
+
+    /** An arrow bounced back into the gate it just came out of is not sent back through it (#298). */
+    @Test
+    void aReplacementIsNotSentBackIntoTheGateItCameOutOf()
+    {
+        final Block exitPortal = mock(Block.class);
+        when(exitPortal.getX()).thenReturn(Integer.valueOf(DX));
+        when(exitPortal.getY()).thenReturn(Integer.valueOf(BY));
+        when(exitPortal.getZ()).thenReturn(Integer.valueOf(BZ));
+        when(exitPortal.getWorld()).thenReturn(world);
+        when(exitPortal.getLocation()).thenReturn(new Location(world, DX, BY, BZ));
+        when(exitPortal.getType()).thenReturn(org.bukkit.Material.AIR);
+        when(world.getBlockAt(DX, BY, BZ)).thenReturn(exitPortal);
+        destination.getGatePortalBlocks().add(new Location(world, DX, BY, BZ));
+        StargateTestSupport.target(destination, origin);
+        StargateManager.addBlockIndex(exitPortal, destination);
+        StargateManager.registerStargate(destination);
+        try
+        {
+            when(spawned.getType()).thenReturn(EntityType.ARROW);
+            when(spawned.getVelocity()).thenReturn(new Vector(3.0, 0, 0));
+            when(spawned.getLocation()).thenReturn(new Location(world, DX + 0.5, BY, BZ + 0.5));
+            new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+            arrowAt(BX + 0.5, BY, BZ + 0.5);
+
+            ticker.run();
+            ticker.run();
+
+            verify(world, times(1))
+                .spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class));
+        }
+        finally
+        {
+            StargateManager.removeStargate(destination);
+        }
     }
 
     /**

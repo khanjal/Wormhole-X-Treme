@@ -67,13 +67,15 @@ class ProjectileGateTracker implements Listener
     {
         private final int expiresAtTick;
         private final int crossings;
+        private final Stargate cameOutOf;
         private Location previous;
 
-        Tracked(final int expiresAtTick, final Location previous, final int crossings)
+        Tracked(final int expiresAtTick, final Location previous, final int crossings, final Stargate cameOutOf)
         {
             this.expiresAtTick = expiresAtTick;
             this.previous = previous;
             this.crossings = crossings;
+            this.cameOutOf = cameOutOf;
         }
     }
 
@@ -133,14 +135,14 @@ class ProjectileGateTracker implements Listener
             return;
         }
         final Projectile projectile = event.getEntity();
-        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation(), 0));
+        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation(), 0, null));
     }
 
     /**
-     * Stops following a projectile once it hits anything.
+     * Remembers that a projectile hit something, so it is followed no further than this tick's path.
      *
-     * <p>An arrow that does no damage -- to a player still invulnerable from the last hit, or
-     * blocking -- bounces back, and in front of a gate that is straight back into the portal.
+     * <p>Not dropped here: the hit lands mid-tick and the path is walked at the start of the next,
+     * so an arrow that crossed a gate and struck the wall behind it would never go through.
      *
      * @param event
      *            the hit
@@ -153,7 +155,6 @@ class ProjectileGateTracker implements Listener
         {
             return;
         }
-        tracked.remove(projectile);
         hit.put(projectile.getUniqueId(), Integer.valueOf(tick));
     }
 
@@ -219,7 +220,9 @@ class ProjectileGateTracker implements Listener
             final Location from = state.previous;
             final Location to = projectile.getLocation();
             state.previous = to;
-            return sendThroughGateOnPath(from, to, projectile);
+            // The path first: a hit just behind a gate lands in the same tick the arrow crossed it.
+            return sendThroughGateOnPath(from, to, projectile, state)
+                || hit.containsKey(projectile.getUniqueId());
         }
         catch (final RuntimeException e)
         {
@@ -243,7 +246,8 @@ class ProjectileGateTracker implements Listener
      *            the projectile
      * @return true if it was sent through
      */
-    private static boolean sendThroughGateOnPath(final Location from, final Location to, final Projectile projectile)
+    private static boolean sendThroughGateOnPath(final Location from, final Location to, final Projectile projectile,
+        final Tracked state)
     {
         if (to == null || to.getWorld() == null)
         {
@@ -251,7 +255,7 @@ class ProjectileGateTracker implements Listener
         }
         if (from == null || from.getWorld() == null || !from.getWorld().equals(to.getWorld()))
         {
-            return crossAt(to, projectile);
+            return crossAt(to, projectile, state);
         }
 
         final int steps = Math.max(1, (int) Math.ceil(from.distance(to) / PATH_STEP));
@@ -265,7 +269,7 @@ class ProjectileGateTracker implements Listener
         {
             final Location point = new Location(to.getWorld(),
                 from.getX() + (dx * i), from.getY() + (dy * i), from.getZ() + (dz * i));
-            if (crossAt(point, projectile))
+            if (crossAt(point, projectile, state))
             {
                 return true;
             }
@@ -282,7 +286,7 @@ class ProjectileGateTracker implements Listener
      *            the projectile
      * @return true if it was sent through
      */
-    private static boolean crossAt(final Location point, final Projectile projectile)
+    private static boolean crossAt(final Location point, final Projectile projectile, final Tracked state)
     {
         final Stargate gate = StargateManager.getGateFromBlock(
             point.getWorld().getBlockAt(point.getBlockX(), point.getBlockY(), point.getBlockZ()));
@@ -298,6 +302,11 @@ class ProjectileGateTracker implements Listener
         {
             return false;
         }
+        // Not straight back into the gate it came out of: that is an arrow bounced off somebody at the exit.
+        if ((state != null) && (gate == state.cameOutOf))
+        {
+            return false;
+        }
         return GateEntityScanner.sendProjectileThrough(projectile, gate);
     }
 
@@ -309,8 +318,10 @@ class ProjectileGateTracker implements Listener
      *            the projectile fired at the far gate
      * @param original
      *            the one it replaces
+     * @param exit
+     *            the gate it was fired from, which it may not go straight back into
      */
-    static void track(final Projectile replacement, final Projectile original)
+    static void track(final Projectile replacement, final Projectile original, final Stargate exit)
     {
         final Tracked was = (original == null) ? null : tracked.get(original);
         final int crossings = ((was == null) ? 0 : was.crossings) + 1;
@@ -319,7 +330,7 @@ class ProjectileGateTracker implements Listener
             return;
         }
         final int expires = (was == null) ? (tick + TRACK_TICKS) : was.expiresAtTick;
-        tracked.put(replacement, new Tracked(expires, replacement.getLocation(), crossings));
+        tracked.put(replacement, new Tracked(expires, replacement.getLocation(), crossings, exit));
     }
 
     /**
