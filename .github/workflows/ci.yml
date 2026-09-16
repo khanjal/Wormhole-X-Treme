@@ -100,6 +100,44 @@ jobs:
 
       - name: Build and test against Minecraft ${{ matrix.minecraft }}
         run: mvn --batch-mode verify ${{ matrix.profile }} -Dspigot.api.version=${{ matrix.api }}
+
+  # The same plugin built against paper-api instead. Paper-only methods are reached reflectively,
+  # so a wrong name would silently turn the feature off; PaperApiTest only runs here.
+  paper-api:
+    name: Paper ${{ matrix.paper }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # "paper:", not "minecraft:": release.yml reads every "- minecraft:" line as a
+        # supported version for the release title.
+        include:
+          - paper: "1.20.4"
+            api: "1.20.4-R0.1-SNAPSHOT"
+            profile: ""
+            java: "21"
+          - paper: "1.21.11"
+            api: "1.21.11-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+            java: "21"
+          # The newest stable build.
+          - paper: "26.2"
+            api: "26.2.build.124-stable"
+            profile: "-Pmodern-api"
+            java: "25"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Build and test against Paper ${{ matrix.paper }}
+        run: mvn --batch-mode verify ${{ matrix.profile }} -Dpaper.api.version=${{ matrix.api }}
   spotbugs:
     name: SpotBugs (Java 17)
     runs-on: ubuntu-latest

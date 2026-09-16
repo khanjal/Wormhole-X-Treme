@@ -123,7 +123,7 @@ class MirrorBlockProtectionTest
     void punchingTheWallAMirrorHangsOnDoesNotStartBreakingIt()
     {
         final BlockDamageEvent event = new BlockDamageEvent(player, world.getBlockAt(10, 64, 11),
-            new ItemStack(Material.DIAMOND_PICKAXE), false);
+            mock(ItemStack.class), false);
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 

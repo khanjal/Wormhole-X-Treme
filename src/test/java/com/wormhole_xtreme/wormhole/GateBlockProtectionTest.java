@@ -330,7 +330,7 @@ class GateBlockProtectionTest
     void aPlayerWithoutTheDamageNodeCannotHitAGateBlock()
     {
         final BlockDamageEvent event = new BlockDamageEvent(player, gateBlock,
-            new ItemStack(Material.DIAMOND_PICKAXE), false);
+            mock(ItemStack.class), false);
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 
@@ -343,7 +343,7 @@ class GateBlockProtectionTest
     {
         when(player.isOp()).thenReturn(Boolean.TRUE);
         final BlockDamageEvent event = new BlockDamageEvent(player, gateBlock,
-            new ItemStack(Material.DIAMOND_PICKAXE), false);
+            mock(ItemStack.class), false);
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 
@@ -356,7 +356,7 @@ class GateBlockProtectionTest
     {
         final BlockDamageEvent event = new BlockDamageEvent(player,
             blockAt(GX + 40, GY, GZ, Material.STONE),
-            new ItemStack(Material.DIAMOND_PICKAXE), false);
+            mock(ItemStack.class), false);
 
         new WormholeXTremeBlockListener().onBlockDamage(event);
 
