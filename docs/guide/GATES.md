@@ -37,7 +37,7 @@ its button.
 
 - **Several at once.** Each `gate build` adds one where you are looking, so every shape, or one
   shape in every group, can stand side by side.
-- **`gate build clear`** takes away the preview you are looking at; **`gate build clear all`**
+- **`gate build -clear`** takes away the preview you are looking at; **`gate build -clear -all`**
   takes every one of yours.
 - **They go on their own** when you log out or change world, when a gate is found where one
   stood, and after `gate-preview-minutes` (default 10) without a `gate build` command.
@@ -346,7 +346,7 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 | Command | What it does |
 |---|---|
 | `gate build <shape> [group]` | Start building; with `wormhole.build.preview`, [show it in front of you](#previews) |
-| `gate build clear [all]` | Take away the preview you look at, or all of yours |
+| `gate build -clear [-all]` | Take away the preview you look at, or all of yours |
 | `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
 | `gate list [network]` | Gates you can see |
 | `gate remove <gate> [-all]` | Take it down |

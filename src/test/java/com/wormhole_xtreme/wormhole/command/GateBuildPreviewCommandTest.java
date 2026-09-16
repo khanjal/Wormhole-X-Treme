@@ -215,7 +215,7 @@ class GateBuildPreviewCommandTest
         assertNull(StargateManager.getPlayerBuilderShape(player));
     }
 
-    /** clear takes the preview looked at, and clear all takes every one. */
+    /** -clear takes the preview looked at, and -clear -all takes every one; a bare word is a shape. */
     @Test
     void clearAndClearAllReachTheirPreviews()
     {
@@ -224,13 +224,17 @@ class GateBuildPreviewCommandTest
         {
             previews.when(() -> GatePreviews.clearAll(player)).thenReturn(3);
 
+            run("gate", "build", "-clear");
+            run("gate", "build", "-clear", "-all");
             run("gate", "build", "clear");
-            run("gate", "build", "clear", "all");
+            run("gate", "build", "-bogus");
 
             previews.verify(() -> GatePreviews.clearLookedAt(player));
             previews.verify(() -> GatePreviews.clearAll(player));
         }
         verify(player).sendMessage(contains("Cleared 3 previews."));
+        verify(player).sendMessage(contains("Invalid shape: clear"));
+        verify(player).sendMessage(contains("No such option: -bogus. Try -clear or -clear -all."));
     }
 
     /** Completion offers clear beside the shapes, all after clear, and the groups after a shape. */
@@ -240,8 +244,8 @@ class GateBuildPreviewCommandTest
         final SubCommands.Entry gate = SubCommands.find("gate");
 
         final List<String> third = gate.completeArgs(player, new String[] { "gate", "build", "" });
-        assertTrue(third.contains("clear") && third.contains("Standard"), "got " + third);
-        assertEquals(List.of("all"), gate.completeArgs(player, new String[] { "gate", "build", "clear", "" }));
+        assertTrue(third.contains("-clear") && third.contains("Standard"), "got " + third);
+        assertEquals(List.of("-all"), gate.completeArgs(player, new String[] { "gate", "build", "-clear", "" }));
         assertEquals(List.of("Atlantis", "Standard"),
             gate.completeArgs(player, new String[] { "gate", "build", "Standard", "" }));
         assertEquals(List.of("Atlantis"), gate.completeArgs(player, new String[] { "gate", "build", "Standard", "a" }));

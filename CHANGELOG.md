@@ -12,7 +12,7 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 - **`/wormhole gate build <shape> [group]` shows the shape full size in front of you**, seen by
   you alone and walkable through, with the new `wormhole.build.preview` node (op by default).
-  Several can stand at once; `gate build clear [all]` takes them away.
+  Several can stand at once; `gate build -clear [-all]` takes them away.
 - **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
 - **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
 - **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,

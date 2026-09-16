@@ -354,7 +354,7 @@ public final class SubCommands
     }
 
     /**
-     * Completions for {@code /wormhole gate build <shape> [group]} and {@code gate build clear [all]}.
+     * Completions for {@code /wormhole gate build <shape> [group]} and {@code gate build -clear [-all]}.
      *
      * @param args
      *            the full argument array

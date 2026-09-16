@@ -19,7 +19,7 @@ import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
 
 /**
- * {@code /wormhole gate build <shape> [group]} and {@code /wormhole gate build clear [all]}.
+ * {@code /wormhole gate build <shape> [group]} and {@code /wormhole gate build -clear [-all]}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -28,10 +28,10 @@ import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
 public class Build implements CommandExecutor
 {
     /** The word that takes previews away rather than naming a shape. */
-    public static final String CLEAR = "clear";
+    public static final String CLEAR = "-clear";
 
     /** After {@link #CLEAR}: every preview, not only the one looked at. */
-    public static final String ALL = "all";
+    public static final String ALL = "-all";
 
     private static void doBuild(final Player player, final String[] args)
     {
@@ -43,6 +43,12 @@ public class Build implements CommandExecutor
         if (CLEAR.equalsIgnoreCase(args[0]))
         {
             clear(player, args);
+            return;
+        }
+        if (args[0].startsWith("-"))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No such option: " + args[0]
+                + ". Try " + CLEAR + " or " + CLEAR + " " + ALL + ".");
             return;
         }
         if (!StargateHelper.isStargateShape(args[0]))
@@ -84,7 +90,7 @@ public class Build implements CommandExecutor
             case SHOWN -> player.sendMessage(header + "Previewing " + shape.getShapeName()
                 + ((group == null) ? "" : " in " + group.getName())
                 + ". Build it where it stands, then place a real button where its button is and press that. "
-                + "/wormhole gate build clear takes away the one you look at.");
+                + "/wormhole gate build " + CLEAR + " takes away the one you look at.");
             case OVER_LIMIT -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
                     ? "Previews are turned off on this server (gate-preview-max-blocks is 0). "
@@ -112,7 +118,7 @@ public class Build implements CommandExecutor
             return;
         }
         player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-            + "Look at the preview to clear, or use /wormhole gate build clear all.");
+            + "Look at the preview to clear, or use /wormhole gate build " + CLEAR + " " + ALL + ".");
     }
 
     /** The group names a shape may be built in, for an error message. */
