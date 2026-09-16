@@ -463,9 +463,10 @@ public final class GateEntityScanner implements Runnable
         // world. Sending one through a gate tears it off its wall and leaves it orphaned at
         // the far end, so a decorated gate frame would slowly strip itself every time the
         // gate opened.
-        // Display entities are scenery another plugin put somewhere on purpose, holograms and
-        // build previews among them, and have no business travelling.
-        if ((entity instanceof Hanging) || (entity instanceof org.bukkit.entity.Display))
+        // Display and interaction entities are scenery another plugin put somewhere on purpose,
+        // holograms and build previews among them, and have no business travelling.
+        if ((entity instanceof Hanging) || (entity instanceof org.bukkit.entity.Display)
+            || (entity instanceof org.bukkit.entity.Interaction))
         {
             return false;
         }

@@ -1,14 +1,18 @@
 package com.wormhole_xtreme.wormhole.command;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
+import com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role;
 import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.MaterialGroup;
 import com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry;
@@ -19,7 +23,9 @@ import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.model.preview.PreviewPermissions;
 
 /**
- * {@code /wormhole gate build <shape> [group]} and {@code /wormhole gate build -clear [-all]}.
+ * {@code /wormhole gate build <shape> [group]}, and options on the preview being looked at:
+ * {@code -clear [-all]}, {@code -activate}, {@code -iris}, {@code -chevrons}, {@code -dhd} and
+ * {@code -material <group>|<role> <block>}.
  *
  * <p>Choosing a shape checks the next DHD button pressed against that shape alone. With
  * {@code wormhole.build.preview} it also stands the shape up full size in front of the player,
@@ -33,6 +39,24 @@ public class Build implements CommandExecutor
     /** After {@link #CLEAR}: every preview, not only the one looked at. */
     public static final String ALL = "-all";
 
+    /** Dials the preview looked at, or shuts it down. */
+    public static final String ACTIVATE = "-activate";
+
+    /** Closes the preview's iris, or opens it. */
+    public static final String IRIS = "-iris";
+
+    /** Hides the preview's DHD, or shows it. */
+    public static final String DHD = "-dhd";
+
+    /** Draws the preview's chevrons as frame, or in the chevron material again. */
+    public static final String CHEVRONS = "-chevrons";
+
+    /** Redresses the preview in a group, or changes one of its materials. */
+    public static final String MATERIAL = "-material";
+
+    /** Every option, in the order they are offered. */
+    public static final List<String> OPTIONS = List.of(CLEAR, ACTIVATE, IRIS, MATERIAL, CHEVRONS, DHD);
+
     private static void doBuild(final Player player, final String[] args)
     {
         final boolean mayPreview = PreviewPermissions.mayPreview(player);
@@ -40,15 +64,15 @@ public class Build implements CommandExecutor
         {
             return;
         }
-        if (CLEAR.equalsIgnoreCase(args[0]))
-        {
-            clear(player, args);
-            return;
-        }
         if (args[0].startsWith("-"))
         {
-            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No such option: " + args[0]
-                + ". Try " + CLEAR + " or " + CLEAR + " " + ALL + ".");
+            option(player, args, mayPreview);
+            return;
+        }
+        if (args.length > 2)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
+                + "Usage: /wormhole gate build <shape> [group]");
             return;
         }
         if (!StargateHelper.isStargateShape(args[0]))
@@ -89,8 +113,8 @@ public class Build implements CommandExecutor
         {
             case SHOWN -> player.sendMessage(header + "Previewing " + shape.getShapeName()
                 + ((group == null) ? "" : " in " + group.getName())
-                + ". Build it where it stands, then place a real button where its button is and press that. "
-                + "/wormhole gate build " + CLEAR + " takes away the one you look at.");
+                + ". Right-click its button to dial it. Build it where it stands, then place a real button where "
+                + "its button is and press that. Look at it and use " + String.join(", ", OPTIONS) + ".");
             case OVER_LIMIT -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
                     ? "Previews are turned off on this server (gate-preview-max-blocks is 0). "
@@ -100,6 +124,91 @@ public class Build implements CommandExecutor
             case NO_DHD -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + shape.getShapeName() + " has no DHD to stand it by, so it cannot be previewed.");
         }
+    }
+
+    /** Runs an option on the preview the player looks at. */
+    private static void option(final Player player, final String[] args, final boolean mayPreview)
+    {
+        final String option = args[0].toLowerCase(Locale.ROOT);
+        if (!OPTIONS.contains(option))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "No such option: " + args[0]
+                + ". Try " + String.join(", ", OPTIONS) + ".");
+            return;
+        }
+        if (CLEAR.equals(option))
+        {
+            clear(player, args);
+            return;
+        }
+        if (!mayPreview)
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
+        final GatePreviews.Control done = switch (option)
+        {
+            case ACTIVATE -> GatePreviews.activate(player);
+            case IRIS -> GatePreviews.iris(player);
+            case DHD -> GatePreviews.toggleDhd(player);
+            case CHEVRONS -> GatePreviews.toggleChevrons(player);
+            default -> material(player, args);
+        };
+        if (done != null)
+        {
+            tell(player, done);
+        }
+    }
+
+    /** {@code -material <group>} or {@code -material <role> <block>}; null once it has answered itself. */
+    private static GatePreviews.Control material(final Player player, final String[] args)
+    {
+        final String error = ConfigManager.MessageStrings.ERROR_HEADER.toString();
+        final String roles = Arrays.stream(Role.values()).map(Role::word).collect(Collectors.joining("|"));
+        if (args.length == 2)
+        {
+            final MaterialGroup group = MaterialGroupRegistry.getGroup(args[1]);
+            if (group != null)
+            {
+                return GatePreviews.material(player, group);
+            }
+        }
+        final Role role = (args.length == 3) ? Role.named(args[1]) : null;
+        if (role == null)
+        {
+            player.sendMessage(error + "Usage: /wormhole gate build " + MATERIAL + " <group>, or " + MATERIAL
+                + " <" + roles + "> <block>");
+            return null;
+        }
+        final Material block = Material.matchMaterial(args[2]);
+        return (block == null) ? GatePreviews.Control.NOT_A_BLOCK : GatePreviews.material(player, role, block);
+    }
+
+    private static void tell(final Player player, final GatePreviews.Control done)
+    {
+        final boolean refused = switch (done)
+        {
+            case NOT_LOOKING, NOT_A_BLOCK, NOT_IN_GROUP -> true;
+            default -> false;
+        };
+        final String text = switch (done)
+        {
+            case NOT_LOOKING -> "Look at one of your previews first.";
+            case DIALLING -> "Dialling. " + ACTIVATE + " again, or its button, shuts it down.";
+            case SHUT_DOWN -> "Shut down.";
+            case IRIS_CLOSED -> "Iris closed. " + IRIS + " again opens it.";
+            case IRIS_OPENED -> "Iris open.";
+            case CHANGED -> "Materials changed.";
+            case NOT_A_BLOCK -> "That is not a block that can be shown.";
+            case NOT_IN_GROUP -> "This shape is not built in that group.";
+            case DHD_HIDDEN -> "DHD hidden. " + DHD + " again shows it.";
+            case DHD_SHOWN -> "DHD shown.";
+            case CHEVRONS_PLAIN -> "Chevrons drawn as frame, as a gate built without chevron blocks. " + CHEVRONS
+                + " again shows them.";
+            case CHEVRONS_SHOWN -> "Chevrons drawn in their own material.";
+        };
+        player.sendMessage((refused ? ConfigManager.MessageStrings.ERROR_HEADER : ConfigManager.MessageStrings.NORMAL_HEADER)
+            .toString() + text);
     }
 
     private static void clear(final Player player, final String[] args)
@@ -141,7 +250,7 @@ public class Build implements CommandExecutor
                 return true;
             }
             final String[] arguments = CommandUtilities.commandEscaper(args);
-            if ((arguments.length < 1) || (arguments.length > 2))
+            if ((arguments.length < 1) || (arguments.length > 3))
             {
                 return false;
             }

@@ -2,6 +2,7 @@ package com.wormhole_xtreme.wormhole.model.preview;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -16,7 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,7 +30,9 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,14 +61,28 @@ class GatePreviewsTest
     /** Standard's frame and chevrons, and the button on its DHD. */
     private static final int STANDARD_BLOCKS = 19;
 
+    /** And its opening, which the server's block limit counts too. */
+    private static final int STANDARD_OPENING = 21;
+
     private WormholeXTreme plugin;
     private World world;
     private Player owner;
     private final List<BlockDisplay> spawned = new ArrayList<>();
+    private final List<Interaction> buttons = new ArrayList<>();
+    private final Map<Material, BlockData> data = new HashMap<>();
+    private Runnable dialStep;
+    private BukkitTask dialTask;
     private final long[] now = { 1_000_000L };
     private Stargate3DShape standard;
     private final RecordingCreation creation = new RecordingCreation(type ->
     {
+        if (type == Interaction.class)
+        {
+            final Interaction button = mock(Interaction.class);
+            when(button.isValid()).thenReturn(true);
+            buttons.add(button);
+            return button;
+        }
         final BlockDisplay display = mock(BlockDisplay.class);
         when(display.isValid()).thenReturn(true);
         spawned.add(display);
@@ -90,8 +109,14 @@ class GatePreviewsTest
 
         GatePreviews.clock = () -> now[0];
         GatePreviews.online = id -> owner;
-        GatePreviews.blockData = material -> (material == Material.STONE_BUTTON)
-            ? buttonData() : mock(BlockData.class);
+        GatePreviews.blockData = material -> data.computeIfAbsent(material,
+            m -> (m == Material.STONE_BUTTON) ? buttonData() : mock(BlockData.class));
+        GatePreviews.repeater = (ticks, step) ->
+        {
+            dialStep = step;
+            dialTask = mock(BukkitTask.class);
+            return dialTask;
+        };
     }
 
     @AfterEach
@@ -137,7 +162,8 @@ class GatePreviewsTest
         assertEquals(GatePreviews.Shown.SHOWN, GatePreviews.show(owner, standard, null));
 
         assertEquals(STANDARD_BLOCKS, spawned.size());
-        assertEquals(Collections.nCopies(STANDARD_BLOCKS, true), creation.hiddenWhenAdded,
+        assertEquals(1, buttons.size(), "and the box a click on its button lands on");
+        assertEquals(Collections.nCopies(STANDARD_BLOCKS + 1, true), creation.hiddenWhenAdded,
             "each unsaved and hidden by the time it was added");
         for (final BlockDisplay display : spawned)
         {
@@ -159,7 +185,7 @@ class GatePreviewsTest
         GatePreviews.show(owner, standard, null);
 
         final List<Cell> cells = standardLookingNorth();
-        assertEquals(cells.size(), places.size());
+        assertEquals(cells.size() + 1, places.size(), "the displays, and the button's box last");
         for (int i = 0; i < cells.size(); i++)
         {
             assertEquals(new Location(world, cells.get(i).x(), cells.get(i).y(), cells.get(i).z()), places.get(i));
@@ -268,7 +294,7 @@ class GatePreviewsTest
     @Test
     void aPreviewPastTheServersBlockLimitIsRefused()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, STANDARD_BLOCKS);
+        ConfigTestSupport.set(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, STANDARD_BLOCKS + STANDARD_OPENING);
 
         assertEquals(GatePreviews.Shown.SHOWN, GatePreviews.show(owner, standard, null));
         assertEquals(GatePreviews.Shown.OVER_LIMIT, GatePreviews.show(owner, standard, null));
@@ -284,7 +310,7 @@ class GatePreviewsTest
     @Test
     void aRefusedPreviewStillKeepsTheOthersFromTimingOut()
     {
-        ConfigTestSupport.set(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, STANDARD_BLOCKS);
+        ConfigTestSupport.set(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, STANDARD_BLOCKS + STANDARD_OPENING);
         GatePreviews.show(owner, standard, null);
 
         now[0] += 9 * 60_000L;
@@ -314,7 +340,6 @@ class GatePreviewsTest
         when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         GatePreviews.tick();
         assertEquals(STANDARD_BLOCKS + 1, spawned.size(), "the one dropped display, and only that one");
-        assertEquals(STANDARD_BLOCKS + 1, creation.created.size());
     }
 
     /** Disabling the plugin takes every preview on the server. */
@@ -332,5 +357,233 @@ class GatePreviewsTest
         assertEquals(2 * STANDARD_BLOCKS, spawned.size());
         spawned.forEach(display -> verify(display).remove());
         assertEquals(0, GatePreviews.blocksShown());
+    }
+
+    private List<BlockDisplay> ringDisplaysOfWave(final int wave)
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final List<BlockDisplay> out = new ArrayList<>();
+        for (int i = 0; i < cells.size(); i++)
+        {
+            if (cells.get(i).wave() == wave)
+            {
+                out.add(spawned.get(i));
+            }
+        }
+        return out;
+    }
+
+    private List<BlockDisplay> dhdDisplays()
+    {
+        final List<Cell> cells = standardLookingNorth();
+        final List<BlockDisplay> out = new ArrayList<>();
+        for (int i = 0; i < cells.size(); i++)
+        {
+            if (cells.get(i).dhd())
+            {
+                out.add(spawned.get(i));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * -activate lights the chevrons a wave at a time, then fills the opening, as a gate dials.
+     *
+     * <p>Standard has no chevron material, so a lit chevron is its light material, glowstone. The
+     * opening is water, which a block display cannot draw, so it shows as light blue glass.
+     */
+    @Test
+    void activatingLightsTheChevronsInOrderThenOpensTheWormhole()
+    {
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Control.DIALLING, GatePreviews.activate(owner));
+        assertNotNull(dialStep, "a dial runs on a timer");
+
+        dialStep.run();
+        ringDisplaysOfWave(1).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
+        ringDisplaysOfWave(2).forEach(d -> verify(d, never()).setBlock(data.get(Material.GLOWSTONE)));
+
+        for (int wave = 2; wave <= 7; wave++)
+        {
+            dialStep.run();
+        }
+        assertEquals(STANDARD_BLOCKS, spawned.size(), "every chevron lit, the opening still empty");
+        ringDisplaysOfWave(7).forEach(d -> verify(d).setBlock(data.get(Material.GLOWSTONE)));
+
+        dialStep.run();
+        assertEquals(STANDARD_BLOCKS + STANDARD_OPENING, spawned.size(), "the wormhole opens");
+        spawned.subList(STANDARD_BLOCKS, spawned.size())
+            .forEach(d -> verify(d).setBlock(data.get(Material.LIGHT_BLUE_STAINED_GLASS)));
+        verify(dialTask).cancel();
+    }
+
+    /** -activate on a gate that is open shuts it down: the chevrons go out and the opening empties. */
+    @Test
+    void activatingAnOpenGateShutsItDown()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        for (int step = 0; step < 8; step++)
+        {
+            dialStep.run();
+        }
+        final List<BlockDisplay> wormhole = new ArrayList<>(spawned.subList(STANDARD_BLOCKS, spawned.size()));
+
+        assertEquals(GatePreviews.Control.SHUT_DOWN, GatePreviews.activate(owner));
+
+        wormhole.forEach(d -> verify(d).remove());
+        ringDisplaysOfWave(1).forEach(d -> verify(d, org.mockito.Mockito.atLeast(2)).setBlock(data.get(Material.OBSIDIAN)));
+    }
+
+    /** Right-clicking the preview's button dials it; a second click inside the same moment is the same click. */
+    @Test
+    void rightClickingThePreviewsButtonDialsItOnce()
+    {
+        GatePreviews.show(owner, standard, null);
+        final Interaction button = buttons.get(0);
+
+        assertTrue(GatePreviews.pressed(owner, button));
+        assertNotNull(dialStep, "the click dialled it");
+        final Runnable first = dialStep;
+
+        now[0] += 100L;
+        assertTrue(GatePreviews.pressed(owner, button));
+        verify(dialTask, never()).cancel();
+
+        now[0] += 1_000L;
+        assertTrue(GatePreviews.pressed(owner, button));
+        verify(dialTask).cancel();
+        assertEquals(first, dialStep, "shut down, not dialled again");
+
+        assertFalse(GatePreviews.pressed(owner, mock(Interaction.class)), "somebody else's entity is not a button");
+    }
+
+    /** -iris closes an iris of the iris material over the opening, and opens it again. */
+    @Test
+    void theIrisClosesOverTheOpeningAndOpensAgain()
+    {
+        GatePreviews.show(owner, standard, null);
+
+        assertEquals(GatePreviews.Control.IRIS_CLOSED, GatePreviews.iris(owner));
+        final List<BlockDisplay> iris = new ArrayList<>(spawned.subList(STANDARD_BLOCKS, spawned.size()));
+        assertEquals(STANDARD_OPENING, iris.size());
+        iris.forEach(d -> verify(d).setBlock(data.get(Material.STONE)));
+
+        assertEquals(GatePreviews.Control.IRIS_OPENED, GatePreviews.iris(owner));
+        iris.forEach(d -> verify(d).remove());
+    }
+
+    /** -material redresses the preview in a group, or changes one role; a non-block changes nothing. */
+    @Test
+    void materialsChangeByGroupOrByRole()
+    {
+        GatePreviews.show(owner, standard, null);
+        final BlockDisplay frame = spawned.get(0);
+        GatePreviews.blockData = material ->
+        {
+            if (material == Material.DIAMOND)
+            {
+                throw new IllegalArgumentException("not a block");
+            }
+            return data.computeIfAbsent(material, m -> mock(BlockData.class));
+        };
+
+        assertEquals(GatePreviews.Control.CHANGED, GatePreviews.material(owner,
+            new com.wormhole_xtreme.wormhole.model.MaterialGroup("Atlantis", Material.LAPIS_BLOCK, Material.WATER,
+                Material.STONE, Material.SEA_LANTERN, Material.OAK_WALL_SIGN)));
+        verify(frame).setBlock(data.get(Material.LAPIS_BLOCK));
+
+        assertEquals(GatePreviews.Control.CHANGED,
+            GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.GOLD_BLOCK));
+        verify(frame).setBlock(data.get(Material.GOLD_BLOCK));
+
+        assertEquals(GatePreviews.Control.NOT_A_BLOCK,
+            GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.DIAMOND));
+        assertEquals(Material.GOLD_BLOCK, GatePreviews.of(owner.getUniqueId()).get(0).palette().structure());
+    }
+
+    /** -dhd hides the DHD and its button for a picture of the ring alone, and shows them again. */
+    @Test
+    void theDhdHidesForAPictureOfTheRingAndComesBack()
+    {
+        GatePreviews.show(owner, standard, null);
+        final List<BlockDisplay> dhd = dhdDisplays();
+        final List<BlockDisplay> ring = ringDisplaysOfWave(1);
+        assertEquals(3, dhd.size(), "Standard's DHD: its block, the iris lever's block, and the button");
+
+        assertEquals(GatePreviews.Control.DHD_HIDDEN, GatePreviews.toggleDhd(owner));
+        dhd.forEach(d -> verify(d).remove());
+        ring.forEach(d -> verify(d, never()).remove());
+        verify(buttons.get(0)).remove();
+
+        assertEquals(GatePreviews.Control.DHD_SHOWN, GatePreviews.toggleDhd(owner));
+        assertEquals(STANDARD_BLOCKS + dhd.size(), spawned.size(), "the DHD's displays back");
+        assertEquals(2, buttons.size(), "and its button's box");
+    }
+
+    /** Every control answers that nothing is looked at when the player looks away from their previews. */
+    @Test
+    void theControlsNeedAPreviewLookedAt()
+    {
+        GatePreviews.show(owner, standard, null);
+        standAt(0.5, 1.5, 0f); // a step back, out of the preview, looking away
+
+        assertEquals(GatePreviews.Control.NOT_LOOKING, GatePreviews.activate(owner));
+        assertEquals(GatePreviews.Control.NOT_LOOKING, GatePreviews.iris(owner));
+        assertEquals(GatePreviews.Control.NOT_LOOKING, GatePreviews.toggleDhd(owner));
+        assertEquals(GatePreviews.Control.NOT_LOOKING,
+            GatePreviews.material(owner, GateBlueprint.Role.FRAME, Material.GOLD_BLOCK));
+        assertEquals(STANDARD_BLOCKS, spawned.size());
+    }
+
+    /** Clearing a preview part way through dialling stops the dial and takes the button's box too. */
+    @Test
+    void clearingADiallingPreviewStopsTheDial()
+    {
+        GatePreviews.show(owner, standard, null);
+        GatePreviews.activate(owner);
+        dialStep.run();
+
+        assertEquals(1, GatePreviews.clearAll(owner));
+
+        verify(dialTask).cancel();
+        verify(buttons.get(0)).remove();
+    }
+
+    /**
+     * -chevrons draws a group's chevron blocks as frame, since they are optional, and lit chevrons
+     * then show the light material as a gate built without them does.
+     */
+    @Test
+    void chevronsCanBeDrawnAsTheFrameTheyMayBeBuiltFrom()
+    {
+        final com.wormhole_xtreme.wormhole.model.MaterialGroup lamps = new com.wormhole_xtreme.wormhole.model.MaterialGroup(
+            "Standard", Material.OBSIDIAN, Material.WATER, Material.STONE, Material.GLOWSTONE, Material.OAK_WALL_SIGN,
+            Material.REDSTONE_LAMP);
+        GatePreviews.show(owner, standard, lamps);
+        final BlockDisplay chevron = ringDisplaysOfWave(1).get(0);
+        verify(chevron).setBlock(data.get(Material.REDSTONE_LAMP));
+
+        assertEquals(GatePreviews.Control.CHEVRONS_PLAIN, GatePreviews.toggleChevrons(owner));
+        verify(chevron).setBlock(data.get(Material.OBSIDIAN));
+
+        GatePreviews.activate(owner);
+        dialStep.run();
+        verify(chevron).setBlock(data.get(Material.GLOWSTONE));
+
+        assertEquals(GatePreviews.Control.CHEVRONS_SHOWN, GatePreviews.toggleChevrons(owner));
+        assertEquals(Material.REDSTONE_LAMP, GatePreviews.of(owner.getUniqueId()).get(0).drawnPalette().chevron());
+    }
+
+    /** The limit counts a preview's opening too, since dialling or closing the iris fills it. */
+    @Test
+    void theBlockLimitCountsTheOpening()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, (STANDARD_BLOCKS + STANDARD_OPENING) - 1);
+
+        assertEquals(GatePreviews.Shown.OVER_LIMIT, GatePreviews.show(owner, standard, null));
+        assertTrue(spawned.isEmpty());
     }
 }

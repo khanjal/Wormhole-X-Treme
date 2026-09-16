@@ -1406,6 +1406,23 @@ class WormholeXTremePlayerListener implements Listener
     }
 
     /**
+     * Dials a build preview whose button was right-clicked.
+     *
+     * @param event
+     *            the click
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerInteractEntity(final org.bukkit.event.player.PlayerInteractEntityEvent event)
+    {
+        // The off hand repeats the click; only the main hand's counts.
+        if ((event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND)
+            && com.wormhole_xtreme.wormhole.model.preview.GatePreviews.pressed(event.getPlayer(), event.getRightClicked()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
      * Redraws open portals for a player who has just joined.
      *
      * @param event

@@ -364,9 +364,13 @@ public final class SubCommands
     {
         if (args.length == 3)
         {
-            final List<String> out = new ArrayList<>(prefixed(args[2], Build.CLEAR));
+            final List<String> out = new ArrayList<>(prefixed(args[2], Build.OPTIONS.toArray(new String[0])));
             out.addAll(shapeNames(args[2]));
             return out;
+        }
+        if (Build.MATERIAL.equalsIgnoreCase(args[2]))
+        {
+            return completeBuildMaterial(args);
         }
         if (args.length != 4)
         {
@@ -375,6 +379,10 @@ public final class SubCommands
         if (Build.CLEAR.equalsIgnoreCase(args[2]))
         {
             return prefixed(args[3], Build.ALL);
+        }
+        if (args[2].startsWith("-"))
+        {
+            return none();
         }
         final com.wormhole_xtreme.wormhole.model.StargateShape shape =
             com.wormhole_xtreme.wormhole.model.StargateShapeRegistry.getStargateShape(args[2]);
@@ -387,6 +395,35 @@ public final class SubCommands
             .filter(shape::acceptsMaterialGroup)
             .sorted(String.CASE_INSENSITIVE_ORDER)
             .toArray(String[]::new));
+    }
+
+    /**
+     * Completions for {@code gate build -material <group>|<role> <block>}: the groups and roles, then
+     * block names once something has been typed, since every block at once is not a list anybody reads.
+     *
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeBuildMaterial(final String[] args)
+    {
+        if (args.length == 4)
+        {
+            final List<String> out = new ArrayList<>(prefixed(args[3], com.wormhole_xtreme.wormhole.model.MaterialGroupRegistry
+                .getGroups().stream().map(com.wormhole_xtreme.wormhole.model.MaterialGroup::getName)
+                .sorted(String.CASE_INSENSITIVE_ORDER).toArray(String[]::new)));
+            out.addAll(prefixed(args[3], java.util.Arrays.stream(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.values())
+                .map(com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role::word).toArray(String[]::new)));
+            return out;
+        }
+        if ((args.length != 5) || args[4].isEmpty()
+            || (com.wormhole_xtreme.wormhole.logic.GateBlueprint.Role.named(args[3]) == null))
+        {
+            return none();
+        }
+        return prefixed(args[4], java.util.Arrays.stream(org.bukkit.Material.values())
+            .filter(material -> !material.name().startsWith("LEGACY_"))
+            .map(material -> material.name().toLowerCase(Locale.ROOT)).toArray(String[]::new));
     }
 
     /**
