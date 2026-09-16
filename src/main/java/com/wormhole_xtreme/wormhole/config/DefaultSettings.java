@@ -77,7 +77,7 @@ class DefaultSettings
             new Setting(ConfigKeys.WORMHOLE_USE_IS_TELEPORT, false, "Whether wormhole.use is needed to travel at all. False lets anyone travel but only permitted players activate a gate; true limits travel too.", SECTION),
             new Setting(ConfigKeys.SAME_WORLD_ONLY, false, "If set to true, players may only teleport through gates whose destination is in the same world.", SECTION),
             new Setting(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, true, "Whether a redstone signal on an already-open gate pushes its shutdown back. Never past max-open-seconds, so traffic can hold a gate open but not indefinitely.", SECTION),
-            new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates. Higher values reduce server load.", SECTION),
+            new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates, at least 5. Higher values reduce server load.", SECTION),
             new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
             new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 20, "Ticks a traveller sees water as they come out of a gate, drawn to that player alone. Raise it if distant trips miss the effect while chunks are still loading; too high and the client starts predicting it is swimming. 0 turns it off.", SECTION)),
 
@@ -103,7 +103,7 @@ class DefaultSettings
             new Setting(ConfigKeys.SIGN_COLOR_NEIGHBOUR, "GRAY", "Colour of the destinations either side of the selected one on a dial sign.", SECTION)),
 
         new Group("Transport rings", "",
-            new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 60, "Ticks a transport ring counts down before it commits. Below about 20 the abort window stops being real.", SECTION),
+            new Setting(ConfigKeys.RING_COUNTDOWN_TICKS, 60, "Ticks a transport ring counts down before it commits. Anything below 30 is read as 30, so stepping clear stays possible.", SECTION),
             new Setting(ConfigKeys.RING_COOLDOWN_TICKS, 1200, "Ticks a ring pair refuses to fire again after a cycle. Shared by both ends.", SECTION),
             new Setting(ConfigKeys.RING_DEPLOY_TICKS, 2, "Ticks between frames of the ring deploy and retract animations.", SECTION),
             new Setting(ConfigKeys.RING_SETTLE_TICKS, 20, "Ticks the fully deployed ring stack stands still before the teleport fires.", SECTION),
@@ -112,7 +112,7 @@ class DefaultSettings
             new Setting(ConfigKeys.RING_HOLD_TICKS, 20, "Ticks the ring stack stands still once the light has finished, before it retracts.", SECTION),
             new Setting(ConfigKeys.RING_OUTLINE_ON_REFUSAL, true, "Briefly light a ring's pattern for a player it turns away, so they can see where it is. Idle rings are invisible.", SECTION),
             new Setting(ConfigKeys.RING_OUTLINE_TICKS, 40, "How long that outline stays visible, in ticks.", SECTION),
-            new Setting(ConfigKeys.RING_REACH, 4, "Block layers of passenger volume, from the ring plane into the room. Matters most for ceiling rings.", SECTION),
+            new Setting(ConfigKeys.RING_REACH, 4, "Block layers of passenger volume, from the ring plane into the room, at least 2. Matters most for ceiling rings.", SECTION),
             new Setting(ConfigKeys.RING_MIN_SEPARATION, 8, "Required distance between ring anchors, in blocks. Overlap is refused regardless of this.", SECTION),
             new Setting(ConfigKeys.RING_MAX_LINK_DISTANCE, 256, "Furthest apart the two ends of a ring pair may be on the ground, in blocks. 256 is sixteen chunks; gates are the long-haul option. 0 for no limit.", SECTION),
             new Setting(ConfigKeys.RING_MAX_LINK_HEIGHT, 384, "Furthest apart the two ends of a ring pair may be in height, in blocks. 384 is the full world height, so bedrock to build limit is always allowed. 0 for no limit.", SECTION),

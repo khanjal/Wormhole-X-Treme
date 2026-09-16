@@ -1088,6 +1088,15 @@ been running on defaults will start reading the file you have been editing.
   banner, nothing past eighty columns, no setting under two headings, and no description longer
   than about four lines.
 
+  Three descriptions now name a floor the plugin enforces. `ring-countdown-ticks` said the abort
+  window stopped being real below about twenty; it is floored at thirty, so every value under
+  that was already being raised and the file was saying otherwise -- and had been saying it
+  before this change, so the trim carried the error rather than making it. `ring-reach` and
+  `entity-scan-interval-ticks` gained the same sort of clause. The dozen other clamps only stop
+  nonsense, no negative tick counts, and saying so above each key would be the noise this was
+  meant to cut. A test sets each of the three under its floor, checks the getter raises it, and
+  checks the description admits to the number.
+
   **Nothing changes for a server that already has a `config.yml`.** An existing file is still
   rewritten in place, keeping its own layout and your comments, with only missing keys appended;
   the grouped layout is what a fresh install writes. Delete the file to have it written anew.

@@ -177,6 +177,65 @@ class ConfigFileShapeTest
             "one blank above every banner but the first");
     }
 
+
+    /**
+     * A floor an operator could trip over is named in the description.
+     *
+     * <p>Most of the clamps in {@link ConfigManager} only stop nonsense -- no negative tick
+     * counts -- and saying so in the file would be noise. These three sit far enough above
+     * nothing that somebody can set a value the plugin then quietly ignores, which is exactly
+     * what a comment above the key should admit to.
+     *
+     * <p>From the review of this change. The countdown's description said the abort window
+     * stopped being real below about twenty; the floor is thirty, so every value under it was
+     * already being raised and the file was telling operators otherwise. It had said that before
+     * this change too, so the trim carried the error forward rather than introducing it.
+     */
+    @Test
+    void aFloorWorthKnowingIsNamedInItsDescription()
+    {
+        assertFloor(ConfigKeys.RING_COUNTDOWN_TICKS, 1, 30, ConfigManager::getRingCountdownTicks);
+        assertFloor(ConfigKeys.RING_REACH, 0, 2, ConfigManager::getRingReach);
+        assertFloor(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 1, 5,
+            ConfigManager::getEntityScanIntervalTicks);
+    }
+
+    /**
+     * Sets a setting below its floor, and holds both the clamp and the comment that admits it.
+     *
+     * @param key
+     *            the setting
+     * @param below
+     *            a value under its floor
+     * @param floor
+     *            what the getter should answer instead
+     * @param getter
+     *            the getter that does the clamping
+     */
+    private static void assertFloor(final ConfigKeys key, final int below, final int floor,
+        final java.util.function.IntSupplier getter)
+    {
+        ConfigTestSupport.set(key, below);
+
+        assertEquals(floor, getter.getAsInt(), key + " should be floored");
+        assertTrue(descriptionOf(key).contains(String.valueOf(floor)),
+            key + " is floored at " + floor + " but its description never says so: "
+                + descriptionOf(key));
+    }
+
+    /** @return what config.yml says above one key */
+    private static String descriptionOf(final ConfigKeys key)
+    {
+        for (final Setting setting : DefaultSettings.config)
+        {
+            if (setting.getName() == key)
+            {
+                return setting.getDescription();
+            }
+        }
+        throw new AssertionError("no such setting: " + key);
+    }
+
     /** Nothing the writer emits runs past the 80 columns it wraps comments to. */
     @Test
     void noLineRunsPastEightyColumns() throws Exception
