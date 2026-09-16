@@ -529,7 +529,10 @@ public class MirrorCommand implements SubCommand
         {
             return;
         }
-        final String chosen = look ? args[2] : ((args.length > 3) ? args[3] : null);
+        // Two readings of one word, never both at once: the look alone, or the look after the
+        // name. Nested as one expression this was the least readable line in the command.
+        final String afterTheName = (args.length > 3) ? args[3] : null;
+        final String chosen = look ? args[2] : afterTheName;
         if (chosen != null)
         {
             stampWith(sender, mirror, banner, chosen);
