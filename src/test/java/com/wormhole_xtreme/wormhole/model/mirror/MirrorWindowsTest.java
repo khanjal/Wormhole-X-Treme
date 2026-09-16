@@ -1864,6 +1864,85 @@ class MirrorWindowsTest
             .filter(line -> line.startsWith("fog: ")).findFirst().orElse("no fog line");
     }
 
+
+    /**
+     * Walking into another world drops the view and gives the fog back.
+     *
+     * <p>The chunks of the new world have already replaced everything drawn in the old one, so
+     * there is nothing to take back -- but the send distance is the player's own and came with
+     * them, so it has to go back here too. One of the four places a view ends.
+     */
+    @Test
+    void walkingIntoAnotherWorldGivesTheFogBack()
+    {
+        final List<Integer> fog = watchTheFog();
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            assertEquals(List.of(2), fog, "narrowed while being drawn a room");
+            // A redraw on a move is throttled, so wait the gap out before stepping.
+            pause();
+            when(viewer.getWorld()).thenReturn(mock(World.class));
+            MirrorWindows.moved(viewer, new Location(world, 12.0, 64.0, 7.5));
+        });
+
+        assertEquals(List.of(2, 10), fog, "and given back on the way into the new world");
+        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()), "nothing left remembered");
+    }
+
+    /**
+     * A viewer who logs out mid-view is forgotten by the next sweep.
+     *
+     * <p>Nothing can be sent to somebody who is not there, and their send distance died with the
+     * connection. What matters is that the sweep stops remembering them: an entry kept for a
+     * player who has gone would make a mirror skip them if they came back on the same id.
+     */
+    @Test
+    void aViewerWhoLogsOutMidViewIsForgottenByTheSweep()
+    {
+        final List<Integer> fog = watchTheFog();
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(MirrorProximity::tick);
+        assertEquals(List.of(2), fog, "narrowed while they were here");
+
+        // Gone: no players in the world, so the sweep finds no player behind the view either.
+        when(world.getPlayers()).thenReturn(List.of());
+        withServer(MirrorProximity::tick);
+
+        assertEquals(List.of(2), fog, "nothing sent to somebody who is not there");
+        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()),
+            "and they are not remembered as narrowed, so coming back narrows them again");
+    }
+
+    /** A fog that reports ten chunks and records every number it is asked to set. */
+    private static List<Integer> watchTheFog()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        final List<Integer> asked = new ArrayList<>();
+        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        {
+            @Override
+            public int get(final Player player)
+            {
+                return 10;
+            }
+
+            @Override
+            public void set(final Player player, final int chunks)
+            {
+                asked.add(chunks);
+            }
+        });
+        return asked;
+    }
+
     @Test
     void clickingTheOpeningWhileLookingInIsTheMirror()
     {
