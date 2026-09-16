@@ -44,6 +44,9 @@ public final class MirrorYamlManager
     /** The mirror it opens onto when nobody at it has chosen, if it has one. */
     private static final String START = "Start";
 
+    /** How many banners wide it is, written only when more than one. */
+    private static final String WIDTH = "Width";
+
     /** Inside {@link #LOOK}: the preset an operator named, if they named one. */
     private static final String PRESET = "Preset";
 
@@ -143,7 +146,7 @@ public final class MirrorYamlManager
             // legible, and every one of these settings has a sensible "as it always was".
             return new QuantumMirror(name, banner, readPoint(map.get(DESTINATION)),
                 readLook(map.get(LOOK)), text(map.get(START)),
-                (map.get("Width") instanceof Number wide) ? wide.intValue() : 1);
+                (map.get(WIDTH) instanceof Number wide) ? wide.intValue() : 1);
         }
         catch (final RuntimeException e)
         {
@@ -321,7 +324,7 @@ public final class MirrorYamlManager
         }
         if (mirror.width() > 1)
         {
-            map.put("Width", mirror.width());
+            map.put(WIDTH, mirror.width());
         }
         writeLook(map, mirror.look());
         return map;
