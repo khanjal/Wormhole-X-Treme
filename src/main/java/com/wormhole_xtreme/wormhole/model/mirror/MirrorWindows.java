@@ -1035,8 +1035,7 @@ public final class MirrorWindows
         final Budget budget = new Budget();
         final Map<Long, BlockData> wanted = compose(view, eye, seeing, wholes, view.drawn.keySet(), now, inside, budget);
         workSpent += budget.projected;
-        send(player, view, wanted, eye, now, (now - view.fullAt) >= RESEND_MILLIS,
-            crossed ? freshChunks(player, view.chunk, chunk) : Set.of());
+        send(player, view, wanted, eye, now, (now - view.fullAt) >= RESEND_MILLIS, freshChunks(player, view.chunk, chunk));
         veil(player, view, inside);
         final long took = now() - now;
         view.lastRedraw = new Redraw(budget.projected, budget.near, budget.fixed, budget.fixedDepth,
@@ -2592,10 +2591,15 @@ public final class MirrorWindows
      * its reach of the new chunk and not of the old, and a chunk over for the edge. Everything
      * drawn in them has to be sent again, since a chunk arrives as the world has it.
      *
-     * @return the chunks, or null for all of them: a first drawing, or a reach the server does not say
+     * @return the chunks: none when the eye has stayed in its chunk, or null for all of them on
+     *         a first drawing or a reach the server does not say
      */
     private static Set<Long> freshChunks(final Player player, final long from, final long to)
     {
+        if (from == to)
+        {
+            return Set.of();
+        }
         // What the server sends is the shorter of its own distance and the client's.
         final int reach = Math.min(player.getWorld().getViewDistance(), player.getClientViewDistance()) + 1;
         if ((from == Long.MIN_VALUE) || (reach <= 1))
