@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys;
 import com.wormhole_xtreme.wormhole.config.ConfigTestSupport;
@@ -210,6 +211,7 @@ class MirrorFogTest
 
     /** Without the API there is no feature, which is every Spigot server. */
     @Test
+    @DisabledIfSystemProperty(named = "server.api", matches = "paper")
     void withoutTheServersMethodThereIsNoFeature()
     {
         MirrorFog.sendDistanceWith(null);

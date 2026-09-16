@@ -50,6 +50,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -1825,8 +1826,8 @@ class MirrorWindowsTest
      * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends --
      * so the line is the only way to tell "pulled in" from "off", from "this server has not got
      * the method", from "already sent no further than the room reaches". The pulled-in case is
-     * {@code aViewerDrawnARoomHasTheirFogPulledInAndPutBack}; these are the other three, and none
-     * of them needs a window to report on.
+     * {@code aViewerDrawnARoomHasTheirFogPulledInAndPutBack}, no method is
+     * {@code debugSaysWhenTheServerHasNoFog}, and these are the other two.
      */
     @Test
     void debugSaysWhichStateTheFogIsIn()
@@ -1836,9 +1837,6 @@ class MirrorWindowsTest
         assertEquals("fog: off (mirror-fog-at-depth)", fogLine(asker), "off by default");
 
         ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
-        assertTrue(fogLine(asker).contains("no Player.setSendViewDistance"),
-            "on, with no Paper under it: " + fogLine(asker));
-
         // A client already being sent no further than a 16-deep room reaches.
         MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
         {
@@ -1856,6 +1854,18 @@ class MirrorWindowsTest
         });
         assertTrue(fogLine(asker).contains("nothing pulled in"),
             "on, and no narrower than they already are: " + fogLine(asker));
+    }
+
+    /** On a server without the method, debug says so. Not Paper, where the method is there. */
+    @Test
+    @DisabledIfSystemProperty(named = "server.api", matches = "paper")
+    void debugSaysWhenTheServerHasNoFog()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+
+        final String line = fogLine(playerAt(200.5, 200.5));
+
+        assertTrue(line.contains("no Player.setSendViewDistance"), "on, with no Paper under it: " + line);
     }
 
     /** The one debug line about the fog, without its colours. */
