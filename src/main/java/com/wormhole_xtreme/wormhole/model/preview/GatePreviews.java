@@ -78,6 +78,8 @@ public final class GatePreviews
      */
     public static Shown show(final Player owner, final Stargate3DShape shape, final MaterialGroup group)
     {
+        // Asking counts as using build commands even when this one cannot be shown.
+        touch(owner.getUniqueId());
         final Location at = owner.getLocation();
         final GateGrid grid = GateBlueprint.inFrontOf(shape, at.getBlockX(), at.getBlockY(), at.getBlockZ(),
             GateBlueprint.facingOf(at.getYaw()));

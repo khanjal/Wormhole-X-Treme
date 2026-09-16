@@ -175,6 +175,31 @@ class GateBuildPreviewCommandTest
         assertSame(standard, StargateManager.getPlayerBuilderShape(player));
     }
 
+    /**
+     * With the block limit at 0 a player is told previews are off, not to clear one: there is
+     * nothing to clear that would help.
+     */
+    @Test
+    void aLimitOfZeroSaysPreviewsAreOffRatherThanToClearOne()
+    {
+        when(player.hasPermission("wormhole.build.preview")).thenReturn(true);
+        com.wormhole_xtreme.wormhole.config.ConfigTestSupport.set(
+            com.wormhole_xtreme.wormhole.config.ConfigManager.ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 0);
+        try (MockedStatic<GatePreviews> previews = mockStatic(GatePreviews.class))
+        {
+            previews.when(() -> GatePreviews.show(any(), any(), any())).thenReturn(GatePreviews.Shown.OVER_LIMIT);
+
+            run("gate", "build", "Standard");
+        }
+        finally
+        {
+            com.wormhole_xtreme.wormhole.config.ConfigTestSupport.clear();
+        }
+        verify(player).sendMessage(contains("Previews are turned off on this server"));
+        verify(player, never()).sendMessage(contains("clear a preview"));
+        assertSame(standard, StargateManager.getPlayerBuilderShape(player));
+    }
+
     /** A group that does not exist is refused, naming the groups that do, and nothing is chosen. */
     @Test
     void aGroupThatDoesNotExistIsRefusedNamingTheOnesThatDo()

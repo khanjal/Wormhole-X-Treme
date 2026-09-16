@@ -87,8 +87,11 @@ public class Build implements CommandExecutor
                 + ". Build it where it stands and press the button on its DHD. "
                 + "/wormhole gate build clear takes away the one you look at.");
             case OVER_LIMIT -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
-                + "That would show more than " + ConfigManager.getGatePreviewMaxBlocks()
-                + " preview blocks on the server. The shape is still chosen; clear a preview to show it.");
+                + ((ConfigManager.getGatePreviewMaxBlocks() == 0)
+                    ? "Previews are turned off on this server (gate-preview-max-blocks is 0). "
+                        + "The shape is still chosen."
+                    : "That would show more than " + ConfigManager.getGatePreviewMaxBlocks()
+                        + " preview blocks on the server. The shape is still chosen; clear a preview to show it."));
             case NO_DHD -> player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString()
                 + shape.getShapeName() + " has no DHD to stand it by, so it cannot be previewed.");
         }

@@ -278,6 +278,25 @@ class GatePreviewsTest
     }
 
     /**
+     * Asking for a preview the limit refuses still counts as using build commands, so the ones
+     * already standing do not time out on a player who is busy trying.
+     */
+    @Test
+    void aRefusedPreviewStillKeepsTheOthersFromTimingOut()
+    {
+        ConfigTestSupport.set(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, STANDARD_BLOCKS);
+        GatePreviews.show(owner, standard, null);
+
+        now[0] += 9 * 60_000L;
+        assertEquals(GatePreviews.Shown.OVER_LIMIT, GatePreviews.show(owner, standard, null));
+        now[0] += 9 * 60_000L;
+        GatePreviews.tick();
+
+        assertEquals(1, GatePreviews.countOf(owner.getUniqueId()), "renewed nine minutes in, so still up at eighteen");
+        spawned.forEach(display -> verify(display, never()).remove());
+    }
+
+    /**
      * A display the server dropped with its chunk comes back once the chunk is loaded again, and
      * not before: a preview never loads a chunk.
      */
