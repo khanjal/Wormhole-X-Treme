@@ -16,7 +16,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
-import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -84,7 +83,7 @@ public final class MirrorWindows
     private static final String BLOCKS = " blocks";
 
     /** How old a reading of what surrounds an opening may get. */
-    private static final long RESAMPLE_MILLIS = 5000L;
+    static final long RESAMPLE_MILLIS = 5000L;
 
     /** Least time between two redraws of one viewer as they move. */
     static final long REDRAW_MILLIS = 100L;
@@ -93,7 +92,7 @@ public final class MirrorWindows
     private static final long REDRAW_TICKS = 2L;
 
     /** How far in front of an opening real blocks are read for what they hide, and the least its wall is read. */
-    private static final int SURROUND = 8;
+    static final int SURROUND = 8;
 
     /** The most of a block's outline that may land beside the opening for it to be drawn. */
     private static final double MOST_BESIDE = 0.05;
@@ -185,21 +184,6 @@ public final class MirrorWindows
     /** When {@link #STATES} was last trimmed to the blocks still being drawn. */
     private static long trimmedAt;
 
-    /** Whether each block behind an opening is really empty, by world and block, briefly. */
-    private static final Map<String, Map<Long, Boolean>> EMPTY = new HashMap<>();
-
-    /** The highest block that is not air in each real column, by world and column, as briefly. */
-    private static final Map<String, Map<Long, Integer>> TOPS = new HashMap<>();
-
-    /** When {@link #EMPTY} was last cleared. */
-    private static long emptyReadAt;
-
-    /** Whether each real block between viewers and openings is solid, by world and block. */
-    private static final Map<String, Map<Long, Boolean>> SOLID = new HashMap<>();
-
-    /** When {@link #SOLID} was last cleared. */
-    private static long solidReadAt;
-
     /** Players who asked to see the world as it is, with no view drawn for them: admins checking. */
     private static final Set<UUID> BLIND = ConcurrentHashMap.newKeySet();
 
@@ -286,11 +270,11 @@ public final class MirrorWindows
         /** Far-side states turned by {@link #rotation}, each turned once. */
         private final Map<BlockData, BlockData> turned = new IdentityHashMap<>();
         private Set<Long> solid = Set.of();
-        /** The outermost ring of the solid face, each with the sides it is open on ({@link #marginOf}). */
+        /** The outermost ring of the solid face, each with the sides it is open on ({@link MirrorFace#marginOf}). */
         private Map<Long, Integer> margin = Map.of();
         /** The solid blocks of the face touching the opening, corners too: its frame. */
         private List<Spot> frame = List.of();
-        /** How many blocks of solid wall stand on every side of the opening, as last read ({@link #borderOf}). */
+        /** How many blocks of solid wall stand on every side of the opening, as last read ({@link MirrorFace#borderOf}). */
         private int border;
         private long solidAt;
         /** Everything behind a walled window, drawn whatever the eye; null until first wanted. */
@@ -523,7 +507,7 @@ public final class MirrorWindows
             final String what = window.banner.getWorld().getBlockAt(gap.x(), gap.y(), gap.z())
                 .getBlockData().getAsString();
             return clipped + MirrorText.bad("wall within "
-                + wallReach() + " open at " + gap.x() + "," + gap.y() + "," + gap.z()) + " (" + what + ")";
+                + MirrorFace.wallReach() + " open at " + gap.x() + "," + gap.y() + "," + gap.z()) + " (" + what + ")";
         }
         if (!fixedForViewer)
         {
@@ -556,9 +540,7 @@ public final class MirrorWindows
         OFFERED.clear();
         VIEWS.clear();
         STATES.clear();
-        EMPTY.clear();
-        TOPS.clear();
-        SOLID.clear();
+        MirrorSight.clear();
         BLIND.clear();
         FULL.clear();
         MirrorCaptures.clear();
@@ -1167,55 +1149,12 @@ public final class MirrorWindows
     {
         for (final Spot cell : window.open)
         {
-            if (clearLine(here, eye, cell, window.shape.into(), now))
+            if (MirrorSight.clearLine(here, eye, cell, window.shape.into(), now))
             {
                 return true;
             }
         }
         return false;
-    }
-
-    /**
-     * Whether nothing solid stands between an eye and the middle of a block's front face.
-     *
-     * <p>The front face, not the block's middle: seen from an angle, the line to the middle
-     * passes through the wall block beside the opening first, and the opening would count as
-     * hidden while its face was in plain view. Walked in short steps, stopping just short of the
-     * face. Solid means occluding, so glass and the banner in front do not count as in the way.
-     */
-    private static boolean clearLine(final World here, final Location eye, final Spot cell,
-        final Spot into, final long now)
-    {
-        final double dx = ((cell.x() + 0.5) - (0.51 * into.x())) - eye.getX();
-        final double dy = (cell.y() + 0.5) - eye.getY();
-        final double dz = ((cell.z() + 0.5) - (0.51 * into.z())) - eye.getZ();
-        final double length = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-        for (double along = 0.4; along < length; along += 0.4)
-        {
-            final double t = along / length;
-            final int x = (int) Math.floor(eye.getX() + (dx * t));
-            final int y = (int) Math.floor(eye.getY() + (dy * t));
-            final int z = (int) Math.floor(eye.getZ() + (dz * t));
-            if (solidHere(here, x, y, z, now))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /** Whether the real block here hides what is behind it, remembered for a few seconds. */
-    private static boolean solidHere(final World here, final int x, final int y, final int z,
-        final long now)
-    {
-        if ((now - solidReadAt) >= RESAMPLE_MILLIS)
-        {
-            SOLID.clear();
-            solidReadAt = now;
-        }
-        return SOLID.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            key(x, y, z), cell -> here.isChunkLoaded(x >> 4, z >> 4)
-                && here.getBlockAt(x, y, z).getBlockData().isOccluding());
     }
 
     /** Whether somebody not yet looking into anything has just come within range of a window. */
@@ -1682,13 +1621,13 @@ public final class MirrorWindows
         final MirrorWindow shape = window.shape;
         final Set<Long> opening = new HashSet<>();
         shape.forEachOpening((x, y, z) -> opening.add(key(x, y, z)));
-        final int reach = wallReach();
-        final int[] span = acrossSpan(shape, reach);
+        final int reach = MirrorFace.wallReach();
+        final int[] span = MirrorFace.acrossSpan(shape, reach);
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - reach; y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
             {
-                final long face = faceKey(shape, across, y);
+                final long face = MirrorFace.faceKey(shape, across, y);
                 if (!opening.contains(face) && !window.solid.contains(face))
                 {
                     return new Spot(unpackX(face), unpackY(face), unpackZ(face));
@@ -1802,7 +1741,7 @@ public final class MirrorWindows
             {
                 view.put(key(x, y, z), turned(window, capture.at(fx, fy, fz)));
             }
-            else if (!reallyEmpty(here, x, y, z, now))
+            else if (!MirrorSight.reallyEmpty(here, x, y, z, now))
             {
                 view.put(key(x, y, z), air);
             }
@@ -1860,7 +1799,7 @@ public final class MirrorWindows
                     {
                         view.put(key(x, y, z), turned(window, capture.at(at.x(), at.y(), at.z())));
                     }
-                    else if (!reallyEmpty(here, x, y, z, now))
+                    else if (!MirrorSight.reallyEmpty(here, x, y, z, now))
                     {
                         view.put(key(x, y, z), air);
                     }
@@ -1872,13 +1811,6 @@ public final class MirrorWindows
             }
         }
         return view;
-    }
-
-    /** Whether a real block is empty, read afresh: above its column's highest block it is. */
-    private static boolean reallyEmpty(final World here, final int x, final int y, final int z, final long now)
-    {
-        return (y > topHere(here, x, z, now))
-            || (here.isChunkLoaded(x >> 4, z >> 4) && here.getBlockAt(x, y, z).isEmpty());
     }
 
     /**
@@ -2112,23 +2044,6 @@ public final class MirrorWindows
         return (dx * dx) + (dy * dy) + (dz * dz);
     }
 
-    /** The highest block that is not air in a real column, remembered for a few seconds. */
-    private static int topHere(final World here, final int x, final int z, final long now)
-    {
-        if ((now - emptyReadAt) >= RESAMPLE_MILLIS)
-        {
-            EMPTY.clear();
-            TOPS.clear();
-            emptyReadAt = now;
-        }
-        if (!here.isChunkLoaded(x >> 4, z >> 4))
-        {
-            return Integer.MAX_VALUE;
-        }
-        return TOPS.computeIfAbsent(here.getName(), name -> new HashMap<>()).computeIfAbsent(
-            chunkKey(x, z), column -> here.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
-    }
-
     /** How much of the wall's outermost ring, from its open edge in, absorbs a step instead of hiding a block. */
     private static final double MARGIN = 0.5;
 
@@ -2146,7 +2061,7 @@ public final class MirrorWindows
     private static double[] cover(final Window window, final int across, final int y,
         final Set<Long> allOpen, final Set<Long> shielded)
     {
-        final long face = faceKey(window.shape, across, y);
+        final long face = MirrorFace.faceKey(window.shape, across, y);
         final boolean whole = window.openKeys.contains(face) || (shielded.contains(face) && !allOpen.contains(face));
         if (!whole && (!window.solid.contains(face) || allOpen.contains(face)))
         {
@@ -2157,16 +2072,11 @@ public final class MirrorWindows
         {
             return new double[] { across, across + 1.0, y, y + 1.0 };
         }
-        return new double[] { across + (((open & OPEN_BEFORE) != 0) ? MARGIN : 0.0),
-            (across + 1.0) - (((open & OPEN_AFTER) != 0) ? MARGIN : 0.0),
-            y + (((open & OPEN_BELOW) != 0) ? MARGIN : 0.0), (y + 1.0) - (((open & OPEN_ABOVE) != 0) ? MARGIN : 0.0) };
+        return new double[] { across + (((open & MirrorFace.OPEN_BEFORE) != 0) ? MARGIN : 0.0),
+            (across + 1.0) - (((open & MirrorFace.OPEN_AFTER) != 0) ? MARGIN : 0.0),
+            y + (((open & MirrorFace.OPEN_BELOW) != 0) ? MARGIN : 0.0), (y + 1.0) - (((open & MirrorFace.OPEN_ABOVE) != 0) ? MARGIN : 0.0) };
     }
 
-    /** A margin block's open sides, as bits: the next block along the face, the one before, above, below. */
-    private static final int OPEN_AFTER = 1;
-    private static final int OPEN_BEFORE = 2;
-    private static final int OPEN_ABOVE = 4;
-    private static final int OPEN_BELOW = 8;
 
     /**
      * The blocks of a window's face hidden from an eye by real solid blocks in front of it.
@@ -2183,7 +2093,7 @@ public final class MirrorWindows
         final World here = window.banner.getWorld();
         final Spot into = shape.into();
         final boolean alongX = into.x() != 0;
-        final int[] span = acrossSpan(shape, SURROUND);
+        final int[] span = MirrorFace.acrossSpan(shape, SURROUND);
         final int lowY = shape.base().y() - SURROUND;
         final int highY = shape.base().y() + MirrorWindow.HEIGHT + SURROUND;
         final Set<Long> hidden = new HashSet<>();
@@ -2196,7 +2106,7 @@ public final class MirrorWindows
                 {
                     final int x = alongX ? along : across;
                     final int z = alongX ? across : along;
-                    if (!solidHere(here, x, y, z, now))
+                    if (!MirrorSight.solidHere(here, x, y, z, now))
                     {
                         continue;
                     }
@@ -2210,7 +2120,7 @@ public final class MirrorWindows
                     {
                         for (int b = cells[2]; b <= cells[3]; b++)
                         {
-                            hidden.add(faceKey(shape, a, b));
+                            hidden.add(MirrorFace.faceKey(shape, a, b));
                         }
                     }
                 }
@@ -2234,36 +2144,6 @@ public final class MirrorWindows
             Math.max(lowY, (int) Math.ceil(rect[2])), Math.min(highY, (int) Math.floor(rect[3] - 1.0)) };
     }
 
-    /**
-     * The coordinates along a window's face that its wall is read across: the opening, one or two
-     * columns, and a reach and one more on either side of it.
-     *
-     * @return {@code {from, to}}, both inclusive
-     */
-    private static int[] acrossSpan(final MirrorWindow shape, final int reach)
-    {
-        final boolean alongX = shape.into().x() != 0;
-        // A step right, looking at the wall, is (-into.z, into.x); a pair's second column may lie below its first.
-        final int rightStep = alongX ? shape.into().x() : -shape.into().z();
-        final int first = alongX ? shape.base().z() : shape.base().x();
-        final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
-        final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
-        return new int[] { low - (reach + 1), high + (reach + 1) };
-    }
-
-    /** How far out a window's wall is read: a viewer the proximity distance to one side looks past that much of it. */
-    private static int wallReach()
-    {
-        return Math.max(SURROUND, ConfigManager.getMirrorProximityDistance());
-    }
-
-    /** The block of a window's face at a coordinate along it. */
-    private static long faceKey(final MirrorWindow shape, final int across, final int y)
-    {
-        return (shape.into().x() != 0) ? key(shape.base().x(), y, across)
-            : key(across, y, shape.base().z());
-    }
-
     /** Reads again which blocks around a window's opening are solid, if that reading is old. */
     private static void refreshSolid(final Window window, final long now)
     {
@@ -2273,15 +2153,15 @@ public final class MirrorWindows
         }
         final MirrorWindow shape = window.shape;
         final World here = window.banner.getWorld();
-        final int reach = wallReach();
-        final int[] span = acrossSpan(shape, reach);
+        final int reach = MirrorFace.wallReach();
+        final int[] span = MirrorFace.acrossSpan(shape, reach);
         final Set<Long> solid = new HashSet<>();
         for (int across = span[0]; across <= span[1]; across++)
         {
             for (int y = shape.base().y() - reach;
                 y <= (shape.base().y() + MirrorWindow.HEIGHT + reach); y++)
             {
-                final long face = faceKey(shape, across, y);
+                final long face = MirrorFace.faceKey(shape, across, y);
                 if (here.getBlockAt(unpackX(face), y, unpackZ(face)).getBlockData().isOccluding())
                 {
                     solid.add(face);
@@ -2289,132 +2169,10 @@ public final class MirrorWindows
             }
         }
         window.solid = solid;
-        window.border = borderOf(shape, solid, reach);
-        window.margin = marginOf(shape, solid, span, reach);
-        window.frame = frameOf(shape, solid);
+        window.border = MirrorFace.borderOf(shape, solid, reach);
+        window.margin = MirrorFace.marginOf(shape, solid, span, reach);
+        window.frame = MirrorFace.frameOf(shape, solid);
         window.solidAt = now;
-    }
-
-    /**
-     * How many blocks of solid wall stand on every side of a window's opening.
-     *
-     * <p>Ring by ring out from the opening, to the first ring with a block that is not solid;
-     * a wall solid to the edge of what was read counts as that far. The one-block wall is the
-     * case that matters ({@link #farCellFor}).
-     *
-     * @param shape
-     *            the window
-     * @param solid
-     *            the solid blocks of its face, as {@link #refreshSolid} read them
-     * @param reach
-     *            how far out the face was read
-     * @return the border, in blocks, from 0 to {@code reach}
-     */
-    private static int borderOf(final MirrorWindow shape, final Set<Long> solid, final int reach)
-    {
-        final boolean alongX = shape.into().x() != 0;
-        final int rightStep = alongX ? shape.into().x() : -shape.into().z();
-        final int first = alongX ? shape.base().z() : shape.base().x();
-        final int low = first + Math.min(0, (shape.width() - 1) * rightStep);
-        final int high = first + Math.max(0, (shape.width() - 1) * rightStep);
-        final int bottom = shape.base().y();
-        final int top = (shape.base().y() + MirrorWindow.HEIGHT) - 1;
-        for (int ring = 1; ring <= reach; ring++)
-        {
-            for (int across = low - ring; across <= (high + ring); across++)
-            {
-                for (int y = bottom - ring; y <= (top + ring); y++)
-                {
-                    final boolean onRing = (across == (low - ring)) || (across == (high + ring))
-                        || (y == (bottom - ring)) || (y == (top + ring));
-                    if (onRing && !solid.contains(faceKey(shape, across, y)))
-                    {
-                        return ring - 1;
-                    }
-                }
-            }
-        }
-        return reach;
-    }
-
-    /**
-     * The outermost ring of a window's solid face: every solid block, the opening aside, with a
-     * neighbour in the face that is not solid, and which of its four sides those are.
-     *
-     * <p>Only neighbours within what was read count, so a wall solid to the edge of the reading
-     * has no margin there -- it is drawn whole in any case.
-     */
-    private static Map<Long, Integer> marginOf(final MirrorWindow shape, final Set<Long> solid, final int[] span,
-        final int reach)
-    {
-        final boolean alongX = shape.into().x() != 0;
-        final Set<Long> opening = new HashSet<>();
-        shape.forEachOpening((x, y, z) -> opening.add(key(x, y, z)));
-        final int lowY = shape.base().y() - reach;
-        final int highY = shape.base().y() + MirrorWindow.HEIGHT + reach;
-        final int[][] steps = { { 1, 0, OPEN_AFTER }, { -1, 0, OPEN_BEFORE }, { 0, 1, OPEN_ABOVE }, { 0, -1, OPEN_BELOW } };
-        final Map<Long, Integer> margin = new HashMap<>();
-        for (final long face : solid)
-        {
-            if (opening.contains(face))
-            {
-                continue;
-            }
-            final int across = alongX ? unpackZ(face) : unpackX(face);
-            final int y = unpackY(face);
-            int open = 0;
-            for (final int[] step : steps)
-            {
-                final int a = across + step[0];
-                final int b = y + step[1];
-                if ((a >= span[0]) && (a <= span[1]) && (b >= lowY) && (b <= highY) && !solid.contains(faceKey(shape, a, b)))
-                {
-                    open |= step[2];
-                }
-            }
-            if (open != 0)
-            {
-                margin.put(face, open);
-            }
-        }
-        return margin;
-    }
-
-    /**
-     * The solid blocks of a window's face touching its opening, corners too.
-     *
-     * <p>They hide whatever lies just beside the opening, so a block landing on them from the eye
-     * can be drawn before the eye moves to where it shows: sliding along a frame into view, it
-     * was drawn only once it came into the opening, a step late.
-     */
-    private static List<Spot> frameOf(final MirrorWindow shape, final Set<Long> solid)
-    {
-        final boolean alongX = shape.into().x() != 0;
-        final Set<Long> opening = new HashSet<>();
-        final List<int[]> cells = new ArrayList<>();
-        shape.forEachOpening((x, y, z) ->
-        {
-            opening.add(key(x, y, z));
-            cells.add(new int[] { alongX ? z : x, y });
-        });
-        final Set<Long> frame = new LinkedHashSet<>();
-        for (final int[] cell : cells)
-        {
-            for (int across = -1; across <= 1; across++)
-            {
-                for (int up = -1; up <= 1; up++)
-                {
-                    final long face = faceKey(shape, cell[0] + across, cell[1] + up);
-                    if (!opening.contains(face) && solid.contains(face))
-                    {
-                        frame.add(face);
-                    }
-                }
-            }
-        }
-        final List<Spot> spots = new ArrayList<>();
-        frame.forEach(face -> spots.add(new Spot(unpackX(face), unpackY(face), unpackZ(face))));
-        return spots;
     }
 
     /**
@@ -2747,7 +2505,7 @@ public final class MirrorWindows
         return chunkKey(((int) Math.floor(eye.getX())) >> 4, ((int) Math.floor(eye.getZ())) >> 4);
     }
 
-    private static long chunkKey(final int x, final int z)
+    static long chunkKey(final int x, final int z)
     {
         return (((long) x) << 32) | (z & 0xFFFFFFFFL);
     }

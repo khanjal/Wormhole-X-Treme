@@ -856,6 +856,24 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **`MirrorWindows` is being taken apart, and the first two pieces are out.** "The MirrorWindows
+  file is ~2500 lines long. That seems excessive." It was 2,786 by the time the room streamed a
+  tick at a time, holding every part of drawing a room at once: the sweep, the redraw, the
+  occlusion, the wall rule, the held rooms, the streaming and the debug lines. Fifteen of the
+  branch's open Sonar findings are in that one file.
+
+  Out first are the two concerns that nothing else reached into. `MirrorSight` has the three
+  caches of block reads -- what is solid, where the ground ends, whether a block is really open
+  air -- which were touched by nothing in the file but their own four methods and `clear`.
+  `MirrorFace` has the wall face round an opening: how far out it is solid, which of it is an
+  edge and which its frame, addressed across and up so a cell of it is one number.
+
+  Move-only, and deliberately provable: not a line of logic changed, no test changed, and the
+  1,934 that were passing still pass. What moved is the same text, with `private` opened up where
+  the rest of the file still calls it and the cell packing named where it now lives. The
+  remaining pieces -- the held rooms, the streaming, the debug lines -- need the two runtime
+  types (`Window` and `View`) to come out first, since nearly every method takes one.
+
 - **`stamp` is about the banner, `capture` is about the room, and nothing changes either on its
   own.** "If we still use the stamp anywhere we shouldn't update the banner automatically. It
   should be an understood command. Maybe separate ones for setting banner (or trying to
