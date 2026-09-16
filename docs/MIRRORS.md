@@ -496,11 +496,11 @@ Those take a name **or** the banner you are facing, because the mirror somebody 
 usually the one they are standing in front of. `create` keeps its required name: it is naming a
 thing that has no name yet.
 
-Two words have to be told apart for that to work. `start hub` is a setting with no name; `start
-museum hub` is both, so one word alone is the start. `stamp` has the harder version of the same
-question, because `stamp cavern` could be a mirror or a look: a mirror wins, since that is what the
-word meant before the name became optional, and a server whose mirror and look share a name should
-not find the command changing under it.
+Two words have to be told apart for that to work. `start hub` is a setting with no name;
+`start museum hub` is both, so one word alone is the start. `stamp` has the harder version of the
+same question, because `stamp cavern` could be a mirror or a look: a mirror wins, since that is
+what the word meant before the name became optional, and a server whose mirror and look share a
+name should not find the command changing under it.
 
 `getTargetBlockExact` traces against block shapes, and a banner is a thin one: from close up the
 ray can pass it by and hit the wall behind, and the command would say "that is a stone" to
