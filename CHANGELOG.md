@@ -151,7 +151,9 @@ Design notes in [docs/GATES.md](docs/GATES.md), how-to in
 - **A gate built before its shape file gained a marker could never pick it up.**
 - **A shape that pins a material lost it after a restart.**
 - **The marker reference at the top of the shipped shape files disagreed with itself.**
-- **A gate taken apart by WorldEdit now says so** rather than failing to dial without explanation.
+- **Regenerating a gate reattaches its dial sign** when the sign is still standing but no longer bound.
+- **An arrow between two facing gates crossed over and over**, and one that bounced off a player
+  in front of a gate was pushed on through them.
 
 ### Transport rings
 
