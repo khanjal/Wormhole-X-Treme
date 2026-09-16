@@ -33,22 +33,22 @@ public class Build implements CommandExecutor
     /** After {@link #CLEAR}: every preview, not only the one looked at. */
     public static final String ALL = "all";
 
-    private static boolean doBuild(final Player player, final String[] args)
+    private static void doBuild(final Player player, final String[] args)
     {
         final boolean mayPreview = PreviewPermissions.mayPreview(player);
         if (!mayPreview && CommandHandlerUtils.lacksConfigPermission(player))
         {
-            return true;
+            return;
         }
         if (CLEAR.equalsIgnoreCase(args[0]))
         {
             clear(player, args);
-            return true;
+            return;
         }
         if (!StargateHelper.isStargateShape(args[0]))
         {
             player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + "Invalid shape: " + args[0]);
-            return true;
+            return;
         }
         final StargateShape shape = StargateHelper.getStargateShape(args[0]);
         MaterialGroup group = MaterialGroupRegistry.getDefaultGroup();
@@ -59,7 +59,7 @@ public class Build implements CommandExecutor
             {
                 player.sendMessage(ConfigManager.MessageStrings.ERROR_HEADER.toString() + args[0]
                     + " is not built in a group called " + args[1] + ". Try one of: " + groupsFor(shape) + ".");
-                return true;
+                return;
             }
         }
         else if ((group != null) && !shape.acceptsMaterialGroup(group.getName()))
@@ -71,10 +71,9 @@ public class Build implements CommandExecutor
         {
             player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER.toString()
                 + "Press the button on your new DHD to check it against the shape " + args[0] + ".");
-            return true;
+            return;
         }
         preview(player, shape3d, group);
-        return true;
     }
 
     private static void preview(final Player player, final Stargate3DShape shape, final MaterialGroup group)
@@ -140,7 +139,8 @@ public class Build implements CommandExecutor
             {
                 return false;
             }
-            return doBuild((Player) sender, arguments);
+            doBuild((Player) sender, arguments);
+            return true;
         });
     }
 
