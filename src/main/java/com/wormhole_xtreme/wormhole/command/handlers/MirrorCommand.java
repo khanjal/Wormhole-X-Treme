@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
@@ -121,6 +122,9 @@ public class MirrorCommand implements SubCommand
     /** What {@code set} can change, and so the words {@code create} refuses as a name. */
     private static final String[] PROPERTIES = { "stamp", "display", "mode", "start" };
 
+    /** The same four, for looking a word up without building a list each time. */
+    private static final Set<String> PROPERTY_WORDS = Set.of(PROPERTIES);
+
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
     {
@@ -233,7 +237,7 @@ public class MirrorCommand implements SubCommand
     private static String property(final String word)
     {
         final String lower = word.toLowerCase(Locale.ROOT);
-        return Arrays.asList(PROPERTIES).contains(lower) ? lower : null;
+        return PROPERTY_WORDS.contains(lower) ? lower : null;
     }
 
     /** @see #set */

@@ -280,7 +280,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "create", "museum"));
 
         final QuantumMirror mirror = MirrorManager.byName("museum");
-        assertNotNull(mirror, "the mirror should exist after set");
+        assertNotNull(mirror, "the mirror should exist after create");
         assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
         assertEquals(new MirrorPoint("world", 1.5, 63, 1.5, 180f, 0f), mirror.destination(),
             "its own room: in front of the banner, level with the bottom of the opening, facing out");

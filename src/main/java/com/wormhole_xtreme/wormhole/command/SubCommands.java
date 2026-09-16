@@ -422,9 +422,9 @@ public final class SubCommands
         {
             return completeMirrorSet(args);
         }
-        // Named rather than excluded. Falling through for anything that is not create or list
-        // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
-        // which reads as though the typo were a real command.
+        // remove is named rather than every other verb excluded. Falling through meant a verb
+        // nobody has -- a typo, most likely -- still offered the mirror names, which reads as
+        // though the typo were a real command; create and list offer nothing on purpose.
         if (REMOVE.equals(verb) && (args.length == 3))
         {
             return prefixed(args[2], mirrorNames());
@@ -449,20 +449,24 @@ public final class SubCommands
     private static List<String> completeMirrorSet(final String[] args)
     {
         final String[] properties = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.properties();
+        if (args.length < 3)
+        {
+            return none();
+        }
         if (args.length == 3)
         {
             return prefixed(args[2], both(mirrorNames(), properties));
         }
         final boolean propertyFirst = isOneOf(args[2], properties);
+        final int at = propertyFirst ? 2 : 3;
         if (!propertyFirst && (args.length == 4))
         {
             return prefixed(args[3], properties);
         }
-        if (!propertyFirst && !isOneOf(args[3], properties))
+        if ((args.length <= at) || !isOneOf(args[at], properties))
         {
             return none();
         }
-        final int at = propertyFirst ? 2 : 3;
         final List<String> asVerb = new java.util.ArrayList<>();
         asVerb.add(args[0]);
         asVerb.add(args[at].toLowerCase(java.util.Locale.ROOT));
