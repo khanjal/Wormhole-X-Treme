@@ -868,7 +868,8 @@ public final class MirrorCaptures
         private static int highest(final World world, final ChunkSnapshot snapshot, final int x, final int z,
             final int lx, final int lz)
         {
-            return Math.max(snapshot.getHighestBlockYAt(lx, lz), world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
+            return Math.max(snapshot.getHighestBlockYAt(lx, lz),
+                world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
         }
     }
 }
