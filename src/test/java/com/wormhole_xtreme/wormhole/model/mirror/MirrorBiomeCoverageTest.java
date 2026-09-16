@@ -24,7 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
  * you were going. This is the test that keeps the one-each rule true as biomes are added.
  *
  * <p>The list is written out rather than read from {@code Biome}, and that is not laziness. CI
- * builds this plugin against both 1.20.4 and 1.21.10, and {@code Biome} is an enum on the one
+ * builds this plugin against both 1.20.4 and 26.2, and {@code Biome} is an enum on the one
  * and registry-backed on the other -- {@code Biome.values()} compiles here and fails there,
  * which is the same trap {@code PatternType} laid for the stamp. A written list also fails in
  * the direction that matters: when Mojang adds a biome, somebody has to come here and add it,
@@ -32,7 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class MirrorBiomeCoverageTest
 {
-    /** Every biome on 1.21.10, from the API jar, less {@code CUSTOM}, which is a placeholder. */
+    /** Every biome on 26.2, from the API jar, less {@code CUSTOM}, which is a placeholder. */
     private static final Set<String> VANILLA_BIOMES = Set.of(
         "BADLANDS", "BAMBOO_JUNGLE", "BASALT_DELTAS", "BEACH", "BIRCH_FOREST", "CHERRY_GROVE",
         "COLD_OCEAN", "CRIMSON_FOREST", "DARK_FOREST", "DEEP_COLD_OCEAN", "DEEP_DARK",
@@ -44,7 +44,7 @@ class MirrorBiomeCoverageTest
         "OLD_GROWTH_PINE_TAIGA", "OLD_GROWTH_SPRUCE_TAIGA", "PALE_GARDEN", "PLAINS", "RIVER",
         "SAVANNA", "SAVANNA_PLATEAU", "SMALL_END_ISLANDS", "SNOWY_BEACH", "SNOWY_PLAINS",
         "SNOWY_SLOPES", "SNOWY_TAIGA", "SOUL_SAND_VALLEY", "SPARSE_JUNGLE", "STONY_PEAKS",
-        "STONY_SHORE", "SUNFLOWER_PLAINS", "SWAMP", "TAIGA", "THE_END", "THE_VOID",
+        "STONY_SHORE", "SULFUR_CAVES", "SUNFLOWER_PLAINS", "SWAMP", "TAIGA", "THE_END", "THE_VOID",
         "WARM_OCEAN", "WARPED_FOREST", "WINDSWEPT_FOREST", "WINDSWEPT_GRAVELLY_HILLS",
         "WINDSWEPT_HILLS", "WINDSWEPT_SAVANNA", "WOODED_BADLANDS");
 

@@ -3,7 +3,7 @@
 ## Project Overview
 Wormhole X-Treme is a Bukkit/Spigot/Paper plugin that implements inter-dimensional "stargate" portals in Minecraft. Players (and vehicles — boats, minecarts) walk or ride through portal frames and are teleported to linked destination gates.
 
-One jar supports **Minecraft 1.20 through 1.21.10**. It compiles against 1.20.4 — the oldest supported API, so the compiler enforces the floor — and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
+One jar supports **Minecraft 1.20 through 26.2**. It compiles against 1.20.4 — the oldest supported API, so the compiler enforces the floor — and CI builds it again against every version in the matrix in `.github/workflows/ci.yml`, which is the authority on what is supported.
 
 ## Build System
 - **Java 17**, Maven with `maven-shade-plugin` (shaded JAR includes `snakeyaml` and `sqlite-jdbc`)

@@ -65,7 +65,7 @@ public final class MirrorPresetRegistry
         "cold_ocean.mirror", "deep_cold_ocean.mirror", "lukewarm_ocean.mirror",
         "deep_lukewarm_ocean.mirror", "warm_ocean.mirror", "frozen_ocean.mirror",
         "deep_frozen_ocean.mirror", "dripstone_caves.mirror", "lush_caves.mirror",
-        "deep_dark.mirror", "nether.mirror", "crimson_forest.mirror", "warped_forest.mirror",
+        "sulfur_caves.mirror", "deep_dark.mirror", "nether.mirror", "crimson_forest.mirror", "warped_forest.mirror",
         "soul_sand_valley.mirror", "basalt_deltas.mirror", "end.mirror",
         "end_highlands.mirror", "end_midlands.mirror", "small_end_islands.mirror",
         "end_barrens.mirror", "the_void.mirror", "mirror.mirror", "overworld.mirror", "indoors.mirror",

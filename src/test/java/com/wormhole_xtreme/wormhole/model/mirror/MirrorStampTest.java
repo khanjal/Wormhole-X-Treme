@@ -37,8 +37,8 @@ import org.mockito.ArgumentCaptor;
  * needs a running server -- so in a unit test against a 1.21 jar no pattern can be built at
  * all, whatever the code does. Every test whose assertions are about the pattern <em>list</em>
  * therefore checks {@link #patternsAvailable()} first and skips where the API cannot be
- * exercised. The version matrix runs 1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4 and 1.21.10,
- * so those assertions still run in full on four of the seven rows, the 1.20.4 compile target
+ * exercised. The version matrix runs 1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4, 1.21.10, 1.21.11,
+ * 26.1.2 and 26.2, so those assertions still run in full on four of the ten rows, the 1.20.4 compile target
  * among them.
  *
  * <p>What does <em>not</em> hide behind the assumption is the behaviour that matters when

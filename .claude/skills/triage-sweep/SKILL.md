@@ -42,7 +42,7 @@ reason. "Unclear" is a real answer and better than a confident wrong one.
 
 ## 4. For a bug, find the code
 
-This plugin ships one jar for Minecraft 1.20 through 1.21.10, and its history is full of bugs
+This plugin ships one jar for Minecraft 1.20 through 26.2, and its history is full of bugs
 that were real on exactly one version. So before anything else, check what the reporter said
 they were running — the bug template asks for plugin version, server flavour, and Minecraft
 version for this reason.

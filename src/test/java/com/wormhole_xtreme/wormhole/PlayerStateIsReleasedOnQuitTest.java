@@ -58,7 +58,7 @@ class PlayerStateIsReleasedOnQuitTest
     }
 
     /** A quit event for the player under test. Mocked rather than constructed: the
-     * constructor's signature has moved more than once across the 1.20-1.21.10 range, and the
+     * constructor's signature has moved more than once across the 1.20-26.2 range, and the
      * listener reads nothing off the event but the player. */
     private PlayerQuitEvent quit()
     {

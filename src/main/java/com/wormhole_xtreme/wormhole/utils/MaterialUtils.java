@@ -139,7 +139,7 @@ public final class MaterialUtils {
      * tree used. From Minecraft 1.20.6 it resolves through {@code org.bukkit.Registry}, which
      * needs a running server -- so on 1.20 and 1.20.1 it answers and from 1.20.6 on it throws
      * {@code NoClassDefFoundError} instead. On a live server it is fine either way; under test
-     * it makes the calling code unloadable on four of the seven versions this plugin supports.
+     * it makes the calling code unloadable on seven of the ten versions this plugin supports.
      *
      * <p>Comparing the three constants is exactly as correct and asks nothing of the server.
      * {@code CAVE_AIR} and {@code VOID_AIR} are the reason not to write {@code == Material.AIR},

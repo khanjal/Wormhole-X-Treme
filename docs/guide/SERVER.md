@@ -28,7 +28,7 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 
 ## Compatibility
 
-**Minecraft 1.20 through 1.21.10.** Both ends are measured rather than assumed.
+**Minecraft 1.20 through 26.2.** Both ends are measured rather than assumed.
 
 | Minecraft | In CI | Note |
 |---|---|---|
@@ -38,7 +38,10 @@ LuckPerms and Vault are both optional. See [Permissions](#permissions) and [Econ
 | 1.20.6 | yes | |
 | 1.21.1 | yes | |
 | 1.21.4 | yes | Boats split into one entity type per wood here |
-| 1.21.10 | yes | Newest published API |
+| 1.21.10 | yes | |
+| 1.21.11 | yes | The last 1.x |
+| 26.1.2 | yes | Year-based version numbers start at 26.1 |
+| 26.2 | yes | Newest stable release. Adds Sulfur Caves |
 
 Versions between those points are expected to work and are not separately built; the matrix
 covers the boundaries where the API actually moved.
@@ -49,12 +52,12 @@ its tests pass against each API — not that a gate behaves correctly in game.
 | Server | Support |
 |---|---|
 | Spigot | Primary target — the API compiled against |
-| CraftBukkit, Paper | Supported |
+| CraftBukkit, Paper | Supported. CI also builds and tests against Paper 1.20.4, 1.21.11 and 26.2 |
 | Purpur, Pufferfish | Best effort |
 | Folia | Not supported — different scheduler model |
 
-The jar is Java 17 bytecode. **Minecraft 1.20.5 and later need the server on Java 21** — that is
-the server's requirement, not this plugin's.
+The jar is Java 17 bytecode. **Minecraft 1.20.5 and later need the server on Java 21, and 26.1
+and later on Java 25** — that is the server's requirement, not this plugin's.
 
 One Spigot API move is worth knowing about: `EntityDismountEvent` changed package at 1.20.4.
 The plugin carries a listener for each and registers whichever the server can load. A server

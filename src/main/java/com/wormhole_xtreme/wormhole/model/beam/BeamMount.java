@@ -20,7 +20,7 @@ import com.wormhole_xtreme.wormhole.utils.PassengerReattach;
  *
  * <p>Beaming used to leave a mount behind without saying so, and not by choice: Bukkit's
  * {@code Entity#teleport(Location)} contract is that "if this entity is riding a vehicle, it
- * will be dismounted prior to teleportation" -- unchanged across the whole 1.20-1.21.10 range
+ * will be dismounted prior to teleportation" -- unchanged across the whole 1.20-26.2 range
  * this plugin supports. So the single {@code player.teleport(destination)} the sequence used
  * to make silently tipped the traveller off their horse and beamed them alone, leaving the
  * horse standing at the origin.
