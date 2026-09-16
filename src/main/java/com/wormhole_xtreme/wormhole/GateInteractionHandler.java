@@ -17,6 +17,7 @@ import com.wormhole_xtreme.wormhole.logic.StargateHelper;
 import com.wormhole_xtreme.wormhole.model.Stargate;
 import com.wormhole_xtreme.wormhole.model.StargateManager;
 import com.wormhole_xtreme.wormhole.model.StargateShape;
+import com.wormhole_xtreme.wormhole.model.preview.GatePreviews;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions.PermissionType;
 import com.wormhole_xtreme.wormhole.utils.MaterialUtils;
@@ -160,6 +161,8 @@ final class GateInteractionHandler
             }
             return false;
         }
+        // The frame now stands where a preview of it was drawn.
+        GatePreviews.builtAt(clickedBlock.getWorld(), clickedBlock.getX(), clickedBlock.getY(), clickedBlock.getZ());
 
         if (!WXPermissions.checkWXPermissions(player, newGate, PermissionType.BUILD))
         {

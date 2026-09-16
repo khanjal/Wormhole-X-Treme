@@ -18,13 +18,32 @@ Building, dialling and wiring gates. Why they work the way they do is in the des
 
 ## Building a gate
 
-1. `/wormhole gate build <shape>` — pick a [shape](#shapes).
+1. `/wormhole gate build <shape> [group]` — pick a [shape](#shapes), and optionally a
+   [material group](#material-groups).
 2. Lay the frame and put a button or lever on the DHD position, then click it.
 3. `/wormhole gate complete <name> [idc=CODE] [net=NETWORK]` — name it. The plugin places the
    name sign and levers, and saves the gate.
 
 The frame material decides the gate's look: build `Standard` in obsidian for a Standard gate,
 in lapis for an Atlantis one. See [Material groups](#material-groups).
+
+### Previews
+
+With `wormhole.build.preview`, step 1 also stands the shape up full size in front of you: its
+DHD two blocks ahead with the button facing you, its bottom row level with your feet, in the
+group's materials (the first group in `config.yml` if you name none). Only you see it, and it is
+not made of blocks, so you can walk through it and build into it. Build where it stands and press
+its button.
+
+- **Several at once.** Each `gate build` adds one where you are looking, so every shape, or one
+  shape in every group, can stand side by side.
+- **`gate build clear`** takes away the preview you are looking at; **`gate build clear all`**
+  takes every one of yours.
+- **They go on their own** when you log out or change world, when a gate is found where one
+  stood, and after `gate-preview-minutes` (default 10) without a `gate build` command.
+- **`gate-preview-max-blocks`** (default 5000) caps the blocks every preview on the server shows
+  between them. Each block is an entity; every shipped shape shown once is about 1,100. `0` turns
+  previews off.
 
 The DHD takes any button — every wood, stone and Nether variant — or a lever. A button is swapped
 for a lever when the gate activates, so it can be held open.
@@ -324,7 +343,8 @@ owner across**, skipping the permission and cooldown checks a player walking thr
 
 | Command | What it does |
 |---|---|
-| `gate build <shape>` | Start building |
+| `gate build <shape> [group]` | Start building; with `wormhole.build.preview`, [show it in front of you](#previews) |
+| `gate build clear [all]` | Take away the preview you look at, or all of yours |
 | `gate complete <name> [idc=] [net=]` | Name and register what you built (`gate create` also works) |
 | `gate list [network]` | Gates you can see |
 | `gate remove <gate> [-all]` | Take it down |

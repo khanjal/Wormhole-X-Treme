@@ -99,7 +99,9 @@ class DefaultSettings
             new Setting(ConfigKeys.REDSTONE_EXTEND_OPEN_TIME, true, "Whether a redstone signal on an already-open gate pushes its shutdown back. Never past max-open-seconds, so traffic can hold a gate open but not indefinitely.", SECTION),
             new Setting(ConfigKeys.ENTITY_SCAN_INTERVAL_TICKS, 20, "Tick interval for periodic non-player entity scan near gates, at least 5. Higher values reduce server load.", SECTION),
             new Setting(ConfigKeys.GATE_MATERIAL_GROUPS_AUTODISCOVER, true, "When a gate shape uses a frame material no material group claims, add that palette to gate-material-groups automatically. Ambiguous palettes are skipped. Set false to curate the list by hand.", SECTION),
-            new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 20, "Ticks a traveller sees water as they come out of a gate, drawn to that player alone. Raise it if distant trips miss the effect while chunks are still loading; too high and the client starts predicting it is swimming. 0 turns it off.", SECTION)),
+            new Setting(ConfigKeys.GATE_ARRIVAL_SPLASH_TICKS, 20, "Ticks a traveller sees water as they come out of a gate, drawn to that player alone. Raise it if distant trips miss the effect while chunks are still loading; too high and the client starts predicting it is swimming. 0 turns it off.", SECTION),
+            new Setting(ConfigKeys.GATE_PREVIEW_MINUTES, 10, "Minutes a /wormhole gate build preview stays up after its owner last used a build command. At least 1.", SECTION),
+            new Setting(ConfigKeys.GATE_PREVIEW_MAX_BLOCKS, 5000, "Most blocks all build previews on the server may show at once, each one an entity its owner alone sees. Every shipped shape shown once is about 1100. 0 turns previews off.", SECTION)),
 
         group("Stargate sounds", SOUNDS,
             new Setting(ConfigKeys.GATE_SOUNDS_ENABLED, true, "Whether stargates make any noise. Everything below is ignored when this is false.", SECTION),

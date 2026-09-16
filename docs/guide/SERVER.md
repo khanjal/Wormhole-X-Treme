@@ -132,6 +132,7 @@ outranks a negated node.
 | `wormhole.list` | false | `/wormhole gate list` |
 | `wormhole.go` | false | `/wormhole go` |
 | `wormhole.build` | op | Building gates |
+| `wormhole.build.preview` | op | `/wormhole gate build` and its [previews](GATES.md#previews), without `wormhole.config` |
 | `wormhole.remove.own` | false | Removing gates you own |
 | `wormhole.remove.all` | op | Removing any gate |
 | `wormhole.config` | op | Settings, and managing any gate: `edit`, `regenerate`, `validate`, `import`, ownership. Also every `mirror` command. |

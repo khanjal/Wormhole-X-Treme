@@ -94,6 +94,27 @@ class GateMovementOwnershipTest
         }
     }
 
+    /**
+     * Display entities stay where they were put, while an item beside them goes through.
+     *
+     * <p>A gate build preview is block displays shown to one player, and a hologram plugin's
+     * lines are text displays. The sweep sent on anything it did not rule out, so either one
+     * standing in an open gate would have been carried off through it.
+     */
+    @Test
+    void displayEntitiesAreNeverSweptThoughAnItemIs()
+    {
+        final Entity item = mockOf(Item.class);
+        when(item.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        assertTrue(GateEntityScanner.shouldSendThrough(item), "an item in an open gate is sent through");
+
+        for (final Class<? extends Entity> type : java.util.Arrays.asList(org.bukkit.entity.BlockDisplay.class,
+            org.bukkit.entity.TextDisplay.class, org.bukkit.entity.ItemDisplay.class))
+        {
+            assertFalse(GateEntityScanner.shouldSendThrough(mockOf(type)), type.getSimpleName() + " stays put");
+        }
+    }
+
     @Test
     void nullIsNobodysJob()
     {

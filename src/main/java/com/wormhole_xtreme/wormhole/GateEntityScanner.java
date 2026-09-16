@@ -437,7 +437,7 @@ public final class GateEntityScanner implements Runnable
      *            the candidate
      * @return true if it should be sent through
      */
-    private static boolean shouldSendThrough(final Entity entity)
+    static boolean shouldSendThrough(final Entity entity)
     {
         if (entity == null)
         {
@@ -463,7 +463,9 @@ public final class GateEntityScanner implements Runnable
         // world. Sending one through a gate tears it off its wall and leaves it orphaned at
         // the far end, so a decorated gate frame would slowly strip itself every time the
         // gate opened.
-        if (entity instanceof Hanging)
+        // Display entities are scenery another plugin put somewhere on purpose, holograms and
+        // build previews among them, and have no business travelling.
+        if ((entity instanceof Hanging) || (entity instanceof org.bukkit.entity.Display))
         {
             return false;
         }
