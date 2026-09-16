@@ -1,0 +1,9 @@
+# Yellow sulfur, red cinnabar, and spikes from the roof and the floor. New in 26.2.
+# The format is documented in docs/MIRRORS.md.
+Name=sulfur_caves
+Sheltered=true
+Base=YELLOW
+Biome=SULFUR_CAVES
+Layer=RED TRIANGLES_BOTTOM
+Layer=ORANGE TRIANGLES_TOP
+Layer=GRAY BORDER

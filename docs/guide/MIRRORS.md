@@ -197,7 +197,7 @@ Read from the room, the biome picks the frame — rising flame for the Nether, w
 for an ocean — and the blocks around it become coarse squares in their dominant colours. **Indoors**,
 the room's own blocks decide instead, so a library comes back the brown of its shelves.
 
-Eighty-nine looks ship. Sixty-five are places, one for every biome in the game. The rest say
+Ninety looks ship. Sixty-six are places, one for every biome in the game. The rest say
 something about the mirror instead — `mirror`, `hub`, `exit`, `market`, `warning`, `private`, `plain`
 and more. None change what a mirror does: `private` is paint, not a permission.
 

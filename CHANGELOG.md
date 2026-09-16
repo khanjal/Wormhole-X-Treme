@@ -181,7 +181,7 @@ Design notes in [docs/BEAMS.md](docs/BEAMS.md), how-to in
 - **The gate shapes are drawn in the documentation, idle and dialled** — six gates rather than
   nine files, with what a sign dial adds drawn once.
 - **The ring patterns, the stack and both deploys are drawn** in the documentation.
-- **The eighty-eight looks are drawn**, with the recipe beside each.
+- **The ninety looks are drawn**, with the recipe beside each.
 
 **Changed**
 
@@ -190,6 +190,8 @@ Design notes in [docs/BEAMS.md](docs/BEAMS.md), how-to in
   file you already have keeps its own layout; the grouped one is what a fresh install writes.
 - **The four design documents open with a summary and are a fifth shorter.**
 - **The README is a front page again**, with the how-to moved into `docs/guide/`.
+- **Supported through Minecraft 26.2**: CI now also builds and tests against 1.21.11, 26.1.2
+  and 26.2, and against Paper's API as well as Spigot's. Servers on 26.1 or later need Java 25.
 
 ### Performance
 

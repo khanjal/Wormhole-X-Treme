@@ -178,7 +178,7 @@ Two consequences fall out of that choice, and the sweep carries both:
 ### The version boundary
 
 `Player.sendBlockUpdate(Location, TileState)` is the whole mechanism, and it **does not exist
-on plain 1.20** — present from 1.20.1 on, checked against the jars for all seven versions the
+on plain 1.20** — present from 1.20.1 on, checked against the jars for all ten versions the
 matrix builds. On that one version a proximity mirror simply stays visible, which is a cosmetic
 loss on the oldest supported server rather than a mirror that never shows anything. Setting it
 there is not wasted: the banner keeps its look either way, and the setting starts working when
@@ -285,7 +285,7 @@ from the end rather than refused.
 
 ### The library at a glance
 
-Eighty-nine looks is more than anybody wants to open one file at a time. The name beside each
+Ninety looks is more than anybody wants to open one file at a time. The name beside each
 one is what `mirror set <name> stamp <look>` takes; the column beside that is the biome it answers
 for, or what the look is for when it answers for none.
 
@@ -377,6 +377,7 @@ recipe as a tooltip, which is the same thing the last column says.
 |---|---|---|---|
 | <a href="images/mirrors/dripstone_caves.svg" title="GRAY base + BROWN triangles_top + BROWN triangles_bottom + GRAY border"><img src="images/mirrors/dripstone_caves.svg" width="26" alt="the dripstone_caves look"></a> | `dripstone_caves` | `DRIPSTONE_CAVES` | `GRAY` base + `BROWN triangles_top` + `BROWN triangles_bottom` + `GRAY border` |
 | <a href="images/mirrors/lush_caves.svg" title="GREEN base + LIME curly_border + GRAY triangles_top + GREEN border"><img src="images/mirrors/lush_caves.svg" width="26" alt="the lush_caves look"></a> | `lush_caves` | `LUSH_CAVES` | `GREEN` base + `LIME curly_border` + `GRAY triangles_top` + `GREEN border` |
+| <a href="images/mirrors/sulfur_caves.svg" title="YELLOW base + RED triangles_bottom + ORANGE triangles_top + GRAY border"><img src="images/mirrors/sulfur_caves.svg" width="26" alt="the sulfur_caves look"></a> | `sulfur_caves` | `SULFUR_CAVES` | `YELLOW` base + `RED triangles_bottom` + `ORANGE triangles_top` + `GRAY border` |
 | <a href="images/mirrors/deep_dark.svg" title="BLACK base + CYAN circle + BLACK rhombus + CYAN small_stripes + BLACK border"><img src="images/mirrors/deep_dark.svg" width="26" alt="the deep_dark look"></a> | `deep_dark` | `DEEP_DARK` | `BLACK` base + `CYAN circle` + `BLACK rhombus` + `CYAN small_stripes` + `BLACK border` |
 
 #### The Nether
@@ -448,15 +449,15 @@ with *that* is a real disagreement worth reporting.
 
 ### What ships
 
-Eighty-nine files, in two groups, and the difference between them is the `Biome` line.
+Ninety files, in two groups, and the difference between them is the `Biome` line.
 
-**Sixty-five places, one per biome.** Every biome has a look of its own, down to the nine oceans
+**Sixty-six places, one per biome.** Every biome has a look of its own, down to the nine oceans
 and the ten woods that used to share one between them: a mirror onto a jagged peak and one onto
 a frozen peak are different places, and a banner saying "mountain" for both told you which
 family you were looking at rather than where you were going.
 
-The grammar is the same throughout, so sixty-five looks read as one library rather than
-sixty-five ideas — a base colour for the ground, one or two layers of what the place is made of,
+The grammar is the same throughout, so sixty-six looks read as one library rather than
+sixty-six ideas — a base colour for the ground, one or two layers of what the place is made of,
 and a border in the family's colour: green for growing things, blue for water, grey for stone,
 black for the Nether and the End. What separates two biomes in the same family is usually one
 layer.
@@ -464,11 +465,11 @@ layer.
 `MirrorBiomeCoverageTest` holds the rule in both directions: no biome without a look, and no
 biome claimed by two. The second matters more than it sounds, because `forBiome` returns the
 first preset that answers and the order is load order — a biome named twice does not conflict,
-it silently picks whichever file loaded first. Some name biomes a given server has never heard
-of; `pale_garden` exists only from 1.21.4, and a 1.20 server simply never matches it.
+it silently picks whichever file loaded first.
 
-Some name biomes a given server has never heard of. `pale_garden` exists only from 1.21.4 on,
-and a 1.20 server simply never matches it — the file loads, it just never wins.
+Some name biomes a given server has never heard of. `pale_garden` exists only from 1.21.4 on and
+`sulfur_caves` only from 26.2, and an older server simply never matches them — the file loads, it
+just never wins.
 
 **Twenty-four looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
 `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`, `vault`, `forge`,
@@ -735,8 +736,8 @@ which is what it did before. The setting is read all the same, so a server that 
 gets it without editing anything.
 
 What the jars say, read with `javap` from the API jars this plugin builds against — Spigot
-1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4 and 1.21.10, and Paper 1.20.4, the one Paper jar
-cached here:
+1.20, 1.20.1, 1.20.4, 1.20.6, 1.21.1, 1.21.4, 1.21.10, 1.21.11, 26.1.2 and 26.2, and Paper
+1.20.4, the one Paper jar cached here at the time:
 
 - `Player.setSendViewDistance(int)`, with `setViewDistance`, `setSimulationDistance` and
   `setNoTickViewDistance`, and the same four on `World`: Paper 1.20.4 has them all, and no

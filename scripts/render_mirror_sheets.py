@@ -50,7 +50,7 @@ GROUPS = [
     ("Water", [
         "ocean", "deep_ocean", "cold_ocean", "deep_cold_ocean", "lukewarm_ocean",
         "deep_lukewarm_ocean", "warm_ocean", "frozen_ocean", "deep_frozen_ocean"]),
-    ("Underground", ["dripstone_caves", "lush_caves", "deep_dark"]),
+    ("Underground", ["dripstone_caves", "lush_caves", "sulfur_caves", "deep_dark"]),
     ("The Nether", [
         "nether", "crimson_forest", "warped_forest", "soul_sand_valley", "basalt_deltas"]),
     ("The End, and nowhere at all", [

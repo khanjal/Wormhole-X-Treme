@@ -136,7 +136,7 @@ player's *body* and nothing else, so a held sword, worn armour, a shield and an 
 rendering exactly where they were: a traveller carrying anything never dissolved into the column
 at all, leaving their equipment standing in it in the shape of a person.
 `Player#hideEntity(Plugin, Entity)` stops the entity being sent to that client, so equipment,
-nameplate and hitbox go with it. Plain Spigot API across 1.20–1.21.10, and not deprecated the
+nameplate and hitbox go with it. Plain Spigot API across 1.20–26.2, and not deprecated the
 way one-argument `hidePlayer` is.
 
 **Invisibility is still applied on top, for a different audience.** Hiding deliberately skips

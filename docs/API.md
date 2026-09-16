@@ -4,7 +4,7 @@ For plugins that want to hook into gates and rings: watch a trip, stop one, or r
 somebody is going. Everything a server owner needs is in the [guide](guide/README.md); this is
 the other audience.
 
-Requires **Java 17** and Minecraft **1.20 through 1.21.10**. The plugin is compiled against
+Requires **Java 17** and Minecraft **1.20 through 26.2**. The plugin is compiled against
 the oldest supported API, so anything documented here works across that whole range.
 
 ## Contents

@@ -83,9 +83,21 @@ jobs:
           - minecraft: "1.21.4"
             api: "1.21.4-R0.1-SNAPSHOT"
             profile: "-Pmodern-api"
-          # The newest published spigot-api.
           - minecraft: "1.21.10"
             api: "1.21.10-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+          # The last 1.x. Its API went to R0.2 within the version.
+          - minecraft: "1.21.11"
+            api: "1.21.11-R0.2-SNAPSHOT"
+            profile: "-Pmodern-api"
+          # Minecraft's year-based numbering from here. The API is still Java 17 bytecode; the
+          # server itself needs Java 25.
+          - minecraft: "26.1.2"
+            api: "26.1.2-R0.1-SNAPSHOT"
+            profile: "-Pmodern-api"
+          # The newest stable release. Adds the SULFUR_CAVES biome.
+          - minecraft: "26.2"
+            api: "26.2-R0.1-SNAPSHOT"
             profile: "-Pmodern-api"
 
     steps:

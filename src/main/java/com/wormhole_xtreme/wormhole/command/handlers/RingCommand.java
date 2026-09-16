@@ -1152,7 +1152,7 @@ public class RingCommand implements SubCommand
      * @return the player, or null if the server has never seen them
      */
     // getOfflinePlayer(String) is deprecated on every version this plugin supports, checked
-    // against the API jars for 1.20 through 1.21.10. There is no replacement on plain Spigot:
+    // against the API jars for 1.20 through 26.2. There is no replacement on plain Spigot:
     // getOfflinePlayerIfCached is Paper's, and using it would drop Spigot and CraftBukkit.
     // The UUID overload, which StargateYamlManager uses, is not deprecated -- only lookup by
     // name is, and a name is all this command is given.
