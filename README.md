@@ -97,9 +97,7 @@ versions are covered in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 ## Credits
 
 Wormhole X-Treme was written by **Lologarithm** (Ben Echols) and **alron** (Dean Bailey), with
-contributions from **lirelent** (Ryan Metzger) and **Jeremy Wood**. alron wrote most of it — 309
-of the commits in this repository — and the gate detection, shape format and storage layer this
-fork still runs on are his design.
+contributions from **lirelent** (Ryan Metzger) and **Jeremy Wood**.
 
 **lycano** kept the plugin alive after the original went quiet, through the
 [WolfNetDevelopment fork](https://github.com/WolfNetDevelopment/Wormhole-X-Treme) until 2015.
