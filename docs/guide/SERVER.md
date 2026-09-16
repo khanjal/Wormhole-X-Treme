@@ -63,9 +63,11 @@ How the version range is built and tested is in [DEVELOPMENT.md](../DEVELOPMENT.
 
 ## Configuration
 
-On first run the plugin creates `plugins/WormholeXTreme/config.yml`. When an update adds
-settings, the missing keys are appended to your file with their defaults and descriptions;
-existing values are never overwritten.
+On first run the plugin creates `plugins/WormholeXTreme/config.yml`, written in groups under
+`# --- Transport rings ---` headings, each setting with a sentence or two above it. When an
+update adds settings, the missing keys are appended to your file with their defaults and
+descriptions; existing values are never overwritten, and a file you already have keeps its own
+layout rather than being reshaped under you.
 
 **Change settings in-game** with `/wormhole config`:
 

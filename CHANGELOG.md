@@ -1062,6 +1062,45 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **`config.yml` is written in groups, and its comments are a sentence or two.** "There are a lot
+  of properties now. Any way to group them out condense?" Eighty-two of them, written as one flat
+  list in roughly the order the features were added -- rings in a block of nineteen, then gates,
+  then eight more rings -- with every setting's full explanation above it as wrapped comments and
+  a blank line after every key. Three hundred and sixty-one lines, of which eighty-two were blank
+  and a hundred and ninety-seven were comment.
+
+  It comes out in ten groups now, each under a `# --- Transport rings ---` banner in the style the
+  appended-keys line already used: general, economy, stargates, stargate sounds, gate signs,
+  transport rings, ring sounds, beaming, beam sounds, quantum mirrors. Settings inside a group run
+  on without a blank between them, since each starts with its own comment and that separates them
+  well enough. What every sound setting in a group has in common -- that any sound the client
+  knows works, a resource pack's included, and that `none` is silence -- is said once under the
+  banner instead of six times down the list.
+
+  And the descriptions are one or two sentences: what an operator needs to set the thing, with why
+  it works that way left in `docs/`, which is where it already was. `mirror-view-depth` was the
+  worst of them at fourteen wrapped lines, and it was mine. **Two hundred and fifty-six lines**
+  from three hundred and sixty-one, with the same eighty-two settings in it.
+
+  The groups are the order and the headings at once, so there is one list rather than two to keep
+  in step: the flat array the rest of the plugin reads is flattened from them. A test writes a
+  real file and holds the shape -- a banner per group in order, no blank line except above a
+  banner, nothing past eighty columns, no setting under two headings, and no description longer
+  than about four lines.
+
+  Three descriptions now name a floor the plugin enforces. `ring-countdown-ticks` said the abort
+  window stopped being real below about twenty; it is floored at thirty, so every value under
+  that was already being raised and the file was saying otherwise -- and had been saying it
+  before this change, so the trim carried the error rather than making it. `ring-reach` and
+  `entity-scan-interval-ticks` gained the same sort of clause. The dozen other clamps only stop
+  nonsense, no negative tick counts, and saying so above each key would be the noise this was
+  meant to cut. A test sets each of the three under its floor, checks the getter raises it, and
+  checks the description admits to the number.
+
+  **Nothing changes for a server that already has a `config.yml`.** An existing file is still
+  rewritten in place, keeping its own layout and your comments, with only missing keys appended;
+  the grouped layout is what a fresh install writes. Delete the file to have it written anew.
+
 - **`MirrorWindows` is being taken apart, and the first two pieces are out.** "The MirrorWindows
   file is ~2500 lines long. That seems excessive." It was 2,786 by the time the room streamed a
   tick at a time, holding every part of drawing a room at once: the sweep, the redraw, the
