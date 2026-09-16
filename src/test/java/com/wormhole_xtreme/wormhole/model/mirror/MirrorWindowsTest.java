@@ -146,6 +146,7 @@ class MirrorWindowsTest
     {
         MirrorManager.clear();
         MirrorProximity.clear();
+        MirrorFog.sendDistanceWith(null);
         ConfigTestSupport.clear();
         PluginTestSupport.remove();
     }
@@ -1719,6 +1720,58 @@ class MirrorWindowsTest
 
         assertEquals(2, drawnAs(changesTo(viewer, 2).get(1), barrier),
             "the opening, which never changes, rides along only when the whole view does");
+    }
+
+
+    /**
+     * A viewer drawn a room has their own fog pulled in to it, and gets it back on leaving.
+     *
+     * <p>Wiring, not arithmetic: {@code MirrorFogTest} pins what number is asked for and why.
+     * What this holds is that the asking happens where a view begins and the putting-back where
+     * one ends -- and a view ends in four places, two of them inside the stream that takes a room
+     * back. Restoring only where a redraw finds nothing left to draw looked right and left a
+     * viewer who walked away narrowed for the rest of their session.
+     *
+     * <p>Paper only and off by default, so both halves are easy to wire to nothing by accident.
+     */
+    @Test
+    void aViewerDrawnARoomHasTheirFogPulledInAndPutBack()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        final List<Integer> fog = new ArrayList<>();
+        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        {
+            @Override
+            public int get(final Player player)
+            {
+                return 10;
+            }
+
+            @Override
+            public void set(final Player player, final int chunks)
+            {
+                fog.add(chunks);
+            }
+        });
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            assertEquals(List.of(2), fog, "a room 16 deep is one chunk, and one over for the edge");
+            // The feature is invisible by design, so debug has to be able to say it happened.
+            final List<String> debug = MirrorWindows.describe(viewer).stream()
+                .map(MirrorWindowsTest::plain).toList();
+            assertTrue(debug.stream().anyMatch(line -> line.equals("fog: pulled in to 2 chunk(s), from 10")),
+                "debug says what the fog did: " + debug);
+            pause();
+            // Well out of range: the room goes back, and the view ends with it.
+            MirrorWindows.moved(viewer, new Location(world, 10.5, 64.0, 60.0));
+        });
+
+        assertEquals(List.of(2, 10), fog, "and the ten they were being sent before comes back");
     }
 
     @Test

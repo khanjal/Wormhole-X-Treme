@@ -147,6 +147,14 @@ more than a quarter of the server's time however close you stand.
   its world need not be loaded at all, so a mirror in an archived world still shows. Nothing
   retakes it on its own: a reflection shows the room as it was when captured until somebody
   runs `mirror set capture`, and `stamp` is about the banner and leaves the capture alone.
+- **Past the room, this world shows.** The room ending is not the world ending: the client
+  goes on drawing the hills behind the mirror over the far edge of what it is showing. On a
+  **Paper** server `mirror-fog-at-depth` fixes that by pulling your own fog in to the room's
+  depth while you are looking through a mirror, and putting it back when you are not — so the
+  far edge is fog instead. It is off by default, it does nothing on Spigot, and it does nothing
+  at the default depth of 160, where the room already reaches about as far as the server sends.
+  Lower `mirror-view-depth` first, then turn it on. It pulls the fog in every way you look and
+  not only through the mirror, which is the price.
 - **A capture holds what somebody at the opening could see:** as far as the room's world sends
   (its view distance, up to ten chunks) whatever `mirror-view-depth` is, rays a degree apart
   through the opening, and the blocks they reach, air included; everything else is left to the

@@ -30,6 +30,33 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **A mirror's room can end in your own fog, on Paper.** "Would this work on our mirrors to
+  limit the view distance?" The room reaches `mirror-view-depth` and nothing is drawn past it, but
+  a room ending is not the world ending: the client goes on drawing the hills behind the mirror
+  over the far edge of what it is showing. That is what the wall of sky was for, and the wall went
+  because a flat colour where the far sky should be reads as a wall however cheap it is.
+
+  `mirror-fog-at-depth` does it honestly instead. A viewer being drawn a room has
+  `Player.setSendViewDistance` set to the room's depth in chunks, a chunk over for the edge, and
+  it is put back the moment they are no longer being drawn one -- so the far edge is the client's
+  own fog rather than anything this plugin drew, and it costs no blocks at all.
+
+  **Paper only, and off by default.** That method, with `setViewDistance`,
+  `setSimulationDistance` and `setNoTickViewDistance`, is on Paper's `Player` and on no Spigot jar
+  in the range this plugin supports, read with `javap` from the API jars themselves. So it is
+  reached reflectively, the same as `sendBlockUpdate` is for 1.20, and on Spigot nothing happens
+  at all: this world shows past the room, which is what it did before. Off by default for a
+  second reason too -- it is a radius round the player and not a direction, so it pulls the fog in
+  every way they look, not only through the opening. And there is nothing to gain at the default
+  depth of 160, where the room already reaches about as far as a server sends; the number asked
+  for has to be lower than what the client is being sent. Lower the depth first, then turn it on.
+
+  One thing the wiring taught: a view ends in four places -- the eye moving to a world with no
+  window in it, a redraw finding nothing left to draw, and either half of the stream that takes a
+  room back. Putting the fog back only where a redraw finds nothing looked right and left a viewer
+  who walked away narrowed for the rest of their session. All four go through one `endView` now,
+  and a test walks a viewer out of range to hold it.
+
 - **A capture reaches as far as the room's world sends, and the depth draws part of it.** "Maybe
   the capture grabs all the way to the server view limit, then we dynamically pull that data
   depending on the wall?" A capture was taken to `mirror-view-depth` and no further, which tied
