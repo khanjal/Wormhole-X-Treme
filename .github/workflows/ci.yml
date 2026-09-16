@@ -10,6 +10,13 @@ on:
     tags-ignore:
       - "v*"   # release workflow handles version tags
 
+# A newer push to the same pull request makes the run in progress moot, so it is cancelled.
+# Anything else gets a group of its own per run: a shared group would queue main's commits and
+# drop all but the newest pending one.
+concurrency:
+  group: ci-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-and-test:
     name: Build & Test (Java ${{ matrix.java }})
@@ -17,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ["17", "21", "25"]
+        # No 21 here: "Minecraft 1.20.4" below is the same build, the default API on Java 21.
+        java: ["17", "25"]
 
     steps:
       - uses: actions/checkout@v7
