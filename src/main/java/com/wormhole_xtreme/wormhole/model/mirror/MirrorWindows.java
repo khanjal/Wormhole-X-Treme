@@ -915,7 +915,8 @@ public final class MirrorWindows
             }
         }
         // Anywhere else in a room drawn for them: the real block behind is not what they clicked.
-        return drew(player, block) ? nearestWindow(view, block) : null;
+        final boolean drawn = view.world.equals(block.getWorld()) && view.drawn.containsKey(key(at.x(), at.y(), at.z()));
+        return drawn ? nearestWindow(view, block) : null;
     }
 
     /**
