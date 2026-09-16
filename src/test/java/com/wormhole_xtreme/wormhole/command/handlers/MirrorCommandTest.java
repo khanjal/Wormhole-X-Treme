@@ -301,7 +301,7 @@ class MirrorCommandTest
         final MirrorBlock hung = new MirrorBlock("world", 1, 64, 1);
         final MirrorPoint far = new MirrorPoint("snapshot", 8, 70, 9, 0f, 0f);
         MirrorManager.add(new QuantumMirror("world_2011_05_09", hung, far,
-            MirrorDisplay.PROXIMITY, MirrorLook.named("cavern")));
+            MirrorDisplay.PROXIMITY, MirrorLook.named("cavern"), "hub"));
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
@@ -312,6 +312,7 @@ class MirrorCommandTest
         assertEquals(far, renamed.destination(), "a rename must not unpoint the mirror");
         assertEquals(MirrorLook.named("cavern"), renamed.look(), "nor forget how it looks");
         assertEquals(MirrorDisplay.PROXIMITY, renamed.display());
+        assertEquals("hub", renamed.start(), "nor the mirror it opens onto first");
         assertNull(MirrorManager.byName("world_2011_05_09"),
             "the old name should be gone, not left beside it claiming the same banner");
         assertEquals(renamed, MirrorManager.at(hung),
@@ -973,5 +974,41 @@ class MirrorCommandTest
 
         assertNull(MirrorManager.byName("start"), "not made");
         verify(player, atLeastOnce()).sendMessage(contains("cannot be called that"));
+    }
+
+    /** A console has no banner in front of it, so capture with no name gets its form. */
+    @Test
+    void captureWithNoNameFromAConsoleSaysItsForm()
+    {
+        final CommandSender console = mock(CommandSender.class);
+        when(console.isOp()).thenReturn(true);
+
+        assertTrue(run(console, "mirror", "set", "capture"));
+
+        verify(console, atLeastOnce()).sendMessage(contains("set [<name>] capture"));
+    }
+
+    /**
+     * A room whose world is not loaded cannot be captured, and the reply names the world.
+     *
+     * <p>The one way a capture request fails: a capture already being taken counts as taken, so
+     * the message must not offer that as a reason.
+     */
+    @Test
+    void captureSaysWhichWorldIsNotLoadedWhenTheRoomCannotBeTaken()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1),
+            new MirrorPoint("archive", 0, 64, 0, 0f, 0f)));
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class))
+        {
+            bukkit.when(() -> Bukkit.getWorld("archive")).thenReturn(null);
+
+            assertTrue(run(player, "mirror", "set", "museum", "capture"));
+        }
+
+        verify(player, atLeastOnce()).sendMessage(contains("cannot be captured now"));
+        verify(player, atLeastOnce()).sendMessage(contains("archive"));
+        verify(player, never()).sendMessage(contains("Capturing"));
     }
 }

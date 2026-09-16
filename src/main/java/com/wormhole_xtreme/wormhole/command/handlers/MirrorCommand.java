@@ -749,9 +749,10 @@ public class MirrorCommand implements SubCommand
         final Block block = world.getBlockAt(at.x(), at.y(), at.z());
         if (!isBanner(block))
         {
+            // create with a name that exists moves that mirror to the banner being looked at.
             say(sender, MirrorText.quoted(mirror.name()) + " is not a banner any more. Put one"
-                + " back, or re-run " + MirrorText.command("/wormhole mirror create")
-                + " on a banner that is there.");
+                + " back, or run " + MirrorText.command("/wormhole mirror create " + mirror.name())
+                + " looking at a banner that is there.");
             return null;
         }
         return block;
@@ -904,8 +905,9 @@ public class MirrorCommand implements SubCommand
                 + " changes when the new one is ready.");
             return;
         }
-        say(sender, MirrorText.quoted(mirror.name()) + "'s room cannot be captured now:"
-            + " its world is not loaded, or a capture is already being taken.");
+        // request() answers true for a capture already being taken, so this is the one way it fails.
+        say(sender, MirrorText.quoted(mirror.name()) + "'s room cannot be captured now: "
+            + MirrorText.name(mirror.destination().worldName()) + " is not loaded.");
     }
 
     private static void remove(final CommandSender sender, final String[] args)

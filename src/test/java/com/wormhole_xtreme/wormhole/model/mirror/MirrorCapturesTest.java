@@ -296,8 +296,9 @@ class MirrorCapturesTest
         when(admin.isOp()).thenReturn(true);
         final World bannerWorld = mock(World.class);
         final Block bannerBlock = mock(Block.class);
+        final Banner state = mock(Banner.class);
         when(bannerBlock.getType()).thenReturn(Material.WHITE_WALL_BANNER);
-        when(bannerBlock.getState()).thenReturn(mock(Banner.class));
+        when(bannerBlock.getState()).thenReturn(state);
         when(bannerWorld.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(bannerBlock);
         final MirrorCommand command = new MirrorCommand();
 

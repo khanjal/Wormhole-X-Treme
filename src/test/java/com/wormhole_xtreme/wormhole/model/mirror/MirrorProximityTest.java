@@ -420,13 +420,6 @@ class MirrorProximityTest
 
 
     /**
-     * Setting a mirror to the display it already has changes nothing at all.
-     *
-     * <p>Releasing forgets who is currently near, so doing it on the way in would make the
-     * next sweep read everybody as a fresh arrival -- a reveal for people who never moved.
-     * Running a command should not be a way to fake an approach.
-     */
-    /**
      * Walking up to a mirror never reads its far side or changes its banner.
      *
      * <p>{@code mode dynamic} used to do both on approach, so the room and the banner changed
@@ -463,6 +456,13 @@ class MirrorProximityTest
             "and the look is whatever stamp last put there");
     }
 
+    /**
+     * Setting a mirror to the display it already has changes nothing at all.
+     *
+     * <p>Releasing forgets who is currently near, so doing it on the way in would make the
+     * next sweep read everybody as a fresh arrival -- a reveal for people who never moved.
+     * Running a command should not be a way to fake an approach.
+     */
     @Test
     void settingTheDisplayItAlreadyHasIsANoOp()
     {
