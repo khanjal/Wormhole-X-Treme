@@ -58,8 +58,8 @@ A fourth way to travel, and the first one you can see. Design notes in
 **Added**
 
 - **A mirror opens onto where it goes.** Walk up to a wall banner, on its side, and the banner is
-  gone: an opening its own size shows a room in real blocks, with depth as you move, reaching
-  `mirror-view-depth` and nothing past it.
+  gone (on plain 1.20 it stays, in front of the view): an opening its own size shows a room in real
+  blocks, with depth as you move, reaching `mirror-view-depth` and nothing past it.
 - **Every mirror is on one network.** It shows its own room flipped until somebody right-clicks
   it; a right-click moves it on to the next mirror, a punch goes through to that mirror's banner,
   and it goes back to its own room once nobody is near.
