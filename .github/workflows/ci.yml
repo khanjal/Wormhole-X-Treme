@@ -40,13 +40,15 @@ jobs:
       - name: Build and run tests
         run: mvn --batch-mode verify
 
-      # Reports only when there is a failure to read them for; a green run's are in the log.
+      # Reports only when there is a failure to read them for; a passing run's results are in the log.
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: surefire-reports-java-${{ matrix.java }}
           path: target/surefire-reports/
+          # A build that failed before the tests ran has no reports to upload.
+          if-no-files-found: ignore
           retention-days: 7
 
       # One jar a run: every JDK here builds the same Java 17 bytecode.
