@@ -52,7 +52,7 @@ public class Wormhole implements CommandExecutor
             // on wormhole.config made those nodes unreachable for anyone but an operator.
             if (entry != null)
             {
-                if (mayConfigure || entry.checksOwnPermissions())
+                if (mayConfigure || entry.admits(sender, a))
                 {
                     return entry.run(sender, a);
                 }

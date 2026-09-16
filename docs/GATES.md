@@ -200,6 +200,16 @@ click the DHD position, and the detected result is stashed keyed by the player;
 `/wormhole gate complete <name> [idc=CODE] [net=NETWORK]` names it, registers it, places the
 name sign and lever, saves it and fires `StargateCreatedEvent`.
 
+**A build preview is the chosen shape made visible** (#303). `GateBlueprint` lists the blocks a
+builder places, positioned by `GateGrid`, the same layer/row/column mapping detection reads the
+world through, so a frame built to a preview is one detection finds; a test builds every shipped
+shape from its blueprint in all four directions and detects it. Each block is a `BlockDisplay`:
+no hitbox, so it can be walked through and built into, which fake blocks sent with
+`sendBlockChange` cannot be. `HiddenEntities` makes it unsaved and hidden by default before adding
+it to the world (`createEntity` then `addEntity`, from 1.20.2; a spawn hidden in the same tick
+before that), then shows it to its owner. The entity sweep and mirror views leave `Display`
+entities alone, since moving or re-showing one would undo exactly that.
+
 Every block goes into `allGateBlocks` — a flat `Location -> Stargate` map, which is what the
 move path reads — and into `GateSpatialIndex`, which buckets gate blocks by chunk for questions
 like "is there a gate near here".

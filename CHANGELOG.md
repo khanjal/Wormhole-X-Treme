@@ -8,6 +8,20 @@ it explains, and a release nobody can scroll through is a release nobody reads.
 
 ## 1.7.0 (unreleased)
 
+### Stargates
+
+- **`/wormhole gate build <shape> [group]` shows the shape full size in front of you**, seen by
+  you alone and walkable through, with the new `wormhole.build.preview` node (op by default).
+  Several can stand at once; `gate build -clear [-all]` takes them away.
+- **New settings:** `gate-preview-minutes` (10) and `gate-preview-max-blocks` (5000).
+- **The entity sweep leaves display entities alone**, so holograms near an open gate stay put.
+- **A `config.yml` with no `gate-material-groups` gets the example groups** (Atlantis, Universe,
+  MilkyWay beside Standard). Before, every server had Standard alone. A section you wrote is kept.
+
+### Quantum mirrors
+
+- **A mirror's view no longer hides and re-shows display entities.**
+
 ### Documentation
 
 - **The original plugin's 2011 release notes are in `CHANGELOG-ORIGINAL-2011.md`**, renamed from

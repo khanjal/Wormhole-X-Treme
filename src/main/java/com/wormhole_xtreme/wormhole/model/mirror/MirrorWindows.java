@@ -1928,7 +1928,8 @@ public final class MirrorWindows
             + ConfigManager.getMirrorProximityDistance() + 1.0;
         for (final Entity entity : here.getNearbyEntities(eye, reach, reach, reach))
         {
-            if (entity instanceof Player)
+            // A display may be hidden by default for one player; showing it again would reveal it to this one.
+            if ((entity instanceof Player) || (entity instanceof org.bukkit.entity.Display))
             {
                 continue;
             }
