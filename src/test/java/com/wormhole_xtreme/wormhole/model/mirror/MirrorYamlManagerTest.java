@@ -283,6 +283,35 @@ class MirrorYamlManagerTest
         assertNull(after.look().view(), "a named look has nothing sampled behind it");
     }
 
+    /** A mirror's start survives the file, and a mirror with none writes nothing for it. */
+    @Test
+    void keepsAStartAcrossARoundTripAndWritesNoneWhenThereIsNone()
+    {
+        final QuantumMirror before = new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 2, 3),
+            null).withStart("hub");
+
+        final QuantumMirror after =
+            MirrorYamlManager.readMirror("archive", MirrorYamlManager.writeMirror(before));
+
+        assertEquals("hub", after.start());
+        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
+            .containsKey("Start"), "an ordinary mirror's entry reads the way it always did");
+    }
+
+    /** A mirror two banners wide stays two wide across the file; one wide writes nothing for it. */
+    @Test
+    void keepsTheWidthAcrossARoundTripAndWritesNoneForOneWide()
+    {
+        final QuantumMirror before = new QuantumMirror("hall", new MirrorBlock("world", 1, 2, 3),
+            new MirrorPoint("world", 1.01, 1, 3.5, 180f, 0f)).withWidth(2);
+
+        final QuantumMirror after = MirrorYamlManager.readMirror("hall", MirrorYamlManager.writeMirror(before));
+
+        assertEquals(2, after.width());
+        assertFalse(MirrorYamlManager.writeMirror(new QuantumMirror("M", new MirrorBlock("world", 1, 2, 3), null))
+            .containsKey("Width"));
+    }
+
     @Test
     void keepsASampledLookAcrossARoundTrip()
     {

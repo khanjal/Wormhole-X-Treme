@@ -50,6 +50,26 @@ class MirrorManagerTest
         assertEquals(m, MirrorManager.at(new MirrorBlock("world", 10, 64, 0)));
     }
 
+    /**
+     * A mirror two banners wide answers a click on either banner, and lets go of both when removed.
+     *
+     * <p>Its room faces north, so looking at the wall the second banner is to the west, at x - 1.
+     */
+    @Test
+    void aMirrorTwoWideIsFoundByEitherBannerAndForgottenByBoth()
+    {
+        final QuantumMirror hall = new QuantumMirror("Hall", new MirrorBlock("world", 10, 64, 0),
+            new MirrorPoint("world", 10.01, 63.0, 0.5, 180.0f, 0.0f)).withWidth(2);
+        MirrorManager.add(hall);
+
+        assertEquals(hall, MirrorManager.at(new MirrorBlock("world", 10, 64, 0)), "the left banner");
+        assertEquals(hall, MirrorManager.at(new MirrorBlock("world", 9, 64, 0)), "and the right one");
+
+        MirrorManager.remove("Hall");
+        assertNull(MirrorManager.at(new MirrorBlock("world", 10, 64, 0)));
+        assertNull(MirrorManager.at(new MirrorBlock("world", 9, 64, 0)), "neither left answering a click");
+    }
+
     /** Names match the way gate and beam names do, so a remembered capital is not a trap. */
     @Test
     void nameLookupIgnoresCase()

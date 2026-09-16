@@ -408,19 +408,23 @@ public final class SubCommands
     {
         if (args.length == 2)
         {
-            return prefixed(args[1],
-                com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs());
+            // debug is left out of the usage line, and offered here only to whoever may run it.
+            final String[] verbs = com.wormhole_xtreme.wormhole.command.handlers.MirrorCommand.verbs();
+            return prefixed(args[1], CommandHandlerUtils.hasConfigPermission(sender)
+                ? both(verbs, new String[] { DEBUG }) : verbs);
         }
         final String verb = (args.length > 1) ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
+        if (DEBUG.equals(verb))
+        {
+            return completeMirrorDebug(sender, args);
+        }
         // Named rather than excluded. Falling through for anything that is not set or list
         // meant a verb nobody has -- a typo, most likely -- still offered the mirror names,
         // which reads as though the typo were a real command.
-        final boolean takesOneName = "target".equals(verb) || REMOVE.equals(verb)
-            || "display".equals(verb) || "mode".equals(verb);
-        // link takes the existing mirror first now, and an optional name for this side.
-        final boolean takesTwoNames = "link".equals(verb);
+        final boolean takesOneName = REMOVE.equals(verb)
+            || "display".equals(verb) || "mode".equals(verb) || "start".equals(verb);
         final boolean stamp = "stamp".equals(verb);
-        if ((args.length == 3) && (takesOneName || takesTwoNames || stamp))
+        if ((args.length == 3) && (takesOneName || stamp))
         {
             // And what the verb takes instead of a name, where it takes one. display, mode and
             // stamp act on the banner being looked at when no name is given, so the third word
@@ -428,10 +432,6 @@ public final class SubCommands
             // that the name is optional at all.
             return prefixed(args[2],
                 both(mirrorNames(), stamp ? presetNames() : settingsFor(verb)));
-        }
-        if ((args.length == 4) && takesTwoNames)
-        {
-            return prefixed(args[3], mirrorNames());
         }
         // Presets, not mirrors, and the empty offer is the point: leaving it blank is what
         // makes stamp read the far side rather than apply a look somebody picked.
@@ -444,6 +444,36 @@ public final class SubCommands
             return prefixed(args[3], settingsFor(verb));
         }
         return none();
+    }
+
+    /** The mirror verb for what a window draws from; not in the usage line. */
+    private static final String DEBUG = "debug";
+
+    /** What {@code mirror debug} takes on its own, or after a name: all and full take one. */
+    private static final String[] DEBUG_SWITCHES = { "all", "full", "off", "on" };
+
+    /**
+     * Completions for {@code /wormhole mirror debug [name] [save|full]} and {@code debug off|on}.
+     *
+     * @param sender
+     *            whoever is typing; offered nothing without {@code wormhole.config}
+     * @param args
+     *            the full argument array
+     * @return the candidates
+     */
+    private static List<String> completeMirrorDebug(final CommandSender sender, final String[] args)
+    {
+        if (!CommandHandlerUtils.hasConfigPermission(sender))
+        {
+            return none();
+        }
+        if (args.length == 3)
+        {
+            return prefixed(args[2], both(mirrorNames(), DEBUG_SWITCHES));
+        }
+        final boolean afterName = (args.length == 4)
+            && java.util.Arrays.stream(DEBUG_SWITCHES).noneMatch(word -> word.equalsIgnoreCase(args[2]));
+        return afterName ? prefixed(args[3], "all", "full") : none();
     }
 
     /**
@@ -484,6 +514,10 @@ public final class SubCommands
         if ("mode".equals(verb))
         {
             return new String[] { "static", "dynamic" };
+        }
+        if ("start".equals(verb))
+        {
+            return both(mirrorNames(), new String[] { "none" });
         }
         return new String[0];
     }

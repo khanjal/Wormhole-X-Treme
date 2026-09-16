@@ -21,7 +21,10 @@ import java.io.File;
  * ├── data/
  * │   ├── gates/&lt;name&gt;.yml       one file per gate
  * │   ├── rings/&lt;world&gt;.yml      one file per world, every pair in it
- * │   └── beam.yml               every destination and place, in one file
+ * │   ├── beam.yml               every destination and place, in one file
+ * │   ├── mirror.yml             every quantum mirror, in one file
+ * │   └── mirror/
+ * │       └── captures/*.view    one photograph of a far side per destination
  * └── WormholeXTremeDB/
  *     └── WormholeXTreme.sqlite  another fork's database, read by the importer
  * </pre>
@@ -109,6 +112,29 @@ public final class DataLayout
     public static File mirrorFile()
     {
         return new File(data(), "mirror.yml");
+    }
+
+    /**
+     * The folder of mirror captures: one photograph of a far side per destination.
+     *
+     * <p>Under a {@code mirror/} folder of its own rather than inside a world's, because a
+     * capture is of the far side and belongs to the mirror that looks at it, not to the world
+     * it is of; and a folder rather than a bare {@code mirror-captures/}, so that whatever else
+     * mirrors come to keep has somewhere to go. A folder left by the build that wrote captures
+     * beside the mirror file is moved in the first time this is asked.
+     *
+     * @return the folder, which may not exist yet
+     */
+    public static File mirrorCaptureDir()
+    {
+        final File dir = new File(new File(data(), "mirror"), "captures");
+        final File earlier = new File(data(), "mirror-captures");
+        if (earlier.isDirectory() && !dir.exists() && dir.getParentFile().mkdirs() && !earlier.renameTo(dir))
+        {
+            // Left where it was: captures are retaken on the next look, so nothing is lost.
+            return dir;
+        }
+        return dir;
     }
 
     /**

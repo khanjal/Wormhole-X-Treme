@@ -157,24 +157,21 @@ public class ConfigManager
         BEAM_ECONOMY_USE_COST,
 
         /**
-         * Whether a quantum mirror may point somewhere in the world it stands in.
+         * How many mirrors one world may hold, or 0 for no limit.
          *
-         * <p>The opposite polarity to {@link #SAME_WORLD_ONLY}, which lets an admin
-         * <em>restrict</em> gates to one world and defaults to not restricting. A mirror is
-         * cross-world by default and this relaxes it, because being the bridge between two
-         * worlds is what separates a mirror from a beam place -- which is the mechanic for
-         * naming a point in the world you are already standing in.
+         * <p>One by default: a mirror is the door into its world, and scrolling one mirror
+         * through every other is only a short list while each world has one.
          */
-        MIRROR_ALLOW_SAME_WORLD,
+        MIRROR_PER_WORLD_LIMIT,
 
         /**
-         * How close a player must be for a proximity mirror to show its look, in blocks.
+         * How close a player must be for a mirror's banner to give way to its room, in blocks.
          *
-         * <p>Compared squared, so this never costs a square root. Small on purpose: the point
-         * of a proximity mirror is that a corridor reads as blank cloth until you walk up to
-         * one, and a radius wide enough to light the whole corridor at once defeats it.
+         * <p>Also how far they may drift before a mirror they turned on goes off, and how far
+         * out its wall is read before it can be drawn whole. Compared squared where it is a
+         * distance check, so it never costs a square root. Was {@code mirror-proximity-radius}.
          */
-        MIRROR_PROXIMITY_RADIUS,
+        MIRROR_PROXIMITY_DISTANCE,
 
         /**
          * How often the proximity sweep runs, in ticks.
@@ -193,6 +190,15 @@ public class ConfigManager
          * nobody walks up to is never sampled at all, however dynamic it is.
          */
         MIRROR_DYNAMIC_RESAMPLE_SECONDS,
+
+        /**
+         * How far from a mirror's opening its far side is drawn as real blocks, in blocks.
+         *
+         * <p>Its render distance: past it nothing is drawn, and a capture reaches this far and
+         * no further. 160 by default, ten chunks, so the room ends where the client stops
+         * showing anything; a room is its surfaces, so depth costs little.
+         */
+        MIRROR_VIEW_DEPTH,
 
         /**
          * Whether a mirror names itself above the hotbar to whoever is looking at it.
@@ -1348,29 +1354,26 @@ public class ConfigManager
     }
 
     /**
-     * Whether a quantum mirror is allowed to point somewhere in its own world.
+     * How many mirrors one world may hold.
      *
-     * <p>False by default, so binding one refuses when both ends share a world and says why.
-     * The opposite polarity to {@link #isSameWorldOnly()}: that one lets an admin restrict
-     * gates to a single world and defaults to off, this one relaxes a restriction that is on.
-     *
-     * @return true if a mirror may connect two points in the same world
+     * @return the most, or 0 for no limit
      */
-    public static boolean isMirrorAllowSameWorld()
+    public static int getMirrorPerWorldLimit()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_ALLOW_SAME_WORLD);
-        return (s != null) && s.getBooleanValue();
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PER_WORLD_LIMIT);
+        return (s == null) ? 1 : Math.max(0, s.getIntValue());
     }
 
     /**
-     * How close a player must be for a proximity mirror to show its look.
+     * How close a player must be for a mirror's banner to give way to its room, how far they may
+     * drift before a mirror they turned on goes off, and how far out its wall is read.
      *
-     * @return the radius in blocks, never below one
+     * @return the distance in blocks, never below one
      */
-    public static int getMirrorProximityRadius()
+    public static int getMirrorProximityDistance()
     {
-        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_RADIUS);
-        return (s == null) ? 8 : Math.max(1, s.getIntValue());
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_PROXIMITY_DISTANCE);
+        return (s == null) ? 16 : Math.max(1, s.getIntValue());
     }
 
     /**
@@ -1413,6 +1416,19 @@ public class ConfigManager
         final Setting s =
             ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_DYNAMIC_RESAMPLE_SECONDS);
         return (s == null) ? 60 : Math.max(0, s.getIntValue());
+    }
+
+    /**
+     * How far from a viewer's eye a mirror's far side is drawn as real blocks.
+     *
+     * @return the radius in blocks, between 4 and 160
+     */
+    public static int getMirrorViewDepth()
+    {
+        final Setting s = ConfigManager.getConfigurations().get(ConfigKeys.MIRROR_VIEW_DEPTH);
+        // 160 is ten chunks, a server's usual view distance. Taking a capture that deep works a
+        // few bits per block over a box 325 across, tens of megabytes for a few seconds.
+        return (s == null) ? 160 : Math.max(4, Math.min(160, s.getIntValue()));
     }
 
     /**

@@ -30,6 +30,588 @@ been running on defaults will start reading the file you have been editing.
 
 ### Added
 
+- **A capture reaches as far as the room's world sends, and the depth draws part of it.** "Maybe
+  the capture grabs all the way to the server view limit, then we dynamically pull that data
+  depending on the wall?" A capture was taken to `mirror-view-depth` and no further, which tied
+  the two together the wrong way round: lowering the depth to make a mirror smoother cut every
+  capture to match, and raising it again loaded and photographed every room's world again. A
+  capture now reaches the far world's view distance in blocks -- never past 160, never short of
+  the depth -- and the depth says how much of it a view draws. Change the depth and nothing is
+  retaken. A capture taken by the old rule is taken again once, the next time somebody looks,
+  since a server sending further can now show more of the room.
+
+  Three limits on what a capture keeps, since the depth no longer trims it. "We can't see
+  through lava": Bukkit counts neither fluid as occluding, so a ray went through a lava lake as
+  through a pond and a mirror onto the Nether kept every block under every lake it faced; lava
+  ends a ray as stone does now. Water ends one after 32 blocks of it, about where the game's own
+  fog would, so a mirror onto a beach no longer keeps the water in the whole fan of its view. And
+  a capture that would keep more than half a million blocks even so is taken shorter, a quarter
+  of its reach at a time, until it fits -- never short of `mirror-view-depth`, since a view drawn
+  past its capture would run out of room. The log says when one was cut, and `mirror debug` says
+  how many blocks a capture keeps.
+
+  And the one-block wall's leak. "This problem is mostly because of the 1 block border mirrors.
+  Larger border the more stuff has time to change." Just so: what a wall's width buys is
+  tolerance for movement between redraws, not depth. A stale drawn block's landing on the wall
+  shifts by about as far as the eye moved, whatever the block's depth, and only the inner half of
+  a wall block with open air past it counts as hiding anything -- so a one-block wall absorbs half
+  a block of movement, and a clipped room's far part standing for a whole-block move let half a
+  block of stale room show past it. Behind a wall a block wide the far part now follows every half
+  block the eye moves; behind two or more it stands for a block, as before.
+
+  The wall of sky past the depth is gone before it shipped. "I think a backdrop/shell is out. It
+  brings too much attention to the issue." Its `mirror-backdrop` setting and `mirror backdrop`
+  verb go with it, and a `Backdrop` line in `mirror.yml` from a build of the last day is read as
+  nothing and dropped on the next save. The room is a half-sphere from the opening's middle
+  again rather than a box, since the box existed for the wall to be flat -- and the box had cost
+  the tests their heap: a test room went from 8,600 blocks to 21,900, three mocks each, and CI
+  died of it on every version. What stands past the depth is this world, as before; at 160 the
+  client has nothing to show there anyway.
+
+- **Every mirror is on the network: it reflects its own room, a right-click chooses another, and a
+  punch goes through.** "I removed all mirrors and set the first one. It's asking to link, which
+  we should no longer be doing." A mirror no longer points anywhere by hand. `mirror create`
+  stores its own room -- the block in front of the banner, level with the bottom of the opening,
+  facing out -- and walking up to it shows that room flipped across the wall, as a mirror does,
+  with nobody in it. Blocks are flipped rather than turned (`BlockData.mirror`, on every version
+  from 1.20), so stairs and doors keep their side.
+
+  A right-click moves the mirror on to the next one: its own room first, then every other mirror
+  by name, then back. "No other mirrors found" when there are none. Alone at a mirror you can
+  click through them as fast as you like; with somebody else there, what it shows stays up three
+  seconds before it can change. A punch goes to the mirror chosen and lands in front of its
+  banner; punching a mirror that shows its own room says to right-click first. When nobody is
+  near a mirror any more it goes back to its own room. Only the main hand's half of a click
+  counts, or one press would skip a mirror. The view changes as you click, not when the sweep
+  next comes round a second later -- long enough to click again and skip the mirror you wanted;
+  a room not captured yet leaves the mirror showing what it did until it is ready.
+
+  "In a historical world we can default the mirror to the main server first, and right-click
+  scroll from there." `mirror start [name] <mirror|none>` gives a mirror a start: first in its
+  list. A mirror nobody has turned on still shows its own room -- "mirrors should reflect
+  themselves when approached if they are off" -- and the first right-click opens onto the start,
+  the next ones onto the rest by name, then round to its own room. Saved with the mirror as
+  `Start`; a start that has been removed is no start. It opened onto the start on approach for
+  one commit, which was not the idea.
+
+  "I don't see a reflection at all" -- on a mirror facing north. Its capture kept 8 blocks and no
+  air: the rays that decide what can be seen started on the back edge of the block in front of
+  the mirror, and facing north or west that edge rounds into the block behind, the mirror's own
+  wall, so every ray stopped where it began. They start just inside that block now.
+
+  "I did mirror stamp and the banner always shows, but behind it I can see the mirrored
+  environment -- it took a while to go away." Stamping writes the banner to the world, and every
+  client is sent it over the view that draws it away; the view thought it had sent air there
+  already and waited for its next whole resend, half a minute on. A stamp now has everybody looking
+  into that mirror sent the whole view again at the next sweep.
+
+  "How about wide support for the mirror too, for even places?" Two wall banners side by side,
+  facing the same way, are one mirror two wide: `mirror create` on either finds the other, and the
+  opening is two wide and two tall. The pair is held by the left banner looking at the wall, both
+  banners answer a click, cannot be broken and are drawn away together, the wall it needs is a
+  block wider, and a traveller lands between them. `Width: 2` in `mirror.yml`. A room is captured
+  as if through a hole three wide now, so a mirror of either width looking into any room, turned
+  or reflected, finds the column its extra width shows.
+
+  "It says it needs 2 blocks around it -- is the 2nd banner messing with it?" It was not: the wall
+  was a column short, since one built for a single banner is five across and a pair needs six. A
+  pair's refusal says so now -- "two banners make a mirror two wide, which needs solid wall 6
+  across and 6 tall" -- before naming the block to fill.
+
+  A mirror gives way to its room from twice as far: `mirror-proximity-radius` is 16 by default,
+  which is also how near somebody has to stay for a mirror they turned on to stay on. An existing
+  `config.yml` keeps the 8 it has. And what a click says about the mirror itself -- where it opens
+  onto now, "No other mirrors found", right-click first, somebody else is at it, settle for a
+  moment, that is part of a mirror -- goes above the hotbar rather than into chat, where clicking
+  through a list of mirrors filled the window. A refused trip or an unloaded world still says so in
+  chat, since those are lines to read and act on.
+
+  `mirror link` and `mirror target` are gone, and with them the `-return` names. `create` is the
+  verb now, and `set` still works. A mirror saved before this keeps opening where it was pointed
+  until it is created again.
+
+- **A mirror keeps its far room inside its edges.** "Even though we have 2 blocks on each side, are
+  we still keeping it tight? Sometimes I can see the overflow on the sides." Not tight enough, in
+  two ways, one for each way a mirror is drawn.
+
+  A mirror in a wall solid all round is drawn whole, and the wall hides the room behind it. That
+  wall was read eight blocks out, which was the approach distance when it was chosen. When
+  `mirror-proximity-radius` doubled to 16 I left it at eight, and said so -- "the wall a mirror
+  needs to be drawn whole is its own number" -- which was wrong: twelve blocks to one side, you
+  look round the end of eight blocks of wall into the room drawn behind it. The wall is read out
+  to the radius now, which is what the guide already said.
+
+  Any other mirror is trimmed to what each eye sees through the opening. A block at the edge,
+  once drawn, stayed until half of it was beside the opening -- up to half a block of the far room
+  past the edge. It goes once more than 15% of it is. The half was there so the edge did not
+  flicker as you walked, so a moving viewer is redrawn ten times a second instead of four, which
+  also shortens how long a sidestep shows the blocks drawn for where you just were.
+
+  Standing still costs what it did, and so does a mirror drawn whole. On the move, a trimmed view
+  costs up to two and a half times as much for each viewer; the server's share per second, every
+  viewer together, is unchanged, so the most it spends is too.
+
+- **`mirror debug` tab-completes, and says one thing a line.** "Add it to the auto complete, for
+  users who have permissions to use it, and the name auto complete... Should we do dedicated
+  lines like property: value?" `debug` stays out of the usage line, since it answers nothing a
+  player would ask, so completion is where an admin finds it. It is offered only to whoever holds
+  `wormhole.config`, followed by the mirror names, `on` and `off`, and `save` or `full` after a
+  name.
+
+  It used to say a sentence a line, all grey -- `key ..., file missing, far world loaded` -- with
+  the word that mattered in the middle of one. Now each fact is a `label: value` line, a grey
+  label and a white value, under headings for the mirror, its capture and your view. Whatever
+  trims or stops a view is red: a missing capture file, a gap in the wall and how far out the wall
+  was read, another mirror too near, a spent budget. A mirror drawn whole says so in green.
+
+  The last redraw is kept as numbers and written out only when somebody asks. It was a sentence
+  built on every redraw, up to ten a second per viewer, for a command run once in a while.
+
+- **A capture no mirror uses is deleted at startup, and `mirror list` names each mirror's.** "Do
+  we clean up any abandoned views (on startup or something)?" Only one at a time: removing or
+  moving a mirror deletes its capture unless another mirror still uses that room. A `mirror.yml`
+  emptied by hand, or a delete that failed, left captures behind for good.
+
+  Once mirrors have loaded, any `.view` file whose place is no mirror's room is deleted, and the
+  count logged. Only then, since before mirrors load every capture looks abandoned. `debug save`
+  files are kept.
+
+  Captures stay named by place rather than by mirror: renaming a mirror changes nothing, and
+  moving one needs a new room captured anyway. That leaves the folder hard to read, so `mirror
+  list` ends each mirror's line with its capture key, which is the file's name.
+
+- **Clicking a mirror no longer shows the real banner, and what a click says stays up.** "When
+  right clicking, the real banner and block shows. Should that be happening?" No. The server
+  answers a refused click by sending the clicked block, and the one beside it, as they really
+  are, once the click has been handled. The view was only marked to be sent again, so the real
+  banner and wall stayed until you moved or the sweep came round. It is sent again a tick after
+  the click now, once the server's own correction is out.
+
+  "The showing its own room message appears when clicking but is quickly replaced by right click
+  to choose a mirror." The approach line is sent again every sweep so that it stays up while you
+  look, and it took the slot back before the click's line could be read. A click that says
+  something above the hotbar holds the approach line off for three seconds.
+
+- **`mirror create` says when a mirror is too close to another to be drawn whole.** Within twice
+  `mirror-view-depth` of another mirror in the same world, both fill the same space behind the
+  wall, so each is trimmed to what a viewer sees through it -- more work as people walk past, and
+  more to show at the edges. It is still made, and says so:
+
+  ```
+  It is 11 blocks from 'hall'. Mirrors nearer than 64 -- twice mirror-view-depth -- are not drawn whole:
+  each shows only what a viewer sees through it, which costs more as people walk past.
+  ```
+
+  The distance is one number now, in `MirrorPlacement`, read by both the warning and the drawing.
+
+- **`mirror debug` fits on a screen of chat, and `all` has the rest.** "The debug scrolls off the
+  chat (I know you can scroll). Is there a more compact version we can do?" A fact a line came to
+  some twenty lines, and chat shows ten. Without `all` it says five or so: the mirror, its banner
+  and room on one line; its capture on one (size or a red `file missing`, in memory or not, how
+  old); each mirror in your view and how it is drawn; the last redraw; and the command for the
+  rest. `mirror debug <name> all` is the full listing, and completes after a name with `save` and
+  `full`.
+
+- **A mirror hangs on a wall, one to a world, and cannot be broken.** A mirror draws its world
+  behind the wall it hangs on, and only the wall hides that world from anywhere but the opening.
+  A banner on a post in the open showed the far world past its edges however the view was
+  trimmed, so `mirror set` now refuses one: a mirror is a wall banner with solid wall two blocks
+  out on every side of its opening, and a gap is refused by the block to fill.
+
+  One mirror per world by default (`mirror-per-world-limit`, 0 for no limit), because the next
+  step has right-clicking a mirror scroll through the mirrors of every other world, and that is
+  only a short list while each world has one door.
+
+  Punching a mirror will be how you go through it, so the banner and the wall round it -- the
+  face, five wide and six tall -- cannot be broken or blown up while the mirror is there.
+  `mirror remove` takes one down. A plain white banner made a mirror gets the new `mirror` look,
+  pale glass with a glint and a frame; a banner already patterned keeps its patterns.
+
+- **A mirror opens onto where it goes.** Walk up to one, on the banner's side, and the banner is
+  gone: an opening its own size, one wide and two tall, is where it was, and through it is the destination -- real blocks, so it has
+  depth as you move. Click the opening to go through. A banner hung on a wall opens in the wall,
+  running down from where it hangs; a freestanding one opens in the air behind it, running up.
+
+  A banner was only ever an impression of the far side, and #278 is about replacing it with the
+  thing itself. This is the first cut of that: one-sided, blocks only, no mobs, and lit by this
+  world rather than the far one.
+
+  Nothing is set, and the mirror file does not change. Being a window is a fact about the banner
+  rather than a setting, so every mirror already on the server opens as one on the first startup.
+
+  Nothing in the world changes either. Each viewer is sent the banner as air, the opening as
+  barrier -- invisible, and at least as solid as whatever it covers -- and far-side blocks behind
+  it. That is the rule rings learned: a drawing may make collision stronger than the block under
+  it, never weaker. On plain 1.20 the banner is left standing in front of the view: sending it
+  back afterwards takes `Player.sendBlockUpdate`, which arrived in 1.20.1, and without it the
+  banner would come back without its patterns.
+
+  Only the far-side blocks the viewer could actually see through an opening are drawn, and each
+  belongs to the opening their line of sight passes through. The first build gave every mirror a
+  fixed box instead, 19 blocks wide, and the first real library it met had a row of alcoves a
+  block apart: every mirror's box overlapped its neighbours', they took turns overwriting each
+  other, and each alcove flickered between its own far side and the next one's. A part of an
+  opening with a pillar in front of it does not open at all, for the same reason.
+
+  A drawn block is a whole block, not a picture cut to the opening, so one only partly behind the
+  opening shows in full. A wall hides the rest; open air does not, and a mirror on a tower showed
+  its far side well past its edges. So a block is drawn only if all of it lies behind the opening
+  or behind something solid in the opening's layer. The opening itself was 3×3 at first, and is
+  now the banner's own size.
+
+  A mirror's banner at the far end is left out, so a linked pair looks straight through.
+
+  **What it costs, and the three things that keep it down.** Measured on the first builds, a
+  viewer walking past eight mirrors cost about 5% of the main thread each, most of it spent
+  testing blocks nobody could see. So:
+
+  - Only the cone from the eye through the opening is walked, nearest layer first. The work grows
+    with what can be seen rather than with a box around the opening -- which is also what let the
+    view go from 16 blocks deep to `mirror-view-depth`, 48 by default, without the sides of a deep
+    view being cut short.
+  - A viewer is redrawn at most four times a second as they move, not at all on a sweep where
+    nothing changed, and sent only the difference. The whole view goes again on crossing into a
+    new chunk -- which is when a client is handed chunks that erase it -- and every 30 seconds.
+  - The far side is read on demand, and never from a chunk that is not loaded. Reading one loads
+    it on the spot, on the main thread, the moment somebody walks up. Instead the chunk is fetched
+    in the background on Paper, or a couple per sweep on Spigot, and that part of the view fills
+    in when it arrives. Chunks being looked at are held with a plugin ticket, so they are not
+    loaded again every few seconds, and let go when nobody has looked for thirty.
+
+  Those three were not enough on their own. At 48 deep the cone through a mirror you are standing
+  at is tens of thousands of blocks, and a redraw among eight mirrors measured 13 ms -- worse than
+  sixteen deep had been. Most of those blocks are ground or sky, so two more:
+
+  - Behind a solid far-side block, nothing is drawn. The cone is walked nearest layer first, and
+    what is wholly hidden behind something already drawn is skipped; once the whole opening is
+    covered the walk stops. A view into a hillside ends at the hillside.
+  - Far-side air over a block that is really empty is not sent. It would change nothing on the
+    client, and the sky is most of what a deep view had been sending.
+
+  One budget covers a whole redraw, nearest mirror first, so standing among eight of them costs
+  one view's worth rather than eight.
+
+  Measured again, onto a far side of ground and sky with open space behind the wall: 0.05 ms a
+  redraw for one mirror and under 1 ms for eight, from 13. Behind a solid wall the sky has to be
+  sent as air over stone, so that case costs more than these numbers.
+
+  **Right up against a mirror, though, the real world still showed through.** From a few tenths
+  of a block the view through a one-by-two opening is nearly half a sphere, and 48 deep that is
+  hundreds of thousands of blocks -- 34 ms a redraw with no budget, and with one the view stopped
+  16 to 33 blocks back in every direction. An invisible block in front of the opening, to keep
+  viewers a block back, was tried and taken out again: it made walking up to a mirror awkward,
+  and it only moved the cut, it did not remove it.
+
+  What removed it is a different shape of view. Real blocks are drawn within `mirror-view-depth`
+  of the viewer's *eye* -- a radius, not a depth, because half a sphere of a fixed radius is the
+  same number of blocks however close you stand. Just past that radius lies a shell, one block
+  thick, that every line of sight through the opening crosses, and each block of it is painted
+  with whatever that line meets when carried on into the far side, out to `mirror-view-horizon`
+  -- or with sky. Distant things lose their parallax, which at that distance is small; in return
+  the view has no far edge, and a viewer pressed against the banner costs no more than one
+  standing back.
+
+  Three smaller things came with it. The cone is walked middle first and then outwards, so a
+  redraw that does run out of budget loses the edges of the view rather than its depth. A line
+  of sight above the far side's surface skips down to it rather than walking the air. And the
+  view is redrawn on a quarter block of movement rather than half: close up, half a block nearer
+  is twice as wide a view, and stepping in used to keep the narrower one.
+
+  **The far side is a capture, not the live world.** Reading the far world live meant it had to
+  be loaded, and it was not: the first mirror tested in earnest showed its own world above the
+  far sand, and the far side's chunks, asked for in the background, never came. So a window now
+  draws from a photograph -- a box of blocks around the arrival point, `mirror-capture-radius`
+  across (96 by default), 64 below to 64 above, taken a couple of chunks a tick the first time
+  anybody looks and kept in `data/mirror/captures/`. Palette and index, gzipped, with anything
+  buried two deep pruned to air: a beach comes to a few hundred kilobytes at most.
+
+  Once taken it never needs the far world again, which is the museum case #22 was filed for: a
+  mirror onto an archived world that is not even loaded still shows it. What it costs is
+  currency. `mirror stamp` takes it again; `mode dynamic` retakes it every
+  `mirror-dynamic-resample-seconds` while somebody is looking; `mode static`, the default, never
+  does. The far side's own mirror banners are blanked in the capture, so a linked pair looks
+  straight through, and the far world's creatures are not in it at all.
+
+  Your own world's creatures were: an armour stand on the real side stood in the middle of the
+  far side, since a drawn block hides what is behind it but a creature is not a block. Anything
+  standing inside the view is now hidden from the viewer while they look, and shown again after.
+  Other players are left alone, since hiding one takes them off the tab list.
+
+  And a window counts as seen only along a clear line from the eye to its opening through the
+  real world. Somebody in the library corridor was "in front of" all five alcove mirrors on that
+  wall and within range of them, so a redraw spent its whole budget on four the corridor walls
+  hid from them, and cut short the one they were looking at. `/wormhole mirror debug`, unlisted,
+  is what found that: it says what a mirror's capture holds and what your last redraw did.
+
+  A mirror on a small hut in open air still showed the sea through the view. Whether a drawn
+  block's outline lands on something that hides it was judged against the wall plane alone, and
+  a hut's side walls and roof are on the viewer's side; they now throw their shadow onto the
+  wall from the eye, and wall blocks in shadow count as solid. And a block straddling the edge is
+  drawn if most of it is covered, rather than rejected if any of it is not: a sliver of far
+  scenery round the corner is better than a hole with the real world in it. Captures also reach
+  48 below the arrival point now, not 16; the library sits forty-seven blocks above its beach.
+
+  Even then the library showed with sea water in it. Where the far side is air and the real
+  world is not, the view is carved to air cell by cell, which cuts a tunnel through whatever is
+  really there, and the tunnel's walls -- the real blocks just outside the cone, straddling the
+  edge by less than half -- show their faces inside it. A straddler whose far side is air is now
+  carved regardless; a notch in the sea beside the hut is the lesser harm.
+
+  And still the sea showed, and the fourth theory from a screenshot would have been as wrong as
+  the other three. So `mirror debug save` photographs *this* side of a mirror into a file beside
+  the far side's own, and a replay test draws the view from the two files and the eye's position
+  away from the server, printing what became of every block. From the hut it showed the library
+  drawn to five layers and nothing past them: a corridor beyond a row of pillars was visible
+  through a sliver of the opening a tenth of a block wide, the occlusion grid -- eight parts to
+  a block, a part hidden when a nearer block covers its middle -- rounded the sliver away and
+  called the whole opening hidden, and the walk stopped there. The grid is thirty-two parts to a
+  block now. Marking a part hidden only when covered whole would have kept the sliver too, but
+  left a lattice open along every block boundary and drawn everything behind a solid wall.
+
+  Two things came out of the same replay. The cone is walked in stages of depth, all bands
+  within each, rather than band by band to full depth: a wide radius spent the whole budget on
+  the far middle before the near sides were walked at all. And `mirror-view-depth` was capped at
+  32 for a while, since a prototype build wrote 48 into configs as its default and at 48 the cone
+  from a block away is more than a redraw's budget.
+
+  A spent budget used to leave everything past it undrawn, with no shell to close it: holes with
+  the real world in them, by construction. So the radius adapts per viewer, the way the other
+  windows plugin fits its view depth to its cell cap. A redraw that spends its budget is done
+  again at the last stage of depth it walked in full, which it can afford by construction, and
+  the radius grows back while there is room -- by the cube root of the room, since the cost of
+  a view goes with the cube of its radius, and while the viewer stands still as much as while
+  they move, since two blocks a redraw only while moving left someone who had stepped up close
+  and stopped at nineteen for good. A shorter reach is a complete view, closed by its shell,
+  that is merely shallower while the eye is right against the mirror. The replay also casts a
+  fan of rays through the opening and follows each the way the client shows it, block by block
+  (a fixed step skipped the corner of a bookshelf a ray clipped for an eighth of a block, and
+  called the floor behind it a hole); from the recorded eye it finds no ray that meets a real
+  block nobody drew, at any depth, from against the mirror to seven blocks back.
+
+  "Sixteen isn't enough; the other plugin goes further" -- and it does not need to be sixteen.
+  Sky over sky is no longer walked: above both the real column's top and the far one's there is
+  nothing to draw, and outdoors that was most of the cone. The shell is still offered there,
+  since a shell with a hole in it shows the real world. From the recorded eye a third of a
+  block from the mirror, 32 costs 27,000 blocks of a 40,000 budget; from a block and a half
+  back, 48 costs 4,000. And a redraw while the viewer stands still may spend 120,000, so the
+  view grows to the full depth over a second or so of standing, and is shallower again while
+  they walk. The default is 64 and the cap 128, so the builds in the distance show.
+
+  The far side of that same mirror ended in "water on the floor instead of wooden planks", and
+  the glass wall beyond it cut off. It was neither: the corridor ends at a glass wall with open
+  air beyond, the library being a tower, and past the glass the shell painted sky. Sky was
+  light-blue concrete, and every drawn block is lit by the real world where it is drawn --
+  behind that wall, a lake at night. Unlit light blue is navy, and a wall of navy at the end of
+  a corridor is water to anyone who looks at it. And the shell painted a glass wall as glass,
+  through which the client showed the real world.
+
+  So the shell is not a painting any more. "I don't like the fake sky/ground in the distance.
+  I'd rather just do a render distance with fog" -- and then, of a wall of white concrete,
+  "let's not do that weird shell thing. Just cut the render and display sky" -- and then, of a
+  shell of light-blue concrete, "can we just make nothing render past that point? for now." So
+  nothing is drawn past the depth: no painting, no fog, no sky. A line of sight that gets that
+  far meets whatever the real world has there, which is the trade, and the far heightmap and
+  the lines of sight through the capture are gone with the shell. The rest of the far side stays
+  lit by this world, which is the prototype's known limit: behind a dark wall, only what makes
+  its own light is bright.
+
+  "Can we tighten up the edges for those smaller mirrors in the open? Sometimes the other world
+  renders in the current world." Two rules made at the hut on the beach let it. A block was
+  drawn if half its outline, seen from the eye, landed on the opening -- so the other half
+  showed beside it -- because a sliver of real world inside the opening seemed the worse of
+  the two. And a real block straddling the edge was carved to air whenever its far side was
+  air, however little of it was behind the opening, which cut a notch of the far side into the
+  open air beside the mirror. Both were the wrong way round for a small freestanding mirror. A
+  block is drawn now only if all but a twentieth of its outline is behind the opening or on face
+  that hides it, and a straddler is left as it really is, solid or air.
+
+  "If we set the max distance in that world no matter how close to the mirror we can show a more
+  static world without the loading glitches." Trimmed to each eye, a view changed with every
+  step -- the cone through a one-by-two opening swings as the eye moves -- and reached less far
+  from close up, where the cone is widest and the budget ran out, so blocks came and went as a
+  viewer walked. The depth is measured from the middle of the opening now, not the eye. And a
+  mirror set in solid wall draws everything behind the wall out to that depth at once, the same
+  for every viewer and every eye, and keeps it a minute before reading the real world behind it
+  again. The wall hides whatever lies beside the opening, so there is nothing to trim. The trade
+  is that from anywhere else a viewer can see that space -- a doorway round the side -- they see
+  the far side in it while they look in.
+
+  "In a wall" was first one ring of solid blocks round the opening, and a mirror in a stone arch
+  two blocks wide on the beach passed, and drew the library across the sand: from beside the
+  arch there is no wall between you and the space behind it. So the wall must be solid as far
+  as `mirror-proximity-radius` on every side of the opening, which is as far to one side as
+  anyone looking in can stand. And a mirror with another within twice the depth is trimmed
+  whether or not the viewer can see the other one -- "in the library room we have mirrors with
+  one block in between" -- since drawn whole, alcoves along a wall would each fill the same space
+  behind it with a different far side. Freestanding mirrors are trimmed as before.
+
+  "It looks like we're taking a wide angle close too. I think we need to revisit the view for
+  saving the chunk data; that could give us more distance with less blocks." The wide angle in
+  that picture was the arch's whole half-sphere, above. But the capture was the wide one: a box
+  `mirror-capture-radius` across in every direction, 193 by 129 by 193 at the default, while
+  nothing outside a half-sphere of the depth ahead of the arrival point can ever be seen through
+  a window, now that the depth is measured from the opening. The capture is that half-sphere's
+  box now -- the depth plus two ahead, either side, up and down, and one layer behind -- a
+  thirty-fifth of the old one at the default depth: faster to take, a fraction of the memory,
+  and room to raise the depth. `mirror-capture-radius` is a ceiling on it, and only that.
+
+  "We need to come up with a smarter one where it looks at the mirror world through a view of
+  the player and smartly captures all blocks in that player's view while they're against the
+  mirror, looking up, down, left and right, just the visible blocks, so we limit the size and
+  the amount of data sent to the client." So inside that box a capture now keeps only what
+  somebody at the opening could see. Rays from fifty points across the opening's face, a degree
+  apart in every direction a viewer in front of it could look -- three quarters of a million of
+  them, off the main thread, once per capture -- each followed a block at a time until it meets
+  something that hides what is behind it, or leaves the box, or passes the depth. Every block a
+  ray passes through or ends on is seen, air included, since air a viewer can see is what the
+  view carves through the real world; a block beside seen air is seen too, which catches what
+  a ray a degree wide slipped past. Everything else is marked buried and left to the real
+  world. A mirror in a wall then sends the surfaces in view and nothing more: not the inside of
+  the far hill, not the rooms behind the far wall, not the beach under the sand.
+
+  "The mirror is in the lower left; it should just see a cone -- we have so much extra, the
+  sides, the ground way down at the bottom." The first cut of those rays went in every forward
+  direction, half a sphere, and a viewer against the mirror sees nothing like that: the opening
+  is a hole a block deep in the wall, and nothing steeper than a block sideways or two up per
+  block in gets through it, however close the eye. The rays go from the front of the hole out
+  through its back now, and only those. And a mirror drawn full for an admin stays drawn
+  wherever they stand, out of range and behind it, "so I can look around better at what's
+  stored".
+
+  "Look at how the blocks behind the fence aren't being stored, or the stone bricks where the
+  glass would show. We could probably store ground behind stuff in case objects need it." A
+  block was kept beside seen air only; the stone behind a fence and under a glass pane are
+  beside seen fence and seen glass. Anything beside a seen block that can be seen through is
+  kept now, and one layer behind every kept block besides, in case.
+
+  "If we're having more reasonable renders, can we make them go further back? Like to render
+  distance?" Not with the capture stored as it was: a dense grid of its box, a short per block,
+  which at depth 160 is a box 325 across and eighty megabytes while it is taken. A capture keeps
+  entries for the blocks that can be seen now, sorted by position, and the air that can be seen
+  as runs of y per column -- "if a mirror connects to a flat desert with cliffs in the distance,
+  it shouldn't be as large", and it is not: a hundred thousand columns of one run each, not tens
+  of millions of blocks of air. Air that can be seen has to be kept one way or another, because
+  without it "no block here" could mean open air, which a view carves through the real world,
+  or ground behind a far surface, which it must leave alone. Taking a capture is two passes over
+  the chunks now: the first notes a bit or two per block, the rays work out what can be seen
+  from those off the main thread, and the second reads the states of the blocks kept. A walled
+  mirror's whole view is a walk over what is kept rather than over the volume, and the depth may
+  be set to 160, ten chunks. Earlier capture files are refused as an earlier version and taken
+  again on the next look.
+
+  "The bricks behind the fence are stored but seem to flicker when approaching or backing away
+  from the portal." A block at the edge of a trimmed view was drawn when all but a twentieth of
+  it was behind the opening and left alone otherwise, so a step either way flipped it. A block
+  already drawn stays drawn now while half of it is behind the opening.
+
+  "The glass panes aren't connecting." The library mirror faces south and its far side arrives
+  facing the other way, so the far side is turned right round to face the viewer -- positions
+  were, but the blocks at them were not. A pane's connections, a fence's arms and a stair's
+  facing are compass directions, so every one of them pointed the wrong way. Each far-side
+  state is turned now with `BlockData.rotate`, which every version from 1.20 to 1.21.10 has,
+  once per state per window.
+
+  "Still flickering on the stone bricks behind the fence." The edge hold was not the whole of
+  it. A redraw while walking has a third of a still one's budget, and close to the mirror,
+  where the view is widest, it ran out, reached less far and took back what lay further; the
+  next sweep, standing, drew it again. So walking up to the mirror or backing away flipped
+  everything past the moving reach. A redraw on the move keeps the blocks the last drawing had
+  further out than it could reach, until a redraw that can afford the depth says otherwise.
+
+  That was not the whole of it either. `mirror debug`, a step apart: standing, 66,785 blocks
+  walked at radius 46; a step nearer, 1,045 of 40,000 at the same radius, and the bricks gone.
+  The budget had not run out -- the walk stopped early, judging the rest hidden behind nearer
+  blocks -- and whatever a redraw did not reach, it took back. "What if we simply render bricks
+  behind bricks just in case?" In effect: a redraw keeps every block the last drawing had that
+  is still right to show from the new eye -- behind the face, within the depth, seen through
+  this opening and at least half behind it -- and takes one back only when it would show beside
+  the opening or lies past the depth. A kept block that really is hidden is invisible; one that
+  is not hidden is right.
+
+  "On a freestanding mirror surrounded by one row of bricks: when I face the frame brick and
+  slide into the mirror view I see it render. It should already be mostly there since I'm right
+  up against the frame." From beside the opening, a block straight behind it lands on the frame
+  brick, so it was not drawn until a step brought it into the opening, and a redraw is a quarter
+  block and a quarter second behind the step. The frame hides whatever lies just beside the
+  opening, so a block landing on it -- the solid blocks of the face touching the opening,
+  corners too -- is drawn beforehand now, hidden, and the walk through the opening is widened
+  by that block on each side to find them.
+
+  "Vines and torches aren't being shown in the mirror on the other world." A capture read each
+  column only up to its highest block, and it asked the chunk snapshot, whose highest block is
+  the highest one a player would collide with -- the heightmap the server keeps for movement.
+  A torch on a floor under the sky, a flower, a rail, or a vine on an outside wall stands above
+  that, and was never read. It asks the world's surface heightmap now, which counts every block
+  that is not air.
+
+  "I stamped a mirror with the wrong world, then set it to the right one and stamped again. It
+  looks like they're both trying to render." Re-pointing one mirror replaces its view whole; what
+  drew two was two mirrors. `mirror link` run at a banner that was already a mirror bound the
+  derived `<other>-return` name to it as well, and both names claimed the banner. A click went
+  through whichever was indexed last, but the sweep offered every name, so two windows shared one
+  opening and each drew its own far side into it. `link` now joins the banner as the mirror it
+  already is, and the sweep skips a name whose banner is indexed under another, so a `mirror.yml`
+  that already holds two draws only the one a click would take -- `mirror remove` the other.
+
+  "An admin command that forces the mirror world chunk to fully render without limits so I can
+  check what it's stored and how it's rendering." `mirror debug <name> full` draws that mirror
+  whole and without limits for whoever asks -- everything its capture holds, through the
+  opening, past the edges and into the ground -- and `mirror debug off` turns views off for
+  them altogether, so the world shows as it is; `mirror debug on` ends either.
+
+  Drawn whole, a view would also have carved the inside of every far hill out of the real ground
+  behind the wall. Captures wrote what is buried two deep as air, which no line of sight through
+  an opening ever reached but a whole view does. Buried blocks are recorded as buried now, and
+  the real world is left there. A capture written before that still loads, and is taken again
+  on the next look.
+
+  "What if there are hundreds of mirrors and players using them on a very large server?" Three
+  things were unbounded. A fixed view, once drawn, stayed with its window as long as its chunk
+  was loaded, looked at or not, since every mirror in a loaded chunk is a window each sweep; it
+  is let go a minute after the last look now. Nothing bounded the server as a whole: each redraw
+  had a budget, but a hundred people walking past mirrors were a hundred budgets every quarter
+  second. There is a share of work per second for all viewers together now -- blocks walked,
+  fixed and sent -- and once it is spent a viewer keeps what they already see until the next
+  second, unless they have crossed into a new chunk, whose arrival erases what was drawn. And the
+  depth: a view's cost goes with its cube, and the library mirror's fixed view is 197,500 blocks
+  at 64 and 31,552 at 32, a sixth. So the default is 32; up to 128 is still allowed. Still
+  unbounded, and next: a capture in memory is about ten megabytes at the default capture radius,
+  one per far side looked at in the last five minutes, and each viewer holds their own copy of
+  what they were sent.
+
+  "The flooring still gets messed up; fences and signs need to allow blocks behind them to
+  render." Fences and signs never hid anything -- only occluding blocks mark the grid -- but
+  the floor did vanish in patches, and the corridor's shelves with it, for a reason the replay
+  found once it was looked for: from an eye a third of a block from the opening, a floor row
+  twenty blocks in projects onto the opening as a band far thinner than a grid part, and the
+  next row is the band just above it. A part was marked hidden, whole, when a block's outline
+  crossed its middle, so once one row had marked a part every farther row in it was called
+  hidden. Each part now keeps the exact rectangle of itself that solid outlines have covered,
+  and a block is hidden only where the whole of its outline lies inside rectangles covered from
+  nearer than it. Two outlines that meet in a part are joined, with the farther of their two
+  layers, since only past both is everything in the join hidden -- but only when the join is
+  itself a rectangle. Joined into the rectangle round both, an L claimed the corner neither
+  covered, and the replay's rays, now a two-hundredth of a block apart rather than a
+  twenty-fifth, found twenty-two in eighty thousand going through that corner to the lake
+  behind the mirror. With that, none, at any of five eyes from against the mirror to seven
+  blocks back.
+
+  And captures live in `data/mirror/captures/` now, not `data/mirror-captures/`: a folder of
+  their own under `mirror/`, so whatever else mirrors come to keep has somewhere to go. A
+  folder left by an earlier build of this branch is moved in the first time it is asked for.
+
+  Captures reach further, in case: `mirror-capture-radius` is 96 by default and 160 at most,
+  and the box goes 64 below the arrival point, not 48, which only just held the beach. And
+  pruning keeps the layer under every open face, blanking only what is buried two deep, so a
+  surface block that is wrong for any reason has ground under it rather than a hole. Wider is
+  more memory while a far side is being looked at -- 96 is about eight megabytes -- and the
+  file stays small, since only the open faces and the layer under them are in it. A capture
+  from before the box grew is taken again on the next look, so nobody has to know to run
+  `mirror stamp`.
+
+  Taking a capture failed on 1.20.6 and everything after it, in CI only: `Material.isAir()`
+  asks the block registry from 1.20.6 on, one call down, where a server-free test cannot
+  reach. The air check compares the constants now.
 - **`create` is accepted wherever something gets registered.** Four features, four different
   words for the same step, none of them wrong and no two of them the same:
 
@@ -272,7 +854,170 @@ been running on defaults will start reading the file you have been editing.
   about it. `/wormhole gate validate -all` sweeps every gate and names only the ones with
   something wrong ([#54](https://github.com/khanjal/Wormhole-X-Treme/issues/54)).
 
+### Changed
+
+- **A clipped room's far part is judged for a whole cell of eyes at once, as wide as the wall
+  allows.** "Larger border the more stuff has time to change." It should have, and it did not:
+  the far part stood for a block of movement behind any wall two or more blocks wide, since it
+  was judged for the one eye that happened to be there, which is right for that eye and wrong for
+  the next, and a block of wall was as far as a stale block's landing could shift before the next
+  redraw. Every wider wall was on a two-block wall's footing.
+
+  The far part is judged for the whole cell now: from the cell's middle, with each block's landing
+  on the wall widened by half the cell on every side, which is as far as it moves for any eye in
+  the cell. A block seen through the opening from anywhere in the cell is drawn, and lands from
+  everywhere in it where the wall hides it -- so the cell is half a block narrower than the wall,
+  up to four blocks. Still half a block behind a one-block wall, a block and a half behind two,
+  four behind five. The same blocks are sent per block walked, in a fraction of the batches, and
+  the client re-meshes each far chunk section a fraction as often: a quarter as often behind a
+  wall five wide. Not measured on a server yet. `mirror debug` says each clipped mirror's cell and
+  wall, and how many far blocks it keeps.
+
+  Near and far are split from the same point the far part is judged from, not from the eye. Split
+  from the eye, a block 24 off changed sides as the eye moved within its cell, and one that was
+  near when the far part was judged and far now was drawn by neither pass: a thin shell of holes
+  that moved with the viewer until the far part was judged again a second on. That was so before
+  this change, a block of movement wide, and would have been four.
+
+- **A right-click never comes round to a mirror's own room.** "We shouldn't have the mirror's own
+  room be on the right-click scroll. It should only show when approached and the mirror turns on;
+  otherwise just scroll through the other mirrors." The list a right-click walked ended with the
+  mirror's own room, so at a mirror with two others every third press was a reflection. The list is
+  the other mirrors alone -- the start first, then the rest by name, then the start again -- and
+  the count reads `1 of 2`. The own room is what a mirror shows before anybody clicks it, and what
+  it goes back to when everybody has gone.
+
+- **A clipped room's far part stands between small steps, and a slow redraw earns a rest.** "It
+  was real laggy" at depth 160, and fine at 60. Through a one-block opening, a tenth-of-a-block
+  step swings the far end of the view a dozen blocks sideways, so thousands of blocks a hundred and
+  more deep changed on every redraw, ten times a second: projected on the server and re-meshed on
+  the client, each time. What moves with a step is what is near the eye, and that is judged every
+  redraw; the rest, past 24 blocks from the eye, is judged again only once the eye has left the
+  block it was in, or a second on, and stands as last judged between. Near by distance from the
+  eye, not depth behind the opening: I tried the first 48 layers first, and right against the
+  opening, where the whole half-sphere is in view, that was most of the room.
+
+  The debug lines from that mirror said the rest: a reflection at 160 held 194,000 blocks, most
+  of them the air that carves this world's own ground out from behind the wall, and a redraw at
+  the opening projected all of them in 65 milliseconds, ten times a second. A redraw now rests
+  three times as long as it took before the next, so one viewer at a deep mirror costs at most a
+  quarter of the main thread, and a quick redraw still comes ten times a second. `debug`'s
+  `last redraw` line counts only what a redraw projected, so a small step shows a small number
+  and a whole-block step the far part too.
+
+- **A room too big to send at once is clipped to each eye, however good its wall.** "It's
+  rendering lag when you look at or move in/out of view: it remains and then takes a moment to
+  generate." A room at the render distance is some eighty thousand blocks, and a mirror in a
+  solid wall sent every one of them as a viewer came into range, and took every one back as they
+  left: the client re-meshed every chunk section they touched, a moment's freeze each way. Past
+  20,000 blocks a room is clipped to the eye like any other -- a few thousand blocks through a
+  one-block opening, and a step is a small difference -- and `debug` says why. A small room in a
+  good wall is still sent whole, the same from every eye.
+
+- **`mirror-view-depth` is 160 by default, and a room cut to fit says so.** "Should we increase
+  the distance, or do something about preventing the real world bleeding through the mirror
+  world?" What shows through is whatever lies past the depth, and the depth was 32 from when a
+  capture was a dense box and a deep view cost its volume. A room is its surfaces now -- a floor,
+  the faces of hills and trees, one layer each -- so at 160 a plain is some forty thousand blocks,
+  and 160 is ten chunks: as far as a server usually sends, past which the client has nothing to
+  show. So nothing of this world appears. The price is that the first capture loads that much of
+  the room's world, once. An existing `config.yml` keeps the depth it has.
+
+  A held room past 250,000 blocks -- glass, leaves -- is cut shallower until it fits, and `debug`
+  reported the smaller depth as though it were the setting. It says `cut to depth N of 160 to fit
+  250000 blocks`, in red.
+
+- **A mirror on any wall reaches the full depth, standing or walking: its room is held whole and
+  clipped to each eye.** "I want to capture further for the mirror. Right now it seems short and
+  is showing the real world after the mirror one." Only a mirror walled to the proximity distance
+  was drawn whole. Any other wall was walked like a freestanding mirror: the cone from the eye
+  through the opening, block by block, with an occlusion grid and a budget, reaching what one
+  redraw could afford -- shallower right against the mirror and while walking, and never the
+  render distance. Every one-block-border mirror was one of those.
+
+  Now every wall mirror's room is held whole, as a walled one's is, and a mirror that cannot be
+  drawn whole -- a gap in its wall within the proximity distance, or another mirror within twice
+  the depth -- is clipped to each eye instead: each redraw keeps the blocks of the room this eye
+  sees through the opening, landing where the wall hides the rest, by the same edge rule as
+  before. Nothing is walked, occluded or budgeted: the capture already holds only what somebody
+  at the opening could see, and a cheap bound on where a block can land spares most of the room a
+  projection. So `mirror-view-depth 160`, ten chunks, reaches as far as the server sends chunks,
+  on a thin wall as on a thick one; past it the client has nothing to show, which is the cut
+  with nothing painted. `mirror debug` says `whole to depth N, clipped to each eye`. Only a
+  freestanding mirror is still walked, and that code goes with it.
+
+- **The outer half of the wall's edge is a margin nothing is drawn onto, so what a mirror shows
+  beside its opening scales with its wall.** "For a border of 1 we need to trim better; there's a
+  lot of leaking around the border. Should it change based on border, up to a max?" A block drawn
+  onto the wall beside the opening -- and blocks are, so that the edges of the view are already
+  there as you slide into it -- is hidden only from the eye it was drawn for. A step shifts where
+  it lands, and the wall has to absorb that shift until the next redraw. Two blocks of wall
+  absorbed a step; one did not, and the block behind the ring showed every time you moved.
+
+  So the outer half of the wall's outermost ring, on each side it is open, hides nothing: a block
+  is drawn only where its outline lands on the opening or on wall inside that. I tried the whole
+  ring first, and the test caught it: on a three-wide panel a block straight through the opening
+  spills a third of a block onto the top ring, and was dropped too -- holes instead of leaks.
+  Half a block absorbs a step. With one block of wall a block may spill half a block onto it; with
+  two the inner ring is all wall, as before; a wider wall shows more beside the opening, and at
+  the proximity distance it is drawn whole. A ring hidden by something real in front still hides
+  all of itself, so a hut's front wall behaves as before.
+
+- **A mirror needs a block of wall round its opening, not two; short of two, `create` says so.**
+  "Let's go down to 1 and then leave that the lower limit. We can do a warning if it's less than
+  2." Two was chosen while a drawn block at the edge was held until half of it was past the
+  opening, so that half-block of far room needed wall to land on. The hold is 15% now, and a
+  trimmed view only ever draws a block whose outline falls on the opening or on solid face, so one
+  block hides everything it draws. A pair needs four by four instead of six by six, and only that
+  block of wall is protected from breaking. A wall solid one out but not two is made anyway, and
+  `create` names the block that is not solid, since two hides the room's edges better from a
+  sharp angle.
+
+- **`mirror-proximity-radius` is `mirror-proximity-distance`.** "Instead of radius then should it be
+  distance?" It is the one "radius" left, and it does three jobs an admin thinks of as distances:
+  how close you get before the banner gives way, how far you can drift before a mirror you
+  turned on goes off, and how far out its wall is read. A `config.yml` with the old key still
+  loads, and the next write carries the value over under the new name and drops the old line.
+
+### Removed
+
+- **The cone walk, and `mirror debug save` with it.** A banner on a post is refused as a mirror,
+  and every wall mirror's room is held whole and clipped to the eye, so the code that walked the
+  cone from the eye through the opening -- the occlusion grid, the depth stages, the moving and
+  standing budgets, the reach that grew back by the cube root of the room to spare, the redraw
+  that kept what the walk missed -- ran only for a mirror saved before the wall rule, which nobody
+  has. About a third of `MirrorWindows` and the walk's twenty tests are gone; the tests that said
+  something about edges, frames and steps say it about wall banners now. `mirror debug save`, which
+  photographed this side of a mirror for the replay harness that reproduced the walk's verdicts
+  away from the server, goes with the harness. A banner on a post from an older file draws nothing.
+
+- **Two mirror settings nothing read.** "Do we still need `mirror-capture-radius`?" No. It capped
+  how deep a capture is taken, from when a capture was a dense box at the render distance and
+  eighty megabytes; a capture keeps only the surfaces in view now, and is taken to
+  `mirror-view-depth`, which is already capped at 160. Lowering it only made the view stop at the
+  capture's edge. `mirror-allow-same-world` went the same way: every mirror is on the network,
+  nothing is pointed by hand, and its getter had no caller. A line for either in an existing
+  `config.yml` is ignored and left where it is.
+
 ### Fixed
+
+- **The real banner no longer flickers on a right-click.** "We still have a very quick flicker
+  of a banner when right clicking and switching mirrors." A refused click makes the server send
+  the clicked block and the one on its face as they really are -- in the same tick, after every
+  listener -- and the view went out again a tick later, so the banner showed for that tick. The
+  client, seeing the banner drawn as air, clicks the barrier in the opening behind it, and the
+  block on its near face is the banner's. Those two are now sent again as the view draws them
+  from off the main thread thirty milliseconds on, after the correction and before the tick is
+  out; nothing reads the world off the main thread, and the whole view still follows a tick later.
+
+- **A redraw could hang the server for fifteen seconds, standing on a block boundary.** From the
+  log: `MirrorWindows.shielded` adding to a set, under a redraw catching a viewer up. That pass
+  throws every real solid block within eight of the opening onto the face from the eye, to find
+  what a corridor's walls or a hut's sides hide. A block whose near corner is a twentieth of a
+  block from the eye's depth -- the ground at your feet -- projects three hundred times its size,
+  and every cell of a shadow hundreds of blocks across was added, for each such block. Nothing
+  outside the face read for a window is ever asked about, so a shadow is clamped to that face
+  first.
 
 - **A tidy-up that failed on shutdown took every save with it.** Reported from a live server:
   `NoClassDefFoundError: .../MirrorPackets` thrown out of `onDisable`, from the call that gives
@@ -653,6 +1398,26 @@ small win in exchange for a documented behaviour. It early-outs on servers with 
   step say so ([#45](https://github.com/khanjal/Wormhole-X-Treme/issues/45)).
 - The release workflow can be rehearsed without publishing, so it is no longer first run in
   anger on the day of a release, and the workflow actions moved onto the Node 24 line.
+- The mirror branch's SonarCloud gate went red on reliability, over two bugs that were not.
+  `MirrorSignpost.hold` read the player's id straight after `ActionBar.send` had taken the same
+  player, and that method says its player may be null, for somebody who has since logged out;
+  Sonar put the two contracts side by side and called the read a null dereference. The player
+  comes off a click event and never is null, but a hint hands it to the line and then to the hold,
+  so the hold now takes what the line takes. The other was `roomOf` subtracting one integer from
+  another before handing the result to a double, which is exact; the difference is now named for
+  what it is, the floor of the opening. With those went a `WIDTH` constant that clashed with the
+  record's own `width` and had one reader, `HALF`, which had none, and three unused helpers.
+
+  Forty of the branch's seventy-three findings, all told: three duplicated literals, seven nested
+  ternaries, two helpers moved into the only class that calls them, `File.delete` in two places
+  that could not say why a capture file stayed and now log the reason, a save that replaced its
+  file by hand in three steps and now asks `Files.move` to, unused imports, and a doc comment in
+  each of two files that had lost its method. Behaviour is unchanged, and the tests that pin
+  `needed`, `roomOf` and the ray walk pass as they did. What stays open is design rather than
+  defect -- thirteen methods over the complexity limit, six with more than seven parameters, five
+  loops with two exits, and seven `null` returns that mean "not seen" throughout the mirror code
+  -- plus one finding that is wrong, a loop bound of 1.4 read as an approximation of the square
+  root of two, and one that is deliberate, the test pause that lets the redraw clock run.
 
 <details>
 <summary><b>Full notes</b> — the reasoning behind each change, in the order they were made</summary>

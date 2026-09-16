@@ -1,0 +1,7 @@
+# What a plain white banner becomes when it is made a mirror: pale glass, a glint across it, and a frame.
+# The format is documented in docs/MIRRORS.md.
+Name=mirror
+Base=LIGHT_BLUE
+Layer=WHITE STRIPE_DOWNLEFT
+Layer=LIGHT_GRAY GRADIENT
+Layer=GRAY BORDER

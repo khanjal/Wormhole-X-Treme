@@ -103,6 +103,27 @@ class ConfigLoadTest
     }
 
     /**
+     * A setting written under a name it no longer has still loads, and is written back under the
+     * name it has now.
+     *
+     * <p>{@code mirror-proximity-radius} became {@code mirror-proximity-distance}. A server that
+     * had set it would otherwise revert to the default without a word, and keep an orphan line.
+     */
+    @Test
+    void aKeyUnderItsOldNameStillLoadsAndIsRenamedInTheFile() throws Exception
+    {
+        writeConfig("mirror-proximity-radius: 11\n");
+
+        ConfigurationYAML.loadConfiguration(directory);
+
+        assertEquals(11, ConfigManager.getMirrorProximityDistance(), "the value under the old name");
+        final List<String> lines = configLines();
+        assertTrue(lines.contains("mirror-proximity-distance: 11"), "written back under the new name: " + lines);
+        assertFalse(lines.stream().anyMatch(l -> l.startsWith("mirror-proximity-radius:")),
+            "and the old line does not linger: " + lines);
+    }
+
+    /**
      * A key the file does not mention is added to it.
      *
      * <p>Defaulting it in memory alone would leave the admin with no way to discover the

@@ -23,7 +23,7 @@ Four ways to get somewhere, each a different trade between what you build and wh
 | **[Stargates](docs/guide/GATES.md)** | A frame of blocks | Dial by button, sign, redstone or `/dial` | Any gate, across worlds |
 | **[Transport rings](docs/guide/RINGS.md)** | A circle of slabs, in pairs | Walk into it | Its partner, same world |
 | **[Beaming](docs/guide/BEAMS.md)** | Nothing | `/wormhole beam to <name>` | A saved point, anywhere |
-| **[Quantum mirrors](docs/guide/MIRRORS.md)** | One banner | Right-click it | Another world, one way |
+| **[Quantum mirrors](docs/guide/MIRRORS.md)** | One wall banner | Right-click to choose, punch to go | Any other mirror, across worlds |
 
 ## Features
 
@@ -32,7 +32,8 @@ Four ways to get somewhere, each a different trade between what you build and wh
 - **Configured in-game** — `/wormhole config` changes any setting on the spot, with no reload.
 - **Eleven gate shapes** in any palette: build `Standard` in obsidian or in lapis and get a
   different-looking gate from one shape file.
-- **Mirrors that look like where they go** — a banner reads its destination and paints itself.
+- **Mirrors that show a room** — walk up to one and it reflects its own room in real blocks;
+  right-click it and it shows another world's.
 - **Every sound is a setting**, resource pack sounds included.
 - **Works with or without a permissions plugin**, and charges through Vault only if you want it to.
 - **Events for other plugins** to watch or cancel travel — see [docs/API.md](docs/API.md).
@@ -53,8 +54,9 @@ else in the same world. [More](docs/guide/RINGS.md#building-a-ring-pair)
 **Beaming** — `/wormhole beam place set home` where you stand, `/wormhole beam to home` from
 anywhere. [More](docs/guide/BEAMS.md)
 
-**A mirror** — look at a banner and `/wormhole mirror set nether`, then look at a banner in
-another world and `/wormhole mirror link nether`. [More](docs/guide/MIRRORS.md#setting-one-up)
+**A mirror** — hang a banner on a wall, look at it and `/wormhole mirror create home`. Do the same
+in another world; right-click a mirror to choose where it opens onto, and punch it to go through.
+[More](docs/guide/MIRRORS.md#setting-one-up)
 
 ## Compatibility
 

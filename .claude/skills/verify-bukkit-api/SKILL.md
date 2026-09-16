@@ -9,6 +9,11 @@ This project's supported range is wide (1.20 through 1.21.10 — seven versions 
 three server flavours, one jar) and its history has concrete, expensive examples of an API
 that looked safe from memory but genuinely differed by version:
 
+- `Material.isAir()`, `isOccluding()`, `isSolid()` and the like go through `asBlockType()` and
+  the block registry from **1.20.6** onward. A `javap -c` of `isAir` itself shows no registry
+  reference -- it is one call deeper -- and CI on 1.20.6 through 1.21.10 threw "Could not
+  initialize class org.bukkit.Registry" from a test that had passed on 1.20 through 1.20.4.
+  Compare the enum constants (`== Material.AIR`) instead, or ask the `BlockData`.
 - `Material.isBlock()` goes through a live registry from Minecraft **1.20.6** onward, and
   throws rather than answering if called before the server has finished starting. A class
   whose static initialiser called it stayed broken for the life of the JVM on 1.20.6+ while

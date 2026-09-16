@@ -68,7 +68,7 @@ public final class MirrorPresetRegistry
         "deep_dark.mirror", "nether.mirror", "crimson_forest.mirror", "warped_forest.mirror",
         "soul_sand_valley.mirror", "basalt_deltas.mirror", "end.mirror",
         "end_highlands.mirror", "end_midlands.mirror", "small_end_islands.mirror",
-        "end_barrens.mirror", "the_void.mirror", "overworld.mirror", "indoors.mirror",
+        "end_barrens.mirror", "the_void.mirror", "mirror.mirror", "overworld.mirror", "indoors.mirror",
         "cavern.mirror", "plain.mirror", "hub.mirror", "warning.mirror", "private.mirror",
         "arcane.mirror", "portal.mirror", "spawn.mirror", "exit.mirror", "arrival.mirror",
         "locked.mirror", "staff.mirror", "market.mirror", "shrine.mirror", "danger.mirror",

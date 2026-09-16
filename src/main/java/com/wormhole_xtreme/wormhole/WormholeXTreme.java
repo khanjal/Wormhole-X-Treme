@@ -476,6 +476,13 @@ public class WormholeXTreme extends JavaPlugin
             final int mirrors = com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
             prettyLog(Level.INFO, true, LOADED + mirrors + " quantum mirror"
                 + (mirrors == 1 ? "" : "s") + ".");
+            // Here and not before: until mirrors have loaded, every capture reads as abandoned.
+            final int swept = com.wormhole_xtreme.wormhole.model.mirror.MirrorCaptures.sweepAbandoned();
+            if (swept > 0)
+            {
+                prettyLog(Level.INFO, true, "Deleted " + swept + " mirror capture"
+                    + (swept == 1 ? "" : "s") + " no mirror uses.");
+            }
         }
         catch (final Exception e)
         {

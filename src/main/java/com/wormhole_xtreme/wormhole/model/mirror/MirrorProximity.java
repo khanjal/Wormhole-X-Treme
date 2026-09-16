@@ -86,6 +86,7 @@ public final class MirrorProximity
         SHOWING.clear();
         HIDING.clear();
         SAMPLED.clear();
+        MirrorWindows.clear();
     }
 
     /**
@@ -101,6 +102,7 @@ public final class MirrorProximity
      */
     public static void release(final QuantumMirror mirror)
     {
+        MirrorWindows.release(mirror);
         final Set<UUID> hidden = HIDING.remove(mirror.name());
         SHOWING.remove(mirror.name());
         if ((hidden == null) || hidden.isEmpty() || !MirrorPackets.available())
@@ -131,6 +133,8 @@ public final class MirrorProximity
     {
         release(mirror);
         SAMPLED.remove(mirror.name());
+        MirrorCaptures.forget(mirror);
+        MirrorNetwork.forget(mirror.name());
     }
 
     /**
@@ -150,6 +154,8 @@ public final class MirrorProximity
      */
     public static void restoreAll()
     {
+        // Before the check below: a window is drawn with block changes, which 1.20 has.
+        MirrorWindows.restoreAll();
         if (!MirrorPackets.available())
         {
             return;
@@ -181,24 +187,61 @@ public final class MirrorProximity
      * on approach, and taken out again when announcing moved to {@link MirrorSignpost} and
      * became a question asked of the player rather than of every mirror. So the old promise
      * holds: a server whose mirrors are all ordinary does no work here beyond walking the list.
+     *
+     * <p>A mirror hung on a wall is a window, handed to {@link MirrorWindows} instead: it draws
+     * rather than hides, and has no look to keep current. Nothing marks one in the file, so
+     * every mirror with somewhere to go has its banner read to find out.
      */
     static void tick()
     {
         for (final QuantumMirror mirror : MirrorManager.all())
         {
-            // Two separate reasons to visit a mirror, and they are not the same reason.
-            // Hiding needs per-player block updates, so it needs a server that has them.
-            // Re-reading the far side needs only somebody to walk up, and writes its result
-            // to the banner everybody can see -- so it works on 1.20, and on a mirror that
-            // never hides. The two settings are documented as independent; this is where that
-            // is either true or a lie.
-            final boolean hides = (mirror.display() == MirrorDisplay.PROXIMITY)
-                && MirrorPackets.available();
-            if (hides || (mirror.mode() == MirrorMode.DYNAMIC))
+            // A name whose banner is indexed under another mirror is not clicked through, so it is
+            // not drawn either: two of them drew two far sides through one opening.
+            final QuantumMirror onItsBanner = MirrorManager.at(mirror.banner());
+            if ((onItsBanner != null) && !onItsBanner.name().equalsIgnoreCase(mirror.name()))
             {
-                tickOne(mirror, hides);
+                continue;
+            }
+            if (!offerWindow(mirror))
+            {
+                // Two separate reasons to visit a mirror, and they are not the same reason.
+                // Hiding needs per-player block updates, so it needs a server that has them.
+                // Re-reading the far side needs only somebody to walk up, and writes its result
+                // to the banner everybody can see -- so it works on 1.20, and on a mirror that
+                // never hides. The two settings are documented as independent; this is where
+                // that is either true or a lie.
+                final boolean hides = (mirror.display() == MirrorDisplay.PROXIMITY)
+                    && MirrorPackets.available();
+                if (hides || (mirror.mode() == MirrorMode.DYNAMIC))
+                {
+                    tickOne(mirror, hides);
+                }
             }
         }
+        // Windows share walls, so they are drawn together once every one has been found. A
+        // window not offered this sweep -- broken, taken down, re-hung on a post -- drops out.
+        MirrorWindows.finish();
+    }
+
+    /**
+     * Offers a mirror to {@link MirrorWindows}, which takes it if its banner hangs on a wall.
+     *
+     * @param mirror
+     *            the mirror
+     * @return true if it is a window, and there is nothing else for this sweep to do with it
+     */
+    private static boolean offerWindow(final QuantumMirror mirror)
+    {
+        // A mirror going nowhere has no view, and its banner need not be read to learn that.
+        final Block block = (mirror.destination() == null) ? null : bannerOf(mirror);
+        if (block == null)
+        {
+            return false;
+        }
+        // Nobody at it any more: back to its own room.
+        MirrorNetwork.settle(mirror, MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), null));
+        return MirrorWindows.offer(mirror, block);
     }
 
     /**
@@ -358,10 +401,10 @@ public final class MirrorProximity
         return block.getType().name().endsWith("BANNER") ? block : null;
     }
 
-    /** @return the proximity radius, squared, so no square root is taken per player */
+    /** @return the proximity distance, squared, so no square root is taken per player */
     private static double reachSquared()
     {
-        final double radius = ConfigManager.getMirrorProximityRadius();
+        final double radius = ConfigManager.getMirrorProximityDistance();
         return radius * radius;
     }
 

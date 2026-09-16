@@ -11,18 +11,20 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 import com.wormhole_xtreme.wormhole.config.ConfigManager;
 import com.wormhole_xtreme.wormhole.permissions.WXPermissions;
 import com.wormhole_xtreme.wormhole.utils.WorldUtils;
 
 /**
- * What happens when somebody right-clicks a banner that is a mirror.
+ * What happens when somebody clicks a mirror: a right-click chooses where it opens onto, and a
+ * punch goes through.
  *
- * <p>This runs on every right-click of every block on the server, so the first thing it does
- * is the cheapest question it can ask: is this block in the mirror index? For all but a
- * handful of blocks the answer is no and nothing else happens. Everything expensive --
- * permission, world lookup, safe-location correction -- is behind that.
+ * <p>This runs on every click of every block on the server, so the first thing it does is the
+ * cheapest question it can ask: is this block in the mirror index? For all but a handful of
+ * blocks the answer is no and nothing else happens. Everything expensive -- permission, world
+ * lookup, safe-location correction -- is behind that.
  *
  * <p>Separate from {@code GateInteractionHandler} rather than folded into it. A gate's dial
  * sign and a mirror's banner have nothing in common beyond both being blocks somebody clicks,
@@ -35,8 +37,8 @@ public final class MirrorInteraction
      *
      * <p>This is what keeps a click on an ordinary block cheap. Building a
      * {@link MirrorBlock} to ask the registry means calling {@code getWorld()} on the block,
-     * and that is real work on every right-click of every block on the server -- there is a
-     * test, {@code InteractLoggingCostTest}, that fails if this path touches the world. So the
+     * and that is real work on every click of every block on the server -- there is a test,
+     * {@code InteractLoggingCostTest}, that fails if this path touches the world. So the
      * block's own type is checked first: a hash lookup against a set built at class-init,
      * which rules out all but a handful of blocks before anything else happens.
      *
@@ -56,7 +58,7 @@ public final class MirrorInteraction
     }
 
     /**
-     * Sends a player through a mirror, if that is what they clicked.
+     * Chooses or travels, if a mirror is what was clicked.
      *
      * @param event
      *            the interact event
@@ -64,25 +66,80 @@ public final class MirrorInteraction
      */
     public static boolean handle(final PlayerInteractEvent event)
     {
-        if ((event == null) || (event.getAction() != Action.RIGHT_CLICK_BLOCK))
+        if (event == null)
+        {
+            return false;
+        }
+        final Action action = event.getAction();
+        if ((action != Action.RIGHT_CLICK_BLOCK) && (action != Action.LEFT_CLICK_BLOCK))
         {
             return false;
         }
         final Block block = event.getClickedBlock();
-        // Type first, deliberately. Anything else -- including building the key to ask the
-        // registry -- costs more than this, and almost every click is on a block that is not
-        // a banner at all.
-        if ((block == null) || !BANNERS.contains(block.getType()))
+        if (block == null)
         {
             return false;
         }
-        final QuantumMirror mirror = MirrorManager.at(MirrorBlock.of(block));
+        final Player player = event.getPlayer();
+        final QuantumMirror mirror = mirrorAt(player, block);
         if (mirror == null)
         {
             return false;
         }
-        travel(event.getPlayer(), mirror);
+        // A right-click arrives once for each hand. The second is claimed, and does nothing.
+        if (event.getHand() == EquipmentSlot.OFF_HAND)
+        {
+            return true;
+        }
+        if (action == Action.RIGHT_CLICK_BLOCK)
+        {
+            choose(player, block, mirror);
+        }
+        else
+        {
+            travel(player, mirror);
+        }
+        // A click the server refused shows the client the real block again, over the view.
+        MirrorWindows.resend(player, block, event.getBlockFace());
         return true;
+    }
+
+    /** The mirror a block belongs to: its banner, or the opening of a window the player sees. */
+    private static QuantumMirror mirrorAt(final Player player, final Block block)
+    {
+        // Type first, deliberately. Anything else -- including building the key to ask the
+        // registry -- costs more than this, and almost every click is on a block that is not
+        // a banner at all.
+        if (BANNERS.contains(block.getType()))
+        {
+            return MirrorManager.at(MirrorBlock.of(block));
+        }
+        // A window's opening is drawn over a wall, so what was clicked is the wall.
+        final QuantumMirror drawn = MirrorWindows.clicked(player, block);
+        return (drawn == null) ? null : MirrorManager.byName(drawn.name());
+    }
+
+    /** Moves the mirror on to the next one, and says where it opens onto now. */
+    private static void choose(final Player player, final Block block, final QuantumMirror mirror)
+    {
+        if (!WXPermissions.checkWXPermissions(player, WXPermissions.PermissionType.USE))
+        {
+            player.sendMessage(ConfigManager.MessageStrings.PERMISSION_NO.toString());
+            return;
+        }
+        final String before = MirrorNetwork.chosen(mirror).name();
+        final String said = MirrorNetwork.scroll(mirror,
+            MirrorNetwork.anybodyNear(block.getWorld(), mirror.banner(), player));
+        if (said != null)
+        {
+            hint(player, said);
+        }
+        // Shown at once, rather than when the sweep next comes round.
+        if (!MirrorNetwork.chosen(mirror).name().equals(before))
+        {
+            final MirrorBlock at = mirror.banner();
+            MirrorWindows.redraw(mirror, block.getWorld().getBlockAt(at.x(), at.y(), at.z()));
+        }
     }
 
     /**
@@ -105,8 +162,8 @@ public final class MirrorInteraction
         {
             if (MirrorSettle.shouldExplain(player))
             {
-                say(player, "Mirrors settle for a moment after one puts you down. Step away"
-                    + " from the banner and click again.");
+                hint(player, "Mirrors settle for a moment after one puts you down. Step away"
+                    + " from the banner and try again.");
             }
             return;
         }
@@ -120,20 +177,27 @@ public final class MirrorInteraction
             sayUnbound(player, mirror);
             return;
         }
-        final Location destination = mirror.destination().toLocation();
+        if (MirrorNetwork.reflects(mirror))
+        {
+            hint(player, MirrorText.quoted(mirror.name()) + " is showing its own room. Right-click it"
+                + " to choose another mirror.");
+            return;
+        }
+        final QuantumMirror target = MirrorNetwork.chosen(mirror);
+        final Location destination = target.destination().toLocation();
         if (destination == null)
         {
             // The name-based world lookup every store in this plugin uses. A world that is not
             // loaded, or one recreated under a different name, both land here.
             say(player, "The far side of this mirror is in "
-                + MirrorText.name(mirror.destination().worldName())
+                + MirrorText.name(target.destination().worldName())
                 + ", which is not loaded.");
             return;
         }
         final Location safe = WorldUtils.findSafePlayerLocation(destination);
         if (!player.teleport((safe == null) ? destination : safe))
         {
-            sayRefused(player, mirror);
+            sayRefused(player, target);
             return;
         }
         // Only on a trip that actually happened. The far banner is now in front of them, and
@@ -150,30 +214,19 @@ public final class MirrorInteraction
      * (Multiverse's {@code enforce-access} wants {@code multiverse.access.<world>}); land
      * claims are the other.
      */
-    private static void sayRefused(final Player player, final QuantumMirror mirror)
+    private static void sayRefused(final Player player, final QuantumMirror target)
     {
         say(player, "Something else on this server would not let you into "
-            + MirrorText.name(mirror.destination().worldName()) + ".");
+            + MirrorText.name(target.destination().worldName()) + ".");
         say(player, "A world-access or land-claim plugin is the usual reason -- check that you"
             + " are allowed into that world.");
     }
 
     /**
-     * Says a mirror goes nowhere, and how to point it somewhere.
+     * Says a mirror has no room, and how to give it one.
      *
-     * <p>"This mirror does not open onto anywhere yet" is true and useless. It is said at the
-     * one moment somebody has demonstrated they want this banner to work, standing in front of
-     * it -- which is exactly when the next command is worth putting in front of them, spelled
-     * out with this mirror's own name so it can be typed as it stands.
-     *
-     * <p>Only for somebody who could run it. A visitor clicking a half-built mirror gets the
-     * plain sentence: handing them two commands they have no permission for would read as the
-     * plugin telling them to do something, and they would be right to try.
-     *
-     * <p>Both routes are offered because they answer different questions. {@code link} is for
-     * a banner at the far end, which is what most pairs are; {@code target} is for arriving
-     * somewhere with no banner at all, which is the archived-world case the whole feature was
-     * built for and the one nobody guesses.
+     * <p>Only for somebody who could run the command. A visitor gets the plain sentence: handing
+     * them a command they have no permission for would read as the plugin telling them to.
      */
     private static void sayUnbound(final Player player, final QuantumMirror mirror)
     {
@@ -182,10 +235,8 @@ public final class MirrorInteraction
         {
             return;
         }
-        say(player, "Hang a banner where it should lead, look at it, and run:");
-        say(player, "  " + MirrorText.command("/wormhole mirror link", mirror.name()));
-        say(player, "Or stand where arrivals should land and run:");
-        say(player, "  " + MirrorText.command("/wormhole mirror target", mirror.name()));
+        say(player, "Look at it and run "
+            + MirrorText.command("/wormhole mirror create", mirror.name()) + " to set it up again.");
     }
 
     /**
@@ -197,5 +248,18 @@ public final class MirrorInteraction
     private static void say(final Player player, final String message)
     {
         player.sendMessage(ConfigManager.MessageStrings.NORMAL_HEADER + message);
+    }
+
+    /**
+     * Says something about the mirror itself above the hotbar, where the next line replaces it.
+     *
+     * <p>Where it opens onto now, that there is nowhere else, to right-click first: a player clicking
+     * through a list of mirrors had a chat window full of them.
+     */
+    private static void hint(final Player player, final String message)
+    {
+        com.wormhole_xtreme.wormhole.utils.ActionBar.send(player, "§3:: " + message);
+        // Or the approach line replaces it at the next sweep, before it can be read.
+        MirrorSignpost.hold(player);
     }
 }
