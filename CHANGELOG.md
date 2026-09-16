@@ -856,6 +856,16 @@ been running on defaults will start reading the file you have been editing.
 
 ### Changed
 
+- **`mirror set` is the one door to what a mirror has.** "Thinking getting rid of stamp, mode,
+  display, start from the main submenu and move it to an edit menu?" Four verbs were most of the
+  usage line, and none of them is what somebody making a first mirror is after. The top is
+  `create`, `set`, `remove` and `list` now, and `set [name] <stamp|display|mode|start> ...` holds
+  the four: `mirror set museum display proximity`, or `mirror set display proximity` looking at
+  the banner. A property word is never a name -- `create` refuses the four -- which is how `set`
+  tells the two apart. Each property keeps the parser it had as a verb, so what may stand where a
+  name or a look does has not changed, and tab completion follows the words. `set` as an older
+  word for `create` goes with it: `set museum` out of habit gets set's form, not a new mirror.
+
 - **A room is streamed in a tick at a time as a viewer comes into range, and taken back the same
   way; the cap on a room sent whole is gone.** "It's rendering lag when you look at or move
   in/out of view." A room at the render distance is some eighty thousand blocks, and sent as one

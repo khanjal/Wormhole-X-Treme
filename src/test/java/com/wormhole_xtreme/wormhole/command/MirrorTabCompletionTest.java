@@ -121,24 +121,42 @@ class MirrorTabCompletionTest
     @Test
     void startCompletesMirrorsAndNoneInBothPlaces()
     {
-        assertTrue(complete("mirror", "start", "").contains("museum"), "the mirror being set, or its start");
-        assertTrue(complete("mirror", "start", "").contains("none"), "looking at the banner, the start is the first word");
-        assertTrue(complete("mirror", "start", "museum", "").contains("lobby"), "then the start");
-        assertTrue(complete("mirror", "start", "museum", "").contains("none"));
+        assertTrue(complete("mirror", "set", "start", "").contains("museum"), "the mirror being set, or its start");
+        assertTrue(complete("mirror", "set", "start", "").contains("none"), "looking at the banner, the start is the first word");
+        assertTrue(complete("mirror", "set", "museum", "start", "").contains("lobby"), "then the start");
+        assertTrue(complete("mirror", "set", "museum", "start", "").contains("none"));
     }
 
     /**
-     * set offers nothing, on purpose.
+     * create offers nothing, on purpose.
      *
      * <p>It names a new mirror. Offering the existing names here would make rebinding one a
      * tab away from creating one, and the mistake only shows up later as a banner that has
      * quietly stopped working.
      */
     @Test
-    void setOffersNoNames()
+    void createOffersNoNames()
     {
-        assertTrue(complete("mirror", "set", "").isEmpty(),
-            "completing set from existing names would invite rebinding one by accident");
+        assertTrue(complete("mirror", "create", "").isEmpty(),
+            "completing create from existing names would invite rebinding one by accident");
+    }
+
+    /**
+     * set offers the mirror names and, in the same place, what it can change.
+     *
+     * <p>A property in the third word means the banner being looked at, so the name is optional
+     * there, and names alone would hide that. After a name comes the property, after the
+     * property what it takes, and past that nothing.
+     */
+    @Test
+    void setOffersNamesAndPropertiesAndThenWhatEachTakes()
+    {
+        final List<String> third = complete("mirror", "set", "");
+        assertTrue(third.containsAll(List.of("museum", "stamp", "display", "mode", "start")), "got " + third);
+        assertEquals(List.of("display"), complete("mirror", "set", "museum", "d"), "after a name, the property");
+        assertTrue(complete("mirror", "set", "museum", "display", "").contains("proximity"), "then what it takes");
+        assertTrue(complete("mirror", "set", "museum", "display", "proximity", "").isEmpty(), "and nothing past that");
+        assertTrue(complete("mirror", "set", "museum", "colour", "").isEmpty(), "a word that is not a property");
     }
 
     /** list takes nothing, so it offers nothing. */
@@ -173,12 +191,12 @@ class MirrorTabCompletionTest
     @Test
     void theOptionalNamePositionAlsoOffersWhatReplacesIt()
     {
-        assertTrue(complete("mirror", "display", "").contains("proximity"),
-            "got " + complete("mirror", "display", ""));
-        assertTrue(complete("mirror", "display", "").contains("museum"),
+        assertTrue(complete("mirror", "set", "display", "").contains("proximity"),
+            "got " + complete("mirror", "set", "display", ""));
+        assertTrue(complete("mirror", "set", "display", "").contains("museum"),
             "and the names are still there, since the name is optional rather than gone");
-        assertTrue(complete("mirror", "mode", "").contains("dynamic"));
-        assertTrue(complete("mirror", "stamp", "").contains("museum"));
+        assertTrue(complete("mirror", "set", "mode", "").contains("dynamic"));
+        assertTrue(complete("mirror", "set", "stamp", "").contains("museum"));
     }
 
     @Test

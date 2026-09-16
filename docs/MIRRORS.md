@@ -158,7 +158,7 @@ mirror re-reads on the next approach anyway. The worst a restart costs is one sa
 
 ## Always and proximity
 
-A corridor of lit banners is a corridor of lit banners. `mirror display <name> proximity` makes
+A corridor of lit banners is a corridor of lit banners. `mirror set <name> display proximity` makes
 one go dark until somebody comes within `mirror-proximity-distance` blocks of it.
 
 ### The banner in the world is never the blank one
@@ -279,7 +279,7 @@ Layer=BLACK BORDER
 
 | Key | What it is |
 | --- | --- |
-| `Name` | What `mirror stamp` calls it. Defaults to the file name. |
+| `Name` | What `mirror set stamp` calls it. Defaults to the file name. |
 | `Base` | The banner's own colour, one of the sixteen `DyeColor` names. Required. |
 | `Biome` | Biomes this preset answers for, comma-separated. May repeat. Optional. |
 | `Layer` | `COLOUR PATTERN`, laid on in order. May repeat. Optional. |
@@ -297,7 +297,7 @@ cut from the end rather than refused.
 ### The library at a glance
 
 Eighty-nine looks is more than anybody wants to open one file at a time. The name beside each
-one is what `mirror stamp <name> <look>` takes; the column beside that is the biome it answers
+one is what `mirror set <name> stamp <look>` takes; the column beside that is the biome it answers
 for, or what the look is for when it answers for none.
 
 **Click a banner to see it large** — each drawing is six times the size it is shown at here, so
@@ -487,7 +487,7 @@ and a 1.20 server simply never matches it — the file loads, it just never wins
 **Twenty-four looks.** `plain`, `hub`, `warning`, `private`, `arcane`, `portal`, `spawn`,
 `exit`, `arrival`, `locked`, `staff`, `market`, `shrine`, `danger`, `tomb`, `vault`, `forge`,
 `library`, `port` and `compass` name no biome at all, so nothing picks them automatically and
-`mirror stamp <name> <look>` is the only way to get one. They are for what an operator wants
+`mirror set <name> stamp <look>` is the only way to get one. They are for what an operator wants
 said about a mirror when it is not where it goes: the middle of a network, the way out, one that
 is not for general use, one that leads somewhere worth thinking about first.
 

@@ -1,6 +1,7 @@
 package com.wormhole_xtreme.wormhole.command.handlers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -43,18 +44,22 @@ import com.wormhole_xtreme.wormhole.model.mirror.QuantumMirror;
  * mirrors -- see {@link MirrorNetwork}.
  *
  * <pre>
- * mirror create &lt;name&gt;        look at a wall banner; it becomes a mirror by that name (set also works)
- * mirror start [name] &lt;m|none&gt; the mirror a right-click opens onto first
- * mirror stamp [name] [look]  give the banner a look
- * mirror display [name] &lt;how&gt; show its look always, or only up close
- * mirror mode [name] &lt;how&gt;    keep the look, or re-read the far side
- * mirror remove [name]        forget it; the banner becomes an ordinary banner again
- * mirror list                 every mirror, and what each shows
+ * mirror create &lt;name&gt;              look at a wall banner; it becomes a mirror by that name
+ * mirror set [name] start &lt;m|none&gt;  the mirror a right-click opens onto first
+ * mirror set [name] stamp [look]    give the banner a look
+ * mirror set [name] display &lt;how&gt;   show its look always, or only up close
+ * mirror set [name] mode &lt;how&gt;      keep the look, or re-read the far side
+ * mirror remove [name]              forget it; the banner becomes an ordinary banner again
+ * mirror list                       every mirror, and what each shows
  * </pre>
  *
  * <p>The verbs in brackets take the mirror on the banner you are looking at when you do not name
  * one, since the mirror somebody wants to change is usually the one they are standing in front of.
  * {@code create} keeps its required name: it is naming something that has no name yet.
+ *
+ * <p>{@code set} is the one door to what a mirror has. The four behind it were verbs of their
+ * own and most of the usage line, and none of them is what somebody making a first mirror is
+ * looking for; {@code create}, {@code remove} and {@code list} are.
  *
  * <p>{@code stamp} is a snapshot, and deliberately so. Named a look, it applies
  * that look and nothing else. Given no look, it goes and reads the far side -- the biome there
@@ -104,17 +109,28 @@ public class MirrorCommand implements SubCommand
      */
     private static final int REACH = 6;
 
-    /** The verb that makes a mirror; set stays as the older word for it. */
+    /** The verb that makes a mirror. */
     private static final String CREATE = "create";
 
+    /** The verb that changes one thing a mirror has. */
+    private static final String SET = "set";
+
     /** What this command answers to, for the usage line and tab completion. */
-    private static final String[] VERBS =
-        { CREATE, "start", "stamp", "display", "mode", "remove", "list" };
+    private static final String[] VERBS = { CREATE, SET, "remove", "list" };
+
+    /** What {@code set} can change, and so the words {@code create} refuses as a name. */
+    private static final String[] PROPERTIES = { "stamp", "display", "mode", "start" };
 
     /** @return the verbs, for the usage line built in SubCommands */
     public static String[] verbs()
     {
         return VERBS.clone();
+    }
+
+    /** @return what {@code set} can change, for tab completion */
+    public static String[] properties()
+    {
+        return PROPERTIES.clone();
     }
 
     /** True means handled, which is what Bukkit wants; every path here has handled it. */
@@ -129,12 +145,8 @@ public class MirrorCommand implements SubCommand
         final String verb = (args.length > 1) ? args[1].toLowerCase(Locale.ROOT) : "";
         switch (verb)
         {
-            // create is the verb; set stays as the older word for it, which also renames.
-            case CREATE, "set" -> set(sender, args);
-            case "stamp" -> stamp(sender, args);
-            case "display" -> display(sender, args);
-            case "mode" -> mode(sender, args);
-            case "start" -> start(sender, args);
+            case CREATE -> create(sender, args);
+            case SET -> set(sender, args);
             case "remove" -> remove(sender, args);
             case "list" -> list(sender);
             // Unlisted: what a window is drawing from and what it drew, for chasing a view that
@@ -153,6 +165,81 @@ public class MirrorCommand implements SubCommand
         say(sender, "A mirror is a wall banner. Make one with " + MirrorText.name(CREATE)
             + " while looking at it;");
         say(sender, "right-click it to choose another mirror, and punch it to go through.");
+        say(sender, MirrorText.name(SET) + " changes one thing it has: "
+            + String.join(", ", PROPERTIES) + ".");
+    }
+
+    /**
+     * Changes one thing a mirror has: {@code set [name] <stamp|display|mode|start> ...}.
+     *
+     * <p>Which word is which is settled by the third: a property there means the banner being
+     * looked at, anything else is a name and the property comes after it. That works because a
+     * property word is never a mirror's name -- {@code create} refuses the four.
+     *
+     * <p>Each property keeps the parser it had when it was a verb of its own. The words after
+     * {@code set} are put back in that shape and handed on, so what may stand where a name or a
+     * look does has not changed with the move.
+     */
+    private static void set(final CommandSender sender, final String[] args)
+    {
+        final int at = ((args.length > 2) && (property(args[2]) != null)) ? 2 : 3;
+        final String property = (args.length > at) ? property(args[at]) : null;
+        if (property == null)
+        {
+            if (args.length > at)
+            {
+                say(sender, MirrorText.quoted(args[at]) + " is not something a mirror has.");
+            }
+            saySetUsage(sender);
+            return;
+        }
+        final List<String> asVerb = new ArrayList<>();
+        asVerb.add(args[0]);
+        asVerb.add(property);
+        if (at == 3)
+        {
+            asVerb.add(args[2]);
+        }
+        asVerb.addAll(Arrays.asList(args).subList(at + 1, args.length));
+        final String[] shifted = asVerb.toArray(new String[0]);
+        switch (property)
+        {
+            case "stamp" -> stamp(sender, shifted);
+            case "display" -> display(sender, shifted);
+            case "mode" -> mode(sender, shifted);
+            default -> start(sender, shifted);
+        }
+    }
+
+    /**
+     * Whether a mirror may be called that, saying why not when it may not.
+     *
+     * <p>The four property words are how {@code set} tells a name from what comes after it, so
+     * a mirror called {@code start} could never be addressed: {@code set start hub} would be the
+     * banner in front of you.
+     */
+    private static boolean nameFree(final CommandSender sender, final String name)
+    {
+        if (property(name) == null)
+        {
+            return true;
+        }
+        say(sender, MirrorText.quoted(name) + " is a word " + MirrorText.name(SET)
+            + " takes, so a mirror cannot be called that.");
+        return false;
+    }
+
+    /** @return the property a word names, in lower case, or null for any other word */
+    private static String property(final String word)
+    {
+        final String lower = word.toLowerCase(Locale.ROOT);
+        return Arrays.asList(PROPERTIES).contains(lower) ? lower : null;
+    }
+
+    /** @see #set */
+    private static void saySetUsage(final CommandSender sender)
+    {
+        sayUsage(sender, "set [<name>] <" + String.join("|", PROPERTIES) + "> ...");
     }
 
     /**
@@ -180,10 +267,10 @@ public class MirrorCommand implements SubCommand
      * unhooked the survivor as well, because removing a mirror takes its banner out of the
      * block index without checking whether that banner is still somebody else's.
      */
-    private static void set(final CommandSender sender, final String[] args)
+    private static void create(final CommandSender sender, final String[] args)
     {
         final Player player = asPlayer(sender);
-        if ((player == null) || !named(sender, args, "set <name>"))
+        if ((player == null) || !named(sender, args, "create <name>") || !nameFree(sender, args[2]))
         {
             return;
         }
@@ -294,7 +381,7 @@ public class MirrorCommand implements SubCommand
      * Gives a plain white banner that has just become a mirror the mirror look.
      *
      * <p>Only a plain one. A banner somebody patterned before hanging it keeps what they gave it,
-     * and after that only {@code mirror stamp} changes it.
+     * and after that only {@code mirror set stamp} changes it.
      */
     private static void dressPlainBanner(final Block block, final String name)
     {
@@ -312,7 +399,7 @@ public class MirrorCommand implements SubCommand
     }
 
     /**
-     * Registers the mirror {@code set} has decided on, and says what happened.
+     * Registers the mirror {@code create} has decided on, and says what happened.
      *
      * @param existing
      *            the mirror being moved or renamed, or null to make a new one
@@ -579,10 +666,10 @@ public class MirrorCommand implements SubCommand
         if (looksFitInAMessage(names))
         {
             say(sender, USAGE + MirrorText.command(
-                "/wormhole mirror stamp [<name>] [" + String.join("|", names) + "]"));
+                "/wormhole mirror set [<name>] stamp [" + String.join("|", names) + "]"));
             return;
         }
-        say(sender, USAGE + MirrorText.command("/wormhole mirror stamp [<name>] [<look>]"));
+        say(sender, USAGE + MirrorText.command("/wormhole mirror set [<name>] stamp [<look>]"));
         if (names.length > 0)
         {
             say(sender, names.length + " looks to choose from -- press tab for the list, or"
@@ -827,7 +914,7 @@ public class MirrorCommand implements SubCommand
     /** @see #start */
     private static void sayStartUsage(final CommandSender sender)
     {
-        sayUsage(sender, "start [<name>] <mirror|none>");
+        sayUsage(sender, "set [<name>] start <mirror|none>");
     }
 
     private static void remove(final CommandSender sender, final String[] args)
@@ -1109,13 +1196,13 @@ public class MirrorCommand implements SubCommand
     /** @see #display */
     private static void sayDisplayUsage(final CommandSender sender)
     {
-        sayUsage(sender, "display [<name>] <always|proximity>");
+        sayUsage(sender, "set [<name>] display <always|proximity>");
     }
 
     /** @see #mode */
     private static void sayModeUsage(final CommandSender sender)
     {
-        sayUsage(sender, "mode [<name>] <static|dynamic>");
+        sayUsage(sender, "set [<name>] mode <static|dynamic>");
     }
 
     /**
@@ -1132,9 +1219,8 @@ public class MirrorCommand implements SubCommand
      * is what says so. A player who is not looking at one gets both: why the banner could not
      * be found, and the name they could have given instead.
      *
-     * <p>Only for the verbs that address an existing mirror. {@code set} is naming something
-     * that has no name yet, {@code target} is run from the arrival spot -- the one place the
-     * banner is not -- and {@code link}'s argument is the far mirror rather than this one.
+     * <p>Only for the verbs that address an existing mirror. {@code create} is naming
+     * something that has no name yet.
      *
      * @param sender
      *            who ran it, and who gets told what went wrong
@@ -1166,7 +1252,7 @@ public class MirrorCommand implements SubCommand
         if (mirror == null)
         {
             say(sender, "That banner is not a mirror. Name it with "
-                + MirrorText.command("/wormhole mirror set <name>") + " first, or");
+                + MirrorText.command("/wormhole mirror create <name>") + " first, or");
             say(sender, "name the mirror you meant.");
         }
         return mirror;

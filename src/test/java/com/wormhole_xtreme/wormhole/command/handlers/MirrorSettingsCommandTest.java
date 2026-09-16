@@ -71,7 +71,7 @@ class MirrorSettingsCommandTest
     @Test
     void setsAMirrorToProximityAndSaysHowCloseIsCloseEnough()
     {
-        assertTrue(run("mirror", "display", "museum", "proximity"));
+        assertTrue(run("mirror", "set", "museum", "display", "proximity"));
 
         assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("museum").display());
         verify(sender, atLeastOnce()).sendMessage(contains("goes dark"));
@@ -81,9 +81,9 @@ class MirrorSettingsCommandTest
     @Test
     void setsAMirrorBackToAlways()
     {
-        run("mirror", "display", "museum", "proximity");
+        run("mirror", "set", "museum", "display", "proximity");
 
-        assertTrue(run("mirror", "display", "museum", "always"));
+        assertTrue(run("mirror", "set", "museum", "display", "always"));
 
         assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display());
         verify(sender, atLeastOnce()).sendMessage(contains("everyone"));
@@ -92,7 +92,7 @@ class MirrorSettingsCommandTest
     @Test
     void setsAMirrorToDynamicAndSaysHowOftenItWillLook()
     {
-        assertTrue(run("mirror", "mode", "museum", "dynamic"));
+        assertTrue(run("mirror", "set", "museum", "mode", "dynamic"));
 
         assertEquals(MirrorMode.DYNAMIC, MirrorManager.byName("museum").mode());
         verify(sender, atLeastOnce()).sendMessage(contains("re-reads the far side"));
@@ -102,9 +102,9 @@ class MirrorSettingsCommandTest
     @Test
     void setsAMirrorBackToStatic()
     {
-        run("mirror", "mode", "museum", "dynamic");
+        run("mirror", "set", "museum", "mode", "dynamic");
 
-        assertTrue(run("mirror", "mode", "museum", "static"));
+        assertTrue(run("mirror", "set", "museum", "mode", "static"));
 
         assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
         verify(sender, atLeastOnce()).sendMessage(contains("keeps the look"));
@@ -113,7 +113,7 @@ class MirrorSettingsCommandTest
     @Test
     void refusesAWordThatIsNeitherAlwaysNorProximity()
     {
-        run("mirror", "display", "museum", "sideways");
+        run("mirror", "set", "museum", "display", "sideways");
 
         assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
             "a refused setting must not half-apply");
@@ -124,7 +124,7 @@ class MirrorSettingsCommandTest
     @Test
     void refusesAWordThatIsNeitherStaticNorDynamic()
     {
-        run("mirror", "mode", "museum", "interpretive");
+        run("mirror", "set", "museum", "mode", "interpretive");
 
         assertEquals(MirrorMode.STATIC, MirrorManager.byName("museum").mode());
         verify(sender, atLeastOnce())
@@ -134,18 +134,18 @@ class MirrorSettingsCommandTest
     @Test
     void showsTheFormWhenNeitherVerbIsGivenItsSetting()
     {
-        assertTrue(run("mirror", "display", "museum"));
-        assertTrue(run("mirror", "mode", "museum"));
+        assertTrue(run("mirror", "set", "museum", "display"));
+        assertTrue(run("mirror", "set", "museum", "mode"));
 
-        verify(sender, atLeastOnce()).sendMessage(contains("display [<name>] <always|proximity>"));
-        verify(sender, atLeastOnce()).sendMessage(contains("mode [<name>] <static|dynamic>"));
+        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] display <always|proximity>"));
+        verify(sender, atLeastOnce()).sendMessage(contains("set [<name>] mode <static|dynamic>"));
     }
 
     @Test
     void namesTheUnknownMirrorRatherThanTheSetting()
     {
-        run("mirror", "display", "nosuch", "proximity");
-        run("mirror", "mode", "nosuch", "dynamic");
+        run("mirror", "set", "nosuch", "display", "proximity");
+        run("mirror", "set", "nosuch", "mode", "dynamic");
 
         verify(sender, atLeastOnce())
             .sendMessage(contains("no mirror called '" + MirrorText.NAME_COLOUR + "nosuch"));
@@ -161,8 +161,8 @@ class MirrorSettingsCommandTest
     @Test
     void bothSettingsSurviveARestart()
     {
-        run("mirror", "display", "museum", "proximity");
-        run("mirror", "mode", "museum", "dynamic");
+        run("mirror", "set", "museum", "display", "proximity");
+        run("mirror", "set", "museum", "mode", "dynamic");
 
         MirrorManager.clear();
         com.wormhole_xtreme.wormhole.model.mirror.MirrorYamlManager.loadAll();
@@ -183,8 +183,8 @@ class MirrorSettingsCommandTest
         run("mirror", "list");
         verify(sender, never()).sendMessage(contains("(always"));
 
-        run("mirror", "display", "museum", "proximity");
-        run("mirror", "mode", "museum", "dynamic");
+        run("mirror", "set", "museum", "display", "proximity");
+        run("mirror", "set", "museum", "mode", "dynamic");
         run("mirror", "list");
 
         verify(sender, atLeastOnce()).sendMessage(contains("(proximity, dynamic)"));
@@ -222,7 +222,7 @@ class MirrorSettingsCommandTest
         when(console.isOp()).thenReturn(true);
 
         assertTrue(new MirrorCommand().execute(console,
-            new String[] { "mirror", "display", "museum", "proximity" }));
+            new String[] { "mirror", "set", "museum", "display", "proximity" }));
 
         assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("museum").display(),
             "neither setting depends on where anybody is standing");

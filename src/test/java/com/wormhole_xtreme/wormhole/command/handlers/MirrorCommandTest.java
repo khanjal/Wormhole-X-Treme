@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -187,15 +188,13 @@ class MirrorCommandTest
     }
 
     /**
-     * {@code create} names the banner too, because it is the word people try first.
+     * {@code create} names the banner: the word people try first, and the only one that does now.
      *
-     * <p>{@code set} stays the documented verb here -- it also renames and moves, which
-     * "create" would read wrong for -- but a server owner coming from any other plugin reaches
-     * for {@code create}, and finding the usage line instead teaches them nothing about which
-     * word this one wanted.
+     * <p>{@code set} was the older word for it. It changes what a mirror has instead, so a
+     * server owner typing {@code set museum} out of habit gets set's form, not a new mirror.
      */
     @Test
-    void createNamesTheBannerTheSameWaySetDoes()
+    void createNamesTheBanner()
     {
         final Block inFront = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(inFront);
@@ -203,7 +202,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "create", "museum"));
 
         final QuantumMirror mirror = MirrorManager.byName("museum");
-        assertNotNull(mirror, "the alias has to bind the banner, not print the form");
+        assertNotNull(mirror, "create has to bind the banner, not print the form");
         assertEquals(new MirrorBlock("world", 1, 64, 1), mirror.banner());
     }
 
@@ -278,7 +277,7 @@ class MirrorCommandTest
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "museum"));
+        assertTrue(run(player, "mirror", "create", "museum"));
 
         final QuantumMirror mirror = MirrorManager.byName("museum");
         assertNotNull(mirror, "the mirror should exist after set");
@@ -307,7 +306,7 @@ class MirrorCommandTest
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "old-spawn"));
+        assertTrue(run(player, "mirror", "create", "old-spawn"));
 
         final QuantumMirror renamed = MirrorManager.byName("old-spawn");
         assertNotNull(renamed, "the new name should be the mirror");
@@ -337,7 +336,7 @@ class MirrorCommandTest
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "museum"));
+        assertTrue(run(player, "mirror", "create", "museum"));
 
         final QuantumMirror moved = MirrorManager.byName("museum");
         assertEquals(new MirrorBlock("world", 1, 64, 1), moved.banner(), "moved to this banner");
@@ -366,7 +365,7 @@ class MirrorCommandTest
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "museum"));
+        assertTrue(run(player, "mirror", "create", "museum"));
 
         verify(player, atLeastOnce()).sendMessage(contains("already"));
         assertEquals(hung, MirrorManager.byName("library").banner(), "library is where it was");
@@ -383,7 +382,7 @@ class MirrorCommandTest
         final Block wallBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "museum"));
+        assertTrue(run(player, "mirror", "create", "museum"));
 
         verify(player, atLeastOnce()).sendMessage(contains("Nothing to do"));
         assertEquals(far, MirrorManager.byName("museum").destination(), "and nothing was done");
@@ -401,7 +400,7 @@ class MirrorCommandTest
         final Block notABanner = banner(Material.STONE);
         when(player.getTargetBlockExact(6)).thenReturn(notABanner);
 
-        run(player, "mirror", "set", "museum");
+        run(player, "mirror", "create", "museum");
 
         assertNull(MirrorManager.byName("museum"));
         verify(player, atLeastOnce()).sendMessage(contains("not a banner"));
@@ -422,7 +421,7 @@ class MirrorCommandTest
         when(wallBanner.getState()).thenReturn(cloth);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "museum"));
+        assertTrue(run(player, "mirror", "create", "museum"));
 
         verify(cloth).setBaseColor(org.bukkit.DyeColor.LIGHT_BLUE);
         verify(cloth).update(true);
@@ -472,7 +471,7 @@ class MirrorCommandTest
         when(wallBanner.getState()).thenReturn(cloth);
         when(player.getTargetBlockExact(6)).thenReturn(wallBanner);
 
-        assertTrue(run(player, "mirror", "set", "museum"));
+        assertTrue(run(player, "mirror", "create", "museum"));
 
         assertNotNull(MirrorManager.byName("museum"), "it is still made a mirror");
         verify(cloth, never()).update(anyBoolean());
@@ -487,7 +486,7 @@ class MirrorCommandTest
         when(post.getBlockData()).thenReturn(onAPost);
         when(player.getTargetBlockExact(6)).thenReturn(post);
 
-        run(player, "mirror", "set", "museum");
+        run(player, "mirror", "create", "museum");
 
         assertNull(MirrorManager.byName("museum"), "a freestanding banner shows its world past its edges");
         verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
@@ -499,7 +498,7 @@ class MirrorCommandTest
     {
         when(player.getTargetBlockExact(6)).thenReturn(null);
 
-        run(player, "mirror", "set", "museum");
+        run(player, "mirror", "create", "museum");
 
         assertNull(MirrorManager.byName("museum"));
         verify(player, atLeastOnce()).sendMessage(contains("within six blocks"));
@@ -517,11 +516,11 @@ class MirrorCommandTest
         MirrorManager.add(new QuantumMirror("hub", new MirrorBlock("world", 40, 64, 40), null));
         MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
 
-        assertTrue(run(player, "mirror", "start", "archive", "hub"));
+        assertTrue(run(player, "mirror", "set", "archive", "start", "hub"));
         assertEquals("hub", MirrorManager.byName("archive").start());
         verify(player, atLeastOnce()).sendMessage(contains("first."));
 
-        assertTrue(run(player, "mirror", "start", "archive", "none"));
+        assertTrue(run(player, "mirror", "set", "archive", "start", "none"));
         assertNull(MirrorManager.byName("archive").start(), "none is its own room again");
     }
 
@@ -531,10 +530,10 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("archive", new MirrorBlock("world_2011", 1, 64, 1), null));
 
-        run(player, "mirror", "start", "archive", "nowhere");
+        run(player, "mirror", "set", "archive", "start", "nowhere");
         verify(player, atLeastOnce()).sendMessage(contains("no mirror called"));
 
-        run(player, "mirror", "start", "archive", "ARCHIVE");
+        run(player, "mirror", "set", "archive", "start", "ARCHIVE");
         verify(player, atLeastOnce()).sendMessage(contains("own room"));
 
         assertNull(MirrorManager.byName("archive").start(), "neither is a start");
@@ -599,7 +598,7 @@ class MirrorCommandTest
         assertTrue(run(player, "mirror", "remove"));
 
         verify(player, atLeastOnce()).sendMessage(contains("not a mirror"));
-        verify(player, atLeastOnce()).sendMessage(contains("mirror set"));
+        verify(player, atLeastOnce()).sendMessage(contains("mirror create"));
     }
 
     /** A setting on its own means the banner in front of you. */
@@ -611,7 +610,7 @@ class MirrorCommandTest
         final Block inFront = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
-        assertTrue(run(player, "mirror", "display", "proximity"));
+        assertTrue(run(player, "mirror", "set", "display", "proximity"));
 
         assertEquals(MirrorDisplay.PROXIMITY, MirrorManager.byName("nether-return").display(),
             "the setting landed on the mirror nobody named");
@@ -626,7 +625,7 @@ class MirrorCommandTest
         final Block inFront = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(inFront);
 
-        assertTrue(run(player, "mirror", "mode", "dynamic"));
+        assertTrue(run(player, "mirror", "set", "mode", "dynamic"));
 
         assertEquals(MirrorMode.DYNAMIC, MirrorManager.byName("nether-return").mode());
     }
@@ -634,7 +633,7 @@ class MirrorCommandTest
     /**
      * A name with its setting forgotten still gets the form.
      *
-     * <p>The price of reading one word as a setting. {@code display museum} could be the mirror
+     * <p>The price of reading one word as a setting. {@code set museum display} could be the mirror
      * called museum with the setting left off, or a setting called museum -- and only the two
      * real setting words are read as settings, so this stays the form it always was rather than
      * becoming a complaint that museum is not a way to show a mirror.
@@ -644,10 +643,10 @@ class MirrorCommandTest
     {
         MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
 
-        assertTrue(run(player, "mirror", "display", "museum"));
+        assertTrue(run(player, "mirror", "set", "museum", "display"));
 
         verify(player, atLeastOnce())
-            .sendMessage(contains("display [<name>] <always|proximity>"));
+            .sendMessage(contains("set [<name>] display <always|proximity>"));
         verify(player, never()).sendMessage(contains("A mirror is shown"));
     }
 
@@ -812,7 +811,7 @@ class MirrorCommandTest
         when(player.getTargetBlockExact(6)).thenReturn(null);
         when(player.getLineOfSight(null, 6)).thenReturn(java.util.List.of(post));
 
-        assertTrue(run(player, "mirror", "set", "Post"));
+        assertTrue(run(player, "mirror", "create", "Post"));
 
         assertNull(MirrorManager.byName("Post"), "a banner on a post is not a mirror any more");
         verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
@@ -891,7 +890,7 @@ class MirrorCommandTest
         when(post.getBlockData()).thenReturn(onAPost);
         when(player.getTargetBlockExact(6)).thenReturn(post);
 
-        assertTrue(run(player, "mirror", "set", "Post"));
+        assertTrue(run(player, "mirror", "create", "Post"));
 
         verify(player, atLeastOnce()).sendMessage(contains("hangs on a wall"));
         verify(player, never()).sendMessage(contains("click near its base"));
@@ -910,7 +909,7 @@ class MirrorCommandTest
         final Block hanging = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(hanging);
 
-        assertTrue(run(player, "mirror", "set", "Hanging"));
+        assertTrue(run(player, "mirror", "create", "Hanging"));
 
         verify(player, never()).sendMessage(contains("click near its base"));
     }
@@ -922,8 +921,72 @@ class MirrorCommandTest
         final Block anyBanner = banner(Material.WHITE_WALL_BANNER);
         when(player.getTargetBlockExact(6)).thenReturn(anyBanner);
 
-        assertTrue(run(player, "mirror", "set"));
+        assertTrue(run(player, "mirror", "create"));
 
-        verify(player, atLeastOnce()).sendMessage(contains("set <name>"));
+        verify(player, atLeastOnce()).sendMessage(contains("create <name>"));
+    }
+
+    /**
+     * {@code set} on its own, or with a name and nothing after it, says its form.
+     *
+     * <p>"Thinking getting rid of stamp, mode, display, start from the main submenu and move it
+     * to an edit menu?" The four are behind {@code set} now, and its form is where they are found.
+     */
+    @Test
+    void setWithoutAPropertySaysItsForm()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+
+        assertTrue(run(player, "mirror", "set"));
+        assertTrue(run(player, "mirror", "set", "museum"));
+
+        verify(player, atLeast(2)).sendMessage(contains("set [<name>] <stamp|display|mode|start>"));
+    }
+
+    /** A word that is not one of the four says so, and then the form. */
+    @Test
+    void setRefusesAWordAMirrorDoesNotHave()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+
+        assertTrue(run(player, "mirror", "set", "museum", "colour", "blue"));
+
+        verify(player, atLeastOnce()).sendMessage(contains("is not something a mirror has"));
+        verify(player, atLeastOnce()).sendMessage(contains("set [<name>] <stamp|display|mode|start>"));
+    }
+
+    /**
+     * The four are not verbs any more: at the top they get the top's usage, which names set.
+     *
+     * <p>Not silently the old behaviour. A verb that still worked unlisted would be a second way
+     * to do everything, and the usage line would be lying about what the command answers to.
+     */
+    @Test
+    void theFourPropertiesAreNotVerbsAtTheTop()
+    {
+        MirrorManager.add(new QuantumMirror("museum", new MirrorBlock("world", 1, 64, 1), null));
+
+        assertTrue(run(player, "mirror", "display", "museum", "proximity"));
+
+        assertEquals(MirrorDisplay.ALWAYS, MirrorManager.byName("museum").display(),
+            "nothing changed");
+        verify(player, atLeastOnce()).sendMessage(contains("<create|set|remove|list>"));
+    }
+
+    /**
+     * A mirror cannot be called by one of the four words, since that is how set tells a name
+     * from what comes after it: {@code set start hub} would be the banner in front of you, never
+     * a mirror called start.
+     */
+    @Test
+    void createRefusesAPropertyWordAsAName()
+    {
+        final Block inFront = banner(Material.WHITE_WALL_BANNER);
+        when(player.getTargetBlockExact(6)).thenReturn(inFront);
+
+        assertTrue(run(player, "mirror", "create", "start"));
+
+        assertNull(MirrorManager.byName("start"), "not made");
+        verify(player, atLeastOnce()).sendMessage(contains("cannot be called that"));
     }
 }
