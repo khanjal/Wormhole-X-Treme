@@ -51,11 +51,21 @@ been running on defaults will start reading the file you have been editing.
   depth of 160, where the room already reaches about as far as a server sends; the number asked
   for has to be lower than what the client is being sent. Lower the depth first, then turn it on.
 
-  One thing the wiring taught: a view ends in four places -- the eye moving to a world with no
-  window in it, a redraw finding nothing left to draw, and either half of the stream that takes a
-  room back. Putting the fog back only where a redraw finds nothing looked right and left a viewer
-  who walked away narrowed for the rest of their session. All four go through one `endView` now,
-  and a test walks a viewer out of range to hold it.
+  Giving it back turned out to be the whole of the difficulty, and took three goes. A view ends in
+  four places -- the eye moving to a world with no window in it, a redraw finding nothing left to
+  draw, and either half of the stream that takes a room back -- and putting the fog back only
+  where a redraw finds nothing left a viewer who walked away narrowed for the rest of their
+  session. All four go through one `endView` now.
+
+  Two more came out of the review, both of them the same mistake in different clothes: a narrowed
+  send distance is the player's own, not the world's or the view's. On shutdown the fog was handed
+  back inside the same check that guards sending blocks to a viewer still in the drawing's world,
+  so somebody who had since walked through a portal kept it. And a viewer who logged out mid-view
+  was left recorded as narrowed, which held the entry for the life of the server and, worse, would
+  have made a mirror skip them if they came back on the same id, since it does nothing for a
+  viewer it already thinks is narrowed. What is remembered is dropped whenever a view ends now,
+  player or no player, and the packet only goes where there is somebody to send it to. Both have
+  a test, and both fail on the code as it was written.
 
 - **A capture reaches as far as the room's world sends, and the depth draws part of it.** "Maybe
   the capture grabs all the way to the server view limit, then we dynamically pull that data

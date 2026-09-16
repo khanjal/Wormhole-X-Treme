@@ -714,11 +714,21 @@ the room already reaches about as far as a server sends — the number asked for
 than what the client is being sent, or there is nothing to gain. Lower `mirror-view-depth` first,
 then turn it on.
 
-A view ends in four places — the eye moving to a world with no window in it, a redraw finding
-nothing left to draw, and either half of the stream that takes a room back — so all four go
-through one `endView`. Restoring only where a redraw finds nothing looked right and left a viewer
-who walked away narrowed for the rest of their session; the test that catches it is
-`aViewerDrawnARoomHasTheirFogPulledInAndPutBack`.
+Giving it back is the whole of the difficulty. A view ends in four places — the eye moving to a
+world with no window in it, a redraw finding nothing left to draw, and either half of the stream
+that takes a room back — so all four go through one `endView`. Restoring only where a redraw
+finds nothing looked right and left a viewer who walked away narrowed for the rest of their
+session.
+
+The rule that settles the rest: a narrowed send distance is the player's own, not the world's
+and not the view's. So it is handed back on shutdown wherever they are standing, outside the
+check that guards sending blocks to a viewer still in the drawing's world; and what is
+remembered is dropped whenever a view ends, player or no player, since a viewer who logged out
+mid-view would otherwise be recorded as narrowed for the life of the server and be skipped if
+they came back on the same id. The tests are
+`aViewerDrawnARoomHasTheirFogPulledInAndPutBack`,
+`stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds` and
+`aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn`.
 
 On Spigot `MirrorFog.available()` is false and nothing happens: this world shows past the room,
 which is what it did before. The setting is read all the same, so a server that moves to Paper

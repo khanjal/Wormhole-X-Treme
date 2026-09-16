@@ -144,18 +144,25 @@ final class MirrorFog
      * <p>Quiet for a viewer who was never narrowed, which is most of them: the setting is off by
      * default, the API is absent on Spigot, and a room at the default depth gains nothing.
      *
+     * <p>The id and the player are both taken because they go missing separately. What is
+     * remembered is dropped whenever a view ends, player or no player; the packet only goes where
+     * there is somebody to send it to. Dropping it either way is what stops a viewer who logged
+     * out mid-view from being remembered as narrowed for the life of the server -- and, worse,
+     * from being skipped by {@link #narrow} if they came back on the same id.
+     *
+     * @param id
+     *            whose view has ended
      * @param player
-     *            the viewer who is no longer being drawn a room
+     *            that player, or null for one the server no longer has
      */
-    static void restore(final Player player)
+    static void restore(final UUID id, final Player player)
     {
-        if ((sendDistance == null) || (player == null))
+        if (sendDistance == null)
         {
             return;
         }
-        final UUID id = player.getUniqueId();
         final Narrowed was = (id == null) ? null : BEFORE.remove(id);
-        if (was != null)
+        if ((was != null) && (player != null))
         {
             sendDistance.set(player, was.before());
         }

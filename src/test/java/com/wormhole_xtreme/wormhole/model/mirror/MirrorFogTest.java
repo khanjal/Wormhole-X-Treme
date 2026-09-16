@@ -88,7 +88,7 @@ class MirrorFogTest
         assertEquals(List.of(4), set, "three chunks of room, and one over for the edge");
         assertTrue(MirrorFog.narrowed(viewer.getUniqueId()));
 
-        MirrorFog.restore(viewer);
+        MirrorFog.restore(viewer.getUniqueId(), viewer);
         assertEquals(List.of(4, 10), set, "exactly what they were being sent before");
         assertFalse(MirrorFog.narrowed(viewer.getUniqueId()));
     }
@@ -147,7 +147,7 @@ class MirrorFogTest
 
         MirrorFog.narrow(viewer, 48);
         MirrorFog.narrow(viewer, 16);
-        MirrorFog.restore(viewer);
+        MirrorFog.restore(viewer.getUniqueId(), viewer);
 
         assertEquals(List.of(4, 10), set, "asked once, and put back to the original ten");
     }
@@ -156,9 +156,37 @@ class MirrorFogTest
     @Test
     void aViewerWhoWasNeverNarrowedIsNotSentAnything()
     {
-        MirrorFog.restore(player());
+        final Player viewer = player();
+
+        MirrorFog.restore(viewer.getUniqueId(), viewer);
 
         assertEquals(List.of(), set, "nothing to put back");
+    }
+
+    /**
+     * A viewer who logged out mid-view is forgotten, though nothing can be sent to them.
+     *
+     * <p>From the review. Their send distance dies with the connection, so there is nothing to
+     * put back -- but leaving them remembered as narrowed would keep the entry for the life of
+     * the server and, worse, make {@link MirrorFog#narrow} skip them if they came back on the
+     * same id, since it does nothing for a viewer it thinks is already narrowed.
+     */
+    @Test
+    void aViewerWhoWentAwayIsForgottenAndCanBeNarrowedAgainOnReturn()
+    {
+        final Player viewer = player();
+        MirrorFog.narrow(viewer, 48);
+        set.clear();
+        sending = 10;
+
+        // Gone: the server has the id but no player to send anything to.
+        MirrorFog.restore(viewer.getUniqueId(), null);
+
+        assertFalse(MirrorFog.narrowed(viewer.getUniqueId()), "not remembered as narrowed");
+        assertEquals(List.of(), set, "and nothing sent to somebody who is not there");
+
+        MirrorFog.narrow(viewer, 48);
+        assertEquals(List.of(4), set, "so coming back narrows again rather than being skipped");
     }
 
     /**

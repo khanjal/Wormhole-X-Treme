@@ -850,8 +850,11 @@ public final class MirrorWindows
                 send(player, entry.getValue(), new HashMap<>(), player.getEyeLocation(), now, false, Set.of());
                 stream(player, entry.getValue(), Integer.MAX_VALUE);
                 veil(player, entry.getValue(), List.of());
-                MirrorFog.restore(player);
             }
+            // Outside that: the fog is the player's own and not the world's, so it goes back
+            // wherever they are standing now. Blocks drawn in a world they have left are already
+            // gone, but a narrowed send distance would follow them out of it.
+            MirrorFog.restore(entry.getKey(), player);
         }
         clear();
     }
@@ -988,7 +991,7 @@ public final class MirrorWindows
     private static void endView(final UUID id, final Player player)
     {
         VIEWS.remove(id);
-        MirrorFog.restore(player);
+        MirrorFog.restore(id, player);
     }
 
     /**

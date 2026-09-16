@@ -1774,6 +1774,96 @@ class MirrorWindowsTest
         assertEquals(List.of(2, 10), fog, "and the ten they were being sent before comes back");
     }
 
+
+    /**
+     * Stopping puts a viewer's fog back even if they have since changed worlds.
+     *
+     * <p>From the review. The blocks a mirror drew in a world somebody has left are already gone
+     * with the chunks, so the send is rightly skipped for them -- but a narrowed send distance is
+     * the player's own and follows them out of the world, so it has to go back whatever world they
+     * are standing in. Gated behind the same world check as the blocks, it did not.
+     */
+    @Test
+    void stoppingPutsTheFogBackEvenForAViewerWhoChangedWorlds()
+    {
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        final List<Integer> fog = new ArrayList<>();
+        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        {
+            @Override
+            public int get(final Player player)
+            {
+                return 10;
+            }
+
+            @Override
+            public void set(final Player player, final int chunks)
+            {
+                fog.add(chunks);
+            }
+        });
+        final Player viewer = playerAt(10.5, 7.5);
+        when(viewer.isOnline()).thenReturn(true);
+        when(world.getPlayers()).thenReturn(List.of(viewer));
+
+        withServer(() ->
+        {
+            MirrorProximity.tick();
+            assertEquals(List.of(2), fog, "narrowed while being drawn a room");
+            // Through a portal: the drawing's world is stale, the player's fog is not.
+            when(viewer.getWorld()).thenReturn(mock(World.class));
+            MirrorWindows.restoreAll();
+        });
+
+        assertEquals(List.of(2, 10), fog, "the ten they had comes back wherever they are");
+    }
+
+    /**
+     * {@code mirror debug} says which of the fog's four states a viewer is in.
+     *
+     * <p>The feature is invisible by design -- a room ending in fog looks like a room that ends --
+     * so the line is the only way to tell "pulled in" from "off", from "this server has not got
+     * the method", from "already sent no further than the room reaches". The pulled-in case is
+     * {@code aViewerDrawnARoomHasTheirFogPulledInAndPutBack}; these are the other three, and none
+     * of them needs a window to report on.
+     */
+    @Test
+    void debugSaysWhichStateTheFogIsIn()
+    {
+        final Player asker = playerAt(200.5, 200.5);
+
+        assertEquals("fog: off (mirror-fog-at-depth)", fogLine(asker), "off by default");
+
+        ConfigTestSupport.set(ConfigKeys.MIRROR_FOG_AT_DEPTH, true);
+        assertTrue(fogLine(asker).contains("no Player.setSendViewDistance"),
+            "on, with no Paper under it: " + fogLine(asker));
+
+        // A client already being sent no further than a 16-deep room reaches.
+        MirrorFog.sendDistanceWith(new MirrorFog.SendDistance()
+        {
+            @Override
+            public int get(final Player player)
+            {
+                return 2;
+            }
+
+            @Override
+            public void set(final Player player, final int chunks)
+            {
+                throw new AssertionError("nothing to gain, so nothing should be set");
+            }
+        });
+        assertTrue(fogLine(asker).contains("nothing pulled in"),
+            "on, and no narrower than they already are: " + fogLine(asker));
+    }
+
+    /** The one debug line about the fog, without its colours. */
+    private static String fogLine(final Player player)
+    {
+        return MirrorWindows.describe(player).stream().map(MirrorWindowsTest::plain)
+            .filter(line -> line.startsWith("fog: ")).findFirst().orElse("no fog line");
+    }
+
     @Test
     void clickingTheOpeningWhileLookingInIsTheMirror()
     {
