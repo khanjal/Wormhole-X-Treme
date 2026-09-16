@@ -3,7 +3,9 @@ package com.wormhole_xtreme.wormhole;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
@@ -161,8 +163,7 @@ class GatePortalInteriorBuildTest
     {
         placeRefused(portalCell(Material.COBBLESTONE));
 
-        org.mockito.Mockito.verify(player).sendMessage(org.mockito.ArgumentMatchers
-            .contains("cannot build inside the gate 'ringgate'"));
+        verify(player).sendMessage(contains("cannot build inside the gate 'ringgate'"));
     }
 
     /**

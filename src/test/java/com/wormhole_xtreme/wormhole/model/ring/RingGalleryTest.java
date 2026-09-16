@@ -122,7 +122,7 @@ class RingGalleryTest
         final List<Integer> out = new ArrayList<>(new TreeSet<>(
             RingAnimator.deployFrame(ring, style, frame).stream()
                 .map(p -> ((p.getY() - base) * 2) + (p.isTop() ? 1 : 0))
-                .collect(Collectors.toList())));
+                .toList()));
         out.sort(null);
         return out;
     }
