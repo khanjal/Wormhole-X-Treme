@@ -2,13 +2,16 @@ package com.wormhole_xtreme.wormhole;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 
 import com.wormhole_xtreme.wormhole.model.Stargate;
@@ -50,21 +53,35 @@ class ProjectileGateTracker implements Listener
      */
     private static final double PATH_STEP = 0.5;
 
+    /**
+     * Most gates one shot is carried through. Two connected gates facing each other hand an arrow
+     * back and forth for as long as it is followed, so the count goes with it to each replacement.
+     */
+    static final int MOST_CROSSINGS = 4;
+
+    /** Ticks a hit is remembered, long enough for the exit velocity applied a tick later to see it. */
+    private static final int HIT_TICKS = 20;
+
     /** What is known about a projectile being followed. */
     private static final class Tracked
     {
         private final int expiresAtTick;
+        private final int crossings;
         private Location previous;
 
-        Tracked(final int expiresAtTick, final Location previous)
+        Tracked(final int expiresAtTick, final Location previous, final int crossings)
         {
             this.expiresAtTick = expiresAtTick;
             this.previous = previous;
+            this.crossings = crossings;
         }
     }
 
     /** Projectiles in flight. */
     private static final Map<Projectile, Tracked> tracked = new ConcurrentHashMap<>();
+
+    /** Projectiles that have hit something, by id, with the tick they did. */
+    private static final Map<UUID, Integer> hit = new ConcurrentHashMap<>();
 
     /** Ticks since the tracker started, used only to expire entries. */
     private static int tick = 0;
@@ -116,7 +133,28 @@ class ProjectileGateTracker implements Listener
             return;
         }
         final Projectile projectile = event.getEntity();
-        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation()));
+        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation(), 0));
+    }
+
+    /**
+     * Stops following a projectile once it hits anything.
+     *
+     * <p>An arrow that does no damage -- to a player still invulnerable from the last hit, or
+     * blocking -- bounces back, and in front of a gate that is straight back into the portal.
+     *
+     * @param event
+     *            the hit
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onProjectileHit(final ProjectileHitEvent event)
+    {
+        final Projectile projectile = event.getEntity();
+        if (projectile == null)
+        {
+            return;
+        }
+        tracked.remove(projectile);
+        hit.put(projectile.getUniqueId(), Integer.valueOf(tick));
     }
 
     /**
@@ -132,6 +170,10 @@ class ProjectileGateTracker implements Listener
             if ((tick % GATE_CHECK_INTERVAL) == 0)
             {
                 refreshAnyGateOpen();
+            }
+            if (!hit.isEmpty())
+            {
+                hit.values().removeIf(at -> (tick - at.intValue()) >= HIT_TICKS);
             }
             if (tracked.isEmpty())
             {
@@ -260,15 +302,34 @@ class ProjectileGateTracker implements Listener
     }
 
     /**
-     * Starts tracking a projectile that was created by a gate crossing, so it can cross
-     * another one.
+     * Follows the projectile a gate crossing fired in place of another, so it can cross another
+     * gate -- within what is left of the original's lifetime and crossings.
      *
-     * @param projectile
-     *            the replacement projectile
+     * @param replacement
+     *            the projectile fired at the far gate
+     * @param original
+     *            the one it replaces
      */
-    static void track(final Projectile projectile)
+    static void track(final Projectile replacement, final Projectile original)
     {
-        tracked.put(projectile, new Tracked(tick + TRACK_TICKS, projectile.getLocation()));
+        final Tracked was = (original == null) ? null : tracked.get(original);
+        final int crossings = ((was == null) ? 0 : was.crossings) + 1;
+        if (crossings >= MOST_CROSSINGS)
+        {
+            return;
+        }
+        final int expires = (was == null) ? (tick + TRACK_TICKS) : was.expiresAtTick;
+        tracked.put(replacement, new Tracked(expires, replacement.getLocation(), crossings));
+    }
+
+    /**
+     * @param entity
+     *            an entity
+     * @return true if it is a projectile that has hit something in the last second
+     */
+    static boolean hasHit(final Entity entity)
+    {
+        return (entity instanceof Projectile) && hit.containsKey(entity.getUniqueId());
     }
 
     /**
@@ -286,6 +347,7 @@ class ProjectileGateTracker implements Listener
     static void clear()
     {
         tracked.clear();
+        hit.clear();
     }
 
     /**

@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Location;
@@ -15,6 +17,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
@@ -254,6 +257,115 @@ class ProjectileGateTrackerTest
             "the one that threw is forgotten, so it cannot throw again next tick");
     }
 
+
+    /** A fresh arrow sitting in the portal, as the far gate of a facing pair would hand one back. */
+    private Arrow anotherArrowInThePortal()
+    {
+        final Arrow another = mock(Arrow.class);
+        when(another.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(another.isValid()).thenReturn(true);
+        when(another.getType()).thenReturn(EntityType.ARROW);
+        when(another.getVelocity()).thenReturn(new Vector(0, 0, -3.0));
+        when(another.getPickupStatus()).thenReturn(org.bukkit.entity.AbstractArrow.PickupStatus.ALLOWED);
+        when(another.getLocation()).thenReturn(new Location(world, BX + 0.5, BY, BZ + 0.5));
+        return another;
+    }
+
+    /** A hit on this projectile, mocked: the event's constructors differ across versions. */
+    private static ProjectileHitEvent hitOn(final Arrow projectile)
+    {
+        final ProjectileHitEvent event = mock(ProjectileHitEvent.class);
+        when(event.getEntity()).thenReturn(projectile);
+        return event;
+    }
+
+    /**
+     * Two gates facing each other hand an arrow back and forth a bounded number of times (#298).
+     *
+     * <p>Each crossing fires a replacement, which used to be followed afresh: nothing carried over,
+     * so an arrow between facing gates went round for as long as it flew.
+     */
+    @Test
+    void anArrowBetweenFacingGatesCrossesABoundedNumberOfTimes()
+    {
+        when(world.spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class)))
+            .thenAnswer(inv -> anotherArrowInThePortal());
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+
+        for (int i = 0; i < 20; i++)
+        {
+            ticker.run();
+        }
+
+        verify(world, times(ProjectileGateTracker.MOST_CROSSINGS))
+            .spawnArrow(any(Location.class), any(Vector.class), anyFloat(), anyFloat(), any(Class.class));
+        assertEquals(0, ProjectileGateTracker.trackedCount(), "and the last one is let fly");
+    }
+
+    /** A replacement lives out the original's time, not a fresh allowance of its own. */
+    @Test
+    void aReplacementKeepsWhatWasLeftOfTheOriginalsTime()
+    {
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 100, BY, BZ + 100);
+        for (int i = 0; i < 150; i++)
+        {
+            ticker.run();
+        }
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+        when(spawned.getLocation()).thenReturn(new Location(world, BX + 100, BY, BZ + 100));
+        assertEquals(1, ProjectileGateTracker.trackedCount(), "the replacement is followed");
+
+        for (int i = 0; i < 60; i++)
+        {
+            ticker.run();
+        }
+
+        assertEquals(0, ProjectileGateTracker.trackedCount(), "gone when the original's time runs out");
+    }
+
+    /** An arrow that has hit something is no longer sent through a gate, even bounced back into one. */
+    @Test
+    void anArrowThatHitSomethingIsNotSentThroughAgain()
+    {
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 3.5);
+        ticker.run();
+
+        new ProjectileGateTracker().onProjectileHit(hitOn(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+
+        verify(arrow, never()).remove();
+        assertEquals(0, ProjectileGateTracker.trackedCount());
+    }
+
+    /**
+     * A replacement that hits somebody on arrival is not pushed on again the tick after (#298).
+     *
+     * <p>The exit velocity goes on twice, the second a tick later, because a spawned arrow loses
+     * the first. An arrow that bounced off a player in that tick was sent on through them.
+     */
+    @Test
+    void aReplacementThatHitsOnArrivalIsNotPushedOnAgain() throws Exception
+    {
+        final List<Runnable> later = new ArrayList<>();
+        final org.bukkit.scheduler.BukkitScheduler holding = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        when(holding.scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong()))
+            .thenAnswer(inv -> { later.add(inv.getArgument(1, Runnable.class)); return 1; });
+        PluginTestSupport.scheduler(holding);
+        new ProjectileGateTracker().onProjectileLaunch(new ProjectileLaunchEvent(arrow));
+        arrowAt(BX + 0.5, BY, BZ + 0.5);
+        ticker.run();
+        assertFalse(later.isEmpty(), "the second push is booked for next tick");
+
+        new ProjectileGateTracker().onProjectileHit(hitOn(spawned));
+        later.forEach(Runnable::run);
+
+        verify(spawned, times(1)).setVelocity(any(Vector.class));
+    }
 
     @Test
     void nothingIsFollowedWhileNoGateIsOpen()
