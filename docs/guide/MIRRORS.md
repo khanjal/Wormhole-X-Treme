@@ -66,8 +66,8 @@ banners and one more either side, and from one above the banners to one below th
 built for one banner is a column short, and `create` says so.
 
 A mirror you already made one wide stays one wide: `mirror remove` it, hang the second banner, and
-`create` again. A room captured before wide mirrors existed is a little narrow for one; `mirror
-set <name> capture` retakes it.
+`create` again. A room captured before wide mirrors existed is a little narrow for one;
+`mirror set <name> capture` retakes it.
 
 ## Commands
 
