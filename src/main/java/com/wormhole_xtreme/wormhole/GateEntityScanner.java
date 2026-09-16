@@ -222,7 +222,7 @@ public final class GateEntityScanner implements Runnable
             projectile.remove();
             if (spawned instanceof Projectile shot)
             {
-                ProjectileGateTracker.track(shot);
+                ProjectileGateTracker.track(shot, projectile);
             }
             return spawned;
         }
@@ -456,7 +456,8 @@ public final class GateEntityScanner implements Runnable
         {
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () ->
             {
-                if (moved.isValid())
+                // Not to one that has hit something since: that would push a bounced arrow on again.
+                if (moved.isValid() && !ProjectileGateTracker.hasHit(moved))
                 {
                     applyVelocity(moved, exit);
                 }
