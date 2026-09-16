@@ -23,8 +23,9 @@ and they are here instead.
 - If your plugin folder is not `./plugins`, this build reads `config.yml` and the gate shapes from
   the folder the server names, where 1.5.0 read them from a guess. A server that had quietly been
   running on defaults will start reading the file you have been editing.
-- New defaults reach only a fresh `config.yml`. Rings now count down for 100 ticks and rest for
-  600; an existing file keeps 60 and 1200 until you change them.
+- New defaults reach only a fresh `config.yml`. Rings now count down for 100 ticks
+  (`ring-countdown-ticks`) and rest for 600 (`ring-cooldown-ticks`); an existing file keeps 60 and
+  1200 until you change them.
 - Minecraft 26.1 and later need the server on Java 25. The plugin itself still runs on Java 17.
 
 ### In this release
