@@ -46,6 +46,9 @@ ODD — 7 across, 16 slabs          EVEN — 6 across, 12 slabs
   # = lay a slab    : = stand anywhere in here    + = anchor
 ```
 
+Both are [drawn to scale](../RINGS.md#patterns) in the design notes, along with
+[what the deploy looks like frame by frame](../RINGS.md#what-that-looks-like).
+
 - **Only the ring**, not a filled disc.
 - **One kind of slab.** It becomes the ring's material — deepslate slabs rise as deepslate.
 - **All facing the same way.** Bottom slabs on a floor make a floor ring; top slabs under a ceiling
