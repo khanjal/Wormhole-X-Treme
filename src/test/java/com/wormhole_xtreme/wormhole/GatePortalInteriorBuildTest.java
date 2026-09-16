@@ -121,7 +121,7 @@ class GatePortalInteriorBuildTest
     private boolean placeRefused(final Block placed)
     {
         final BlockPlaceEvent event = new BlockPlaceEvent(placed, mock(BlockState.class),
-            frameBlock(), new ItemStack(Material.COBBLESTONE), player, true);
+            frameBlock(), mock(ItemStack.class), player, true);
         new WormholeXTremeBlockListener().onBlockPlace(event);
         return event.isCancelled();
     }
@@ -136,7 +136,7 @@ class GatePortalInteriorBuildTest
     private boolean hitRefused(final Block hit)
     {
         final BlockDamageEvent event = new BlockDamageEvent(player, hit,
-            new ItemStack(Material.DIAMOND_PICKAXE), false);
+            mock(ItemStack.class), false);
         new WormholeXTremeBlockListener().onBlockDamage(event);
         return event.isCancelled();
     }
