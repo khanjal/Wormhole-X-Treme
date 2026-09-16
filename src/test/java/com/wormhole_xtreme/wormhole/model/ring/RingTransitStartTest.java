@@ -74,9 +74,19 @@ class RingTransitStartTest
     private final Map<String, Block> blocks = new HashMap<>();
     private final Map<String, Chunk> chunks = new HashMap<>();
 
+    /**
+     * The time start() sees, which only moves when a test moves it.
+     *
+     * <p>On the real clock the remembered survey could go stale between two walk-ins on a slow
+     * runner: surveying a mocked ring took over its one-second TTL in CI, and the refusal was
+     * said twice.
+     */
+    private long now = 1_000_000L;
+
     @BeforeEach
     void setUp() throws Exception
     {
+        RingTransit.clock = () -> now;
         RingTransit.clear();
         RingManager.clear();
         blocks.clear();
@@ -140,24 +150,13 @@ class RingTransitStartTest
         RingManager.clear();
         PrivateStatics.set(WormholeXTreme.class, "thisPlugin", null);
         PrivateStatics.set(WormholeXTreme.class, "scheduler", null);
+        RingTransit.clock = System::currentTimeMillis;
     }
 
-    /**
-     * Ages the remembered blockage answer so the next walk-in reads the world again.
-     *
-     * <p>It is trusted for one second, which is not a thing to sit through in a test. Reaching
-     * into the map is the only way to be somewhere other than "just now" without waiting.
-     */
-    private static void ageOutTheRememberedSurvey() throws Exception
+    /** Moves the clock on until the remembered blockage answer is no longer trusted. */
+    private void ageOutTheRememberedSurvey()
     {
-        final Map<String, Long> surveyed = surveyed();
-        final Long past = Long.valueOf(System.currentTimeMillis() - 1L);
-        // put over the keys rather than Map.Entry#setValue, which not every Map.Entry
-        // implementation supports.
-        for (final String id : new java.util.ArrayList<String>(surveyed.keySet()))
-        {
-            surveyed.put(id, past);
-        }
+        now += RingTransit.SURVEY_TTL_MILLIS;
     }
 
     /** What start() currently believes is mid-cycle. */
@@ -284,12 +283,12 @@ class RingTransitStartTest
     void aPairStillCoolingDownIsNotFired()
     {
         final RingPair pair = pair();
-        pair.setCooldownUntil(System.currentTimeMillis() + 60_000L);
+        pair.setCooldownUntil(now + 60_000L);
 
         assertFalse(walkIn(pair, walker), "the pair is not ready to go again yet");
         verify(scheduler, never()).scheduleSyncDelayedTask(any(), any(Runnable.class), anyLong());
 
-        pair.setCooldownUntil(System.currentTimeMillis() - 1L);
+        pair.setCooldownUntil(now - 1L);
         assertTrue(walkIn(pair, walker), "and goes as soon as it is");
     }
 

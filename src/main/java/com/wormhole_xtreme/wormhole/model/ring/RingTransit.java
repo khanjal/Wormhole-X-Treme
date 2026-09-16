@@ -38,7 +38,14 @@ public final class RingTransit
         new ConcurrentHashMap<>();
 
     /** How long a blockage answer is trusted before the world is read again. */
-    private static final long SURVEY_TTL_MILLIS = 1000L;
+    static final long SURVEY_TTL_MILLIS = 1000L;
+
+    /**
+     * Where "now" comes from, so a test can hold it still across a survey that is slow to mock.
+     */
+    // A function reference, not a container: volatile is the whole synchronisation it needs.
+    @SuppressWarnings("java:S3077")
+    static volatile java.util.function.LongSupplier clock = System::currentTimeMillis;
 
     private RingTransit() {}
 
@@ -57,7 +64,7 @@ public final class RingTransit
     public static boolean start(final RingPair pair, final org.bukkit.entity.Player armedBy,
         final boolean tellThem)
     {
-        final long now = System.currentTimeMillis();
+        final long now = clock.getAsLong();
         if ((pair == null) || !pair.canFire(now))
         {
             return false;
@@ -472,7 +479,7 @@ public final class RingTransit
                     // wait a minute to retry a trip that never happened is just a
                     // punishment for having stepped out.
                     cycle.finish((cycle.getCarried() == 0) ? 0L
-                        : (System.currentTimeMillis()
+                        : (clock.getAsLong()
                             + (ConfigManager.getRingCooldownTicks() * 50L)));
                     finished(cycle, world);
                 }
@@ -518,7 +525,7 @@ public final class RingTransit
             "Ring pair " + cycle.getPair().getId() + " failed mid-cycle, putting it back", cause);
         try
         {
-            cycle.finish(System.currentTimeMillis() + (ConfigManager.getRingCooldownTicks() * 50L));
+            cycle.finish(clock.getAsLong() + (ConfigManager.getRingCooldownTicks() * 50L));
         }
         // Even the clean-up failing must not leave the pair marked busy forever.
         catch (final RuntimeException ignored)
