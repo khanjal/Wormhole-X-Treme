@@ -102,31 +102,49 @@ final class MirrorFog
     }
 
     /**
-     * Pulls a viewer's fog in to a room this deep, if that is nearer than what they are sent.
+     * Brings a viewer's fog in line with the settings as they stand now: pulled in to a room this
+     * deep if that is nearer than what they are sent, given back if not.
      *
-     * <p>A chunk over the depth, the same allowance {@code freshChunks} makes, so the room's own
-     * far edge is inside what the client has rather than exactly at its limit.
-     *
-     * <p>Once per viewer: the second call while they are still narrowed does nothing, so what is
-     * remembered is always what they had before any mirror touched it.
+     * <p>Called every redraw so a setting changed mid-view reaches the viewer; the server is asked
+     * only when the number moves. What is remembered is what they had before any mirror touched it.
      *
      * @param player
      *            the viewer being drawn a room
      * @param depth
      *            how far the room reaches, in blocks
      */
-    static void narrow(final Player player, final int depth)
+    static void apply(final Player player, final int depth)
     {
-        if ((sendDistance == null) || (player == null) || !ConfigManager.isMirrorFogAtDepth())
+        if ((sendDistance == null) || (player == null))
         {
             return;
         }
         final UUID id = player.getUniqueId();
-        if ((id == null) || BEFORE.containsKey(id))
+        if (id == null)
         {
             return;
         }
         final int wanted = Math.max(LEAST_CHUNKS, ((depth + 15) / 16) + 1);
+        final Narrowed was = BEFORE.get(id);
+        if (was != null)
+        {
+            if (!ConfigManager.isMirrorFogAtDepth() || (wanted >= was.before()))
+            {
+                // Off now, or deep enough that there is nothing to gain: give it back.
+                BEFORE.remove(id);
+                sendDistance.set(player, was.before());
+            }
+            else if (wanted != was.now())
+            {
+                BEFORE.put(id, new Narrowed(was.before(), wanted));
+                sendDistance.set(player, wanted);
+            }
+            return;
+        }
+        if (!ConfigManager.isMirrorFogAtDepth())
+        {
+            return;
+        }
         final int sent = sendDistance.get(player);
         // Nothing to gain where the room already reaches as far as the client is being sent,
         // which is the default depth on an ordinary server.
@@ -148,7 +166,7 @@ final class MirrorFog
      * remembered is dropped whenever a view ends, player or no player; the packet only goes where
      * there is somebody to send it to. Dropping it either way is what stops a viewer who logged
      * out mid-view from being remembered as narrowed for the life of the server -- and, worse,
-     * from being skipped by {@link #narrow} if they came back on the same id.
+     * from being skipped by {@link #apply} if they came back on the same id.
      *
      * @param id
      *            whose view has ended
