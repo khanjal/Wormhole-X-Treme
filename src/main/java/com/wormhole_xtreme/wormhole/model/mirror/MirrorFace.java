@@ -179,7 +179,8 @@ final class MirrorFace
             }
         }
         final List<Spot> spots = new ArrayList<>();
-        frame.forEach(face -> spots.add(new Spot(MirrorWindows.unpackX(face), MirrorWindows.unpackY(face), MirrorWindows.unpackZ(face))));
+        frame.forEach(face -> spots.add(new Spot(MirrorWindows.unpackX(face),
+            MirrorWindows.unpackY(face), MirrorWindows.unpackZ(face))));
         return spots;
     }
     /** Static state only. */
