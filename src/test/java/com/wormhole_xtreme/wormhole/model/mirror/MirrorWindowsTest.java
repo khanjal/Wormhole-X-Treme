@@ -2023,7 +2023,7 @@ class MirrorWindowsTest
                 drawn[1] = drawnCount(viewer);
             });
 
-            assertTrue(drawn[0] <= 500, "the click has to land part-way through, with a tick sent: " + drawn[0]);
+            assertTrue((drawn[0] > 0) && (drawn[0] <= 500), "the click has to land part-way through, with a tick sent: " + drawn[0]);
             assertTrue(drawn[1] > (3 * drawn[0]),
                 "and the rest of the room still arrives, rather than stopping at what was out when the click"
                     + " landed: " + drawn[0] + " then " + drawn[1]);
